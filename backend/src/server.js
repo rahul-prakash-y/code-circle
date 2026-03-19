@@ -8,7 +8,7 @@ const path = require("path");
 
 
 fastify.register(fastifyStatic, {
-    root: path.join(__dirname, "../frontend/dist"),
+    root: path.join(__dirname, "../../frontend/dist"),
     prefix: "/",
 });
 
