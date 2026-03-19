@@ -6,30 +6,12 @@ const { initFirebase } = require('./config/firebase');
 const fastifyStatic = require("@fastify/static");
 const path = require("path");
 
-
-fastify.register(fastifyStatic, {
-    root: path.join(__dirname, "../../frontend/dist"),
-    prefix: "/",
-});
-
-fastify.setNotFoundHandler((request, reply) => {
-    if (request.raw.url.startsWith('/api')) {
-        return reply.code(404).send({
-            success: false,
-            message: 'API route not found'
-        });
-    }
-
-    // SPA fallback
-    return reply.sendFile('index.html');
-});
-
 // Register CORS
 fastify.register(cors, {
-  origin: true, // Automatically reflect the request origin
+  origin: true,``
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  credentials: true // Set to true if you need to send cookies/auth headers
+  credentials: true
 });
 
 // Middleware & Auth
@@ -38,14 +20,14 @@ initFirebase();
 // Connect Database
 connectDB();
 
-// Register Plugins
+// Register Other Plugins
 fastify.register(require('@fastify/multipart'), {
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
 
-// Register Routes
+// --- API ROUTES ---
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/userRoutes'), { prefix: '/api/users' });
 fastify.register(require('./routes/uploadRoutes'), { prefix: '/api/upload' });
@@ -55,16 +37,30 @@ fastify.register(require('./routes/problemRoutes'), { prefix: '/api/problems' })
 fastify.register(require('./routes/analyticsRoutes'), { prefix: '/api/analytics' });
 fastify.register(require('./routes/quizRoutes'), { prefix: '/api/quizzes' });
 
-// Health Check Root
-fastify.get('/', async () => {
-  return { message: 'Code Circle Backend API' };
+// --- STATIC FILE SERVING (PRODUCTION) ---
+// Note: This must be registered after API routes if we use prefix: '/'
+fastify.register(fastifyStatic, {
+  root: path.join(__dirname, "../../frontend/dist"),
+  prefix: "/",
+});
+
+// SPA Fallback for non-API routes
+fastify.setNotFoundHandler((request, reply) => {
+  if (request.raw.url.startsWith('/api')) {
+    return reply.code(404).send({
+      success: false,
+      message: 'API route not found'
+    });
+  }
+  // Serve the SPA shell
+  return reply.sendFile('index.html');
 });
 
 const start = async () => {
   try {
     const port = process.env.PORT || 5000;
     await fastify.listen({ port, host: '0.0.0.0' });
-    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server is running on port ${port}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
