@@ -56,7 +56,7 @@ exports.getDashboardStats = async (req, reply) => {
           year: "$_id.year",
           count: 1,
           monthName: {
-            $arrayAt: [
+            $arrayElemAt: [
               ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
               "$_id.month"
             ]
@@ -77,8 +77,9 @@ exports.getDashboardStats = async (req, reply) => {
       growthData
     };
   } catch (error) {
+    console.error('ERROR in getDashboardStats:', error);
     req.log.error(error);
-    reply.status(500).send({ message: 'Error fetching dashboard stats' });
+    reply.status(500).send({ message: 'Error fetching dashboard stats', error: error.message });
   }
 };
 

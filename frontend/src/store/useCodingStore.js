@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api';
+import api from '../lib/axios';
 
 const useCodingStore = create((set) => ({
   problems: [],
@@ -11,43 +9,42 @@ const useCodingStore = create((set) => ({
   error: null,
 
   fetchProblems: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_URL}/problems`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/problems');
       set({ problems: res.data, isLoading: false });
     } catch (err) {
-      set({ error: err.message, isLoading: false });
+      set({ 
+        error: err.response?.data?.error || err.message, 
+        isLoading: false 
+      });
     }
   },
 
   fetchProblemById: async (id) => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_URL}/problems/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get(`/problems/${id}`);
       set({ currentProblem: res.data, isLoading: false });
     } catch (err) {
-      set({ error: err.message, isLoading: false });
+      set({ 
+        error: err.response?.data?.error || err.message, 
+        isLoading: false 
+      });
     }
   },
 
   submitCode: async (problemId, code, languageId) => {
-    set({ isLoading: true, submissionResult: null });
+    set({ isLoading: true, submissionResult: null, error: null });
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(`${API_URL}/problems/${problemId}/submit`, 
-        { code, languageId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post(`/problems/${problemId}/submit`, { code, languageId });
       set({ submissionResult: res.data, isLoading: false });
       return res.data;
     } catch (err) {
-      set({ error: err.message, isLoading: false });
+      set({ 
+        error: err.response?.data?.error || err.message, 
+        isLoading: false 
+      });
       throw err;
     }
   },

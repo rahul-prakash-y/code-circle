@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import ProblemDescription from './ProblemDescription';
 import CodeEditor from './CodeEditor';
 import Console from './Console';
@@ -71,8 +71,8 @@ const CodingWorkspace = () => {
 
       {/* Main Workspace */}
       <div className="flex-1 relative">
-        <PanelGroup direction="horizontal">
-          <Panel defaultSize={40} minSize={20}>
+        <PanelGroup orientation="horizontal">
+          <Panel defaultSize="40" minSize="20">
             <div className="h-full overflow-y-auto custom-scrollbar bg-white/5 border-r border-white/10">
               <ProblemDescription problem={currentProblem} />
             </div>
@@ -80,9 +80,9 @@ const CodingWorkspace = () => {
           
           <PanelResizeHandle className="w-1 bg-white/5 hover:bg-primary/50 transition-colors cursor-col-resize" />
           
-          <Panel defaultSize={60} minSize={30}>
-            <PanelGroup direction="vertical">
-              <Panel defaultSize={70} minSize={20}>
+          <Panel defaultSize="60" minSize="30">
+            <PanelGroup orientation="vertical">
+              <Panel defaultSize="70" minSize="20">
                 <div className="h-full">
                   <CodeEditor code={code} setCode={setCode} languageId={languageId} />
                 </div>
@@ -90,7 +90,7 @@ const CodingWorkspace = () => {
               
               <PanelResizeHandle className="h-1 bg-white/5 hover:bg-primary/50 transition-colors cursor-row-resize" />
               
-              <Panel collapsible={true} defaultSize={30} minSize={10} onCollapse={() => setShowConsole(false)} onExpand={() => setShowConsole(true)}>
+              <Panel collapsible={true} defaultSize="30" minSize="10" onCollapse={() => setShowConsole(false)} onExpand={() => setShowConsole(true)}>
                 <div className="h-full bg-[#0d0d0f] border-t border-white/10 overflow-hidden">
                   <Console result={submissionResult} />
                 </div>

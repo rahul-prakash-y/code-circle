@@ -11,7 +11,8 @@ const verifyToken = async (request, reply) => {
     const decodedToken = await admin.auth().verifyIdToken(token);
     request.user = decodedToken;
   } catch (error) {
-    return reply.status(401).send({ error: 'Unauthorized: Invalid token' });
+    console.error('Firebase Auth Error:', error.code, error.message);
+    return reply.status(401).send({ error: 'Unauthorized: Invalid token', code: error.code });
   }
 };
 

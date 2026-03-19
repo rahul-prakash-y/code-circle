@@ -1,4 +1,4 @@
-const { getMe, updateMe } = require('../controllers/userController');
+const { getMe, updateMe, getEventPassport } = require('../controllers/userController');
 const verifyToken = require('../middleware/authMiddleware');
 
 async function userRoutes(fastify, options) {
