@@ -3,6 +3,26 @@ const fastify = require('fastify')({ logger: true });
 const cors = require('@fastify/cors');
 const connectDB = require('./config/db');
 const { initFirebase } = require('./config/firebase');
+const fastifyStatic = require("@fastify/static");
+const path = require("path");
+
+
+fastify.register(fastifyStatic, {
+    root: path.join(__dirname, "../frontend/dist"),
+    prefix: "/",
+});
+
+fastify.setNotFoundHandler((request, reply) => {
+    if (request.raw.url.startsWith('/api')) {
+        return reply.code(404).send({
+            success: false,
+            message: 'API route not found'
+        });
+    }
+
+    // SPA fallback
+    return reply.sendFile('index.html');
+});
 
 // Register CORS
 fastify.register(cors, {
