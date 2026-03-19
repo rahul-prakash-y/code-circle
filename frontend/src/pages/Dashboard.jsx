@@ -9,6 +9,10 @@ import toast from 'react-hot-toast';
 import { LogOut, LayoutDashboard, User, Plus, Calendar, Award } from 'lucide-react';
 import EventFeed from '../components/events/EventFeed';
 import EventModal from '../components/events/EventModal';
+import AdminAnalytics from '../components/admin/AdminAnalytics';
+import Leaderboard from '../components/dashboard/Leaderboard';
+import EventPassport from '../components/profile/EventPassport';
+import { Trophy, BarChart3, Fingerprint } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useAuthStore();
@@ -18,7 +22,7 @@ const Dashboard = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
-  const [activeTab, setActiveTab] = useState('events'); // 'events' or 'certificates'
+  const [activeTab, setActiveTab] = useState('events'); // 'events', 'certificates', 'analytics', 'leaderboard', 'passport'
 
   const isAdmin = profile?.role === 'Admin';
 
@@ -149,17 +153,45 @@ const Dashboard = () => {
           </div>
 
           <div 
-            onClick={() => setActiveTab('certificates')}
-            className={`group glass-card p-6 flex items-center gap-4 cursor-pointer transition-all ${activeTab === 'certificates' ? 'border-indigo-500 bg-indigo-500/5' : 'hover:border-indigo-500/50'}`}
+            onClick={() => setActiveTab('leaderboard')}
+            className={`group glass-card p-6 flex items-center gap-4 cursor-pointer transition-all ${activeTab === 'leaderboard' ? 'border-indigo-500 bg-indigo-500/5' : 'hover:border-indigo-500/50'}`}
           >
-            <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Award className="w-6 h-6" />
+            <div className="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Trophy className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-white group-hover:text-emerald-400 transition-colors">My Certificates</h3>
-              <p className="text-xs text-slate-400">View your achievements</p>
+              <h3 className="font-bold text-white group-hover:text-yellow-500 transition-colors">Leaderboard</h3>
+              <p className="text-xs text-slate-400">View global standings</p>
             </div>
           </div>
+
+          {isAdmin ? (
+            <div 
+              onClick={() => setActiveTab('analytics')}
+              className={`group glass-card p-6 flex items-center gap-4 cursor-pointer transition-all ${activeTab === 'analytics' ? 'border-indigo-500 bg-indigo-500/5' : 'hover:border-indigo-500/50'}`}
+            >
+              <div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">Analytics</h3>
+                <p className="text-xs text-slate-400">Admin dashboard stats</p>
+              </div>
+            </div>
+          ) : (
+            <div 
+              onClick={() => setActiveTab('passport')}
+              className={`group glass-card p-6 flex items-center gap-4 cursor-pointer transition-all ${activeTab === 'passport' ? 'border-indigo-500 bg-indigo-500/5' : 'hover:border-indigo-500/50'}`}
+            >
+              <div className="w-12 h-12 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Fingerprint className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors">Passport</h3>
+                <p className="text-xs text-slate-400">Your activity timeline</p>
+              </div>
+            </div>
+          )}
           
           <div className="md:col-span-1 glass-card p-6 flex items-center justify-between border-indigo-500/20 relative overflow-hidden group hover:border-indigo-500/50 transition-all cursor-pointer" onClick={() => setActiveTab('events')}>
              <div className="relative z-10">
@@ -172,15 +204,17 @@ const Dashboard = () => {
 
         {/* Tab Content */}
         <section className="mt-12">
-          {activeTab === 'events' ? (
+          {activeTab === 'events' && (
             <EventFeed 
               isAdmin={isAdmin} 
               onEdit={handleEditEvent}
               onDelete={handleDeleteEvent}
             />
-          ) : (
-            <MyCertificates />
           )}
+          {activeTab === 'certificates' && <MyCertificates />}
+          {activeTab === 'analytics' && isAdmin && <AdminAnalytics />}
+          {activeTab === 'leaderboard' && <Leaderboard />}
+          {activeTab === 'passport' && !isAdmin && <EventPassport />}
         </section>
       </main>
 

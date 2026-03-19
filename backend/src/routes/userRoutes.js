@@ -6,6 +6,7 @@ async function userRoutes(fastify, options) {
 
   fastify.get('/me', getMe);
   fastify.put('/me', updateMe);
+  fastify.get('/passport', getEventPassport);
 }
 
 module.exports = userRoutes;

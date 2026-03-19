@@ -1,4 +1,6 @@
 const User = require('../models/userModel');
+const Enrollment = require('../models/enrollmentModel');
+const Event = require('../models/eventModel');
 
 const getMe = async (request, reply) => {
   try {
@@ -55,4 +57,42 @@ const updateMe = async (request, reply) => {
   }
 };
 
-module.exports = { getMe, updateMe };
+const getEventPassport = async (request, reply) => {
+  try {
+    const { email } = request.user;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return reply.status(404).send({ error: 'User not found' });
+    }
+
+    // Fetch user's enrollments populated with event details
+    const activities = await Enrollment.find({
+      $or: [
+        { enrolledBy: user._id },
+        { members: user._id }
+      ]
+    })
+    .populate('event')
+    .sort({ createdAt: -1 });
+
+    // Format for timeline
+    const passportData = activities.map(act => ({
+      id: act._id,
+      eventTitle: act.event.title,
+      eventDate: act.event.date,
+      type: act.type,
+      attendanceStatus: act.attendanceStatus,
+      certificateUrl: act.certificateUrl,
+      teamName: act.teamName,
+      createdAt: act.createdAt
+    }));
+
+    return reply.send(passportData);
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ error: 'Failed to fetch event passport' });
+  }
+};
+
+module.exports = { getMe, updateMe, getEventPassport };

@@ -32,6 +32,7 @@ fastify.register(require('./routes/uploadRoutes'), { prefix: '/api/upload' });
 fastify.register(require('./routes/eventRoutes'), { prefix: '/api/events' });
 fastify.register(require('./routes/enrollmentRoutes'), { prefix: '/api/enrollments' });
 fastify.register(require('./routes/problemRoutes'), { prefix: '/api/problems' });
+fastify.register(require('./routes/analyticsRoutes'), { prefix: '/api/analytics' });
 fastify.register(require('./routes/quizRoutes'), { prefix: '/api/quizzes' });
 
 // Health Check Root
