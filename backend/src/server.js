@@ -8,7 +8,7 @@ const path = require("path");
 
 // Register CORS
 fastify.register(cors, {
-  origin: true,``
+  origin: true,
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true
