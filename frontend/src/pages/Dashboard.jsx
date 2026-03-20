@@ -12,6 +12,8 @@ import EventModal from '../components/events/EventModal';
 import AdminAnalytics from '../components/admin/AdminAnalytics';
 import Leaderboard from '../components/dashboard/Leaderboard';
 import EventPassport from '../components/profile/EventPassport';
+import AttendanceHistory from '../components/dashboard/AttendanceHistory';
+import AttendanceManager from '../components/admin/AttendanceManager';
 import { Trophy, BarChart3, Fingerprint, Shield as ShieldIcon } from 'lucide-react';
 import BearerManager from '../components/admin/BearerManager';
 import { motion } from 'framer-motion';
@@ -128,7 +130,7 @@ const Dashboard = () => {
             </div>
           )}
           
-          {isAdmin && (
+          {(isAdmin || isFaculty) && (
             <button
               onClick={handleCreateEvent}
               className="w-full stellar-btn flex items-center justify-center gap-2 group"
@@ -142,9 +144,10 @@ const Dashboard = () => {
         {/* Content Section */}
         <section className="lg:col-span-2 space-y-8">
           {/* Custom Tabs */}
-          <div className="stellar-glass p-1.5 flex gap-1 bg-white/5">
+          <div className="stellar-glass p-1.5 flex gap-1 bg-white/5 overflow-x-auto custom-scrollbar">
             {[
               { id: 'events', label: 'Feed' },
+              { id: 'attendance', label: 'Attendance' },
               { id: 'certificates', label: 'Credits' },
               { id: 'leaderboard', label: 'Leaderboard' },
               ...(isAdmin ? [{ id: 'analytics', label: 'Admin' }] : [{ id: 'passport', label: 'Passport' }])
@@ -152,7 +155,7 @@ const Dashboard = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-500 ${activeTab === tab.id ? 'bg-white text-black shadow-xl' : 'text-slate-500 hover:bg-white/5 hover:text-white'}`}
+                className={`flex-1 min-w-[100px] py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-500 ${activeTab === tab.id ? 'bg-white text-black shadow-xl' : 'text-slate-500 hover:bg-white/5 hover:text-white'}`}
               >
                 {tab.label}
               </button>
@@ -168,10 +171,13 @@ const Dashboard = () => {
           >
             {activeTab === 'events' && (
               <EventFeed 
-                isAdmin={isAdmin} 
+                isAdmin={isAdmin || isFaculty} 
                 onEdit={handleEditEvent}
                 onDelete={handleDeleteEvent}
               />
+            )}
+            {activeTab === 'attendance' && (
+              isAdmin || isFaculty ? <AttendanceManager /> : <AttendanceHistory />
             )}
             {activeTab === 'certificates' && <MyCertificates />}
             {activeTab === 'analytics' && isAdmin && <AdminAnalytics />}

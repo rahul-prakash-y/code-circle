@@ -109,7 +109,7 @@ const getEventEnrollments = async (request, reply) => {
     const { email } = request.user;
     const user = await User.findOne({ email });
 
-    if (!user || user.role !== 'Admin') {
+    if (!user || user.role !== 'Admin' || user.role !== 'Faculty') {
       return reply.status(403).send({ error: 'Forbidden: Admin access only' });
     }
 
@@ -132,8 +132,8 @@ const updateAttendance = async (request, reply) => {
     const { email } = request.user;
     const user = await User.findOne({ email });
 
-    if (!user || user.role !== 'Admin') {
-      return reply.status(403).send({ error: 'Forbidden: Admin access only' });
+    if (!user || (user.role !== 'Admin' && user.role !== 'Faculty')) {
+      return reply.status(403).send({ error: 'Forbidden: Admin or Faculty access only' });
     }
 
     const { eventId } = request.params;
@@ -161,7 +161,7 @@ const generateCertificates = async (request, reply) => {
     const { email } = request.user;
     const user = await User.findOne({ email });
 
-    if (!user || user.role !== 'Admin') {
+    if (!user || user.role !== 'Admin' || user.role !== 'Faculty') {
       return reply.status(403).send({ error: 'Forbidden: Admin access only' });
     }
 

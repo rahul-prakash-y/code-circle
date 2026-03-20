@@ -9,7 +9,7 @@ const path = require("path");
 // Register CORS
 fastify.register(cors, {
   origin: true,
-  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true
 });
@@ -37,6 +37,7 @@ fastify.register(require('./routes/problemRoutes'), { prefix: '/api/problems' })
 fastify.register(require('./routes/analyticsRoutes'), { prefix: '/api/analytics' });
 fastify.register(require('./routes/quizRoutes'), { prefix: '/api/quizzes' });
 fastify.register(require('./routes/bearerRoutes'), { prefix: '/api/bearers' });
+fastify.register(require('./routes/attendanceRoutes'), { prefix: '/api/attendance' });
 
 // --- STATIC FILE SERVING (PRODUCTION) ---
 // Note: This must be registered after API routes if we use prefix: '/'
