@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import EnrollmentModal from './EnrollmentModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
-import { UserCheck } from 'lucide-react';
+import useEnrollmentStore from '../../store/useEnrollmentStore';
+import { motion } from 'framer-motion';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
+  const { myEnrolledEventIds } = useEnrollmentStore();
+  const isEnrolled = myEnrolledEventIds.includes(event._id);
   const [timeLeft, setTimeLeft] = useState('');
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
@@ -42,108 +45,118 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
 
   return (
     <>
-      <div className="group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 active:scale-[0.98]">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="group relative stellar-glass p-8 hover:border-blue-500/30 transition-all duration-500 active:scale-[0.99] flex flex-col justify-between h-full"
+      >
         {/* Type Badge */}
-        <div className="absolute top-4 right-4 flex gap-2">
-          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+        <div className="absolute top-6 right-6 flex gap-2">
+          <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border shadow-2xl ${
             event.type === 'Individual' 
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-              : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+              : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
           }`}>
-            {event.type}
+            {event.type === 'Individual' ? 'Solo' : 'Squad'}
           </span>
           {isPast && (
-            <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-500/20 text-slate-400 border border-slate-500/30">
-              Past
+            <span className="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] bg-white/5 text-slate-500 border-white/10 border">
+              Closed
             </span>
           )}
         </div>
 
         {/* Main Content */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-indigo-400">
-              <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20 transition-colors shadow-[0_0_15px_rgba(99,102,241,0.2)] group-hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]">
-                <Calendar size={18} />
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/5 rounded-2xl border border-white/5 group-hover:border-blue-500/30 transition-all duration-500 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)] group-hover:shadow-[0_0_25px_rgba(59,130,246,0.3)]">
+                <Calendar size={20} />
               </div>
-              <span className="text-sm font-medium">
-                {format(new Date(event.date), 'MMMM dd, yyyy')}
-              </span>
+              <div>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Schedule</p>
+                <span className="text-sm font-bold text-white">
+                  {format(new Date(event.date), 'MMMM dd, yyyy')}
+                </span>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors line-clamp-1">
-              {event.title}
-            </h3>
-            <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed">
-              {event.description}
-            </p>
+            
+            <div className="pt-2">
+              <h3 className="text-2xl font-black text-white group-hover:text-blue-400 transition-colors duration-500 tracking-tight leading-tight mb-2">
+                {event.title}
+              </h3>
+              <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed font-medium">
+                {event.description}
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 py-2">
-            <div className="flex items-center gap-2 text-slate-300 text-xs">
-              <MapPin size={14} className="text-rose-400" />
-              <span className="truncate">{event.venueOrLink}</span>
+          <div className="flex flex-wrap gap-4 py-1">
+            <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5 text-slate-300 text-[11px] font-bold">
+              <MapPin size={14} className="text-pink-500" />
+              <span className="truncate max-w-[120px]">{event.venueOrLink}</span>
             </div>
             {event.type === 'Team' && (
-              <div className="flex items-center gap-2 text-slate-300 text-xs">
-                <Users size={14} className="text-emerald-400" />
-                <span>Up to {event.maxParticipants} Members</span>
+              <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5 text-slate-300 text-[11px] font-bold">
+                <Users size={14} className="text-blue-400" />
+                <span>Max {event.maxParticipants}</span>
               </div>
             )}
           </div>
+        </div>
 
-          {/* Action / Countdown */}
-          <div className="pt-4 flex items-center justify-between border-t border-white/5">
-            <div className="flex flex-col">
-              <span className="text-[10px] text-slate-500 uppercase font-bold">Registration</span>
-              <div className={`flex items-center gap-1.5 text-sm font-semibold ${
-                timeLeft === 'Closed' || isPast ? 'text-rose-400' : 'text-emerald-400'
-              }`}>
-                <Clock size={14} />
-                {timeLeft}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              {isAdmin ? (
-                <>
-                  <button
-                    onClick={() => onEdit(event)}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-                    title="Edit Event"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => setIsAttendanceOpen(true)}
-                    className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-xl transition-all"
-                    title="Attendance"
-                  >
-                    <UserCheck size={18} />
-                  </button>
-                  <button
-                    onClick={() => onDelete(event._id)}
-                    className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all"
-                    title="Delete Event"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </>
-              ) : (
-                <button 
-                  onClick={() => setIsEnrollModalOpen(true)}
-                  disabled={timeLeft === 'Closed' || isPast}
-                  className="group/btn relative px-5 py-2 overflow-hidden rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 font-bold text-white text-sm shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:grayscale transition-all active:scale-95"
-                >
-                  <div className="flex items-center gap-2">
-                    <span>{timeLeft === 'Closed' || isPast ? (isPast ? 'Ended' : 'Closed') : 'Enroll Now'}</span>
-                    <ArrowUpRight size={16} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-                  </div>
-                </button>
-              )}
+        {/* Action / Countdown */}
+        <div className="mt-8 pt-6 flex items-center justify-between border-t border-white/5">
+          <div className="flex flex-col">
+            <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1.5 ml-0.5">Deadline</span>
+            <div className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest ${
+              timeLeft === 'Closed' || isPast ? 'text-pink-500/80 font-bold' : 'text-emerald-400 font-bold'
+            }`}>
+              <Clock size={14} strokeWidth={3} />
+              {timeLeft}
             </div>
           </div>
+
+          <div className="flex gap-2">
+            {isAdmin ? (
+              <div className="flex bg-white/5 rounded-2xl border border-white/5 p-1">
+                <button
+                  onClick={() => onEdit(event)}
+                  className="p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                  title="Edit Event"
+                >
+                  <Edit2 size={18} />
+                </button>
+                <button
+                  onClick={() => setIsAttendanceOpen(true)}
+                  className="p-2.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-xl transition-all"
+                  title="Attendance"
+                >
+                  <UserCheck size={18} />
+                </button>
+                <button
+                  onClick={() => onDelete(event._id)}
+                  className="p-2.5 text-pink-500 hover:text-pink-400 hover:bg-pink-500/10 rounded-xl transition-all"
+                  title="Delete Event"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => !isEnrolled && setIsEnrollModalOpen(true)}
+                disabled={timeLeft === 'Closed' || isPast || isEnrolled}
+                className={`stellar-btn py-2.5! px-6! text-xs! uppercase! tracking-widest! flex items-center gap-2 ${
+                  isEnrolled ? 'bg-emerald-500/10! text-emerald-400! border-emerald-500/20!' : ''
+                }`}
+              >
+                <span>{isEnrolled ? 'Enrolled' : (timeLeft === 'Closed' || isPast ? (isPast ? 'Ended' : 'Closed') : 'Enroll Now')}</span>
+                {!isPast && timeLeft !== 'Closed' && !isEnrolled && <ArrowUpRight size={14} strokeWidth={3} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       <EnrollmentModal 
         isOpen={isEnrollModalOpen} 

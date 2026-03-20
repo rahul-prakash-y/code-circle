@@ -36,6 +36,7 @@ fastify.register(require('./routes/enrollmentRoutes'), { prefix: '/api/enrollmen
 fastify.register(require('./routes/problemRoutes'), { prefix: '/api/problems' });
 fastify.register(require('./routes/analyticsRoutes'), { prefix: '/api/analytics' });
 fastify.register(require('./routes/quizRoutes'), { prefix: '/api/quizzes' });
+fastify.register(require('./routes/bearerRoutes'), { prefix: '/api/bearers' });
 
 // --- STATIC FILE SERVING (PRODUCTION) ---
 // Note: This must be registered after API routes if we use prefix: '/'

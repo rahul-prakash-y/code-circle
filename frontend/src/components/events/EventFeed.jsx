@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import useEventStore from '../../store/useEventStore';
+import useEnrollmentStore from '../../store/useEnrollmentStore';
 import EventCard from './EventCard';
-import { Search, Filter, CalendarCheck, History, LayoutGrid, List } from 'lucide-react';
+import { Search, Filter, CalendarCheck, History, LayoutGrid, List, Calendar } from 'lucide-react';
 
 const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
   const { upcomingEvents, pastEvents, loading, fetchEvents } = useEventStore();
+  const { fetchMyEnrollments } = useEnrollmentStore();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   useEffect(() => {
     fetchEvents(activeTab);
-  }, [activeTab, fetchEvents]);
+    fetchMyEnrollments();
+  }, [activeTab, fetchEvents, fetchMyEnrollments]);
 
   const eventsToDisplay = activeTab === 'upcoming' ? upcomingEvents : pastEvents;
   
@@ -117,27 +120,24 @@ const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
         </div>
-      ) : filteredEvents.length > 0 ? (
-        <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-          {filteredEvents.map((event) => (
-            <EventCard 
-              key={event._id} 
-              event={event} 
-              isAdmin={isAdmin}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-          <div className="p-6 bg-slate-900/50 rounded-full border border-slate-800">
-             <CalendarCheck size={48} className="text-slate-600" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-white">No events found</h3>
-            <p className="text-slate-400">Try adjusting your search or check back later.</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {filteredEvents.length > 0 ? (
+            filteredEvents.map((event) => (
+              <EventCard 
+                key={event._id} 
+                event={event} 
+                isAdmin={isAdmin}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))
+          ) : (
+            <div className="col-span-full stellar-glass p-12 text-center">
+              <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-4 opacity-20" />
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No events found matching your criteria</p>
+            </div>
+          )}
         </div>
       )}
     </div>

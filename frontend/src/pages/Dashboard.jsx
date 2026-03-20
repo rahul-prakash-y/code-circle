@@ -12,7 +12,9 @@ import EventModal from '../components/events/EventModal';
 import AdminAnalytics from '../components/admin/AdminAnalytics';
 import Leaderboard from '../components/dashboard/Leaderboard';
 import EventPassport from '../components/profile/EventPassport';
-import { Trophy, BarChart3, Fingerprint } from 'lucide-react';
+import { Trophy, BarChart3, Fingerprint, Shield as ShieldIcon } from 'lucide-react';
+import BearerManager from '../components/admin/BearerManager';
+import { motion } from 'framer-motion';
 
 const Dashboard = () => {
   const { user, logout } = useAuthStore();
@@ -22,9 +24,33 @@ const Dashboard = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
-  const [activeTab, setActiveTab] = useState('events'); // 'events', 'certificates', 'analytics', 'leaderboard', 'passport'
+  const [activeTab, setActiveTab] = useState('events');
 
   const isAdmin = profile?.role === 'Admin';
+  const isFaculty = profile?.role === 'Faculty';
+  const isStudent = !isAdmin && !isFaculty;
+
+  const getStats = () => {
+    if (isAdmin) {
+      return [
+        { label: 'Total Enrollment', value: '1,240', icon: Trophy, color: 'text-blue-400' },
+        { label: 'System Health', value: '98%', icon: BarChart3, color: 'text-emerald-400' },
+        { label: 'Active Events', value: '12', icon: Fingerprint, color: 'text-purple-400' }
+      ];
+    }
+    if (isFaculty) {
+      return [
+        { label: 'Dept. Points', value: '14.2k', icon: Trophy, color: 'text-amber-400' },
+        { label: 'Mentored', value: '45', icon: BarChart3, color: 'text-blue-400' },
+        { label: 'Lab Capacity', value: '85%', icon: Fingerprint, color: 'text-emerald-400' }
+      ];
+    }
+    return [
+      { label: 'Events Attended', value: user?.enrolledEvents?.length || 0, icon: Trophy, color: 'text-yellow-400' },
+      { label: 'Global Rank', value: "#12", icon: BarChart3, color: 'text-blue-400' },
+      { label: 'Passport Status', value: "Level 4", icon: Fingerprint, color: 'text-emerald-400' }
+    ];
+  };
 
   const handleLogout = async () => {
     try {
@@ -59,166 +85,101 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200">
-      <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                <span className="text-white font-bold">C</span>
-              </div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-                Code Circle
-              </span>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="hidden md:flex items-center gap-4 border-r border-slate-800 pr-6">
-                <button 
-                  onClick={() => navigate('/dashboard')}
-                  className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  Dashboard
-                </button>
-                <button 
-                  onClick={() => navigate('/profile')}
-                  className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
-                >
-                  Profile
-                </button>
-              </div>
-              <div 
-                onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700 cursor-pointer hover:border-indigo-500/50 transition-all group"
-              >
-                <User className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
-                <span className="text-sm font-medium">{user?.email}</span>
-                {isAdmin && (
-                  <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30 font-bold uppercase">
-                    Admin
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white"
-                title="Logout"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-8">
+      {/* Quick Stats Grid */}
+      <section className="lg:col-span-1 space-y-6">
+          <div className="stellar-glass p-8">
+            <h2 className="text-sm font-black text-blue-500 uppercase tracking-[0.3em] mb-6">Performance</h2>
+            <div className="space-y-6">
+              {getStats().map((stat, i) => (
+                <div key={i} className="flex items-center justify-between group cursor-default">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 bg-white/5 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors ${stat.color}`}>
+                      <stat.icon size={20} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-400 group-hover:text-white transition-colors">{stat.label}</span>
+                  </div>
+                  <span className="text-xl font-black text-white">{stat.value}</span>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
-                Phase 3: Event Management
-              </span>
-            </div>
-            <h1 className="text-5xl font-extrabold text-white tracking-tight">
-              {isAdmin ? 'Admin Console' : 'Student Hub'}
-            </h1>
-            <p className="text-slate-400 text-lg max-w-2xl">
-              Welcome back, {profile?.name || 'Developer'}. Stay updated with the latest events and track your coding journey.
-            </p>
+          <div className="stellar-glass p-8 relative overflow-hidden group border-indigo-500/20 hover:border-indigo-500/40 transition-all cursor-pointer" onClick={() => setActiveTab('events')}>
+             <div className="relative z-10">
+                <h3 className="text-xl font-black text-white group-hover:text-indigo-400 transition-colors">Find Events</h3>
+                <p className="text-sm text-slate-400 mt-1">Explore and enroll.</p>
+             </div>
+             <Calendar className="w-16 h-16 text-indigo-500/10 absolute -right-4 -bottom-4 group-hover:scale-110 transition-transform duration-700" />
           </div>
 
           {isAdmin && (
-            <button
-              onClick={handleCreateEvent}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-1 transition-all"
-            >
-              <Plus size={20} />
-              New Event
-            </button>
-          )}
-        </header>
-
-        {/* Quick Stats / Navigation */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
-          <div 
-            onClick={() => navigate('/profile')}
-            className="group glass-card p-6 flex items-center gap-4 cursor-pointer hover:border-indigo-500/50 transition-all"
-          >
-            <div className="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <User className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white group-hover:text-purple-400 transition-colors">My Profile</h3>
-              <p className="text-xs text-slate-400">Manage your developer identity</p>
-            </div>
-          </div>
-
-          <div 
-            onClick={() => setActiveTab('leaderboard')}
-            className={`group glass-card p-6 flex items-center gap-4 cursor-pointer transition-all ${activeTab === 'leaderboard' ? 'border-indigo-500 bg-indigo-500/5' : 'hover:border-indigo-500/50'}`}
-          >
-            <div className="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Trophy className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white group-hover:text-yellow-500 transition-colors">Leaderboard</h3>
-              <p className="text-xs text-slate-400">View global standings</p>
-            </div>
-          </div>
-
-          {isAdmin ? (
             <div 
-              onClick={() => setActiveTab('analytics')}
-              className={`group glass-card p-6 flex items-center gap-4 cursor-pointer transition-all ${activeTab === 'analytics' ? 'border-indigo-500 bg-indigo-500/5' : 'hover:border-indigo-500/50'}`}
+              onClick={() => setActiveTab('bearers')}
+              className={`stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-blue-500/20 hover:border-blue-500/40 ${activeTab === 'bearers' ? 'border-blue-500 bg-blue-500/5' : ''}`}
             >
-              <div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-6 h-6" />
+              <div className="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ShieldIcon className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">Analytics</h3>
-                <p className="text-xs text-slate-400">Admin dashboard stats</p>
-              </div>
-            </div>
-          ) : (
-            <div 
-              onClick={() => setActiveTab('passport')}
-              className={`group glass-card p-6 flex items-center gap-4 cursor-pointer transition-all ${activeTab === 'passport' ? 'border-indigo-500 bg-indigo-500/5' : 'hover:border-indigo-500/50'}`}
-            >
-              <div className="w-12 h-12 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Fingerprint className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors">Passport</h3>
-                <p className="text-xs text-slate-400">Your activity timeline</p>
+                <h3 className="text-xl font-black text-white group-hover:text-blue-400 transition-colors">Bearers</h3>
+                <p className="text-sm text-slate-400 mt-0.5">Manage leadership</p>
               </div>
             </div>
           )}
           
-          <div className="md:col-span-1 glass-card p-6 flex items-center justify-between border-indigo-500/20 relative overflow-hidden group hover:border-indigo-500/50 transition-all cursor-pointer" onClick={() => setActiveTab('events')}>
-             <div className="relative z-10">
-                <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors">Events Feed</h3>
-                <p className="text-sm text-slate-400">Explore and enroll.</p>
-             </div>
-             <Calendar className="w-12 h-12 text-indigo-500/10 absolute -right-2 -bottom-2" />
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <section className="mt-12">
-          {activeTab === 'events' && (
-            <EventFeed 
-              isAdmin={isAdmin} 
-              onEdit={handleEditEvent}
-              onDelete={handleDeleteEvent}
-            />
+          {isAdmin && (
+            <button
+              onClick={handleCreateEvent}
+              className="w-full stellar-btn flex items-center justify-center gap-2 group"
+            >
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+              Create New Event
+            </button>
           )}
-          {activeTab === 'certificates' && <MyCertificates />}
-          {activeTab === 'analytics' && isAdmin && <AdminAnalytics />}
-          {activeTab === 'leaderboard' && <Leaderboard />}
-          {activeTab === 'passport' && !isAdmin && <EventPassport />}
         </section>
-      </main>
 
-      {/* Admin Modals */}
+        {/* Content Section */}
+        <section className="lg:col-span-2 space-y-8">
+          {/* Custom Tabs */}
+          <div className="stellar-glass p-1.5 flex gap-1 bg-white/5">
+            {[
+              { id: 'events', label: 'Feed' },
+              { id: 'certificates', label: 'Credits' },
+              { id: 'leaderboard', label: 'Leaderboard' },
+              ...(isAdmin ? [{ id: 'analytics', label: 'Admin' }] : [{ id: 'passport', label: 'Passport' }])
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-500 ${activeTab === tab.id ? 'bg-white text-black shadow-xl' : 'text-slate-500 hover:bg-white/5 hover:text-white'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="min-h-[500px]"
+          >
+            {activeTab === 'events' && (
+              <EventFeed 
+                isAdmin={isAdmin} 
+                onEdit={handleEditEvent}
+                onDelete={handleDeleteEvent}
+              />
+            )}
+            {activeTab === 'certificates' && <MyCertificates />}
+            {activeTab === 'analytics' && isAdmin && <AdminAnalytics />}
+            {activeTab === 'bearers' && isAdmin && <BearerManager />}
+            {activeTab === 'leaderboard' && <Leaderboard />}
+            {activeTab === 'passport' && !isAdmin && <EventPassport />}
+          </motion.div>
+        </section>
       <EventModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 

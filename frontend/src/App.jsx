@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import StudentBearers from './pages/StudentBearers';
 import Dashboard from './pages/Dashboard';
+import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
 
 const ProtectedRoute = ({ children }) => {
@@ -58,7 +59,9 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <MainLayout>
+                <Dashboard />
+              </MainLayout>
             </ProtectedRoute>
           }
         />
@@ -66,7 +69,9 @@ function App() {
           path="/profile"
           element={
             <ProtectedRoute>
-              <Profile />
+              <MainLayout>
+                <Profile />
+              </MainLayout>
             </ProtectedRoute>
           }
         />

@@ -79,7 +79,8 @@ const getEventPassport = async (request, reply) => {
     // Format for timeline
     const passportData = activities.map(act => ({
       id: act._id,
-      eventTitle: act.event.title,
+      eventId: act.event?._id,
+      eventTitle: act.event?.title,
       eventDate: act.event.date,
       type: act.type,
       attendanceStatus: act.attendanceStatus,

@@ -6,7 +6,8 @@ import {
   Users, 
   ExternalLink, 
   CheckCircle2, 
-  Clock 
+  Clock,
+  Loader2 
 } from 'lucide-react';
 import useAnalyticsStore from '../../store/useAnalyticsStore';
 import { motion } from 'framer-motion';
@@ -17,22 +18,22 @@ const PassportTimelineItem = ({ item, index }) => {
   const isAttended = item.attendanceStatus;
 
   return (
-    <div className="relative pl-8 pb-12 group last:pb-0">
+    <div className="relative pl-12 pb-16 group last:pb-0">
       {/* Connector Line */}
-      <div className="absolute left-[11px] top-2 bottom-0 w-[2px] bg-white/5 group-last:hidden" />
+      <div className="absolute left-[13px] top-8 bottom-0 w-[2px] bg-white/5 group-last:hidden" />
       
       {/* Node Dot */}
       <motion.div 
         initial={{ scale: 0 }}
         whileInView={{ scale: 1 }}
         viewport={{ once: true }}
-        className={`absolute left-0 top-1 w-6 h-6 rounded-full border-2 bg-slate-900 z-10 flex items-center justify-center
-          ${isAttended ? 'border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'border-white/20'}`}
+        className={`absolute left-0 top-3 w-7 h-7 rounded-xl border bg-black z-10 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-blue-500 group-hover:border-blue-500
+          ${isAttended ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'border-white/20'}`}
       >
         {isAttended ? (
-          <CheckCircle2 size={12} className="text-emerald-500" />
+          <CheckCircle2 size={14} strokeWidth={3} className="text-blue-500 group-hover:text-white" />
         ) : (
-          <Clock size={12} className="text-white/40" />
+          <Clock size={14} strokeWidth={3} className="text-slate-600 group-hover:text-white" />
         )}
       </motion.div>
 
@@ -41,30 +42,31 @@ const PassportTimelineItem = ({ item, index }) => {
         initial={{ x: 20, opacity: 0 }}
         whileInView={{ x: 0, opacity: 1 }}
         viewport={{ once: true }}
-        transition={{ delay: index * 0.1 }}
-        className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md shadow-xl hover:border-indigo-500/50 transition-all group-hover:bg-white/8"
+        transition={{ delay: index * 0.1, duration: 0.6 }}
+        className="stellar-glass p-8 group-hover:border-blue-500/30 group-hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.1)] transition-all duration-500"
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border 
-                ${isAttended ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40'}`}>
-                {isAttended ? 'Completed' : 'Upcoming'}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg border 
+                ${isAttended ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-slate-500'}`}>
+                {isAttended ? 'Validated' : 'Scheduled'}
               </span>
-              <span className="text-white/30 text-xs">{format(date, 'MMM dd, yyyy')}</span>
+              <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">{format(date, 'MMMM dd, yyyy')}</span>
             </div>
-            <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors uppercase tracking-tight">
+            
+            <h3 className="text-2xl font-black text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight leading-none">
               {item.eventTitle}
             </h3>
             
-            <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-white/50">
-              <div className="flex items-center gap-1.5">
-                <Calendar size={14} className="text-indigo-400" />
-                {format(date, 'hh:mm a')}
+            <div className="flex flex-wrap items-center gap-6 text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">
+              <div className="flex items-center gap-2">
+                <Calendar size={14} className="text-blue-500" />
+                <span>{format(date, 'hh:mm a')}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                {item.type === 'Team' ? <Users size={14} className="text-indigo-400" /> : <MapPin size={14} className="text-indigo-400" />}
-                {item.type} {item.teamName ? `(${item.teamName})` : ''}
+              <div className="flex items-center gap-2">
+                {item.type === 'Team' ? <Users size={14} className="text-blue-500" /> : <MapPin size={14} className="text-blue-500" />}
+                <span>{item.type} {item.teamName ? `/ ${item.teamName}` : ''}</span>
               </div>
             </div>
           </div>
@@ -75,17 +77,17 @@ const PassportTimelineItem = ({ item, index }) => {
                 href={item.certificateUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"
+                className="stellar-btn py-2.5! px-6! text-[10px]! uppercase! tracking-widest! flex items-center gap-2 group/btn"
               >
-                <Award size={16} />
-                View Certificate
-                <ExternalLink size={14} />
+                <Award size={16} strokeWidth={2.5} className="group-hover/btn:rotate-12 transition-transform" />
+                <span>Credential</span>
+                <ExternalLink size={14} strokeWidth={3} />
               </a>
             ) : (
               isAttended && (
-                <div className="text-white/20 text-xs font-medium italic flex items-center gap-2">
+                <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 text-slate-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-pulse">
                   <Clock size={14} />
-                  Certificate Processing
+                  Verification Pending
                 </div>
               )
             )}
@@ -105,39 +107,47 @@ const EventPassport = () => {
 
   if (loading && passport.length === 0) {
     return (
-      <div className="flex items-center justify-center p-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      <div className="flex items-center justify-center py-40">
+        <Loader2 className="animate-spin text-blue-500" size={40} />
       </div>
     );
   }
 
   if (passport.length === 0) {
     return (
-      <div className="text-center p-20 bg-white/5 rounded-3xl border border-white/10">
-        <div className="inline-block p-4 rounded-full bg-indigo-500/10 text-indigo-400 mb-4">
-          <Calendar size={48} />
+      <div className="text-center py-32 stellar-glass p-12 max-w-xl mx-auto space-y-6">
+        <div className="inline-flex p-6 rounded-[2.5rem] bg-blue-500/5 text-blue-500/20 mb-4 border border-blue-500/10">
+          <Calendar size={64} strokeWidth={1} />
         </div>
-        <h3 className="text-xl font-bold text-white mb-2">Your Career Timeline is Empty</h3>
-        <p className="text-white/40 max-w-md mx-auto">Start enrolling in events and coding challenges to build your professional portfolio and earn certificates.</p>
+        <div className="space-y-2">
+          <h3 className="text-2xl font-black text-white uppercase tracking-tight">Timeline Empty</h3>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] leading-relaxed">Your professional journey awaits. Enroll in coding challenges and masterclasses to build your legacy.</p>
+        </div>
+        <button 
+           onClick={() => window.location.href = '/dashboard'}
+           className="stellar-btn opacity-50 hover:opacity-100"
+        >
+          Explore Events
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      <div className="flex items-center justify-between mb-12">
-        <div>
-          <h2 className="text-3xl font-black text-white tracking-tight uppercase">Event <span className="text-indigo-500">Passport</span></h2>
-          <p className="text-white/40 text-sm">Your chronological journey through Code Circle</p>
+    <div className="max-w-4xl mx-auto py-12 px-6">
+      <div className="flex items-center justify-between mb-20">
+        <div className="space-y-2">
+          <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Service <span className="text-blue-500">Record</span></h2>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Your chronological deployment history at Code Circle</p>
         </div>
-        <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-indigo-400">
-          <Award size={28} />
+        <div className="w-16 h-16 bg-blue-500/10 rounded-[1.5rem] border border-blue-500/20 text-blue-400 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+          <Award size={32} strokeWidth={2.5} />
         </div>
       </div>
 
       <div className="relative">
         {passport.map((item, index) => (
-          <PassportTimelineItem key={item.id} item={item} index={index} />
+          <PassportTimelineItem key={item._id || item.id} item={item} index={index} />
         ))}
       </div>
     </div>
