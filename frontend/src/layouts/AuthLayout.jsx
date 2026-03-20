@@ -1,42 +1,48 @@
 import React from 'react';
+import StellarBackground from '../components/ui/StellarBackground';
+import { motion } from 'framer-motion';
 
 const AuthLayout = ({ children, title, subtitle }) => {
   return (
-    <div className="min-h-screen flex bg-slate-950">
-      {/* Left Side: Illustration / Gradient */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-600">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-        <div className="relative z-10 flex flex-col items-center justify-center w-full px-20 text-white">
-          <h1 className="text-6xl font-extrabold mb-6 tracking-tight">Code Circle</h1>
-          <p className="text-xl text-indigo-100 text-center leading-relaxed">
-            The ultimate hub for college developers to collaborate, learn, and grow together. Join the elite circle.
-          </p>
-          <div className="mt-12 grid grid-cols-2 gap-6 w-full max-w-md">
-            <div className="p-4 glass-card text-center">
-              <span className="block text-2xl font-bold">500+</span>
-              <span className="text-sm opacity-80 font-medium">Members</span>
+    <div className="h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 relative selection:bg-blue-500/30 overflow-hidden">
+      <StellarBackground />
+      
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="w-full max-w-[480px] stellar-glass p-8 sm:p-10 relative overflow-hidden"
+      >
+        {/* Subtle Inner Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent blur-[2px]" />
+        
+        <div className="relative z-10">
+          <div className="mb-6 text-center">
+            {/* Official Club Logo */}
+            <div className="flex justify-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.15)] overflow-hidden border border-white/10 backdrop-blur-md">
+                <img 
+                  src="/codecirclelogo.jpeg" 
+                  alt="Code Circle Logo" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
-            <div className="p-4 glass-card text-center">
-              <span className="block text-2xl font-bold">50+</span>
-              <span className="text-sm opacity-80 font-medium">Projects</span>
-            </div>
+            
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3 tracking-tight">
+              {title}
+            </h2>
+            <p className="text-slate-400 text-sm sm:text-base font-medium leading-relaxed max-w-[320px] mx-auto">
+              {subtitle}
+            </p>
           </div>
-        </div>
-        {/* Animated Background Elements */}
-        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-700"></div>
-      </div>
-
-      {/* Right Side: Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-950">
-        <div className="w-full max-w-md">
-          <div className="mb-10 text-center lg:text-left">
-            <h2 className="text-4xl font-bold text-white mb-3">{title}</h2>
-            <p className="text-slate-400 font-medium">{subtitle}</p>
-          </div>
+          
           {children}
         </div>
-      </div>
+
+        {/* Decorative corner accent */}
+        <div className="absolute bottom-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full" />
+      </motion.div>
     </div>
   );
 };

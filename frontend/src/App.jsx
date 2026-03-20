@@ -6,6 +6,7 @@ import useAuthStore from './store/useAuthStore';
 import useProfileStore from './store/useProfileStore';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import StudentBearers from './pages/StudentBearers';
 import Dashboard from './pages/Dashboard';
 import { Toaster } from 'react-hot-toast';
 
@@ -52,6 +53,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/bearers" element={<StudentBearers />} />
         <Route
           path="/dashboard"
           element={

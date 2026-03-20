@@ -1,32 +1,53 @@
 @import "tailwindcss";
 
 @theme {
-  --color-slate-950: #020617;
-  --color-slate-900: #0f172a;
-  --color-slate-800: #1e293b;
-  --color-indigo-500: #6366f1;
-  --color-purple-500: #a855f7;
-  --color-pink-500: #ec4899;
+  --color-stellar-bg: #030303;
+  --color-stellar-accent: #3b82f6;
+  --color-stellar-accent-glow: rgba(59, 130, 246, 0.4);
+  --color-stellar-purple: #8b5cf6;
+  --color-stellar-pink: #ec4899;
+  --color-stellar-text: #f8fafc;
+  --color-stellar-muted: #94a3b8;
 }
 
 @layer base {
   body {
-    background-color: var(--color-slate-950);
-    color: #e2e8f0;
-    font-family: 'Inter', sans-serif;
+    background-color: var(--color-stellar-bg);
+    color: var(--color-stellar-text);
+    font-family: 'Sen', sans-serif;
+    @apply antialiased selection:bg-blue-500/30;
   }
 }
 
 @layer components {
-  .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl;
+  .stellar-glass {
+    @apply bg-black/40 backdrop-blur-[40px] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] rounded-[2rem];
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+                rgba(0, 0, 0, 0.4);
   }
   
-  .btn-primary {
-    @apply bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold py-2.5 px-5 rounded-xl transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-indigo-500/25;
+  .stellar-btn {
+    @apply bg-white text-black font-bold py-3.5 px-6 rounded-2xl transition-all duration-500 hover:scale-[1.02] active:scale-95 shadow-xl hover:shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .stellar-btn-outline {
+    @apply border border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 px-6 rounded-2xl transition-all duration-500 hover:scale-[1.02] active:scale-95;
   }
   
-  .input-field {
-    @apply w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-300;
+  .stellar-input {
+    @apply w-full bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-500;
+  }
+
+  .stellar-label {
+    @apply text-xs font-bold uppercase tracking-widest text-stellar-muted mb-2 block ml-1;
+  }
+
+  .mesh-gradient {
+    background: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.1) 0px, transparent 50%);
+    @apply fixed inset-0 -z-10 bg-[#030303];
   }
 }
