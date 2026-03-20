@@ -9,6 +9,7 @@ import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
 import Profile from './pages/Profile';
 import CodingWorkspace from './components/coding/CodingWorkspace';
+import useProfileStore from './store/useProfileStore';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuthStore();
@@ -30,10 +31,14 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   const { checkAuth } = useAuthStore();
-
+  const { fetchProfile } = useProfileStore();
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    const initAuth = async () => {
+      await checkAuth();
+      fetchProfile(); // Sync profile store with auth state
+    };
+    initAuth();
+  }, [checkAuth, fetchProfile]);
 
   return (
     <Router>

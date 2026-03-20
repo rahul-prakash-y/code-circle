@@ -10,7 +10,7 @@ const path = require("path");
 fastify.register(cors, {
   origin: true,
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Session-Id'],
   credentials: true
 });
 
