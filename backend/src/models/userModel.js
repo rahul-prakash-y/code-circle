@@ -9,6 +9,9 @@ const userSchema = new mongoose.Schema({
     enum: ['Student', 'Admin', 'Faculty'], 
     default: 'Student' 
   },
+  password: { type: String, required: true },
+  isBlocked: { type: Boolean, default: false },
+  activeSessionId: { type: String, default: null },
   department: { type: String },
   skills: [String],
   socialLinks: {

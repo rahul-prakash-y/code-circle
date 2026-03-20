@@ -1,51 +1,33 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
 import useAuthStore from '../store/useAuthStore';
 import AuthLayout from '../layouts/AuthLayout';
-import GoogleButton from '../components/auth/GoogleButton';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Mail, Lock, User, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Hash, Loader2 } from 'lucide-react';
 
 const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [rollNo, setRollNo] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setUser, setError } = useAuthStore();
+  const { register } = useAuthStore();
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      setUser(userCredential.user);
+    
+    const result = await register({ name, email, rollNo, password });
+    
+    if (result.success) {
       toast.success('Account created successfully!');
       navigate('/dashboard');
-    } catch (err) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(result.error);
     }
-  };
-
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      setUser(result.user);
-      toast.success('Logged in with Google!');
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   return (
@@ -84,6 +66,27 @@ const Register = () => {
               placeholder="John Doe"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="stellar-input pl-12"
+              required
+            />
+          </div>
+        </motion.div>
+
+        <motion.div 
+          variants={{
+            hidden: { opacity: 0, x: -10 },
+            visible: { opacity: 1, x: 0 }
+          }}
+          className="space-y-2"
+        >
+          <label className="stellar-label">University Roll Number</label>
+          <div className="relative group">
+            <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
+            <input
+              type="text"
+              placeholder="Ex: 2021CSE001"
+              value={rollNo}
+              onChange={(e) => setRollNo(e.target.value)}
               className="stellar-input pl-12"
               required
             />
@@ -144,30 +147,6 @@ const Register = () => {
           </button>
         </motion.div>
 
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0 },
-            visible: { opacity: 1 }
-          }}
-          className="relative my-6"
-        >
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/5"></div>
-          </div>
-          <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em]">
-            <span className="bg-[#0b0b0b]/80 backdrop-blur-md px-4 text-slate-500 font-bold">Social Connect</span>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0 }
-          }}
-        >
-          <GoogleButton onClick={handleGoogleLogin} loading={loading} className="stellar-btn-outline w-full flex items-center justify-center gap-3" />
-        </motion.div>
-
         <motion.p 
           variants={{
             hidden: { opacity: 0 },
@@ -181,9 +160,6 @@ const Register = () => {
               Sign In
             </Link>
           </span>
-          <Link to="/bearers" className="text-[10px] uppercase tracking-[0.2em] font-black text-blue-500/60 hover:text-blue-400 transition-colors duration-500">
-            Meet our Student Bearers
-          </Link>
         </motion.p>
       </motion.form>
     </AuthLayout>

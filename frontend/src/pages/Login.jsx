@@ -1,50 +1,31 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
 import useAuthStore from '../store/useAuthStore';
 import AuthLayout from '../layouts/AuthLayout';
-import GoogleButton from '../components/auth/GoogleButton';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { User, Lock, Loader2 } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // email or rollNo
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setUser, setError } = useAuthStore();
+  const { login } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleEmailLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      setUser(userCredential.user);
+    
+    const result = await login(identifier, password);
+    
+    if (result.success) {
       toast.success('Welcome back to the circle!');
       navigate('/dashboard');
-    } catch (err) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(result.error);
     }
-  };
-
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      setUser(result.user);
-      toast.success('Logged in with Google!');
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message);
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   return (
@@ -53,7 +34,7 @@ const Login = () => {
       subtitle="Enter your credentials to access the elite developer hub."
     >
       <motion.form 
-        onSubmit={handleEmailLogin} 
+        onSubmit={handleLogin} 
         className="space-y-5"
         initial="hidden"
         animate="visible"
@@ -75,14 +56,14 @@ const Login = () => {
           }}
           className="space-y-2"
         >
-          <label className="stellar-label">Email Address</label>
+          <label className="stellar-label">Email or Roll Number</label>
           <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
             <input
-              type="email"
-              placeholder="name@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              placeholder="Email or Roll No"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               className="stellar-input pl-12"
               required
             />
@@ -125,32 +106,6 @@ const Login = () => {
           </button>
         </motion.div>
 
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0 },
-            visible: { opacity: 1 }
-          }}
-          className="relative my-6"
-        >
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/5"></div>
-          </div>
-          <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em]">
-            <span className="bg-[#0b0b0b]/80 backdrop-blur-md px-4 text-slate-500 font-bold">Secure Access</span>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0 }
-          }}
-        >
-          <GoogleButton onClick={handleGoogleLogin} loading={loading} 
-          className="stellar-btn-outline w-full flex items-center justify-center gap-3"
-           />
-        </motion.div>
-
         <motion.p 
           variants={{
             hidden: { opacity: 0 },
@@ -164,9 +119,6 @@ const Login = () => {
               Create Account
             </Link>
           </span>
-          <Link to="/bearers" className="text-[10px] uppercase tracking-[0.2em] font-black text-blue-500/60 hover:text-blue-400 transition-colors duration-500">
-            Meet our Student Bearers
-          </Link>
         </motion.p>
       </motion.form>
     </AuthLayout>

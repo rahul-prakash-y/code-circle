@@ -1,15 +1,14 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './lib/firebase';
 import useAuthStore from './store/useAuthStore';
-import useProfileStore from './store/useProfileStore';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import StudentBearers from './pages/StudentBearers';
 import Dashboard from './pages/Dashboard';
 import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
+import Profile from './pages/Profile';
+import CodingWorkspace from './components/coding/CodingWorkspace';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuthStore();
@@ -29,24 +28,12 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-import Profile from './pages/Profile';
-import CodingWorkspace from './components/coding/CodingWorkspace';
-
 function App() {
-  const { setUser, setLoading } = useAuthStore();
-  const { fetchProfile } = useProfileStore();
+  const { checkAuth } = useAuthStore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        await fetchProfile();
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [setUser, setLoading, fetchProfile]);
+    checkAuth();
+  }, [checkAuth]);
 
   return (
     <Router>

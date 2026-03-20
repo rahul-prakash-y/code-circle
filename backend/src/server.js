@@ -15,7 +15,7 @@ fastify.register(cors, {
 });
 
 // Middleware & Auth
-initFirebase();
+// initFirebase(); // Firebase no longer required for custom auth
 
 // Connect Database
 connectDB();
@@ -28,6 +28,7 @@ fastify.register(require('@fastify/multipart'), {
 });
 
 // --- API ROUTES ---
+fastify.register(require('./routes/authRoutes'), { prefix: '/api/auth' });
 fastify.register(require('./routes/health'), { prefix: '/api' });
 fastify.register(require('./routes/userRoutes'), { prefix: '/api/users' });
 fastify.register(require('./routes/uploadRoutes'), { prefix: '/api/upload' });

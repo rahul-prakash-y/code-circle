@@ -13,7 +13,6 @@ const enrollInEvent = async (request, reply) => {
 
     const { event: eventId, type, teamName, members: memberRollNumbers } = request.body;
 
-    // 1. Check if the event exists and if the registration deadline has passed.
     const event = await Event.findById(eventId);
     if (!event) {
       return reply.status(404).send({ error: 'Event not found' });
@@ -24,8 +23,6 @@ const enrollInEvent = async (request, reply) => {
       return reply.status(400).send({ error: 'Registration deadline has passed' });
     }
 
-    // 2. Duplicate Check: Ensure the user making the request isn't already enrolled in this event 
-    // (either individually or as part of another team).
     const existingEnrollment = await Enrollment.findOne({
       event: eventId,
       $or: [
@@ -40,22 +37,19 @@ const enrollInEvent = async (request, reply) => {
 
     let teamMembers = [];
 
-    // 3. Team Logic: If type === 'Team':
     if (type === 'Team') {
       if (!teamName) {
         return reply.status(400).send({ error: 'Team name is required for team enrollment' });
       }
 
-      const totalMembers = (memberRollNumbers ? memberRollNumbers.length : 0) + 1; // +1 for the creator
+      const totalMembers = (memberRollNumbers ? memberRollNumbers.length : 0) + 1;
 
-      // Validate that the total number of members does not exceed the event's maxParticipants.
       if (totalMembers > event.maxParticipants) {
         return reply.status(400).send({ 
           error: `Team size exceeds maximum limit of ${event.maxParticipants} members` 
         });
       }
 
-      // Query the User database using the provided array of Roll Numbers to ensure all team members actually exist.
       if (memberRollNumbers && memberRollNumbers.length > 0) {
         const foundMembers = await User.find({ rollNo: { $in: memberRollNumbers } });
         const foundRollNumbers = foundMembers.map(m => m.rollNo);
@@ -67,7 +61,6 @@ const enrollInEvent = async (request, reply) => {
           });
         }
 
-        // Ensure none of the added team members are already enrolled in this event.
         const memberIds = foundMembers.map(m => m._id);
         const teamMemberEnrollment = await Enrollment.findOne({
           event: eventId,
@@ -109,8 +102,8 @@ const getEventEnrollments = async (request, reply) => {
     const { email } = request.user;
     const user = await User.findOne({ email });
 
-    if (!user || user.role !== 'Admin' || user.role !== 'Faculty') {
-      return reply.status(403).send({ error: 'Forbidden: Admin access only' });
+    if (!user || !['Admin', 'Faculty'].includes(user.role)) {
+      return reply.status(403).send({ error: 'Forbidden: Admin or Faculty access only' });
     }
 
     const { eventId } = request.params;
@@ -132,7 +125,7 @@ const updateAttendance = async (request, reply) => {
     const { email } = request.user;
     const user = await User.findOne({ email });
 
-    if (!user || (user.role !== 'Admin' && user.role !== 'Faculty')) {
+    if (!user || !['Admin', 'Faculty'].includes(user.role)) {
       return reply.status(403).send({ error: 'Forbidden: Admin or Faculty access only' });
     }
 
@@ -143,7 +136,6 @@ const updateAttendance = async (request, reply) => {
       return reply.status(400).send({ error: 'enrollmentIds should be an array' });
     }
 
-    // Mark all specified enrollments as present
     await Enrollment.updateMany(
       { _id: { $in: enrollmentIds }, event: eventId },
       { $set: { attendanceStatus: true } }
@@ -161,8 +153,8 @@ const generateCertificates = async (request, reply) => {
     const { email } = request.user;
     const user = await User.findOne({ email });
 
-    if (!user || user.role !== 'Admin' || user.role !== 'Faculty') {
-      return reply.status(403).send({ error: 'Forbidden: Admin access only' });
+    if (!user || !['Admin', 'Faculty'].includes(user.role)) {
+      return reply.status(403).send({ error: 'Forbidden: Admin or Faculty access only' });
     }
 
     const { eventId } = request.params;
@@ -174,7 +166,6 @@ const generateCertificates = async (request, reply) => {
 
     const { generateCertificate } = require('../utils/pdfGenerator');
 
-    // Find all present students who don't have a certificate yet
     const eligibleEnrollments = await Enrollment.find({
       event: eventId,
       attendanceStatus: true,
@@ -197,7 +188,6 @@ const generateCertificates = async (request, reply) => {
         generatedCount++;
       } catch (err) {
         request.log.error(`Failed to generate certificate for ${enrollment.enrolledBy.email}: ${err.message}`);
-        // Continue with others
       }
     }
 
@@ -220,8 +210,6 @@ const getMyCertificates = async (request, reply) => {
       return reply.status(404).send({ error: 'User not found' });
     }
 
-    // Find enrollments where the user is either the creator (enrolledBy) or a member (members)
-    // and a certificate exists.
     const enrollmentsWithCerts = await Enrollment.find({
       $or: [
         { enrolledBy: user._id },
