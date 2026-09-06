@@ -37,149 +37,107 @@ const SPRING = { type: 'spring', stiffness: 260, damping: 30 } as const;
 const Hero = ({ greeting, firstName, isAdmin, onCreateEvent, onBrowse }) => {
   const ref = useRef(null);
   const { scrollY } = useScroll();
-  const rawOpacity = useTransform(scrollY, [0, 280], [1, 0]);
-  const rawY = useTransform(scrollY, [0, 280], [0, -32]);
-  const opacity = useSpring(rawOpacity, { stiffness: 80, damping: 20 });
-  const y = useSpring(rawY, { stiffness: 80, damping: 20 });
+  const rawOpacity = useTransform(scrollY, [0, 240], [1, 0]);
+  const rawY = useTransform(scrollY, [0, 240], [0, -20]);
+  const opacity = useSpring(rawOpacity, { stiffness: 120, damping: 24 });
+  const y = useSpring(rawY, { stiffness: 120, damping: 24 });
 
   return (
     <motion.section
       ref={ref}
       style={{ opacity, y }}
-      className="pt-4 pb-16 md:pb-20"
+      className="pt-2 pb-14 md:pb-16"
     >
       {/* Status pill */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.05 }}
-        className="inline-flex items-center gap-2 mb-5"
-      >
+      <div className="inline-flex items-center gap-2 mb-4">
         <span
-          className="w-2 h-2 rounded-full"
+          className="w-1.5 h-1.5 rounded-full"
           style={{ background: 'var(--success)' }}
         />
         <span
-          className="text-[12px] font-medium tracking-tight"
-          style={{ color: 'var(--label-secondary)' }}
+          className="text-[12px] font-medium tracking-tight text-label-secondary"
         >
-          {isAdmin ? 'Admin Console · Live' : 'Portal · Active'}
+          {isAdmin ? 'Admin Console · Active' : 'Portal · Online'}
         </span>
-      </motion.div>
+      </div>
 
       {/* Macro headline */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-      >
-        <h1 className="display-headline" style={{ color: 'var(--label-primary)' }}>
+      <div>
+        <h1 className="display-headline text-label-primary">
           {greeting},
         </h1>
-        <h1 className="display-headline" style={{ color: 'var(--accent)' }}>
+        <h1 className="display-headline text-accent">
           {firstName}.
         </h1>
-      </motion.div>
+      </div>
 
       {/* Body copy */}
-      <motion.p
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.22 }}
-        className="mt-5 max-w-lg text-[17px] leading-relaxed"
-        style={{ color: 'var(--label-secondary)' }}
-      >
+      <p className="mt-4 max-w-lg text-[16px] text-label-secondary leading-relaxed font-normal">
         {isAdmin
           ? 'Manage members, events, attendance, and assessments.'
           : 'Track your progress, explore events, and compete with peers.'}
-      </motion.p>
+      </p>
 
       {/* CTAs */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.35 }}
-        className="flex flex-wrap items-center gap-3 mt-8"
-      >
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          transition={SPRING}
+      <div className="flex flex-wrap items-center gap-3 mt-7">
+        <button
           onClick={onBrowse}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-2 text-[14px]"
         >
           Browse Events
-          <ArrowUpRight size={15} strokeWidth={2} />
-        </motion.button>
+          <ArrowUpRight size={14} strokeWidth={2} />
+        </button>
 
         {isAdmin && (
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            transition={SPRING}
+          <button
             onClick={onCreateEvent}
-            className="btn-secondary flex items-center gap-2"
+            className="btn-secondary flex items-center gap-2 text-[14px]"
           >
-            <Plus size={15} strokeWidth={2} />
+            <Plus size={14} strokeWidth={2} />
             New Event
-          </motion.button>
+          </button>
         )}
-      </motion.div>
+      </div>
     </motion.section>
   );
 };
 
 // ── Single metric spotlight card ──────────────────────────────────────────────
 const MetricCard = ({
-  value, label, sublabel, icon: Icon, accentColor, delay = 0
+  value, label, sublabel, icon: Icon, delay = 0
 }: {
   value: number; label: string; sublabel?: string;
-  icon: React.ComponentType<any>; accentColor: string; delay?: number;
+  icon: React.ComponentType<any>; delay?: number;
 }) => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-60px 0px' });
+  const isInView = useInView(ref, { once: true, margin: '-40px 0px' });
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay }}
-      className="surface p-8 flex flex-col justify-between min-h-[180px]"
+      className="surface p-7 flex flex-col justify-between min-h-[170px]"
     >
       <div className="flex items-center justify-between">
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: `${accentColor}14`, color: accentColor }}
-        >
-          <Icon size={18} strokeWidth={1.75} />
+        <div className="w-8 h-8 rounded-xl bg-canvas border border-separator flex items-center justify-center text-label-secondary">
+          <Icon size={16} strokeWidth={1.75} />
         </div>
-        <ChevronRight size={16} strokeWidth={1.75} style={{ color: 'var(--label-tertiary)' }} />
+        <ChevronRight size={15} strokeWidth={1.75} className="text-label-tertiary" />
       </div>
 
-      <div className="mt-auto pt-6">
-        <p
-          className="text-[11px] font-semibold uppercase tracking-widest mb-2"
-          style={{ color: 'var(--label-secondary)', letterSpacing: '0.08em' }}
-        >
+      <div className="mt-auto pt-5">
+        <p className="meta-editorial mb-1.5">
           {label}
         </p>
-        <div
-          className="display-number-sm"
-          style={{ color: accentColor === 'var(--accent)' ? 'var(--label-primary)' : accentColor }}
-        >
+        <div className="display-number-sm text-label-primary">
           {isInView ? <CountUp value={value} /> : <span>0</span>}
         </div>
         {sublabel && (
-          <p
-            className="text-[13px] mt-2 font-medium"
-            style={{ color: 'var(--label-secondary)' }}
-          >
+          <p className="text-[13px] mt-1.5 font-normal text-label-secondary">
             {sublabel}
           </p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -189,31 +147,22 @@ const ParticipationBar = () => {
   const isInView = useInView(ref, { once: true, margin: '-40px 0px' });
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, y: 32 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      className="surface p-8 col-span-full"
+      className="surface p-7 col-span-full"
     >
-      <div className="flex items-end justify-between mb-6 gap-4">
+      <div className="flex items-end justify-between mb-5 gap-4">
         <div>
-          <p
-            className="text-[11px] font-semibold uppercase tracking-widest mb-1"
-            style={{ color: 'var(--label-secondary)', letterSpacing: '0.08em' }}
-          >
+          <p className="meta-editorial mb-1">
             Participation Rate
           </p>
-          <div
-            className="text-[3rem] font-bold leading-none tracking-tighter"
-            style={{ color: 'var(--success)', letterSpacing: '-0.04em' }}
-          >
+          <div className="text-[2.6rem] font-bold leading-none tracking-tight text-label-primary">
             94.8%
           </div>
         </div>
         <div className="text-right">
-          <p className="text-[13px]" style={{ color: 'var(--label-secondary)' }}>Target: 90%</p>
-          <p className="text-[13px] font-semibold mt-0.5" style={{ color: 'var(--success)' }}>
+          <p className="text-[12px] text-label-secondary">Target: 90%</p>
+          <p className="text-[12px] font-semibold mt-0.5 text-success">
             +4.8% above goal
           </p>
         </div>
@@ -222,17 +171,17 @@ const ParticipationBar = () => {
       {/* Progress track */}
       <div
         className="w-full rounded-full overflow-hidden"
-        style={{ height: '5px', background: 'var(--separator)' }}
+        style={{ height: '4px', background: 'var(--separator)' }}
       >
         <motion.div
           initial={{ width: 0 }}
           animate={isInView ? { width: '94.8%' } : {}}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
           className="h-full rounded-full"
-          style={{ background: 'var(--success)' }}
+          style={{ background: 'var(--accent)' }}
         />
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -243,34 +192,27 @@ const TabBar = ({ tabs, active, onChange }) => (
     style={{
       top: '60px',
       background: 'var(--glass-bg)',
-      backdropFilter: 'saturate(180%) blur(24px)',
-      WebkitBackdropFilter: 'saturate(180%) blur(24px)',
+      backdropFilter: 'saturate(180%) blur(20px)',
+      WebkitBackdropFilter: 'saturate(180%) blur(20px)',
       boxShadow: '0 1px 0 var(--separator)',
     }}
   >
-    <div className="flex overflow-x-auto gap-0 -mb-px">
+    <div className="flex overflow-x-auto gap-1 -mb-px py-1">
       {tabs.map((tab) => {
         const isActive = active === tab.id;
         return (
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className="relative flex-shrink-0 px-4 py-[14px] text-[14px] cursor-pointer transition-colors duration-150"
+            className="relative flex-shrink-0 px-3.5 py-2.5 text-[13px] rounded-lg cursor-pointer transition-colors duration-150"
             style={{
               color: isActive ? 'var(--label-primary)' : 'var(--label-secondary)',
               fontWeight: isActive ? 600 : 400,
               letterSpacing: '-0.01em',
+              background: isActive ? 'var(--separator)' : 'transparent',
             }}
           >
             {tab.label}
-            {isActive && (
-              <motion.div
-                layoutId="tab-indicator"
-                className="absolute bottom-0 left-0 right-0"
-                style={{ height: '2px', background: 'var(--accent)', borderRadius: '1px 1px 0 0' }}
-                transition={SPRING}
-              />
-            )}
           </button>
         );
       })}
@@ -344,7 +286,6 @@ export const Dashboard = () => {
       label: isAdmin ? 'Total Members' : 'Registered Events',
       sublabel: '+12% this term',
       icon: Users,
-      accentColor: 'var(--accent)',
       delay: 0,
     },
     {
@@ -352,24 +293,21 @@ export const Dashboard = () => {
       label: isAdmin ? 'Active Events' : 'Leaderboard Rank',
       sublabel: 'Live & scheduled',
       icon: Calendar,
-      accentColor: '#34C759',
-      delay: 0.07,
+      delay: 0.05,
     },
     {
       value: isAdmin ? (metrics?.totalEvents ?? 0) : 4,
       label: isAdmin ? 'Total Events' : 'Certificates',
       sublabel: 'All-time',
       icon: Trophy,
-      accentColor: '#FF9F0A',
-      delay: 0.14,
+      delay: 0.1,
     },
     {
       value: metrics?.totalAssessmentLevels ?? 6,
       label: 'Skill Tracks',
-      sublabel: 'Algorithmic & full-stack',
+      sublabel: 'Algorithmic & practical',
       icon: Target,
-      accentColor: '#30B0C7',  /* Apple System Teal */
-      delay: 0.21,
+      delay: 0.15,
     },
   ];
 

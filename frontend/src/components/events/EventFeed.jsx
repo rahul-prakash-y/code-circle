@@ -86,69 +86,72 @@ export const EventFeed = ({
   });
 
   const SkeletonCard = () => (
-    <div className="glass p-8 h-[280px] animate-pulse rounded-3xl">
+    <div className="surface p-7 h-[260px] animate-pulse rounded-[18px]">
       <div className="flex justify-between mb-4">
-        <div className="w-24 h-6 bg-surface-elevated rounded-full" />
-        <div className="w-16 h-6 bg-surface-elevated rounded-full" />
+        <div className="w-24 h-4 bg-separator rounded-md" />
+        <div className="w-14 h-4 bg-separator rounded-md" />
       </div>
-      <div className="space-y-3">
-        <div className="w-12 h-12 bg-surface-elevated rounded-xl mb-2" />
-        <div className="w-3/4 h-6 bg-surface-elevated rounded-md" />
-        <div className="w-full h-4 bg-surface-elevated rounded-md" />
-        <div className="w-full h-4 bg-surface-elevated rounded-md" />
+      <div className="space-y-3 mt-6">
+        <div className="w-3/4 h-6 bg-separator rounded-md" />
+        <div className="w-full h-4 bg-separator rounded-md" />
+        <div className="w-2/3 h-4 bg-separator rounded-md" />
+      </div>
+      <div className="mt-8 pt-4 border-t border-separator flex justify-between items-center">
+        <div className="w-20 h-4 bg-separator rounded-md" />
+        <div className="w-24 h-8 bg-separator rounded-full" />
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6">
       {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            <h2 className="text-2xl sm:text-3xl font-black text-text-primary tracking-tight font-heading">
-              Events Arena
-            </h2>
-          </div>
-          <p className="text-text-muted text-xs sm:text-sm font-medium">
-            Browse upcoming workshops, sprints, hackathons, and guest seminars.
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-label-primary tracking-tight font-heading">
+            Events Arena
+          </h2>
+          <p className="text-label-secondary text-sm font-normal mt-1">
+            Workshops, hackathons, guest lectures, and competitive tracks.
           </p>
         </div>
 
         {/* Status Tabs & View Mode */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Status filter pills */}
-          <div className="flex items-center gap-1 p-1 glass rounded-2xl overflow-x-auto">
+          <div className="flex items-center gap-1 p-1 bg-surface border border-separator rounded-full overflow-x-auto">
             {[
               { id: 'upcoming', label: 'Upcoming', icon: CalendarCheck },
               { id: 'live', label: 'Live', icon: Activity },
               { id: 'past', label: 'Archive', icon: History },
               { id: 'all', label: 'All', icon: Calendar },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-200 font-bold uppercase tracking-wider text-[11px] whitespace-nowrap cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'bg-accent text-white shadow-sm'
-                    : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
-                }`}
-              >
-                <tab.icon size={13} className={tab.id === 'live' && activeTab === tab.id ? 'text-red-400 animate-pulse' : ''} />
-                {tab.label}
-              </button>
-            ))}
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-colors duration-150 ${
+                    isActive
+                      ? 'bg-accent text-white shadow-xs'
+                      : 'text-label-secondary hover:text-label-primary hover:bg-canvas'
+                  }`}
+                >
+                  <tab.icon size={13} className={tab.id === 'live' && isActive ? 'text-white' : ''} />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* View mode toggle (Grid vs Table) */}
-          <div className="flex items-center gap-1 p-1 bg-surface-elevated border border-border rounded-xl">
+          <div className="flex items-center gap-0.5 p-1 bg-surface border border-separator rounded-full">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-full transition-colors cursor-pointer ${
                 viewMode === 'grid'
-                  ? 'bg-accent text-white'
-                  : 'text-text-muted hover:text-text-primary'
+                  ? 'bg-separator text-label-primary'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
               title="Grid View"
               aria-label="Grid View"
@@ -157,10 +160,10 @@ export const EventFeed = ({
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-full transition-colors cursor-pointer ${
                 viewMode === 'table'
-                  ? 'bg-accent text-white'
-                  : 'text-text-muted hover:text-text-primary'
+                  ? 'bg-separator text-label-primary'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
               title="Table View"
               aria-label="Table View"
@@ -172,29 +175,29 @@ export const EventFeed = ({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-label-tertiary" size={15} />
           <input
             type="text"
-            placeholder="Search events by title, description, or venue..."
+            placeholder="Search events by title, description, or venue…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-elevated border border-border rounded-xl pl-10 pr-4 py-2 text-xs text-text-primary placeholder-text-muted/70 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
+            className="input-base pl-9 text-xs"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Type Filter */}
-          <div className="flex items-center gap-1 bg-surface-elevated border border-border p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full">
             {EVENT_TYPES.map((type) => (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                   selectedType === type
-                    ? 'bg-accent/15 text-accent border border-accent/25'
-                    : 'text-text-muted hover:text-text-primary'
+                    ? 'bg-separator text-label-primary'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
                 {type === 'all' ? 'All Types' : type}
@@ -203,15 +206,15 @@ export const EventFeed = ({
           </div>
 
           {/* Format Filter */}
-          <div className="flex items-center gap-1 bg-surface-elevated border border-border p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full">
             {EVENT_FORMATS.map((format) => (
               <button
                 key={format}
                 onClick={() => setSelectedFormat(format)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                   selectedFormat === format
-                    ? 'bg-purple-500/15 text-purple-400 border border-purple-500/25'
-                    : 'text-text-muted hover:text-text-primary'
+                    ? 'bg-separator text-label-primary'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
                 {format === 'all' ? 'All Formats' : format === 'Individual' ? 'Solo' : 'Team'}
@@ -223,170 +226,150 @@ export const EventFeed = ({
 
       {/* Main Events Display */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {[1, 2, 3, 4].map((i) => (
             <SkeletonCard key={i} />
           ))}
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="glass p-16 text-center rounded-3xl border border-border">
-          <Calendar className="w-12 h-12 text-text-muted mx-auto mb-3 opacity-20" />
-          <p className="text-text-primary font-bold text-sm tracking-wide">
-            No events found matching your criteria
+        <div className="surface p-14 text-center rounded-[18px]">
+          <Calendar className="w-10 h-10 text-label-tertiary mx-auto mb-3 opacity-30" />
+          <p className="text-label-primary font-semibold text-base">
+            No events found
           </p>
-          <p className="text-text-muted text-xs mt-1">
-            Try switching filter tabs or resetting the search query.
+          <p className="text-label-secondary text-xs mt-1">
+            Try switching filter tabs or clearing your search query.
           </p>
         </div>
       ) : viewMode === 'grid' ? (
-        /* Grid View with AnimatePresence */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <AnimatePresence mode="popLayout">
-            {filteredEvents.map((event) => (
-              <motion.div
-                key={event._id}
-                layout
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.25 } }}
-                transition={{ duration: 0.25 }}
-              >
-                <EventCard
-                  event={event}
-                  isAdmin={isAdmin}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+        /* Grid View */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {filteredEvents.map((event) => (
+            <div key={event._id}>
+              <EventCard
+                event={event}
+                isAdmin={isAdmin}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            </div>
+          ))}
         </div>
       ) : (
-        /* Data Table View with AnimatePresence and inline hover action buttons */
-        <div className="glass overflow-hidden border-border/80 rounded-3xl">
+        /* Data Table View — Clean Apple-spec Table */
+        <div className="surface overflow-hidden rounded-[18px]">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-surface-elevated/60 border-b border-border/60">
-                  <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Event Details</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Schedule</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Category</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em] text-right">Actions</th>
+                <tr className="border-b border-separator bg-canvas/40">
+                  <th className="px-6 py-3.5 text-[11px] font-semibold text-label-secondary uppercase tracking-wider">Event</th>
+                  <th className="px-6 py-3.5 text-[11px] font-semibold text-label-secondary uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3.5 text-[11px] font-semibold text-label-secondary uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3.5 text-[11px] font-semibold text-label-secondary uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3.5 text-[11px] font-semibold text-label-secondary uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <AnimatePresence initial={false}>
-                  {filteredEvents.map((event) => {
-                    const isEnrolled = myEnrolledEventIds.includes(event._id);
-                    return (
-                      <motion.tr
-                        key={event._id}
-                        layout
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0, y: -10, transition: { duration: 0.25 } }}
-                        transition={{ duration: 0.2 }}
-                        className="group border-b border-border/40 even:bg-surface-elevated/25 odd:bg-transparent hover:bg-accent/5 transition-colors"
-                      >
-                        {/* Title & Venue */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
-                              <Calendar size={18} />
-                            </div>
-                            <div className="min-w-0">
-                              <h4 className="text-sm font-bold text-text-primary truncate font-heading group-hover:text-accent transition-colors">
-                                {event.title}
-                              </h4>
-                              <p className="text-xs text-text-muted truncate flex items-center gap-1 mt-0.5">
-                                <MapPin size={11} className="shrink-0" />
-                                <span>{event.venueOrLink || 'Online / Campus'}</span>
-                              </p>
-                            </div>
+                {filteredEvents.map((event) => {
+                  const isEnrolled = myEnrolledEventIds.includes(event._id);
+                  return (
+                    <tr
+                      key={event._id}
+                      className="group border-b border-separator/60 hover:bg-canvas/50 transition-colors"
+                    >
+                      {/* Title & Venue */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-separator flex items-center justify-center text-label-secondary shrink-0">
+                            <Calendar size={15} />
                           </div>
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-6 py-4 text-xs font-semibold text-text-secondary whitespace-nowrap">
-                          {format(new Date(event.date), 'MMM dd, yyyy')}
-                        </td>
-
-                        {/* Category Badges */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-accent/10 text-accent border border-accent/20">
-                              {event.type || 'Technical'}
-                            </span>
-                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                              {event.format === 'Team' ? 'Squad' : 'Solo'}
-                            </span>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-semibold text-label-primary truncate group-hover:text-accent transition-colors">
+                              {event.title}
+                            </h4>
+                            <p className="text-xs text-label-secondary truncate flex items-center gap-1 mt-0.5">
+                              <MapPin size={11} className="shrink-0 text-label-tertiary" />
+                              <span>{event.venueOrLink || 'Campus Venue'}</span>
+                            </p>
                           </div>
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* Status */}
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-widest border ${
-                            event.status === 'Live'
-                              ? 'bg-red-500/15 text-red-400 border-red-500/30 animate-pulse'
-                              : event.status === 'Completed'
-                              ? 'bg-surface-elevated text-text-muted border-border'
-                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          }`}>
+                      {/* Date */}
+                      <td className="px-6 py-4 text-xs font-medium text-label-secondary whitespace-nowrap">
+                        {event.date ? format(new Date(event.date), 'MMM d, yyyy') : 'TBA'}
+                      </td>
+
+                      {/* Category */}
+                      <td className="px-6 py-4">
+                        <span className="text-xs text-label-secondary font-medium">
+                          {event.type || 'Technical'} • {event.format === 'Team' ? 'Team' : 'Solo'}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-6 py-4">
+                        {event.status === 'Live' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-destructive">
+                            <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                            Live
+                          </span>
+                        ) : (
+                          <span className="text-xs text-label-secondary">
                             {event.status || 'Upcoming'}
                           </span>
-                        </td>
+                        )}
+                      </td>
 
-                        {/* Action buttons - fade in on hover */}
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            {/* Admin Controls */}
-                            {isAdmin && (
-                              <>
-                                <button
-                                  onClick={() => setAttendanceEvent(event)}
-                                  className="p-2 rounded-xl bg-surface-elevated text-accent hover:text-white hover:bg-accent transition-all cursor-pointer"
-                                  title="Attendance Console"
-                                >
-                                  <UserCheck size={14} />
-                                </button>
-                                <button
-                                  onClick={() => onEdit && onEdit(event)}
-                                  className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-all cursor-pointer"
-                                  title="Edit Event"
-                                >
-                                  <Edit2 size={14} />
-                                </button>
-                                <button
-                                  onClick={() => onDelete && onDelete(event._id)}
-                                  className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                                  title="Delete Event"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </>
-                            )}
-
-                            {/* Student RSVP */}
-                            {!isAdmin && (
+                      {/* Action buttons */}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Admin Controls */}
+                          {isAdmin && (
+                            <>
                               <button
-                                onClick={() => setEnrollEvent(event)}
-                                disabled={isEnrolled}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                                  isEnrolled
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                    : 'btn-primary py-1.5 px-3 text-xs'
-                                }`}
+                                onClick={() => setAttendanceEvent(event)}
+                                className="p-1.5 rounded-lg text-label-secondary hover:text-accent hover:bg-canvas transition-colors cursor-pointer"
+                                title="Attendance Records"
                               >
-                                {isEnrolled ? 'Registered' : 'RSVP'}
+                                <UserCheck size={15} />
                               </button>
-                            )}
-                          </div>
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </AnimatePresence>
+                              <button
+                                onClick={() => onEdit && onEdit(event)}
+                                className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors cursor-pointer"
+                                title="Edit Event"
+                              >
+                                <Edit2 size={15} />
+                              </button>
+                              <button
+                                onClick={() => onDelete && onDelete(event._id)}
+                                className="p-1.5 rounded-lg text-label-secondary hover:text-destructive hover:bg-canvas transition-colors cursor-pointer"
+                                title="Delete Event"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </>
+                          )}
+
+                          {/* Student RSVP */}
+                          {!isAdmin && (
+                            <button
+                              onClick={() => setEnrollEvent(event)}
+                              disabled={isEnrolled}
+                              className={
+                                isEnrolled
+                                  ? 'btn-secondary text-xs py-1 px-3 opacity-90 cursor-default'
+                                  : 'btn-primary text-xs py-1 px-3.5'
+                              }
+                            >
+                              {isEnrolled ? 'Enrolled' : 'Enroll'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

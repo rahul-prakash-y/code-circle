@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { 
   User as UserIcon, 
   Mail, 
@@ -21,7 +20,6 @@ import { auth as firebaseAuth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ImageUploadModal from '../components/profile/ImageUploadModal';
-import GlassCard from '../components/ui/GlassCard';
 
 const Profile = () => {
   const { profile, updateProfile, profileLoading } = useProfileStore();
@@ -118,7 +116,7 @@ const Profile = () => {
 
     const res = await updateProfile(finalFormData);
     if (res.success) {
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully');
     } else {
       toast.error(res.error);
     }
@@ -126,96 +124,90 @@ const Profile = () => {
 
   if (!profile) return (
     <div className="min-h-[60vh] flex items-center justify-center">
-      <Loader2 className="animate-spin text-accent" size={40} />
+      <Loader2 className="animate-spin text-accent" size={32} />
     </div>
   );
 
   return (
-    <div className="space-y-10 max-w-5xl mx-auto py-8">
-      {/* Header Card */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <GlassCard className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2" />
-          
-          <div className="relative group">
-            <div 
-              className="w-36 h-36 rounded-3xl overflow-hidden border border-border p-1 group-hover:border-accent/50 transition-all duration-500 cursor-pointer shadow-lg" 
-              onClick={() => setIsModalOpen(true)}
-            >
-              <div className="w-full h-full rounded-[1.3rem] overflow-hidden">
-                <img 
-                  src={profile.profilePicUrl || `https://ui-avatars.com/api/?name=${profile.name}&background=7c3aed&color=fff&size=200`} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-              </div>
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all rounded-3xl backdrop-blur-[2px]">
-                <Camera className="text-text-primary" size={28} />
-              </div>
+    <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 space-y-10">
+      {/* Identity Header Card */}
+      <div className="surface rounded-[18px] p-8 border border-separator shadow-card relative">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          <div className="relative group cursor-pointer" onClick={() => setIsModalOpen(true)}>
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border border-separator bg-surface-elevated">
+              <img 
+                src={profile.profilePicUrl || `https://ui-avatars.com/api/?name=${profile.name}&background=1D1D1F&color=fff&size=200`} 
+                alt={profile.name} 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <Camera className="text-white" size={22} />
             </div>
             {profileLoading && (
-              <div className="absolute inset-0 bg-black/60 rounded-3xl flex items-center justify-center backdrop-blur-sm">
-                <Loader2 className="animate-spin text-accent" size={28} />
+              <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
+                <Loader2 className="animate-spin text-white" size={22} />
               </div>
             )}
           </div>
 
-          <div className="text-center md:text-left flex-1 space-y-3">
-            <div>
-              <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
-                <h1 className="text-3xl font-extrabold text-text-primary tracking-tight font-heading">{profile.name}</h1>
-                <span className="inline-flex px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-accent/10 text-accent border border-accent/20">
+          <div className="text-center sm:text-left flex-1 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
+                {profile.name}
+              </h1>
+              {profile.role && (
+                <span className="inline-flex self-center sm:self-auto px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide bg-accent/10 text-accent border border-accent/20 uppercase">
                   {profile.role}
                 </span>
-              </div>
-              <p className="text-text-muted flex items-center justify-center md:justify-start gap-2 text-sm font-medium">
-                <Building2 size={15} className="text-accent" /> Bannari Amman Institute
-              </p>
+              )}
             </div>
-            <div className="flex flex-wrap justify-center md:justify-start gap-2">
-              <div className="px-3 py-1.5 bg-surface-elevated border border-border rounded-xl text-[11px] font-semibold text-text-muted">
-                 Roll: <span className="text-text-primary ml-1">{profile.rollNo}</span>
-              </div>
+            <p className="text-sm text-text-muted flex items-center justify-center sm:justify-start gap-2">
+              <Building2 size={14} className="opacity-70" />
+              <span>Bannari Amman Institute of Technology</span>
+            </p>
+            <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-text-muted">
+              {profile.rollNo && (
+                <span className="font-mono bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary">
+                  Roll: {profile.rollNo}
+                </span>
+              )}
+              {profile.department && (
+                <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary">
+                  {profile.department}
+                </span>
+              )}
             </div>
           </div>
-        </GlassCard>
-      </motion.div>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Basic Info */}
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <GlassCard className="space-y-6">
-            <h2 className="text-sm font-bold text-accent uppercase tracking-wider flex items-center gap-3 font-heading">
-              <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
-                <UserIcon size={16} className="text-accent" />
-              </div>
-              Basic Information
-            </h2>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          {/* Basic Information */}
+          <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card space-y-6">
+            <div>
+              <h2 className="text-base font-semibold text-text-primary">Personal Details</h2>
+              <p className="text-xs text-text-muted mt-0.5">Manage your student profile information</p>
+            </div>
             
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className="input-label">Full Name</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Full Name</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   className="input-field"
-                  placeholder="Your Name"
+                  placeholder="Your full name"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="input-label">Department</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Department</label>
                   <input
                     type="text"
                     name="department"
@@ -226,71 +218,65 @@ const Profile = () => {
                   />
                 </div>
                 <div>
-                  <label className="input-label">Status</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Roll Number</label>
                   <input
                     type="text"
-                    value="Tier 1 Member"
-                    disabled
-                    className="input-field opacity-50 cursor-not-allowed"
+                    name="rollNo"
+                    value={formData.rollNo}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="e.g. 7376222AL101"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="input-label">Registered Email</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Registered Email</label>
                 <input
                   type="email"
                   value={profile.email}
                   disabled
-                  className="input-field opacity-50 cursor-not-allowed"
+                  className="input-field opacity-60 cursor-not-allowed bg-canvas"
                 />
               </div>
             </div>
-          </GlassCard>
-        </motion.div>
+          </div>
 
-        {/* Social Links */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <GlassCard className="space-y-6">
-            <h2 className="text-sm font-bold text-accent uppercase tracking-wider flex items-center gap-3 font-heading">
-              <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
-                <Code2 size={16} className="text-accent" />
-              </div>
-              Social & Coding Profiles
-            </h2>
+          {/* Social & Coding Profiles */}
+          <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card space-y-6">
+            <div>
+              <h2 className="text-base font-semibold text-text-primary">Profiles & Handles</h2>
+              <p className="text-xs text-text-muted mt-0.5">Connect your external developer platforms</p>
+            </div>
             
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className="input-label">GitHub URL</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">GitHub Username or URL</label>
                 <input
-                  type="url"
+                  type="text"
                   name="socialLinks.github"
                   value={formData.socialLinks.github}
                   onChange={handleChange}
                   className="input-field"
-                  placeholder="https://github.com/..."
+                  placeholder="github.com/username"
                 />
               </div>
 
               <div>
-                <label className="input-label">LinkedIn Profile</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">LinkedIn Profile</label>
                 <input
-                  type="url"
+                  type="text"
                   name="socialLinks.linkedin"
                   value={formData.socialLinks.linkedin}
                   onChange={handleChange}
                   className="input-field"
-                  placeholder="https://linkedin.com/..."
+                  placeholder="linkedin.com/in/username"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="input-label">LeetCode</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">LeetCode</label>
                   <input
                     type="text"
                     name="socialLinks.leetcode"
@@ -301,7 +287,7 @@ const Profile = () => {
                   />
                 </div>
                 <div>
-                  <label className="input-label">HackerRank</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">HackerRank</label>
                   <input
                     type="text"
                     name="socialLinks.hackerrank"
@@ -313,88 +299,87 @@ const Profile = () => {
                 </div>
               </div>
             </div>
-          </GlassCard>
-        </motion.div>
+          </div>
 
-        {/* Skills Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="md:col-span-2"
-        >
-          <GlassCard className="space-y-6">
-            <h2 className="text-sm font-bold text-accent uppercase tracking-wider flex items-center gap-3 font-heading">
-              <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
-                <Code2 size={16} className="text-accent" />
-              </div>
-              Skills & Technologies
-            </h2>
-            
-            <div className="space-y-5">
-              <div>
-                <label className="input-label">Add Experience Tags</label>
-                <div className="relative group">
-                  <Plus className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                  <input
-                    type="text"
-                    value={skillInput}
-                    onChange={(e) => setSkillInput(e.target.value)}
-                    onKeyDown={handleAddSkill}
-                    className="input-field pl-12"
-                    placeholder="Type skill & press Enter"
-                  />
-                </div>
-              </div>
+        </div>
 
-              <div className="flex flex-wrap gap-2">
-                {formData.skills.map((skill, index) => (
-                  <motion.span
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    key={index}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-elevated text-text-primary border border-border text-xs font-semibold hover:border-accent/30 hover:bg-accent/5 transition-all cursor-default"
-                  >
-                    {skill}
-                    <button 
-                      type="button" 
-                      onClick={() => removeSkill(skill)}
-                      className="p-0.5 hover:bg-destructive/10 rounded-md text-text-muted hover:text-destructive transition-colors"
-                    >
-                      <X size={12} strokeWidth={3} />
-                    </button>
-                  </motion.span>
-                ))}
-                {formData.skills.length === 0 && (
-                  <p className="text-text-muted text-xs font-medium opacity-50 ml-1">No tags added</p>
-                )}
-              </div>
+        {/* Skills & Technologies */}
+        <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card space-y-5">
+          <div>
+            <h2 className="text-base font-semibold text-text-primary">Skills & Technologies</h2>
+            <p className="text-xs text-text-muted mt-0.5">Highlight your core competencies and frameworks</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="relative">
+              <Plus className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+              <input
+                type="text"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={handleAddSkill}
+                className="input-field pl-10"
+                placeholder="Type skill & press Enter (e.g. React, PyTorch, Go)"
+              />
             </div>
-          </GlassCard>
-        </motion.div>
 
-        <div className="md:col-span-2 flex justify-end gap-3 pt-2">
+            <div className="flex flex-wrap gap-2 pt-1">
+              {formData.skills.map((skill, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated text-text-primary border border-separator text-xs font-medium"
+                >
+                  {skill}
+                  <button 
+                    type="button" 
+                    onClick={() => removeSkill(skill)}
+                    className="p-0.5 hover:bg-destructive/10 rounded text-text-muted hover:text-destructive transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+              {formData.skills.length === 0 && (
+                <p className="text-text-muted text-xs">No skills listed yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-2">
           <button
             type="button"
-            onClick={() => navigate('/dashboard')}
-            className="btn-secondary py-3 px-6"
+            onClick={handleLogout}
+            className="text-xs text-destructive hover:underline flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            Cancel
+            <LogOut size={14} />
+            <span>Sign out of session</span>
           </button>
-          <button
-            type="submit"
-            disabled={profileLoading}
-            className="btn-primary min-w-[160px] flex items-center justify-center gap-2 group py-3 cursor-pointer"
-          >
-            {profileLoading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <>
-                <Save size={18} className="group-hover:rotate-12 transition-transform" />
-                <span>Synchronize</span>
-              </>
-            )}
-          </button>
+          
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="btn-secondary py-2.5 px-5 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={profileLoading}
+              className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2 cursor-pointer"
+            >
+              {profileLoading ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                <>
+                  <Save size={16} />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </form>
 
@@ -407,3 +392,4 @@ const Profile = () => {
 };
 
 export default Profile;
+

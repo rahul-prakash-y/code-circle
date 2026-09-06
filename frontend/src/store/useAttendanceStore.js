@@ -66,6 +66,19 @@ const useAttendanceStore = create((set) => ({
     }
   },
 
+  fetchUserHistory: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get('/attendance/history');
+      set({ history: Array.isArray(response.data) ? response.data : [], loading: false });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.error || 'Failed to fetch attendance history';
+      set({ error: message, loading: false });
+      return [];
+    }
+  },
+
   recordsData: null,
   activeSession: null,
 

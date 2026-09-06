@@ -170,54 +170,51 @@ const AttendanceRecordsView: React.FC = () => {
   }, [users, studentSearchTerm]);
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom duration-700 py-2">
+    <div className="space-y-6 py-2 max-w-7xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-            <h2 className="text-3xl font-black text-text-primary tracking-tight">Attendance Intelligence</h2>
-          </div>
-          <p className="text-text-muted font-medium text-sm">
-            Generate active 6-digit session OTPs and audit verified attendance records by Student or Event.
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">Attendance</h2>
+          <p className="text-sm text-text-muted mt-0.5">
+            Issue 6-digit session OTPs and audit verified attendance records by event or student.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowOtpModal(true)}
-            className="btn-primary px-6 py-3 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest shadow-xl shadow-accent/20"
+            className="btn-primary py-2.5 px-5 flex items-center gap-2 text-xs font-semibold cursor-pointer"
           >
-            <KeyRound size={16} />
-            <span>Generate Event OTP</span>
+            <KeyRound size={15} />
+            <span>Generate Session OTP</span>
           </button>
         </div>
       </div>
 
       {/* Mode Switcher Tabs */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-2 glass rounded-3xl border border-border">
-        <div className="flex items-center gap-1 bg-surface-elevated p-1 rounded-2xl border border-border">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-2 surface rounded-2xl border border-separator shadow-card">
+        <div className="flex items-center gap-1 bg-surface-elevated p-1 rounded-xl border border-separator">
           <button
             onClick={() => setFilterMode('event')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               filterMode === 'event'
-                ? 'bg-accent text-text-primary shadow-[0_0_20px_rgba(59,130,246,0.4)]'
-                : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
+                ? 'bg-text-primary text-surface font-semibold shadow-xs'
+                : 'text-text-secondary hover:text-text-primary'
             }`}
           >
-            <Calendar size={15} />
+            <Calendar size={14} />
             <span>Filter by Event</span>
           </button>
 
           <button
             onClick={() => setFilterMode('student')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               filterMode === 'student'
-                ? 'bg-purple-600 text-text-primary shadow-[0_0_20px_rgba(168,85,247,0.4)]'
-                : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
+                ? 'bg-text-primary text-surface font-semibold shadow-xs'
+                : 'text-text-secondary hover:text-text-primary'
             }`}
           >
-            <Users size={15} />
+            <Users size={14} />
             <span>Filter by Student</span>
           </button>
         </div>
@@ -225,9 +222,9 @@ const AttendanceRecordsView: React.FC = () => {
         {/* Export CSV action */}
         <button
           onClick={handleExportCsv}
-          className="px-4 py-2.5 rounded-xl bg-surface-elevated hover:bg-surface-elevated border border-border text-xs font-black uppercase tracking-wider text-text-secondary hover:text-text-primary flex items-center justify-center gap-2 transition-all"
+          className="btn-secondary py-2 px-4 text-xs font-medium flex items-center justify-center gap-2 cursor-pointer"
         >
-          <Download size={15} className="text-accent-muted" />
+          <Download size={14} />
           <span>Export CSV</span>
         </button>
       </div>
@@ -236,16 +233,16 @@ const AttendanceRecordsView: React.FC = () => {
       {filterMode === 'event' && (
         <div className="space-y-6">
           {/* Event Picker Controls */}
-          <div className="glass p-6 rounded-3xl border border-border space-y-4">
+          <div className="surface p-6 rounded-[18px] border border-separator shadow-card space-y-5">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 justify-between">
               <div className="flex-1 space-y-1.5 max-w-md">
-                <label className="text-xs font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
-                  <Calendar size={14} className="text-accent-muted" /> Select Event
+                <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
+                  <Calendar size={13} className="text-text-muted" /> Select Event
                 </label>
                 <select
                   value={selectedEventId}
                   onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="w-full bg-surface-elevated border border-border rounded-2xl px-4 py-3 text-text-primary text-sm font-bold focus:outline-none focus:border-blue-500"
+                  className="input-field py-2 text-xs"
                 >
                   {events.map((ev) => (
                     <option key={ev._id} value={ev._id}>
@@ -257,150 +254,138 @@ const AttendanceRecordsView: React.FC = () => {
 
               {/* Table search filter */}
               <div className="relative flex-1 max-w-sm self-end">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                 <input
                   type="text"
                   placeholder="Filter attendees by name, roll no..."
                   value={tableSearch}
                   onChange={(e) => setTableSearch(e.target.value)}
-                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-10 pr-4 py-3 text-xs text-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500 font-medium"
+                  className="input-field pl-9 text-xs"
                 />
               </div>
             </div>
 
             {/* Active OTP Live Display Banner (if event has an active session) */}
             {activeSession && remainingSecs > 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-5 rounded-2xl bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-accent/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
-              >
+              <div className="p-5 rounded-2xl bg-canvas border border-separator flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-accent/20 border border-accent/30 flex items-center justify-center text-accent-muted">
-                    <KeyRound size={28} />
+                  <div className="w-12 h-12 rounded-xl bg-surface-elevated border border-separator flex items-center justify-center text-accent">
+                    <KeyRound size={22} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-accent-muted">
-                        Live Attendance Session Active
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                        Live Session Active
                       </p>
                     </div>
-                    <h4 className="text-xl font-black text-text-primary">{activeSession.sessionName}</h4>
+                    <h4 className="text-lg font-bold text-text-primary">{activeSession.sessionName}</h4>
                     <p className="text-xs text-text-muted font-mono">
-                      Expires in: <strong className="text-amber-400">{formatCountdown(remainingSecs)}</strong>
+                      Expires in: <strong className="text-text-primary">{formatCountdown(remainingSecs)}</strong>
                     </p>
                   </div>
                 </div>
 
                 {/* Big OTP Display */}
                 <div className="flex items-center gap-3">
-                  <div className="bg-black/60 border border-blue-500/40 px-6 py-2.5 rounded-2xl font-mono text-2xl font-black tracking-[0.3em] text-text-primary shadow-inner">
+                  <div className="bg-surface-elevated border border-separator px-6 py-2 rounded-xl font-mono text-2xl font-bold tracking-[0.25em] text-text-primary">
                     {activeSession.otp}
                   </div>
                   <button
                     onClick={copyOtp}
-                    className="p-3 bg-surface-elevated hover:bg-white/20 text-text-primary rounded-xl transition-all"
+                    className="p-2.5 btn-secondary rounded-xl cursor-pointer"
                     title="Copy OTP"
                   >
-                    {copiedOtp ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} />}
+                    {copiedOtp ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
                   </button>
                 </div>
-              </motion.div>
+              </div>
             ) : null}
 
-            {/* Event Summary Pills */}
+            {/* Event Summary Editorial Meta */}
             {recordsData?.event && (
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-                <span className="px-3 py-1 bg-surface-elevated rounded-xl text-xs font-bold text-text-secondary border border-border">
-                  Type: <strong className="text-accent-muted">{recordsData.event.type}</strong>
-                </span>
-                <span className="px-3 py-1 bg-surface-elevated rounded-xl text-xs font-bold text-text-secondary border border-border">
-                  Format: <strong className="text-purple-400">{recordsData.event.format}</strong>
-                </span>
-                <span className="px-3 py-1 bg-surface-elevated rounded-xl text-xs font-bold text-text-secondary border border-border">
-                  Status: <strong className="text-emerald-400">{recordsData.event.status}</strong>
-                </span>
-                <span className="px-3 py-1 bg-accent/10 rounded-xl text-xs font-black text-accent-muted border border-accent/20">
-                  Total Present: <strong>{recordsData.records?.length || 0}</strong>
-                </span>
+              <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-separator text-xs text-text-muted">
+                <span>Type: <strong className="text-text-primary font-medium">{recordsData.event.type}</strong></span>
+                <span>•</span>
+                <span>Format: <strong className="text-text-primary font-medium">{recordsData.event.format}</strong></span>
+                <span>•</span>
+                <span>Status: <strong className="text-text-primary font-medium">{recordsData.event.status}</strong></span>
+                <span>•</span>
+                <span>Total Present: <strong className="text-text-primary font-semibold">{recordsData.records?.length || 0}</strong></span>
               </div>
             )}
           </div>
 
           {/* Attendees Table */}
-          <div className="glass rounded-3xl overflow-hidden border border-border">
-            <div className="p-5 border-b border-border bg-surface-elevated flex items-center justify-between">
+          <div className="surface rounded-[18px] overflow-hidden border border-separator shadow-card">
+            <div className="p-4 sm:p-5 border-b border-separator flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent-muted flex items-center justify-center">
-                  <UserCheck size={18} />
+                <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-separator text-text-secondary flex items-center justify-center">
+                  <UserCheck size={16} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-text-primary">Verified Attendees Registry</h3>
-                  <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold">
-                    Timestamped student presence records
-                  </p>
+                  <h3 className="text-sm font-semibold text-text-primary">Verified Attendees</h3>
+                  <p className="text-xs text-text-muted">Timestamped student verification records</p>
                 </div>
               </div>
-              <span className="text-xs font-black uppercase text-text-muted">
-                {recordsData?.records?.length || 0} Students Verified
+              <span className="text-xs font-mono text-text-muted">
+                {recordsData?.records?.length || 0} verified
               </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-border text-[10px] font-black uppercase tracking-widest text-text-muted bg-white/[0.02]">
-                    <th className="px-6 py-4">Student</th>
-                    <th className="px-6 py-4">Roll Number</th>
-                    <th className="px-6 py-4">Department</th>
-                    <th className="px-6 py-4">Session Name</th>
-                    <th className="px-6 py-4">Verified Timestamp</th>
-                    <th className="px-6 py-4 text-right">Status</th>
+                  <tr className="border-b border-separator text-[11px] font-medium text-text-muted bg-canvas">
+                    <th className="px-6 py-3.5">Student</th>
+                    <th className="px-6 py-3.5">Roll Number</th>
+                    <th className="px-6 py-3.5">Department</th>
+                    <th className="px-6 py-3.5">Session</th>
+                    <th className="px-6 py-3.5">Verified At</th>
+                    <th className="px-6 py-3.5 text-right">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-separator">
                   {recordsData?.records && recordsData.records.length > 0 ? (
                     recordsData.records.map((r: any) => (
-                      <tr key={r._id} className="hover:bg-white/[0.02] transition-colors group">
-                        <td className="px-6 py-4">
+                      <tr key={r._id} className="hover:bg-surface-elevated transition-colors">
+                        <td className="px-6 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-surface-elevated border border-border flex items-center justify-center text-xs font-bold text-text-primary">
+                            <div className="w-7 h-7 rounded-lg bg-surface-elevated border border-separator flex items-center justify-center text-xs font-semibold text-text-primary">
                               {r.user?.profilePicUrl ? (
                                 <img
                                   src={r.user.profilePicUrl}
                                   alt=""
-                                  className="w-full h-full object-cover rounded-xl"
+                                  className="w-full h-full object-cover rounded-lg"
                                 />
                               ) : (
                                 r.user?.name?.charAt(0) || 'U'
                               )}
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-text-primary group-hover:text-accent-muted transition-colors">
+                              <p className="text-xs font-semibold text-text-primary">
                                 {r.user?.name || 'Unknown Student'}
                               </p>
-                              <p className="text-[10px] text-text-muted truncate max-w-[150px]">
+                              <p className="text-[11px] text-text-muted truncate max-w-[150px]">
                                 {r.user?.email || '—'}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-xs font-mono font-bold text-text-secondary">
+                        <td className="px-6 py-3.5 text-xs font-mono text-text-secondary">
                           {r.user?.rollNo || '—'}
                         </td>
-                        <td className="px-6 py-4 text-xs font-medium text-text-muted">
+                        <td className="px-6 py-3.5 text-xs text-text-muted">
                           {r.user?.department || 'General'}
                         </td>
-                        <td className="px-6 py-4 text-xs font-medium text-text-secondary">
+                        <td className="px-6 py-3.5 text-xs text-text-secondary">
                           {r.session?.sessionName || 'General Session'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-text-muted">
+                        <td className="px-6 py-3.5 text-xs text-text-muted font-mono">
                           {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-wider">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <td className="px-6 py-3.5 text-right">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
                             Verified
                           </span>
                         </td>
@@ -408,12 +393,12 @@ const AttendanceRecordsView: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-16 text-center">
-                        <div className="max-w-sm mx-auto space-y-2">
-                          <ShieldCheck className="w-12 h-12 text-text-muted mx-auto opacity-30" />
-                          <p className="text-text-primary font-bold text-sm">No attendance records yet</p>
+                      <td colSpan={6} className="px-6 py-14 text-center">
+                        <div className="max-w-sm mx-auto space-y-1.5">
+                          <ShieldCheck className="w-9 h-9 text-text-muted mx-auto opacity-30" />
+                          <p className="text-text-primary font-medium text-sm">No attendance records yet</p>
                           <p className="text-text-muted text-xs">
-                            Students will appear here as soon as they submit the 6-digit event OTP.
+                            Students will appear here as soon as they submit the 6-digit session OTP.
                           </p>
                         </div>
                       </td>
@@ -430,36 +415,36 @@ const AttendanceRecordsView: React.FC = () => {
       {filterMode === 'student' && (
         <div className="space-y-6">
           {/* Student Picker & Directory Search */}
-          <div className="glass p-6 rounded-3xl border border-border space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
-                <Users size={14} className="text-purple-400" /> Search & Select Student
+          <div className="surface p-6 rounded-[18px] border border-separator shadow-card space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
+                <Users size={13} className="text-text-muted" /> Search & Select Student
               </label>
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                 <input
                   type="text"
                   value={studentSearchTerm}
                   onChange={(e) => setStudentSearchTerm(e.target.value)}
-                  placeholder="Type student name, roll number, or department to search..."
-                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-10 pr-4 py-3 text-xs text-text-primary placeholder-slate-500 focus:outline-none focus:border-purple-500 font-medium"
+                  placeholder="Type student name, roll number, or department..."
+                  className="input-field pl-9 text-xs"
                 />
               </div>
             </div>
 
             {/* Quick Select Candidates Chips */}
-            <div className="flex flex-wrap gap-2 pt-1 max-h-28 overflow-y-auto custom-scrollbar">
+            <div className="flex flex-wrap gap-2 pt-1 max-h-24 overflow-y-auto custom-scrollbar">
               {studentCandidates.map((stu) => (
                 <button
                   key={stu._id}
                   onClick={() => setSelectedStudentId(stu._id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all flex items-center gap-2 ${
+                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${
                     selectedStudentId === stu._id
-                      ? 'bg-purple-600 text-text-primary border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                      : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated hover:text-text-primary'
+                      ? 'bg-text-primary text-surface border-text-primary shadow-xs font-semibold'
+                      : 'bg-canvas text-text-secondary border-separator hover:bg-surface-elevated hover:text-text-primary'
                   }`}
                 >
-                  <span className="font-bold">{stu.name}</span>
+                  <span>{stu.name}</span>
                   <span className="text-[10px] opacity-70 font-mono">({stu.rollNo})</span>
                 </button>
               ))}
@@ -467,23 +452,23 @@ const AttendanceRecordsView: React.FC = () => {
 
             {/* Selected Student Profile Banner */}
             {recordsData?.student && (
-              <div className="p-5 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-600 text-text-primary font-black flex items-center justify-center text-lg">
+              <div className="p-4 rounded-xl bg-canvas border border-separator flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-surface-elevated text-text-primary font-bold flex items-center justify-center border border-separator text-sm">
                     {recordsData.student.name?.charAt(0) || 'S'}
                   </div>
                   <div>
-                    <h4 className="text-lg font-black text-text-primary">{recordsData.student.name}</h4>
+                    <h4 className="text-base font-bold text-text-primary">{recordsData.student.name}</h4>
                     <p className="text-xs text-text-muted font-mono">
-                      Roll: <strong className="text-purple-400">{recordsData.student.rollNo}</strong> • Dept:{' '}
-                      <strong className="text-slate-200">{recordsData.student.department || 'General'}</strong>
+                      Roll: <strong className="text-text-primary">{recordsData.student.rollNo}</strong> • Dept:{' '}
+                      <strong className="text-text-secondary">{recordsData.student.department || 'General'}</strong>
                     </p>
                   </div>
                 </div>
 
                 <div className="text-center sm:text-right">
-                  <span className="text-2xl font-black text-text-primary">{recordsData.records?.length || 0}</span>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+                  <span className="text-xl font-bold text-text-primary">{recordsData.records?.length || 0}</span>
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted">
                     Sessions Attended
                   </p>
                 </div>
@@ -492,59 +477,56 @@ const AttendanceRecordsView: React.FC = () => {
           </div>
 
           {/* Student's Attended Events Table */}
-          <div className="glass rounded-3xl overflow-hidden border border-border">
-            <div className="p-5 border-b border-border bg-surface-elevated flex items-center justify-between">
+          <div className="surface rounded-[18px] overflow-hidden border border-separator shadow-card">
+            <div className="p-4 sm:p-5 border-b border-separator flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                  <Calendar size={18} />
+                <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-separator text-text-secondary flex items-center justify-center">
+                  <Calendar size={16} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-text-primary">Student Attendance Record</h3>
-                  <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold">
-                    All verified events & sessions attended by this student
-                  </p>
+                  <h3 className="text-sm font-semibold text-text-primary">Student Attendance Record</h3>
+                  <p className="text-xs text-text-muted">All verified events attended by this student</p>
                 </div>
               </div>
-              <span className="text-xs font-black uppercase text-purple-400">
-                {recordsData?.records?.length || 0} Verified Sessions
+              <span className="text-xs font-mono text-text-muted">
+                {recordsData?.records?.length || 0} verified sessions
               </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-border text-[10px] font-black uppercase tracking-widest text-text-muted bg-white/[0.02]">
-                    <th className="px-6 py-4">Event Title</th>
-                    <th className="px-6 py-4">Type & Format</th>
-                    <th className="px-6 py-4">Event Date</th>
-                    <th className="px-6 py-4">Session Name</th>
-                    <th className="px-6 py-4">Verified Timestamp</th>
-                    <th className="px-6 py-4 text-right">Status</th>
+                  <tr className="border-b border-separator text-[11px] font-medium text-text-muted bg-canvas">
+                    <th className="px-6 py-3.5">Event Title</th>
+                    <th className="px-6 py-3.5">Type & Format</th>
+                    <th className="px-6 py-3.5">Event Date</th>
+                    <th className="px-6 py-3.5">Session Name</th>
+                    <th className="px-6 py-3.5">Verified At</th>
+                    <th className="px-6 py-3.5 text-right">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-separator">
                   {recordsData?.records && recordsData.records.length > 0 ? (
                     recordsData.records.map((r: any) => (
-                      <tr key={r._id} className="hover:bg-white/[0.02] transition-colors group">
-                        <td className="px-6 py-4 font-bold text-text-primary group-hover:text-purple-400 transition-colors">
+                      <tr key={r._id} className="hover:bg-surface-elevated transition-colors">
+                        <td className="px-6 py-3.5 font-semibold text-text-primary text-xs">
                           {r.event?.title || 'Event Session'}
                         </td>
-                        <td className="px-6 py-4 text-xs font-medium text-text-muted">
-                          <span className="text-accent-muted font-bold">{r.event?.type || 'Technical'}</span> •{' '}
-                          <span className="text-purple-400 font-bold">{r.event?.format || 'Individual'}</span>
+                        <td className="px-6 py-3.5 text-xs text-text-muted">
+                          <span>{r.event?.type || 'Technical'}</span> •{' '}
+                          <span>{r.event?.format || 'Individual'}</span>
                         </td>
-                        <td className="px-6 py-4 text-xs font-medium text-text-secondary">
+                        <td className="px-6 py-3.5 text-xs text-text-secondary">
                           {r.event?.date ? format(new Date(r.event.date), 'MMM dd, yyyy') : '—'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-text-secondary font-medium">
+                        <td className="px-6 py-3.5 text-xs text-text-secondary">
                           {r.sessionName || 'General Session'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-text-muted">
+                        <td className="px-6 py-3.5 text-xs text-text-muted font-mono">
                           {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-wider">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <td className="px-6 py-3.5 text-right">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
                             Verified
                           </span>
                         </td>
@@ -552,10 +534,10 @@ const AttendanceRecordsView: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-16 text-center">
-                        <div className="max-w-sm mx-auto space-y-2">
-                          <ShieldCheck className="w-12 h-12 text-text-muted mx-auto opacity-30" />
-                          <p className="text-text-primary font-bold text-sm">No attendance records for this student</p>
+                      <td colSpan={6} className="px-6 py-14 text-center">
+                        <div className="max-w-sm mx-auto space-y-1.5">
+                          <ShieldCheck className="w-9 h-9 text-text-muted mx-auto opacity-30" />
+                          <p className="text-text-primary font-medium text-sm">No attendance records for this student</p>
                           <p className="text-text-muted text-xs">
                             Select a student from the directory above to view their event attendance history.
                           </p>

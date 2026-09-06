@@ -14,11 +14,11 @@ import { User, UserRole } from '../types/user';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
-  SuperAdmin: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', Icon: Crown },
-  Admin: { color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', Icon: ShieldCheck },
-  Faculty: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', Icon: Shield },
-  Committee: { color: '#34d399', bg: 'rgba(52,211,153,0.08)', Icon: Shield },
-  Student: { color: 'var(--text-muted)', bg: 'var(--glass-border)', Icon: Users },
+  SuperAdmin: { color: 'var(--accent)', bg: 'rgba(0,113,227,0.08)', Icon: Crown },
+  Admin: { color: 'var(--text-primary)', bg: 'var(--surface-elevated)', Icon: ShieldCheck },
+  Faculty: { color: 'var(--text-secondary)', bg: 'var(--surface-elevated)', Icon: Shield },
+  Committee: { color: 'var(--text-secondary)', bg: 'var(--surface-elevated)', Icon: Shield },
+  Student: { color: 'var(--text-muted)', bg: 'var(--surface-elevated)', Icon: Users },
 };
 
 const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
@@ -26,10 +26,10 @@ const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
   const { Icon } = meta;
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-      style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}22` }}
+      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+      style={{ background: meta.bg, color: meta.color, border: `1px solid var(--border-color)` }}
     >
-      <Icon size={11} strokeWidth={2.5} />
+      <Icon size={11} strokeWidth={2} />
       {role}
     </span>
   );
@@ -360,38 +360,26 @@ const UserManagement: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-0">
 
-      {/* ── Cinematic Page Hero ── */}
-      <div className="py-12 md:py-16 relative overflow-hidden">
-        <div
-          className="absolute inset-y-0 right-0 w-1/2 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse at right, var(--accent-subtle) 0%, transparent 70%)',
-            filter: 'blur(40px)',
-          }}
-        />
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="relative"
-        >
+      {/* ── Page Header ── */}
+      <div className="py-8 md:py-10">
+        <div>
           <p
-            className="text-[11px] font-semibold uppercase tracking-widest mb-3"
+            className="text-[11px] font-semibold uppercase tracking-widest mb-2"
             style={{ color: 'var(--text-muted)', letterSpacing: '0.12em' }}
           >
             Admin Console
           </p>
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div>
               <h1
-                className="font-black leading-none tracking-tight"
-                style={{ fontSize: 'clamp(2.2rem, 5vw, 4rem)', letterSpacing: '-0.04em', color: 'var(--text-primary)' }}
+                className="font-bold leading-none tracking-tight text-3xl sm:text-4xl"
+                style={{ color: 'var(--text-primary)' }}
               >
                 User Directory
               </h1>
-              <p className="mt-3 text-base" style={{ color: 'var(--text-muted)' }}>
+              <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
                 {isSuperAdmin() && (
-                  <span className="font-semibold" style={{ color: '#f59e0b' }}>SuperAdmin · </span>
+                  <span className="font-semibold text-accent">SuperAdmin · </span>
                 )}
                 Full access control, credentials, and role management.
               </p>
@@ -399,37 +387,30 @@ const UserManagement: React.FC = () => {
 
             <div className="flex items-center gap-4">
               <HeroMetric value={pagination.total} label="Total Members" />
-              <div className="w-px h-12 self-center" style={{ background: 'var(--border-color)' }} />
+              <div className="w-px h-10 self-center" style={{ background: 'var(--border-color)' }} />
 
               <div className="flex gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.02, y: -1 }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                <button
                   onClick={() => {
                     setFormData({ name: '', email: '', rollNo: '', role: 'Student', department: '', password: '' });
                     setShowAddPanel(true);
                   }}
-                  className="btn-primary flex items-center gap-2 text-sm px-5 py-2.5"
+                  className="btn-primary flex items-center gap-2 text-sm px-5 py-2.5 cursor-pointer"
                 >
                   <UserPlus size={15} strokeWidth={2} />
                   Add User
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                </button>
+                <button
                   onClick={() => fetchUsers()}
                   disabled={loading}
-                  className="p-2.5 rounded-xl cursor-pointer transition-colors duration-150"
-                  style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+                  className="p-2.5 rounded-xl cursor-pointer transition-colors duration-150 btn-secondary"
                 >
                   <RefreshCw size={16} strokeWidth={1.8} className={loading ? 'animate-spin text-accent' : ''} />
-                </motion.button>
+                </button>
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* ── Filters ── */}

@@ -128,50 +128,46 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
 
   const displayName = profile?.name || user?.name || 'User';
   const displayRole = profile?.role || user?.role || 'Member';
-  const initial = displayName.charAt(0).toUpperCase();
   const roleColor = roleColors[displayRole] || 'var(--label-secondary)';
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <header
-      className={`sticky top-0 z-30 w-full h-[60px] flex items-center px-5 justify-between ${className}`}
+      className={`sticky top-0 z-30 w-full h-[56px] flex items-center px-6 justify-between ${className}`}
       style={{
         background: 'var(--glass-bg)',
-        backdropFilter: 'saturate(180%) blur(24px)',
-        WebkitBackdropFilter: 'saturate(180%) blur(24px)',
+        backdropFilter: 'saturate(180%) blur(20px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
         boxShadow: '0 1px 0 var(--separator)',
       }}
     >
       {/* Left */}
       <div className="flex items-center gap-3">
         {/* Mobile hamburger */}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          transition={SPRING}
+        <button
           onClick={onOpenMobileMenu}
-          className="lg:hidden btn-ghost p-2 rounded-xl"
+          className="lg:hidden p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-separator transition-colors"
           aria-label="Open menu"
         >
-          <Menu size={20} strokeWidth={1.75} style={{ color: 'var(--label-secondary)' }} />
-        </motion.button>
+          <Menu size={18} strokeWidth={1.75} />
+        </button>
 
-        {/* Search — expands on focus */}
-        <motion.div
-          animate={{ width: searchFocused ? 260 : 180 }}
-          transition={SPRING}
-          className="hidden sm:flex items-center gap-2.5 rounded-xl px-3.5 py-2 overflow-hidden"
+        {/* Search — expands smoothly on focus */}
+        <div
+          className="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 overflow-hidden transition-all duration-200"
           style={{
+            width: searchFocused ? 260 : 180,
             background: searchFocused ? 'var(--surface)' : 'var(--separator)',
             boxShadow: searchFocused ? '0 0 0 3px var(--accent-ring)' : 'none',
-            transition: 'background 200ms ease, box-shadow 200ms ease',
+            border: searchFocused ? '1px solid var(--accent)' : '1px solid transparent',
           }}
         >
           <Search
-            size={14}
+            size={13}
             strokeWidth={2}
             style={{
               color: searchFocused ? 'var(--accent)' : 'var(--label-tertiary)',
               flexShrink: 0,
-              transition: 'color 200ms ease',
             }}
           />
           <input
@@ -180,24 +176,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
             placeholder="Search…"
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className="bg-transparent border-none text-[14px] focus:outline-none w-full"
+            className="bg-transparent border-none text-[13px] focus:outline-none w-full"
             style={{ color: 'var(--label-primary)', fontFamily: 'var(--font-sans)' }}
           />
           <AnimatePresence>
             {!searchFocused && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
-                className="hidden md:flex text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-md"
-                style={{ background: 'var(--surface)', color: 'var(--label-tertiary)' }}
+              <span
+                className="hidden md:flex text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-md text-label-tertiary bg-canvas border border-separator"
               >
                 ⌘K
-              </motion.span>
+              </span>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
       </div>
 
       {/* Right */}
@@ -206,27 +197,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
 
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.94 }}
-            transition={SPRING}
+          <button
             onClick={() => setShowNotifications((v) => !v)}
-            className="relative p-2.5 rounded-xl cursor-pointer"
+            className="relative p-2 rounded-xl cursor-pointer text-label-secondary hover:text-label-primary hover:bg-separator transition-colors"
             style={{
               background: showNotifications ? 'var(--accent-subtle)' : 'transparent',
-              color: showNotifications ? 'var(--accent)' : 'var(--label-secondary)',
-              transition: 'background 200ms ease, color 200ms ease',
+              color: showNotifications ? 'var(--accent)' : undefined,
             }}
             aria-label="Notifications"
           >
-            <Bell size={18} strokeWidth={1.75} />
+            <Bell size={17} strokeWidth={1.75} />
             {unread > 0 && (
               <span
-                className="absolute top-2 right-2 w-[7px] h-[7px] rounded-full"
+                className="absolute top-1.5 right-1.5 w-[6px] h-[6px] rounded-full"
                 style={{ background: 'var(--accent)' }}
               />
             )}
-          </motion.button>
+          </button>
 
           <AnimatePresence>
             {showNotifications && (
@@ -347,17 +334,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
         {user || profile ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                transition={SPRING}
-                className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full cursor-pointer outline-none"
-                style={{
-                  background: 'var(--separator)',
-                  transition: 'background 200ms ease',
-                }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--separator-opaque)')}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--separator)')}
+              <button
+                className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full cursor-pointer outline-none bg-separator hover:bg-separator-opaque transition-colors duration-150"
               >
                 <Avatar className="w-7 h-7 rounded-full">
                   {profile?.profilePicUrl && (
@@ -377,7 +355,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                   {displayName.split(' ')[0]}
                 </span>
                 <ChevronDown size={12} strokeWidth={2} style={{ color: 'var(--label-tertiary)' }} />
-              </motion.button>
+              </button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent
@@ -417,11 +395,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                       {user?.email || profile?.email || ''}
                     </p>
                     <span
-                      className="tag mt-1.5"
+                      className="inline-flex px-2 py-0.5 mt-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
                       style={{
-                        background: `${roleColor}18`,
-                        color: roleColor,
-                        fontSize: '10px',
+                        background: 'var(--accent-subtle)',
+                        color: 'var(--accent)',
+                        border: '1px solid var(--separator)',
                       }}
                     >
                       {displayRole}

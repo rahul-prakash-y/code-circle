@@ -1,55 +1,45 @@
 import React, { useEffect } from 'react';
 import { Trophy, Medal, Crown, Star, Loader2 } from 'lucide-react';
 import useAnalyticsStore from '../../store/useAnalyticsStore';
-import { motion } from 'framer-motion';
 
-const PodiumItem = ({ user, rank, delay }) => {
-  const colors = {
-    1: { border: 'border-blue-400', glow: 'shadow-blue-400/20', icon: Crown, text: 'text-accent-muted', gradient: 'from-blue-500/20', height: 'h-52' },
-    2: { border: 'border-border-hover', glow: 'shadow-white/10', icon: Medal, text: 'text-text-secondary', gradient: 'from-white/10', height: 'h-44' },
-    3: { border: 'border-blue-900/40', glow: 'shadow-blue-900/10', icon: Medal, text: 'text-blue-900', gradient: 'from-blue-900/20', height: 'h-36' }
-  };
-  
-  const config = colors[rank];
-  const Icon = config.icon;
+const PodiumItem = ({ user, rank }) => {
+  const isFirst = rank === 1;
 
   return (
-    <motion.div 
-      initial={{ y: 50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col items-center group relative pt-10"
-    >
-      <div className="relative mb-6 z-10">
-        <div className={`w-28 h-28 rounded-[2.5rem] border-2 ${config.border} p-1 overflow-hidden glass ${config.glow} shadow-2xl transition-all duration-700 group-hover:scale-110 group-hover:-translate-y-2`}>
-          <div className="w-full h-full rounded-[2.2rem] overflow-hidden">
+    <div className={`flex flex-col items-center relative ${isFirst ? 'order-1 sm:order-2 -mt-4' : rank === 2 ? 'order-2 sm:order-1' : 'order-3 sm:order-3'}`}>
+      <div className="relative mb-3">
+        <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border ${isFirst ? 'border-accent shadow-card' : 'border-separator'} p-0.5 overflow-hidden surface`}>
+          <div className="w-full h-full rounded-[14px] overflow-hidden bg-surface-elevated flex items-center justify-center">
             {user.profilePicUrl ? (
               <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-accent/10 text-accent-muted text-3xl font-black uppercase">
+              <span className="text-xl font-bold text-text-secondary">
                 {user.name[0]}
-              </div>
+              </span>
             )}
           </div>
         </div>
-        <div className={`absolute -top-6 -right-2 bg-black border border-border rounded-xl p-2.5 ${config.text} shadow-2xl`}>
-          <Icon size={20} strokeWidth={3} />
-        </div>
-        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-blue-500 text-text-primary px-4 py-1 rounded-xl text-[10px] font-black uppercase tracking-tighter shadow-xl shadow-blue-500/40">
-          RANK {rank}
+
+        {/* Subtle Rank indicator */}
+        <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+          isFirst 
+            ? 'bg-accent text-white shadow-xs' 
+            : 'bg-surface-elevated text-text-secondary border border-separator'
+        }`}>
+          #{rank}
         </div>
       </div>
-      
-      <div className="text-center w-full">
-        <h4 className="text-text-primary font-black truncate max-w-[140px] uppercase tracking-tight text-lg leading-none mb-2">{user.name}</h4>
+
+      <div className="text-center w-full max-w-[150px] space-y-1 mt-2">
+        <h4 className="text-text-primary font-bold text-sm truncate">{user.name}</h4>
+        <p className="text-[11px] text-text-muted font-mono">{user.rollNo}</p>
         
-        {/* Podium Base */}
-        <div className={`w-40 ${config.height} bg-linear-to-b ${config.gradient} to-transparent rounded-[2.5rem] border-t border-x border-border glass flex flex-col items-center justify-end pb-8 gap-1 shadow-2xl shadow-black/80`}>
-          <div className={`text-3xl font-black ${config.text} tracking-tighter`}>{user.totalPoints}</div>
-          <div className="text-[9px] uppercase tracking-[0.3em] text-text-muted font-black">Credits</div>
+        <div className="pt-2">
+          <span className="text-lg sm:text-xl font-bold text-text-primary">{user.totalPoints}</span>
+          <span className="text-[10px] text-text-muted ml-1 uppercase font-medium">pts</span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -62,8 +52,8 @@ const Leaderboard = () => {
 
   if (loading && leaderboard.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="animate-spin text-accent" size={40} />
+      <div className="flex items-center justify-center h-80">
+        <Loader2 className="animate-spin text-accent" size={32} />
       </div>
     );
   }
@@ -72,74 +62,68 @@ const Leaderboard = () => {
   const others = leaderboard.slice(3, 100);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-16 py-12 px-6">
-      {/* Title */}
-      <div className="text-center space-y-4">
-        <motion.div 
-          initial={{ scale: 0, rotate: -20 }}
-          animate={{ scale: 1, rotate: 0 }}
-          className="inline-flex p-4 rounded-[2rem] bg-accent/10 border border-accent/20 text-accent-muted mb-4 shadow-[0_0_40px_rgba(59,130,246,0.2)]"
-        >
-          <Trophy size={40} strokeWidth={2.5} />
-        </motion.div>
-        <h2 className="text-5xl font-black text-text-primary tracking-tighter uppercase">Code Circle <span className="text-accent ml-2">Hall of Fame</span></h2>
-        <p className="text-text-muted font-bold uppercase tracking-widest text-xs max-w-xl mx-auto leading-relaxed">The elite developers recognized by their performance, consistency, and absolute commitment to code.</p>
+    <div className="max-w-4xl mx-auto space-y-12 py-10 px-4 sm:px-6">
+      {/* Header */}
+      <div className="text-center space-y-2 max-w-xl mx-auto">
+        <div className="inline-flex p-2.5 rounded-xl bg-surface-elevated border border-separator text-accent mb-2">
+          <Trophy size={22} strokeWidth={2} />
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-bold text-text-primary tracking-tight">Leaderboard</h1>
+        <p className="text-text-muted text-sm leading-relaxed">
+          Recognizing consistent academic problem-solving, workshop participation, and club contributions.
+        </p>
       </div>
 
-      {/* Podium Section */}
+      {/* Top 3 Honors */}
       {top3.length > 0 && (
-        <div className="flex flex-wrap justify-center items-end gap-10 md:gap-16 pt-12">
-          {top3[1] && <PodiumItem user={top3[1]} rank={2} delay={0.2} />}
-          {top3[0] && <PodiumItem user={top3[0]} rank={1} delay={0} />}
-          {top3[2] && <PodiumItem user={top3[2]} rank={3} delay={0.4} />}
+        <div className="surface rounded-[18px] border border-separator shadow-card p-6 sm:p-10">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-8 sm:gap-12 pt-2 pb-4">
+            {top3[1] && <PodiumItem user={top3[1]} rank={2} />}
+            {top3[0] && <PodiumItem user={top3[0]} rank={1} />}
+            {top3[2] && <PodiumItem user={top3[2]} rank={3} />}
+          </div>
         </div>
       )}
 
-      {/* Others List */}
-      <div className="glass overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)]">
-        <div className="grid grid-cols-12 px-10 py-6 bg-surface-elevated border-b border-border text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">
-          <div className="col-span-1">Pos</div>
-          <div className="col-span-6 md:col-span-7">Operator</div>
-          <div className="col-span-2 hidden md:block text-center whitespace-nowrap">Solutions</div>
-          <div className="col-span-3 md:col-span-2 text-right">Points</div>
+      {/* Rankings Table */}
+      <div className="surface rounded-[18px] border border-separator shadow-card overflow-hidden">
+        <div className="grid grid-cols-12 px-6 py-3.5 bg-canvas border-b border-separator text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+          <div className="col-span-2 sm:col-span-1">Rank</div>
+          <div className="col-span-7 sm:col-span-8">Student</div>
+          <div className="col-span-3 text-right">Points</div>
         </div>
         
-        <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+        <div className="divide-y divide-separator max-h-[500px] overflow-y-auto custom-scrollbar">
           {others.map((user, index) => (
-            <motion.div 
+            <div 
               key={user._id}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: index * 0.03 }}
-              className="grid grid-cols-12 px-10 py-6 items-center group hover:bg-surface-elevated transition-all duration-500 border-b border-white/[0.02] last:border-none"
+              className="grid grid-cols-12 px-6 py-3.5 items-center hover:bg-surface-elevated transition-colors"
             >
-              <div className="col-span-1 font-black text-text-muted group-hover:text-accent-muted transition-colors text-sm">
+              <div className="col-span-2 sm:col-span-1 font-mono text-xs font-semibold text-text-muted">
                 #{index + 4}
               </div>
-              <div className="col-span-6 md:col-span-7 flex items-center gap-5">
-                <div className="w-12 h-12 rounded-2xl overflow-hidden bg-surface-elevated border border-border group-hover:border-accent/30 transition-all duration-500">
+              <div className="col-span-7 sm:col-span-8 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg overflow-hidden bg-surface-elevated border border-separator flex items-center justify-center text-xs font-semibold text-text-secondary shrink-0">
                   {user.profilePicUrl ? (
                     <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-accent-muted font-black text-base uppercase">
-                      {user.name[0]}
-                    </div>
+                    user.name[0]
                   )}
                 </div>
-                <div>
-                  <div className="text-text-primary font-black text-base uppercase tracking-tight group-hover:text-accent-muted transition-colors duration-500">{user.name}</div>
-                  <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest">{user.rollNo}</div>
+                <div className="min-w-0">
+                  <div className="text-text-primary font-medium text-xs sm:text-sm truncate">{user.name}</div>
+                  <div className="text-[10px] text-text-muted font-mono">{user.rollNo}</div>
                 </div>
               </div>
-              <div className="col-span-2 hidden md:flex items-center justify-center gap-2 text-text-muted font-bold text-sm">
-                <Star size={14} className="text-blue-500/50" />
-                <span>{user.problemsSolved}</span>
+              <div className="col-span-3 text-right">
+                <span className="text-text-primary font-bold text-sm">{user.totalPoints}</span>
+                <span className="text-[10px] text-text-muted ml-1">pts</span>
               </div>
-              <div className="col-span-3 md:col-span-2 text-right">
-                <span className="text-text-primary font-black text-lg group-hover:text-accent transition-colors duration-500">{user.totalPoints}</span>
-              </div>
-            </motion.div>
+            </div>
           ))}
+          {others.length === 0 && (
+            <p className="text-center py-8 text-xs text-text-muted">No additional rankings to display.</p>
+          )}
         </div>
       </div>
     </div>
@@ -147,3 +131,4 @@ const Leaderboard = () => {
 };
 
 export default Leaderboard;
+
