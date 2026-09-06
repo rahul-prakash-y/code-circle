@@ -17,19 +17,19 @@ export async function newsRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/',
     { preHandler: [verifyToken, isAdminOrFaculty] },
-    createNews
+    createNews as any
   );
 
   fastify.put(
     '/:id',
     { preHandler: [verifyToken, isAdminOrFaculty] },
-    updateNews
+    updateNews as any
   );
 
   fastify.delete(
     '/:id',
     { preHandler: [verifyToken, isAdminOrFaculty] },
-    deleteNews
+    deleteNews as any
   );
 }
 

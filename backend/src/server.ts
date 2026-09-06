@@ -9,6 +9,9 @@ import errorHandler from './middleware/errorHandler';
 import { authRoutes } from './routes/authRoutes';
 import { userRoutes } from './routes/userRoutes';
 import { newsRoutes } from './routes/newsRoutes';
+import { eventRoutes } from './routes/eventRoutes';
+import { teamRoutes } from './routes/teamRoutes';
+import { attendanceRoutes } from './routes/attendanceRoutes';
 
 export const server: FastifyInstance = Fastify({
   logger: {
@@ -37,16 +40,17 @@ server.setErrorHandler(errorHandler);
 // --- API ROUTES ---
 server.register(authRoutes, { prefix: '/api/auth' });
 server.register(userRoutes, { prefix: '/api/users' });
+server.register(eventRoutes, { prefix: '/api/events' });
+server.register(teamRoutes, { prefix: '/api/teams' });
+server.register(attendanceRoutes, { prefix: '/api/attendance' });
+server.register(newsRoutes, { prefix: '/api/news' });
 server.register(require('./routes/health'), { prefix: '/api' });
 server.register(require('./routes/uploadRoutes'), { prefix: '/api/upload' });
-server.register(require('./routes/eventRoutes'), { prefix: '/api/events' });
 server.register(require('./routes/enrollmentRoutes'), { prefix: '/api/enrollments' });
 server.register(require('./routes/problemRoutes'), { prefix: '/api/problems' });
 server.register(require('./routes/analyticsRoutes'), { prefix: '/api/analytics' });
 server.register(require('./routes/quizRoutes'), { prefix: '/api/quizzes' });
 server.register(require('./routes/bearerRoutes'), { prefix: '/api/bearers' });
-server.register(require('./routes/attendanceRoutes'), { prefix: '/api/attendance' });
-server.register(newsRoutes, { prefix: '/api/news' });
 
 // API 404 Handler
 server.setNotFoundHandler((request, reply) => {

@@ -15,6 +15,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const CodingWorkspace = lazy(() => import('./components/coding/CodingWorkspace'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
+const TeamsManagement = lazy(() => import('./pages/TeamsManagement'));
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuthStore();
@@ -100,6 +101,18 @@ function App() {
             element={
               <ProtectedRoute>
                 <CodingWorkspace />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Teams Management Module (Admin, SuperAdmin, Faculty, Committee) */}
+          <Route
+            path="/teams"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                <MainLayout>
+                  <TeamsManagement />
+                </MainLayout>
               </ProtectedRoute>
             }
           />

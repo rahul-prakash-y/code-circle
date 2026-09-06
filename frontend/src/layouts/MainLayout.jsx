@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, User, Bell, Search, Hexagon, Info, Users, Newspaper } from 'lucide-react';
+import { LogOut, User, Bell, Search, Hexagon, Info, Users, Newspaper, Shield } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import StellarBackground from '../components/ui/StellarBackground';
 import { Link, useLocation } from 'react-router-dom';
@@ -62,10 +62,22 @@ const MainLayout = ({ children }) => {
             News Feed
           </Link>
           {(profile?.role === 'Admin' || profile?.role === 'SuperAdmin' || profile?.role === 'Faculty' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-            <Link to="/users" className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${(location.pathname === '/users' || location.pathname === '/students') ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-white'}`}>
-              <Users size={14} />
-              User Management
-            </Link>
+            <>
+              <Link 
+                to="/teams" 
+                className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/teams' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.1)]' : 'text-slate-500 hover:text-white'}`}
+              >
+                <Users size={14} />
+                Teams
+              </Link>
+              <Link 
+                to="/users" 
+                className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${(location.pathname === '/users' || location.pathname === '/students') ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-white'}`}
+              >
+                <Shield size={14} />
+                User Management
+              </Link>
+            </>
           )}
         </div>
 

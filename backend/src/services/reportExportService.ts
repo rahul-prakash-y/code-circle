@@ -1,4 +1,5 @@
-import PDFDocument from 'pdfkit';
+// @ts-ignore
+const PDFDocument = require('pdfkit');
 import mongoose from 'mongoose';
 import User from '../models/userModel';
 import { getDashboardMetrics } from './metricsService';
@@ -131,7 +132,7 @@ export const generatePdfReport = async (type: ReportType): Promise<{ buffer: Buf
       });
 
       const chunks: Buffer[] = [];
-      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('data', (chunk: any) => chunks.push(chunk));
       doc.on('end', () => {
         resolve({
           buffer: Buffer.concat(chunks),

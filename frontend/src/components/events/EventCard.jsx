@@ -50,20 +50,42 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
         animate={{ opacity: 1, y: 0 }}
         className="group relative stellar-glass p-8 hover:border-blue-500/30 transition-all duration-500 active:scale-[0.99] flex flex-col justify-between h-full"
       >
-        {/* Type Badge */}
-        <div className="absolute top-6 right-6 flex gap-2">
-          <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border shadow-2xl ${
-            event.type === 'Individual' 
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-              : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-          }`}>
-            {event.type === 'Individual' ? 'Solo' : 'Squad'}
-          </span>
-          {isPast && (
-            <span className="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] bg-white/5 text-slate-500 border-white/10 border">
-              Closed
+        {/* Type, Format & Status Badges */}
+        <div className="absolute top-6 right-6 flex flex-wrap gap-1.5 items-center justify-end max-w-[200px]">
+          {/* Status Badge */}
+          {event.status && (
+            <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-md ${
+              event.status === 'Live'
+                ? 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse'
+                : event.status === 'Completed'
+                ? 'bg-white/5 text-slate-400 border-white/10'
+                : event.status === 'Cancelled'
+                ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+            }`}>
+              {event.status}
             </span>
           )}
+
+          {/* Type Badge */}
+          <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border shadow-md ${
+            event.type === 'Technical'
+              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+              : event.type === 'Non-Technical'
+              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              : event.type === 'Lecture'
+              ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+              : event.type === 'Workshop'
+              ? 'bg-pink-500/10 text-pink-400 border-pink-500/20'
+              : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+          }`}>
+            {event.type || 'Technical'}
+          </span>
+
+          {/* Format Badge */}
+          <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-md">
+            {event.format === 'Team' || event.type === 'Team' ? 'Squad' : 'Solo'}
+          </span>
         </div>
 
         {/* Main Content */}

@@ -66,16 +66,48 @@ const useAttendanceStore = create((set) => ({
     }
   },
 
-  fetchUserHistory: async () => {
-    set({ loading: true });
+  recordsData: null,
+  activeSession: null,
+
+  fetchAttendanceRecords: async ({ studentId = '', eventId = '', sessionId = '', search = '', page = 1, limit = 50 } = {}) => {
+    set({ loading: true, error: null });
     try {
-      const response = await api.get('/attendance/history');
-      set({ history: response.data, loading: false });
-    } catch (error) {
+      const params = new URLSearchParams();
+      if (studentId) params.append('studentId', studentId);
+      if (eventId) params.append('eventId', eventId);
+      if (sessionId) params.append('sessionId', sessionId);
+      if (search) params.append('search', search);
+      params.append('page', page);
+      params.append('limit', limit);
+
+      const res = await api.get(`/attendance/records?${params.toString()}`);
+      if (res.data.success) {
+        set({ recordsData: res.data.data, loading: false });
+        return res.data.data;
+      }
       set({ loading: false });
-      console.error('Failed to fetch attendance history:', error);
+      return null;
+    } catch (error) {
+      const message = error.response?.data?.error || 'Failed to load attendance records';
+      set({ error: message, loading: false });
+      toast.error(message);
+      return null;
     }
-  }
+  },
+
+  fetchActiveSession: async (eventId) => {
+    if (!eventId) return null;
+    try {
+      const res = await api.get(`/attendance/sessions/active/${eventId}`);
+      if (res.data.success) {
+        set({ activeSession: res.data.session });
+        return res.data.session;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
 }));
 
 export default useAttendanceStore;

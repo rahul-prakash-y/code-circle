@@ -8,16 +8,32 @@ const useEventStore = create((set) => ({
   loading: false,
   error: null,
 
-  fetchEvents: async (status = '') => {
+  fetchEvents: async (filters = '') => {
     set({ loading: true, error: null });
     try {
-      const response = await api.get(`/events?status=${status}`);
-      if (status === 'upcoming') {
+      let url = '/events';
+      let statusVal = '';
+      if (typeof filters === 'string') {
+        statusVal = filters;
+        if (filters) url += `?status=${filters}`;
+      } else if (typeof filters === 'object' && filters !== null) {
+        statusVal = filters.status || '';
+        const params = new URLSearchParams();
+        if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+        if (filters.type && filters.type !== 'all') params.append('type', filters.type);
+        if (filters.format && filters.format !== 'all') params.append('format', filters.format);
+        if (filters.search) params.append('search', filters.search);
+        const queryStr = params.toString();
+        if (queryStr) url += `?${queryStr}`;
+      }
+
+      const response = await api.get(url);
+      if (statusVal === 'upcoming') {
         set({ upcomingEvents: response.data, loading: false });
-      } else if (status === 'past') {
+      } else if (statusVal === 'past') {
         set({ pastEvents: response.data, loading: false });
       } else {
-        set({ events: response.data, loading: false });
+        set({ events: response.data, upcomingEvents: response.data.filter((e) => e.status !== 'Cancelled' && e.status !== 'Completed'), loading: false });
       }
     } catch (error) {
       // Fallback Mock Events

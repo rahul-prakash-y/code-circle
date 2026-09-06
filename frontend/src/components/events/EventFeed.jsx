@@ -2,42 +2,70 @@ import React, { useEffect, useState } from 'react';
 import useEventStore from '../../store/useEventStore';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import EventCard from './EventCard';
-import { Search, Filter, CalendarCheck, History, LayoutGrid, List, Calendar } from 'lucide-react';
+import { Search, Filter, CalendarCheck, History, LayoutGrid, List, Calendar, Radio, Activity, Sparkles } from 'lucide-react';
+
+const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop'];
+const EVENT_FORMATS = ['all', 'Individual', 'Team'];
 
 const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
-  const { upcomingEvents, pastEvents, loading, fetchEvents } = useEventStore();
+  const { events, upcomingEvents, pastEvents, loading, fetchEvents } = useEventStore();
   const { fetchMyEnrollments } = useEnrollmentStore();
-  const [activeTab, setActiveTab] = useState('upcoming');
+  const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming', 'live', 'past', 'all'
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedFormat, setSelectedFormat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   useEffect(() => {
-    fetchEvents(activeTab);
+    fetchEvents({
+      status: activeTab === 'all' ? undefined : activeTab,
+      type: selectedType !== 'all' ? selectedType : undefined,
+      format: selectedFormat !== 'all' ? selectedFormat : undefined,
+      search: searchQuery || undefined,
+    });
     fetchMyEnrollments();
-  }, [activeTab, fetchEvents, fetchMyEnrollments]);
+  }, [activeTab, selectedType, selectedFormat, fetchEvents, fetchMyEnrollments]);
 
-  const eventsToDisplay = activeTab === 'upcoming' ? upcomingEvents : pastEvents;
-  
-  const filteredEvents = eventsToDisplay.filter(event => 
-    event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    event.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Determine list of events
+  let eventsToDisplay = events;
+  if (activeTab === 'upcoming') {
+    eventsToDisplay = upcomingEvents && upcomingEvents.length > 0
+      ? upcomingEvents
+      : events.filter((e) => e.status !== 'Completed' && e.status !== 'Cancelled');
+  } else if (activeTab === 'past') {
+    eventsToDisplay = pastEvents && pastEvents.length > 0
+      ? pastEvents
+      : events.filter((e) => e.status === 'Completed');
+  } else if (activeTab === 'live') {
+    eventsToDisplay = events.filter((e) => e.status === 'Live');
+  }
+
+  const filteredEvents = eventsToDisplay.filter((event) => {
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (event.venueOrLink && event.venueOrLink.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesType = selectedType === 'all' || event.type === selectedType;
+    const matchesFormat =
+      selectedFormat === 'all' ||
+      event.format === selectedFormat ||
+      (selectedFormat === 'Team' && event.type === 'Team') ||
+      (selectedFormat === 'Individual' && event.type === 'Individual');
+
+    return matchesSearch && matchesType && matchesFormat;
+  });
 
   const SkeletonCard = () => (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-[280px] animate-pulse">
+    <div className="stellar-glass p-8 h-[280px] animate-pulse rounded-3xl">
       <div className="flex justify-between mb-4">
         <div className="w-24 h-6 bg-white/10 rounded-full" />
         <div className="w-16 h-6 bg-white/10 rounded-full" />
       </div>
       <div className="space-y-3">
-        <div className="w-12 h-12 bg-white/10 rounded-lg mb-2" />
+        <div className="w-12 h-12 bg-white/10 rounded-xl mb-2" />
         <div className="w-3/4 h-6 bg-white/10 rounded-md" />
         <div className="w-full h-4 bg-white/10 rounded-md" />
         <div className="w-full h-4 bg-white/10 rounded-md" />
-      </div>
-      <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-center">
-        <div className="w-24 h-8 bg-white/10 rounded-md" />
-        <div className="w-24 h-10 bg-white/10 rounded-xl" />
       </div>
     </div>
   );
@@ -47,95 +75,111 @@ const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <h2 className="text-3xl font-extrabold text-white tracking-tight">Code Circle Events</h2>
-          <p className="text-slate-400">Discover coding hackathons, workshops, and tech talks.</p>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <h2 className="text-3xl font-black text-white tracking-tight">Events Arena</h2>
+          </div>
+          <p className="text-slate-400 text-sm font-medium">Discover workshops, lectures, hackathons, and technical sprints.</p>
         </div>
 
-        <div className="flex items-center gap-3 p-1.5 bg-slate-900/50 border border-slate-800 rounded-2xl">
-          <button
-            onClick={() => setActiveTab('upcoming')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all duration-300 font-bold text-sm ${
-              activeTab === 'upcoming' 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <CalendarCheck size={18} />
-            Upcoming
-          </button>
-          <button
-            onClick={() => setActiveTab('past')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all duration-300 font-bold text-sm ${
-              activeTab === 'past' 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <History size={18} />
-            Past Events
-          </button>
+        {/* Status Tabs */}
+        <div className="flex items-center gap-1.5 p-1.5 stellar-glass rounded-2xl overflow-x-auto">
+          {[
+            { id: 'upcoming', label: 'Upcoming', icon: CalendarCheck },
+            { id: 'live', label: 'Live Now', icon: Activity },
+            { id: 'past', label: 'Past / Archive', icon: History },
+            { id: 'all', label: 'All Events', icon: Calendar },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 font-black uppercase tracking-wider text-xs whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-white text-black shadow-xl shadow-white/10'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <tab.icon size={14} className={tab.id === 'live' && activeTab === tab.id ? 'text-red-500 animate-pulse' : ''} />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Control Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
           <input
             type="text"
-            placeholder="Search events..."
+            placeholder="Search events by title, description, or venue..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900/40 border border-slate-800 rounded-2xl pl-12 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all backdrop-blur-sm"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 transition-all"
           />
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="hidden md:flex items-center gap-2 p-1 bg-slate-900/50 border border-slate-800 rounded-xl">
-            <button 
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:text-white'}`}
-            >
-              <LayoutGrid size={18} />
-            </button>
-            <button 
-               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:text-white'}`}
-            >
-              <List size={18} />
-            </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Type Filter */}
+          <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 p-1 rounded-2xl">
+            {EVENT_TYPES.map((type) => (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  selectedType === type
+                    ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {type === 'all' ? 'All Types' : type}
+              </button>
+            ))}
           </div>
-          
-          <div className="flex-1 md:flex-none">
-             <button className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-slate-900/40 border border-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all">
-              <Filter size={18} />
-              Filter
-             </button>
+
+          {/* Format Filter */}
+          <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 p-1 rounded-2xl">
+            {EVENT_FORMATS.map((format) => (
+              <button
+                key={format}
+                onClick={() => setSelectedFormat(format)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  selectedFormat === format
+                    ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {format === 'all' ? 'All Formats' : format === 'Individual' ? 'Solo' : 'Squad'}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Events Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {filteredEvents.length > 0 ? (
             filteredEvents.map((event) => (
-              <EventCard 
-                key={event._id} 
-                event={event} 
+              <EventCard
+                key={event._id}
+                event={event}
                 isAdmin={isAdmin}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />
             ))
           ) : (
-            <div className="col-span-full stellar-glass p-12 text-center">
+            <div className="col-span-full stellar-glass p-16 text-center rounded-3xl">
               <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-4 opacity-20" />
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No events found matching your criteria</p>
+              <p className="text-white font-black text-sm uppercase tracking-widest">No events found matching your criteria</p>
+              <p className="text-slate-500 text-xs mt-1">Try switching tabs or resetting the type and format filters.</p>
             </div>
           )}
         </div>

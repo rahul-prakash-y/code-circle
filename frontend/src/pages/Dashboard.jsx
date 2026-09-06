@@ -30,7 +30,7 @@ import AdminAnalytics from '../components/admin/AdminAnalytics';
 import Leaderboard from '../components/dashboard/Leaderboard';
 import EventPassport from '../components/profile/EventPassport';
 import AttendanceHistory from '../components/dashboard/AttendanceHistory';
-import AttendanceManager from '../components/admin/AttendanceManager';
+import AttendanceRecordsView from '../components/admin/AttendanceRecordsView';
 import BearerManager from '../components/admin/BearerManager';
 import QuickActions from '../components/admin/QuickActions';
 import NewsFeed from './NewsFeed';
@@ -217,6 +217,23 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {(isAdmin || isFaculty) && (
+            <div 
+              onClick={() => navigate('/teams')}
+              className="stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/5 group"
+            >
+              <div className="w-14 h-14 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Users className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white group-hover:text-purple-400 transition-colors">
+                  Manage Teams
+                </h3>
+                <p className="text-sm text-slate-400 mt-0.5">Rosters, mapping & status</p>
+              </div>
+            </div>
+          )}
+
           {isAdmin && (
             <div 
               onClick={() => setActiveTab('bearers')}
@@ -283,7 +300,7 @@ const Dashboard = () => {
             )}
             {activeTab === 'news' && <NewsFeed />}
             {activeTab === 'attendance' && (
-              isAdmin || isFaculty ? <AttendanceManager /> : <AttendanceHistory />
+              isAdmin || isFaculty ? <AttendanceRecordsView /> : <AttendanceHistory />
             )}
             {activeTab === 'certificates' && <MyCertificates />}
             {activeTab === 'analytics' && isAdmin && <AdminAnalytics />}
