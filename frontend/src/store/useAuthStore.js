@@ -56,7 +56,6 @@ const useAuthStore = create((set, get) => ({
     try {
       await api.post('/auth/logout');
     } catch (err) {
-      // Best effort logout
       console.warn('Logout API notification failed:', err.message);
     } finally {
       localStorage.removeItem('token');
@@ -82,6 +81,31 @@ const useAuthStore = create((set, get) => ({
       localStorage.removeItem('sessionId');
       set({ user: null, token: null, sessionId: null, loading: false });
       return null;
+    }
+  },
+
+  // Password Reset Actions
+  forgotPassword: async (email) => {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      return { success: true, message: response.data.message, resetLink: response.data.resetLink };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to submit password reset request',
+      };
+    }
+  },
+
+  resetPasswordWithToken: async (token, newPassword) => {
+    try {
+      const response = await api.post('/auth/reset-password', { token, newPassword });
+      return { success: true, message: response.data.message };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Password reset failed',
+      };
     }
   },
 
@@ -122,8 +146,9 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Role verification helpers
-  isAdmin: () => get().user?.role === 'Admin',
+  // Role verification helpers with hierarchical awareness
+  isSuperAdmin: () => get().user?.role === 'SuperAdmin',
+  isAdmin: () => get().user?.role === 'Admin' || get().user?.role === 'SuperAdmin',
   isFaculty: () => get().user?.role === 'Faculty',
   isCommittee: () => get().user?.role === 'Committee',
   isMember: () => get().user?.role === 'Member' || get().user?.role === 'Student',

@@ -1,13 +1,6 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { UserRole } from '../types';
-
-export interface ISocialLinks {
-  github?: string;
-  linkedin?: string;
-  leetcode?: string;
-  hackerrank?: string;
-}
+import { UserRole, ISocialLinks } from '../types';
 
 export interface IUser extends Document {
   name: string;
@@ -21,6 +14,8 @@ export interface IUser extends Document {
   skills: string[];
   socialLinks: ISocialLinks;
   profilePicUrl?: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpires?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -33,7 +28,7 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     role: {
       type: String,
-      enum: ['Student', 'Admin', 'SuperAdmin'],
+      enum: ['Student', 'Admin', 'SuperAdmin', 'Member', 'Faculty', 'Committee'],
       default: 'Student',
       required: true,
       index: true,
@@ -48,21 +43,30 @@ const userSchema = new Schema<IUser>(
       linkedin: { type: String, default: '' },
       leetcode: { type: String, default: '' },
       hackerrank: { type: String, default: '' },
+      instagram: { type: String, default: '' },
+      email: { type: String, default: '' },
     },
     profilePicUrl: { type: String, default: '' },
+    resetPasswordToken: { type: String, default: null, index: true },
+    resetPasswordExpires: { type: Date, default: null },
   },
   {
     timestamps: true,
   }
 );
 
-// Compound indexes for heavily queried filters
+// Compound indexes for fast lookups and administration filtering
 userSchema.index({ role: 1, isBlocked: 1 });
 userSchema.index({ department: 1, role: 1 });
+userSchema.index({ createdAt: -1 });
 
-// Password hashing hook
+// Password hashing hook with idempotency protection against double-hashing
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) {
+    return;
+  }
+  // If the password is already a valid bcrypt hash, do not hash again
+  if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
     return;
   }
   const salt = await bcrypt.genSalt(10);

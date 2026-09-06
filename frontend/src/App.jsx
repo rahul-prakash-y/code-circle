@@ -8,11 +8,12 @@ import { PageSkeleton } from './components/ui/LoadingSkeleton';
 // Code-split route components via React.lazy for high-performance initial loading
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const StudentBearers = lazy(() => import('./pages/StudentBearers'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Profile = lazy(() => import('./pages/Profile'));
 const CodingWorkspace = lazy(() => import('./components/coding/CodingWorkspace'));
-const StudentManagement = lazy(() => import('./pages/StudentManagement'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuthStore();
@@ -25,8 +26,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+  if (allowedRoles) {
+    const hasClearance = user.role === 'SuperAdmin' || allowedRoles.includes(user.role);
+    if (!hasClearance) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;
@@ -57,6 +61,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/bearers" element={<StudentBearers />} />
           
           <Route
@@ -90,12 +95,25 @@ function App() {
             }
           />
 
+          {/* User Management Module (Admin & SuperAdmin) */}
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                <MainLayout>
+                  <UserManagement />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Legacy backward compatibility for /students */}
           <Route
             path="/students"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Committee']}>
+              <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
                 <MainLayout>
-                  <StudentManagement />
+                  <UserManagement />
                 </MainLayout>
               </ProtectedRoute>
             }

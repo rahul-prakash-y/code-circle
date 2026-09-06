@@ -1,11 +1,12 @@
-const User = require('../models/userModel');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+import { FastifyRequest, FastifyReply } from 'fastify';
+import User, { IUser } from '../models/userModel';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'stellar-minimalist-secret-key-2026';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
-const sanitizeUser = (userDoc) => {
+export const sanitizeUser = (userDoc: any) => {
   if (!userDoc) return null;
   const user = userDoc.toObject ? userDoc.toObject() : { ...userDoc };
   delete user.password;
@@ -14,9 +15,9 @@ const sanitizeUser = (userDoc) => {
   return user;
 };
 
-const register = async (request, reply) => {
+export const register = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const { name, email, rollNo, password, department } = request.body || {};
+    const { name, email, rollNo, password, department } = request.body as any;
 
     if (!name || !email || !rollNo || !password) {
       return reply.status(400).send({
@@ -48,13 +49,14 @@ const register = async (request, reply) => {
 
     const sessionId = crypto.randomUUID();
 
+    // Standard public registrations are assigned the Student role
     const user = new User({
       name: name.trim(),
       email: normalizedEmail,
       rollNo: normalizedRollNo,
-      password,
+      password, // Pre-save hook will hash this
       role: 'Student',
-      department: department ? department.trim() : '',
+      department: department?.trim() || '',
       activeSessionId: sessionId,
     });
 
@@ -78,15 +80,15 @@ const register = async (request, reply) => {
       token,
       sessionId,
     });
-  } catch (error) {
+  } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Registration failed' });
   }
 };
 
-const login = async (request, reply) => {
+export const login = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const { identifier, password } = request.body || {};
+    const { identifier, password } = (request.body || {}) as any;
 
     if (!identifier || !password) {
       return reply.status(400).send({
@@ -120,6 +122,7 @@ const login = async (request, reply) => {
       return reply.status(401).send({ success: false, error: 'Invalid credentials' });
     }
 
+    // Generate fresh session ID to invalidate previous sessions on other devices
     const sessionId = crypto.randomUUID();
     user.activeSessionId = sessionId;
     await user.save();
@@ -142,30 +145,30 @@ const login = async (request, reply) => {
       token,
       sessionId,
     });
-  } catch (error) {
+  } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Login failed' });
   }
 };
 
-const logout = async (request, reply) => {
+export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    if (request.user && request.user.email) {
+    if (request.user?.email) {
       await User.findOneAndUpdate(
         { email: request.user.email },
         { activeSessionId: null }
       );
     }
     return reply.send({ success: true, message: 'Logged out successfully' });
-  } catch (error) {
+  } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Logout failed' });
   }
 };
 
-const getMe = async (request, reply) => {
+export const getMe = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    if (!request.user || !request.user.id) {
+    if (!request.user?.id) {
       return reply.status(401).send({ success: false, error: 'Authentication required' });
     }
     const user = await User.findById(request.user.id).select('-password -resetPasswordToken -resetPasswordExpires');
@@ -173,15 +176,15 @@ const getMe = async (request, reply) => {
       return reply.status(404).send({ success: false, error: 'User profile not found' });
     }
     return reply.send(sanitizeUser(user));
-  } catch (error) {
+  } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to fetch user profile' });
   }
 };
 
-const forgotPassword = async (request, reply) => {
+export const forgotPassword = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const { email } = request.body || {};
+    const { email } = (request.body || {}) as any;
 
     if (!email) {
       return reply.status(400).send({ success: false, error: 'Email address is required' });
@@ -189,6 +192,7 @@ const forgotPassword = async (request, reply) => {
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
+      // Return success without disclosing user existence for security
       return reply.send({
         success: true,
         message: 'If an account exists with this email, a password reset link has been dispatched.',
@@ -197,7 +201,7 @@ const forgotPassword = async (request, reply) => {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = new Date(Date.now() + 3600000);
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour expiration
     await user.save();
 
     const resetLink = `${CLIENT_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
@@ -207,15 +211,15 @@ const forgotPassword = async (request, reply) => {
       message: 'Password reset link generated successfully',
       resetLink,
     });
-  } catch (error) {
+  } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to process password reset request' });
   }
 };
 
-const resetPassword = async (request, reply) => {
+export const resetPassword = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const { token, newPassword } = request.body || {};
+    const { token, newPassword } = (request.body || {}) as any;
 
     if (!token || !newPassword) {
       return reply.status(400).send({
@@ -243,23 +247,23 @@ const resetPassword = async (request, reply) => {
       });
     }
 
-    user.password = newPassword;
+    user.password = newPassword; // Pre-save hook will hash it
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
-    user.activeSessionId = null;
+    user.activeSessionId = null; // Invalidate all active sessions
     await user.save();
 
     return reply.send({
       success: true,
       message: 'Your password has been reset successfully. Please log in with your new credentials.',
     });
-  } catch (error) {
+  } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Password reset failed' });
   }
 };
 
-module.exports = {
+export default {
   register,
   login,
   logout,

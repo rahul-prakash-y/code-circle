@@ -1,10 +1,11 @@
-const { getMe, updateMe, getEventPassport } = require('../controllers/userController');
-const userManagementController = require('../controllers/userManagementController');
-const adminController = require('../controllers/adminController');
-const { verifyToken, requireRole, requireSuperAdmin } = require('../middleware/authMiddleware');
+import { FastifyInstance } from 'fastify';
+import { getMe, updateMe, getEventPassport } from '../controllers/userController';
+import * as userManagementController from '../controllers/userManagementController';
+import * as adminController from '../controllers/adminController';
+import { verifyToken, requireRole, requireSuperAdmin } from '../middleware/authMiddleware';
 
-async function userRoutes(fastify, options) {
-  // Authenticated user self profile routes
+export async function userRoutes(fastify: FastifyInstance) {
+  // Public / Authenticated user self profile routes
   fastify.register(async (instance) => {
     instance.addHook('preHandler', verifyToken);
     instance.get('/me', getMe);
@@ -39,4 +40,4 @@ async function userRoutes(fastify, options) {
   });
 }
 
-module.exports = userRoutes;
+export default userRoutes;

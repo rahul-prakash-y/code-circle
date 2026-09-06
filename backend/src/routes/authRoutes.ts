@@ -1,7 +1,8 @@
-const authController = require('../controllers/authController');
-const { verifyToken } = require('../middleware/authMiddleware');
+import { FastifyInstance } from 'fastify';
+import * as authController from '../controllers/authController';
+import { verifyToken } from '../middleware/authMiddleware';
 
-async function authRoutes(fastify, options) {
+export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/register', authController.register);
   fastify.post('/login', authController.login);
   fastify.post('/logout', { preHandler: [verifyToken] }, authController.logout);
@@ -10,4 +11,4 @@ async function authRoutes(fastify, options) {
   fastify.post('/reset-password', authController.resetPassword);
 }
 
-module.exports = authRoutes;
+export default authRoutes;

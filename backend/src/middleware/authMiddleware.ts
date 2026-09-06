@@ -1,8 +1,11 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/userModel');
+import { FastifyRequest, FastifyReply } from 'fastify';
+import jwt from 'jsonwebtoken';
+import User from '../models/userModel';
+import { UserRole, UserPayload } from '../types';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'stellar-minimalist-secret-key-2026';
 
-const verifyToken = async (request, reply) => {
+export const verifyToken = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -10,7 +13,7 @@ const verifyToken = async (request, reply) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
 
     const user = await User.findById(decoded.id);
     if (!user) {
@@ -36,7 +39,7 @@ const verifyToken = async (request, reply) => {
       department: user.department || '',
       sessionId: decoded.sessionId,
     };
-  } catch (error) {
+  } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
       return reply.status(401).send({ success: false, error: 'Token expired. Please log in again.' });
     }
@@ -44,38 +47,45 @@ const verifyToken = async (request, reply) => {
   }
 };
 
-const requireRole = (...allowedRoles) => async (request, reply) => {
-  if (!request.user) {
-    return reply.status(401).send({ success: false, error: 'Authentication required' });
-  }
+/**
+ * Role-based access control middleware with hierarchy support:
+ * SuperAdmin has universal clearance.
+ * Admin has admin, faculty, and student clearance.
+ */
+export const requireRole = (...allowedRoles: UserRole[]) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!request.user) {
+      return reply.status(401).send({ success: false, error: 'Authentication required' });
+    }
 
-  const userRole = request.user.role;
+    const userRole = request.user.role;
 
-  // SuperAdmin has universal clearance
-  if (userRole === 'SuperAdmin') {
-    return;
-  }
-
-  // Admin has access to standard admin and lower role operations
-  if (userRole === 'Admin') {
-    if (allowedRoles.includes('Admin') || allowedRoles.includes('Student') || allowedRoles.includes('Member') || allowedRoles.includes('Faculty')) {
+    // SuperAdmin has unconditional clearance for all role checks
+    if (userRole === 'SuperAdmin') {
       return;
     }
-  }
 
-  // Direct match check
-  if (allowedRoles.includes(userRole)) {
-    return;
-  }
+    // Admin has access to standard admin and lower role operations
+    if (userRole === 'Admin') {
+      if (allowedRoles.includes('Admin') || allowedRoles.includes('Student') || allowedRoles.includes('Member') || allowedRoles.includes('Faculty')) {
+        return;
+      }
+    }
 
-  return reply.status(403).send({ 
-    success: false, 
-    error: `Forbidden: Requires elevated [${allowedRoles.join(', ')}] role` 
-  });
+    // Direct match check
+    if (allowedRoles.includes(userRole)) {
+      return;
+    }
+
+    return reply.status(403).send({
+      success: false,
+      error: `Forbidden: Requires elevated [${allowedRoles.join(', ')}] role`,
+    });
+  };
 };
 
-const requireAdmin = requireRole('Admin');
-const requireSuperAdmin = async (request, reply) => {
+export const requireAdmin = requireRole('Admin');
+export const requireSuperAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
   if (!request.user) {
     return reply.status(401).send({ success: false, error: 'Authentication required' });
   }
@@ -86,9 +96,9 @@ const requireSuperAdmin = async (request, reply) => {
     });
   }
 };
-const isAdminOrFaculty = requireRole('Admin', 'Faculty', 'Committee');
+export const isAdminOrFaculty = requireRole('Admin', 'Faculty', 'Committee');
 
-module.exports = {
+export default {
   verifyToken,
   requireRole,
   requireAdmin,

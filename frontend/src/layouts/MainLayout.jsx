@@ -54,10 +54,10 @@ const MainLayout = ({ children }) => {
           <Link to="/dashboard" className={`text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/dashboard' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}>
             Dashboard
           </Link>
-          {(profile?.role === 'Admin' || profile?.role === 'Faculty') && (
-            <Link to="/students" className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/students' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-white'}`}>
+          {(profile?.role === 'Admin' || profile?.role === 'SuperAdmin' || profile?.role === 'Faculty') && (
+            <Link to="/users" className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${(location.pathname === '/users' || location.pathname === '/students') ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-white'}`}>
               <Users size={14} />
-              Student Directory
+              User Management
             </Link>
           )}
         </div>
