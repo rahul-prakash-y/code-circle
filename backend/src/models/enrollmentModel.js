@@ -35,8 +35,11 @@ const enrollmentSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Ensure a user can only enroll once in an event (as individual or in any team)
-// This unique index might be complex because of the members array.
-// Better to handle this via controller logic as requested.
+// Optimized compound indexes for registration checks and query performance
+enrollmentSchema.index({ event: 1, enrolledBy: 1 });
+enrollmentSchema.index({ event: 1, members: 1 });
+enrollmentSchema.index({ enrolledBy: 1, attendanceStatus: 1 });
+enrollmentSchema.index({ members: 1, attendanceStatus: 1 });
+enrollmentSchema.index({ event: 1, attendanceStatus: 1 });
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema);

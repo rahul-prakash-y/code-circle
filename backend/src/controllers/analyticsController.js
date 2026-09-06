@@ -1,14 +1,16 @@
 const User = require('../models/userModel');
 const Event = require('../models/eventModel');
 const Enrollment = require('../models/enrollmentModel');
-const Submission = require('../models/submissionModel');
 
 exports.getDashboardStats = async (req, reply) => {
   try {
     const now = new Date();
 
-    // 1. Total Students
-    const totalStudents = await User.countDocuments({ role: 'Student' });
+    // 1. Total Members / Students (non-blocked)
+    const totalStudents = await User.countDocuments({ 
+      role: { $in: ['Student', 'Member', 'Committee'] },
+      isBlocked: { $ne: true }
+    });
 
     // 2. Events Stats (Upcoming vs Past)
     const upcomingEvents = await Event.countDocuments({ date: { $gt: now } });
@@ -25,7 +27,7 @@ exports.getDashboardStats = async (req, reply) => {
       }
     ]);
 
-    const attendancePercentage = attendanceStats.length > 0 
+    const attendancePercentage = attendanceStats.length > 0 && attendanceStats[0].total > 0
       ? Math.round((attendanceStats[0].attended / attendanceStats[0].total) * 100) 
       : 0;
 
@@ -77,7 +79,6 @@ exports.getDashboardStats = async (req, reply) => {
       growthData
     };
   } catch (error) {
-    console.error('ERROR in getDashboardStats:', error);
     req.log.error(error);
     reply.status(500).send({ message: 'Error fetching dashboard stats', error: error.message });
   }
@@ -85,52 +86,66 @@ exports.getDashboardStats = async (req, reply) => {
 
 exports.getLeaderboard = async (req, reply) => {
   try {
+    // Optimized pipeline using index-backed sub-lookups
     const leaderboard = await User.aggregate([
-      { $match: { role: 'Student' } },
+      { 
+        $match: { 
+          role: { $in: ['Student', 'Member', 'Committee'] },
+          isBlocked: { $ne: true } 
+        } 
+      },
       {
         $lookup: {
           from: 'enrollments',
-          localField: '_id',
-          foreignField: 'enrolledBy',
-          as: 'enrollments'
+          let: { userId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $or: [{ $eq: ['$enrolledBy', '$$userId'] }, { $in: ['$$userId', '$members'] }] },
+                    { $eq: ['$attendanceStatus', true] }
+                  ]
+                }
+              }
+            },
+            { $project: { _id: 1 } }
+          ],
+          as: 'attendedEnrollments'
         }
       },
       {
         $lookup: {
           from: 'submissions',
-          localField: '_id',
-          foreignField: 'user',
-          as: 'submissions'
+          let: { userId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$user', '$$userId'] },
+                    { $eq: ['$status', 'Accepted'] }
+                  ]
+                }
+              }
+            },
+            { $project: { _id: 1 } }
+          ],
+          as: 'acceptedSubmissions'
         }
       },
       {
         $addFields: {
-          eventsAttended: {
-            $size: {
-              $filter: {
-                input: "$enrollments",
-                as: "e",
-                cond: { $eq: ["$$e.attendanceStatus", true] }
-              }
-            }
-          },
-          problemsSolved: {
-            $size: {
-              $filter: {
-                input: "$submissions",
-                as: "s",
-                cond: { $eq: ["$$s.status", "Accepted"] }
-              }
-            }
-          }
+          eventsAttended: { $size: '$attendedEnrollments' },
+          problemsSolved: { $size: '$acceptedSubmissions' }
         }
       },
       {
         $addFields: {
           totalPoints: {
             $add: [
-              { $multiply: ["$eventsAttended", 10] },
-              { $multiply: ["$problemsSolved", 5] }
+              { $multiply: ['$eventsAttended', 10] },
+              { $multiply: ['$problemsSolved', 5] }
             ]
           }
         }
@@ -139,13 +154,14 @@ exports.getLeaderboard = async (req, reply) => {
         $project: {
           name: 1,
           rollNo: 1,
+          department: 1,
           profilePicUrl: 1,
           totalPoints: 1,
           eventsAttended: 1,
           problemsSolved: 1
         }
       },
-      { $sort: { totalPoints: -1 } },
+      { $sort: { totalPoints: -1, eventsAttended: -1 } },
       { $limit: 50 }
     ]);
 

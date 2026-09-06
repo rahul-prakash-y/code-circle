@@ -3,7 +3,7 @@ const {
   getQuizzes, 
   getQuizById 
 } = require('../controllers/quizController');
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 async function quizRoutes(fastify, options) {
   fastify.get('/', getQuizzes);

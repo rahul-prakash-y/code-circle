@@ -1,15 +1,8 @@
 const Event = require('../models/eventModel');
-const User = require('../models/userModel');
 
 const createEvent = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user || user.role !== 'Admin') {
-      return reply.status(403).send({ error: 'Forbidden: Admin access only' });
-    }
-
+    const user = request.user;
     const { 
       title, 
       description, 
@@ -20,13 +13,19 @@ const createEvent = async (request, reply) => {
       registrationDeadline 
     } = request.body;
 
+    if (!title || !description || !date || !venueOrLink || !type || !registrationDeadline) {
+      return reply.status(400).send({ 
+        error: 'Title, description, date, venue/link, type, and registration deadline are required' 
+      });
+    }
+
     const event = await Event.create({
       title,
       description,
       date,
       venueOrLink,
       type,
-      maxParticipants: type === 'Team' ? maxParticipants : 0,
+      maxParticipants: type === 'Team' ? (maxParticipants || 4) : 0,
       registrationDeadline,
       createdBy: user._id
     });
@@ -52,7 +51,7 @@ const getEvents = async (request, reply) => {
 
     const events = await Event.find(query)
       .sort({ date: 1 })
-      .populate('createdBy', 'name email');
+      .populate('createdBy', 'name email profilePicUrl');
 
     return reply.send(events);
   } catch (error) {
@@ -63,15 +62,8 @@ const getEvents = async (request, reply) => {
 
 const updateEvent = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user || user.role !== 'Admin') {
-      return reply.status(403).send({ error: 'Forbidden: Admin access only' });
-    }
-
     const { id } = request.params;
-    const updateData = request.body;
+    const updateData = { ...request.body };
 
     if (updateData.type === 'Individual') {
       updateData.maxParticipants = 0;
@@ -96,13 +88,6 @@ const updateEvent = async (request, reply) => {
 
 const deleteEvent = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user || user.role !== 'Admin') {
-      return reply.status(403).send({ error: 'Forbidden: Admin access only' });
-    }
-
     const { id } = request.params;
     const event = await Event.findByIdAndDelete(id);
 

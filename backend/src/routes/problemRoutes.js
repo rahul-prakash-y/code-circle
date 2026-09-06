@@ -4,7 +4,7 @@ const {
   getProblemById 
 } = require('../controllers/problemController');
 const { submitCode } = require('../controllers/submissionController');
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 async function problemRoutes(fastify, options) {
   fastify.get('/', getProblems);

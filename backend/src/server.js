@@ -27,6 +27,10 @@ fastify.register(require('@fastify/multipart'), {
   }
 });
 
+// Centralized Error Handling
+const errorHandler = require('./middleware/errorHandler');
+fastify.setErrorHandler(errorHandler);
+
 // --- API ROUTES ---
 fastify.register(require('./routes/authRoutes'), { prefix: '/api/auth' });
 fastify.register(require('./routes/health'), { prefix: '/api' });

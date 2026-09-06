@@ -1,15 +1,15 @@
 const attendanceController = require('../controllers/attendanceController');
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken, isAdminOrFaculty } = require('../middleware/authMiddleware');
 
 async function attendanceRoutes(fastify, options) {
   fastify.addHook('preHandler', verifyToken);
 
   // Admin/Faculty routes
-  fastify.post('/sessions', attendanceController.createSession);
+  fastify.post('/sessions', { preHandler: [isAdminOrFaculty] }, attendanceController.createSession);
   fastify.get('/sessions/event/:eventId', attendanceController.getEventSessions);
-  fastify.get('/sessions/:sessionId/attendance', attendanceController.getSessionAttendance);
+  fastify.get('/sessions/:sessionId/attendance', { preHandler: [isAdminOrFaculty] }, attendanceController.getSessionAttendance);
 
-  // Student routes
+  // Member / Student routes
   fastify.post('/mark', attendanceController.markAttendance);
   fastify.get('/history', attendanceController.getUserAttendanceHistory);
 }

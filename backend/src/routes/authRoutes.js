@@ -1,5 +1,5 @@
 const authController = require('../controllers/authController');
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 async function authRoutes(fastify, options) {
   fastify.post('/register', authController.register);

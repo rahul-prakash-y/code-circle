@@ -36,21 +36,21 @@ const Dashboard = () => {
     if (isAdmin) {
       return [
         { label: 'Total Enrollment', value: '1,240', icon: Trophy, color: 'text-blue-400' },
-        { label: 'System Health', value: '98%', icon: BarChart3, color: 'text-emerald-400' },
-        { label: 'Active Events', value: '12', icon: Fingerprint, color: 'text-purple-400' }
+        { label: 'Active Events', value: '12', icon: Calendar, color: 'text-purple-400' },
+        { label: 'Attendance Rate', value: '94%', icon: BarChart3, color: 'text-emerald-400' }
       ];
     }
     if (isFaculty) {
       return [
         { label: 'Dept. Points', value: '14.2k', icon: Trophy, color: 'text-amber-400' },
-        { label: 'Mentored', value: '45', icon: BarChart3, color: 'text-blue-400' },
-        { label: 'Lab Capacity', value: '85%', icon: Fingerprint, color: 'text-emerald-400' }
+        { label: 'Students Mentored', value: '45', icon: BarChart3, color: 'text-blue-400' },
+        { label: 'Active Sessions', value: '8', icon: Calendar, color: 'text-emerald-400' }
       ];
     }
     return [
-      { label: 'Events Attended', value: user?.enrolledEvents?.length || 0, icon: Trophy, color: 'text-yellow-400' },
-      { label: 'Global Rank', value: "#12", icon: BarChart3, color: 'text-blue-400' },
-      { label: 'Passport Status', value: "Level 4", icon: Fingerprint, color: 'text-emerald-400' }
+      { label: 'Registered Events', value: user?.enrolledEvents?.length || 0, icon: Calendar, color: 'text-yellow-400' },
+      { label: 'Leaderboard Rank', value: "#12", icon: BarChart3, color: 'text-blue-400' },
+      { label: 'Certificates Earned', value: "Level 4", icon: Trophy, color: 'text-emerald-400' }
     ];
   };
 
@@ -109,8 +109,8 @@ const Dashboard = () => {
 
           <div className="stellar-glass p-8 relative overflow-hidden group border-indigo-500/20 hover:border-indigo-500/40 transition-all cursor-pointer" onClick={() => setActiveTab('events')}>
              <div className="relative z-10">
-                <h3 className="text-xl font-black text-white group-hover:text-indigo-400 transition-colors">Find Events</h3>
-                <p className="text-sm text-slate-400 mt-1">Explore and enroll.</p>
+                <h3 className="text-xl font-black text-white group-hover:text-indigo-400 transition-colors">Upcoming Events</h3>
+                <p className="text-sm text-slate-400 mt-1">Browse workshops and sessions.</p>
              </div>
              <Calendar className="w-16 h-16 text-indigo-500/10 absolute -right-4 -bottom-4 group-hover:scale-110 transition-transform duration-700" />
           </div>
@@ -124,8 +124,8 @@ const Dashboard = () => {
                 <ShieldIcon className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white group-hover:text-blue-400 transition-colors">Bearers</h3>
-                <p className="text-sm text-slate-400 mt-0.5">Manage leadership</p>
+                <h3 className="text-xl font-black text-white group-hover:text-blue-400 transition-colors">Office Bearers</h3>
+                <p className="text-sm text-slate-400 mt-0.5">Manage club leadership team</p>
               </div>
             </div>
           )}
@@ -146,11 +146,11 @@ const Dashboard = () => {
           {/* Custom Tabs */}
           <div className="stellar-glass p-1.5 flex gap-1 bg-white/5 overflow-x-auto custom-scrollbar">
             {[
-              { id: 'events', label: 'Feed' },
+              { id: 'events', label: 'Events Feed' },
               { id: 'attendance', label: 'Attendance' },
-              { id: 'certificates', label: 'Credits' },
+              { id: 'certificates', label: 'Certificates' },
               { id: 'leaderboard', label: 'Leaderboard' },
-              ...(isAdmin ? [{ id: 'analytics', label: 'Admin' }] : [{ id: 'passport', label: 'Passport' }])
+              ...(isAdmin ? [{ id: 'analytics', label: 'Analytics' }] : [{ id: 'passport', label: 'My Registrations' }])
             ].map((tab) => (
               <button
                 key={tab.id}

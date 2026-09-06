@@ -1,5 +1,5 @@
 const bearerController = require('../controllers/bearerController');
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 async function bearerRoutes(fastify, options) {
   // Public route

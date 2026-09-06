@@ -1,5 +1,5 @@
 const { uploadProfilePic } = require('../controllers/uploadController');
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 async function uploadRoutes(fastify, options) {
   fastify.addHook('preHandler', verifyToken);

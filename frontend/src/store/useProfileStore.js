@@ -1,66 +1,41 @@
-import { create } from 'zustand';
-import api from '../lib/axios';
+import useAuthStore from './useAuthStore';
 
-const useProfileStore = create((set, get) => ({
-  profile: null,
-  profileLoading: false,
-  profileError: null,
+/**
+ * useProfileStore acts as a synchronized adapter layer over the unified useAuthStore.
+ * This guarantees 100% backward compatibility for existing profile components
+ * while eliminating duplicate network requests and state desynchronization bugs.
+ */
+const useProfileStore = (selector) => {
+  const user = useAuthStore((state) => state.user);
+  const loading = useAuthStore((state) => state.loading);
+  const error = useAuthStore((state) => state.error);
+  const updateProfile = useAuthStore((state) => state.updateProfile);
+  const uploadProfilePic = useAuthStore((state) => state.uploadProfilePic);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
 
-  fetchProfile: async () => {
-    set({ profileLoading: true, profileError: null });
-    try {
-      const response = await api.get('/users/me');
-      set({ profile: response.data, profileLoading: false });
-    } catch (error) {
-      set({ 
-        profileError: error.response?.data?.error || 'Failed to fetch profile', 
-        profileLoading: false 
-      });
-    }
-  },
+  const state = {
+    profile: user,
+    profileLoading: loading,
+    profileError: error,
+    fetchProfile: checkAuth,
+    updateProfile,
+    uploadProfilePic,
+  };
 
-  updateProfile: async (updates) => {
-    set({ profileLoading: true, profileError: null });
-    try {
-      console.log('Sending updates to backend:', updates);
-      const response = await api.put('/users/me', updates);
-      console.log('Backend response:', response.data);
-      set({ profile: response.data, profileLoading: false });
-      return { success: true };
-    } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Failed to update profile';
-      set({ profileError: errorMessage, profileLoading: false });
-      return { success: false, error: errorMessage };
-    }
-  },
+  return selector ? selector(state) : state;
+};
 
-  uploadProfilePic: async (file) => {
-    set({ profileLoading: true, profileError: null });
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const uploadRes = await api.post('/upload/profile-pic', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      const { url } = uploadRes.data;
-      
-      // Update the profile with the new URL
-      const updateRes = await get().updateProfile({ profilePicUrl: url });
-      
-      if (updateRes.success) {
-        set({ profileLoading: false });
-        return { success: true, url };
-      } else {
-        throw new Error(updateRes.error);
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to upload image';
-      set({ profileError: errorMessage, profileLoading: false });
-      return { success: false, error: errorMessage };
-    }
-  }
-}));
+// Also attach getState for non-reactive direct calls
+useProfileStore.getState = () => {
+  const authState = useAuthStore.getState();
+  return {
+    profile: authState.user,
+    profileLoading: authState.loading,
+    profileError: authState.error,
+    fetchProfile: authState.checkAuth,
+    updateProfile: authState.updateProfile,
+    uploadProfilePic: authState.uploadProfilePic,
+  };
+};
 
 export default useProfileStore;

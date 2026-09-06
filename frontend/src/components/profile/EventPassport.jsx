@@ -49,8 +49,8 @@ const PassportTimelineItem = ({ item, index }) => {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg border 
-                ${isAttended ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-slate-500'}`}>
-                {isAttended ? 'Validated' : 'Scheduled'}
+                ${isAttended ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
+                {isAttended ? 'Attended' : 'Registered'}
               </span>
               <span className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">{format(date, 'MMMM dd, yyyy')}</span>
             </div>
@@ -66,7 +66,7 @@ const PassportTimelineItem = ({ item, index }) => {
               </div>
               <div className="flex items-center gap-2">
                 {item.type === 'Team' ? <Users size={14} className="text-blue-500" /> : <MapPin size={14} className="text-blue-500" />}
-                <span>{item.type} {item.teamName ? `/ ${item.teamName}` : ''}</span>
+                <span>{item.type} {item.teamName ? `(${item.teamName})` : ''}</span>
               </div>
             </div>
           </div>
@@ -80,14 +80,19 @@ const PassportTimelineItem = ({ item, index }) => {
                 className="stellar-btn py-2.5! px-6! text-[10px]! uppercase! tracking-widest! flex items-center gap-2 group/btn"
               >
                 <Award size={16} strokeWidth={2.5} className="group-hover/btn:rotate-12 transition-transform" />
-                <span>Credential</span>
+                <span>Certificate</span>
                 <ExternalLink size={14} strokeWidth={3} />
               </a>
             ) : (
-              isAttended && (
-                <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 text-slate-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-pulse">
+              isAttended ? (
+                <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 text-slate-400 text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
                   <Clock size={14} />
-                  Verification Pending
+                  Certificate In Preparation
+                </div>
+              ) : (
+                <div className="bg-blue-500/5 px-4 py-2 rounded-xl border border-blue-500/10 text-blue-400 text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                  <Clock size={14} />
+                  Upcoming Event
                 </div>
               )
             )}
@@ -120,28 +125,34 @@ const EventPassport = () => {
           <Calendar size={64} strokeWidth={1} />
         </div>
         <div className="space-y-2">
-          <h3 className="text-2xl font-black text-white uppercase tracking-tight">Timeline Empty</h3>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] leading-relaxed">Your professional journey awaits. Enroll in coding challenges and masterclasses to build your legacy.</p>
+          <h3 className="text-2xl font-black text-white uppercase tracking-tight">No Event History Yet</h3>
+          <p className="text-slate-400 font-medium text-xs leading-relaxed">
+            You haven't registered for any events yet. Check out the Events Feed to explore upcoming hackathons, coding workshops, and club sessions!
+          </p>
         </div>
         <button 
            onClick={() => window.location.href = '/dashboard'}
-           className="stellar-btn opacity-50 hover:opacity-100"
+           className="stellar-btn"
         >
-          Explore Events
+          Browse Upcoming Events
         </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-6">
-      <div className="flex items-center justify-between mb-20">
+    <div className="max-w-4xl mx-auto py-8 px-6">
+      <div className="flex items-center justify-between mb-16">
         <div className="space-y-2">
-          <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Service <span className="text-blue-500">Record</span></h2>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Your chronological deployment history at Code Circle</p>
+          <h2 className="text-3xl font-black text-white tracking-tight uppercase">
+            My Event <span className="text-blue-500">History</span>
+          </h2>
+          <p className="text-slate-400 text-xs font-semibold">
+            Track your registered events, attendance validation, and participation certificates.
+          </p>
         </div>
-        <div className="w-16 h-16 bg-blue-500/10 rounded-[1.5rem] border border-blue-500/20 text-blue-400 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.1)]">
-          <Award size={32} strokeWidth={2.5} />
+        <div className="w-14 h-14 bg-blue-500/10 rounded-2xl border border-blue-500/20 text-blue-400 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+          <Award size={28} strokeWidth={2.5} />
         </div>
       </div>
 

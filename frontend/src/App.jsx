@@ -1,29 +1,32 @@
-import { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './store/useAuthStore';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import StudentBearers from './pages/StudentBearers';
-import Dashboard from './pages/Dashboard';
 import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
-import Profile from './pages/Profile';
-import CodingWorkspace from './components/coding/CodingWorkspace';
-import useProfileStore from './store/useProfileStore';
+import { PageSkeleton } from './components/ui/LoadingSkeleton';
 
-const ProtectedRoute = ({ children }) => {
+// Code-split route components via React.lazy for high-performance initial loading
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const StudentBearers = lazy(() => import('./pages/StudentBearers'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Profile = lazy(() => import('./pages/Profile'));
+const CodingWorkspace = lazy(() => import('./components/coding/CodingWorkspace'));
+const StudentManagement = lazy(() => import('./pages/StudentManagement'));
+
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuthStore();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -31,52 +34,77 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   const { checkAuth } = useAuthStore();
-  const { fetchProfile } = useProfileStore();
+
   useEffect(() => {
-    const initAuth = async () => {
-      await checkAuth();
-      fetchProfile(); // Sync profile store with auth state
-    };
-    initAuth();
-  }, [checkAuth, fetchProfile]);
+    // Single consolidated auth and profile initialization
+    checkAuth();
+  }, [checkAuth]);
 
   return (
     <Router>
-      <Toaster position="top-right" />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/bearers" element={<StudentBearers />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Dashboard />
-              </MainLayout>
-            </ProtectedRoute>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: 'rgba(15, 23, 42, 0.9)',
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(16px)',
           }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Profile />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/problem/:id"
-          element={
-            <ProtectedRoute>
-              <CodingWorkspace />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-      </Routes>
+        }}
+      />
+      <Suspense fallback={<PageSkeleton />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/bearers" element={<StudentBearers />} />
+          
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <Profile />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/problem/:id"
+            element={
+              <ProtectedRoute>
+                <CodingWorkspace />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/students"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Committee']}>
+                <MainLayout>
+                  <StudentManagement />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }

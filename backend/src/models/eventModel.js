@@ -37,4 +37,9 @@ const eventSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Optimized query indexes for event filtering and deadlines
+eventSchema.index({ date: 1, type: 1 });
+eventSchema.index({ registrationDeadline: 1 });
+eventSchema.index({ createdBy: 1 });
+
 module.exports = mongoose.model('Event', eventSchema);

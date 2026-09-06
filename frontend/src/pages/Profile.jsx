@@ -192,7 +192,7 @@ const Profile = () => {
             <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
               <UserIcon size={16} />
             </div>
-            Identity
+            Basic Information
           </h2>
           
           <div className="space-y-6">
@@ -256,9 +256,9 @@ const Profile = () => {
         >
           <h2 className="text-sm font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-              <Github size={16} />
+              <Code2 size={16} />
             </div>
-            Connectivity
+            Social & Coding Profiles
           </h2>
           
           <div className="space-y-6">
@@ -324,7 +324,7 @@ const Profile = () => {
             <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
               <Code2 size={16} />
             </div>
-            Tech Stack
+            Skills & Technologies
           </h2>
           
           <div className="space-y-6">

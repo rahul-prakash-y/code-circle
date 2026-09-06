@@ -6,8 +6,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   role: { 
     type: String, 
-    enum: ['Student', 'Admin', 'Faculty'], 
-    default: 'Student' 
+    enum: ['Guest', 'Member', 'Committee', 'Admin', 'Student', 'Faculty'], 
+    default: 'Member' 
   },
   password: { type: String, required: true },
   isBlocked: { type: Boolean, default: false },
@@ -22,5 +22,9 @@ const userSchema = new mongoose.Schema({
   },
   profilePicUrl: { type: String, default: '' }
 }, { timestamps: true });
+
+// Optimized indexes for user lookup, status, and role-based filtering
+userSchema.index({ role: 1, isBlocked: 1 });
+userSchema.index({ department: 1 });
 
 module.exports = mongoose.model('User', userSchema);

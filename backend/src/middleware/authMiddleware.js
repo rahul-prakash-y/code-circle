@@ -27,13 +27,18 @@ const verifyToken = async (request, reply) => {
       return reply.status(401).send({ error: 'Session expired. Someone else logged in from another device.' });
     }
 
+    // Attach fully populated, sanitized user so downstream controllers do not need to re-query User collection
     request.user = {
       _id: user._id,
-      id: user._id,
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
       name: user.name,
-      rollNo: user.rollNo
+      rollNo: user.rollNo,
+      department: user.department || '',
+      skills: user.skills || [],
+      socialLinks: user.socialLinks || {},
+      profilePicUrl: user.profilePicUrl || ''
     };
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -43,4 +48,15 @@ const verifyToken = async (request, reply) => {
   }
 };
 
-module.exports = verifyToken;
+const requireRole = (...allowedRoles) => async (request, reply) => {
+  if (!request.user || !allowedRoles.includes(request.user.role)) {
+    return reply.status(403).send({ 
+      error: `Forbidden: Requires one of [${allowedRoles.join(', ')}] role` 
+    });
+  }
+};
+
+const isAdmin = requireRole('Admin');
+const isAdminOrFaculty = requireRole('Admin', 'Faculty', 'Committee');
+
+module.exports = { verifyToken, requireRole, isAdmin, isAdminOrFaculty };

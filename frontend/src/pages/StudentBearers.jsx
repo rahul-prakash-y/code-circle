@@ -35,15 +35,15 @@ const StudentBearers = () => {
             className="flex items-center gap-3 text-slate-500 hover:text-white transition-all duration-500 stellar-glass px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] border-white/5 hover:border-blue-500/30 group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Control Center
+            Back to Login
           </Link>
           
           <div className="space-y-4">
             <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tighter uppercase">
-              Club <span className="text-blue-500">Administration</span>
+              Club <span className="text-blue-500">Office Bearers</span>
             </h1>
-            <p className="text-slate-500 max-w-2xl text-xs font-bold uppercase tracking-[0.2em] leading-relaxed mx-auto">
-              The visionary minds leading Code Circle towards absolute technical excellence and collaborative growth.
+            <p className="text-slate-400 max-w-2xl text-xs font-semibold uppercase tracking-[0.2em] leading-relaxed mx-auto">
+              Meet the student leadership team and coordinators driving Code Circle events and workshops.
             </p>
           </div>
           
@@ -146,7 +146,7 @@ const StudentBearers = () => {
           transition={{ duration: 1, delay: 1 }}
           className="mt-32 pt-16 border-t border-white/5 text-center space-y-6"
         >
-          <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-700">Code Circle Council / MMXXVI</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-500">Code Circle Student Leadership 2026</p>
           <div className="flex justify-center gap-3">
              {[...Array(3)].map((_, i) => (
                <div key={i} className={`w-1 h-1 rounded-full bg-blue-500/20 animate-pulse`} style={{ animationDelay: `${i * 150}ms` }} />

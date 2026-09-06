@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, User, Bell, Search, Hexagon, Info } from 'lucide-react';
+import { LogOut, User, Bell, Search, Hexagon, Info, Users } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import StellarBackground from '../components/ui/StellarBackground';
 import { Link, useLocation } from 'react-router-dom';
@@ -46,11 +46,23 @@ const MainLayout = ({ children }) => {
           </div>
           <div>
             <h1 className="text-xl font-black tracking-tighter text-white uppercase leading-none">Code Circle</h1>
-            <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-0.5">Unified Portal</p>
+            <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-0.5">Student Portal</p>
           </div>
         </Link>
+        
+        <div className="hidden lg:flex items-center gap-4 ml-12">
+          <Link to="/dashboard" className={`text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/dashboard' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}>
+            Dashboard
+          </Link>
+          {(profile?.role === 'Admin' || profile?.role === 'Faculty') && (
+            <Link to="/students" className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/students' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-white'}`}>
+              <Users size={14} />
+              Student Directory
+            </Link>
+          )}
+        </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex-1" />
           <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/5 rounded-2xl focus-within:border-blue-500/30 transition-all">
             <Search size={16} className="text-slate-500" />
             <input 
@@ -99,7 +111,7 @@ const MainLayout = ({ children }) => {
                     ))}
                   </div>
                   <div className="p-3 border-t border-white/5 text-center">
-                    <button className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white transition-colors py-2 w-full">View all intelligence</button>
+                    <button className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white transition-colors py-2 w-full">View all notifications</button>
                   </div>
                 </motion.div>
               )}
@@ -131,7 +143,6 @@ const MainLayout = ({ children }) => {
               <LogOut size={18} />
             </button>
           </div>
-        </div>
       </motion.nav>
 
       {/* Main Content Area */}

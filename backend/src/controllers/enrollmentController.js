@@ -1,17 +1,16 @@
 const Enrollment = require('../models/enrollmentModel');
 const Event = require('../models/eventModel');
 const User = require('../models/userModel');
+const { generateCertificate } = require('../utils/pdfGenerator');
 
 const enrollInEvent = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return reply.status(404).send({ error: 'User not found' });
-    }
-
+    const user = request.user;
     const { event: eventId, type, teamName, members: memberRollNumbers } = request.body;
+
+    if (!eventId || !type) {
+      return reply.status(400).send({ error: 'Event ID and registration type are required' });
+    }
 
     const event = await Event.findById(eventId);
     if (!event) {
@@ -38,22 +37,24 @@ const enrollInEvent = async (request, reply) => {
     let teamMembers = [];
 
     if (type === 'Team') {
-      if (!teamName) {
+      if (!teamName || !teamName.trim()) {
         return reply.status(400).send({ error: 'Team name is required for team enrollment' });
       }
 
       const totalMembers = (memberRollNumbers ? memberRollNumbers.length : 0) + 1;
 
-      if (totalMembers > event.maxParticipants) {
+      if (event.maxParticipants > 0 && totalMembers > event.maxParticipants) {
         return reply.status(400).send({ 
           error: `Team size exceeds maximum limit of ${event.maxParticipants} members` 
         });
       }
 
       if (memberRollNumbers && memberRollNumbers.length > 0) {
-        const foundMembers = await User.find({ rollNo: { $in: memberRollNumbers } });
+        // Prevent enrolling oneself as a team member twice
+        const cleanedRollNumbers = memberRollNumbers.filter(rn => rn !== user.rollNo);
+        const foundMembers = await User.find({ rollNo: { $in: cleanedRollNumbers } });
         const foundRollNumbers = foundMembers.map(m => m.rollNo);
-        const missingRollNumbers = memberRollNumbers.filter(rn => !foundRollNumbers.includes(rn));
+        const missingRollNumbers = cleanedRollNumbers.filter(rn => !foundRollNumbers.includes(rn));
 
         if (missingRollNumbers.length > 0) {
           return reply.status(400).send({ 
@@ -84,7 +85,7 @@ const enrollInEvent = async (request, reply) => {
       event: eventId,
       enrolledBy: user._id,
       type,
-      teamName: type === 'Team' ? teamName : undefined,
+      teamName: type === 'Team' ? teamName.trim() : undefined,
       members: type === 'Team' ? teamMembers : undefined,
     };
 
@@ -99,18 +100,11 @@ const enrollInEvent = async (request, reply) => {
 
 const getEventEnrollments = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user || !['Admin', 'Faculty'].includes(user.role)) {
-      return reply.status(403).send({ error: 'Forbidden: Admin or Faculty access only' });
-    }
-
     const { eventId } = request.params;
 
     const enrollments = await Enrollment.find({ event: eventId })
-      .populate('enrolledBy', 'name rollNo email')
-      .populate('members', 'name rollNo email')
+      .populate('enrolledBy', 'name rollNo email profilePicUrl department')
+      .populate('members', 'name rollNo email profilePicUrl department')
       .sort({ createdAt: -1 });
 
     return reply.send(enrollments);
@@ -122,26 +116,22 @@ const getEventEnrollments = async (request, reply) => {
 
 const updateAttendance = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user || !['Admin', 'Faculty'].includes(user.role)) {
-      return reply.status(403).send({ error: 'Forbidden: Admin or Faculty access only' });
-    }
-
     const { eventId } = request.params;
-    const { enrollmentIds } = request.body;
+    const { enrollmentIds, attendanceStatus = true } = request.body;
 
-    if (!Array.isArray(enrollmentIds)) {
-      return reply.status(400).send({ error: 'enrollmentIds should be an array' });
+    if (!Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
+      return reply.status(400).send({ error: 'enrollmentIds must be a non-empty array' });
     }
 
-    await Enrollment.updateMany(
+    const updateResult = await Enrollment.updateMany(
       { _id: { $in: enrollmentIds }, event: eventId },
-      { $set: { attendanceStatus: true } }
+      { $set: { attendanceStatus: Boolean(attendanceStatus) } }
     );
 
-    return reply.send({ message: 'Attendance updated successfully' });
+    return reply.send({ 
+      message: 'Attendance updated successfully',
+      modifiedCount: updateResult.modifiedCount 
+    });
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Failed to update attendance' });
@@ -150,21 +140,12 @@ const updateAttendance = async (request, reply) => {
 
 const generateCertificates = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user || !['Admin', 'Faculty'].includes(user.role)) {
-      return reply.status(403).send({ error: 'Forbidden: Admin or Faculty access only' });
-    }
-
     const { eventId } = request.params;
     const event = await Event.findById(eventId);
 
     if (!event) {
       return reply.status(404).send({ error: 'Event not found' });
     }
-
-    const { generateCertificate } = require('../utils/pdfGenerator');
 
     const eligibleEnrollments = await Enrollment.find({
       event: eventId,
@@ -173,21 +154,30 @@ const generateCertificates = async (request, reply) => {
     }).populate('enrolledBy', 'name email');
 
     if (eligibleEnrollments.length === 0) {
-      return reply.send({ message: 'No certificates to generate', count: 0 });
+      return reply.send({ message: 'No certificates pending generation', count: 0 });
     }
 
     let generatedCount = 0;
+    // Process in batches of 5 to avoid overwhelming Cloudinary or blocking the event loop
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < eligibleEnrollments.length; i += BATCH_SIZE) {
+      const batch = eligibleEnrollments.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (enrollment) => {
+          const studentName = enrollment.enrolledBy.name;
+          const certUrl = await generateCertificate(studentName, event.title, event.date);
+          enrollment.certificateUrl = certUrl;
+          await enrollment.save();
+          return certUrl;
+        })
+      );
 
-    for (const enrollment of eligibleEnrollments) {
-      try {
-        const studentName = enrollment.enrolledBy.name;
-        const certUrl = await generateCertificate(studentName, event.title, event.date);
-
-        enrollment.certificateUrl = certUrl;
-        await enrollment.save();
-        generatedCount++;
-      } catch (err) {
-        request.log.error(`Failed to generate certificate for ${enrollment.enrolledBy.email}: ${err.message}`);
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          generatedCount++;
+        } else {
+          request.log.error(`Certificate generation error: ${result.reason?.message}`);
+        }
       }
     }
 
@@ -203,12 +193,7 @@ const generateCertificates = async (request, reply) => {
 
 const getMyCertificates = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return reply.status(404).send({ error: 'User not found' });
-    }
+    const user = request.user;
 
     const enrollmentsWithCerts = await Enrollment.find({
       $or: [
@@ -216,7 +201,7 @@ const getMyCertificates = async (request, reply) => {
         { members: user._id }
       ],
       certificateUrl: { $ne: null }
-    }).populate('event', 'title date thumbnail');
+    }).populate('event', 'title date venueOrLink type');
 
     return reply.send(enrollmentsWithCerts);
   } catch (error) {

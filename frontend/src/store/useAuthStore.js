@@ -19,12 +19,14 @@ const useAuthStore = create((set, get) => ({
       const { user, token, sessionId } = response.data;
       
       localStorage.setItem('token', token);
-      localStorage.setItem('sessionId', sessionId);
+      if (sessionId) {
+        localStorage.setItem('sessionId', sessionId);
+      }
       
-      set({ user, token, sessionId, loading: false });
-      return { success: true };
+      set({ user, token, sessionId, loading: false, error: null });
+      return { success: true, user };
     } catch (err) {
-      const message = err.response?.data?.error || 'Login failed';
+      const message = err.response?.data?.error || 'Login failed. Please check your credentials.';
       set({ error: message, loading: false });
       return { success: false, error: message };
     }
@@ -37,12 +39,14 @@ const useAuthStore = create((set, get) => ({
       const { user, token, sessionId } = response.data;
       
       localStorage.setItem('token', token);
-      localStorage.setItem('sessionId', sessionId);
+      if (sessionId) {
+        localStorage.setItem('sessionId', sessionId);
+      }
       
-      set({ user, token, sessionId, loading: false });
-      return { success: true };
+      set({ user, token, sessionId, loading: false, error: null });
+      return { success: true, user };
     } catch (err) {
-      const message = err.response?.data?.error || 'Registration failed';
+      const message = err.response?.data?.error || 'Registration failed. Please check your inputs.';
       set({ error: message, loading: false });
       return { success: false, error: message };
     }
@@ -52,7 +56,8 @@ const useAuthStore = create((set, get) => ({
     try {
       await api.post('/auth/logout');
     } catch (err) {
-      console.error('Logout error:', err);
+      // Best effort logout
+      console.warn('Logout API notification failed:', err.message);
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('sessionId');
@@ -63,24 +68,73 @@ const useAuthStore = create((set, get) => ({
   checkAuth: async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      set({ loading: false });
-      return;
+      set({ user: null, loading: false });
+      return null;
     }
 
     try {
       const response = await api.get('/auth/me');
-      set({ user: response.data, loading: false });
+      set({ user: response.data, loading: false, error: null });
+      return response.data;
     } catch (err) {
-      console.error('Auth check failed:', err);
+      console.error('Auth verification failed:', err);
       localStorage.removeItem('token');
       localStorage.removeItem('sessionId');
       set({ user: null, token: null, sessionId: null, loading: false });
+      return null;
     }
   },
 
+  // Unified Profile Management
+  updateProfile: async (updates) => {
+    set({ loading: true });
+    try {
+      const response = await api.put('/users/me', updates);
+      set({ user: response.data, loading: false, error: null });
+      return { success: true, user: response.data };
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || 'Failed to update profile';
+      set({ error: errorMessage, loading: false });
+      return { success: false, error: errorMessage };
+    }
+  },
+
+  uploadProfilePic: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadRes = await api.post('/upload/profile-pic', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const { url } = uploadRes.data;
+      const updateRes = await get().updateProfile({ profilePicUrl: url });
+      
+      if (updateRes.success) {
+        return { success: true, url };
+      } else {
+        throw new Error(updateRes.error);
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to upload profile picture';
+      return { success: false, error: errorMessage };
+    }
+  },
+
+  // Role verification helpers
   isAdmin: () => get().user?.role === 'Admin',
   isFaculty: () => get().user?.role === 'Faculty',
-  isStudent: () => get().user?.role === 'Student',
+  isCommittee: () => get().user?.role === 'Committee',
+  isMember: () => get().user?.role === 'Member' || get().user?.role === 'Student',
+  isGuest: () => !get().user || get().user?.role === 'Guest',
 }));
+
+// Listen for global 401 unauthorized events from Axios interceptor
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:unauthorized', () => {
+    useAuthStore.setState({ user: null, token: null, sessionId: null, loading: false });
+  });
+}
 
 export default useAuthStore;

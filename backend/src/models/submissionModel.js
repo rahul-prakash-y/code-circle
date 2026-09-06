@@ -34,4 +34,9 @@ const submissionSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 
+// Optimized indexes for submission tracking and leaderboard queries
+submissionSchema.index({ user: 1, status: 1 });
+submissionSchema.index({ problem: 1, status: 1 });
+submissionSchema.index({ user: 1, problem: 1 });
+
 module.exports = mongoose.model('Submission', submissionSchema);

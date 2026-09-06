@@ -1,13 +1,25 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'stellar-minimalist-secret-key-2026';
+
+// Helper to sanitize user object and omit sensitive credentials
+const sanitizeUser = (userDoc) => {
+  if (!userDoc) return null;
+  const user = userDoc.toObject ? userDoc.toObject() : { ...userDoc };
+  delete user.password;
+  return user;
+};
 
 const register = async (request, reply) => {
   try {
     const { name, email, rollNo, password, role, department } = request.body;
+
+    if (!name || !email || !rollNo || !password) {
+      return reply.status(400).send({ error: 'Name, email, rollNo, and password are required' });
+    }
 
     const existingUser = await User.findOne({ $or: [{ email }, { rollNo }] });
     if (existingUser) {
@@ -15,23 +27,29 @@ const register = async (request, reply) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const sessionId = crypto.randomUUID();
+
     const user = await User.create({
       name,
       email,
       rollNo,
       password: hashedPassword,
-      role: role || 'Student',
-      department
+      role: role || 'Member',
+      department: department || '',
+      activeSessionId: sessionId
     });
 
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    
-    // Set active session
-    const sessionId = uuidv4();
-    user.activeSessionId = sessionId;
-    await user.save();
+    const token = jwt.sign(
+      { id: user._id, email: user.email, sessionId }, 
+      JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
 
-    return reply.status(201).send({ user, token, sessionId });
+    return reply.status(201).send({ 
+      user: sanitizeUser(user), 
+      token, 
+      sessionId 
+    });
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Registration failed' });
@@ -41,6 +59,10 @@ const register = async (request, reply) => {
 const login = async (request, reply) => {
   try {
     const { identifier, password } = request.body; // identifier can be email or rollNo
+
+    if (!identifier || !password) {
+      return reply.status(400).send({ error: 'Email/Roll Number and password are required' });
+    }
 
     const user = await User.findOne({ 
       $or: [{ email: identifier }, { rollNo: identifier }] 
@@ -59,13 +81,9 @@ const login = async (request, reply) => {
       return reply.status(401).send({ error: 'Invalid credentials' });
     }
 
-    // Single-device login check (Exclusive for non-admins)
-    if (user.activeSessionId && user.role !== 'Admin') {
-      return reply.status(401).send({ error: 'You are already logged in on another device' });
-    }
-
-    // Generate new session ID
-    const sessionId = uuidv4();
+    // Generate a fresh session ID. Overriding activeSessionId invalidates any previously open tab/device
+    // while preventing permanent student lockouts.
+    const sessionId = crypto.randomUUID();
     user.activeSessionId = sessionId;
     await user.save();
 
@@ -75,7 +93,11 @@ const login = async (request, reply) => {
       { expiresIn: '7d' }
     );
 
-    return reply.send({ user, token, sessionId });
+    return reply.send({ 
+      user: sanitizeUser(user), 
+      token, 
+      sessionId 
+    });
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Login failed' });
@@ -95,12 +117,12 @@ const logout = async (request, reply) => {
 
 const getMe = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email }).select('-password');
-    return reply.send(user);
+    // request.user is already validated and hydrated by verifyToken middleware
+    return reply.send(request.user);
   } catch (error) {
+    request.log.error(error);
     return reply.status(500).send({ error: 'Failed to fetch user' });
   }
 };
 
-module.exports = { register, login, logout, getMe };
+module.exports = { register, login, logout, getMe, sanitizeUser };

@@ -1,7 +1,6 @@
 const AttendanceSession = require('../models/attendanceSessionModel');
 const AttendanceRecord = require('../models/attendanceRecordModel');
 const Enrollment = require('../models/enrollmentModel');
-const User = require('../models/userModel');
 const Event = require('../models/eventModel');
 
 // Helper to generate 6-digit OTP
@@ -9,14 +8,12 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 const createSession = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-
-    if (!user || (user.role !== 'Admin' && user.role !== 'Faculty')) {
-      return reply.status(403).send({ error: 'Only Admins and Faculty can create attendance sessions' });
-    }
-
+    const user = request.user;
     const { event: eventId, sessionName, durationMinutes = 60 } = request.body;
+
+    if (!eventId || !sessionName) {
+      return reply.status(400).send({ error: 'Event ID and session name are required' });
+    }
 
     const event = await Event.findById(eventId);
     if (!event) return reply.status(404).send({ error: 'Event not found' });
@@ -26,7 +23,7 @@ const createSession = async (request, reply) => {
 
     const session = await AttendanceSession.create({
       event: eventId,
-      sessionName,
+      sessionName: sessionName.trim(),
       otp,
       otpExpiry,
       createdBy: user._id
@@ -41,16 +38,14 @@ const createSession = async (request, reply) => {
 
 const markAttendance = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-    if (!user) return reply.status(404).send({ error: 'User not found' });
-
+    const user = request.user;
     const { otp } = request.body;
+
     if (!otp) return reply.status(400).send({ error: 'OTP is required' });
 
-    // Find active session with this OTP
+    // Find active session matching this OTP
     const session = await AttendanceSession.findOne({ 
-      otp, 
+      otp: otp.trim(), 
       isActive: true,
       otpExpiry: { $gt: new Date() }
     }).populate('event');
@@ -69,16 +64,26 @@ const markAttendance = async (request, reply) => {
       return reply.status(403).send({ error: 'You are not enrolled in this event' });
     }
 
-    // Create attendance record
+    // Create attendance record and sync enrollment status
     try {
       await AttendanceRecord.create({
         session: session._id,
         user: user._id
       });
-      return reply.send({ message: `Attendance marked for ${session.sessionName}` });
+
+      // Synchronize attendanceStatus on the enrollment
+      if (!enrollment.attendanceStatus) {
+        enrollment.attendanceStatus = true;
+        await enrollment.save();
+      }
+
+      return reply.send({ 
+        message: `Attendance marked successfully for "${session.sessionName}"`,
+        sessionName: session.sessionName
+      });
     } catch (err) {
       if (err.code === 11000) {
-        return reply.status(400).send({ error: 'Attendance already marked for this session' });
+        return reply.status(400).send({ error: 'Attendance has already been marked for this session' });
       }
       throw err;
     }
@@ -91,7 +96,9 @@ const markAttendance = async (request, reply) => {
 const getEventSessions = async (request, reply) => {
   try {
     const { eventId } = request.params;
-    const sessions = await AttendanceSession.find({ event: eventId }).sort({ createdAt: -1 });
+    const sessions = await AttendanceSession.find({ event: eventId })
+      .sort({ createdAt: -1 });
+
     return reply.send(sessions);
   } catch (error) {
     request.log.error(error);
@@ -101,15 +108,9 @@ const getEventSessions = async (request, reply) => {
 
 const getSessionAttendance = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-    if (!user || (user.role !== 'Admin' && user.role !== 'Faculty')) {
-      return reply.status(403).send({ error: 'Forbidden' });
-    }
-
     const { sessionId } = request.params;
     const records = await AttendanceRecord.find({ session: sessionId })
-      .populate('user', 'name rollNo email')
+      .populate('user', 'name rollNo email department')
       .sort({ timestamp: -1 });
 
     return reply.send(records);
@@ -121,14 +122,12 @@ const getSessionAttendance = async (request, reply) => {
 
 const getUserAttendanceHistory = async (request, reply) => {
   try {
-    const { email } = request.user;
-    const user = await User.findOne({ email });
-    if (!user) return reply.status(404).send({ error: 'User not found' });
+    const user = request.user;
 
     const records = await AttendanceRecord.find({ user: user._id })
       .populate({
         path: 'session',
-        populate: { path: 'event', select: 'title date thumbnail' }
+        populate: { path: 'event', select: 'title date venueOrLink type' }
       })
       .sort({ timestamp: -1 });
 
