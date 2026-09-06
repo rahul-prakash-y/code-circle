@@ -5,8 +5,9 @@ import Sidebar from '../components/navigation/Sidebar';
 import Header from '../components/navigation/Header';
 import BackgroundGradient from '../components/ui/BackgroundGradient';
 import {
-  X, LayoutDashboard, Award, MessageSquare,
-  Newspaper, Users, Shield, CalendarCheck,
+  X, LayoutDashboard, Calendar, Award, CalendarCheck,
+  Medal, Trophy, Ticket, MessageSquare,
+  Newspaper, Users, Shield, BarChart3,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -74,14 +75,19 @@ export const MainLayout = ({ children }) => {
 
   const mobileLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/dashboard?tab=assessments', label: 'Assessments', icon: Award },
-    { to: '/dashboard?tab=feedback', label: 'Feedback', icon: MessageSquare },
+    { to: '/events', label: 'Events', icon: Calendar },
+    { to: '/assessments', label: 'Assessments', icon: Award },
+    { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
+    { to: '/certificates', label: 'Certificates', icon: Medal },
+    { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    { to: '/passport', label: 'Registrations', icon: Ticket },
+    { to: '/feedback', label: 'Feedback', icon: MessageSquare },
     { to: '/news', label: 'News', icon: Newspaper },
     ...(isAdmin
       ? [
           { to: '/teams', label: 'Teams', icon: Users },
           { to: '/users', label: 'Directory', icon: Shield },
-          { to: '/dashboard?tab=attendance', label: 'Attendance', icon: CalendarCheck },
+          { to: '/analytics', label: 'Analytics', icon: BarChart3 },
         ]
       : []),
   ];

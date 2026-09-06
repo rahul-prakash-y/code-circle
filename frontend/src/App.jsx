@@ -1,7 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './store/useAuthStore';
-import useThemeStore from './store/useThemeStore';
 import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
 import { PageSkeleton } from './components/ui/LoadingSkeleton';
@@ -13,6 +12,14 @@ const Register = lazy(() => import('./pages/Register'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const StudentBearers = lazy(() => import('./pages/StudentBearers'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const EventsPage = lazy(() => import('./pages/EventsPage'));
+const AssessmentsPage = lazy(() => import('./pages/AssessmentsPage'));
+const AttendancePage = lazy(() => import('./pages/AttendancePage'));
+const CertificatesPage = lazy(() => import('./pages/CertificatesPage'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const PassportPage = lazy(() => import('./pages/PassportPage'));
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const Profile = lazy(() => import('./pages/Profile'));
 const CodingWorkspace = lazy(() => import('./components/coding/CodingWorkspace'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
@@ -42,7 +49,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 function App() {
   const { checkAuth } = useAuthStore();
-  const { theme } = useThemeStore();
 
   useEffect(() => {
     // Single consolidated auth and profile initialization
@@ -161,10 +167,96 @@ function App() {
             }
           />
 
-          {/* Direct tab routes */}
-          <Route path="/events" element={<Navigate to="/dashboard?tab=events" replace />} />
-          <Route path="/attendance" element={<Navigate to="/dashboard?tab=attendance" replace />} />
-          <Route path="/leaderboard" element={<Navigate to="/dashboard?tab=leaderboard" replace />} />
+          {/* Dedicated Student & Academic Routes */}
+          <Route
+            path="/events"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <EventsPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/assessments"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <AssessmentsPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/attendance"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <AttendancePage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/certificates"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <CertificatesPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leaderboard"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <LeaderboardPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/passport"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <PassportPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/registrations" element={<Navigate to="/passport" replace />} />
+
+          <Route
+            path="/feedback"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <FeedbackPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Analytics Module */}
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                <MainLayout>
+                  <AnalyticsPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

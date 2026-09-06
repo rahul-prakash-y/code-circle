@@ -3,12 +3,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
+  Calendar,
   Award,
+  CalendarCheck,
+  Medal,
+  Trophy,
+  Ticket,
   MessageSquare,
   Newspaper,
   Users,
   Shield,
-  CalendarCheck,
   BarChart3,
   ChevronLeft,
 } from 'lucide-react';
@@ -80,39 +84,79 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
 
   const primaryLinks: NavItem[] = [
     {
-      to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard,
-      match: (loc) => loc.pathname === '/dashboard' && (!loc.search || loc.search === '?tab=events'),
+      to: '/dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      match: (loc) => loc.pathname === '/dashboard',
     },
     {
-      to: '/dashboard?tab=assessments', label: 'Assessments', icon: Award,
-      match: (loc) => loc.search.includes('tab=assessments'),
+      to: '/events',
+      label: 'Events',
+      icon: Calendar,
+      match: (loc) => loc.pathname === '/events',
     },
     {
-      to: '/dashboard?tab=feedback', label: 'Feedback', icon: MessageSquare,
-      match: (loc) => loc.search.includes('tab=feedback'),
+      to: '/assessments',
+      label: 'Assessments',
+      icon: Award,
+      match: (loc) => loc.pathname === '/assessments',
     },
     {
-      to: '/news', label: 'News', icon: Newspaper,
+      to: '/attendance',
+      label: 'Attendance',
+      icon: CalendarCheck,
+      match: (loc) => loc.pathname === '/attendance',
+    },
+    {
+      to: '/certificates',
+      label: 'Certificates',
+      icon: Medal,
+      match: (loc) => loc.pathname === '/certificates',
+    },
+    {
+      to: '/leaderboard',
+      label: 'Leaderboard',
+      icon: Trophy,
+      match: (loc) => loc.pathname === '/leaderboard',
+    },
+    {
+      to: '/passport',
+      label: 'Registrations',
+      icon: Ticket,
+      match: (loc) => loc.pathname === '/passport' || loc.pathname === '/registrations',
+    },
+    {
+      to: '/feedback',
+      label: 'Feedback',
+      icon: MessageSquare,
+      match: (loc) => loc.pathname === '/feedback',
+    },
+    {
+      to: '/news',
+      label: 'News',
+      icon: Newspaper,
       match: (loc) => loc.pathname === '/news',
     },
   ];
 
   const adminLinks: NavItem[] = [
     {
-      to: '/teams', label: 'Teams', icon: Users,
+      to: '/teams',
+      label: 'Teams',
+      icon: Users,
       match: (loc) => loc.pathname === '/teams',
     },
     {
-      to: '/users', label: 'Directory', icon: Shield,
+      to: '/users',
+      label: 'Directory',
+      icon: Shield,
       match: (loc) => loc.pathname === '/users' || loc.pathname === '/students',
     },
     {
-      to: '/dashboard?tab=attendance', label: 'Attendance', icon: CalendarCheck,
-      match: (loc) => loc.search.includes('tab=attendance'),
-    },
-    {
-      to: '/dashboard?tab=analytics', label: 'Analytics', icon: BarChart3,
-      match: (loc) => loc.search.includes('tab=analytics'),
+      to: '/analytics',
+      label: 'Analytics',
+      icon: BarChart3,
+      match: (loc) => loc.pathname === '/analytics',
     },
   ];
 
