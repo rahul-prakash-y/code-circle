@@ -5,7 +5,7 @@ import GenerateOtpModal from './GenerateOtpModal';
 import AssessmentManagerModal from './AssessmentManagerModal';
 import DownloadReportsModal from './DownloadReportsModal';
 
-const QuickActions = ({ onManageEvents, onOpenCreateEvent }) => {
+const QuickActions = ({ onManageEvents, onOpenCreateEvent, onManageAssessments }) => {
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
   const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
@@ -121,6 +121,7 @@ const QuickActions = ({ onManageEvents, onOpenCreateEvent }) => {
       <AssessmentManagerModal
         isOpen={isAssessmentModalOpen}
         onClose={() => setIsAssessmentModalOpen(false)}
+        onOpenAssessments={onManageAssessments}
       />
 
       <DownloadReportsModal

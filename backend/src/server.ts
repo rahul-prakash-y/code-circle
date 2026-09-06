@@ -12,6 +12,8 @@ import { newsRoutes } from './routes/newsRoutes';
 import { eventRoutes } from './routes/eventRoutes';
 import { teamRoutes } from './routes/teamRoutes';
 import { attendanceRoutes } from './routes/attendanceRoutes';
+import { assessmentRoutes } from './routes/assessmentRoutes';
+import { feedbackRoutes } from './routes/feedbackRoutes';
 
 export const server: FastifyInstance = Fastify({
   logger: {
@@ -44,6 +46,8 @@ server.register(eventRoutes, { prefix: '/api/events' });
 server.register(teamRoutes, { prefix: '/api/teams' });
 server.register(attendanceRoutes, { prefix: '/api/attendance' });
 server.register(newsRoutes, { prefix: '/api/news' });
+server.register(assessmentRoutes, { prefix: '/api/assessments' });
+server.register(feedbackRoutes, { prefix: '/api/feedback' });
 server.register(require('./routes/health'), { prefix: '/api' });
 server.register(require('./routes/uploadRoutes'), { prefix: '/api/upload' });
 server.register(require('./routes/enrollmentRoutes'), { prefix: '/api/enrollments' });

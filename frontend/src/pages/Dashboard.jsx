@@ -5,7 +5,7 @@ import useEventStore from '../store/useEventStore';
 import useMetricsStore from '../store/useMetricsStore';
 import MyCertificates from '../components/dashboard/MyCertificates';
 import { auth } from '../lib/firebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
   LogOut, 
@@ -33,8 +33,12 @@ import AttendanceHistory from '../components/dashboard/AttendanceHistory';
 import AttendanceRecordsView from '../components/admin/AttendanceRecordsView';
 import BearerManager from '../components/admin/BearerManager';
 import QuickActions from '../components/admin/QuickActions';
+import AssessmentList from '../components/assessments/AssessmentList';
+import FeedbackDashboard from '../components/feedback/FeedbackDashboard';
+import SubmitFeedbackModal from '../components/feedback/SubmitFeedbackModal';
 import NewsFeed from './NewsFeed';
 import { motion } from 'framer-motion';
+import { MessageSquare, MessageSquarePlus } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout } = useAuthStore();
@@ -42,10 +46,24 @@ const Dashboard = () => {
   const { deleteEvent } = useEventStore();
   const { metrics, loading: metricsLoading, fetchMetrics, isCached } = useMetricsStore();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
-  const [activeTab, setActiveTab] = useState('events');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'events');
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId });
+  };
 
   const isAdmin = profile?.role === 'Admin' || profile?.role === 'SuperAdmin' || user?.role === 'Admin' || user?.role === 'SuperAdmin';
   const isFaculty = profile?.role === 'Faculty';
@@ -139,6 +157,7 @@ const Dashboard = () => {
         <QuickActions
           onManageEvents={() => setActiveTab('events')}
           onOpenCreateEvent={handleCreateEvent}
+          onManageAssessments={() => setActiveTab('assessments')}
         />
       )}
 
@@ -250,14 +269,54 @@ const Dashboard = () => {
               </div>
             </div>
           )}
+
+          {/* Quick Tab to MCQ Assessments */}
+          <div 
+            onClick={() => setActiveTab('assessments')}
+            className={`stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-purple-500/20 hover:border-purple-500/40 ${activeTab === 'assessments' ? 'border-purple-500 bg-purple-500/5' : ''}`}
+          >
+            <div className="w-14 h-14 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Award className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white group-hover:text-purple-400 transition-colors">
+                MCQ Assessments
+              </h3>
+              <p className="text-sm text-slate-400 mt-0.5">Test conceptual mastery</p>
+            </div>
+          </div>
+
+          {/* Quick Tab to Feedback */}
+          <div 
+            onClick={() => setActiveTab('feedback')}
+            className={`stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-teal-500/20 hover:border-teal-500/40 ${activeTab === 'feedback' ? 'border-teal-500 bg-teal-500/5' : ''}`}
+          >
+            <div className="w-14 h-14 bg-teal-500/10 text-teal-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <MessageSquare className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white group-hover:text-teal-400 transition-colors">
+                Student Feedback
+              </h3>
+              <p className="text-sm text-slate-400 mt-0.5">{isAdmin ? 'Review student insights' : 'Share your perspective'}</p>
+            </div>
+          </div>
           
-          {(isAdmin || isFaculty) && (
+          {(isAdmin || isFaculty) ? (
             <button
               onClick={handleCreateEvent}
               className="w-full stellar-btn flex items-center justify-center gap-2 group"
             >
               <Plus size={20} className="group-hover:rotate-90 transition-transform duration-500" />
               Create New Event
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="w-full stellar-btn flex items-center justify-center gap-2 bg-gradient-to-r from-teal-500 to-blue-600 hover:brightness-110 shadow-[0_0_20px_rgba(20,184,166,0.3)]"
+            >
+              <MessageSquarePlus size={18} />
+              Give Feedback
             </button>
           )}
         </section>
@@ -268,7 +327,9 @@ const Dashboard = () => {
           <div className="stellar-glass p-1.5 flex gap-1 bg-white/5 overflow-x-auto custom-scrollbar">
             {[
               { id: 'events', label: 'Events Feed' },
-              { id: 'news', label: 'News & Announcements' },
+              { id: 'assessments', label: 'Assessments' },
+              { id: 'feedback', label: 'Feedback' },
+              { id: 'news', label: 'News & Bulletins' },
               { id: 'attendance', label: 'Attendance' },
               { id: 'certificates', label: 'Certificates' },
               { id: 'leaderboard', label: 'Leaderboard' },
@@ -276,7 +337,7 @@ const Dashboard = () => {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`flex-1 min-w-[110px] py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-500 ${activeTab === tab.id ? 'bg-white text-black shadow-xl' : 'text-slate-500 hover:bg-white/5 hover:text-white'}`}
               >
                 {tab.label}
@@ -298,6 +359,8 @@ const Dashboard = () => {
                 onDelete={handleDeleteEvent}
               />
             )}
+            {activeTab === 'assessments' && <AssessmentList />}
+            {activeTab === 'feedback' && <FeedbackDashboard />}
             {activeTab === 'news' && <NewsFeed />}
             {activeTab === 'attendance' && (
               isAdmin || isFaculty ? <AttendanceRecordsView /> : <AttendanceHistory />
@@ -315,6 +378,11 @@ const Dashboard = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         eventToEdit={eventToEdit}
+      />
+
+      <SubmitFeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
       />
     </div>
   );

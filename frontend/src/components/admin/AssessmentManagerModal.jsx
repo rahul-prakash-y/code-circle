@@ -5,7 +5,7 @@ import api from '../../lib/axios';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-const AssessmentManagerModal = ({ isOpen, onClose }) => {
+const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
   const [problems, setProblems] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,10 +18,10 @@ const AssessmentManagerModal = ({ isOpen, onClose }) => {
         try {
           const [probRes, quizRes] = await Promise.all([
             api.get('/problems').catch(() => ({ data: [] })),
-            api.get('/quizzes').catch(() => ({ data: [] })),
+            api.get('/assessments').catch(() => ({ data: { data: [] } })),
           ]);
           setProblems(probRes.data || []);
-          setQuizzes(quizRes.data || []);
+          setQuizzes(quizRes.data?.data || quizRes.data || []);
         } catch (err) {
           console.error(err);
         } finally {
@@ -147,7 +147,18 @@ const AssessmentManagerModal = ({ isOpen, onClose }) => {
                   <span className="text-lg font-black text-white">{tier.count}</span>
                   <span className="text-[10px] text-slate-500 block uppercase font-bold">Items</span>
                 </div>
-                {tier.sampleId && (
+                {tier.difficulty === 'Quiz' ? (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      if (onOpenAssessments) onOpenAssessments();
+                    }}
+                    className="p-2 rounded-xl bg-purple-500/20 hover:bg-purple-600 text-purple-300 hover:text-white transition-all flex items-center gap-1 text-xs font-bold"
+                    title="Launch MCQ Assessments Engine"
+                  >
+                    Open Engine <ChevronRight size={16} />
+                  </button>
+                ) : tier.sampleId && (
                   <button
                     onClick={() => {
                       onClose();

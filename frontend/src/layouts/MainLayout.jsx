@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, User, Bell, Search, Hexagon, Info, Users, Newspaper, Shield } from 'lucide-react';
+import { LogOut, User, Bell, Search, Hexagon, Info, Users, Newspaper, Shield, Award, MessageSquare } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import StellarBackground from '../components/ui/StellarBackground';
 import { Link, useLocation } from 'react-router-dom';
@@ -51,8 +51,22 @@ const MainLayout = ({ children }) => {
         </Link>
         
         <div className="hidden lg:flex items-center gap-3 ml-8">
-          <Link to="/dashboard" className={`text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/dashboard' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}>
+          <Link to="/dashboard" className={`text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/dashboard' && !location.search ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}>
             Dashboard
+          </Link>
+          <Link 
+            to="/dashboard?tab=assessments" 
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.search.includes('tab=assessments') ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.1)]' : 'text-slate-500 hover:text-white'}`}
+          >
+            <Award size={14} />
+            Assessments
+          </Link>
+          <Link 
+            to="/dashboard?tab=feedback" 
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.search.includes('tab=feedback') ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20 shadow-[0_0_20px_rgba(20,184,166,0.1)]' : 'text-slate-500 hover:text-white'}`}
+          >
+            <MessageSquare size={14} />
+            Feedback
           </Link>
           <Link 
             to="/news" 
