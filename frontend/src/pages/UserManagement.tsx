@@ -322,11 +322,11 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="glass overflow-hidden border-border">
+      <div className="glass overflow-hidden border-border/80 rounded-3xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-surface-elevated border-b border-border">
+              <tr className="bg-surface-elevated/60 border-b border-border/60">
                 <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">User Details</th>
                 <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Roll No</th>
                 <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Role</th>
@@ -335,124 +335,134 @@ const UserManagement: React.FC = () => {
                 <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em] text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody>
               {loading && users.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
-                      <Loader2 className="w-8 h-8 text-accent-muted animate-spin" />
+                      <Loader2 className="w-8 h-8 text-accent animate-spin" />
                       <p className="text-text-muted text-xs font-mono animate-pulse">Loading directory entries...</p>
                     </div>
                   </td>
                 </tr>
               ) : users.length > 0 ? (
-                users.map((item) => (
-                  <tr key={item._id || item.id} className="hover:bg-white/2 transition-colors group">
-                    {/* User Details */}
-                    <td className="px-6 py-4.5">
-                      <div className="flex items-center gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500/20 to-purple-500/20 border border-border flex items-center justify-center text-accent-muted font-black text-sm uppercase shrink-0">
-                          {item.profilePicUrl ? (
-                            <img src={item.profilePicUrl} alt={item.name} className="w-full h-full object-cover rounded-xl" />
-                          ) : (
-                            item.name.charAt(0)
-                          )}
+                <AnimatePresence initial={false}>
+                  {users.map((item) => (
+                    <motion.tr
+                      key={item._id || item.id}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0, y: -10, transition: { duration: 0.25 } }}
+                      transition={{ duration: 0.2 }}
+                      className="group border-b border-border/40 even:bg-surface-elevated/25 odd:bg-transparent hover:bg-accent/5 transition-colors"
+                    >
+                      {/* User Details */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-accent/20 to-purple-500/20 border border-border/80 flex items-center justify-center text-accent font-black text-sm uppercase shrink-0">
+                            {item.profilePicUrl ? (
+                              <img src={item.profilePicUrl} alt={item.name} className="w-full h-full object-cover rounded-xl" />
+                            ) : (
+                              item.name.charAt(0)
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-text-primary tracking-tight font-heading">{item.name}</div>
+                            <div className="text-xs text-text-muted font-mono">{item.email}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-sm font-bold text-text-primary tracking-wide">{item.name}</div>
-                          <div className="text-xs text-text-muted font-mono">{item.email}</div>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Roll No */}
-                    <td className="px-6 py-4.5 text-xs font-mono font-bold text-text-secondary tracking-wider">
-                      {item.rollNo}
-                    </td>
+                      {/* Roll No */}
+                      <td className="px-6 py-4 text-xs font-mono font-bold text-text-secondary tracking-wider">
+                        {item.rollNo}
+                      </td>
 
-                    {/* Role */}
-                    <td className="px-6 py-4.5">
-                      {renderRoleBadge(item.role)}
-                    </td>
+                      {/* Role */}
+                      <td className="px-6 py-4">
+                        {renderRoleBadge(item.role)}
+                      </td>
 
-                    {/* Department */}
-                    <td className="px-6 py-4.5 text-xs font-medium text-text-secondary">
-                      {item.department || <span className="text-text-muted italic">Not specified</span>}
-                    </td>
+                      {/* Department */}
+                      <td className="px-6 py-4 text-xs font-medium text-text-secondary">
+                        {item.department || <span className="text-text-muted italic">Not specified</span>}
+                      </td>
 
-                    {/* Status */}
-                    <td className="px-6 py-4.5">
-                      {item.isBlocked ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-widest border border-red-500/20">
-                          <ShieldAlert className="w-3 h-3" /> Blocked
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
-                          <Shield className="w-3 h-3" /> Active
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Action Buttons */}
-                    <td className="px-6 py-4.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Reset Link Trigger (Admin & SuperAdmin) */}
-                        <button
-                          onClick={() => handleTriggerResetLink(item)}
-                          className="p-2 rounded-xl bg-surface-elevated text-accent-muted hover:text-text-primary hover:bg-accent/30 transition-all cursor-pointer"
-                          title="Generate Password Reset Link"
-                        >
-                          <KeyRound className="w-4 h-4" />
-                        </button>
-
-                        {/* Force Password Reset (SuperAdmin Only) */}
-                        {isSuperAdmin() && (
-                          <button
-                            onClick={() => handleForceResetPassword(item)}
-                            className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer"
-                            title="Force Reset Password (SuperAdmin Temporary Default)"
-                          >
-                            <Sparkles className="w-4 h-4" />
-                          </button>
+                      {/* Status */}
+                      <td className="px-6 py-4">
+                        {item.isBlocked ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-widest border border-red-500/20">
+                            <ShieldAlert className="w-3 h-3" /> Blocked
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
+                            <Shield className="w-3 h-3" /> Active
+                          </span>
                         )}
+                      </td>
 
-                        {/* Block / Unblock Toggle */}
-                        <button
-                          onClick={() => handleToggleBlock(item)}
-                          className={`p-2 rounded-xl bg-surface-elevated transition-all cursor-pointer ${
-                            item.isBlocked
-                              ? 'text-emerald-400 hover:bg-emerald-500/20'
-                              : 'text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/20'
-                          }`}
-                          title={item.isBlocked ? 'Unblock Account' : 'Block Account'}
-                        >
-                          {item.isBlocked ? <Check className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
-                        </button>
+                      {/* Action Buttons - fade into view on hover */}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          {/* Reset Link Trigger (Admin & SuperAdmin) */}
+                          <button
+                            onClick={() => handleTriggerResetLink(item)}
+                            className="p-2 rounded-xl bg-surface-elevated text-accent hover:text-white hover:bg-accent transition-all cursor-pointer"
+                            title="Generate Password Reset Link"
+                          >
+                            <KeyRound className="w-4 h-4" />
+                          </button>
 
-                        {/* Edit User */}
-                        <button
-                          onClick={() => openEditModal(item)}
-                          className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-all cursor-pointer"
-                          title="Edit User"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
+                          {/* Force Password Reset (SuperAdmin Only) */}
+                          {isSuperAdmin() && (
+                            <button
+                              onClick={() => handleForceResetPassword(item)}
+                              className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer"
+                              title="Force Reset Password (SuperAdmin Temporary Default)"
+                            >
+                              <Sparkles className="w-4 h-4" />
+                            </button>
+                          )}
 
-                        {/* Delete User */}
-                        <button
-                          onClick={() => {
-                            setSelectedUser(item);
-                            setShowDeleteModal(true);
-                          }}
-                          className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                          title="Delete User"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {/* Block / Unblock Toggle */}
+                          <button
+                            onClick={() => handleToggleBlock(item)}
+                            className={`p-2 rounded-xl bg-surface-elevated transition-all cursor-pointer ${
+                              item.isBlocked
+                                ? 'text-emerald-400 hover:bg-emerald-500/20'
+                                : 'text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/20'
+                            }`}
+                            title={item.isBlocked ? 'Unblock Account' : 'Block Account'}
+                          >
+                            {item.isBlocked ? <Check className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
+                          </button>
+
+                          {/* Edit User */}
+                          <button
+                            onClick={() => openEditModal(item)}
+                            className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-all cursor-pointer"
+                            title="Edit User"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+
+                          {/* Delete User */}
+                          <button
+                            onClick={() => {
+                              setSelectedUser(item);
+                              setShowDeleteModal(true);
+                            }}
+                            className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                            title="Delete User"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
               ) : (
                 <tr>
                   <td colSpan={6} className="px-6 py-20 text-center">
@@ -468,7 +478,7 @@ const UserManagement: React.FC = () => {
                           setRoleFilter('all');
                           setStatusFilter('all');
                         }}
-                        className="text-xs text-accent-muted hover:underline mt-1"
+                        className="text-xs text-accent hover:underline mt-1 cursor-pointer"
                       >
                         Clear filters
                       </button>
@@ -534,7 +544,7 @@ const UserManagement: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowAddModal(false)}
-              className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75 backdrop-blur-md"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -601,7 +611,7 @@ const UserManagement: React.FC = () => {
                     <select
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                      className="w-full bg-surface border border-border rounded-2xl px-4 py-3 text-xs text-text-primary focus:outline-none focus:border-blue-500 font-medium"
+                      className="w-full bg-surface border border-border rounded-2xl px-4 py-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent font-medium transition-all duration-200"
                     >
                       <option value="Student">Student</option>
                       {isSuperAdmin() && <option value="Admin">Admin</option>}
@@ -662,7 +672,7 @@ const UserManagement: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowEditModal(false)}
-              className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75 backdrop-blur-md"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -726,7 +736,7 @@ const UserManagement: React.FC = () => {
                     <select
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                      className="w-full bg-surface border border-border rounded-2xl px-4 py-3 text-xs text-text-primary focus:outline-none focus:border-blue-500 font-medium"
+                      className="w-full bg-surface border border-border rounded-2xl px-4 py-3 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent font-medium transition-all duration-200"
                     >
                       <option value="Student">Student</option>
                       {isSuperAdmin() && <option value="Admin">Admin</option>}
@@ -775,7 +785,7 @@ const UserManagement: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowDeleteModal(false)}
-              className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75 backdrop-blur-md"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -824,7 +834,7 @@ const UserManagement: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowResetLinkModal(false)}
-              className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75 backdrop-blur-md"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -898,7 +908,7 @@ const UserManagement: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowForceResetModal(false)}
-              className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75 backdrop-blur-md"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}

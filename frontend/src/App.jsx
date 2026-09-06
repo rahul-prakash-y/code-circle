@@ -5,6 +5,7 @@ import useThemeStore from './store/useThemeStore';
 import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
 import { PageSkeleton } from './components/ui/LoadingSkeleton';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Code-split route components via React.lazy for high-performance initial loading
 const Login = lazy(() => import('./pages/Login'));
@@ -49,7 +50,8 @@ function App() {
   }, [checkAuth]);
 
   return (
-    <Router>
+    <ThemeProvider>
+      <Router>
       <Toaster 
         position="top-right" 
         toastOptions={{
@@ -161,6 +163,7 @@ function App() {
         </Routes>
       </Suspense>
     </Router>
+    </ThemeProvider>
   );
 }
 

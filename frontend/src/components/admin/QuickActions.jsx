@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { KeyRound, Award, Calendar, Download, Zap, Sparkles } from 'lucide-react';
+import { KeyRound, Award, Calendar, Download, Zap, Sparkles, ArrowUpRight } from 'lucide-react';
 import GenerateOtpModal from './GenerateOtpModal';
 import AssessmentManagerModal from './AssessmentManagerModal';
 import DownloadReportsModal from './DownloadReportsModal';
 
-const QuickActions = ({ onManageEvents, onOpenCreateEvent, onManageAssessments }) => {
+export const QuickActions = ({
+  onManageEvents,
+  onOpenCreateEvent,
+  onManageAssessments,
+}) => {
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
   const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
@@ -13,100 +17,110 @@ const QuickActions = ({ onManageEvents, onOpenCreateEvent, onManageAssessments }
   const actions = [
     {
       id: 'otp',
-      title: 'Generate OTP',
-      subtitle: 'Attendance verification',
+      title: 'Generate Attendance OTP',
+      subtitle: 'Instant session verification code',
       icon: KeyRound,
-      color: 'text-accent-muted',
-      glow: 'group-hover:border-blue-500/50 group-hover:shadow-[0_0_25px_rgba(59,130,246,0.25)]',
-      bgGlow: 'bg-accent/10 border-accent/20',
+      gradient: 'from-blue-500/40 via-cyan-500/40 to-teal-500/40',
+      iconBg: 'bg-blue-500/10 border-blue-500/25 text-blue-500 dark:text-blue-400',
       onClick: () => setIsOtpModalOpen(true),
     },
     {
       id: 'assessments',
       title: 'Manage Assessments',
-      subtitle: 'Tiers & problem tracks',
+      subtitle: 'Curate MCQs & assessment tiers',
       icon: Award,
-      color: 'text-purple-400',
-      glow: 'group-hover:border-purple-500/50 group-hover:shadow-[0_0_25px_rgba(168,85,247,0.25)]',
-      bgGlow: 'bg-purple-500/10 border-purple-500/20',
-      onClick: () => setIsAssessmentModalOpen(true),
+      gradient: 'from-purple-500/40 via-violet-500/40 to-pink-500/40',
+      iconBg: 'bg-purple-500/10 border-purple-500/25 text-purple-500 dark:text-purple-400',
+      onClick: () => {
+        if (onManageAssessments) onManageAssessments();
+        else setIsAssessmentModalOpen(true);
+      },
     },
     {
       id: 'events',
       title: 'Manage Events',
-      subtitle: 'Catalog & scheduling',
+      subtitle: 'Schedule workshops & hackathons',
       icon: Calendar,
-      color: 'text-amber-400',
-      glow: 'group-hover:border-amber-500/50 group-hover:shadow-[0_0_25px_rgba(245,158,11,0.25)]',
-      bgGlow: 'bg-amber-500/10 border-amber-500/20',
+      gradient: 'from-amber-500/40 via-orange-500/40 to-rose-500/40',
+      iconBg: 'bg-amber-500/10 border-amber-500/25 text-amber-500 dark:text-amber-400',
       onClick: () => {
         if (onManageEvents) onManageEvents();
       },
     },
     {
       id: 'reports',
-      title: 'Download Reports',
-      subtitle: 'CSV & PDF exports',
+      title: 'Export Reports',
+      subtitle: 'Download attendance CSV & PDF data',
       icon: Download,
-      color: 'text-emerald-400',
-      glow: 'group-hover:border-emerald-500/50 group-hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]',
-      bgGlow: 'bg-emerald-500/10 border-emerald-500/20',
+      gradient: 'from-emerald-500/40 via-teal-500/40 to-blue-500/40',
+      iconBg: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-500 dark:text-emerald-400',
       onClick: () => setIsReportsModalOpen(true),
     },
   ];
 
   return (
     <>
-      <div className="glass p-6 sm:p-8 relative overflow-hidden">
+      <div className="glass p-6 sm:p-7 relative overflow-hidden rounded-3xl border border-border">
         {/* Glow ambient background accent */}
-        <div className="absolute top-0 right-1/4 w-96 h-40 bg-blue-500/5 blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-96 h-40 bg-accent/5 blur-3xl pointer-events-none" />
 
         {/* Section Header */}
-        <div className="flex items-center justify-between mb-6 relative z-10">
+        <div className="flex items-center justify-between mb-5 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-accent/10 border border-accent/20 text-accent-muted">
+            <div className="p-2.5 rounded-xl bg-accent/10 border border-accent/20 text-accent">
               <Zap size={18} />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black text-text-primary tracking-wide flex items-center gap-2">
-                Quick Actions
-                <span className="text-[10px] font-bold uppercase tracking-widest text-accent-muted bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-text-primary font-heading tracking-tight">
+                  Quick Actions
+                </h3>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
                   Command Center
                 </span>
-              </h3>
-              <p className="text-xs text-text-muted">Essential administrative controls and rapid operations</p>
+              </div>
+              <p className="text-xs text-text-muted mt-0.5">Rapid administrative shortcuts and core operations</p>
             </div>
           </div>
         </div>
 
-        {/* 4 Action Buttons Grid */}
+        {/* 4 Action Buttons with subtle gradient borders on hover */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
           {actions.map((act) => {
             const Icon = act.icon;
             return (
-              <motion.button
+              <motion.div
                 key={act.id}
-                whileHover={{ y: -3, scale: 1.02 }}
+                whileHover={{ y: -3, scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 onClick={act.onClick}
-                className={`p-5 rounded-2xl bg-surface-elevated border border-border text-left transition-all duration-300 group cursor-pointer flex flex-col justify-between ${act.glow}`}
+                className="group relative p-[1px] rounded-2xl overflow-hidden cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-2xl border transition-transform duration-300 group-hover:scale-110 ${act.bgGlow} ${act.color}`}>
-                    <Icon size={22} />
-                  </div>
-                  <Sparkles size={14} className="text-white/20 group-hover:text-text-primary/60 transition-colors" />
-                </div>
+                {/* Subtle animated gradient border layer */}
+                <div
+                  className={`absolute inset-0 bg-linear-to-r ${act.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl`}
+                />
 
-                <div>
-                  <h4 className="text-sm font-black text-text-primary group-hover:text-accent-muted transition-colors">
-                    {act.title}
-                  </h4>
-                  <p className="text-[11px] text-text-muted font-medium mt-0.5">
-                    {act.subtitle}
-                  </p>
+                {/* Inner button surface */}
+                <div className="relative h-full flex flex-col justify-between p-5 rounded-[15px] bg-surface-elevated/90 border border-border group-hover:border-transparent transition-colors duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-2.5 rounded-xl border transition-transform duration-300 group-hover:scale-110 ${act.iconBg}`}>
+                      <Icon size={20} />
+                    </div>
+                    <ArrowUpRight size={16} className="text-text-muted group-hover:text-text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-200" />
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-bold text-text-primary group-hover:text-accent transition-colors">
+                      {act.title}
+                    </h4>
+                    <p className="text-[11px] text-text-muted font-medium mt-1 leading-snug">
+                      {act.subtitle}
+                    </p>
+                  </div>
                 </div>
-              </motion.button>
+              </motion.div>
             );
           })}
         </div>
