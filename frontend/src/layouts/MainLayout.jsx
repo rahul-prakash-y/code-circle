@@ -11,7 +11,7 @@ import {
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 
-const SPRING = { type: 'spring', stiffness: 260, damping: 30 };
+const EASE_TRANSITION = { duration: 0.24, ease: [0.16, 1, 0.3, 1] };
 
 export const MainLayout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -38,7 +38,14 @@ export const MainLayout = ({ children }) => {
     });
   };
 
-  useEffect(() => { setIsMobileMenuOpen(false); }, [location.pathname, location.search]);
+  // Close mobile drawer on route change during render without cascading effect renders
+  const [prevLocation, setPrevLocation] = useState(location.pathname + location.search);
+  if (prevLocation !== location.pathname + location.search) {
+    setPrevLocation(location.pathname + location.search);
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  }
 
   // ⌘B keyboard shortcut
   useEffect(() => {
@@ -47,6 +54,22 @@ export const MainLayout = ({ children }) => {
     };
     document.addEventListener('keydown', fn);
     return () => document.removeEventListener('keydown', fn);
+  }, []);
+
+  // Responsive desktop detection
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const mobileLinks = [
@@ -63,7 +86,7 @@ export const MainLayout = ({ children }) => {
       : []),
   ];
 
-  const sidebarW = isSidebarCollapsed ? 68 : 240;
+  const sidebarW = isDesktop ? (isSidebarCollapsed ? 68 : 240) : 0;
 
   return (
     <div
@@ -94,7 +117,7 @@ export const MainLayout = ({ children }) => {
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={SPRING}
+              transition={EASE_TRANSITION}
               className="fixed top-0 left-0 bottom-0 w-[260px] z-50 lg:hidden flex flex-col"
               style={{
                 background: 'var(--glass-bg)',
@@ -122,15 +145,13 @@ export const MainLayout = ({ children }) => {
                     Code Circle
                   </span>
                 </div>
-                <motion.button
-                  whileTap={{ scale: 0.92 }}
-                  transition={SPRING}
+                <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-xl"
+                  className="p-2 rounded-xl active:translate-y-[1px] transition-transform"
                   style={{ color: 'var(--label-secondary)' }}
                 >
                   <X size={18} strokeWidth={2} />
-                </motion.button>
+                </button>
               </div>
 
               {/* Nav links */}
@@ -144,6 +165,7 @@ export const MainLayout = ({ children }) => {
                     <Link
                       key={item.to}
                       to={item.to}
+                      onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] transition-colors duration-150"
                       style={{
                         background: isActive ? 'var(--accent-subtle)' : 'transparent',
@@ -171,31 +193,32 @@ export const MainLayout = ({ children }) => {
         )}
       </AnimatePresence>
 
-      {/* Content — single marginLeft source */}
+      {/* Content — single marginLeft source for desktop only */}
+      <style>{`
+        @media (max-width: 1023px) {
+          .cc-content-root { margin-left: 0px !important; }
+        }
+      `}</style>
       <motion.div
         animate={{ marginLeft: sidebarW }}
-        transition={SPRING}
-        className="flex-1 flex flex-col min-w-0"
+        transition={EASE_TRANSITION}
+        className="cc-content-root flex-1 flex flex-col min-w-0"
       >
-        {/* Mobile: override margin */}
-        <style>{`@media (max-width: 1023px) { .cc-content { margin-left: 0 !important; } }`}</style>
-        <div className="cc-content flex-1 flex flex-col min-w-0">
-          <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
+        <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
 
-          <main className="flex-1 w-full max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-10 pb-24">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={location.pathname + location.search}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
-          </main>
-        </div>
+        <main className="flex-1 w-full max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-10 pb-24">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname + location.search}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </motion.div>
     </div>
   );

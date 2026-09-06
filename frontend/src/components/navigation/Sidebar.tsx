@@ -38,9 +38,6 @@ interface NavItem {
 const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
   <Link to="/dashboard" className="flex items-center gap-3 min-w-0 group outline-none">
     <motion.div
-      whileHover={{ scale: 1.04 }}
-      whileTap={{ scale: 0.96 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 30 }}
       className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 select-none"
       style={{ background: 'var(--accent)', boxShadow: '0 2px 8px rgba(0,113,227,0.30)' }}
     >
@@ -69,7 +66,7 @@ const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
   </Link>
 );
 
-const SPRING = { type: 'spring', stiffness: 260, damping: 30 } as const;
+const EASE_TRANSITION = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const;
 
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse, className = '' }) => {
   const location = useLocation();
@@ -132,14 +129,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
               layoutId="nav-active-bg"
               className="absolute inset-0 rounded-xl"
               style={{ background: 'var(--accent-subtle)' }}
-              transition={SPRING}
+              transition={EASE_TRANSITION}
             />
           )}
 
           <motion.div
             whileHover={{ x: isCollapsed ? 0 : 2 }}
-            whileTap={{ scale: 0.97 }}
-            transition={SPRING}
+            transition={EASE_TRANSITION}
             className={`relative flex items-center gap-3 rounded-xl cursor-pointer select-none ${
               isCollapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2.5'
             }`}
@@ -189,7 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       <motion.aside
         initial={false}
         animate={{ width: isCollapsed ? 68 : 240 }}
-        transition={SPRING}
+        transition={EASE_TRANSITION}
         className={`fixed top-0 left-0 bottom-0 z-40 flex flex-col justify-between select-none ${className}`}
         style={{
           background: 'var(--glass-bg)',
@@ -277,7 +273,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
               >
                 <motion.div
                   animate={{ rotate: isCollapsed ? 180 : 0 }}
-                  transition={SPRING}
+                  transition={EASE_TRANSITION}
                   style={{ flexShrink: 0 }}
                 >
                   <ChevronLeft size={16} strokeWidth={2} />

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { Trophy, Medal, Crown, Star, Loader2 } from 'lucide-react';
+import { Trophy, Medal, Crown, Star } from 'lucide-react';
 import useAnalyticsStore from '../../store/useAnalyticsStore';
+import { TableSkeleton } from '../ui/LoadingSkeleton';
 
 const PodiumItem = ({ user, rank }) => {
   const isFirst = rank === 1;
@@ -52,8 +53,17 @@ const Leaderboard = () => {
 
   if (loading && leaderboard.length === 0) {
     return (
-      <div className="flex items-center justify-center h-80">
-        <Loader2 className="animate-spin text-accent" size={32} />
+      <div className="max-w-4xl mx-auto space-y-8 py-10 px-4 sm:px-6">
+        <div className="text-center space-y-2 max-w-xl mx-auto">
+          <div className="inline-flex p-2.5 rounded-xl bg-surface border border-separator text-accent mb-2">
+            <Trophy size={22} strokeWidth={2} />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-label-primary tracking-tight">Leaderboard</h1>
+          <p className="text-label-secondary text-sm">Loading student rankings…</p>
+        </div>
+        <div className="surface rounded-[18px] border border-separator p-4">
+          <TableSkeleton rows={6} />
+        </div>
       </div>
     );
   }
@@ -65,11 +75,11 @@ const Leaderboard = () => {
     <div className="max-w-4xl mx-auto space-y-12 py-10 px-4 sm:px-6">
       {/* Header */}
       <div className="text-center space-y-2 max-w-xl mx-auto">
-        <div className="inline-flex p-2.5 rounded-xl bg-surface-elevated border border-separator text-accent mb-2">
+        <div className="inline-flex p-2.5 rounded-xl bg-surface border border-separator text-accent mb-2">
           <Trophy size={22} strokeWidth={2} />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-text-primary tracking-tight">Leaderboard</h1>
-        <p className="text-text-muted text-sm leading-relaxed">
+        <h1 className="text-3xl sm:text-4xl font-bold text-label-primary tracking-tight">Leaderboard</h1>
+        <p className="text-label-secondary text-sm leading-relaxed">
           Recognizing consistent academic problem-solving, workshop participation, and club contributions.
         </p>
       </div>
@@ -87,23 +97,23 @@ const Leaderboard = () => {
 
       {/* Rankings Table */}
       <div className="surface rounded-[18px] border border-separator shadow-card overflow-hidden">
-        <div className="grid grid-cols-12 px-6 py-3.5 bg-canvas border-b border-separator text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+        <div className="grid grid-cols-12 px-6 py-3.5 bg-canvas border-b border-separator text-[11px] font-semibold uppercase tracking-wider text-label-secondary">
           <div className="col-span-2 sm:col-span-1">Rank</div>
           <div className="col-span-7 sm:col-span-8">Student</div>
           <div className="col-span-3 text-right">Points</div>
         </div>
         
-        <div className="divide-y divide-separator max-h-[500px] overflow-y-auto custom-scrollbar">
+        <div className="divide-y divide-separator max-h-[500px] overflow-y-auto">
           {others.map((user, index) => (
             <div 
               key={user._id}
-              className="grid grid-cols-12 px-6 py-3.5 items-center hover:bg-surface-elevated transition-colors"
+              className="grid grid-cols-12 px-6 py-3.5 items-center group cursor-default transition-colors duration-150 hover:bg-canvas/70"
             >
-              <div className="col-span-2 sm:col-span-1 font-mono text-xs font-semibold text-text-muted">
+              <div className="col-span-2 sm:col-span-1 font-mono text-xs font-semibold text-label-tertiary select-none">
                 #{index + 4}
               </div>
               <div className="col-span-7 sm:col-span-8 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg overflow-hidden bg-surface-elevated border border-separator flex items-center justify-center text-xs font-semibold text-text-secondary shrink-0">
+                <div className="w-8 h-8 rounded-lg overflow-hidden bg-canvas border border-separator flex items-center justify-center text-xs font-semibold text-label-secondary shrink-0">
                   {user.profilePicUrl ? (
                     <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
@@ -111,18 +121,22 @@ const Leaderboard = () => {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-text-primary font-medium text-xs sm:text-sm truncate">{user.name}</div>
-                  <div className="text-[10px] text-text-muted font-mono">{user.rollNo}</div>
+                  <div className="text-label-primary font-medium text-xs sm:text-sm truncate group-hover:text-accent transition-colors duration-150">
+                    {user.name}
+                  </div>
+                  <div className="text-[10px] text-label-tertiary font-mono">{user.rollNo}</div>
                 </div>
               </div>
               <div className="col-span-3 text-right">
-                <span className="text-text-primary font-bold text-sm">{user.totalPoints}</span>
-                <span className="text-[10px] text-text-muted ml-1">pts</span>
+                <span className="text-label-primary font-bold text-sm group-hover:text-accent transition-colors duration-150">
+                  {user.totalPoints}
+                </span>
+                <span className="text-[10px] text-label-tertiary ml-1">pts</span>
               </div>
             </div>
           ))}
           {others.length === 0 && (
-            <p className="text-center py-8 text-xs text-text-muted">No additional rankings to display.</p>
+            <p className="text-center py-8 text-xs text-label-secondary">No additional rankings to display.</p>
           )}
         </div>
       </div>

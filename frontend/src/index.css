@@ -271,14 +271,17 @@
     cursor: pointer;
     user-select: none;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
-    transition: background 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+    transition: background 150ms ease, box-shadow 150ms ease, opacity 150ms ease, transform 150ms ease;
   }
   .btn-primary:hover {
     background: var(--accent-hover);
     box-shadow: 0 2px 8px rgba(0, 113, 227, 0.28);
   }
-  .btn-primary:active { opacity: 0.88; }
-  .btn-primary:disabled { opacity: 0.40; cursor: not-allowed; }
+  .btn-primary:active {
+    transform: translateY(1px);
+    opacity: 0.90;
+  }
+  .btn-primary:disabled { opacity: 0.40; cursor: not-allowed; transform: none; }
 
   .btn-secondary {
     display: inline-flex;
@@ -295,13 +298,16 @@
     border-radius: 980px;
     cursor: pointer;
     user-select: none;
-    transition: background 150ms ease, border-color 150ms ease;
+    transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
   }
   .btn-secondary:hover {
     background: var(--separator);
     border-color: var(--separator-opaque);
   }
-  .btn-secondary:active { opacity: 0.88; }
+  .btn-secondary:active {
+    transform: translateY(1px);
+    opacity: 0.90;
+  }
 
   .btn-ghost {
     display: inline-flex;
@@ -315,13 +321,16 @@
     padding: 7px 12px;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 150ms ease, color 150ms ease;
+    transition: background 150ms ease, color 150ms ease, transform 150ms ease;
   }
   .btn-ghost:hover {
     background: var(--separator);
     color: var(--label-primary);
   }
-  .btn-ghost:active { opacity: 0.80; }
+  .btn-ghost:active {
+    transform: translateY(1px);
+    opacity: 0.85;
+  }
 
   /* ── Inputs (standardized for both input-base and input-field) ── */
   .input-base, .input-field {
@@ -385,6 +394,56 @@
   .tag-gray  { background: var(--separator); color: var(--label-secondary); }
   .tag-amber { background: rgba(255, 159, 10, 0.10); color: var(--warning); }
 
+  /* ── Tactile Interactive Card (Desktop Hover) ── */
+  .interactive-card {
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .interactive-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+  }
+
+  /* ── CSS Spotlight Highlight for Metric Cards (Zero React re-renders) ── */
+  .spotlight-card {
+    position: relative;
+    overflow: hidden;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .spotlight-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(
+        320px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+        rgba(0, 113, 227, 0.05),
+        transparent 80%
+      );
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 220ms ease;
+      z-index: 1;
+    }
+    .dark .spotlight-card::before {
+      background: radial-gradient(
+        320px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+        rgba(41, 151, 255, 0.08),
+        transparent 80%
+      );
+    }
+    .spotlight-card:hover::before {
+      opacity: 1;
+    }
+  }
+
+  /* ── Calm Skeleton State (No flashy sweep) ── */
+  .skeleton-calm {
+    background: var(--separator);
+    animation: skeleton-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
   /* ── Shimmer loading state ── */
   .shimmer {
     background: linear-gradient(90deg, var(--surface) 25%, var(--separator) 50%, var(--surface) 75%);
@@ -399,6 +458,11 @@
   100% { background-position: -200% 0; }
 }
 
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.35; }
+}
+
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -409,6 +473,18 @@
   to   { opacity: 1; transform: scale(1); }
 }
 
-.animate-fade-up   { animation: fade-up 0.25s ease-out both; }
-.animate-scale-in  { animation: scale-in 0.2s ease-out both; }
+.animate-fade-up   { animation: fade-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-scale-in  { animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* ── Accessibility: Prefers Reduced Motion ───────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 

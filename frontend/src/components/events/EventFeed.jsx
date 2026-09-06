@@ -6,6 +6,7 @@ import useEnrollmentStore from '../../store/useEnrollmentStore';
 import EventCard from './EventCard';
 import EnrollmentModal from './EnrollmentModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
+import { EventCardSkeleton } from '../ui/LoadingSkeleton';
 import { 
   Search, 
   CalendarCheck, 
@@ -228,17 +229,27 @@ export const EventFeed = ({
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {[1, 2, 3, 4].map((i) => (
-            <SkeletonCard key={i} />
+            <EventCardSkeleton key={i} />
           ))}
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="surface p-14 text-center rounded-[18px]">
           <Calendar className="w-10 h-10 text-label-tertiary mx-auto mb-3 opacity-30" />
           <p className="text-label-primary font-semibold text-base">
-            No events found
+            {activeTab === 'upcoming'
+              ? 'No upcoming events'
+              : activeTab === 'past'
+              ? 'No concluded events'
+              : activeTab === 'live'
+              ? 'No live events running'
+              : 'No events found'}
           </p>
-          <p className="text-label-secondary text-xs mt-1">
-            Try switching filter tabs or clearing your search query.
+          <p className="text-label-secondary text-xs mt-1.5 max-w-sm mx-auto leading-relaxed">
+            {activeTab === 'upcoming'
+              ? 'New technical workshops, hackathons, and seminars will appear here.'
+              : activeTab === 'past'
+              ? 'Past event archives and completion records will be cataloged here.'
+              : 'Try clearing your filters or search terms.'}
           </p>
         </div>
       ) : viewMode === 'grid' ? (

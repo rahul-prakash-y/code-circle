@@ -20,6 +20,7 @@ import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import NewsModal from '../components/news/NewsModal';
 import NewsArticleReader from '../components/news/NewsArticleReader';
+import { NewsCardSkeleton } from '../components/ui/LoadingSkeleton';
 import toast from 'react-hot-toast';
 
 const TAGS = ['All', 'Announcement', 'Hackathon', 'Workshop', 'Competitive', 'General'];
@@ -189,8 +190,8 @@ const NewsFeed = () => {
                       </button>
                     </>
                   )}
-                  <span className="text-xs font-semibold text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
-                    Read article <ArrowRight size={13} />
+                  <span className="text-xs font-semibold text-accent flex items-center gap-1">
+                    Read article <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-[3px]" />
                   </span>
                 </div>
               </div>
@@ -233,9 +234,10 @@ const NewsFeed = () => {
 
       {/* News Feed Cards Grid */}
       {loading && newsList.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-label-secondary">
-          <Loader2 size={28} className="animate-spin text-accent mb-3" />
-          <p className="text-sm font-medium">Loading announcements…</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <NewsCardSkeleton key={i} />
+          ))}
         </div>
       ) : standardArticles.length === 0 && !pinnedArticle ? (
         <div className="surface p-14 text-center rounded-[18px]">
@@ -264,7 +266,7 @@ const NewsFeed = () => {
                   <img
                     src={article.coverImage || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80'}
                     alt={article.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
+                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                   />
                   {article.tags?.[0] && (
                     <div className="absolute top-3 left-3">
@@ -284,7 +286,7 @@ const NewsFeed = () => {
                       year: 'numeric',
                     })}
                   </div>
-                  <h3 className="text-base font-bold text-label-primary group-hover:text-accent transition-colors line-clamp-2 leading-snug font-heading">
+                  <h3 className="text-base font-bold text-label-primary group-hover:text-accent transition-colors duration-180 line-clamp-2 leading-snug font-heading">
                     {article.title}
                   </h3>
                   <p className="text-xs text-label-secondary line-clamp-2 leading-relaxed font-normal">
@@ -320,8 +322,8 @@ const NewsFeed = () => {
                       </button>
                     </>
                   )}
-                  <span className="font-medium text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-1 pl-1">
-                    Read <ArrowRight size={12} />
+                  <span className="font-medium text-accent flex items-center gap-1 pl-1">
+                    Read <ArrowRight size={12} className="transition-transform duration-200 group-hover:translate-x-[3px]" />
                   </span>
                 </div>
               </div>

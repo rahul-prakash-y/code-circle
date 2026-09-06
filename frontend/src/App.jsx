@@ -55,23 +55,26 @@ function App() {
       <Toaster 
         position="top-right" 
         toastOptions={{
-          className: 'glass-elevated !rounded-xl !text-sm !font-medium',
+          duration: 2600,
+          className: '!rounded-full !text-[13px] !font-medium',
           style: {
-            background: 'var(--glass-bg-elevated)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--glass-border)',
-            backdropFilter: 'blur(16px)',
+            background: 'var(--surface)',
+            color: 'var(--label-primary)',
+            border: '1px solid var(--separator)',
+            boxShadow: 'var(--shadow-lg)',
+            padding: '8px 16px',
+            letterSpacing: '-0.01em',
           },
           success: {
             iconTheme: {
               primary: 'var(--success)',
-              secondary: 'var(--surface)',
+              secondary: '#FFFFFF',
             },
           },
           error: {
             iconTheme: {
               primary: 'var(--destructive)',
-              secondary: 'var(--surface)',
+              secondary: '#FFFFFF',
             },
           },
         }}
@@ -157,6 +160,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Direct tab routes */}
+          <Route path="/events" element={<Navigate to="/dashboard?tab=events" replace />} />
+          <Route path="/attendance" element={<Navigate to="/dashboard?tab=attendance" replace />} />
+          <Route path="/leaderboard" element={<Navigate to="/dashboard?tab=leaderboard" replace />} />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

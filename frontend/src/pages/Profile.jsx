@@ -20,6 +20,7 @@ import { auth as firebaseAuth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ImageUploadModal from '../components/profile/ImageUploadModal';
+import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
 
 const Profile = () => {
   const { profile, updateProfile, profileLoading } = useProfileStore();
@@ -122,11 +123,7 @@ const Profile = () => {
     }
   };
 
-  if (!profile) return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <Loader2 className="animate-spin text-accent" size={32} />
-    </div>
-  );
+  if (!profile) return <ProfileSkeleton />;
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 space-y-10">
@@ -141,7 +138,7 @@ const Profile = () => {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-180">
               <Camera className="text-white" size={22} />
             </div>
             {profileLoading && (
@@ -327,7 +324,7 @@ const Profile = () => {
               {formData.skills.map((skill, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated text-text-primary border border-separator text-xs font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface text-label-primary border border-separator hover:border-separator-opaque hover:bg-canvas transition-colors duration-150 text-xs font-medium"
                 >
                   {skill}
                   <button 

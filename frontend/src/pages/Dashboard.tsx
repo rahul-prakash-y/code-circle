@@ -30,26 +30,26 @@ import AdminAnalytics from '../components/admin/AdminAnalytics';
 import BearerManager from '../components/admin/BearerManager';
 import Leaderboard from '../components/dashboard/Leaderboard';
 import EventPassport from '../components/profile/EventPassport';
+import MagneticCTA from '../components/ui/MagneticCTA';
 
-const SPRING = { type: 'spring', stiffness: 260, damping: 30 } as const;
-
-// ── Scroll-driven hero ────────────────────────────────────────────────────────
+// ── Scroll-driven hero (subtle depth, max 12-16px movement) ────────────────────
 const Hero = ({ greeting, firstName, isAdmin, onCreateEvent, onBrowse }) => {
   const ref = useRef(null);
   const { scrollY } = useScroll();
-  const rawOpacity = useTransform(scrollY, [0, 240], [1, 0]);
-  const rawY = useTransform(scrollY, [0, 240], [0, -20]);
-  const opacity = useSpring(rawOpacity, { stiffness: 120, damping: 24 });
-  const y = useSpring(rawY, { stiffness: 120, damping: 24 });
+  const headingY = useTransform(scrollY, [0, 220], [0, -12]);
+  const subtextY = useTransform(scrollY, [0, 220], [0, -8]);
+  const subtextOpacity = useTransform(scrollY, [0, 180], [1, 0.85]);
+  const statusY = useTransform(scrollY, [0, 220], [0, -5]);
+  const heroOpacity = useTransform(scrollY, [0, 260], [1, 0.25]);
 
   return (
     <motion.section
       ref={ref}
-      style={{ opacity, y }}
-      className="pt-2 pb-14 md:pb-16"
+      style={{ opacity: heroOpacity }}
+      className="pt-2 pb-12 md:pb-16"
     >
       {/* Status pill */}
-      <div className="inline-flex items-center gap-2 mb-4">
+      <motion.div style={{ y: statusY }} className="inline-flex items-center gap-2 mb-4">
         <span
           className="w-1.5 h-1.5 rounded-full"
           style={{ background: 'var(--success)' }}
@@ -59,34 +59,39 @@ const Hero = ({ greeting, firstName, isAdmin, onCreateEvent, onBrowse }) => {
         >
           {isAdmin ? 'Admin Console · Active' : 'Portal · Online'}
         </span>
-      </div>
+      </motion.div>
 
       {/* Macro headline */}
-      <div>
+      <motion.div style={{ y: headingY }}>
         <h1 className="display-headline text-label-primary">
           {greeting},
         </h1>
         <h1 className="display-headline text-accent">
           {firstName}.
         </h1>
-      </div>
+      </motion.div>
 
       {/* Body copy */}
-      <p className="mt-4 max-w-lg text-[16px] text-label-secondary leading-relaxed font-normal">
+      <motion.p
+        style={{ y: subtextY, opacity: subtextOpacity }}
+        className="mt-4 max-w-lg text-[16px] text-label-secondary leading-relaxed font-normal"
+      >
         {isAdmin
           ? 'Manage members, events, attendance, and assessments.'
           : 'Track your progress, explore events, and compete with peers.'}
-      </p>
+      </motion.p>
 
       {/* CTAs */}
       <div className="flex flex-wrap items-center gap-3 mt-7">
-        <button
-          onClick={onBrowse}
-          className="btn-primary flex items-center gap-2 text-[14px]"
-        >
-          Browse Events
-          <ArrowUpRight size={14} strokeWidth={2} />
-        </button>
+        <MagneticCTA maxDisplacement={3}>
+          <button
+            onClick={onBrowse}
+            className="btn-primary flex items-center gap-2 text-[14px]"
+          >
+            Browse Events
+            <ArrowUpRight size={14} strokeWidth={2} />
+          </button>
+        </MagneticCTA>
 
         {isAdmin && (
           <button
@@ -102,37 +107,44 @@ const Hero = ({ greeting, firstName, isAdmin, onCreateEvent, onBrowse }) => {
   );
 };
 
-// ── Single metric spotlight card ──────────────────────────────────────────────
+// ── Single metric spotlight card (tactile hover + zero re-render CSS spotlight) ──
 const MetricCard = ({
   value, label, sublabel, icon: Icon, delay = 0
 }: {
   value: number; label: string; sublabel?: string;
   icon: React.ComponentType<any>; delay?: number;
 }) => {
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-40px 0px' });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+  };
 
   return (
     <div
       ref={ref}
-      className="surface p-7 flex flex-col justify-between min-h-[170px]"
+      onMouseMove={handleMouseMove}
+      className="surface spotlight-card interactive-card p-7 flex flex-col justify-between min-h-[170px] group cursor-default"
     >
       <div className="flex items-center justify-between">
-        <div className="w-8 h-8 rounded-xl bg-canvas border border-separator flex items-center justify-center text-label-secondary">
+        <div className="w-8 h-8 rounded-xl bg-canvas border border-separator flex items-center justify-center text-label-secondary group-hover:text-accent transition-colors duration-200">
           <Icon size={16} strokeWidth={1.75} />
         </div>
-        <ChevronRight size={15} strokeWidth={1.75} className="text-label-tertiary" />
+        <ChevronRight size={15} strokeWidth={1.75} className="text-label-tertiary group-hover:translate-x-0.5 transition-transform duration-200" />
       </div>
 
       <div className="mt-auto pt-5">
-        <p className="meta-editorial mb-1.5">
+        <p className="meta-editorial mb-1.5 text-label-secondary group-hover:text-label-primary transition-colors duration-200">
           {label}
         </p>
         <div className="display-number-sm text-label-primary">
           {isInView ? <CountUp value={value} /> : <span>0</span>}
         </div>
         {sublabel && (
-          <p className="text-[13px] mt-1.5 font-normal text-label-secondary">
+          <p className="text-[13px] mt-1.5 font-normal text-label-secondary group-hover:text-label-primary/80 transition-colors duration-200">
             {sublabel}
           </p>
         )}
@@ -185,34 +197,41 @@ const ParticipationBar = () => {
   );
 };
 
-// ── Apple-style tab bar ───────────────────────────────────────────────────────
+// ── Apple-style tab bar with sliding indicator ───────────────────────────────
 const TabBar = ({ tabs, active, onChange }) => (
   <div
     className="sticky z-20 -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12"
     style={{
-      top: '60px',
+      top: '56px',
       background: 'var(--glass-bg)',
       backdropFilter: 'saturate(180%) blur(20px)',
       WebkitBackdropFilter: 'saturate(180%) blur(20px)',
       boxShadow: '0 1px 0 var(--separator)',
     }}
   >
-    <div className="flex overflow-x-auto gap-1 -mb-px py-1">
+    <div className="flex overflow-x-auto gap-1 -mb-px py-1.5">
       {tabs.map((tab) => {
         const isActive = active === tab.id;
         return (
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className="relative flex-shrink-0 px-3.5 py-2.5 text-[13px] rounded-lg cursor-pointer transition-colors duration-150"
+            className="relative flex-shrink-0 px-3.5 py-2 text-[13px] rounded-lg cursor-pointer transition-colors duration-150 outline-none select-none"
             style={{
               color: isActive ? 'var(--label-primary)' : 'var(--label-secondary)',
               fontWeight: isActive ? 600 : 400,
               letterSpacing: '-0.01em',
-              background: isActive ? 'var(--separator)' : 'transparent',
             }}
           >
-            {tab.label}
+            {isActive && (
+              <motion.div
+                layoutId="dashboard-tab-indicator"
+                className="absolute inset-0 rounded-lg"
+                style={{ background: 'var(--separator)' }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              />
+            )}
+            <span className="relative z-10">{tab.label}</span>
           </button>
         );
       })}

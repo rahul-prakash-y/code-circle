@@ -9,24 +9,26 @@ interface AnimatedPageProps {
 const pageVariants = {
   initial: {
     opacity: 0,
-    y: 12,
-    scale: 0.99,
+    y: 8,
   },
   animate: {
     opacity: 1,
     y: 0,
-    scale: 1,
   },
   exit: {
     opacity: 0,
-    y: -8,
-    scale: 0.99,
+    y: -4,
   },
 };
 
 const pageTransition = {
-  duration: 0.4,
-  ease: [0.22, 1, 0.36, 1],
+  duration: 0.28,
+  ease: [0.16, 1, 0.3, 1],
+};
+
+export const pageGroupVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] } },
 };
 
 const AnimatedPage: React.FC<AnimatedPageProps> = ({ children, className = '' }) => {

@@ -53,7 +53,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
 
   return (
     <>
-      <div className="surface p-6 sm:p-7 flex flex-col justify-between h-full group hover:shadow-md transition-shadow duration-200">
+      <div className="surface interactive-card p-6 sm:p-7 flex flex-col justify-between h-full group">
         <div>
           {/* Top Bar: Editorial Metadata & Live indicator */}
           <div className="flex items-center justify-between gap-3 mb-4">
@@ -162,7 +162,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   {isEnrolled ? 'Enrolled' : (timeLeft === 'Closed' || isPast ? (isPast ? 'Concluded' : 'Closed') : 'Enroll')}
                 </span>
                 {!isPast && timeLeft !== 'Closed' && !isEnrolled && (
-                  <ArrowUpRight size={13} strokeWidth={2} />
+                  <ArrowUpRight size={13} strokeWidth={2} className="transition-transform duration-200 group-hover:translate-x-[3px] group-hover:-translate-y-[3px]" />
                 )}
               </button>
             )}
