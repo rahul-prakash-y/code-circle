@@ -9,8 +9,8 @@ import {
   Users,
   Shield,
   CalendarCheck,
-  ChevronLeft,
   BarChart3,
+  ChevronLeft,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -30,147 +30,135 @@ interface SidebarProps {
 interface NavItem {
   to: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   match: (loc: { pathname: string; search: string }) => boolean;
 }
 
-// CC monogram lockup
-const CCMark: React.FC<{ size?: number }> = ({ size = 32 }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="32" rx="10" fill="currentColor" fillOpacity="0.10"/>
-    <text
-      x="50%"
-      y="52%"
-      dominantBaseline="middle"
-      textAnchor="middle"
-      fontFamily="Inter, system-ui, sans-serif"
-      fontWeight="900"
-      fontSize="13"
-      letterSpacing="-0.5"
-      fill="currentColor"
+// Apple SF-style monogram mark
+const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
+  <Link to="/dashboard" className="flex items-center gap-3 min-w-0 group outline-none">
+    <motion.div
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+      className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 select-none"
+      style={{ background: 'var(--accent)', boxShadow: '0 2px 8px rgba(0,113,227,0.30)' }}
     >
-      CC
-    </text>
-  </svg>
+      <span className="text-white font-bold text-[13px] tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>
+        CC
+      </span>
+    </motion.div>
+    <AnimatePresence initial={false}>
+      {!collapsed && (
+        <motion.div
+          initial={{ opacity: 0, width: 0 }}
+          animate={{ opacity: 1, width: 'auto' }}
+          exit={{ opacity: 0, width: 0 }}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          className="overflow-hidden whitespace-nowrap"
+        >
+          <span
+            className="text-[15px] font-semibold tracking-tight"
+            style={{ color: 'var(--label-primary)', letterSpacing: '-0.02em' }}
+          >
+            Code Circle
+          </span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </Link>
 );
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  isCollapsed,
-  onToggleCollapse,
-  className = '',
-}) => {
+const SPRING = { type: 'spring', stiffness: 260, damping: 30 } as const;
+
+export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse, className = '' }) => {
   const location = useLocation();
   const { user } = useAuthStore();
   const { profile } = useProfileStore();
 
   const isAdmin =
-    profile?.role === 'Admin' ||
-    profile?.role === 'SuperAdmin' ||
-    profile?.role === 'Faculty' ||
-    profile?.role === 'Committee' ||
-    user?.role === 'Admin' ||
-    user?.role === 'SuperAdmin';
+    profile?.role === 'Admin' || profile?.role === 'SuperAdmin' ||
+    profile?.role === 'Faculty' || profile?.role === 'Committee' ||
+    user?.role === 'Admin' || user?.role === 'SuperAdmin';
 
   const primaryLinks: NavItem[] = [
     {
-      to: '/dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
+      to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard,
       match: (loc) => loc.pathname === '/dashboard' && (!loc.search || loc.search === '?tab=events'),
     },
     {
-      to: '/dashboard?tab=assessments',
-      label: 'Assessments',
-      icon: Award,
+      to: '/dashboard?tab=assessments', label: 'Assessments', icon: Award,
       match: (loc) => loc.search.includes('tab=assessments'),
     },
     {
-      to: '/dashboard?tab=feedback',
-      label: 'Feedback',
-      icon: MessageSquare,
+      to: '/dashboard?tab=feedback', label: 'Feedback', icon: MessageSquare,
       match: (loc) => loc.search.includes('tab=feedback'),
     },
     {
-      to: '/news',
-      label: 'News & Bulletins',
-      icon: Newspaper,
+      to: '/news', label: 'News', icon: Newspaper,
       match: (loc) => loc.pathname === '/news',
     },
   ];
 
   const adminLinks: NavItem[] = [
     {
-      to: '/teams',
-      label: 'Teams Roster',
-      icon: Users,
+      to: '/teams', label: 'Teams', icon: Users,
       match: (loc) => loc.pathname === '/teams',
     },
     {
-      to: '/users',
-      label: 'User Directory',
-      icon: Shield,
+      to: '/users', label: 'Directory', icon: Shield,
       match: (loc) => loc.pathname === '/users' || loc.pathname === '/students',
     },
     {
-      to: '/dashboard?tab=attendance',
-      label: 'Attendance',
-      icon: CalendarCheck,
+      to: '/dashboard?tab=attendance', label: 'Attendance', icon: CalendarCheck,
       match: (loc) => loc.search.includes('tab=attendance'),
     },
     {
-      to: '/dashboard?tab=analytics',
-      label: 'Analytics',
-      icon: BarChart3,
+      to: '/dashboard?tab=analytics', label: 'Analytics', icon: BarChart3,
       match: (loc) => loc.search.includes('tab=analytics'),
     },
   ];
 
-  const renderNavLink = (item: NavItem) => {
+  const renderLink = (item: NavItem) => {
     const isActive = item.match(location);
     const Icon = item.icon;
 
-    const content = (
-      <Link to={item.to} className="block w-full focus:outline-none">
+    const inner = (
+      <Link to={item.to} className="block w-full outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-xl">
         <div className="relative">
-          {/* Floating active background pill — animated via layoutId */}
+          {/* Floating active pill — Apple-style, no borders */}
           {isActive && (
             <motion.div
-              layoutId="sidebar-active-pill"
+              layoutId="nav-active-bg"
               className="absolute inset-0 rounded-xl"
               style={{ background: 'var(--accent-subtle)' }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              transition={SPRING}
             />
           )}
 
           <motion.div
-            whileHover={{ x: isCollapsed ? 0 : 3 }}
+            whileHover={{ x: isCollapsed ? 0 : 2 }}
             whileTap={{ scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className={`relative flex items-center gap-3.5 px-3 py-2.5 rounded-xl cursor-pointer ${
-              isCollapsed ? 'justify-center px-0 mx-auto w-10 h-10' : ''
+            transition={SPRING}
+            className={`relative flex items-center gap-3 rounded-xl cursor-pointer select-none ${
+              isCollapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2.5'
             }`}
           >
-            <div
-              className="shrink-0"
-              style={{
-                color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-                transition: 'color 200ms ease',
-              }}
-            >
-              <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+            <div style={{ color: isActive ? 'var(--accent)' : 'var(--label-secondary)', flexShrink: 0 }}>
+              <Icon size={18} strokeWidth={isActive ? 2 : 1.75} />
             </div>
 
             <AnimatePresence initial={false}>
               {!isCollapsed && (
                 <motion.span
-                  initial={{ opacity: 0, x: -8 }}
+                  initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  className="text-[13px] tracking-tight whitespace-nowrap truncate"
+                  exit={{ opacity: 0, x: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-[14px] tracking-tight whitespace-nowrap truncate"
                   style={{
                     fontWeight: isActive ? 600 : 400,
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
+                    color: isActive ? 'var(--label-primary)' : 'var(--label-secondary)',
                     letterSpacing: '-0.01em',
                   }}
                 >
@@ -178,16 +166,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </motion.span>
               )}
             </AnimatePresence>
-
-            {/* Accent dot indicator when expanded */}
-            {isActive && !isCollapsed && (
-              <motion.span
-                layoutId="active-dot"
-                className="ml-auto shrink-0 w-1.5 h-1.5 rounded-full"
-                style={{ background: 'var(--accent)' }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
-            )}
           </motion.div>
         </div>
       </Link>
@@ -196,82 +174,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (isCollapsed) {
       return (
         <Tooltip key={item.to}>
-          <TooltipTrigger asChild>{content}</TooltipTrigger>
-          <TooltipContent side="right" className="font-semibold text-xs py-1.5 px-3">
+          <TooltipTrigger asChild>{inner}</TooltipTrigger>
+          <TooltipContent side="right" className="text-[13px] font-medium">
             {item.label}
           </TooltipContent>
         </Tooltip>
       );
     }
-
-    return <div key={item.to}>{content}</div>;
+    return <div key={item.to}>{inner}</div>;
   };
 
   return (
-    <TooltipProvider delayDuration={100}>
+    <TooltipProvider delayDuration={80}>
       <motion.aside
         initial={false}
-        animate={{ width: isCollapsed ? 72 : 248 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        animate={{ width: isCollapsed ? 68 : 240 }}
+        transition={SPRING}
         className={`fixed top-0 left-0 bottom-0 z-40 flex flex-col justify-between select-none ${className}`}
         style={{
-          background: 'var(--acrylic-bg)',
-          backdropFilter: 'saturate(180%) blur(40px)',
-          WebkitBackdropFilter: 'saturate(180%) blur(40px)',
-          boxShadow: '1px 0 0 0 var(--border-color)',
+          background: 'var(--glass-bg)',
+          backdropFilter: 'saturate(180%) blur(24px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(24px)',
+          boxShadow: '1px 0 0 var(--separator)',
         }}
       >
-        {/* Top: Brand + Nav */}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Brand Header */}
+        {/* Top */}
+        <div className="flex flex-col overflow-hidden">
+          {/* Brand */}
           <div
-            className="flex items-center h-16 px-4"
-            style={{ borderBottom: '1px solid var(--border-color)' }}
+            className="h-[60px] flex items-center px-4"
+            style={{ borderBottom: '1px solid var(--separator)' }}
           >
-            <Link to="/dashboard" className="flex items-center gap-3 overflow-hidden group min-w-0">
-              <motion.div
-                whileHover={{ scale: 1.08, rotate: 5 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                className="shrink-0"
-                style={{ color: 'var(--accent)' }}
-              >
-                <CCMark size={32} />
-              </motion.div>
-
-              <AnimatePresence initial={false}>
-                {!isCollapsed && (
-                  <motion.div
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    className="overflow-hidden whitespace-nowrap min-w-0"
-                  >
-                    <p
-                      className="text-sm font-bold tracking-tight leading-none"
-                      style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
-                    >
-                      Code Circle
-                    </p>
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-widest mt-0.5"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {isAdmin ? 'Admin Console' : 'Student Hub'}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </Link>
+            <AppMark collapsed={isCollapsed} />
           </div>
 
-          {/* Navigation */}
-          <div
+          {/* Nav */}
+          <nav
             className="flex-1 overflow-y-auto py-3"
-            style={{ padding: isCollapsed ? '12px 10px' : '12px' }}
+            style={{ padding: isCollapsed ? '12px 8px' : '12px' }}
           >
-            {/* Primary Links */}
+            {/* Primary */}
             <div className="space-y-0.5">
               <AnimatePresence initial={false}>
                 {!isCollapsed && (
@@ -279,64 +221,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="px-3 text-[10px] font-semibold uppercase tracking-widest mb-2"
-                    style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}
+                    transition={{ duration: 0.12 }}
+                    className="text-[11px] font-semibold uppercase tracking-widest px-3 mb-1.5"
+                    style={{ color: 'var(--label-tertiary)', letterSpacing: '0.08em' }}
                   >
                     Portal
                   </motion.p>
                 )}
               </AnimatePresence>
-              {primaryLinks.map(renderNavLink)}
+              {primaryLinks.map(renderLink)}
             </div>
 
-            {/* Admin Links */}
+            {/* Admin */}
             {isAdmin && (
-              <div className="mt-6 space-y-0.5">
-                <div
-                  className="my-3 mx-2"
-                  style={{ height: '1px', background: 'var(--border-color)' }}
-                />
+              <div className="mt-5">
+                <div className="sep mx-2 mb-3" />
                 <AnimatePresence initial={false}>
                   {!isCollapsed && (
                     <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="px-3 text-[10px] font-semibold uppercase tracking-widest mb-2"
-                      style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}
+                      transition={{ duration: 0.12 }}
+                      className="text-[11px] font-semibold uppercase tracking-widest px-3 mb-1.5"
+                      style={{ color: 'var(--label-tertiary)', letterSpacing: '0.08em' }}
                     >
                       Management
                     </motion.p>
                   )}
                 </AnimatePresence>
-                {adminLinks.map(renderNavLink)}
+                <div className="space-y-0.5">
+                  {adminLinks.map(renderLink)}
+                </div>
               </div>
             )}
-          </div>
+          </nav>
         </div>
 
-        {/* Bottom: Collapse Toggle */}
+        {/* Bottom: collapse toggle */}
         <div
           className="p-3"
-          style={{ borderTop: '1px solid var(--border-color)' }}
+          style={{ borderTop: '1px solid var(--separator)' }}
         >
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={onToggleCollapse}
-                className={`w-full flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors duration-150 ${
-                  isCollapsed ? 'justify-center' : 'justify-between'
+                className={`w-full flex items-center gap-3 rounded-xl cursor-pointer transition-colors duration-150 ${
+                  isCollapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2.5'
                 }`}
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--glass-bg)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                style={{ color: 'var(--label-tertiary)' }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--label-primary)')}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--label-tertiary)')}
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 <motion.div
                   animate={{ rotate: isCollapsed ? 180 : 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  transition={SPRING}
+                  style={{ flexShrink: 0 }}
                 >
                   <ChevronLeft size={16} strokeWidth={2} />
                 </motion.div>
@@ -346,13 +288,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
+                      transition={{ duration: 0.12 }}
                       className="flex items-center justify-between flex-1"
                     >
-                      <span className="text-xs font-medium tracking-wide">Collapse</span>
                       <span
-                        className="text-[10px] font-mono px-1.5 py-0.5 rounded"
-                        style={{ background: 'var(--glass-border)', color: 'var(--text-muted)' }}
+                        className="text-[13px] font-medium"
+                        style={{ color: 'var(--label-secondary)', letterSpacing: '-0.01em' }}
+                      >
+                        Collapse
+                      </span>
+                      <span
+                        className="text-[10px] font-mono px-1.5 py-0.5 rounded-md"
+                        style={{ background: 'var(--separator)', color: 'var(--label-tertiary)' }}
                       >
                         ⌘B
                       </span>
@@ -362,7 +309,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </TooltipTrigger>
             {isCollapsed && (
-              <TooltipContent side="right" className="text-xs py-1.5 px-3">
+              <TooltipContent side="right" className="text-[13px]">
                 Expand sidebar
               </TooltipContent>
             )}
