@@ -212,7 +212,7 @@ export const MainLayout = ({ children }) => {
       >
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
 
-        <main className="flex-1 w-full max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-10 pb-24">
+        <main className="flex-1 w-full max-w-[1260px] mx-auto px-6 sm:px-8 lg:px-10 py-7 sm:py-8 pb-24">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname + location.search}

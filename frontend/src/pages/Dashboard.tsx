@@ -48,51 +48,59 @@ const Hero = ({
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
-  const headingY = useTransform(scrollY, [0, 220], [0, -12]);
-  const subtextY = useTransform(scrollY, [0, 220], [0, -8]);
-  const subtextOpacity = useTransform(scrollY, [0, 180], [1, 0.85]);
-  const statusY = useTransform(scrollY, [0, 220], [0, -5]);
+  const headingY = useTransform(scrollY, [0, 220], [0, -10]);
+  const subtextY = useTransform(scrollY, [0, 220], [0, -6]);
+  const subtextOpacity = useTransform(scrollY, [0, 180], [1, 0.88]);
+  const statusY = useTransform(scrollY, [0, 220], [0, -4]);
   const heroOpacity = useTransform(scrollY, [0, 260], [1, 0.25]);
 
   return (
     <motion.section
       ref={ref}
       style={{ opacity: heroOpacity }}
-      className="pt-2 pb-10 md:pb-14"
+      className="relative pt-1 pb-6 md:pb-8"
     >
-      {/* Status pill */}
-      <motion.div style={{ y: statusY }} className="inline-flex items-center gap-2 mb-4">
+      {/* Subtle ambient warmth behind hero in light mode (almost invisible depth) */}
+      <div
+        className="absolute -top-6 -left-8 w-[680px] h-[280px] pointer-events-none -z-10 rounded-full dark:hidden"
+        style={{
+          background: 'radial-gradient(ellipse at 25% 45%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.45) 50%, transparent 80%)',
+        }}
+      />
+
+      {/* 1. Portal status */}
+      <motion.div style={{ y: statusY }} className="inline-flex items-center gap-2 mb-3">
         <span
           className="w-1.5 h-1.5 rounded-full"
           style={{ background: 'var(--success)' }}
         />
-        <span className="text-[12px] font-medium tracking-tight text-label-secondary">
+        <span className="text-[11px] font-semibold tracking-wider uppercase text-label-secondary">
           {isAdmin ? 'Admin Console · Active' : 'Portal · Online'}
         </span>
       </motion.div>
 
-      {/* Macro headline */}
-      <motion.div style={{ y: headingY }}>
+      {/* 2. Macro headline */}
+      <motion.div style={{ y: headingY }} className="mb-2.5">
         <h1 className="display-headline text-label-primary">
           {greeting},
         </h1>
-        <h1 className="display-headline text-accent">
+        <h1 className="display-headline text-accent font-bold">
           {firstName}.
         </h1>
       </motion.div>
 
-      {/* Body copy */}
+      {/* 3. Supporting sentence */}
       <motion.p
         style={{ y: subtextY, opacity: subtextOpacity }}
-        className="mt-4 max-w-lg text-[16px] text-label-secondary leading-relaxed font-normal"
+        className="max-w-lg text-[15px] sm:text-[16px] text-label-secondary leading-relaxed font-normal mb-5"
       >
         {isAdmin
           ? 'Manage members, events, attendance, and assessments across Code Circle.'
           : 'Track your progress, explore events, and compete with peers.'}
       </motion.p>
 
-      {/* CTAs */}
-      <div className="flex flex-wrap items-center gap-3 mt-7">
+      {/* 4. Primary CTA */}
+      <div className="flex flex-wrap items-center gap-3">
         <MagneticCTA maxDisplacement={3}>
           <button
             onClick={onBrowse}
@@ -123,11 +131,13 @@ const MetricCard = ({
   label,
   sublabel,
   icon: Icon,
+  isPrimary = false,
 }: {
   value: number;
   label: string;
   sublabel?: string;
   icon: React.ComponentType<any>;
+  isPrimary?: boolean;
   delay?: number;
 }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -143,28 +153,39 @@ const MetricCard = ({
     <div
       ref={ref}
       onMouseMove={handleMouseMove}
-      className="surface spotlight-card interactive-card p-7 flex flex-col justify-between min-h-[170px] group cursor-default"
+      className={`${
+        isPrimary ? 'surface-primary-metric' : 'surface'
+      } spotlight-card interactive-card p-5 sm:p-6 flex flex-col justify-between min-h-[162px] group cursor-default`}
     >
-      <div className="flex items-center justify-between">
-        <div className="w-8 h-8 rounded-xl bg-canvas border border-separator flex items-center justify-center text-label-secondary group-hover:text-accent transition-colors duration-200">
-          <Icon size={16} strokeWidth={1.75} />
+      {/* Top row: Label on left, quiet icon + quiet arrow on right */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          {isPrimary && (
+            <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block shrink-0" />
+          )}
+          <p className="meta-editorial text-label-secondary group-hover:text-label-primary transition-colors duration-200">
+            {label}
+          </p>
         </div>
-        <ChevronRight
-          size={15}
-          strokeWidth={1.75}
-          className="text-label-tertiary group-hover:translate-x-0.5 transition-transform duration-200"
-        />
+        <div className="flex items-center gap-1.5">
+          <div className="w-7 h-7 rounded-lg bg-canvas border border-separator flex items-center justify-center text-label-tertiary group-hover:text-accent transition-colors duration-200">
+            <Icon size={14} strokeWidth={1.5} />
+          </div>
+          <ChevronRight
+            size={13}
+            strokeWidth={1.5}
+            className="text-label-tertiary/60 group-hover:text-label-tertiary group-hover:translate-x-0.5 transition-all duration-200"
+          />
+        </div>
       </div>
 
-      <div className="mt-auto pt-5">
-        <p className="meta-editorial mb-1.5 text-label-secondary group-hover:text-label-primary transition-colors duration-200">
-          {label}
-        </p>
-        <div className="display-number-sm text-label-primary">
+      {/* Middle & Bottom: LARGE NUMBER then SUPPORTING INFORMATION */}
+      <div className="mt-3">
+        <div className={`${isPrimary ? 'text-[2.6rem] sm:text-[2.9rem]' : 'text-[2.3rem] sm:text-[2.6rem]'} font-bold leading-none tracking-tight text-label-primary`}>
           {isInView ? <CountUp value={value} /> : <span>0</span>}
         </div>
         {sublabel && (
-          <p className="text-[13px] mt-1.5 font-normal text-label-secondary group-hover:text-label-primary/80 transition-colors duration-200">
+          <p className="text-[12px] mt-2 font-normal text-label-secondary group-hover:text-label-primary/80 transition-colors duration-200">
             {sublabel}
           </p>
         )}
@@ -175,35 +196,35 @@ const MetricCard = ({
 
 // ── Participation bar (scroll-triggered) ─────────────────────────────────────
 const ParticipationBar = () => {
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-40px 0px' });
 
   return (
-    <div ref={ref} className="surface p-7 col-span-full">
-      <div className="flex items-end justify-between mb-5 gap-4">
+    <div ref={ref} className="surface p-6 sm:p-7 col-span-full">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4">
         <div>
-          <p className="meta-editorial mb-1">Participation Rate</p>
-          <div className="text-[2.6rem] font-bold leading-none tracking-tight text-label-primary">
+          <p className="meta-editorial text-label-secondary mb-1.5">Participation Rate</p>
+          <div className="text-[2.8rem] sm:text-[3.2rem] font-bold leading-none tracking-tight text-label-primary">
             94.8%
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-[12px] text-label-secondary">Target: 90%</p>
-          <p className="text-[12px] font-semibold mt-0.5 text-success">
+        <div className="sm:text-right flex sm:flex-col items-baseline sm:items-end gap-2 sm:gap-0.5">
+          <span className="text-[12px] text-label-secondary font-medium">Target: 90%</span>
+          <span className="text-[12px] font-semibold text-success">
             +4.8% above goal
-          </p>
+          </span>
         </div>
       </div>
 
       {/* Progress track */}
       <div
         className="w-full rounded-full overflow-hidden"
-        style={{ height: '4px', background: 'var(--separator)' }}
+        style={{ height: '6px', background: 'rgba(0, 0, 0, 0.06)' }}
       >
         <motion.div
           initial={{ width: 0 }}
-          animate={isInView ? { width: '94.8%' } : {}}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          animate={isInView ? { width: '94.8%' } : { width: 0 }}
+          transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
           className="h-full rounded-full"
           style={{ background: 'var(--accent)' }}
         />
@@ -356,11 +377,11 @@ export const Dashboard: React.FC = () => {
         onBrowse={() => navigate('/events')}
       />
 
-      {/* Metrics grid — asymmetrical */}
-      <section className="pb-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-          {metricsData.map((m) => (
-            <MetricCard key={m.label} {...m} />
+      {/* Metrics grid — intentional 4-column desktop layout with primary metric hierarchy */}
+      <section className="pb-8 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {metricsData.map((m, idx) => (
+            <MetricCard key={m.label} {...m} isPrimary={idx === 0} />
           ))}
         </div>
 

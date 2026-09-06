@@ -47,17 +47,18 @@
   /* Canvas & surfaces */
   --canvas: #F5F5F7;
   --surface: #FFFFFF;
+  --surface-secondary: #FAFAFC;
   --surface-raised: #FFFFFF;
   --surface-overlay: rgba(255, 255, 255, 0.92);
 
   /* Apple Liquid Glass — restricted to Navbar and Tab Bar only */
-  --glass-bg: rgba(255, 255, 255, 0.80);
-  --glass-bg-dark: rgba(255, 255, 255, 0.60);
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-bg-dark: rgba(255, 255, 255, 0.65);
   --glass-border: rgba(0, 0, 0, 0.06);
 
   /* Separators & Hairlines */
-  --separator: rgba(0, 0, 0, 0.08);
-  --separator-opaque: #D2D2D7;
+  --separator: rgba(0, 0, 0, 0.07);
+  --separator-opaque: #E5E5EA;
 
   /* Labels — Apple typography hierarchy */
   --label-primary: #1D1D1F;
@@ -79,19 +80,20 @@
   --accent: #0071E3;
   --accent-hover: #0077ED;
   --accent-subtle: rgba(0, 113, 227, 0.08);
-  --accent-ring: rgba(0, 113, 227, 0.20);
+  --accent-ring: rgba(0, 113, 227, 0.16);
 
   /* Semantic (used strictly for functional meaning) */
   --success: #34C759;
   --warning: #FF9F0A;
   --destructive: #FF3B30;
 
-  /* Shadows — Apple-spec: soft, dispersed, natural */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.03);
-  --shadow-xl: 0 16px 44px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.03);
+  /* Shadows — Refined layered lift, natural and gentle */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 8px 24px -4px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 16px 40px -6px rgba(0, 0, 0, 0.09), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+  --shadow-card-elevated: 0 2px 4px rgba(0, 0, 0, 0.04), 0 8px 24px -4px rgba(0, 0, 0, 0.07);
 
   color-scheme: light;
 }
@@ -139,6 +141,7 @@
   --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.60), 0 2px 6px rgba(0, 0, 0, 0.40);
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.70), 0 4px 12px rgba(0, 0, 0, 0.50);
   --shadow-card: 0 1px 1px rgba(255, 255, 255, 0.04), 0 4px 16px rgba(0, 0, 0, 0.40);
+  --shadow-card-elevated: 0 2px 4px rgba(0, 0, 0, 0.50), 0 8px 30px rgba(0, 0, 0, 0.65);
 
   color-scheme: dark;
 }
@@ -203,6 +206,15 @@
     border: 1px solid var(--separator);
   }
 
+  /* ── Primary Metric Card Surface ── */
+  .surface-primary-metric {
+    background: var(--surface);
+    border-radius: 18px;
+    box-shadow: var(--shadow-card-elevated);
+    border: 1px solid var(--separator);
+    position: relative;
+  }
+
   /* ── Apple-spec macro numbers ── */
   .display-number {
     font-family: var(--font-sans);
@@ -223,10 +235,10 @@
   }
 
   .display-headline {
-    font-size: clamp(2.2rem, 4.5vw, 4rem);
+    font-size: clamp(2.2rem, 4.2vw, 3.8rem);
     font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.08;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
     color: var(--label-primary);
   }
 

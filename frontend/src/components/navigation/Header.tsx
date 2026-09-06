@@ -138,7 +138,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
         background: 'var(--glass-bg)',
         backdropFilter: 'saturate(180%) blur(20px)',
         WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-        boxShadow: '0 1px 0 var(--separator)',
+        borderBottom: '1px solid var(--separator)',
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
       }}
     >
       {/* Left */}
@@ -156,17 +157,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
         <div
           className="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 overflow-hidden transition-all duration-200"
           style={{
-            width: searchFocused ? 260 : 180,
-            background: searchFocused ? 'var(--surface)' : 'var(--separator)',
-            boxShadow: searchFocused ? '0 0 0 3px var(--accent-ring)' : 'none',
-            border: searchFocused ? '1px solid var(--accent)' : '1px solid transparent',
+            width: searchFocused ? 260 : 190,
+            background: searchFocused ? 'var(--surface)' : 'var(--canvas)',
+            boxShadow: searchFocused ? '0 0 0 2px var(--accent-ring)' : 'none',
+            border: searchFocused ? '1px solid var(--accent)' : '1px solid var(--separator)',
           }}
         >
           <Search
-            size={13}
+            size={13.5}
             strokeWidth={2}
             style={{
-              color: searchFocused ? 'var(--accent)' : 'var(--label-tertiary)',
+              color: searchFocused ? 'var(--accent)' : 'var(--label-secondary)',
               flexShrink: 0,
             }}
           />
@@ -182,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
           <AnimatePresence>
             {!searchFocused && (
               <span
-                className="hidden md:flex text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-md text-label-tertiary bg-canvas border border-separator"
+                className="hidden md:flex text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded-md text-label-secondary bg-surface border border-separator/80 font-medium"
               >
                 ⌘K
               </span>

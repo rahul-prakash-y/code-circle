@@ -40,12 +40,15 @@ interface NavItem {
 
 // Apple SF-style monogram mark
 const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
-  <Link to="/dashboard" className="flex items-center gap-3 min-w-0 group outline-none">
+  <Link to="/dashboard" className="flex items-center gap-2.5 min-w-0 group outline-none">
     <motion.div
       className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 select-none"
-      style={{ background: 'var(--accent)', boxShadow: '0 2px 8px rgba(0,113,227,0.30)' }}
+      style={{
+        background: 'linear-gradient(145deg, #0077ED 0%, #0062CC 100%)',
+        boxShadow: '0 2px 6px rgba(0, 113, 227, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+      }}
     >
-      <span className="text-white font-bold text-[13px] tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>
+      <span className="text-white font-bold text-[12.5px] tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>
         CC
       </span>
     </motion.div>
@@ -59,8 +62,8 @@ const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
           className="overflow-hidden whitespace-nowrap"
         >
           <span
-            className="text-[15px] font-semibold tracking-tight"
-            style={{ color: 'var(--label-primary)', letterSpacing: '-0.02em' }}
+            className="text-[15px] font-bold tracking-tight"
+            style={{ color: 'var(--label-primary)', letterSpacing: '-0.025em' }}
           >
             Code Circle
           </span>
@@ -185,7 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
             }`}
           >
             <div style={{ color: isActive ? 'var(--accent)' : 'var(--label-secondary)', flexShrink: 0 }}>
-              <Icon size={18} strokeWidth={isActive ? 2 : 1.75} />
+              <Icon size={17} strokeWidth={isActive ? 2 : 1.65} />
             </div>
 
             <AnimatePresence initial={false}>
@@ -195,9 +198,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -6 }}
                   transition={{ duration: 0.15 }}
-                  className="text-[14px] tracking-tight whitespace-nowrap truncate"
+                  className="text-[13.5px] tracking-tight whitespace-nowrap truncate"
                   style={{
-                    fontWeight: isActive ? 600 : 400,
+                    fontWeight: isActive ? 600 : 450,
                     color: isActive ? 'var(--label-primary)' : 'var(--label-secondary)',
                     letterSpacing: '-0.01em',
                   }}
@@ -262,8 +265,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.12 }}
-                    className="text-[11px] font-semibold uppercase tracking-widest px-3 mb-1.5"
-                    style={{ color: 'var(--label-tertiary)', letterSpacing: '0.08em' }}
+                    className="text-[10px] font-semibold uppercase tracking-[0.1em] px-3 mb-1.5 opacity-80"
+                    style={{ color: 'var(--label-tertiary)' }}
                   >
                     Portal
                   </motion.p>
@@ -283,8 +286,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.12 }}
-                      className="text-[11px] font-semibold uppercase tracking-widest px-3 mb-1.5"
-                      style={{ color: 'var(--label-tertiary)', letterSpacing: '0.08em' }}
+                      className="text-[10px] font-semibold uppercase tracking-[0.1em] px-3 mb-1.5 opacity-80"
+                      style={{ color: 'var(--label-tertiary)' }}
                     >
                       Management
                     </motion.p>

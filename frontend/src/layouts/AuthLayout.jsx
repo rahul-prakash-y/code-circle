@@ -45,9 +45,6 @@ const AuthLayout = ({ children, title, subtitle }) => {
           
           {children}
         </div>
-
-        {/* Decorative corner accent */}
-        <div className="absolute bottom-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full" />
       </motion.div>
     </div>
   );
