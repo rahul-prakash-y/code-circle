@@ -85,30 +85,30 @@ const AdminAnalytics = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Total Students" 
-          value={dashboardStats.totalStudents} 
+          title="Total Users" 
+          value={dashboardStats.totalUsers ?? dashboardStats.totalStudents} 
           icon={Users} 
           color="bg-blue-500" 
           trend="+12%"
         />
         <StatCard 
-          title="Total Events" 
-          value={dashboardStats.totalEvents} 
+          title="Active Events" 
+          value={dashboardStats.activeEvents ?? dashboardStats.upcomingEvents} 
           icon={Calendar} 
           color="bg-purple-500" 
         />
         <StatCard 
-          title="Upcoming Events" 
-          value={dashboardStats.upcomingEvents} 
+          title="Total Events" 
+          value={dashboardStats.totalEvents} 
           icon={Calendar} 
           color="bg-amber-500" 
         />
         <StatCard 
-          title="Attendance Rate" 
-          value={`${dashboardStats.attendancePercentage}%`} 
+          title="Assessment Levels" 
+          value={`${dashboardStats.totalAssessmentLevels || 3} Tracks`} 
           icon={CheckCircle} 
           color="bg-emerald-500" 
-          trend="+5%"
+          trend="+Active"
         />
       </div>
 

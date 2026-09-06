@@ -1,6 +1,8 @@
 const User = require('../models/userModel');
 const Event = require('../models/eventModel');
 const Enrollment = require('../models/enrollmentModel');
+const { getDashboardMetrics } = require('../services/metricsService');
+const { generateCsvReport, generatePdfReport } = require('../services/reportExportService');
 
 exports.getDashboardStats = async (req, reply) => {
   try {
@@ -68,13 +70,18 @@ exports.getDashboardStats = async (req, reply) => {
       { $sort: { year: 1, month: 1 } }
     ]);
 
+    const { metrics } = await getDashboardMetrics();
+
     return {
       stats: {
         totalStudents,
+        totalUsers: metrics.totalUsers,
         totalEvents: upcomingEvents + pastEvents,
+        activeEvents: metrics.activeEvents,
         upcomingEvents,
         pastEvents,
-        attendancePercentage
+        attendancePercentage,
+        totalAssessmentLevels: metrics.totalAssessmentLevels,
       },
       growthData
     };
@@ -171,3 +178,50 @@ exports.getLeaderboard = async (req, reply) => {
     reply.status(500).send({ message: 'Error fetching leaderboard' });
   }
 };
+
+exports.getMetrics = async (req, reply) => {
+  try {
+    const refresh = req.query?.refresh === 'true';
+    const result = await getDashboardMetrics({ refresh });
+    return reply.send({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    req.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      message: 'Failed to aggregate dashboard metrics',
+      error: error.message,
+    });
+  }
+};
+
+exports.exportReport = async (req, reply) => {
+  try {
+    const type = req.query?.type || 'summary';
+    const format = req.query?.format || 'csv';
+
+    if (format === 'csv') {
+      const { data, filename } = await generateCsvReport(type);
+      reply.header('Content-Type', 'text/csv; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+      return reply.send(data);
+    } else if (format === 'pdf') {
+      const { buffer, filename } = await generatePdfReport(type);
+      reply.header('Content-Type', 'application/pdf');
+      reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+      return reply.send(buffer);
+    } else {
+      return reply.status(400).send({ success: false, error: 'Unsupported format. Choose "csv" or "pdf".' });
+    }
+  } catch (error) {
+    req.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      message: 'Failed to export report',
+      error: error.message,
+    });
+  }
+};
+

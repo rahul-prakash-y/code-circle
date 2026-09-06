@@ -8,6 +8,7 @@ import connectDB from './config/db';
 import errorHandler from './middleware/errorHandler';
 import { authRoutes } from './routes/authRoutes';
 import { userRoutes } from './routes/userRoutes';
+import { newsRoutes } from './routes/newsRoutes';
 
 export const server: FastifyInstance = Fastify({
   logger: {
@@ -45,16 +46,7 @@ server.register(require('./routes/analyticsRoutes'), { prefix: '/api/analytics' 
 server.register(require('./routes/quizRoutes'), { prefix: '/api/quizzes' });
 server.register(require('./routes/bearerRoutes'), { prefix: '/api/bearers' });
 server.register(require('./routes/attendanceRoutes'), { prefix: '/api/attendance' });
-
-// Baseline Health Check Route
-server.get('/api/health', async (request, reply) => {
-  return reply.send({
-    success: true,
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
+server.register(newsRoutes, { prefix: '/api/news' });
 
 // API 404 Handler
 server.setNotFoundHandler((request, reply) => {

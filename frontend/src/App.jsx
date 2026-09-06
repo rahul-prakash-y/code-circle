@@ -14,6 +14,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Profile = lazy(() => import('./pages/Profile'));
 const CodingWorkspace = lazy(() => import('./components/coding/CodingWorkspace'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
+const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuthStore();
@@ -63,6 +64,14 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/bearers" element={<StudentBearers />} />
+          <Route 
+            path="/news" 
+            element={
+              <MainLayout>
+                <NewsFeed />
+              </MainLayout>
+            } 
+          />
           
           <Route
             path="/dashboard"

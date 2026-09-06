@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, User, Bell, Search, Hexagon, Info, Users } from 'lucide-react';
+import { LogOut, User, Bell, Search, Hexagon, Info, Users, Newspaper } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import StellarBackground from '../components/ui/StellarBackground';
 import { Link, useLocation } from 'react-router-dom';
 import useProfileStore from '../store/useProfileStore';
 
 const MainLayout = ({ children }) => {
-  const { logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { profile } = useProfileStore();
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -50,11 +50,18 @@ const MainLayout = ({ children }) => {
           </div>
         </Link>
         
-        <div className="hidden lg:flex items-center gap-4 ml-12">
+        <div className="hidden lg:flex items-center gap-3 ml-8">
           <Link to="/dashboard" className={`text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/dashboard' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}>
             Dashboard
           </Link>
-          {(profile?.role === 'Admin' || profile?.role === 'SuperAdmin' || profile?.role === 'Faculty') && (
+          <Link 
+            to="/news" 
+            className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${location.pathname === '/news' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-white'}`}
+          >
+            <Newspaper size={14} />
+            News Feed
+          </Link>
+          {(profile?.role === 'Admin' || profile?.role === 'SuperAdmin' || profile?.role === 'Faculty' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
             <Link to="/users" className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${(location.pathname === '/users' || location.pathname === '/students') ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'text-slate-500 hover:text-white'}`}>
               <Users size={14} />
               User Management
@@ -117,31 +124,43 @@ const MainLayout = ({ children }) => {
               )}
             </AnimatePresence>
             
-            <Link 
-              to="/profile"
-              className="group flex items-center gap-3 p-1 pr-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all"
-            >
-              <div className="w-9 h-9 rounded-xl overflow-hidden bg-slate-800 border border-white/10 group-hover:border-blue-500/50 transition-all">
-                {profile?.profilePicUrl ? (
-                  <img src={profile.profilePicUrl} alt={profile.name} className="w-full h-full object-cover" loading='lazy' />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs font-black bg-blue-600">
-                    {profile?.name?.charAt(0)}
+            {user || profile ? (
+              <>
+                <Link 
+                  to="/profile"
+                  className="group flex items-center gap-3 p-1 pr-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all"
+                >
+                  <div className="w-9 h-9 rounded-xl overflow-hidden bg-slate-800 border border-white/10 group-hover:border-blue-500/50 transition-all">
+                    {profile?.profilePicUrl ? (
+                      <img src={profile.profilePicUrl} alt={profile.name} className="w-full h-full object-cover" loading='lazy' />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs font-black bg-blue-600">
+                        {profile?.name?.charAt(0) || user?.name?.charAt(0) || 'U'}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-xs font-bold text-white leading-none">{profile?.name}</p>
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">{profile?.role}</p>
-              </div>
-            </Link>
+                  <div className="hidden sm:block">
+                    <p className="text-xs font-bold text-white leading-none">{profile?.name || user?.name || 'User'}</p>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">{profile?.role || user?.role || 'Member'}</p>
+                  </div>
+                </Link>
 
-            <button 
-              onClick={logout}
-              className="p-2.5 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 rounded-xl text-red-400 hover:text-red-300 transition-all"
-            >
-              <LogOut size={18} />
-            </button>
+                <button 
+                  onClick={logout}
+                  className="p-2.5 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 rounded-xl text-red-400 hover:text-red-300 transition-all"
+                  title="Sign Out"
+                >
+                  <LogOut size={18} />
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="stellar-btn py-2 px-5 text-xs font-black"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
       </motion.nav>
 
