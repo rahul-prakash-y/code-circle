@@ -21,12 +21,12 @@ import { motion } from 'framer-motion';
 const StatCard = ({ title, value, icon: Icon, trend, color }) => (
   <motion.div 
     whileHover={{ y: -5, scale: 1.02 }}
-    className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl relative overflow-hidden group shadow-xl"
+    className="bg-surface-elevated backdrop-blur-xl border border-border p-6 rounded-2xl relative overflow-hidden group shadow-xl"
   >
     <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 ${color}`} />
     
     <div className="flex justify-between items-start mb-4">
-      <div className={`p-3 rounded-lg bg-white/5 border border-white/10 text-white`}>
+      <div className={`p-3 rounded-lg bg-surface-elevated border border-border text-text-primary`}>
         <Icon size={24} />
       </div>
       {trend && (
@@ -38,9 +38,9 @@ const StatCard = ({ title, value, icon: Icon, trend, color }) => (
     </div>
     
     <h3 className="text-white/60 text-sm font-medium mb-1">{title}</h3>
-    <div className="text-3xl font-bold text-white mb-2">{value}</div>
+    <div className="text-3xl font-bold text-text-primary mb-2">{value}</div>
     
-    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+    <div className="w-full h-1 bg-surface-elevated rounded-full overflow-hidden">
       <motion.div 
         initial={{ width: 0 }}
         animate={{ width: '70%' }}
@@ -75,7 +75,7 @@ const AdminAnalytics = () => {
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-text-primary flex items-center gap-2">
           <TrendingUp className="text-indigo-400" />
           Dashboard Analytics
         </h2>
@@ -113,10 +113,10 @@ const AdminAnalytics = () => {
       </div>
 
       {/* Participation Chart */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl">
+      <div className="bg-surface-elevated backdrop-blur-xl border border-border p-8 rounded-3xl shadow-2xl">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h3 className="text-xl font-bold text-white">Participation Trends</h3>
+            <h3 className="text-xl font-bold text-text-primary">Participation Trends</h3>
             <p className="text-white/50 text-sm">Event attendance over the last 6 months</p>
           </div>
         </div>

@@ -176,9 +176,9 @@ const AttendanceRecordsView: React.FC = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-            <h2 className="text-3xl font-black text-white tracking-tight">Attendance Intelligence</h2>
+            <h2 className="text-3xl font-black text-text-primary tracking-tight">Attendance Intelligence</h2>
           </div>
-          <p className="text-slate-400 font-medium text-sm">
+          <p className="text-text-muted font-medium text-sm">
             Generate active 6-digit session OTPs and audit verified attendance records by Student or Event.
           </p>
         </div>
@@ -186,7 +186,7 @@ const AttendanceRecordsView: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowOtpModal(true)}
-            className="stellar-btn px-6 py-3 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-500/20"
+            className="btn-primary px-6 py-3 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest shadow-xl shadow-accent/20"
           >
             <KeyRound size={16} />
             <span>Generate Event OTP</span>
@@ -195,14 +195,14 @@ const AttendanceRecordsView: React.FC = () => {
       </div>
 
       {/* Mode Switcher Tabs */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-2 stellar-glass rounded-3xl border border-white/5">
-        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/5">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-2 glass rounded-3xl border border-border">
+        <div className="flex items-center gap-1 bg-surface-elevated p-1 rounded-2xl border border-border">
           <button
             onClick={() => setFilterMode('event')}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
               filterMode === 'event'
-                ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)]'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'bg-accent text-text-primary shadow-[0_0_20px_rgba(59,130,246,0.4)]'
+                : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
             }`}
           >
             <Calendar size={15} />
@@ -213,8 +213,8 @@ const AttendanceRecordsView: React.FC = () => {
             onClick={() => setFilterMode('student')}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
               filterMode === 'student'
-                ? 'bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)]'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'bg-purple-600 text-text-primary shadow-[0_0_20px_rgba(168,85,247,0.4)]'
+                : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
             }`}
           >
             <Users size={15} />
@@ -225,9 +225,9 @@ const AttendanceRecordsView: React.FC = () => {
         {/* Export CSV action */}
         <button
           onClick={handleExportCsv}
-          className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-black uppercase tracking-wider text-slate-300 hover:text-white flex items-center justify-center gap-2 transition-all"
+          className="px-4 py-2.5 rounded-xl bg-surface-elevated hover:bg-surface-elevated border border-border text-xs font-black uppercase tracking-wider text-text-secondary hover:text-text-primary flex items-center justify-center gap-2 transition-all"
         >
-          <Download size={15} className="text-blue-400" />
+          <Download size={15} className="text-accent-muted" />
           <span>Export CSV</span>
         </button>
       </div>
@@ -236,16 +236,16 @@ const AttendanceRecordsView: React.FC = () => {
       {filterMode === 'event' && (
         <div className="space-y-6">
           {/* Event Picker Controls */}
-          <div className="stellar-glass p-6 rounded-3xl border border-white/10 space-y-4">
+          <div className="glass p-6 rounded-3xl border border-border space-y-4">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 justify-between">
               <div className="flex-1 space-y-1.5 max-w-md">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                  <Calendar size={14} className="text-blue-400" /> Select Event
+                <label className="text-xs font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
+                  <Calendar size={14} className="text-accent-muted" /> Select Event
                 </label>
                 <select
                   value={selectedEventId}
                   onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm font-bold focus:outline-none focus:border-blue-500"
+                  className="w-full bg-surface-elevated border border-border rounded-2xl px-4 py-3 text-text-primary text-sm font-bold focus:outline-none focus:border-blue-500"
                 >
                   {events.map((ev) => (
                     <option key={ev._id} value={ev._id}>
@@ -257,13 +257,13 @@ const AttendanceRecordsView: React.FC = () => {
 
               {/* Table search filter */}
               <div className="relative flex-1 max-w-sm self-end">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
                 <input
                   type="text"
                   placeholder="Filter attendees by name, roll no..."
                   value={tableSearch}
                   onChange={(e) => setTableSearch(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-medium"
+                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-10 pr-4 py-3 text-xs text-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500 font-medium"
                 />
               </div>
             </div>
@@ -273,21 +273,21 @@ const AttendanceRecordsView: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-5 rounded-2xl bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
+                className="p-5 rounded-2xl bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-accent/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <div className="w-14 h-14 rounded-2xl bg-accent/20 border border-accent/30 flex items-center justify-center text-accent-muted">
                     <KeyRound size={28} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-accent-muted">
                         Live Attendance Session Active
                       </p>
                     </div>
-                    <h4 className="text-xl font-black text-white">{activeSession.sessionName}</h4>
-                    <p className="text-xs text-slate-400 font-mono">
+                    <h4 className="text-xl font-black text-text-primary">{activeSession.sessionName}</h4>
+                    <p className="text-xs text-text-muted font-mono">
                       Expires in: <strong className="text-amber-400">{formatCountdown(remainingSecs)}</strong>
                     </p>
                   </div>
@@ -295,12 +295,12 @@ const AttendanceRecordsView: React.FC = () => {
 
                 {/* Big OTP Display */}
                 <div className="flex items-center gap-3">
-                  <div className="bg-black/60 border border-blue-500/40 px-6 py-2.5 rounded-2xl font-mono text-2xl font-black tracking-[0.3em] text-white shadow-inner">
+                  <div className="bg-black/60 border border-blue-500/40 px-6 py-2.5 rounded-2xl font-mono text-2xl font-black tracking-[0.3em] text-text-primary shadow-inner">
                     {activeSession.otp}
                   </div>
                   <button
                     onClick={copyOtp}
-                    className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"
+                    className="p-3 bg-surface-elevated hover:bg-white/20 text-text-primary rounded-xl transition-all"
                     title="Copy OTP"
                   >
                     {copiedOtp ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} />}
@@ -311,17 +311,17 @@ const AttendanceRecordsView: React.FC = () => {
 
             {/* Event Summary Pills */}
             {recordsData?.event && (
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
-                <span className="px-3 py-1 bg-white/5 rounded-xl text-xs font-bold text-slate-300 border border-white/5">
-                  Type: <strong className="text-blue-400">{recordsData.event.type}</strong>
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+                <span className="px-3 py-1 bg-surface-elevated rounded-xl text-xs font-bold text-text-secondary border border-border">
+                  Type: <strong className="text-accent-muted">{recordsData.event.type}</strong>
                 </span>
-                <span className="px-3 py-1 bg-white/5 rounded-xl text-xs font-bold text-slate-300 border border-white/5">
+                <span className="px-3 py-1 bg-surface-elevated rounded-xl text-xs font-bold text-text-secondary border border-border">
                   Format: <strong className="text-purple-400">{recordsData.event.format}</strong>
                 </span>
-                <span className="px-3 py-1 bg-white/5 rounded-xl text-xs font-bold text-slate-300 border border-white/5">
+                <span className="px-3 py-1 bg-surface-elevated rounded-xl text-xs font-bold text-text-secondary border border-border">
                   Status: <strong className="text-emerald-400">{recordsData.event.status}</strong>
                 </span>
-                <span className="px-3 py-1 bg-blue-500/10 rounded-xl text-xs font-black text-blue-400 border border-blue-500/20">
+                <span className="px-3 py-1 bg-accent/10 rounded-xl text-xs font-black text-accent-muted border border-accent/20">
                   Total Present: <strong>{recordsData.records?.length || 0}</strong>
                 </span>
               </div>
@@ -329,20 +329,20 @@ const AttendanceRecordsView: React.FC = () => {
           </div>
 
           {/* Attendees Table */}
-          <div className="stellar-glass rounded-3xl overflow-hidden border border-white/10">
-            <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
+          <div className="glass rounded-3xl overflow-hidden border border-border">
+            <div className="p-5 border-b border-border bg-surface-elevated flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent-muted flex items-center justify-center">
                   <UserCheck size={18} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">Verified Attendees Registry</h3>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                  <h3 className="text-base font-black text-text-primary">Verified Attendees Registry</h3>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold">
                     Timestamped student presence records
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-black uppercase text-slate-400">
+              <span className="text-xs font-black uppercase text-text-muted">
                 {recordsData?.records?.length || 0} Students Verified
               </span>
             </div>
@@ -350,7 +350,7 @@ const AttendanceRecordsView: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500 bg-white/[0.02]">
+                  <tr className="border-b border-border text-[10px] font-black uppercase tracking-widest text-text-muted bg-white/[0.02]">
                     <th className="px-6 py-4">Student</th>
                     <th className="px-6 py-4">Roll Number</th>
                     <th className="px-6 py-4">Department</th>
@@ -365,7 +365,7 @@ const AttendanceRecordsView: React.FC = () => {
                       <tr key={r._id} className="hover:bg-white/[0.02] transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center text-xs font-bold text-white">
+                            <div className="w-8 h-8 rounded-xl bg-surface-elevated border border-border flex items-center justify-center text-xs font-bold text-text-primary">
                               {r.user?.profilePicUrl ? (
                                 <img
                                   src={r.user.profilePicUrl}
@@ -377,25 +377,25 @@ const AttendanceRecordsView: React.FC = () => {
                               )}
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">
+                              <p className="text-xs font-bold text-text-primary group-hover:text-accent-muted transition-colors">
                                 {r.user?.name || 'Unknown Student'}
                               </p>
-                              <p className="text-[10px] text-slate-500 truncate max-w-[150px]">
+                              <p className="text-[10px] text-text-muted truncate max-w-[150px]">
                                 {r.user?.email || '—'}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-xs font-mono font-bold text-slate-300">
+                        <td className="px-6 py-4 text-xs font-mono font-bold text-text-secondary">
                           {r.user?.rollNo || '—'}
                         </td>
-                        <td className="px-6 py-4 text-xs font-medium text-slate-400">
+                        <td className="px-6 py-4 text-xs font-medium text-text-muted">
                           {r.user?.department || 'General'}
                         </td>
-                        <td className="px-6 py-4 text-xs font-medium text-slate-300">
+                        <td className="px-6 py-4 text-xs font-medium text-text-secondary">
                           {r.session?.sessionName || 'General Session'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-400">
+                        <td className="px-6 py-4 text-xs text-text-muted">
                           {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -410,9 +410,9 @@ const AttendanceRecordsView: React.FC = () => {
                     <tr>
                       <td colSpan={6} className="px-6 py-16 text-center">
                         <div className="max-w-sm mx-auto space-y-2">
-                          <ShieldCheck className="w-12 h-12 text-slate-600 mx-auto opacity-30" />
-                          <p className="text-white font-bold text-sm">No attendance records yet</p>
-                          <p className="text-slate-500 text-xs">
+                          <ShieldCheck className="w-12 h-12 text-text-muted mx-auto opacity-30" />
+                          <p className="text-text-primary font-bold text-sm">No attendance records yet</p>
+                          <p className="text-text-muted text-xs">
                             Students will appear here as soon as they submit the 6-digit event OTP.
                           </p>
                         </div>
@@ -430,19 +430,19 @@ const AttendanceRecordsView: React.FC = () => {
       {filterMode === 'student' && (
         <div className="space-y-6">
           {/* Student Picker & Directory Search */}
-          <div className="stellar-glass p-6 rounded-3xl border border-white/10 space-y-4">
+          <div className="glass p-6 rounded-3xl border border-border space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+              <label className="text-xs font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
                 <Users size={14} className="text-purple-400" /> Search & Select Student
               </label>
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
                 <input
                   type="text"
                   value={studentSearchTerm}
                   onChange={(e) => setStudentSearchTerm(e.target.value)}
                   placeholder="Type student name, roll number, or department to search..."
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 font-medium"
+                  className="w-full bg-surface-elevated border border-border rounded-2xl pl-10 pr-4 py-3 text-xs text-text-primary placeholder-slate-500 focus:outline-none focus:border-purple-500 font-medium"
                 />
               </div>
             </div>
@@ -455,8 +455,8 @@ const AttendanceRecordsView: React.FC = () => {
                   onClick={() => setSelectedStudentId(stu._id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all flex items-center gap-2 ${
                     selectedStudentId === stu._id
-                      ? 'bg-purple-600 text-white border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                      : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10 hover:text-white'
+                      ? 'bg-purple-600 text-text-primary border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                      : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated hover:text-text-primary'
                   }`}
                 >
                   <span className="font-bold">{stu.name}</span>
@@ -469,12 +469,12 @@ const AttendanceRecordsView: React.FC = () => {
             {recordsData?.student && (
               <div className="p-5 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white font-black flex items-center justify-center text-lg">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-600 text-text-primary font-black flex items-center justify-center text-lg">
                     {recordsData.student.name?.charAt(0) || 'S'}
                   </div>
                   <div>
-                    <h4 className="text-lg font-black text-white">{recordsData.student.name}</h4>
-                    <p className="text-xs text-slate-400 font-mono">
+                    <h4 className="text-lg font-black text-text-primary">{recordsData.student.name}</h4>
+                    <p className="text-xs text-text-muted font-mono">
                       Roll: <strong className="text-purple-400">{recordsData.student.rollNo}</strong> • Dept:{' '}
                       <strong className="text-slate-200">{recordsData.student.department || 'General'}</strong>
                     </p>
@@ -482,8 +482,8 @@ const AttendanceRecordsView: React.FC = () => {
                 </div>
 
                 <div className="text-center sm:text-right">
-                  <span className="text-2xl font-black text-white">{recordsData.records?.length || 0}</span>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <span className="text-2xl font-black text-text-primary">{recordsData.records?.length || 0}</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">
                     Sessions Attended
                   </p>
                 </div>
@@ -492,15 +492,15 @@ const AttendanceRecordsView: React.FC = () => {
           </div>
 
           {/* Student's Attended Events Table */}
-          <div className="stellar-glass rounded-3xl overflow-hidden border border-white/10">
-            <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
+          <div className="glass rounded-3xl overflow-hidden border border-border">
+            <div className="p-5 border-b border-border bg-surface-elevated flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
                   <Calendar size={18} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">Student Attendance Record</h3>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                  <h3 className="text-base font-black text-text-primary">Student Attendance Record</h3>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold">
                     All verified events & sessions attended by this student
                   </p>
                 </div>
@@ -513,7 +513,7 @@ const AttendanceRecordsView: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500 bg-white/[0.02]">
+                  <tr className="border-b border-border text-[10px] font-black uppercase tracking-widest text-text-muted bg-white/[0.02]">
                     <th className="px-6 py-4">Event Title</th>
                     <th className="px-6 py-4">Type & Format</th>
                     <th className="px-6 py-4">Event Date</th>
@@ -526,20 +526,20 @@ const AttendanceRecordsView: React.FC = () => {
                   {recordsData?.records && recordsData.records.length > 0 ? (
                     recordsData.records.map((r: any) => (
                       <tr key={r._id} className="hover:bg-white/[0.02] transition-colors group">
-                        <td className="px-6 py-4 font-bold text-white group-hover:text-purple-400 transition-colors">
+                        <td className="px-6 py-4 font-bold text-text-primary group-hover:text-purple-400 transition-colors">
                           {r.event?.title || 'Event Session'}
                         </td>
-                        <td className="px-6 py-4 text-xs font-medium text-slate-400">
-                          <span className="text-blue-400 font-bold">{r.event?.type || 'Technical'}</span> •{' '}
+                        <td className="px-6 py-4 text-xs font-medium text-text-muted">
+                          <span className="text-accent-muted font-bold">{r.event?.type || 'Technical'}</span> •{' '}
                           <span className="text-purple-400 font-bold">{r.event?.format || 'Individual'}</span>
                         </td>
-                        <td className="px-6 py-4 text-xs font-medium text-slate-300">
+                        <td className="px-6 py-4 text-xs font-medium text-text-secondary">
                           {r.event?.date ? format(new Date(r.event.date), 'MMM dd, yyyy') : '—'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-300 font-medium">
+                        <td className="px-6 py-4 text-xs text-text-secondary font-medium">
                           {r.sessionName || 'General Session'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-400">
+                        <td className="px-6 py-4 text-xs text-text-muted">
                           {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -554,9 +554,9 @@ const AttendanceRecordsView: React.FC = () => {
                     <tr>
                       <td colSpan={6} className="px-6 py-16 text-center">
                         <div className="max-w-sm mx-auto space-y-2">
-                          <ShieldCheck className="w-12 h-12 text-slate-600 mx-auto opacity-30" />
-                          <p className="text-white font-bold text-sm">No attendance records for this student</p>
-                          <p className="text-slate-500 text-xs">
+                          <ShieldCheck className="w-12 h-12 text-text-muted mx-auto opacity-30" />
+                          <p className="text-text-primary font-bold text-sm">No attendance records for this student</p>
+                          <p className="text-text-muted text-xs">
                             Select a student from the directory above to view their event attendance history.
                           </p>
                         </div>

@@ -21,6 +21,7 @@ import { auth as firebaseAuth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ImageUploadModal from '../components/profile/ImageUploadModal';
+import GlassCard from '../components/ui/GlassCard';
 
 const Profile = () => {
   const { profile, updateProfile, profileLoading } = useProfileStore();
@@ -124,127 +125,128 @@ const Profile = () => {
   };
 
   if (!profile) return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-      <Loader2 className="animate-spin text-indigo-500" size={40} />
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <Loader2 className="animate-spin text-accent" size={40} />
     </div>
   );
 
   return (
-    <div className="space-y-12 max-w-5xl mx-auto py-10">
+    <div className="space-y-10 max-w-5xl mx-auto py-8">
       {/* Header Card */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="stellar-glass p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 overflow-hidden relative"
       >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2" />
-        
-        <div className="relative group">
-          <div className="w-40 h-40 rounded-[2.5rem] overflow-hidden border border-white/10 p-1 group-hover:border-blue-500/50 transition-all duration-500 cursor-pointer shadow-2xl" onClick={() => setIsModalOpen(true)}>
-            <div className="w-full h-full rounded-[2.2rem] overflow-hidden">
-              <img 
-                src={profile.profilePicUrl || `https://ui-avatars.com/api/?name=${profile.name}&background=6366f1&color=fff&size=200`} 
-                alt="Profile" 
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              />
+        <GlassCard className="p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2" />
+          
+          <div className="relative group">
+            <div 
+              className="w-36 h-36 rounded-3xl overflow-hidden border border-border p-1 group-hover:border-accent/50 transition-all duration-500 cursor-pointer shadow-lg" 
+              onClick={() => setIsModalOpen(true)}
+            >
+              <div className="w-full h-full rounded-[1.3rem] overflow-hidden">
+                <img 
+                  src={profile.profilePicUrl || `https://ui-avatars.com/api/?name=${profile.name}&background=7c3aed&color=fff&size=200`} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+              </div>
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all rounded-3xl backdrop-blur-[2px]">
+                <Camera className="text-text-primary" size={28} />
+              </div>
             </div>
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all rounded-[2.5rem] backdrop-blur-[2px]">
-              <Camera className="text-white" size={32} />
-            </div>
+            {profileLoading && (
+              <div className="absolute inset-0 bg-black/60 rounded-3xl flex items-center justify-center backdrop-blur-sm">
+                <Loader2 className="animate-spin text-accent" size={28} />
+              </div>
+            )}
           </div>
-          {profileLoading && (
-            <div className="absolute inset-0 bg-black/60 rounded-[2.5rem] flex items-center justify-center backdrop-blur-sm">
-              <Loader2 className="animate-spin text-blue-500" size={32} />
-            </div>
-          )}
-        </div>
 
-        <div className="text-center md:text-left flex-1 space-y-4">
-          <div>
-            <div className="flex flex-col md:flex-row md:items-center gap-4 mb-3">
-              <h1 className="text-4xl font-black text-white tracking-tighter uppercase">{profile.name}</h1>
-              <span className="inline-flex px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-                {profile.role}
-              </span>
+          <div className="text-center md:text-left flex-1 space-y-3">
+            <div>
+              <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
+                <h1 className="text-3xl font-extrabold text-text-primary tracking-tight font-heading">{profile.name}</h1>
+                <span className="inline-flex px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-accent/10 text-accent border border-accent/20">
+                  {profile.role}
+                </span>
+              </div>
+              <p className="text-text-muted flex items-center justify-center md:justify-start gap-2 text-sm font-medium">
+                <Building2 size={15} className="text-accent" /> Bannari Amman Institute
+              </p>
             </div>
-            <p className="text-slate-400 flex items-center justify-center md:justify-start gap-2 text-sm font-bold uppercase tracking-widest">
-              <Building2 size={16} className="text-blue-500" /> Bannari Amman Institute
-            </p>
-          </div>
-          <div className="flex flex-wrap justify-center md:justify-start gap-3">
-            <div className="px-4 py-2 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500">
-               Roll: <span className="text-white ml-1">{profile.rollNo}</span>
+            <div className="flex flex-wrap justify-center md:justify-start gap-2">
+              <div className="px-3 py-1.5 bg-surface-elevated border border-border rounded-xl text-[11px] font-semibold text-text-muted">
+                 Roll: <span className="text-text-primary ml-1">{profile.rollNo}</span>
+              </div>
             </div>
           </div>
-        </div>
+        </GlassCard>
       </motion.div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Basic Info */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
-          className="stellar-glass p-8 space-y-8"
         >
-          <h2 className="text-sm font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-              <UserIcon size={16} />
-            </div>
-            Basic Information
-          </h2>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="stellar-label">Full Name</label>
-              <div className="relative">
+          <GlassCard className="space-y-6">
+            <h2 className="text-sm font-bold text-accent uppercase tracking-wider flex items-center gap-3 font-heading">
+              <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+                <UserIcon size={16} className="text-accent" />
+              </div>
+              Basic Information
+            </h2>
+            
+            <div className="space-y-5">
+              <div>
+                <label className="input-label">Full Name</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="stellar-input"
+                  className="input-field"
                   placeholder="Your Name"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="stellar-label">Department</label>
-                <input
-                  type="text"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  className="stellar-input"
-                  placeholder="e.g. AI & DS"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="input-label">Department</label>
+                  <input
+                    type="text"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="e.g. AI & DS"
+                  />
+                </div>
+                <div>
+                  <label className="input-label">Status</label>
+                  <input
+                    type="text"
+                    value="Tier 1 Member"
+                    disabled
+                    className="input-field opacity-50 cursor-not-allowed"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="stellar-label">Status</label>
-                <input
-                  type="text"
-                  value="Tier 1 Member"
-                  disabled
-                  className="stellar-input opacity-50 cursor-not-allowed bg-white/5"
-                />
-              </div>
-            </div>
 
-            <div>
-              <label className="stellar-label">Registered Email</label>
-              <div className="relative">
+              <div>
+                <label className="input-label">Registered Email</label>
                 <input
                   type="email"
                   value={profile.email}
                   disabled
-                  className="stellar-input opacity-50 cursor-not-allowed bg-white/5"
+                  className="input-field opacity-50 cursor-not-allowed"
                 />
               </div>
             </div>
-          </div>
+          </GlassCard>
         </motion.div>
 
         {/* Social Links */}
@@ -252,65 +254,66 @@ const Profile = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="stellar-glass p-8 space-y-8"
         >
-          <h2 className="text-sm font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-              <Code2 size={16} />
-            </div>
-            Social & Coding Profiles
-          </h2>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="stellar-label">GitHub URL</label>
-              <input
-                type="url"
-                name="socialLinks.github"
-                value={formData.socialLinks.github}
-                onChange={handleChange}
-                className="stellar-input"
-                placeholder="https://github.com/..."
-              />
-            </div>
-
-            <div>
-              <label className="stellar-label">LinkedIn Profile</label>
-              <input
-                type="url"
-                name="socialLinks.linkedin"
-                value={formData.socialLinks.linkedin}
-                onChange={handleChange}
-                className="stellar-input"
-                placeholder="https://linkedin.com/..."
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
+          <GlassCard className="space-y-6">
+            <h2 className="text-sm font-bold text-accent uppercase tracking-wider flex items-center gap-3 font-heading">
+              <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+                <Code2 size={16} className="text-accent" />
+              </div>
+              Social & Coding Profiles
+            </h2>
+            
+            <div className="space-y-5">
               <div>
-                <label className="stellar-label">LeetCode</label>
+                <label className="input-label">GitHub URL</label>
                 <input
-                  type="text"
-                  name="socialLinks.leetcode"
-                  value={formData.socialLinks.leetcode}
+                  type="url"
+                  name="socialLinks.github"
+                  value={formData.socialLinks.github}
                   onChange={handleChange}
-                  className="stellar-input"
-                  placeholder="Username"
+                  className="input-field"
+                  placeholder="https://github.com/..."
                 />
               </div>
+
               <div>
-                <label className="stellar-label">HackerRank</label>
+                <label className="input-label">LinkedIn Profile</label>
                 <input
-                  type="text"
-                  name="socialLinks.hackerrank"
-                  value={formData.socialLinks.hackerrank}
+                  type="url"
+                  name="socialLinks.linkedin"
+                  value={formData.socialLinks.linkedin}
                   onChange={handleChange}
-                  className="stellar-input"
-                  placeholder="Username"
+                  className="input-field"
+                  placeholder="https://linkedin.com/..."
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="input-label">LeetCode</label>
+                  <input
+                    type="text"
+                    name="socialLinks.leetcode"
+                    value={formData.socialLinks.leetcode}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="Username"
+                  />
+                </div>
+                <div>
+                  <label className="input-label">HackerRank</label>
+                  <input
+                    type="text"
+                    name="socialLinks.hackerrank"
+                    value={formData.socialLinks.hackerrank}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="Username"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          </GlassCard>
         </motion.div>
 
         {/* Skills Section */}
@@ -318,74 +321,76 @@ const Profile = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="md:col-span-2 stellar-glass p-8 space-y-8"
+          className="md:col-span-2"
         >
-          <h2 className="text-sm font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-              <Code2 size={16} />
-            </div>
-            Skills & Technologies
-          </h2>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="stellar-label">Add Experience Tags</label>
-              <div className="relative group">
-                <Plus className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input
-                  type="text"
-                  value={skillInput}
-                  onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyDown={handleAddSkill}
-                  className="stellar-input pl-14"
-                  placeholder="Type skill & press Enter"
-                />
+          <GlassCard className="space-y-6">
+            <h2 className="text-sm font-bold text-accent uppercase tracking-wider flex items-center gap-3 font-heading">
+              <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+                <Code2 size={16} className="text-accent" />
+              </div>
+              Skills & Technologies
+            </h2>
+            
+            <div className="space-y-5">
+              <div>
+                <label className="input-label">Add Experience Tags</label>
+                <div className="relative group">
+                  <Plus className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                  <input
+                    type="text"
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={handleAddSkill}
+                    className="input-field pl-12"
+                    placeholder="Type skill & press Enter"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {formData.skills.map((skill, index) => (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    key={index}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-elevated text-text-primary border border-border text-xs font-semibold hover:border-accent/30 hover:bg-accent/5 transition-all cursor-default"
+                  >
+                    {skill}
+                    <button 
+                      type="button" 
+                      onClick={() => removeSkill(skill)}
+                      className="p-0.5 hover:bg-destructive/10 rounded-md text-text-muted hover:text-destructive transition-colors"
+                    >
+                      <X size={12} strokeWidth={3} />
+                    </button>
+                  </motion.span>
+                ))}
+                {formData.skills.length === 0 && (
+                  <p className="text-text-muted text-xs font-medium opacity-50 ml-1">No tags added</p>
+                )}
               </div>
             </div>
-
-            <div className="flex flex-wrap gap-3">
-              {formData.skills.map((skill, index) => (
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  key={index}
-                  className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white/5 text-white border border-white/5 text-xs font-black uppercase tracking-widest hover:border-blue-500/30 hover:bg-white/10 transition-all cursor-default"
-                >
-                  {skill}
-                  <button 
-                    type="button" 
-                    onClick={() => removeSkill(skill)}
-                    className="p-1 hover:bg-pink-500/20 rounded-lg text-slate-500 hover:text-pink-400 transition-colors"
-                  >
-                    <X size={14} strokeWidth={3} />
-                  </button>
-                </motion.span>
-              ))}
-              {formData.skills.length === 0 && (
-                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest opacity-20 ml-2">No tags added</p>
-              )}
-            </div>
-          </div>
+          </GlassCard>
         </motion.div>
 
-        <div className="md:col-span-2 flex justify-end gap-4 pt-4">
+        <div className="md:col-span-2 flex justify-end gap-3 pt-2">
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
-            className="stellar-btn-outline"
+            className="btn-secondary py-3 px-6"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={profileLoading}
-            className="stellar-btn min-w-[180px] flex items-center justify-center gap-3 group"
+            className="btn-primary min-w-[160px] flex items-center justify-center gap-2 group py-3 cursor-pointer"
           >
             {profileLoading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="animate-spin" size={18} />
             ) : (
               <>
-                <Save size={20} className="group-hover:rotate-12 transition-transform" />
+                <Save size={18} className="group-hover:rotate-12 transition-transform" />
                 <span>Synchronize</span>
               </>
             )}

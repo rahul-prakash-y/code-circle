@@ -41,12 +41,12 @@ const AntiCheatModal = ({ warnings, isLocked }) => {
           {isLocked ? (
             <div className="space-y-4">
               <p className="text-xs text-red-400 font-bold uppercase tracking-widest">Action Required</p>
-              <button className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black transition-all transform hover:scale-[1.02] shadow-lg shadow-red-600/20">
+              <button className="w-full py-4 bg-red-600 hover:bg-red-700 text-text-primary rounded-xl font-black transition-all transform hover:scale-[1.02] shadow-lg shadow-red-600/20">
                 Contact Administrator
               </button>
             </div>
           ) : (
-            <button className="w-full py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-all border border-white/10">
+            <button className="w-full py-4 bg-surface-elevated hover:bg-white/20 text-text-primary rounded-xl font-bold transition-all border border-border">
               I Understand, Continue
             </button>
           )}

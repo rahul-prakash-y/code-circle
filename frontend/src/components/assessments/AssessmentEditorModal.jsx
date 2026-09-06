@@ -261,29 +261,29 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-4xl my-auto stellar-glass border border-white/10 p-6 sm:p-8 relative overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] max-h-[90vh] flex flex-col"
+        className="w-full max-w-4xl my-auto glass border border-border p-6 sm:p-8 relative overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] max-h-[90vh] flex flex-col"
       >
         {/* Glow ambient background */}
         <div className="absolute top-0 right-0 w-80 h-80 -mr-24 -mt-24 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
 
         {/* Modal Header */}
-        <div className="flex justify-between items-center pb-6 border-b border-white/10 relative z-10 flex-shrink-0">
+        <div className="flex justify-between items-center pb-6 border-b border-border relative z-10 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
               <Award size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white tracking-tight">
+              <h2 className="text-xl font-black text-text-primary tracking-tight">
                 {assessmentToEdit ? 'Edit MCQ Assessment' : 'Create New MCQ Assessment'}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-text-muted">
                 Design custom multiple choice challenges with dynamic questions and automated scoring
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/5"
+            className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border"
           >
             <X size={18} />
           </button>
@@ -295,7 +295,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Title */}
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
                 Assessment Title *
               </label>
               <input
@@ -303,14 +303,14 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Fastify & Modern REST Architecture Benchmark"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-purple-500/50 transition-all placeholder-slate-600"
+                className="w-full px-4 py-3 bg-surface-elevated border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all placeholder-slate-600"
                 required
               />
             </div>
 
             {/* Description */}
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
                 Description & Instructions
               </label>
               <textarea
@@ -318,19 +318,19 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Explain what this assessment tests, rules, or prerequisites..."
                 rows={2}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-purple-500/50 transition-all placeholder-slate-600 resize-none"
+                className="w-full px-4 py-3 bg-surface-elevated border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all placeholder-slate-600 resize-none"
               />
             </div>
 
             {/* Category */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
                 Category Track
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0d121f] border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+                className="w-full px-4 py-3 bg-[#0d121f] border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all"
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
@@ -342,13 +342,13 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
 
             {/* Linked Event */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
                 Associate With Event (Optional)
               </label>
               <select
                 value={eventId}
                 onChange={(e) => setEventId(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0d121f] border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+                className="w-full px-4 py-3 bg-[#0d121f] border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all"
               >
                 <option value="">None (Standalone Assessment)</option>
                 {events?.map((ev) => (
@@ -361,7 +361,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
 
             {/* Time Limit */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
                 <Clock size={14} className="text-purple-400" />
                 Time Limit (Minutes) *
               </label>
@@ -371,14 +371,14 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                 max="180"
                 value={timeLimitMinutes}
                 onChange={(e) => setTimeLimitMinutes(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+                className="w-full px-4 py-3 bg-surface-elevated border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all"
                 required
               />
             </div>
 
             {/* Passing Percentage */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-emerald-400" />
                 Passing Score Cutoff (%)
               </label>
@@ -388,32 +388,32 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                 max="100"
                 value={passingScorePercentage}
                 onChange={(e) => setPassingScorePercentage(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+                className="w-full px-4 py-3 bg-surface-elevated border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all"
                 required
               />
             </div>
 
             {/* Status Toggle */}
-            <div className="md:col-span-2 flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
+            <div className="md:col-span-2 flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-border">
               <input
                 type="checkbox"
                 id="isPublished"
                 checked={isPublished}
                 onChange={(e) => setIsPublished(e.target.checked)}
-                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 bg-white/5 border-white/20 cursor-pointer"
+                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 bg-surface-elevated border-border-hover cursor-pointer"
               />
-              <label htmlFor="isPublished" className="text-xs font-bold text-white cursor-pointer select-none">
+              <label htmlFor="isPublished" className="text-xs font-bold text-text-primary cursor-pointer select-none">
                 Publish Assessment immediately (visible to students in assessment catalogue)
               </label>
             </div>
           </div>
 
           {/* Dynamic Multiple Choice Questions Section */}
-          <div className="space-y-6 pt-4 border-t border-white/10">
+          <div className="space-y-6 pt-4 border-t border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Layers size={18} className="text-purple-400" />
-                <h3 className="text-base font-black text-white">Dynamic MCQ Questions ({questions.length})</h3>
+                <h3 className="text-base font-black text-text-primary">Dynamic MCQ Questions ({questions.length})</h3>
               </div>
               <button
                 type="button"
@@ -429,7 +429,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
               {questions.map((q, qIndex) => (
                 <div
                   key={qIndex}
-                  className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4 relative group hover:border-purple-500/30 transition-all"
+                  className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-border space-y-4 relative group hover:border-purple-500/30 transition-all"
                 >
                   {/* Question Header */}
                   <div className="flex items-center justify-between gap-4">
@@ -437,13 +437,13 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                       <span className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center text-xs font-black">
                         #{qIndex + 1}
                       </span>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
                         Question {qIndex + 1}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                      <div className="flex items-center gap-1.5 text-xs text-text-muted">
                         <span>Points:</span>
                         <input
                           type="number"
@@ -451,7 +451,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                           max="10"
                           value={q.points}
                           onChange={(e) => handleQuestionPointsChange(qIndex, e.target.value)}
-                          className="w-12 px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-white text-xs text-center focus:outline-none"
+                          className="w-12 px-2 py-1 bg-surface-elevated border border-border rounded-lg text-text-primary text-xs text-center focus:outline-none"
                         />
                       </div>
 
@@ -474,13 +474,13 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                     onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
                     placeholder="Enter question text or code snippet prompt..."
                     rows={2}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500/50 transition-all placeholder-slate-600 resize-none font-sans"
+                    className="w-full px-4 py-3 bg-surface-elevated border border-border rounded-xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all placeholder-slate-600 resize-none font-sans"
                     required
                   />
 
                   {/* Dynamic Options */}
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-text-muted uppercase tracking-wider">
                       <span>Options (Mark the radio circle for the correct answer)</span>
                       {q.options.length < 6 && (
                         <button
@@ -504,7 +504,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                             className={`flex items-center gap-3 p-2 rounded-xl border transition-all ${
                               isCorrect
                                 ? 'bg-emerald-500/5 border-emerald-500/30'
-                                : 'bg-white/5 border-white/5'
+                                : 'bg-surface-elevated border-border'
                             }`}
                           >
                             {/* Correct Radio Selector */}
@@ -514,13 +514,13 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                                 name={`correct-${qIndex}`}
                                 checked={isCorrect}
                                 onChange={() => handleSetCorrectOption(qIndex, optIndex)}
-                                className="w-4 h-4 text-emerald-500 bg-white/5 border-white/20 focus:ring-emerald-400 cursor-pointer"
+                                className="w-4 h-4 text-emerald-500 bg-surface-elevated border-border-hover focus:ring-emerald-400 cursor-pointer"
                               />
                               <span
                                 className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
                                   isCorrect
                                     ? 'bg-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                                    : 'bg-white/10 text-slate-400'
+                                    : 'bg-surface-elevated text-text-muted'
                                 }`}
                               >
                                 {optionLetter}
@@ -533,7 +533,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                               value={opt}
                               onChange={(e) => handleOptionChange(qIndex, optIndex, e.target.value)}
                               placeholder={`Option ${optionLetter} content...`}
-                              className="flex-1 bg-transparent border-none text-white text-xs sm:text-sm focus:outline-none placeholder-slate-600 px-1"
+                              className="flex-1 bg-transparent border-none text-text-primary text-xs sm:text-sm focus:outline-none placeholder-slate-600 px-1"
                               required
                             />
 
@@ -542,7 +542,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveOption(qIndex, optIndex)}
-                                className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                                className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
                                 title="Remove this choice"
                               >
                                 <X size={14} />
@@ -556,8 +556,8 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
 
                   {/* Explanation (Optional) */}
                   <div className="space-y-1 pt-1">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <HelpCircle size={12} className="text-slate-500" />
+                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-1">
+                      <HelpCircle size={12} className="text-text-muted" />
                       Answer Explanation (Revealed to student after submission)
                     </label>
                     <input
@@ -565,7 +565,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                       value={q.explanation}
                       onChange={(e) => handleQuestionExplanationChange(qIndex, e.target.value)}
                       placeholder="Why is this answer correct? (Optional context)"
-                      className="w-full px-3 py-2 bg-white/5 border border-white/5 rounded-xl text-white text-xs focus:outline-none focus:border-purple-500/30 transition-all placeholder-slate-600"
+                      className="w-full px-3 py-2 bg-surface-elevated border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-purple-500/30 transition-all placeholder-slate-600"
                     />
                   </div>
                 </div>
@@ -575,25 +575,25 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
             <button
               type="button"
               onClick={handleAddQuestion}
-              className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-purple-400 hover:text-purple-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+              className="w-full py-3 rounded-2xl bg-surface-elevated hover:bg-surface-elevated border border-border text-purple-400 hover:text-purple-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
             >
               <Plus size={16} /> Add Another Question
             </button>
           </div>
 
           {/* Modal Footer Buttons */}
-          <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3">
+          <div className="pt-6 border-t border-border flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="stellar-btn py-2.5 px-6 text-xs font-black flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 shadow-[0_0_20px_rgba(168,85,247,0.3)] disabled:opacity-50"
+              className="btn-primary py-2.5 px-6 text-xs font-black flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 shadow-[0_0_20px_rgba(168,85,247,0.3)] disabled:opacity-50"
             >
               <Save size={16} />
               {submitting ? 'Saving Assessment...' : assessmentToEdit ? 'Save Changes' : 'Publish Assessment'}

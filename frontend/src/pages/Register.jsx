@@ -30,6 +30,18 @@ const Register = () => {
     setLoading(false);
   };
 
+  const fieldVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0 }
+  };
+
+  const fields = [
+    { label: 'Full Name', icon: User, type: 'text', placeholder: 'John Doe', value: name, onChange: setName },
+    { label: 'University Roll Number', icon: Hash, type: 'text', placeholder: 'Ex: 2021CSE001', value: rollNo, onChange: setRollNo },
+    { label: 'Email Address', icon: Mail, type: 'email', placeholder: 'name@university.edu', value: email, onChange: setEmail },
+    { label: 'Password', icon: Lock, type: 'password', placeholder: '••••••••', value: password, onChange: setPassword },
+  ];
+
   return (
     <AuthLayout 
       title="Join the Circle" 
@@ -51,112 +63,39 @@ const Register = () => {
           }
         }}
       >
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0, x: -10 },
-            visible: { opacity: 1, x: 0 }
-          }}
-          className="space-y-2"
-        >
-          <label className="stellar-label">Full Name</label>
-          <div className="relative group">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
-            <input
-              type="text"
-              placeholder="John Doe"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="stellar-input pl-12"
-              required
-            />
-          </div>
-        </motion.div>
+        {fields.map((field) => (
+          <motion.div key={field.label} variants={fieldVariants} className="space-y-2">
+            <label className="input-label">{field.label}</label>
+            <div className="relative group">
+              <field.icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors duration-300" />
+              <input
+                type={field.type}
+                placeholder={field.placeholder}
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+                className="input-field pl-12"
+                required
+              />
+            </div>
+          </motion.div>
+        ))}
 
         <motion.div 
-          variants={{
-            hidden: { opacity: 0, x: -10 },
-            visible: { opacity: 1, x: 0 }
-          }}
-          className="space-y-2"
-        >
-          <label className="stellar-label">University Roll Number</label>
-          <div className="relative group">
-            <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
-            <input
-              type="text"
-              placeholder="Ex: 2021CSE001"
-              value={rollNo}
-              onChange={(e) => setRollNo(e.target.value)}
-              className="stellar-input pl-12"
-              required
-            />
-          </div>
-        </motion.div>
-
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0, x: -10 },
-            visible: { opacity: 1, x: 0 }
-          }}
-          className="space-y-2"
-        >
-          <label className="stellar-label">Email Address</label>
-          <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
-            <input
-              type="email"
-              placeholder="name@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="stellar-input pl-12"
-              required
-            />
-          </div>
-        </motion.div>
-
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0, x: -10 },
-            visible: { opacity: 1, x: 0 }
-          }}
-          className="space-y-2"
-        >
-          <label className="stellar-label">Password</label>
-          <div className="relative group">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="stellar-input pl-12"
-              required
-            />
-          </div>
-        </motion.div>
-
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0 }
-          }}
+          variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
           className="pt-2"
         >
-          <button type="submit" disabled={loading} className="stellar-btn w-full flex items-center justify-center gap-2">
+          <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 text-base cursor-pointer">
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
           </button>
         </motion.div>
 
         <motion.p 
-          variants={{
-            hidden: { opacity: 0 },
-            visible: { opacity: 1 }
-          }}
-          className="text-center text-slate-500 text-sm mt-6 flex flex-col gap-3"
+          variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
+          className="text-center text-text-muted text-sm mt-6 flex flex-col gap-3"
         >
           <span>
             Already have an account?{' '}
-            <Link to="/login" className="text-white font-bold hover:text-blue-400 transition-colors duration-500 underline underline-offset-8 decoration-white/10 hover:decoration-blue-400/30">
+            <Link to="/login" className="text-text-primary font-semibold hover:text-accent transition-colors duration-300 underline underline-offset-8 decoration-border hover:decoration-accent/30">
               Sign In
             </Link>
           </span>

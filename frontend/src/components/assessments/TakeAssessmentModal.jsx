@@ -145,22 +145,22 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-4xl my-auto stellar-glass border border-white/10 relative overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] max-h-[92vh] flex flex-col"
+        className="w-full max-w-4xl my-auto glass border border-border relative overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] max-h-[92vh] flex flex-col"
       >
         {/* Ambient Glow */}
         <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
 
         {/* Top Assessment Header */}
-        <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between gap-4 relative z-10 flex-shrink-0 bg-white/[0.01]">
+        <div className="p-5 sm:p-6 border-b border-border flex items-center justify-between gap-4 relative z-10 flex-shrink-0 bg-white/[0.01]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
               <Award size={20} />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-white line-clamp-1">
+              <h2 className="text-base sm:text-lg font-black text-text-primary line-clamp-1">
                 {currentAssessment?.title || 'Loading Assessment...'}
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-text-muted">
                 {currentResult ? 'Assessment Results & Breakdown' : `Question ${currentQuestionIndex + 1} of ${totalQuestions} • Passing Cutoff: ${currentAssessment?.passingScorePercentage}%`}
               </p>
             </div>
@@ -173,7 +173,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
                   isTimeCritical
                     ? 'bg-red-500/15 border-red-500/40 text-red-400 animate-pulse'
-                    : 'bg-white/5 border-white/10 text-white'
+                    : 'bg-surface-elevated border-border text-text-primary'
                 }`}
               >
                 <Clock size={16} className={isTimeCritical ? 'text-red-400' : 'text-purple-400'} />
@@ -185,7 +185,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/5"
+              className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border"
             >
               <X size={18} />
             </button>
@@ -196,7 +196,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         {loading ? (
           <div className="p-16 text-center space-y-4">
             <div className="w-12 h-12 rounded-2xl border-2 border-purple-500 border-t-transparent animate-spin mx-auto" />
-            <p className="text-xs text-slate-400 uppercase tracking-widest font-black">
+            <p className="text-xs text-text-muted uppercase tracking-widest font-black">
               Preparing Assessment...
             </p>
           </div>
@@ -213,7 +213,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   : 'bg-red-500/10 border-red-500/30'
               }`}
             >
-              <div className="inline-flex p-4 rounded-3xl bg-white/5 border border-white/10 mx-auto">
+              <div className="inline-flex p-4 rounded-3xl bg-surface-elevated border border-border mx-auto">
                 {currentResult.passed ? (
                   <Trophy size={40} className="text-emerald-400 animate-bounce" />
                 ) : (
@@ -231,17 +231,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 >
                   {currentResult.passed ? 'Assessment Passed' : 'Needs Practice'}
                 </span>
-                <h3 className="text-3xl sm:text-4xl font-black text-white mt-3">
+                <h3 className="text-3xl sm:text-4xl font-black text-text-primary mt-3">
                   {currentResult.score} / {currentResult.totalPoints} Points ({currentResult.percentage}%)
                 </h3>
-                <p className="text-xs text-slate-300 max-w-md mx-auto mt-2">
+                <p className="text-xs text-text-secondary max-w-md mx-auto mt-2">
                   {currentResult.passed
                     ? `Outstanding! You achieved ${currentResult.percentage}%, exceeding the ${currentResult.passingScorePercentage}% requirement.`
                     : `You scored ${currentResult.percentage}%. The passing threshold is ${currentResult.passingScorePercentage}%. Review the explanations below and try again!`}
                 </p>
               </div>
 
-              <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold text-slate-400">
+              <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold text-text-muted">
                 <span>⏱️ Time Spent: {formatTime(currentResult.timeSpentSeconds)}</span>
                 <span>📋 Total Questions: {currentResult.detailedResults.length}</span>
               </div>
@@ -251,7 +251,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <HelpCircle size={18} className="text-purple-400" />
-                <h4 className="text-sm font-black uppercase tracking-wider text-white">
+                <h4 className="text-sm font-black uppercase tracking-wider text-text-primary">
                   Answer Key & Comprehensive Explanations
                 </h4>
               </div>
@@ -273,7 +273,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                         ) : (
                           <XCircle size={18} className="text-red-400 flex-shrink-0" />
                         )}
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
                           Question #{idx + 1}
                         </span>
                       </div>
@@ -288,13 +288,13 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       </span>
                     </div>
 
-                    <p className="text-sm font-bold text-white leading-relaxed">
+                    <p className="text-sm font-bold text-text-primary leading-relaxed">
                       {qResult.questionText}
                     </p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-0.5">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase">Your Choice:</p>
+                      <div className="p-2.5 rounded-xl bg-surface-elevated border border-border space-y-0.5">
+                        <p className="text-[10px] font-bold text-text-muted uppercase">Your Choice:</p>
                         <p className={qResult.isCorrect ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
                           {qResult.selectedOption >= 0
                             ? `Option ${String.fromCharCode(65 + qResult.selectedOption)}`
@@ -302,8 +302,8 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                         </p>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-0.5">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase">Correct Answer:</p>
+                      <div className="p-2.5 rounded-xl bg-surface-elevated border border-border space-y-0.5">
+                        <p className="text-[10px] font-bold text-text-muted uppercase">Correct Answer:</p>
                         <p className="text-emerald-400 font-bold">
                           Option {String.fromCharCode(65 + qResult.correctOptionIndex)}
                         </p>
@@ -322,7 +322,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             </div>
 
             {/* Post-result Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
               <button
                 onClick={() => {
                   clearCurrentResult();
@@ -331,13 +331,13 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   setTimeLeftSeconds((currentAssessment.timeLimitMinutes || 30) * 60);
                   setStartTime(Date.now());
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 flex items-center gap-2 border border-white/10 transition-all"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated flex items-center gap-2 border border-border transition-all"
               >
                 <RotateCcw size={14} /> Retake Assessment
               </button>
               <button
                 onClick={onClose}
-                className="stellar-btn py-2.5 px-6 text-xs font-black"
+                className="btn-primary py-2.5 px-6 text-xs font-black"
               >
                 Return to Dashboard
               </button>
@@ -349,7 +349,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           /* ========================================================================= */
           <div className="flex-1 flex flex-col overflow-hidden relative z-10">
             {/* Question Progress Bubbles Bar */}
-            <div className="px-6 py-4 bg-white/[0.02] border-b border-white/5 flex items-center gap-2 overflow-x-auto custom-scrollbar flex-shrink-0">
+            <div className="px-6 py-4 bg-white/[0.02] border-b border-border flex items-center gap-2 overflow-x-auto custom-scrollbar flex-shrink-0">
               {questions.map((_, idx) => {
                 const isAnswered = answers[idx] !== undefined;
                 const isCurrent = idx === currentQuestionIndex;
@@ -360,10 +360,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                     onClick={() => setCurrentQuestionIndex(idx)}
                     className={`w-8 h-8 rounded-xl text-xs font-black transition-all flex items-center justify-center flex-shrink-0 ${
                       isCurrent
-                        ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-105'
+                        ? 'bg-purple-600 text-text-primary shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-105'
                         : isAnswered
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 border border-white/5'
+                        : 'bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-elevated border border-border'
                     }`}
                   >
                     {idx + 1}
@@ -381,13 +381,13 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                     <span className="text-xs font-black uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full">
                       Question {currentQuestionIndex + 1} of {totalQuestions}
                     </span>
-                    <span className="text-xs font-bold text-slate-400">
+                    <span className="text-xs font-bold text-text-muted">
                       Worth {currentQ.points || 1} Point{(currentQ.points || 1) > 1 ? 's' : ''}
                     </span>
                   </div>
 
                   {/* Question Prompt */}
-                  <h3 className="text-lg sm:text-xl font-black text-white leading-relaxed">
+                  <h3 className="text-lg sm:text-xl font-black text-text-primary leading-relaxed">
                     {currentQ.questionText}
                   </h3>
 
@@ -405,15 +405,15 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                           onClick={() => handleSelectOption(optIndex)}
                           className={`w-full p-4 sm:p-5 rounded-2xl text-left flex items-center gap-4 transition-all duration-200 cursor-pointer border ${
                             isSelected
-                              ? 'bg-purple-600/15 border-purple-500 text-white shadow-[0_0_25px_rgba(168,85,247,0.25)]'
-                              : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:border-white/20'
+                              ? 'bg-purple-600/15 border-purple-500 text-text-primary shadow-[0_0_25px_rgba(168,85,247,0.25)]'
+                              : 'bg-surface-elevated border-border text-text-secondary hover:bg-surface-elevated hover:border-border-hover'
                           }`}
                         >
                           <div
                             className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all flex-shrink-0 ${
                               isSelected
-                                ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]'
-                                : 'bg-white/10 text-slate-400'
+                                ? 'bg-purple-600 text-text-primary shadow-[0_0_12px_rgba(168,85,247,0.4)]'
+                                : 'bg-surface-elevated text-text-muted'
                             }`}
                           >
                             {optionLetter}
@@ -432,21 +432,21 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-10 text-slate-500">No question selected</div>
+                <div className="text-center py-10 text-text-muted">No question selected</div>
               )}
             </div>
 
             {/* Bottom Controls Bar */}
-            <div className="p-4 sm:p-6 border-t border-white/10 flex items-center justify-between gap-3 bg-white/[0.01] flex-shrink-0">
+            <div className="p-4 sm:p-6 border-t border-border flex items-center justify-between gap-3 bg-white/[0.01] flex-shrink-0">
               <button
                 onClick={handlePrevious}
                 disabled={currentQuestionIndex === 0}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 transition-all"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 transition-all"
               >
                 <ChevronLeft size={16} /> Previous
               </button>
 
-              <div className="text-xs font-bold text-slate-400">
+              <div className="text-xs font-bold text-text-muted">
                 <span className="text-purple-400 font-black">{answeredCount}</span> of {totalQuestions} answered
               </div>
 
@@ -454,14 +454,14 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 {currentQuestionIndex < totalQuestions - 1 ? (
                   <button
                     onClick={handleNext}
-                    className="stellar-btn py-2.5 px-5 text-xs font-black flex items-center gap-1.5"
+                    className="btn-primary py-2.5 px-5 text-xs font-black flex items-center gap-1.5"
                   >
                     Next <ChevronRight size={16} />
                   </button>
                 ) : (
                   <button
                     onClick={() => setShowConfirmModal(true)}
-                    className="stellar-btn py-2.5 px-6 text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2"
+                    className="btn-primary py-2.5 px-6 text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2"
                   >
                     <Send size={15} /> Submit Assessment
                   </button>
@@ -479,17 +479,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-md stellar-glass border border-white/10 p-6 sm:p-7 space-y-5 text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
+                className="w-full max-w-md glass border border-border p-6 sm:p-7 space-y-5 text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
               >
                 <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
                   <Send size={26} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white">Ready to submit?</h3>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  <h3 className="text-lg font-black text-text-primary">Ready to submit?</h3>
+                  <p className="text-xs text-text-muted mt-1 leading-relaxed">
                     You have completed{' '}
-                    <span className="text-white font-bold">{answeredCount}</span> of{' '}
-                    <span className="text-white font-bold">{totalQuestions}</span> questions.
+                    <span className="text-text-primary font-bold">{answeredCount}</span> of{' '}
+                    <span className="text-text-primary font-bold">{totalQuestions}</span> questions.
                     {answeredCount < totalQuestions && (
                       <span className="block text-amber-400 mt-1 font-bold">
                         ⚠️ Note: {totalQuestions - answeredCount} question(s) remain unanswered!
@@ -501,14 +501,14 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 <div className="flex items-center justify-center gap-3 pt-2">
                   <button
                     onClick={() => setShowConfirmModal(false)}
-                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated transition-all"
                   >
                     Back to Test
                   </button>
                   <button
                     onClick={executeSubmit}
                     disabled={submitting}
-                    className="stellar-btn py-2.5 px-6 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 disabled:opacity-50"
+                    className="btn-primary py-2.5 px-6 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 disabled:opacity-50"
                   >
                     {submitting ? 'Calculating Score...' : 'Yes, Submit Now'}
                   </button>

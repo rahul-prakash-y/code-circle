@@ -203,9 +203,9 @@ const TeamsManagement: React.FC = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse" />
-            <h2 className="text-3xl font-black text-white tracking-tight">Teams Command Center</h2>
+            <h2 className="text-3xl font-black text-text-primary tracking-tight">Teams Command Center</h2>
           </div>
-          <p className="text-slate-400 font-medium text-sm">
+          <p className="text-text-muted font-medium text-sm">
             Administer student teams, map rosters, and manage activation or disciplinary blocks.
           </p>
         </div>
@@ -215,7 +215,7 @@ const TeamsManagement: React.FC = () => {
             setFormData({ name: '', description: '', eventId: '', status: 'Active', leaderRollNo: '' });
             setShowCreateModal(true);
           }}
-          className="stellar-btn px-6 py-3 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-500/20"
+          className="btn-primary px-6 py-3 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest shadow-xl shadow-accent/20"
         >
           <Plus size={16} />
           <span>Create New Team</span>
@@ -225,17 +225,17 @@ const TeamsManagement: React.FC = () => {
       {/* KPI Metrics Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Teams', value: stats.total, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          { label: 'Total Teams', value: stats.total, icon: Users, color: 'text-accent-muted', bg: 'bg-accent/10' },
           { label: 'Active Teams', value: stats.active, icon: ShieldCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Deactivated', value: stats.inactive, icon: Shield, color: 'text-slate-400', bg: 'bg-white/5' },
+          { label: 'Deactivated', value: stats.inactive, icon: Shield, color: 'text-text-muted', bg: 'bg-surface-elevated' },
           { label: 'Blocked Teams', value: stats.blocked, icon: Ban, color: 'text-rose-400', bg: 'bg-rose-500/10' },
         ].map((stat, i) => (
-          <div key={i} className="stellar-glass p-5 rounded-2xl flex items-center justify-between border border-white/5">
+          <div key={i} className="glass p-5 rounded-2xl flex items-center justify-between border border-border">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{stat.label}</p>
-              <p className="text-2xl font-black text-white">{stat.value}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-1">{stat.label}</p>
+              <p className="text-2xl font-black text-text-primary">{stat.value}</p>
             </div>
-            <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center border border-white/5`}>
+            <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center border border-border`}>
               <stat.icon size={22} />
             </div>
           </div>
@@ -246,18 +246,18 @@ const TeamsManagement: React.FC = () => {
       <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
           <input
             type="text"
             placeholder="Search teams by name, description, student name, or roll no..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 transition-all font-medium"
+            className="w-full bg-surface-elevated border border-border rounded-2xl pl-11 pr-4 py-3 text-xs text-text-primary placeholder-slate-500 focus:outline-none focus:border-purple-500/50 transition-all font-medium"
           />
         </div>
 
         {/* Status Filters */}
-        <div className="flex items-center gap-1.5 p-1 bg-white/5 border border-white/10 rounded-2xl overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-surface-elevated border border-border rounded-2xl overflow-x-auto">
           {[
             { id: 'all', label: 'All Teams' },
             { id: 'Active', label: 'Active' },
@@ -269,8 +269,8 @@ const TeamsManagement: React.FC = () => {
               onClick={() => setFilter('status', tab.id)}
               className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${
                 filters.status === tab.id
-                  ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-purple-600 text-text-primary shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                  : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
               }`}
             >
               {tab.label}
@@ -283,11 +283,11 @@ const TeamsManagement: React.FC = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="stellar-glass p-6 rounded-3xl h-[280px] animate-pulse">
-              <div className="w-1/2 h-6 bg-white/10 rounded-lg mb-4" />
-              <div className="w-3/4 h-4 bg-white/5 rounded-md mb-2" />
-              <div className="w-full h-16 bg-white/5 rounded-xl my-4" />
-              <div className="w-1/3 h-8 bg-white/10 rounded-xl" />
+            <div key={i} className="glass p-6 rounded-3xl h-[280px] animate-pulse">
+              <div className="w-1/2 h-6 bg-surface-elevated rounded-lg mb-4" />
+              <div className="w-3/4 h-4 bg-surface-elevated rounded-md mb-2" />
+              <div className="w-full h-16 bg-surface-elevated rounded-xl my-4" />
+              <div className="w-1/3 h-8 bg-surface-elevated rounded-xl" />
             </div>
           ))}
         </div>
@@ -302,12 +302,12 @@ const TeamsManagement: React.FC = () => {
                 key={team._id}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`stellar-glass p-6 rounded-3xl flex flex-col justify-between border transition-all duration-300 relative group overflow-hidden ${
+                className={`glass p-6 rounded-3xl flex flex-col justify-between border transition-all duration-300 relative group overflow-hidden ${
                   isBlocked
                     ? 'border-rose-500/30 bg-rose-950/10 shadow-[0_0_30px_rgba(244,63,94,0.08)]'
                     : isInactive
                     ? 'border-slate-700/40 opacity-75'
-                    : 'border-white/10 hover:border-purple-500/40 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]'
+                    : 'border-border hover:border-purple-500/40 hover:shadow-[0_0_30px_rgba(168,85,247,0.1)]'
                 }`}
               >
                 <div>
@@ -315,12 +315,12 @@ const TeamsManagement: React.FC = () => {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-black text-white truncate group-hover:text-purple-400 transition-colors">
+                        <h3 className="text-xl font-black text-text-primary truncate group-hover:text-purple-400 transition-colors">
                           {team.name}
                         </h3>
                       </div>
                       {team.event && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-0.5 truncate max-w-full">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-accent-muted uppercase tracking-widest mt-0.5 truncate max-w-full">
                           <Calendar size={10} />
                           {team.event.title}
                         </span>
@@ -334,7 +334,7 @@ const TeamsManagement: React.FC = () => {
                           ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                           : team.status === 'Blocked'
                           ? 'bg-rose-500/15 text-rose-400 border-rose-500/30 animate-pulse'
-                          : 'bg-white/5 text-slate-400 border-white/10'
+                          : 'bg-surface-elevated text-text-muted border-border'
                       }`}
                     >
                       {team.status}
@@ -343,29 +343,29 @@ const TeamsManagement: React.FC = () => {
 
                   {/* Description */}
                   {team.description ? (
-                    <p className="text-xs text-slate-400 line-clamp-2 mb-4 leading-relaxed font-medium">
+                    <p className="text-xs text-text-muted line-clamp-2 mb-4 leading-relaxed font-medium">
                       {team.description}
                     </p>
                   ) : (
-                    <p className="text-xs text-slate-600 italic mb-4">No team description provided.</p>
+                    <p className="text-xs text-text-muted italic mb-4">No team description provided.</p>
                   )}
 
                   {/* Leader Info */}
                   {team.leader && (
-                    <div className="flex items-center gap-2.5 p-2 bg-white/5 border border-white/5 rounded-xl mb-4">
+                    <div className="flex items-center gap-2.5 p-2 bg-surface-elevated border border-border rounded-xl mb-4">
                       <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                         <Crown size={14} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[10px] font-black text-amber-400 uppercase tracking-wider leading-none">Team Leader</p>
-                        <p className="text-xs font-bold text-white truncate">{team.leader.name} <span className="text-[10px] text-slate-400 font-mono">({team.leader.rollNo})</span></p>
+                        <p className="text-xs font-bold text-text-primary truncate">{team.leader.name} <span className="text-[10px] text-text-muted font-mono">({team.leader.rollNo})</span></p>
                       </div>
                     </div>
                   )}
 
                   {/* Members Roster Preview */}
                   <div className="space-y-2 mb-6">
-                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-text-muted">
                       <span>Roster ({team.members?.length || 0} students)</span>
                       <button
                         onClick={() => openManageMembers(team)}
@@ -380,22 +380,22 @@ const TeamsManagement: React.FC = () => {
                         team.members.map((member) => (
                           <div
                             key={member._id}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-white/5 rounded-lg text-slate-300 text-[11px] font-medium"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-elevated border border-border rounded-lg text-text-secondary text-[11px] font-medium"
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                             <span className="font-bold truncate max-w-[100px]">{member.name}</span>
-                            <span className="text-[10px] text-slate-500 font-mono">{member.rollNo}</span>
+                            <span className="text-[10px] text-text-muted font-mono">{member.rollNo}</span>
                           </div>
                         ))
                       ) : (
-                        <p className="text-xs text-slate-600 italic py-1">No students mapped yet.</p>
+                        <p className="text-xs text-text-muted italic py-1">No students mapped yet.</p>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {/* Card Action Footer */}
-                <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-2">
+                <div className="pt-4 border-t border-border flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     {/* Map Members Button */}
                     <button
@@ -421,7 +421,7 @@ const TeamsManagement: React.FC = () => {
                     {team.status !== 'Inactive' && (
                       <button
                         onClick={() => handleStatusChange(team._id, 'Inactive')}
-                        className="p-2 rounded-xl bg-slate-500/10 text-slate-400 hover:bg-slate-500/20 border border-white/5 text-xs font-black transition-all"
+                        className="p-2 rounded-xl bg-slate-500/10 text-text-muted hover:bg-slate-500/20 border border-border text-xs font-black transition-all"
                         title="Deactivate Team"
                       >
                         <Shield size={14} />
@@ -442,7 +442,7 @@ const TeamsManagement: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openEdit(team)}
-                      className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                      className="p-2 text-text-muted hover:text-text-primary rounded-lg hover:bg-surface-elevated transition-colors"
                       title="Edit Team Details"
                     >
                       <Edit2 size={15} />
@@ -464,10 +464,10 @@ const TeamsManagement: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="stellar-glass p-16 rounded-3xl text-center border border-white/5">
-          <Users className="w-14 h-14 text-slate-600 mx-auto mb-4 opacity-40" />
-          <h3 className="text-xl font-black text-white">No Teams Found</h3>
-          <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto">
+        <div className="glass p-16 rounded-3xl text-center border border-border">
+          <Users className="w-14 h-14 text-text-muted mx-auto mb-4 opacity-40" />
+          <h3 className="text-xl font-black text-text-primary">No Teams Found</h3>
+          <p className="text-text-muted text-xs mt-1 max-w-sm mx-auto">
             {searchQuery || filters.status !== 'all'
               ? 'No teams match your current search or status filter. Try clearing filters.'
               : 'Start by creating your first student team using the button above.'}
@@ -483,21 +483,21 @@ const TeamsManagement: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg stellar-glass border border-white/10 rounded-3xl p-6 shadow-2xl space-y-6"
+              className="w-full max-w-lg glass border border-border rounded-3xl p-6 shadow-2xl space-y-6"
             >
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div className="flex items-center justify-between border-b border-border pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
                     <Users size={20} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white">Create New Team</h3>
-                    <p className="text-xs text-slate-400">Initialize team details and assign squad name</p>
+                    <h3 className="text-xl font-black text-text-primary">Create New Team</h3>
+                    <p className="text-xs text-text-muted">Initialize team details and assign squad name</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5"
+                  className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated"
                 >
                   <X size={20} />
                 </button>
@@ -505,35 +505,35 @@ const TeamsManagement: React.FC = () => {
 
               <form onSubmit={handleCreateSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Team Name *</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-text-muted">Team Name *</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g. Cyber Ninjas"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 text-sm font-medium"
+                    className="w-full bg-surface-elevated border border-border rounded-xl px-4 py-2.5 text-text-primary focus:outline-none focus:border-purple-500 text-sm font-medium"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Description</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-text-muted">Description</label>
                   <textarea
                     rows={2}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Brief squad focus or project description..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 text-sm font-medium resize-none"
+                    className="w-full bg-surface-elevated border border-border rounded-xl px-4 py-2.5 text-text-primary focus:outline-none focus:border-purple-500 text-sm font-medium resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Link to Event</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-text-muted">Link to Event</label>
                     <select
                       value={formData.eventId}
                       onChange={(e) => setFormData({ ...formData, eventId: e.target.value })}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold focus:outline-none focus:border-purple-500"
+                      className="w-full bg-surface-elevated border border-border rounded-xl px-3 py-2 text-text-primary text-xs font-bold focus:outline-none focus:border-purple-500"
                     >
                       <option value="">General (No Event)</option>
                       {events.map((ev) => (
@@ -545,11 +545,11 @@ const TeamsManagement: React.FC = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Initial Status</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-text-muted">Initial Status</label>
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value as TeamStatus })}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold focus:outline-none focus:border-purple-500"
+                      className="w-full bg-surface-elevated border border-border rounded-xl px-3 py-2 text-text-primary text-xs font-bold focus:outline-none focus:border-purple-500"
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
@@ -559,28 +559,28 @@ const TeamsManagement: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Leader Roll Number (Optional)</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-text-muted">Leader Roll Number (Optional)</label>
                   <input
                     type="text"
                     value={formData.leaderRollNo}
                     onChange={(e) => setFormData({ ...formData, leaderRollNo: e.target.value })}
                     placeholder="e.g. 21CS042"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-xs font-mono uppercase focus:outline-none focus:border-purple-500"
+                    className="w-full bg-surface-elevated border border-border rounded-xl px-4 py-2 text-text-primary text-xs font-mono uppercase focus:outline-none focus:border-purple-500"
                   />
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t border-white/5">
+                <div className="flex gap-3 pt-4 border-t border-border">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 py-3 bg-white/5 text-slate-400 hover:text-white rounded-xl text-xs font-black uppercase tracking-widest"
+                    className="flex-1 py-3 bg-surface-elevated text-text-muted hover:text-text-primary rounded-xl text-xs font-black uppercase tracking-widest"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="flex-1 stellar-btn py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                    className="flex-1 btn-primary py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
                   >
                     {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Create Team'}
                   </button>
@@ -599,52 +599,52 @@ const TeamsManagement: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg stellar-glass border border-white/10 rounded-3xl p-6 shadow-2xl space-y-6"
+              className="w-full max-w-lg glass border border-border rounded-3xl p-6 shadow-2xl space-y-6"
             >
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div className="flex items-center justify-between border-b border-border pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
                     <Edit2 size={20} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white">Edit Team</h3>
-                    <p className="text-xs text-slate-400">Modify team properties and assignments</p>
+                    <h3 className="text-xl font-black text-text-primary">Edit Team</h3>
+                    <p className="text-xs text-text-muted">Modify team properties and assignments</p>
                   </div>
                 </div>
-                <button onClick={() => setShowEditModal(false)} className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5">
+                <button onClick={() => setShowEditModal(false)} className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated">
                   <X size={20} />
                 </button>
               </div>
 
               <form onSubmit={handleEditSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Team Name *</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-text-muted">Team Name *</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 text-sm font-medium"
+                    className="w-full bg-surface-elevated border border-border rounded-xl px-4 py-2.5 text-text-primary focus:outline-none focus:border-purple-500 text-sm font-medium"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Description</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-text-muted">Description</label>
                   <textarea
                     rows={2}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500 text-sm font-medium resize-none"
+                    className="w-full bg-surface-elevated border border-border rounded-xl px-4 py-2.5 text-text-primary focus:outline-none focus:border-purple-500 text-sm font-medium resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Event</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-text-muted">Event</label>
                     <select
                       value={formData.eventId}
                       onChange={(e) => setFormData({ ...formData, eventId: e.target.value })}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold focus:outline-none focus:border-purple-500"
+                      className="w-full bg-surface-elevated border border-border rounded-xl px-3 py-2 text-text-primary text-xs font-bold focus:outline-none focus:border-purple-500"
                     >
                       <option value="">None (General Team)</option>
                       {events.map((ev) => (
@@ -656,11 +656,11 @@ const TeamsManagement: React.FC = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Status</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-text-muted">Status</label>
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value as TeamStatus })}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold focus:outline-none focus:border-purple-500"
+                      className="w-full bg-surface-elevated border border-border rounded-xl px-3 py-2 text-text-primary text-xs font-bold focus:outline-none focus:border-purple-500"
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
@@ -669,18 +669,18 @@ const TeamsManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t border-white/5">
+                <div className="flex gap-3 pt-4 border-t border-border">
                   <button
                     type="button"
                     onClick={() => setShowEditModal(false)}
-                    className="flex-1 py-3 bg-white/5 text-slate-400 hover:text-white rounded-xl text-xs font-black uppercase tracking-widest"
+                    className="flex-1 py-3 bg-surface-elevated text-text-muted hover:text-text-primary rounded-xl text-xs font-black uppercase tracking-widest"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="flex-1 stellar-btn py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                    className="flex-1 btn-primary py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
                   >
                     {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Save Changes'}
                   </button>
@@ -699,32 +699,32 @@ const TeamsManagement: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-2xl stellar-glass border border-white/10 rounded-3xl p-6 shadow-2xl space-y-6 flex flex-col max-h-[85vh]"
+              className="w-full max-w-2xl glass border border-border rounded-3xl p-6 shadow-2xl space-y-6 flex flex-col max-h-[85vh]"
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div className="flex items-center justify-between border-b border-border pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
                     <UserPlus size={20} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white">Manage Team Roster</h3>
-                    <p className="text-xs text-slate-400">
+                    <h3 className="text-xl font-black text-text-primary">Manage Team Roster</h3>
+                    <p className="text-xs text-text-muted">
                       Map & assign students to <span className="text-purple-400 font-bold">"{selectedTeam.name}"</span>
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowMembersModal(false)}
-                  className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5"
+                  className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Quick Add by Roll Number */}
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+              <div className="p-4 rounded-2xl bg-surface-elevated border border-border space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest text-text-muted flex items-center gap-1.5">
                   <Sparkles size={14} className="text-purple-400" /> Quick Add by Roll Number
                 </label>
                 <div className="flex gap-2">
@@ -733,12 +733,12 @@ const TeamsManagement: React.FC = () => {
                     value={manualRollNo}
                     onChange={(e) => setManualRollNo(e.target.value)}
                     placeholder="Enter student roll number (e.g. 21CS042)..."
-                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono uppercase focus:outline-none focus:border-purple-500"
+                    className="flex-1 bg-black/40 border border-border rounded-xl px-4 py-2.5 text-xs text-text-primary font-mono uppercase focus:outline-none focus:border-purple-500"
                   />
                   <button
                     onClick={() => handleAddMember(manualRollNo)}
                     disabled={!manualRollNo.trim() || actionLoading}
-                    className="stellar-btn px-5 py-2.5 text-xs font-black uppercase tracking-widest disabled:opacity-50"
+                    className="btn-primary px-5 py-2.5 text-xs font-black uppercase tracking-widest disabled:opacity-50"
                   >
                     Add
                   </button>
@@ -748,7 +748,7 @@ const TeamsManagement: React.FC = () => {
               {/* Current Members Section */}
               <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-text-muted">
                     Currently Assigned ({selectedTeam.members?.length || 0})
                   </h4>
                 </div>
@@ -758,15 +758,15 @@ const TeamsManagement: React.FC = () => {
                     selectedTeam.members.map((member) => (
                       <div
                         key={member._id}
-                        className="flex items-center justify-between p-2.5 bg-white/5 border border-white/5 rounded-xl hover:border-white/10 transition-colors"
+                        className="flex items-center justify-between p-2.5 bg-surface-elevated border border-border rounded-xl hover:border-border transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 font-bold flex items-center justify-center text-xs">
                             {member.name?.charAt(0) || 'S'}
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-white leading-tight">{member.name}</p>
-                            <p className="text-[10px] text-slate-400 font-mono">
+                            <p className="text-xs font-bold text-text-primary leading-tight">{member.name}</p>
+                            <p className="text-[10px] text-text-muted font-mono">
                               {member.rollNo} • {member.department || member.email}
                             </p>
                           </div>
@@ -775,7 +775,7 @@ const TeamsManagement: React.FC = () => {
                         <button
                           onClick={() => handleRemoveMember(member._id)}
                           disabled={actionLoading}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                          className="p-1.5 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-all"
                           title="Remove from team"
                         >
                           <UserMinus size={16} />
@@ -783,26 +783,26 @@ const TeamsManagement: React.FC = () => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-slate-600 italic py-4 text-center">No students currently assigned to this team.</p>
+                    <p className="text-xs text-text-muted italic py-4 text-center">No students currently assigned to this team.</p>
                   )}
                 </div>
               </div>
 
               {/* Live Student Directory Search to Map */}
-              <div className="space-y-3 pt-3 border-t border-white/5">
+              <div className="space-y-3 pt-3 border-t border-border">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Student Directory Search</h4>
-                  <span className="text-[10px] text-slate-500">Click to assign to squad</span>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-text-muted">Student Directory Search</h4>
+                  <span className="text-[10px] text-text-muted">Click to assign to squad</span>
                 </div>
 
                 <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                   <input
                     type="text"
                     value={studentSearch}
                     onChange={(e) => setStudentSearch(e.target.value)}
                     placeholder="Search directory by student name, roll number, or department..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500"
+                    className="w-full bg-surface-elevated border border-border rounded-xl pl-9 pr-4 py-2 text-xs text-text-primary placeholder-slate-600 focus:outline-none focus:border-purple-500"
                   />
                 </div>
 
@@ -824,11 +824,11 @@ const TeamsManagement: React.FC = () => {
                         <div
                           key={u._id}
                           onClick={() => handleAddMember(u._id)}
-                          className="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-purple-500/10 hover:border-purple-500/30 border border-transparent cursor-pointer transition-all"
+                          className="flex items-center justify-between p-2 rounded-xl bg-surface-elevated hover:bg-purple-500/10 hover:border-purple-500/30 border border-transparent cursor-pointer transition-all"
                         >
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-white truncate">{u.name}</p>
-                            <p className="text-[10px] text-slate-400 font-mono">
+                            <p className="text-xs font-bold text-text-primary truncate">{u.name}</p>
+                            <p className="text-[10px] text-text-muted font-mono">
                               {u.rollNo} • {u.department || 'General'}
                             </p>
                           </div>
@@ -845,7 +845,7 @@ const TeamsManagement: React.FC = () => {
               <div className="pt-2">
                 <button
                   onClick={() => setShowMembersModal(false)}
-                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                  className="w-full py-3 bg-surface-elevated hover:bg-surface-elevated text-text-primary rounded-xl text-xs font-black uppercase tracking-widest transition-all"
                 >
                   Done
                 </button>
@@ -863,33 +863,33 @@ const TeamsManagement: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md stellar-glass border border-rose-500/20 rounded-3xl p-6 shadow-2xl space-y-6"
+              className="w-full max-w-md glass border border-rose-500/20 rounded-3xl p-6 shadow-2xl space-y-6"
             >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
                   <AlertTriangle size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-white">Delete Team</h3>
-                  <p className="text-xs text-slate-400">This action cannot be undone.</p>
+                  <h3 className="text-xl font-black text-text-primary">Delete Team</h3>
+                  <p className="text-xs text-text-muted">This action cannot be undone.</p>
                 </div>
               </div>
 
-              <p className="text-sm text-slate-300">
-                Are you sure you want to permanently delete <strong className="text-white">"{selectedTeam.name}"</strong>? Student mappings will be disbanded.
+              <p className="text-sm text-text-secondary">
+                Are you sure you want to permanently delete <strong className="text-text-primary">"{selectedTeam.name}"</strong>? Student mappings will be disbanded.
               </p>
 
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 py-3 bg-white/5 text-slate-400 hover:text-white rounded-xl text-xs font-black uppercase tracking-widest"
+                  className="flex-1 py-3 bg-surface-elevated text-text-muted hover:text-text-primary rounded-xl text-xs font-black uppercase tracking-widest"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteConfirm}
                   disabled={actionLoading}
-                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-rose-600/30"
+                  className="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-text-primary rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-rose-600/30"
                 >
                   {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Delete Team'}
                 </button>

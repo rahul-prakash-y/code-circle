@@ -70,23 +70,23 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="w-full max-w-lg bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+        className="w-full max-w-lg bg-surface-elevated/90 backdrop-blur-xl border border-border rounded-3xl shadow-2xl overflow-hidden"
       >
         {/* Header */}
-        <div className="relative p-6 border-b border-white/5 bg-linear-to-r from-indigo-500/10 to-violet-500/10">
+        <div className="relative p-6 border-b border-border bg-linear-to-r from-indigo-500/10 to-violet-500/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-indigo-500/20 rounded-xl text-indigo-400">
                 {isTeamEvent ? <Users size={20} /> : <UserPlus size={20} />}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Event Enrollment</h2>
-                <p className="text-xs text-slate-400 mt-0.5">{event.title}</p>
+                <h2 className="text-xl font-bold text-text-primary">Event Enrollment</h2>
+                <p className="text-xs text-text-muted mt-0.5">{event.title}</p>
               </div>
             </div>
             <button 
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all"
+              className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded-full transition-all"
             >
               <X size={20} />
             </button>
@@ -99,13 +99,13 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
             <>
               {/* Team Name */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Team Name</label>
+                <label className="text-sm font-medium text-text-secondary ml-1">Team Name</label>
                 <input
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   placeholder="Enter a catchy name..."
-                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                  className="w-full bg-surface-elevated/50 border border-slate-700/50 rounded-2xl px-4 py-3 text-text-primary placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                   required
                 />
               </div>
@@ -113,13 +113,13 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
               {/* Team Members */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between ml-1">
-                  <label className="text-sm font-medium text-slate-300">Team Members (Roll Numbers)</label>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                  <label className="text-sm font-medium text-text-secondary">Team Members (Roll Numbers)</label>
+                  <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold">
                     {members.length + 1} / {event.maxParticipants}
                   </span>
                 </div>
                 
-                <div className="p-3 bg-slate-800/30 rounded-2xl border border-slate-700/30 space-y-3">
+                <div className="p-3 bg-surface-elevated/30 rounded-2xl border border-slate-700/30 space-y-3">
                   <div className="flex items-center gap-3 p-3 bg-indigo-600/10 border border-indigo-500/20 rounded-xl">
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-bold">
                       YOU
@@ -141,13 +141,13 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
                           value={member}
                           onChange={(e) => handleMemberChange(index, e.target.value)}
                           placeholder={`Member #${index + 2} Roll No`}
-                          className="flex-1 bg-slate-800/80 border border-slate-700/50 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all"
+                          className="flex-1 bg-surface-elevated/80 border border-slate-700/50 rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-indigo-500 transition-all"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => handleRemoveMember(index)}
-                          className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                          className="p-2 text-text-muted hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -174,8 +174,8 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
                 <CheckCircle size={40} className="text-indigo-400" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-white">Ready to join?</h3>
-                <p className="text-sm text-slate-400 max-w-[280px] mx-auto">
+                <h3 className="text-lg font-bold text-text-primary">Ready to join?</h3>
+                <p className="text-sm text-text-muted max-w-[280px] mx-auto">
                   You are about to enroll in <span className="text-indigo-300 font-medium">"{event.title}"</span> as an individual participant.
                 </p>
               </div>
@@ -187,14 +187,14 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 bg-slate-800/50 hover:bg-slate-800 text-slate-300 rounded-2xl font-semibold transition-all"
+              className="flex-1 px-6 py-3 bg-surface-elevated/50 hover:bg-surface-elevated text-text-secondary rounded-2xl font-semibold transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-violet-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
+              className="flex-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-violet-600 text-text-primary rounded-2xl font-bold shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -209,8 +209,8 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
         </form>
 
         {/* Footer info */}
-        <div className="p-4 bg-slate-950/50 border-t border-white/5 text-center">
-          <p className="text-[10px] text-slate-500 uppercase tracking-widest flex items-center justify-center gap-2">
+        <div className="p-4 bg-surface/50 border-t border-border text-center">
+          <p className="text-[10px] text-text-muted uppercase tracking-widest flex items-center justify-center gap-2">
             <AlertCircle size={10} /> Limited slots available per event
           </p>
         </div>

@@ -56,16 +56,16 @@ const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
   });
 
   const SkeletonCard = () => (
-    <div className="stellar-glass p-8 h-[280px] animate-pulse rounded-3xl">
+    <div className="glass p-8 h-[280px] animate-pulse rounded-3xl">
       <div className="flex justify-between mb-4">
-        <div className="w-24 h-6 bg-white/10 rounded-full" />
-        <div className="w-16 h-6 bg-white/10 rounded-full" />
+        <div className="w-24 h-6 bg-surface-elevated rounded-full" />
+        <div className="w-16 h-6 bg-surface-elevated rounded-full" />
       </div>
       <div className="space-y-3">
-        <div className="w-12 h-12 bg-white/10 rounded-xl mb-2" />
-        <div className="w-3/4 h-6 bg-white/10 rounded-md" />
-        <div className="w-full h-4 bg-white/10 rounded-md" />
-        <div className="w-full h-4 bg-white/10 rounded-md" />
+        <div className="w-12 h-12 bg-surface-elevated rounded-xl mb-2" />
+        <div className="w-3/4 h-6 bg-surface-elevated rounded-md" />
+        <div className="w-full h-4 bg-surface-elevated rounded-md" />
+        <div className="w-full h-4 bg-surface-elevated rounded-md" />
       </div>
     </div>
   );
@@ -77,13 +77,13 @@ const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            <h2 className="text-3xl font-black text-white tracking-tight">Events Arena</h2>
+            <h2 className="text-3xl font-black text-text-primary tracking-tight">Events Arena</h2>
           </div>
-          <p className="text-slate-400 text-sm font-medium">Discover workshops, lectures, hackathons, and technical sprints.</p>
+          <p className="text-text-muted text-sm font-medium">Discover workshops, lectures, hackathons, and technical sprints.</p>
         </div>
 
         {/* Status Tabs */}
-        <div className="flex items-center gap-1.5 p-1.5 stellar-glass rounded-2xl overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1.5 glass rounded-2xl overflow-x-auto">
           {[
             { id: 'upcoming', label: 'Upcoming', icon: CalendarCheck },
             { id: 'live', label: 'Live Now', icon: Activity },
@@ -96,7 +96,7 @@ const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 font-black uppercase tracking-wider text-xs whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-white text-black shadow-xl shadow-white/10'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
               }`}
             >
               <tab.icon size={14} className={tab.id === 'live' && activeTab === tab.id ? 'text-red-500 animate-pulse' : ''} />
@@ -109,27 +109,27 @@ const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
       {/* Filter and Search Bar */}
       <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
           <input
             type="text"
             placeholder="Search events by title, description, or venue..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 transition-all"
+            className="w-full bg-surface-elevated border border-border rounded-2xl pl-11 pr-4 py-2.5 text-xs text-text-primary placeholder-slate-500 focus:outline-none focus:border-accent/50 transition-all"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Type Filter */}
-          <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 p-1 rounded-2xl">
+          <div className="flex items-center gap-1.5 bg-surface-elevated border border-border p-1 rounded-2xl">
             {EVENT_TYPES.map((type) => (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
                 className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   selectedType === type
-                    ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-blue-500 text-text-primary shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                    : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
                 }`}
               >
                 {type === 'all' ? 'All Types' : type}
@@ -138,15 +138,15 @@ const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
           </div>
 
           {/* Format Filter */}
-          <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 p-1 rounded-2xl">
+          <div className="flex items-center gap-1.5 bg-surface-elevated border border-border p-1 rounded-2xl">
             {EVENT_FORMATS.map((format) => (
               <button
                 key={format}
                 onClick={() => setSelectedFormat(format)}
                 className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   selectedFormat === format
-                    ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-purple-600 text-text-primary shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                    : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
                 }`}
               >
                 {format === 'all' ? 'All Formats' : format === 'Individual' ? 'Solo' : 'Squad'}
@@ -176,10 +176,10 @@ const EventFeed = ({ isAdmin = false, onEdit, onDelete }) => {
               />
             ))
           ) : (
-            <div className="col-span-full stellar-glass p-16 text-center rounded-3xl">
-              <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-4 opacity-20" />
-              <p className="text-white font-black text-sm uppercase tracking-widest">No events found matching your criteria</p>
-              <p className="text-slate-500 text-xs mt-1">Try switching tabs or resetting the type and format filters.</p>
+            <div className="col-span-full glass p-16 text-center rounded-3xl">
+              <Calendar className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-20" />
+              <p className="text-text-primary font-black text-sm uppercase tracking-widest">No events found matching your criteria</p>
+              <p className="text-text-muted text-xs mt-1">Try switching tabs or resetting the type and format filters.</p>
             </div>
           )}
         </div>

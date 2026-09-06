@@ -22,7 +22,7 @@ const MyCertificates = () => {
 
   if (loading && certificates.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+      <div className="flex flex-col items-center justify-center py-20 text-text-muted">
         <Loader2 className="w-10 h-10 animate-spin mb-4 text-indigo-500" />
         <p>Loading your achievements...</p>
       </div>
@@ -33,8 +33,8 @@ const MyCertificates = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-white">My Certificates</h2>
-          <p className="text-slate-400">Your verified achievements and participation records.</p>
+          <h2 className="text-3xl font-bold text-text-primary">My Certificates</h2>
+          <p className="text-text-muted">Your verified achievements and participation records.</p>
         </div>
         <div className="bg-indigo-500/10 text-indigo-400 px-4 py-2 rounded-2xl border border-indigo-500/20 flex items-center gap-2">
           <Award size={20} />
@@ -44,12 +44,12 @@ const MyCertificates = () => {
 
       {certificates.length === 0 ? (
         <div className="glass-card p-12 text-center space-y-4">
-          <div className="w-20 h-20 bg-slate-800/50 rounded-3xl flex items-center justify-center mx-auto text-slate-600">
+          <div className="w-20 h-20 bg-surface-elevated/50 rounded-3xl flex items-center justify-center mx-auto text-text-muted">
             <Award size={40} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-xl font-bold text-white">No certificates yet</h3>
-            <p className="text-slate-400 max-w-sm mx-auto">
+            <h3 className="text-xl font-bold text-text-primary">No certificates yet</h3>
+            <p className="text-text-muted max-w-sm mx-auto">
               Participate in events and mark your attendance to earn verified certificates.
             </p>
           </div>
@@ -72,7 +72,7 @@ const MyCertificates = () => {
                 )}
                 <div className="absolute inset-0 bg-linear-to-t from-slate-950 to-transparent" />
                 <div className="absolute bottom-3 left-4">
-                   <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-slate-950/80 backdrop-blur-md px-2 py-1 rounded-md border border-white/5">
+                   <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-black/40 dark:bg-black/60 backdrop-blur-md px-2 py-1 rounded-md border border-border">
                      Verified
                    </div>
                 </div>
@@ -80,10 +80,10 @@ const MyCertificates = () => {
 
               <div className="p-6 space-y-4">
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-1">
+                  <h3 className="text-lg font-bold text-text-primary group-hover:text-indigo-400 transition-colors line-clamp-1">
                     {cert.event.title}
                   </h3>
-                  <div className="flex items-center gap-2 text-slate-400 text-xs">
+                  <div className="flex items-center gap-2 text-text-muted text-xs">
                     <Calendar size={14} />
                     <span>{format(new Date(cert.event.date), 'MMMM dd, yyyy')}</span>
                   </div>
@@ -93,7 +93,7 @@ const MyCertificates = () => {
                   href={cert.certificateUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold border border-white/10 transition-all group/btn"
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-surface-elevated hover:bg-surface-elevated text-text-primary rounded-xl font-bold border border-border transition-all group/btn"
                 >
                   <Download size={18} className="group-hover/btn:translate-y-0.5 transition-transform" />
                   Download PDF

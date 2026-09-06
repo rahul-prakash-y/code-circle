@@ -16,9 +16,9 @@ const QuickActions = ({ onManageEvents, onOpenCreateEvent, onManageAssessments }
       title: 'Generate OTP',
       subtitle: 'Attendance verification',
       icon: KeyRound,
-      color: 'text-blue-400',
+      color: 'text-accent-muted',
       glow: 'group-hover:border-blue-500/50 group-hover:shadow-[0_0_25px_rgba(59,130,246,0.25)]',
-      bgGlow: 'bg-blue-500/10 border-blue-500/20',
+      bgGlow: 'bg-accent/10 border-accent/20',
       onClick: () => setIsOtpModalOpen(true),
     },
     {
@@ -57,24 +57,24 @@ const QuickActions = ({ onManageEvents, onOpenCreateEvent, onManageAssessments }
 
   return (
     <>
-      <div className="stellar-glass p-6 sm:p-8 relative overflow-hidden">
+      <div className="glass p-6 sm:p-8 relative overflow-hidden">
         {/* Glow ambient background accent */}
         <div className="absolute top-0 right-1/4 w-96 h-40 bg-blue-500/5 blur-3xl pointer-events-none" />
 
         {/* Section Header */}
         <div className="flex items-center justify-between mb-6 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+            <div className="p-2 rounded-xl bg-accent/10 border border-accent/20 text-accent-muted">
               <Zap size={18} />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-black text-text-primary tracking-wide flex items-center gap-2">
                 Quick Actions
-                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-accent-muted bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20">
                   Command Center
                 </span>
               </h3>
-              <p className="text-xs text-slate-400">Essential administrative controls and rapid operations</p>
+              <p className="text-xs text-text-muted">Essential administrative controls and rapid operations</p>
             </div>
           </div>
         </div>
@@ -89,20 +89,20 @@ const QuickActions = ({ onManageEvents, onOpenCreateEvent, onManageAssessments }
                 whileHover={{ y: -3, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={act.onClick}
-                className={`p-5 rounded-2xl bg-white/5 border border-white/10 text-left transition-all duration-300 group cursor-pointer flex flex-col justify-between ${act.glow}`}
+                className={`p-5 rounded-2xl bg-surface-elevated border border-border text-left transition-all duration-300 group cursor-pointer flex flex-col justify-between ${act.glow}`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-3 rounded-2xl border transition-transform duration-300 group-hover:scale-110 ${act.bgGlow} ${act.color}`}>
                     <Icon size={22} />
                   </div>
-                  <Sparkles size={14} className="text-white/20 group-hover:text-white/60 transition-colors" />
+                  <Sparkles size={14} className="text-white/20 group-hover:text-text-primary/60 transition-colors" />
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black text-white group-hover:text-blue-400 transition-colors">
+                  <h4 className="text-sm font-black text-text-primary group-hover:text-accent-muted transition-colors">
                     {act.title}
                   </h4>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  <p className="text-[11px] text-text-muted font-medium mt-0.5">
                     {act.subtitle}
                   </p>
                 </div>

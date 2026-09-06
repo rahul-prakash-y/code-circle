@@ -83,15 +83,15 @@ const Login = () => {
           }}
           className="space-y-2"
         >
-          <label className="stellar-label">Email or Roll Number</label>
+          <label className="input-label">Email or Roll Number</label>
           <div className="relative group">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors duration-300" />
             <input
               type="text"
               placeholder="Email or Roll No"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="stellar-input pl-12"
+              className="input-field pl-12"
               required
             />
           </div>
@@ -105,7 +105,7 @@ const Login = () => {
           className="space-y-2"
         >
           <div className="flex items-center justify-between">
-            <label className="stellar-label">Password</label>
+            <label className="input-label">Password</label>
             <button 
               type="button" 
               onClick={() => {
@@ -113,19 +113,19 @@ const Login = () => {
                 setResetResult(null);
                 setForgotEmail('');
               }} 
-              className="text-[10px] uppercase tracking-widest text-blue-400 font-bold hover:text-blue-300 transition-colors duration-500 mb-2 cursor-pointer"
+              className="text-[11px] uppercase tracking-wider text-accent font-semibold hover:text-accent-muted transition-colors duration-300 mb-2 cursor-pointer"
             >
               Forgot?
             </button>
           </div>
           <div className="relative group">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-500" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors duration-300" />
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="stellar-input pl-12"
+              className="input-field pl-12"
               required
             />
           </div>
@@ -138,7 +138,7 @@ const Login = () => {
           }}
           className="pt-2"
         >
-          <button type="submit" disabled={loading} className="stellar-btn w-full flex items-center justify-center gap-2 cursor-pointer">
+          <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 cursor-pointer py-3.5 text-base">
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
           </button>
         </motion.div>
@@ -148,11 +148,11 @@ const Login = () => {
             hidden: { opacity: 0 },
             visible: { opacity: 1 }
           }}
-          className="text-center text-slate-500 text-sm mt-6 flex flex-col gap-3"
+          className="text-center text-text-muted text-sm mt-6 flex flex-col gap-3"
         >
           <span>
             New to the circle?{' '}
-            <Link to="/register" className="text-white font-bold hover:text-blue-400 transition-colors duration-500 underline underline-offset-8 decoration-white/10 hover:decoration-blue-400/30">
+            <Link to="/register" className="text-text-primary font-semibold hover:text-accent transition-colors duration-300 underline underline-offset-8 decoration-border hover:decoration-accent/30">
               Create Account
             </Link>
           </span>
@@ -168,27 +168,27 @@ const Login = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowForgotModal(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md stellar-glass p-8 border-blue-500/20 z-10"
+              className="relative w-full max-w-md glass-elevated p-8 rounded-2xl z-10"
             >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-400">
+                  <div className="p-3 bg-accent/10 rounded-xl border border-accent/20 text-accent">
                     <KeyRound className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white uppercase tracking-wider">Reset Password</h3>
-                    <p className="text-xs text-slate-400 font-medium">Request an account recovery link</p>
+                    <h3 className="text-lg font-bold text-text-primary font-heading">Reset Password</h3>
+                    <p className="text-xs text-text-muted font-medium">Request an account recovery link</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowForgotModal(false)}
-                  className="p-2 hover:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
+                  className="p-2 hover:bg-surface-elevated rounded-lg text-text-muted hover:text-text-primary transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -197,21 +197,21 @@ const Login = () => {
               {!resetResult ? (
                 <form onSubmit={handleForgotPassword} className="space-y-5">
                   <div className="space-y-2">
-                    <label className="stellar-label">Registered Email</label>
+                    <label className="input-label">Registered Email</label>
                     <div className="relative group">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
                       <input
                         type="email"
                         placeholder="name@university.edu"
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
-                        className="stellar-input pl-12"
+                        className="input-field pl-12"
                         required
                       />
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className="text-xs text-text-muted leading-relaxed">
                     We will generate a secure one-time password reset link valid for 1 hour.
                   </p>
 
@@ -219,14 +219,14 @@ const Login = () => {
                     <button
                       type="button"
                       onClick={() => setShowForgotModal(false)}
-                      className="flex-1 py-3.5 px-5 rounded-2xl bg-white/5 text-slate-400 text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all border border-white/5"
+                      className="btn-secondary flex-1 text-xs font-semibold uppercase tracking-wider"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={forgotLoading}
-                      className="flex-1 py-3.5 px-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                      className="btn-primary flex-1 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Reset Link'}
                     </button>
@@ -234,11 +234,11 @@ const Login = () => {
                 </form>
               ) : (
                 <div className="space-y-5">
-                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="p-4 bg-success/10 border border-success/20 rounded-xl flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-sm font-bold text-white">Reset Link Ready</h4>
-                      <p className="text-xs text-emerald-300/90 mt-1 leading-relaxed">
+                      <h4 className="text-sm font-bold text-text-primary">Reset Link Ready</h4>
+                      <p className="text-xs text-success mt-1 leading-relaxed">
                         {resetResult.message}
                       </p>
                     </div>
@@ -246,18 +246,18 @@ const Login = () => {
 
                   {resetResult.resetLink && (
                     <div className="space-y-2">
-                      <label className="stellar-label">Recovery Link (Direct Access)</label>
-                      <div className="flex items-center gap-2 p-3 bg-slate-900 border border-white/10 rounded-xl">
+                      <label className="input-label">Recovery Link (Direct Access)</label>
+                      <div className="flex items-center gap-2 p-3 bg-surface-elevated border border-border rounded-xl">
                         <input
                           type="text"
                           readOnly
                           value={resetResult.resetLink}
-                          className="bg-transparent text-xs text-slate-300 font-mono flex-1 outline-none truncate"
+                          className="bg-transparent text-xs text-text-secondary font-mono flex-1 outline-none truncate"
                         />
                         <button
                           type="button"
                           onClick={() => copyToClipboard(resetResult.resetLink)}
-                          className="p-1.5 hover:bg-white/10 rounded-lg text-blue-400 hover:text-white transition-all cursor-pointer"
+                          className="p-1.5 hover:bg-accent/10 rounded-lg text-accent hover:text-accent-muted transition-all cursor-pointer"
                           title="Copy Link"
                         >
                           <Copy className="w-4 h-4" />
@@ -265,7 +265,7 @@ const Login = () => {
                       </div>
                       <a
                         href={resetResult.resetLink}
-                        className="stellar-btn w-full block text-center mt-3 text-xs"
+                        className="btn-primary w-full block text-center mt-3 text-xs py-3"
                       >
                         Proceed to Reset Password Page
                       </a>
@@ -275,7 +275,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(false)}
-                    className="w-full py-3 rounded-xl bg-white/5 text-slate-400 text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-all border border-white/5"
+                    className="btn-secondary w-full text-xs font-semibold uppercase tracking-wider"
                   >
                     Close
                   </button>

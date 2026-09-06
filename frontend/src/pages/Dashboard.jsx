@@ -39,6 +39,7 @@ import SubmitFeedbackModal from '../components/feedback/SubmitFeedbackModal';
 import NewsFeed from './NewsFeed';
 import { motion } from 'framer-motion';
 import { MessageSquare, MessageSquarePlus } from 'lucide-react';
+import GlassCard from '../components/ui/GlassCard';
 
 const Dashboard = () => {
   const { user, logout } = useAuthStore();
@@ -78,43 +79,23 @@ const Dashboard = () => {
   const getStats = () => {
     if (isAdmin) {
       return [
-        { 
-          label: 'Total Users', 
-          value: metrics ? metrics.totalUsers.toLocaleString() : '...', 
-          icon: Users, 
-          color: 'text-blue-400' 
-        },
-        { 
-          label: 'Active Events', 
-          value: metrics ? metrics.activeEvents.toLocaleString() : '...', 
-          icon: Calendar, 
-          color: 'text-purple-400' 
-        },
-        { 
-          label: 'Total Events', 
-          value: metrics ? metrics.totalEvents.toLocaleString() : '...', 
-          icon: Trophy, 
-          color: 'text-pink-400' 
-        },
-        { 
-          label: 'Assessment Levels', 
-          value: metrics ? `${metrics.totalAssessmentLevels} Available` : '...', 
-          icon: Target, 
-          color: 'text-emerald-400' 
-        },
+        { label: 'Total Users', value: metrics ? metrics.totalUsers.toLocaleString() : '...', icon: Users, color: 'text-accent dark:text-accent-muted' },
+        { label: 'Active Events', value: metrics ? metrics.activeEvents.toLocaleString() : '...', icon: Calendar, color: 'text-violet-500 dark:text-violet-400' },
+        { label: 'Total Events', value: metrics ? metrics.totalEvents.toLocaleString() : '...', icon: Trophy, color: 'text-rose-500 dark:text-rose-400' },
+        { label: 'Assessment Levels', value: metrics ? `${metrics.totalAssessmentLevels} Available` : '...', icon: Target, color: 'text-emerald-500 dark:text-emerald-400' },
       ];
     }
     if (isFaculty) {
       return [
-        { label: 'Dept. Points', value: '14.2k', icon: Trophy, color: 'text-amber-400' },
-        { label: 'Students Mentored', value: '45', icon: BarChart3, color: 'text-blue-400' },
-        { label: 'Active Sessions', value: '8', icon: Calendar, color: 'text-emerald-400' }
+        { label: 'Dept. Points', value: '14.2k', icon: Trophy, color: 'text-amber-500 dark:text-amber-400' },
+        { label: 'Students Mentored', value: '45', icon: BarChart3, color: 'text-accent dark:text-accent-muted' },
+        { label: 'Active Sessions', value: '8', icon: Calendar, color: 'text-emerald-500 dark:text-emerald-400' }
       ];
     }
     return [
-      { label: 'Registered Events', value: user?.enrolledEvents?.length || 0, icon: Calendar, color: 'text-yellow-400' },
-      { label: 'Leaderboard Rank', value: "#12", icon: BarChart3, color: 'text-blue-400' },
-      { label: 'Certificates Earned', value: "Level 4", icon: Trophy, color: 'text-emerald-400' }
+      { label: 'Registered Events', value: user?.enrolledEvents?.length || 0, icon: Calendar, color: 'text-amber-500 dark:text-amber-400' },
+      { label: 'Leaderboard Rank', value: "#12", icon: BarChart3, color: 'text-accent dark:text-accent-muted' },
+      { label: 'Certificates Earned', value: "Level 4", icon: Trophy, color: 'text-emerald-500 dark:text-emerald-400' }
     ];
   };
 
@@ -150,6 +131,17 @@ const Dashboard = () => {
     }
   };
 
+  const tabs = [
+    { id: 'events', label: 'Events Feed' },
+    { id: 'assessments', label: 'Assessments' },
+    { id: 'feedback', label: 'Feedback' },
+    { id: 'news', label: 'News & Bulletins' },
+    { id: 'attendance', label: 'Attendance' },
+    { id: 'certificates', label: 'Certificates' },
+    { id: 'leaderboard', label: 'Leaderboard' },
+    ...(isAdmin ? [{ id: 'analytics', label: 'Analytics' }] : [{ id: 'passport', label: 'My Registrations' }])
+  ];
+
   return (
     <div className="space-y-8 py-2">
       {/* Prominent Quick Actions Command Center for Admins & Faculty */}
@@ -162,150 +154,170 @@ const Dashboard = () => {
       )}
 
       {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Left Column: Metrics & Quick Cards */}
-        <section className="lg:col-span-1 space-y-6">
-          <div className="stellar-glass p-8 relative overflow-hidden">
+        <section className="lg:col-span-1 space-y-4">
+          {/* Metrics Card */}
+          <GlassCard className="relative overflow-hidden">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-black text-blue-500 uppercase tracking-[0.3em]">
+                <h2 className="text-sm font-bold text-accent uppercase tracking-wider font-heading">
                   {isAdmin ? 'System Metrics' : 'Performance'}
                 </h2>
                 {isAdmin && isCached && (
-                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 text-slate-400 border border-white/5">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-elevated text-text-muted border border-border">
                     Cached
                   </span>
                 )}
               </div>
-
               {isAdmin && (
                 <button
                   onClick={() => fetchMetrics({ refresh: true })}
                   disabled={metricsLoading}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-all"
                   title="Force refresh metrics"
                 >
-                  <RefreshCw size={14} className={metricsLoading ? 'animate-spin text-blue-400' : ''} />
+                  <RefreshCw size={14} className={metricsLoading ? 'animate-spin text-accent' : ''} />
                 </button>
               )}
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               {getStats().map((stat, i) => (
-                <div key={i} className="flex items-center justify-between group cursor-default">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 bg-white/5 rounded-xl border border-white/5 group-hover:border-white/10 transition-colors ${stat.color}`}>
-                      <stat.icon size={20} />
+                <motion.div 
+                  key={i} 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex items-center justify-between group cursor-default"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2.5 bg-surface-elevated rounded-xl border border-border group-hover:border-border-hover transition-colors ${stat.color}`}>
+                      <stat.icon size={18} />
                     </div>
-                    <span className="text-sm font-bold text-slate-400 group-hover:text-white transition-colors">
+                    <span className="text-sm font-medium text-text-muted group-hover:text-text-primary transition-colors">
                       {stat.label}
                     </span>
                   </div>
-                  <span className="text-xl font-black text-white">{stat.value}</span>
-                </div>
+                  <span className="text-lg font-bold text-text-primary">{stat.value}</span>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </GlassCard>
 
-          <div 
-            className="stellar-glass p-8 relative overflow-hidden group border-indigo-500/20 hover:border-indigo-500/40 transition-all cursor-pointer" 
+          {/* Quick Navigation Cards */}
+          <GlassCard 
+            variant="interactive"
+            glow="violet"
+            className="relative overflow-hidden group"
             onClick={() => setActiveTab('events')}
           >
             <div className="relative z-10">
-              <h3 className="text-xl font-black text-white group-hover:text-indigo-400 transition-colors">
+              <h3 className="text-lg font-bold text-text-primary group-hover:text-accent transition-colors font-heading">
                 Upcoming Events
               </h3>
-              <p className="text-sm text-slate-400 mt-1">Browse workshops and sessions.</p>
+              <p className="text-sm text-text-muted mt-1">Browse workshops and sessions.</p>
             </div>
-            <Calendar className="w-16 h-16 text-indigo-500/10 absolute -right-4 -bottom-4 group-hover:scale-110 transition-transform duration-700" />
-          </div>
+            <Calendar className="w-14 h-14 text-accent/10 absolute -right-2 -bottom-2 group-hover:scale-110 transition-transform duration-500" />
+          </GlassCard>
 
-          {/* Quick Tab to News Feed */}
-          <div 
+          {/* News Quick Tab */}
+          <GlassCard 
+            variant="interactive"
+            glow="blue"
+            className={`flex items-center gap-4 ${activeTab === 'news' ? 'border-accent/30 bg-blue-500/5' : ''}`}
             onClick={() => setActiveTab('news')}
-            className={`stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-blue-500/20 hover:border-blue-500/40 ${activeTab === 'news' ? 'border-blue-500 bg-blue-500/5' : ''}`}
           >
-            <div className="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Newspaper className="w-7 h-7" />
+            <div className="w-12 h-12 bg-accent/10 text-accent dark:text-accent-muted rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Newspaper className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white group-hover:text-blue-400 transition-colors">
+              <h3 className="text-lg font-bold text-text-primary group-hover:text-accent transition-colors font-heading">
                 Club News
               </h3>
-              <p className="text-sm text-slate-400 mt-0.5">Announcements & bulletins</p>
+              <p className="text-sm text-text-muted mt-0.5">Announcements & bulletins</p>
             </div>
-          </div>
+          </GlassCard>
 
           {(isAdmin || isFaculty) && (
-            <div 
+            <GlassCard 
+              variant="interactive"
+              glow="violet"
+              className="flex items-center gap-4 group"
               onClick={() => navigate('/teams')}
-              className="stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/5 group"
             >
-              <div className="w-14 h-14 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Users className="w-7 h-7" />
+              <div className="w-12 h-12 bg-violet-500/10 text-violet-500 dark:text-violet-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Users className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white group-hover:text-purple-400 transition-colors">
+                <h3 className="text-lg font-bold text-text-primary group-hover:text-violet-500 transition-colors font-heading">
                   Manage Teams
                 </h3>
-                <p className="text-sm text-slate-400 mt-0.5">Rosters, mapping & status</p>
+                <p className="text-sm text-text-muted mt-0.5">Rosters, mapping & status</p>
               </div>
-            </div>
+            </GlassCard>
           )}
 
           {isAdmin && (
-            <div 
+            <GlassCard 
+              variant="interactive"
+              glow="blue"
+              className={`flex items-center gap-4 ${activeTab === 'bearers' ? 'border-accent/30 bg-blue-500/5' : ''}`}
               onClick={() => setActiveTab('bearers')}
-              className={`stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-blue-500/20 hover:border-blue-500/40 ${activeTab === 'bearers' ? 'border-blue-500 bg-blue-500/5' : ''}`}
             >
-              <div className="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ShieldIcon className="w-7 h-7" />
+              <div className="w-12 h-12 bg-accent/10 text-accent dark:text-accent-muted rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <ShieldIcon className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white group-hover:text-blue-400 transition-colors">
+                <h3 className="text-lg font-bold text-text-primary group-hover:text-accent transition-colors font-heading">
                   Office Bearers
                 </h3>
-                <p className="text-sm text-slate-400 mt-0.5">Manage club leadership team</p>
+                <p className="text-sm text-text-muted mt-0.5">Manage club leadership team</p>
               </div>
-            </div>
+            </GlassCard>
           )}
 
-          {/* Quick Tab to MCQ Assessments */}
-          <div 
+          {/* Assessments Quick Tab */}
+          <GlassCard 
+            variant="interactive"
+            glow="violet"
+            className={`flex items-center gap-4 ${activeTab === 'assessments' ? 'border-violet-500/30 bg-violet-500/5' : ''}`}
             onClick={() => setActiveTab('assessments')}
-            className={`stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-purple-500/20 hover:border-purple-500/40 ${activeTab === 'assessments' ? 'border-purple-500 bg-purple-500/5' : ''}`}
           >
-            <div className="w-14 h-14 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Award className="w-7 h-7" />
+            <div className="w-12 h-12 bg-violet-500/10 text-violet-500 dark:text-violet-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Award className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white group-hover:text-purple-400 transition-colors">
+              <h3 className="text-lg font-bold text-text-primary group-hover:text-violet-500 transition-colors font-heading">
                 MCQ Assessments
               </h3>
-              <p className="text-sm text-slate-400 mt-0.5">Test conceptual mastery</p>
+              <p className="text-sm text-text-muted mt-0.5">Test conceptual mastery</p>
             </div>
-          </div>
+          </GlassCard>
 
-          {/* Quick Tab to Feedback */}
-          <div 
+          {/* Feedback Quick Tab */}
+          <GlassCard 
+            variant="interactive"
+            glow="teal"
+            className={`flex items-center gap-4 ${activeTab === 'feedback' ? 'border-teal-500/30 bg-teal-500/5' : ''}`}
             onClick={() => setActiveTab('feedback')}
-            className={`stellar-glass p-8 flex items-center gap-5 cursor-pointer transition-all border-teal-500/20 hover:border-teal-500/40 ${activeTab === 'feedback' ? 'border-teal-500 bg-teal-500/5' : ''}`}
           >
-            <div className="w-14 h-14 bg-teal-500/10 text-teal-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <MessageSquare className="w-7 h-7" />
+            <div className="w-12 h-12 bg-teal-500/10 text-teal-500 dark:text-teal-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <MessageSquare className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white group-hover:text-teal-400 transition-colors">
+              <h3 className="text-lg font-bold text-text-primary group-hover:text-teal-500 transition-colors font-heading">
                 Student Feedback
               </h3>
-              <p className="text-sm text-slate-400 mt-0.5">{isAdmin ? 'Review student insights' : 'Share your perspective'}</p>
+              <p className="text-sm text-text-muted mt-0.5">{isAdmin ? 'Review student insights' : 'Share your perspective'}</p>
             </div>
-          </div>
+          </GlassCard>
           
+          {/* Action Button */}
           {(isAdmin || isFaculty) ? (
             <button
               onClick={handleCreateEvent}
-              className="w-full stellar-btn flex items-center justify-center gap-2 group"
+              className="w-full btn-primary flex items-center justify-center gap-2 group py-3.5 text-base cursor-pointer"
             >
               <Plus size={20} className="group-hover:rotate-90 transition-transform duration-500" />
               Create New Event
@@ -313,7 +325,7 @@ const Dashboard = () => {
           ) : (
             <button
               onClick={() => setIsFeedbackModalOpen(true)}
-              className="w-full stellar-btn flex items-center justify-center gap-2 bg-gradient-to-r from-teal-500 to-blue-600 hover:brightness-110 shadow-[0_0_20px_rgba(20,184,166,0.3)]"
+              className="w-full flex items-center justify-center gap-2 py-3.5 text-base font-semibold text-text-primary rounded-xl bg-gradient-to-r from-teal-500 to-blue-600 hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shadow-lg shadow-teal-500/20"
             >
               <MessageSquarePlus size={18} />
               Give Feedback
@@ -322,34 +334,29 @@ const Dashboard = () => {
         </section>
 
         {/* Right Column: Dynamic Tabs & Content Section */}
-        <section className="lg:col-span-2 space-y-8">
+        <section className="lg:col-span-2 space-y-6">
           {/* Custom Tabs */}
-          <div className="stellar-glass p-1.5 flex gap-1 bg-white/5 overflow-x-auto custom-scrollbar">
-            {[
-              { id: 'events', label: 'Events Feed' },
-              { id: 'assessments', label: 'Assessments' },
-              { id: 'feedback', label: 'Feedback' },
-              { id: 'news', label: 'News & Bulletins' },
-              { id: 'attendance', label: 'Attendance' },
-              { id: 'certificates', label: 'Certificates' },
-              { id: 'leaderboard', label: 'Leaderboard' },
-              ...(isAdmin ? [{ id: 'analytics', label: 'Analytics' }] : [{ id: 'passport', label: 'My Registrations' }])
-            ].map((tab) => (
+          <GlassCard noPadding className="p-1.5 flex gap-1 overflow-x-auto">
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex-1 min-w-[110px] py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-500 ${activeTab === tab.id ? 'bg-white text-black shadow-xl' : 'text-slate-500 hover:bg-white/5 hover:text-white'}`}
+                className={`flex-1 min-w-[100px] py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                  activeTab === tab.id 
+                    ? 'bg-accent text-text-primary shadow-lg shadow-accent/20' 
+                    : 'text-text-muted hover:bg-surface-elevated hover:text-text-primary'
+                }`}
               >
                 {tab.label}
               </button>
             ))}
-          </div>
+          </GlassCard>
 
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="min-h-[500px]"
           >
             {activeTab === 'events' && (

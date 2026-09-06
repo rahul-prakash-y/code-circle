@@ -83,7 +83,7 @@ const AssessmentList = () => {
   return (
     <div className="space-y-6">
       {/* Top Header & Search / Filter Controls */}
-      <div className="stellar-glass p-6 sm:p-8 relative overflow-hidden">
+      <div className="glass p-6 sm:p-8 relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
@@ -91,13 +91,13 @@ const AssessmentList = () => {
                 <Award size={22} />
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-black text-text-primary tracking-tight flex items-center gap-2">
                   MCQ Assessments
                   <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
                     Engine
                   </span>
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-text-muted">
                   Evaluate conceptual comprehension, competitive logic, and track scores in real time
                 </p>
               </div>
@@ -106,21 +106,21 @@ const AssessmentList = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl focus-within:border-purple-500/40 transition-all">
-              <Search size={16} className="text-slate-500" />
+            <div className="flex items-center gap-2 px-4 py-2 bg-surface-elevated border border-border rounded-2xl focus-within:border-purple-500/40 transition-all">
+              <Search size={16} className="text-text-muted" />
               <input
                 type="text"
                 placeholder="Search assessments..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none text-xs sm:text-sm text-white focus:outline-none placeholder-slate-600 w-36 sm:w-48"
+                className="bg-transparent border-none text-xs sm:text-sm text-text-primary focus:outline-none placeholder-slate-600 w-36 sm:w-48"
               />
             </div>
 
             {isAdmin && (
               <button
                 onClick={handleOpenCreate}
-                className="stellar-btn py-2.5 px-5 text-xs font-black flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:brightness-110"
+                className="btn-primary py-2.5 px-5 text-xs font-black flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:brightness-110"
               >
                 <Plus size={16} />
                 Create Assessment
@@ -130,7 +130,7 @@ const AssessmentList = () => {
         </div>
 
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-2 mt-6 pt-6 border-t border-white/5 overflow-x-auto custom-scrollbar">
+        <div className="flex items-center gap-2 mt-6 pt-6 border-t border-border overflow-x-auto custom-scrollbar">
           {categories.map((cat) => (
             <button
               key={cat}
@@ -138,7 +138,7 @@ const AssessmentList = () => {
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 selectedCategory === cat
                   ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
-                  : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
+                  : 'bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-elevated border border-border'
               }`}
             >
               {cat}
@@ -151,20 +151,20 @@ const AssessmentList = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="stellar-glass p-6 animate-pulse space-y-4">
-              <div className="h-6 bg-white/10 rounded-lg w-2/3" />
-              <div className="h-4 bg-white/5 rounded-lg w-full" />
-              <div className="h-10 bg-white/5 rounded-xl w-full" />
+            <div key={i} className="glass p-6 animate-pulse space-y-4">
+              <div className="h-6 bg-surface-elevated rounded-lg w-2/3" />
+              <div className="h-4 bg-surface-elevated rounded-lg w-full" />
+              <div className="h-10 bg-surface-elevated rounded-xl w-full" />
             </div>
           ))}
         </div>
       ) : assessments.length === 0 ? (
-        <div className="stellar-glass p-12 text-center space-y-4">
+        <div className="glass p-12 text-center space-y-4">
           <div className="w-16 h-16 rounded-3xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
             <Award size={32} />
           </div>
-          <h3 className="text-lg font-black text-white">No Assessments Found</h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
+          <h3 className="text-lg font-black text-text-primary">No Assessments Found</h3>
+          <p className="text-xs text-text-muted max-w-md mx-auto">
             {searchQuery || selectedCategory !== 'All'
               ? 'No assessments match your active filter criteria. Try resetting filters.'
               : 'There are currently no active MCQ assessments published. Check back soon!'}
@@ -172,7 +172,7 @@ const AssessmentList = () => {
           {isAdmin && (
             <button
               onClick={handleOpenCreate}
-              className="stellar-btn py-2.5 px-6 text-xs font-black inline-flex items-center gap-2 mt-2"
+              className="btn-primary py-2.5 px-6 text-xs font-black inline-flex items-center gap-2 mt-2"
             >
               <Plus size={16} /> Create First Assessment
             </button>
@@ -193,7 +193,7 @@ const AssessmentList = () => {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  className="stellar-glass p-6 sm:p-7 flex flex-col justify-between group hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden"
+                  className="glass p-6 sm:p-7 flex flex-col justify-between group hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden"
                 >
                   {/* Category & Status Badges */}
                   <div className="space-y-4">
@@ -204,7 +204,7 @@ const AssessmentList = () => {
                         </span>
 
                         {assessment.eventId && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent-muted flex items-center gap-1.5">
                             <Calendar size={11} />
                             {assessment.eventId.title || 'Linked Event'}
                           </span>
@@ -233,31 +233,31 @@ const AssessmentList = () => {
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-black text-white group-hover:text-purple-300 transition-colors">
+                      <h3 className="text-lg font-black text-text-primary group-hover:text-purple-300 transition-colors">
                         {assessment.title}
                       </h3>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-text-muted mt-1 line-clamp-2 leading-relaxed">
                         {assessment.description || 'Test conceptual clarity and competitive aptitude.'}
                       </p>
                     </div>
 
                     {/* Meta Stats Row */}
-                    <div className="grid grid-cols-3 gap-3 py-3 border-y border-white/5 text-center">
+                    <div className="grid grid-cols-3 gap-3 py-3 border-y border-border text-center">
                       <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Questions</p>
-                        <p className="text-sm font-black text-white mt-0.5">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Questions</p>
+                        <p className="text-sm font-black text-text-primary mt-0.5">
                           {assessment.questionsCount || assessment.questions?.length || 0} MCQs
                         </p>
                       </div>
                       <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Time Limit</p>
-                        <p className="text-sm font-black text-white mt-0.5 flex items-center justify-center gap-1">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Time Limit</p>
+                        <p className="text-sm font-black text-text-primary mt-0.5 flex items-center justify-center gap-1">
                           <Clock size={12} className="text-purple-400" />
                           {assessment.timeLimitMinutes}m
                         </p>
                       </div>
                       <div className="p-2 rounded-xl bg-white/[0.02]">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Passing Cutoff</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Passing Cutoff</p>
                         <p className="text-sm font-black text-emerald-400 mt-0.5">
                           {assessment.passingScorePercentage}%
                         </p>
@@ -272,14 +272,14 @@ const AssessmentList = () => {
                         <>
                           <button
                             onClick={() => handleOpenEdit(assessment)}
-                            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all border border-white/5"
+                            className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border"
                             title="Edit Assessment & Questions"
                           >
                             <Edit3 size={15} />
                           </button>
                           <button
                             onClick={() => setSubmissionsAssessmentId(assessment._id)}
-                            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-purple-300 transition-all border border-white/5"
+                            className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-purple-300 transition-all border border-border"
                             title="View Student Submissions"
                           >
                             <Users size={15} />
@@ -299,8 +299,8 @@ const AssessmentList = () => {
                       onClick={() => setSelectedAssessmentToTake(assessment)}
                       className={`py-2 px-5 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
                         hasTaken
-                          ? 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
-                          : 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]'
+                          ? 'bg-surface-elevated hover:bg-white/20 text-text-primary border border-border'
+                          : 'bg-purple-600 hover:bg-purple-500 text-text-primary shadow-[0_0_20px_rgba(168,85,247,0.3)]'
                       }`}
                     >
                       {hasTaken ? (

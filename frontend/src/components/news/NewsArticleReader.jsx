@@ -32,7 +32,7 @@ const NewsArticleReader = ({ article, onClose }) => {
         initial={{ opacity: 0, scale: 0.95, y: 30 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 30 }}
-        className="w-full max-w-3xl stellar-glass border border-white/10 my-8 overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.9)] relative"
+        className="w-full max-w-3xl glass border border-border my-8 overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.9)] relative"
       >
         {/* Cover Image Header */}
         {article.coverImage ? (
@@ -46,22 +46,22 @@ const NewsArticleReader = ({ article, onClose }) => {
 
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2.5 rounded-full bg-black/60 text-white hover:bg-black/90 transition-all backdrop-blur-md border border-white/10"
+              className="absolute top-4 right-4 p-2.5 rounded-full bg-black/60 text-text-primary hover:bg-black/90 transition-all backdrop-blur-md border border-border"
             >
               <X size={18} />
             </button>
           </div>
         ) : (
-          <div className="p-6 border-b border-white/10 flex justify-between items-center">
+          <div className="p-6 border-b border-border flex justify-between items-center">
             <button
               onClick={onClose}
-              className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 text-xs font-bold text-text-muted hover:text-text-primary transition-colors"
             >
               <ArrowLeft size={16} /> Back to News Feed
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+              className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors"
             >
               <X size={20} />
             </button>
@@ -75,7 +75,7 @@ const NewsArticleReader = ({ article, onClose }) => {
             {article.tags?.map((t, idx) => (
               <span
                 key={idx}
-                className="px-3 py-1 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold"
+                className="px-3 py-1 rounded-xl bg-accent/10 border border-accent/20 text-accent-muted text-xs font-bold"
               >
                 #{t}
               </span>
@@ -88,14 +88,14 @@ const NewsArticleReader = ({ article, onClose }) => {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
+          <h1 className="text-2xl sm:text-4xl font-black text-text-primary leading-tight">
             {article.title}
           </h1>
 
           {/* Metadata banner */}
-          <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-white/10 text-xs text-slate-400">
+          <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-border text-xs text-text-muted">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 overflow-hidden flex items-center justify-center font-black text-white text-sm">
+              <div className="w-10 h-10 rounded-full bg-surface-elevated border border-border overflow-hidden flex items-center justify-center font-black text-text-primary text-sm">
                 {article.author?.profilePicUrl ? (
                   <img src={article.author.profilePicUrl} alt={article.author?.name} className="w-full h-full object-cover" />
                 ) : (
@@ -103,14 +103,14 @@ const NewsArticleReader = ({ article, onClose }) => {
                 )}
               </div>
               <div>
-                <span className="font-bold text-white block">{article.author?.name || 'Code Circle Editorial'}</span>
-                <span className="text-[10px] text-slate-500 uppercase tracking-wider">{article.author?.role || 'Administrator'}</span>
+                <span className="font-bold text-text-primary block">{article.author?.name || 'Code Circle Editorial'}</span>
+                <span className="text-[10px] text-text-muted uppercase tracking-wider">{article.author?.role || 'Administrator'}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5">
-                <Calendar size={14} className="text-blue-400" />
+                <Calendar size={14} className="text-accent-muted" />
                 {formattedDate}
               </span>
 
@@ -121,7 +121,7 @@ const NewsArticleReader = ({ article, onClose }) => {
 
               <button
                 onClick={handleShare}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors"
                 title="Share Article"
               >
                 <Share2 size={16} />
@@ -135,11 +135,11 @@ const NewsArticleReader = ({ article, onClose }) => {
           </div>
 
           {/* Footer Close */}
-          <div className="pt-6 border-t border-white/5 flex justify-between items-center">
-            <span className="text-xs text-slate-500">Published by Code Circle Official</span>
+          <div className="pt-6 border-t border-border flex justify-between items-center">
+            <span className="text-xs text-text-muted">Published by Code Circle Official</span>
             <button
               onClick={onClose}
-              className="stellar-btn text-xs"
+              className="btn-primary text-xs"
             >
               Close Article
             </button>

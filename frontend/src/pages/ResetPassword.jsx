@@ -53,15 +53,15 @@ const ResetPassword = () => {
         subtitle="This link appears to be incomplete or corrupted."
       >
         <div className="text-center space-y-6">
-          <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto text-red-400">
+          <div className="w-16 h-16 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-center justify-center mx-auto text-destructive">
             <AlertTriangle className="w-8 h-8" />
           </div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-muted">
             No valid security token was detected in your reset link. Please contact an administrator or request a new reset link.
           </p>
           <Link
             to="/login"
-            className="stellar-btn w-full inline-flex items-center justify-center gap-2"
+            className="btn-primary w-full inline-flex items-center justify-center gap-2 py-3"
           >
             Back to Sign In
           </Link>
@@ -77,15 +77,15 @@ const ResetPassword = () => {
         subtitle="Your new credentials are now active."
       >
         <div className="text-center space-y-6">
-          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto text-emerald-400">
+          <div className="w-16 h-16 bg-success/10 border border-success/20 rounded-2xl flex items-center justify-center mx-auto text-success">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <p className="text-sm text-slate-300 font-medium">
+          <p className="text-sm text-text-secondary font-medium">
             Your password has been successfully reset. You may now sign in to your Code Circle account.
           </p>
           <button
             onClick={() => navigate('/login')}
-            className="stellar-btn w-full flex items-center justify-center gap-2"
+            className="btn-primary w-full flex items-center justify-center gap-2 py-3 cursor-pointer"
           >
             Sign In Now <ArrowRight className="w-4 h-4" />
           </button>
@@ -113,21 +113,18 @@ const ResetPassword = () => {
         }}
       >
         <motion.div
-          variants={{
-            hidden: { opacity: 0, x: -10 },
-            visible: { opacity: 1, x: 0 },
-          }}
+          variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }}
           className="space-y-2"
         >
-          <label className="stellar-label">New Password</label>
+          <label className="input-label">New Password</label>
           <div className="relative group">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
             <input
               type="password"
               placeholder="At least 6 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="stellar-input pl-12"
+              className="input-field pl-12"
               required
               minLength={6}
             />
@@ -135,21 +132,18 @@ const ResetPassword = () => {
         </motion.div>
 
         <motion.div
-          variants={{
-            hidden: { opacity: 0, x: -10 },
-            visible: { opacity: 1, x: 0 },
-          }}
+          variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }}
           className="space-y-2"
         >
-          <label className="stellar-label">Confirm New Password</label>
+          <label className="input-label">Confirm New Password</label>
           <div className="relative group">
-            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
             <input
               type="password"
               placeholder="Re-enter password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="stellar-input pl-12"
+              className="input-field pl-12"
               required
               minLength={6}
             />
@@ -157,31 +151,25 @@ const ResetPassword = () => {
         </motion.div>
 
         <motion.div
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0 },
-          }}
+          variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
           className="pt-2"
         >
           <button
             type="submit"
             disabled={loading}
-            className="stellar-btn w-full flex items-center justify-center gap-2"
+            className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 cursor-pointer"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Update Password'}
           </button>
         </motion.div>
 
         <motion.div
-          variants={{
-            hidden: { opacity: 0 },
-            visible: { opacity: 1 },
-          }}
+          variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
           className="text-center pt-2"
         >
           <Link
             to="/login"
-            className="text-xs font-bold text-slate-500 hover:text-white transition-colors"
+            className="text-xs font-semibold text-text-muted hover:text-text-primary transition-colors"
           >
             Cancel and Return to Sign In
           </Link>

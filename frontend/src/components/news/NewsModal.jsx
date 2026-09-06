@@ -97,7 +97,7 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-2xl stellar-glass border border-white/10 p-8 my-8 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
+        className="w-full max-w-2xl glass border border-border p-8 my-8 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
       >
         {/* Glow light */}
         <div className="absolute top-0 right-0 w-64 h-64 -mr-20 -mt-20 rounded-full bg-blue-500/15 blur-3xl pointer-events-none" />
@@ -105,19 +105,19 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
         {/* Header */}
         <div className="flex justify-between items-center mb-6 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <div className="w-10 h-10 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent-muted">
               <Sparkles size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white">
+              <h2 className="text-xl font-black text-text-primary">
                 {articleToEdit ? 'Edit Announcement' : 'Publish New Announcement'}
               </h2>
-              <p className="text-xs text-slate-400">Broadcast news, updates, or hackathons to the community</p>
+              <p className="text-xs text-text-muted">Broadcast news, updates, or hackathons to the community</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+            className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors"
           >
             <X size={20} />
           </button>
@@ -127,13 +127,13 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
         <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
           {/* Title */}
           <div>
-            <label className="stellar-label">Article Title</label>
+            <label className="input-label">Article Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Code Circle Annual Hackathon 2026 Registration Opened"
-              className="stellar-input"
+              className="input-field"
               required
             />
           </div>
@@ -141,39 +141,39 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
           {/* Date and Pinned Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="stellar-label flex items-center gap-2">
-                <Calendar size={14} className="text-blue-400" />
+              <label className="input-label flex items-center gap-2">
+                <Calendar size={14} className="text-accent-muted" />
                 Publication Date
               </label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="stellar-input"
+                className="input-field"
                 required
               />
             </div>
 
             <div>
-              <label className="stellar-label flex items-center gap-2">
+              <label className="input-label flex items-center gap-2">
                 <Pin size={14} className="text-amber-400" />
                 Highlight Priority
               </label>
-              <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+              <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-surface-elevated border border-border cursor-pointer hover:bg-surface-elevated transition-colors">
                 <input
                   type="checkbox"
                   checked={pinned}
                   onChange={(e) => setPinned(e.target.checked)}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-slate-900 border-white/20"
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-surface-elevated border-border-hover"
                 />
-                <span className="text-xs font-bold text-slate-300">Pin to top of news feed</span>
+                <span className="text-xs font-bold text-text-secondary">Pin to top of news feed</span>
               </label>
             </div>
           </div>
 
           {/* Cover Image URL */}
           <div>
-            <label className="stellar-label flex items-center gap-2">
+            <label className="input-label flex items-center gap-2">
               <ImageIcon size={14} className="text-purple-400" />
               Cover Image URL (Optional)
             </label>
@@ -182,10 +182,10 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
               value={coverImage}
               onChange={(e) => setCoverImage(e.target.value)}
               placeholder="https://images.unsplash.com/... or paste image URL"
-              className="stellar-input text-xs"
+              className="input-field text-xs"
             />
             {coverImage && (
-              <div className="mt-2 h-28 rounded-xl overflow-hidden border border-white/10 relative">
+              <div className="mt-2 h-28 rounded-xl overflow-hidden border border-border relative">
                 <img
                   src={coverImage}
                   alt="Cover preview"
@@ -194,7 +194,7 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
                     e.target.style.display = 'none';
                   }}
                 />
-                <span className="absolute bottom-2 left-2 text-[10px] bg-black/70 px-2 py-0.5 rounded text-white backdrop-blur-sm">
+                <span className="absolute bottom-2 left-2 text-[10px] bg-black/70 px-2 py-0.5 rounded text-text-primary backdrop-blur-sm">
                   Preview
                 </span>
               </div>
@@ -203,7 +203,7 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
 
           {/* Tags */}
           <div>
-            <label className="stellar-label flex items-center gap-2">
+            <label className="input-label flex items-center gap-2">
               <Tag size={14} className="text-emerald-400" />
               Category Tags
             </label>
@@ -217,8 +217,8 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
                   onClick={() => handleAddTag(stag)}
                   className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all ${
                     tags.includes(stag)
-                      ? 'bg-blue-600 text-white border-blue-400'
-                      : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+                      ? 'bg-accent text-text-primary border-blue-400'
+                      : 'bg-surface-elevated text-text-muted border-border hover:bg-surface-elevated'
                   }`}
                 >
                   + {stag}
@@ -227,17 +227,17 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
             </div>
 
             {/* Current Active Tags */}
-            <div className="flex flex-wrap gap-2 items-center p-3 rounded-2xl bg-white/5 border border-white/5">
+            <div className="flex flex-wrap gap-2 items-center p-3 rounded-2xl bg-surface-elevated border border-border">
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-bold"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-500/15 border border-accent/30 text-blue-300 text-xs font-bold"
                 >
                   #{tag}
                   <button
                     type="button"
                     onClick={() => handleRemoveTag(tag)}
-                    className="text-blue-400 hover:text-white"
+                    className="text-accent-muted hover:text-text-primary"
                   >
                     ×
                   </button>
@@ -254,14 +254,14 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
                   }
                 }}
                 placeholder="Type tag & press Enter"
-                className="bg-transparent text-xs text-white placeholder-slate-600 focus:outline-none flex-1 min-w-[140px]"
+                className="bg-transparent text-xs text-text-primary placeholder-slate-600 focus:outline-none flex-1 min-w-[140px]"
               />
             </div>
           </div>
 
           {/* Article Content */}
           <div>
-            <label className="stellar-label flex items-center gap-2">
+            <label className="input-label flex items-center gap-2">
               <FileText size={14} className="text-amber-400" />
               Article Content
             </label>
@@ -270,7 +270,7 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write the article details, announcement body, schedule, rules, or prizes..."
-              className="stellar-input resize-none text-sm leading-relaxed"
+              className="input-field resize-none text-sm leading-relaxed"
               required
             />
           </div>
@@ -280,7 +280,7 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 stellar-btn flex items-center justify-center gap-2"
+              className="flex-1 btn-primary flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -298,7 +298,7 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
             <button
               type="button"
               onClick={onClose}
-              className="stellar-btn-outline px-6 text-xs"
+              className="btn-secondary px-6 text-xs"
             >
               Cancel
             </button>

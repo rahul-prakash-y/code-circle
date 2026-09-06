@@ -38,18 +38,18 @@ const ImageUploadModal = ({ isOpen, onClose }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-md overflow-hidden bg-slate-900 border border-white/10 rounded-2xl shadow-2xl"
+            className="w-full max-w-md overflow-hidden bg-surface-elevated border border-border rounded-2xl shadow-2xl"
           >
-            <div className="flex items-center justify-between p-6 border-b border-white/5">
-              <h2 className="text-xl font-semibold text-white">Upload Profile Picture</h2>
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-xl font-semibold text-text-primary">Upload Profile Picture</h2>
               <button 
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-white transition-colors"
+                className="p-2 text-text-muted hover:text-text-primary transition-colors"
               >
                 <X size={20} />
               </button>
@@ -57,15 +57,15 @@ const ImageUploadModal = ({ isOpen, onClose }) => {
 
             <div className="p-8">
               {!preview ? (
-                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-indigo-500/50 hover:bg-slate-800/50 transition-all group">
+                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-indigo-500/50 hover:bg-surface-elevated/50 transition-all group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <div className="p-4 mb-4 bg-indigo-500/10 rounded-full text-indigo-500 group-hover:scale-110 transition-transform">
                       <Upload size={24} />
                     </div>
-                    <p className="mb-2 text-sm text-slate-300">
+                    <p className="mb-2 text-sm text-text-secondary">
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
-                    <p className="text-xs text-slate-500 text-center">
+                    <p className="text-xs text-text-muted text-center">
                       PNG, JPG or GIF (MAX. 5MB)
                     </p>
                   </div>
@@ -79,14 +79,14 @@ const ImageUploadModal = ({ isOpen, onClose }) => {
                   <div className="flex gap-4 w-full">
                     <button 
                       onClick={() => { setSelectedFile(null); setPreview(null); }}
-                      className="flex-1 py-2.5 text-sm font-medium text-slate-300 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors"
+                      className="flex-1 py-2.5 text-sm font-medium text-text-secondary bg-surface-elevated rounded-lg hover:bg-slate-700 transition-colors"
                     >
                       Remove
                     </button>
                     <button 
                       onClick={handleUpload}
                       disabled={profileLoading}
-                      className="flex-2 flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors shadow-lg shadow-indigo-500/20"
+                      className="flex-2 flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-text-primary bg-indigo-600 rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors shadow-lg shadow-indigo-500/20"
                     >
                       {profileLoading ? <Loader2 className="animate-spin" size={18} /> : 'Save Picture'}
                     </button>

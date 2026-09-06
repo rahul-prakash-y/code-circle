@@ -27,7 +27,7 @@ const QuizTimer = ({ initialMinutes, onTimeUp }) => {
 
   return (
     <div className={`flex items-center gap-3 px-4 py-2 rounded-xl backdrop-blur-md border transition-all ${
-      isLowTime ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-white'
+      isLowTime ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-surface-elevated border-border text-text-primary'
     }`}>
       <Clock size={18} className={isLowTime ? 'animate-pulse' : ''} />
       <span className="font-mono text-xl font-black tabular-nums">

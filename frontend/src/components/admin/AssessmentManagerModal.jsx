@@ -83,7 +83,7 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-2xl stellar-glass border border-white/10 p-8 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
+        className="w-full max-w-2xl glass border border-border p-8 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
       >
         {/* Glow ambient light */}
         <div className="absolute top-0 right-0 w-64 h-64 -mr-20 -mt-20 rounded-full bg-purple-500/15 blur-3xl pointer-events-none" />
@@ -95,13 +95,13 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
               <Award size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white">Assessment Levels & Tracks</h2>
-              <p className="text-xs text-slate-400">Manage coding challenges and knowledge evaluation tiers</p>
+              <h2 className="text-xl font-black text-text-primary">Assessment Levels & Tracks</h2>
+              <p className="text-xs text-text-muted">Manage coding challenges and knowledge evaluation tiers</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+            className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors"
           >
             <X size={20} />
           </button>
@@ -109,16 +109,16 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
 
         {/* Stats strip */}
         <div className="grid grid-cols-3 gap-4 mb-6 relative z-10">
-          <div className="p-4 bg-white/5 border border-white/5 rounded-2xl text-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Total Levels</span>
-            <span className="text-2xl font-black text-white">{assessmentTiers.length} Tracks</span>
+          <div className="p-4 bg-surface-elevated border border-border rounded-2xl text-center">
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted block">Total Levels</span>
+            <span className="text-2xl font-black text-text-primary">{assessmentTiers.length} Tracks</span>
           </div>
-          <div className="p-4 bg-white/5 border border-white/5 rounded-2xl text-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Coding Problems</span>
-            <span className="text-2xl font-black text-blue-400">{problems.length} Available</span>
+          <div className="p-4 bg-surface-elevated border border-border rounded-2xl text-center">
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted block">Coding Problems</span>
+            <span className="text-2xl font-black text-accent-muted">{problems.length} Available</span>
           </div>
-          <div className="p-4 bg-white/5 border border-white/5 rounded-2xl text-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Quizzes</span>
+          <div className="p-4 bg-surface-elevated border border-border rounded-2xl text-center">
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted block">Quizzes</span>
             <span className="text-2xl font-black text-purple-400">{quizzes.length} Modules</span>
           </div>
         </div>
@@ -128,24 +128,24 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
           {assessmentTiers.map((tier, idx) => (
             <div
               key={idx}
-              className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/15 transition-all flex items-center justify-between group"
+              className="p-4 rounded-2xl bg-surface-elevated border border-border hover:border-white/15 transition-all flex items-center justify-between group"
             >
               <div className="space-y-1 max-w-[80%]">
                 <div className="flex items-center gap-2">
                   <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${tier.badgeColor}`}>
                     {tier.level}
                   </span>
-                  <h4 className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors">
+                  <h4 className="text-sm font-bold text-text-primary group-hover:text-purple-400 transition-colors">
                     {tier.title}
                   </h4>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">{tier.description}</p>
+                <p className="text-xs text-text-muted leading-relaxed">{tier.description}</p>
               </div>
 
               <div className="text-right flex items-center gap-3">
                 <div className="text-right">
-                  <span className="text-lg font-black text-white">{tier.count}</span>
-                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Items</span>
+                  <span className="text-lg font-black text-text-primary">{tier.count}</span>
+                  <span className="text-[10px] text-text-muted block uppercase font-bold">Items</span>
                 </div>
                 {tier.difficulty === 'Quiz' ? (
                   <button
@@ -153,7 +153,7 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
                       onClose();
                       if (onOpenAssessments) onOpenAssessments();
                     }}
-                    className="p-2 rounded-xl bg-purple-500/20 hover:bg-purple-600 text-purple-300 hover:text-white transition-all flex items-center gap-1 text-xs font-bold"
+                    className="p-2 rounded-xl bg-purple-500/20 hover:bg-purple-600 text-purple-300 hover:text-text-primary transition-all flex items-center gap-1 text-xs font-bold"
                     title="Launch MCQ Assessments Engine"
                   >
                     Open Engine <ChevronRight size={16} />
@@ -164,7 +164,7 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
                       onClose();
                       navigate(`/problem/${tier.sampleId}`);
                     }}
-                    className="p-2 rounded-xl bg-white/5 group-hover:bg-blue-600 text-slate-400 group-hover:text-white transition-all"
+                    className="p-2 rounded-xl bg-surface-elevated group-hover:bg-accent text-text-muted group-hover:text-text-primary transition-all"
                     title="Launch Arena"
                   >
                     <ChevronRight size={16} />
@@ -176,10 +176,10 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-6 pt-4 border-t border-white/5 flex justify-end gap-3 relative z-10">
+        <div className="mt-6 pt-4 border-t border-border flex justify-end gap-3 relative z-10">
           <button
             onClick={onClose}
-            className="stellar-btn text-xs"
+            className="btn-primary text-xs"
           >
             Close Manager
           </button>

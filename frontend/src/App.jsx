@@ -1,6 +1,7 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './store/useAuthStore';
+import useThemeStore from './store/useThemeStore';
 import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
 import { PageSkeleton } from './components/ui/LoadingSkeleton';
@@ -40,6 +41,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 function App() {
   const { checkAuth } = useAuthStore();
+  const { theme } = useThemeStore();
 
   useEffect(() => {
     // Single consolidated auth and profile initialization
@@ -51,12 +53,25 @@ function App() {
       <Toaster 
         position="top-right" 
         toastOptions={{
+          className: 'glass-elevated !rounded-xl !text-sm !font-medium',
           style: {
-            background: 'rgba(15, 23, 42, 0.9)',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--glass-bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--glass-border)',
             backdropFilter: 'blur(16px)',
-          }
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--success)',
+              secondary: 'var(--surface)',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--destructive)',
+              secondary: 'var(--surface)',
+            },
+          },
         }}
       />
       <Suspense fallback={<PageSkeleton />}>
