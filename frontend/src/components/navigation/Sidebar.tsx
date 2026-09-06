@@ -1,19 +1,16 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Award, 
-  MessageSquare, 
-  Newspaper, 
-  Users, 
-  Shield, 
-  CalendarCheck, 
-  ChevronLeft, 
-  ChevronRight, 
-  Hexagon,
-  Sparkles,
-  BarChart3
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  LayoutDashboard,
+  Award,
+  MessageSquare,
+  Newspaper,
+  Users,
+  Shield,
+  CalendarCheck,
+  ChevronLeft,
+  BarChart3,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -33,10 +30,29 @@ interface SidebarProps {
 interface NavItem {
   to: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  accentColor?: string;
+  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
   match: (loc: { pathname: string; search: string }) => boolean;
 }
+
+// CC monogram lockup
+const CCMark: React.FC<{ size?: number }> = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="32" height="32" rx="10" fill="currentColor" fillOpacity="0.10"/>
+    <text
+      x="50%"
+      y="52%"
+      dominantBaseline="middle"
+      textAnchor="middle"
+      fontFamily="Inter, system-ui, sans-serif"
+      fontWeight="900"
+      fontSize="13"
+      letterSpacing="-0.5"
+      fill="currentColor"
+    >
+      CC
+    </text>
+  </svg>
+);
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
@@ -114,53 +130,73 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const Icon = item.icon;
 
     const content = (
-      <Link
-        to={item.to}
-        className="block w-full focus:outline-none"
-      >
-        <motion.div
-          whileHover={{ x: isCollapsed ? 0 : 4 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-colors duration-200 cursor-pointer ${
-            isActive
-              ? 'bg-accent/15 text-accent dark:text-accent-muted border-l-4 border-accent font-bold shadow-sm shadow-accent/5'
-              : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated/70 font-medium border-l-4 border-transparent'
-          } ${isCollapsed ? 'justify-center px-0' : ''}`}
-        >
-          <div className={`shrink-0 transition-transform duration-200 ${isActive ? 'scale-110 text-accent' : 'text-text-muted'}`}>
-            <Icon size={20} />
-          </div>
-
-          {!isCollapsed && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
-              className="text-xs tracking-wide whitespace-nowrap truncate font-heading"
-            >
-              {item.label}
-            </motion.span>
-          )}
-
-          {isActive && !isCollapsed && (
-            <motion.span
-              layoutId="active-indicator"
-              className="ml-auto w-1.5 h-1.5 rounded-full bg-accent"
+      <Link to={item.to} className="block w-full focus:outline-none">
+        <div className="relative">
+          {/* Floating active background pill — animated via layoutId */}
+          {isActive && (
+            <motion.div
+              layoutId="sidebar-active-pill"
+              className="absolute inset-0 rounded-xl"
+              style={{ background: 'var(--accent-subtle)' }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             />
           )}
-        </motion.div>
+
+          <motion.div
+            whileHover={{ x: isCollapsed ? 0 : 3 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className={`relative flex items-center gap-3.5 px-3 py-2.5 rounded-xl cursor-pointer ${
+              isCollapsed ? 'justify-center px-0 mx-auto w-10 h-10' : ''
+            }`}
+          >
+            <div
+              className="shrink-0"
+              style={{
+                color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                transition: 'color 200ms ease',
+              }}
+            >
+              <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+            </div>
+
+            <AnimatePresence initial={false}>
+              {!isCollapsed && (
+                <motion.span
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className="text-[13px] tracking-tight whitespace-nowrap truncate"
+                  style={{
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {item.label}
+                </motion.span>
+              )}
+            </AnimatePresence>
+
+            {/* Accent dot indicator when expanded */}
+            {isActive && !isCollapsed && (
+              <motion.span
+                layoutId="active-dot"
+                className="ml-auto shrink-0 w-1.5 h-1.5 rounded-full"
+                style={{ background: 'var(--accent)' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+          </motion.div>
+        </div>
       </Link>
     );
 
     if (isCollapsed) {
       return (
         <Tooltip key={item.to}>
-          <TooltipTrigger asChild>
-            {content}
-          </TooltipTrigger>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
           <TooltipContent side="right" className="font-semibold text-xs py-1.5 px-3">
             {item.label}
           </TooltipContent>
@@ -172,99 +208,165 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <TooltipProvider delayDuration={150}>
+    <TooltipProvider delayDuration={100}>
       <motion.aside
         initial={false}
-        animate={{ width: isCollapsed ? 76 : 256 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed top-0 left-0 bottom-0 z-40 flex flex-col justify-between 
-          glass-nav border-r border-border bg-surface/90 backdrop-blur-xl select-none ${className}`}
+        animate={{ width: isCollapsed ? 72 : 248 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className={`fixed top-0 left-0 bottom-0 z-40 flex flex-col justify-between select-none ${className}`}
+        style={{
+          background: 'var(--acrylic-bg)',
+          backdropFilter: 'saturate(180%) blur(40px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(40px)',
+          boxShadow: '1px 0 0 0 var(--border-color)',
+        }}
       >
-        {/* Top brand header */}
-        <div className="flex flex-col">
-          <div className="h-16 flex items-center justify-between px-4 border-b border-border/60">
-            <Link to="/dashboard" className="flex items-center gap-3 overflow-hidden group">
-              <div className="w-9 h-9 shrink-0 bg-accent/10 border border-accent/25 rounded-xl flex items-center justify-center text-accent group-hover:scale-105 group-hover:border-accent/50 transition-all duration-300">
-                <Hexagon className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-              </div>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden whitespace-nowrap"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-extrabold tracking-tight text-text-primary font-heading">
+        {/* Top: Brand + Nav */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Brand Header */}
+          <div
+            className="flex items-center h-16 px-4"
+            style={{ borderBottom: '1px solid var(--border-color)' }}
+          >
+            <Link to="/dashboard" className="flex items-center gap-3 overflow-hidden group min-w-0">
+              <motion.div
+                whileHover={{ scale: 1.08, rotate: 5 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                className="shrink-0"
+                style={{ color: 'var(--accent)' }}
+              >
+                <CCMark size={32} />
+              </motion.div>
+
+              <AnimatePresence initial={false}>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="overflow-hidden whitespace-nowrap min-w-0"
+                  >
+                    <p
+                      className="text-sm font-bold tracking-tight leading-none"
+                      style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
+                    >
                       Code Circle
-                    </span>
-                    <Sparkles size={11} className="text-accent" />
-                  </div>
-                  <p className="text-[9px] font-bold text-accent uppercase tracking-[0.2em] -mt-0.5">
-                    {isAdmin ? 'Admin Console' : 'Student Hub'}
-                  </p>
-                </motion.div>
-              )}
+                    </p>
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-widest mt-0.5"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {isAdmin ? 'Admin Console' : 'Student Hub'}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </Link>
           </div>
 
-          {/* Nav List */}
-          <div className="p-3 space-y-6 overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar">
-            {/* Main Portal Section */}
-            <div className="space-y-1">
-              {!isCollapsed && (
-                <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-text-muted/70 mb-2">
-                  Portal
-                </p>
-              )}
+          {/* Navigation */}
+          <div
+            className="flex-1 overflow-y-auto py-3"
+            style={{ padding: isCollapsed ? '12px 10px' : '12px' }}
+          >
+            {/* Primary Links */}
+            <div className="space-y-0.5">
+              <AnimatePresence initial={false}>
+                {!isCollapsed && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="px-3 text-[10px] font-semibold uppercase tracking-widest mb-2"
+                    style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}
+                  >
+                    Portal
+                  </motion.p>
+                )}
+              </AnimatePresence>
               {primaryLinks.map(renderNavLink)}
             </div>
 
-            {/* Admin Management Section */}
+            {/* Admin Links */}
             {isAdmin && (
-              <div className="space-y-1 pt-2 border-t border-border/60">
-                {!isCollapsed && (
-                  <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-text-muted/70 mb-2">
-                    Management
-                  </p>
-                )}
+              <div className="mt-6 space-y-0.5">
+                <div
+                  className="my-3 mx-2"
+                  style={{ height: '1px', background: 'var(--border-color)' }}
+                />
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="px-3 text-[10px] font-semibold uppercase tracking-widest mb-2"
+                      style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}
+                    >
+                      Management
+                    </motion.p>
+                  )}
+                </AnimatePresence>
                 {adminLinks.map(renderNavLink)}
               </div>
             )}
           </div>
         </div>
 
-        {/* Bottom Collapse Toggle */}
-        <div className="p-3 border-t border-border/60 bg-surface/40">
-          <button
-            onClick={onToggleCollapse}
-            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-all duration-200 cursor-pointer ${
-              isCollapsed ? 'justify-center' : 'justify-between'
-            }`}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <div className="flex items-center gap-3">
-              <motion.div
-                animate={{ rotate: isCollapsed ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-                className="w-5 h-5 flex items-center justify-center"
+        {/* Bottom: Collapse Toggle */}
+        <div
+          className="p-3"
+          style={{ borderTop: '1px solid var(--border-color)' }}
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggleCollapse}
+                className={`w-full flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors duration-150 ${
+                  isCollapsed ? 'justify-center' : 'justify-between'
+                }`}
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--glass-bg)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <ChevronLeft size={18} />
-              </motion.div>
-              {!isCollapsed && (
-                <span className="text-xs font-semibold tracking-wide">
-                  Collapse Sidebar
-                </span>
-              )}
-            </div>
-            {!isCollapsed && (
-              <span className="text-[10px] font-mono text-text-muted/60 uppercase">
-                Tab
-              </span>
+                <motion.div
+                  animate={{ rotate: isCollapsed ? 180 : 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                >
+                  <ChevronLeft size={16} strokeWidth={2} />
+                </motion.div>
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex items-center justify-between flex-1"
+                    >
+                      <span className="text-xs font-medium tracking-wide">Collapse</span>
+                      <span
+                        className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                        style={{ background: 'var(--glass-border)', color: 'var(--text-muted)' }}
+                      >
+                        ⌘B
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </button>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right" className="text-xs py-1.5 px-3">
+                Expand sidebar
+              </TooltipContent>
             )}
-          </button>
+          </Tooltip>
         </div>
       </motion.aside>
     </TooltipProvider>
