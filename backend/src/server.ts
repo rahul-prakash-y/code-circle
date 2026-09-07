@@ -14,6 +14,10 @@ import { teamRoutes } from './routes/teamRoutes';
 import { attendanceRoutes } from './routes/attendanceRoutes';
 import { assessmentRoutes } from './routes/assessmentRoutes';
 import { feedbackRoutes } from './routes/feedbackRoutes';
+import path from 'path';
+import fs from 'fs';
+import fastifyStatic from '@fastify/static';
+
 
 export const server: FastifyInstance = Fastify({
   logger: {
@@ -57,18 +61,22 @@ server.register(require('./routes/quizRoutes'), { prefix: '/api/quizzes' });
 server.register(require('./routes/bearerRoutes'), { prefix: '/api/bearers' });
 
 // API 404 Handler
-server.setNotFoundHandler((request, reply) => {
-  if (request.raw.url?.startsWith('/api')) {
-    return reply.status(404).send({
-      success: false,
-      error: 'API route not found',
-    });
-  }
-  return reply.status(404).send({
-    success: false,
-    error: 'Not found',
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  server.register(fastifyStatic, {
+    root: frontendDistPath,
+    prefix: '/',
   });
-});
+  // SPA Route Fallback: Any non-API route serves index.html
+  server.setNotFoundHandler((request, reply) => {
+    if (request.raw.url && request.raw.url.startsWith('/api')) {
+      reply.status(404).send({ success: false, error: 'Not found' });
+    } else {
+      reply.sendFile('index.html');
+    }
+  });
+}
+
 
 // Server Initialization
 export const start = async (): Promise<void> => {

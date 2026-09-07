@@ -16,7 +16,7 @@
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/multipart": "^9.4.0",
-    "@fastify/static": "^9.0.0",
+    "@fastify/static": "^9.3.0",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
