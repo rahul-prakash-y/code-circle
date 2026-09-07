@@ -35,6 +35,7 @@ interface UserStoreState {
   generateResetLink: (id: string) => Promise<{ success: boolean; resetLink?: string; error?: string }>;
   forceResetPassword: (id: string) => Promise<{ success: boolean; temporaryPassword?: string; error?: string }>;
   bulkUploadUsers: (file: File) => Promise<{ success: boolean; message?: string; summary?: any; details?: any; error?: string }>;
+  bulkDeleteUsers: (payload: { userIds?: string[]; allStudents?: boolean; department?: string }) => Promise<{ success: boolean; message?: string; deletedCount?: number; error?: string }>;
   clearTemporaryCredentials: () => void;
 }
 
@@ -262,6 +263,26 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
       return {
         success: false,
         error: err.response?.data?.error || 'Bulk upload failed',
+      };
+    }
+  },
+
+  bulkDeleteUsers: async (payload: { userIds?: string[]; allStudents?: boolean; department?: string }) => {
+    set({ actionLoading: true });
+    try {
+      const response = await api.post('/users/bulk-delete', payload);
+      await get().fetchUsers();
+      set({ actionLoading: false });
+      return {
+        success: true,
+        message: response.data.message,
+        deletedCount: response.data.deletedCount,
+      };
+    } catch (err: any) {
+      set({ actionLoading: false });
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Bulk delete failed',
       };
     }
   },

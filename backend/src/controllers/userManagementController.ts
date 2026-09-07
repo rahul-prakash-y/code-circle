@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import User from '../models/userModel';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import * as XLSX from 'xlsx';
 import { sanitizeUser } from './authController';
 
@@ -598,6 +599,79 @@ export const bulkCreateUsers = async (request: FastifyRequest, reply: FastifyRep
   }
 };
 
+/**
+ * POST /api/users/bulk-delete
+ * Bulk delete students with strict safeguards.
+ * Body: { userIds?: string[], allStudents?: boolean, department?: string }
+ *
+ * Safeguards:
+ * - Only Admins and SuperAdmins can invoke this.
+ * - Only accounts with role === 'Student' can be deleted.
+ * - Admin and SuperAdmin accounts are NEVER touched.
+ * - The caller's own account is never deleted.
+ */
+export const bulkDeleteUsers = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const callerId = request.user?.id;
+    const callerRole = request.user?.role;
+
+    if (callerRole !== 'Admin' && callerRole !== 'SuperAdmin') {
+      return reply.status(403).send({ success: false, error: 'Admin privileges required' });
+    }
+
+    const { userIds, allStudents, department } = (request.body || {}) as {
+      userIds?: string[];
+      allStudents?: boolean;
+      department?: string;
+    };
+
+    if (!allStudents && (!Array.isArray(userIds) || userIds.length === 0)) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Please provide userIds array or specify allStudents: true',
+      });
+    }
+
+    const filter: any = {
+      role: 'Student', // STRICT SAFEGUARD: Only students can be bulk deleted
+    };
+
+    if (callerId && mongoose.Types.ObjectId.isValid(callerId)) {
+      filter._id = { $ne: new mongoose.Types.ObjectId(callerId) };
+    }
+
+    if (allStudents) {
+      if (department && typeof department === 'string' && department.trim() && department.trim() !== 'all') {
+        filter.department = department.trim();
+      }
+    } else if (userIds && userIds.length > 0) {
+      const validIds = userIds
+        .filter((id) => typeof id === 'string' && mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+
+      if (validIds.length === 0) {
+        return reply.status(400).send({ success: false, error: 'No valid student IDs provided' });
+      }
+
+      filter._id = { $in: validIds };
+      if (callerId && mongoose.Types.ObjectId.isValid(callerId)) {
+        filter._id.$ne = new mongoose.Types.ObjectId(callerId);
+      }
+    }
+
+    const deleteResult = await User.deleteMany(filter);
+
+    return reply.send({
+      success: true,
+      message: `Successfully deleted ${deleteResult.deletedCount} student(s)`,
+      deletedCount: deleteResult.deletedCount,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to bulk delete users' });
+  }
+};
+
 export default {
   getUsers,
   createUser,
@@ -607,4 +681,5 @@ export default {
   triggerResetLink,
   forceResetPassword,
   bulkCreateUsers,
+  bulkDeleteUsers,
 };

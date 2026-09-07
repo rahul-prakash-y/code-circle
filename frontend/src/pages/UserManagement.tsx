@@ -142,7 +142,7 @@ const UserManagement: React.FC = () => {
     fetchUsers, setSearch, setRoleFilter, setStatusFilter,
     setPage, setLimit, createUser, updateUser,
     deleteUser, toggleBlock, generateResetLink,
-    forceResetPassword, bulkUploadUsers,
+    forceResetPassword, bulkUploadUsers, bulkDeleteUsers,
   } = useUserStore();
 
   const { user: currentUser, isSuperAdmin, isAdmin } = useAuthStore();
@@ -156,6 +156,13 @@ const UserManagement: React.FC = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showResetLinkModal, setShowResetLinkModal] = useState(false);
   const [showForceResetModal, setShowForceResetModal] = useState(false);
+
+  // Bulk delete state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [deleteAllConfirmText, setDeleteAllConfirmText] = useState('');
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '', email: '', rollNo: '', role: 'Student' as UserRole, department: '', password: '',
@@ -333,6 +340,59 @@ const UserManagement: React.FC = () => {
     setBulkUploading(false);
   };
 
+  // ── Bulk Delete Handlers ──────────────────────────────────────────────────
+  const currentPageStudents = users.filter((u) => u.role === 'Student');
+  const allPageStudentsSelected =
+    currentPageStudents.length > 0 &&
+    currentPageStudents.every((u) => selectedIds.includes(u._id || u.id!));
+
+  const handleToggleSelectAllPage = () => {
+    const pageStudentIds = currentPageStudents.map((u) => u._id || u.id!);
+    if (allPageStudentsSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageStudentIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageStudentIds])));
+    }
+  };
+
+  const handleToggleSelectUser = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleExecuteBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleting(true);
+    const res = await bulkDeleteUsers({ userIds: selectedIds });
+    setBulkDeleting(false);
+    if (res.success) {
+      toast.success(res.message || `Deleted ${res.deletedCount || selectedIds.length} student(s)`);
+      setSelectedIds([]);
+      setShowBulkDeleteModal(false);
+    } else {
+      toast.error(res.error || 'Failed to delete students');
+    }
+  };
+
+  const handleExecuteDeleteAll = async () => {
+    if (deleteAllConfirmText.trim() !== 'DELETE') {
+      toast.error('Please type "DELETE" exactly to confirm');
+      return;
+    }
+    setBulkDeleting(true);
+    const res = await bulkDeleteUsers({ allStudents: true });
+    setBulkDeleting(false);
+    if (res.success) {
+      toast.success(res.message || `Deleted ${res.deletedCount || 0} student(s)`);
+      setSelectedIds([]);
+      setShowDeleteAllModal(false);
+      setDeleteAllConfirmText('');
+    } else {
+      toast.error(res.error || 'Failed to delete students');
+    }
+  };
+
   // ── Shared form body ──────────────────────────────────────────────────────
   const renderUserForm = (onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
     <form onSubmit={onSubmit} className="space-y-7 flex-1 overflow-y-auto px-6 py-6">
@@ -457,6 +517,17 @@ const UserManagement: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
+                    setDeleteAllConfirmText('');
+                    setShowDeleteAllModal(true);
+                  }}
+                  className="btn-secondary flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  title="Wipe or bulk delete all students"
+                >
+                  <Trash2 size={15} strokeWidth={2} />
+                  Delete All Students
+                </button>
+                <button
+                  onClick={() => {
                     setFormData({ name: '', email: '', rollNo: '', role: 'Student', department: '', password: '' });
                     setShowAddPanel(true);
                   }}
@@ -550,6 +621,19 @@ const UserManagement: React.FC = () => {
         <table className="w-full text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
             <tr>
+              <th
+                className="py-4 pl-5 pr-2 w-10 text-left"
+                style={{ borderBottom: '1px solid var(--border-color)' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={allPageStudentsSelected}
+                  onChange={handleToggleSelectAllPage}
+                  disabled={currentPageStudents.length === 0}
+                  className="w-4 h-4 rounded cursor-pointer accent-[var(--accent)]"
+                  title={allPageStudentsSelected ? 'Deselect all on this page' : 'Select all students on this page'}
+                />
+              </th>
               {['User', 'Roll No', 'Role', 'Department', 'Status', ''].map((h) => (
                 <th
                   key={h}
@@ -569,7 +653,7 @@ const UserManagement: React.FC = () => {
           <tbody>
             {loading && users.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-24 text-center">
+                <td colSpan={7} className="py-24 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading directory…</p>
@@ -581,6 +665,8 @@ const UserManagement: React.FC = () => {
                 {users.map((item, i) => {
                   const uid = item._id || item.id!;
                   const isConfirmingDelete = confirmDeleteId === uid;
+                  const isSelected = selectedIds.includes(uid);
+                  const isStudent = item.role === 'Student';
 
                   return (
                     <motion.tr
@@ -591,10 +677,34 @@ const UserManagement: React.FC = () => {
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2, delay: Math.min(i * 0.03, 0.3) }}
                       className="group"
-                      style={{ borderBottom: '1px solid var(--border-color)' }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLTableRowElement).style.background = 'var(--glass-bg)')}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLTableRowElement).style.background = 'transparent')}
+                      style={{
+                        borderBottom: '1px solid var(--border-color)',
+                        background: isSelected ? 'rgba(0, 113, 227, 0.04)' : undefined,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'var(--glass-bg)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLTableRowElement).style.background = isSelected ? 'rgba(0, 113, 227, 0.04)' : 'transparent';
+                      }}
                     >
+                      {/* Selection Checkbox */}
+                      <td className="py-5 pl-5 pr-2 w-10">
+                        {isStudent ? (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelectUser(uid)}
+                            className="w-4 h-4 rounded cursor-pointer accent-[var(--accent)]"
+                            title={`Select ${item.name}`}
+                          />
+                        ) : (
+                          <span title="Staff/Admins cannot be bulk deleted" className="opacity-20 cursor-not-allowed inline-block">
+                            <input type="checkbox" disabled className="w-4 h-4 rounded opacity-20 cursor-not-allowed" />
+                          </span>
+                        )}
+                      </td>
+
                       {/* User */}
                       <td className="py-5 px-5">
                         <div className="flex items-center gap-3.5">
@@ -782,7 +892,7 @@ const UserManagement: React.FC = () => {
               </AnimatePresence>
             ) : (
               <tr>
-                <td colSpan={6} className="py-20 text-center">
+                <td colSpan={7} className="py-20 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <div
                       className="w-14 h-14 rounded-2xl flex items-center justify-center"
@@ -1072,6 +1182,167 @@ const UserManagement: React.FC = () => {
             </button>
           </div>
         )}
+      </CenteredModal>
+
+      {/* ════════════════════════════════════════════════════════
+          FLOATING BULK ACTION BAR
+      ════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border"
+            style={{
+              background: 'rgba(18, 18, 20, 0.92)',
+              borderColor: 'var(--border-color)',
+              boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 113, 227, 0.2)',
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-sm font-semibold text-white whitespace-nowrap">
+                {selectedIds.length} student{selectedIds.length > 1 ? 's' : ''} selected
+              </span>
+            </div>
+
+            <div className="h-4 w-px bg-white/15" />
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-3 py-1.5 text-xs font-medium text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
+
+              <button
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl transition-colors cursor-pointer"
+              >
+                <Trash2 size={13} strokeWidth={2.2} />
+                Delete Selected ({selectedIds.length})
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════════════════════════
+          CENTERED MODAL: BULK DELETE SELECTED
+      ════════════════════════════════════════════════════════ */}
+      <CenteredModal open={showBulkDeleteModal} onClose={() => setShowBulkDeleteModal(false)}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-red-400">
+              Bulk Deletion
+            </p>
+            <h3 className="text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Delete {selectedIds.length} Student{selectedIds.length > 1 ? 's' : ''}?
+            </h3>
+          </div>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10 text-red-400">
+            <Trash2 size={18} strokeWidth={2} />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-[13px] leading-relaxed space-y-2 text-red-200">
+          <p>
+            You are about to permanently remove <strong className="text-white font-bold">{selectedIds.length}</strong> selected student account(s).
+          </p>
+          <p className="text-xs text-red-300/80">
+            This action is immediate and cannot be undone. Any profile data or enrollments associated with these students will be deleted.
+          </p>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={() => setShowBulkDeleteModal(false)}
+            disabled={bulkDeleting}
+            className="btn-secondary flex-1 py-2.5 text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleExecuteBulkDelete}
+            disabled={bulkDeleting}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors bg-red-600 hover:bg-red-700 text-white"
+          >
+            {bulkDeleting ? <Loader2 size={15} className="animate-spin" /> : `Delete (${selectedIds.length})`}
+          </button>
+        </div>
+      </CenteredModal>
+
+      {/* ════════════════════════════════════════════════════════
+          CENTERED MODAL: DELETE ALL STUDENTS (Wipe)
+      ════════════════════════════════════════════════════════ */}
+      <CenteredModal open={showDeleteAllModal} onClose={() => { setShowDeleteAllModal(false); setDeleteAllConfirmText(''); }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-red-400">
+              Danger Zone · Wipe Operation
+            </p>
+            <h3 className="text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Delete All Students
+            </h3>
+          </div>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10 text-red-400">
+            <AlertTriangle size={18} strokeWidth={2} />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-[13px] leading-relaxed space-y-2 text-red-200">
+          <p className="font-semibold text-red-100 flex items-center gap-2">
+            <AlertTriangle size={15} className="text-red-400 shrink-0" />
+            Extreme Safeguard Notice
+          </p>
+          <p>
+            This will permanently delete <strong className="text-white">ALL student accounts</strong> across the entire database.
+          </p>
+          <p className="text-xs text-red-300/80">
+            Admin and SuperAdmin accounts are protected and will NOT be touched.
+          </p>
+        </div>
+
+        <div className="space-y-2 pt-1">
+          <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            To confirm, type <span className="font-mono font-bold text-red-400">DELETE</span> below:
+          </label>
+          <input
+            type="text"
+            value={deleteAllConfirmText}
+            onChange={(e) => setDeleteAllConfirmText(e.target.value)}
+            placeholder="DELETE"
+            className="w-full px-3.5 py-2 rounded-xl text-sm font-mono border focus:outline-none"
+            style={{
+              background: 'var(--surface-elevated)',
+              borderColor: deleteAllConfirmText === 'DELETE' ? '#ef4444' : 'var(--border-color)',
+              color: 'var(--text-primary)',
+            }}
+          />
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={() => {
+              setShowDeleteAllModal(false);
+              setDeleteAllConfirmText('');
+            }}
+            disabled={bulkDeleting}
+            className="btn-secondary flex-1 py-2.5 text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleExecuteDeleteAll}
+            disabled={bulkDeleting || deleteAllConfirmText.trim() !== 'DELETE'}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-red-600 hover:bg-red-700 text-white"
+          >
+            {bulkDeleting ? <Loader2 size={15} className="animate-spin" /> : 'Confirm & Wipe Students'}
+          </button>
+        </div>
       </CenteredModal>
 
       {/* ════════════════════════════════════════════════════════

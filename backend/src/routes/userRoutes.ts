@@ -25,8 +25,9 @@ export async function userRoutes(fastify: FastifyInstance) {
     instance.delete('/:id', userManagementController.deleteUser);
     instance.patch('/:id/block', userManagementController.toggleBlockUser);
 
-    // Bulk Upload from Excel
+    // Bulk Operations
     instance.post('/bulk-upload', userManagementController.bulkCreateUsers);
+    instance.post('/bulk-delete', userManagementController.bulkDeleteUsers);
 
     // Password Reset Link trigger (Admin & SuperAdmin)
     instance.post('/:id/reset-link', userManagementController.triggerResetLink);
