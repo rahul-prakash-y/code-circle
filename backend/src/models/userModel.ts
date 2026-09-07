@@ -9,6 +9,7 @@ export interface IUser extends Document {
   role: UserRole;
   password: string;
   isBlocked: boolean;
+  mustChangePassword: boolean;
   activeSessionId?: string | null;
   department?: string;
   skills: string[];
@@ -35,6 +36,7 @@ const userSchema = new Schema<IUser>(
     },
     password: { type: String, required: true },
     isBlocked: { type: Boolean, default: false, index: true },
+    mustChangePassword: { type: Boolean, default: false },
     activeSessionId: { type: String, default: null },
     department: { type: String, trim: true, index: true },
     skills: [{ type: String, trim: true }],

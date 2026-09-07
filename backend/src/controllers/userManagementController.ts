@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import User from '../models/userModel';
 import crypto from 'crypto';
+import * as XLSX from 'xlsx';
 import { sanitizeUser } from './authController';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -419,6 +420,184 @@ export const forceResetPassword = async (request: FastifyRequest, reply: Fastify
   }
 };
 
+/**
+ * POST /api/users/bulk-upload
+ * Bulk create students from an uploaded Excel file (.xlsx / .xls).
+ * Columns: Reg No → rollNo, Student Name → name, Department → department,
+ *          Student Official Email ID → email.
+ * Default password = rollNo (lowercased). All created users get mustChangePassword = true.
+ */
+export const bulkCreateUsers = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const callerRole = request.user?.role;
+    if (callerRole !== 'Admin' && callerRole !== 'SuperAdmin') {
+      return reply.status(403).send({ success: false, error: 'Admin privileges required' });
+    }
+
+    const data = await request.file();
+    if (!data) {
+      return reply.status(400).send({ success: false, error: 'No file uploaded' });
+    }
+
+    const filename = data.filename.toLowerCase();
+    if (!filename.endsWith('.xlsx') && !filename.endsWith('.xls')) {
+      return reply.status(400).send({ success: false, error: 'Only .xlsx and .xls files are accepted' });
+    }
+
+    // Read the entire file into a buffer
+    const chunks: Buffer[] = [];
+    for await (const chunk of data.file) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    // Parse the Excel workbook
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return reply.status(400).send({ success: false, error: 'Excel file has no sheets' });
+    }
+
+    const rows: any[][] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+    if (rows.length < 2) {
+      return reply.status(400).send({ success: false, error: 'Excel file has no data rows' });
+    }
+
+    // Detect header row and map columns
+    const headers = (rows[0] || []).map((h: any) => String(h).trim().toLowerCase());
+    const colMap = {
+      rollNo: headers.findIndex((h: string) => h.includes('reg') || h.includes('roll')),
+      name: headers.findIndex((h: string) => h.includes('student name') || h.includes('name')),
+      department: headers.findIndex((h: string) => h.includes('department') || h.includes('dept')),
+      email: headers.findIndex((h: string) => h.includes('email')),
+    };
+
+    if (colMap.rollNo === -1 || colMap.name === -1 || colMap.email === -1) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Required columns not found. Expected: Reg No, Student Name, Student Official Email ID',
+      });
+    }
+
+    // Parse data rows
+    const studentsToCreate: any[] = [];
+    const skippedRows: { row: number; reason: string }[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+
+      const rollNo = row[colMap.rollNo] ? String(row[colMap.rollNo]).trim().toUpperCase() : '';
+      const name = row[colMap.name] ? String(row[colMap.name]).trim() : '';
+      const email = row[colMap.email] ? String(row[colMap.email]).trim().toLowerCase() : '';
+      const department = colMap.department !== -1 && row[colMap.department]
+        ? String(row[colMap.department]).trim()
+        : '';
+
+      if (!rollNo || !name || !email) {
+        skippedRows.push({ row: i + 1, reason: 'Missing required fields (rollNo, name, or email)' });
+        continue;
+      }
+
+      studentsToCreate.push({
+        rollNo,
+        name,
+        email,
+        department,
+        role: 'Student',
+        password: rollNo.toLowerCase(),
+        mustChangePassword: true,
+        isBlocked: false,
+      });
+    }
+
+    if (studentsToCreate.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error: 'No valid student records found in the file',
+        skippedRows,
+      });
+    }
+
+    // Check for existing users to avoid duplicates
+    const allRollNos = studentsToCreate.map((s) => s.rollNo);
+    const allEmails = studentsToCreate.map((s) => s.email);
+
+    const existingUsers = await User.find({
+      $or: [
+        { rollNo: { $in: allRollNos } },
+        { email: { $in: allEmails } },
+      ],
+    }).select('rollNo email').lean();
+
+    const existingRollNos = new Set(existingUsers.map((u: any) => u.rollNo));
+    const existingEmails = new Set(existingUsers.map((u: any) => u.email));
+
+    const newStudents: any[] = [];
+    const duplicateStudents: { rollNo: string; name: string; reason: string }[] = [];
+
+    for (const student of studentsToCreate) {
+      if (existingRollNos.has(student.rollNo)) {
+        duplicateStudents.push({ rollNo: student.rollNo, name: student.name, reason: 'Roll number already exists' });
+      } else if (existingEmails.has(student.email)) {
+        duplicateStudents.push({ rollNo: student.rollNo, name: student.name, reason: 'Email already exists' });
+      } else {
+        newStudents.push(student);
+      }
+    }
+
+    // Hash passwords before insert (pre-save hooks don't run with insertMany)
+    const bcrypt = require('bcryptjs');
+    for (const student of newStudents) {
+      const salt = await bcrypt.genSalt(10);
+      student.password = await bcrypt.hash(student.password, salt);
+    }
+
+    let createdCount = 0;
+    const insertErrors: { rollNo: string; error: string }[] = [];
+
+    if (newStudents.length > 0) {
+      try {
+        const result = await User.insertMany(newStudents, { ordered: false });
+        createdCount = result.length;
+      } catch (err: any) {
+        // With ordered: false, some may succeed even if others fail
+        if (err.insertedDocs) {
+          createdCount = err.insertedDocs.length;
+        }
+        if (err.writeErrors) {
+          for (const writeErr of err.writeErrors) {
+            insertErrors.push({
+              rollNo: newStudents[writeErr.index]?.rollNo || 'unknown',
+              error: writeErr.errmsg || 'Insert failed',
+            });
+          }
+        }
+      }
+    }
+
+    return reply.send({
+      success: true,
+      message: `Bulk upload complete: ${createdCount} created, ${duplicateStudents.length} duplicates skipped`,
+      summary: {
+        totalRows: rows.length - 1,
+        created: createdCount,
+        duplicatesSkipped: duplicateStudents.length,
+        invalidRows: skippedRows.length,
+        insertErrors: insertErrors.length,
+      },
+      details: {
+        duplicates: duplicateStudents.slice(0, 50),
+        skippedRows: skippedRows.slice(0, 50),
+        insertErrors: insertErrors.slice(0, 50),
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Bulk upload failed: ' + (error.message || 'Unknown error') });
+  }
+};
+
 export default {
   getUsers,
   createUser,
@@ -427,4 +606,5 @@ export default {
   toggleBlockUser,
   triggerResetLink,
   forceResetPassword,
+  bulkCreateUsers,
 };

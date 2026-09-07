@@ -144,6 +144,7 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
       user: sanitizeUser(user),
       token,
       sessionId,
+      mustChangePassword: user.mustChangePassword || false,
     });
   } catch (error: any) {
     request.log.error(error);
@@ -263,6 +264,55 @@ export const resetPassword = async (request: FastifyRequest, reply: FastifyReply
   }
 };
 
+export const changePassword = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { currentPassword, newPassword } = (request.body || {}) as any;
+
+    if (!currentPassword || !newPassword) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Current password and new password are required',
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return reply.status(400).send({
+        success: false,
+        error: 'New password must be at least 6 characters',
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return reply.status(400).send({
+        success: false,
+        error: 'New password must be different from the current password',
+      });
+    }
+
+    const user = await User.findById(request.user?.id);
+    if (!user) {
+      return reply.status(404).send({ success: false, error: 'User not found' });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return reply.status(401).send({ success: false, error: 'Current password is incorrect' });
+    }
+
+    user.password = newPassword; // Pre-save hook will hash it
+    user.mustChangePassword = false;
+    await user.save();
+
+    return reply.send({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to change password' });
+  }
+};
+
 export default {
   register,
   login,
@@ -270,5 +320,6 @@ export default {
   getMe,
   forgotPassword,
   resetPassword,
+  changePassword,
   sanitizeUser,
 };

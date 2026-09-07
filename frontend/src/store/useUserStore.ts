@@ -34,6 +34,7 @@ interface UserStoreState {
   toggleBlock: (id: string, isBlocked: boolean) => Promise<{ success: boolean; user?: User; error?: string }>;
   generateResetLink: (id: string) => Promise<{ success: boolean; resetLink?: string; error?: string }>;
   forceResetPassword: (id: string) => Promise<{ success: boolean; temporaryPassword?: string; error?: string }>;
+  bulkUploadUsers: (file: File) => Promise<{ success: boolean; message?: string; summary?: any; details?: any; error?: string }>;
   clearTemporaryCredentials: () => void;
 }
 
@@ -235,6 +236,32 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
       return {
         success: false,
         error: err.response?.data?.error || 'Failed to forcefully reset password',
+      };
+    }
+  },
+
+  bulkUploadUsers: async (file: File) => {
+    set({ actionLoading: true });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post('/users/bulk-upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000, // 2 minute timeout for large files
+      });
+      await get().fetchUsers();
+      set({ actionLoading: false });
+      return {
+        success: true,
+        message: response.data.message,
+        summary: response.data.summary,
+        details: response.data.details,
+      };
+    } catch (err: any) {
+      set({ actionLoading: false });
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Bulk upload failed',
       };
     }
   },

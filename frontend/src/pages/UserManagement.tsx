@@ -7,7 +7,7 @@ import {
   Trash2, KeyRound, Check, X, AlertTriangle,
   Loader2, UserPlus, Crown, Copy, RefreshCw,
   Edit, ChevronLeft, ChevronRight, CheckCircle2,
-  Sparkles, Mail, Lock, ArrowRight,
+  Sparkles, Mail, Lock, ArrowRight, Upload, FileSpreadsheet,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { User, UserRole } from '../types/user';
@@ -142,7 +142,7 @@ const UserManagement: React.FC = () => {
     fetchUsers, setSearch, setRoleFilter, setStatusFilter,
     setPage, setLimit, createUser, updateUser,
     deleteUser, toggleBlock, generateResetLink,
-    forceResetPassword,
+    forceResetPassword, bulkUploadUsers,
   } = useUserStore();
 
   const { user: currentUser, isSuperAdmin, isAdmin } = useAuthStore();
@@ -162,6 +162,14 @@ const UserManagement: React.FC = () => {
   });
   const [activeResetLink, setActiveResetLink] = useState<string | null>(null);
   const [generatedTempPassword, setGeneratedTempPassword] = useState<string | null>(null);
+
+  // Bulk upload state
+  const [showBulkUploadPanel, setShowBulkUploadPanel] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<any>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -278,6 +286,53 @@ const UserManagement: React.FC = () => {
     toast.success(label);
   };
 
+  // ── Bulk Upload Handlers ──────────────────────────────────────────────────
+  const handleBulkFileSelect = (file: File) => {
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.xlsx') && !name.endsWith('.xls')) {
+      toast.error('Only .xlsx and .xls files are accepted');
+      return;
+    }
+    setBulkFile(file);
+    setBulkResult(null);
+  };
+
+  const handleBulkUpload = async () => {
+    if (!bulkFile) return toast.error('Please select a file first');
+    setBulkUploading(true);
+    const res = await bulkUploadUsers(bulkFile);
+    setBulkUploading(false);
+    if (res.success) {
+      setBulkResult(res);
+      toast.success(res.message || 'Bulk upload complete!');
+    } else {
+      toast.error(res.error || 'Bulk upload failed');
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleBulkFileSelect(file);
+  };
+
+  const resetBulkUpload = () => {
+    setBulkFile(null);
+    setBulkResult(null);
+    setBulkUploading(false);
+  };
+
   // ── Shared form body ──────────────────────────────────────────────────────
   const renderUserForm = (onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
     <form onSubmit={onSubmit} className="space-y-7 flex-1 overflow-y-auto px-6 py-6">
@@ -390,6 +445,16 @@ const UserManagement: React.FC = () => {
               <div className="w-px h-10 self-center" style={{ background: 'var(--border-color)' }} />
 
               <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    resetBulkUpload();
+                    setShowBulkUploadPanel(true);
+                  }}
+                  className="btn-secondary flex items-center gap-2 text-sm px-5 py-2.5 cursor-pointer"
+                >
+                  <Upload size={15} strokeWidth={2} />
+                  Bulk Upload
+                </button>
                 <button
                   onClick={() => {
                     setFormData({ name: '', email: '', rollNo: '', role: 'Student', department: '', password: '' });
@@ -1008,6 +1073,231 @@ const UserManagement: React.FC = () => {
           </div>
         )}
       </CenteredModal>
+
+      {/* ════════════════════════════════════════════════════════
+          SLIDE-OVER: BULK UPLOAD
+      ════════════════════════════════════════════════════════ */}
+      <SlideOver open={showBulkUploadPanel} onClose={() => setShowBulkUploadPanel(false)}>
+        <div
+          className="flex items-center justify-between px-6 py-5 shrink-0"
+          style={{ borderBottom: '1px solid var(--border-color)' }}
+        >
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Import Students
+            </p>
+            <h2
+              className="text-xl font-black mt-0.5"
+              style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
+            >
+              Bulk Upload
+            </h2>
+          </div>
+          <button
+            onClick={() => setShowBulkUploadPanel(false)}
+            className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
+            style={{ color: 'var(--text-muted)', background: 'var(--glass-bg)' }}
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          {/* Info Banner */}
+          <div
+            className="p-4 rounded-2xl text-[13px] leading-relaxed space-y-2"
+            style={{ background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderColor: 'rgba(0,113,227,0.15)' }}
+          >
+            <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <FileSpreadsheet size={15} strokeWidth={2} style={{ color: 'var(--accent)' }} />
+              Excel File Format
+            </div>
+            <p style={{ color: 'var(--text-muted)' }}>
+              Upload an <strong style={{ color: 'var(--text-primary)' }}>.xlsx</strong> file with columns:
+              <strong style={{ color: 'var(--text-primary)' }}> Reg No, Student Name, Department, Email</strong>.
+              Default password = Roll Number (lowercase). Students must change it on first login.
+            </p>
+          </div>
+
+          {/* Drag & Drop Zone */}
+          {!bulkResult && (
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => bulkFileInputRef.current?.click()}
+              className="relative rounded-2xl cursor-pointer transition-all duration-200 flex flex-col items-center justify-center py-12 gap-4"
+              style={{
+                border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-color)'}`,
+                background: isDragOver ? 'var(--accent-subtle)' : 'var(--glass-bg)',
+              }}
+            >
+              <input
+                ref={bulkFileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleBulkFileSelect(file);
+                }}
+              />
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
+              >
+                <Upload size={24} strokeWidth={1.5} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {isDragOver ? 'Drop file here' : 'Click or drag file to upload'}
+                </p>
+                <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Supports .xlsx and .xls files
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Selected File Preview */}
+          {bulkFile && !bulkResult && (
+            <div
+              className="flex items-center gap-3 p-4 rounded-xl"
+              style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)' }}
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399' }}
+              >
+                <FileSpreadsheet size={18} strokeWidth={1.8} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                  {bulkFile.name}
+                </p>
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  {(bulkFile.size / 1024).toFixed(1)} KB
+                </p>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); setBulkFile(null); }}
+                className="p-1.5 rounded-lg cursor-pointer transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <X size={14} strokeWidth={2} />
+              </button>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          {bulkFile && !bulkResult && (
+            <button
+              onClick={handleBulkUpload}
+              disabled={bulkUploading}
+              className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm cursor-pointer"
+            >
+              {bulkUploading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Uploading & Processing...
+                </>
+              ) : (
+                <>
+                  <Upload size={16} strokeWidth={2} />
+                  Upload & Create Students
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Results */}
+          {bulkResult && (
+            <div className="space-y-4">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <div
+                  className="p-4 rounded-xl text-center"
+                  style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+                >
+                  <p className="text-2xl font-black" style={{ color: '#34d399' }}>
+                    {bulkResult.summary?.created || 0}
+                  </p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: '#34d399' }}>
+                    Created
+                  </p>
+                </div>
+                <div
+                  className="p-4 rounded-xl text-center"
+                  style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}
+                >
+                  <p className="text-2xl font-black" style={{ color: '#fbbf24' }}>
+                    {bulkResult.summary?.duplicatesSkipped || 0}
+                  </p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: '#fbbf24' }}>
+                    Skipped
+                  </p>
+                </div>
+              </div>
+
+              {/* Success Message */}
+              <div
+                className="p-4 rounded-2xl flex items-start gap-3"
+                style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+              >
+                <CheckCircle2 size={16} strokeWidth={2} style={{ color: '#34d399', flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <p className="text-[13px] font-semibold" style={{ color: '#34d399' }}>
+                    {bulkResult.message}
+                  </p>
+                  <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Default password = Roll Number (lowercase). Students will be prompted to change it on first login.
+                  </p>
+                </div>
+              </div>
+
+              {/* Duplicate Details */}
+              {bulkResult.details?.duplicates?.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                    Duplicates Skipped ({bulkResult.details.duplicates.length})
+                  </p>
+                  <div
+                    className="max-h-40 overflow-y-auto rounded-xl p-3 space-y-1.5"
+                    style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)' }}
+                  >
+                    {bulkResult.details.duplicates.map((d: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between text-[12px]">
+                        <span style={{ color: 'var(--text-primary)' }}>
+                          <span className="font-mono font-semibold" style={{ color: 'var(--text-muted)' }}>{d.rollNo}</span>
+                          {' '}{d.name}
+                        </span>
+                        <span className="text-[10px]" style={{ color: '#fbbf24' }}>{d.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => { setShowBulkUploadPanel(false); resetBulkUpload(); }}
+                  className="btn-secondary flex-1 py-2.5 text-sm"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={resetBulkUpload}
+                  className="btn-primary flex-1 py-2.5 text-sm flex items-center justify-center gap-2"
+                >
+                  <Upload size={14} strokeWidth={2} />
+                  Upload Another
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </SlideOver>
     </div>
   );
 };

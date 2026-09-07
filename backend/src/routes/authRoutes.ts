@@ -9,6 +9,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.get('/me', { preHandler: [verifyToken] }, authController.getMe);
   fastify.post('/forgot-password', authController.forgotPassword);
   fastify.post('/reset-password', authController.resetPassword);
+  fastify.post('/change-password', { preHandler: [verifyToken] }, authController.changePassword);
 }
 
 export default authRoutes;
