@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import User from '../models/userModel';
+import User from '../models/userModel.js';
 // @ts-ignore
-import Enrollment from '../models/enrollmentModel';
+import Enrollment from '../models/enrollmentModel.js';
 
 export const getMe = async (request: FastifyRequest, reply: FastifyReply) => {
   try {

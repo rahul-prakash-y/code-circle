@@ -539,11 +539,13 @@ export const bulkCreateUsers = async (request: FastifyRequest, reply: FastifyRep
 
     for (const student of studentsToCreate) {
       if (existingRollNos.has(student.rollNo)) {
-        duplicateStudents.push({ rollNo: student.rollNo, name: student.name, reason: 'Roll number already exists' });
+        duplicateStudents.push({ rollNo: student.rollNo, name: student.name, reason: 'Roll number already exists (or duplicate in sheet)' });
       } else if (existingEmails.has(student.email)) {
-        duplicateStudents.push({ rollNo: student.rollNo, name: student.name, reason: 'Email already exists' });
+        duplicateStudents.push({ rollNo: student.rollNo, name: student.name, reason: 'Email already exists (or duplicate in sheet)' });
       } else {
         newStudents.push(student);
+        existingRollNos.add(student.rollNo);
+        existingEmails.add(student.email);
       }
     }
 
