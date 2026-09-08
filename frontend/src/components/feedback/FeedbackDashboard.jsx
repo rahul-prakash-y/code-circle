@@ -45,8 +45,9 @@ const FeedbackDashboard = () => {
   const [search, setSearch] = useState('');
 
   const effectiveRole = profile?.role || user?.role || 'Student';
-  const isSuperAdmin = effectiveRole === 'SuperAdmin';
-  const isAdmin = isSuperAdmin || effectiveRole === 'Admin' || effectiveRole === 'Faculty';
+  const isSuperAdminRole = effectiveRole?.toLowerCase() === 'superadmin';
+  const isSuperAdmin = isSuperAdminRole || isSuperAdminView;
+  const isAdmin = isSuperAdmin || ['admin', 'faculty', 'committee'].includes(effectiveRole?.toLowerCase());
 
   useEffect(() => {
     fetchFeedbacks();
@@ -67,8 +68,8 @@ const FeedbackDashboard = () => {
   const filteredFeedbacks = feedbacks.filter((fb) => {
     const q = search.toLowerCase().trim();
     if (!q) return true;
-    const authorName = fb.user?.name || '';
-    const authorRoll = fb.user?.rollNo || '';
+    const authorName = isSuperAdmin ? (fb.user?.name || '') : 'anonymous user';
+    const authorRoll = isSuperAdmin ? (fb.user?.rollNo || '') : '';
     const commentText = fb.comment || '';
     const cat = fb.category || '';
     return (
@@ -84,7 +85,7 @@ const FeedbackDashboard = () => {
       {/* Role-Based Clearance Banner */}
       <div
         className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
-          isSuperAdminView
+          isSuperAdmin
             ? 'bg-purple-500/10 border-purple-500/30'
             : 'bg-accent/10 border-accent/30'
         }`}
@@ -92,30 +93,30 @@ const FeedbackDashboard = () => {
         <div className="flex items-center gap-3.5">
           <div
             className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              isSuperAdminView
+              isSuperAdmin
                 ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
                 : 'bg-accent/20 text-accent-muted border border-blue-500/40'
             }`}
           >
-            {isSuperAdminView ? <ShieldCheck size={20} /> : <Lock size={20} />}
+            {isSuperAdmin ? <ShieldCheck size={20} /> : <Lock size={20} />}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span
                 className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
-                  isSuperAdminView
+                  isSuperAdmin
                     ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
                     : 'bg-accent/20 text-blue-300 border-blue-500/40'
                 }`}
               >
-                {isSuperAdminView ? 'SuperAdmin Clearance' : 'Standard Admin Privacy Mode'}
+                {isSuperAdmin ? 'SuperAdmin Clearance' : isAdmin ? 'Standard Admin Privacy Mode' : 'Community Feedback'}
               </span>
             </div>
             <p className="text-xs text-text-secondary mt-1 leading-relaxed">
               {privacyNotice ||
-                (isSuperAdminView
+                (isSuperAdmin
                   ? 'SuperAdmin identity unmasking enabled: Full student profile references are populated for moderation.'
-                  : 'Standard Administrator view: Student identities are strictly anonymized to protect student privacy.')}
+                  : 'Community view: Feedback identities are displayed as anonymous user.')}
             </p>
           </div>
         </div>
@@ -271,8 +272,10 @@ const FeedbackDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <AnimatePresence>
             {filteredFeedbacks.map((fb) => {
-              const student = fb.user || {};
-              const isAnon = fb.isAnonymous;
+              // SuperAdmin sees user's real name; Admin views as Anonymous User
+              const isAnon = !isSuperAdmin;
+              const student = isSuperAdmin ? (fb.user || {}) : { name: 'Anonymous User' };
+              const displayName = isSuperAdmin ? (student.name || 'User') : 'Anonymous User';
 
               return (
                 <motion.div
@@ -349,16 +352,16 @@ const FeedbackDashboard = () => {
                       ) : (
                         /* Unmasked Display for SuperAdmin */
                         <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center font-black text-purple-300 text-xs">
-                          {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
+                          {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
                         </div>
                       )}
 
                       <div>
                         <p className="text-xs font-black text-text-primary flex items-center gap-2">
-                          {isAnon ? 'Anonymous Student' : student.name || 'Student Member'}
+                          {displayName}
                           {isAnon ? (
                             <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.2 rounded-full bg-surface-elevated text-text-muted border border-border">
-                              Identity Masked
+                              Anonymous User
                             </span>
                           ) : (
                             <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
@@ -367,7 +370,7 @@ const FeedbackDashboard = () => {
                           )}
                         </p>
                         <p className="text-[10px] text-text-muted font-mono">
-                          {isAnon ? 'ANONYMOUS ROLL' : `${student.rollNo || ''} • ${student.department || student.email || ''}`}
+                          {isAnon ? 'ANONYMOUS USER' : `${student.rollNo || ''} • ${student.department || student.email || ''}`}
                         </p>
                       </div>
                     </div>

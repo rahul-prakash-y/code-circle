@@ -129,7 +129,8 @@ export const getFeedbacks = async (
       ];
     }
 
-    const isSuperAdmin = user.role === 'SuperAdmin';
+    const roleNormalized = String(user.role || '').toLowerCase();
+    const isSuperAdmin = roleNormalized === 'superadmin';
 
     let query = Feedback.find(filter)
       .populate('event', 'title date type status')
@@ -143,11 +144,19 @@ export const getFeedbacks = async (
     const rawFeedbacks = await query.lean();
 
     // PRIVACY FILTER:
-    // When requester is NOT SuperAdmin, completely scrub and obscure student user identity!
+    // When requester is SuperAdmin: feedback is attributed and displayed by the user's real name.
+    // When requester is Admin or others: student identity is strictly obscured and displayed as 'Anonymous User'.
     const feedbacks = rawFeedbacks.map((fb: any) => {
-      if (isSuperAdmin && fb.user) {
+      if (isSuperAdmin) {
         return {
           ...fb,
+          user: fb.user || {
+            _id: 'unlinked',
+            name: 'User',
+            rollNo: 'N/A',
+            email: 'user@codecircle.internal',
+            department: 'Code Circle Member',
+          },
           isAnonymous: false,
           accessLevel: 'SuperAdmin-Attributed',
         };
@@ -157,7 +166,7 @@ export const getFeedbacks = async (
         ...fb,
         user: {
           _id: 'anonymous',
-          name: 'Anonymous Student',
+          name: 'Anonymous User',
           rollNo: 'ANONYMOUS',
           email: 'anonymous@codecircle.internal',
           department: 'Code Circle Member',
@@ -174,7 +183,7 @@ export const getFeedbacks = async (
       isSuperAdminView: isSuperAdmin,
       privacyPolicyNotice: isSuperAdmin
         ? 'SuperAdmin clearance active: Full user identities are visible for moderation and governance.'
-        : 'Standard Administrator clearance: Student feedback identities are anonymized to protect privacy.',
+        : 'Standard Administrator clearance: Student feedback identities are displayed as anonymous user to protect privacy.',
       count: feedbacks.length,
       data: feedbacks,
     });

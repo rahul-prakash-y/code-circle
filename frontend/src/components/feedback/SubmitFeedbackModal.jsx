@@ -243,7 +243,7 @@ const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) => {
             <p className="text-[11px] text-text-secondary leading-relaxed">
               <strong className="text-accent-muted font-bold">Privacy Guaranteed: </strong>
               Standard club administrators see this feedback labeled as{' '}
-              <span className="text-text-primary font-mono bg-surface-elevated px-1 py-0.5 rounded">Anonymous Student</span>.
+              <span className="text-text-primary font-mono bg-surface-elevated px-1 py-0.5 rounded">Anonymous User</span>.
             </p>
           </div>
 

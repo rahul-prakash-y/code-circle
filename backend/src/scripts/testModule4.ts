@@ -263,8 +263,8 @@ async function runModule4Tests() {
     const targetAdminFb = adminFeedbacks.find((f: any) => f.comment.includes('outstanding'));
     assert(!!targetAdminFb, 'Target feedback found in Admin list');
     assert(
-      targetAdminFb.user.name === 'Anonymous Student',
-      `Privacy Passed: Admin sees name as "Anonymous Student" (got: ${targetAdminFb.user.name})`
+      targetAdminFb.user.name === 'Anonymous User',
+      `Privacy Passed: Admin sees name as "Anonymous User" (got: ${targetAdminFb.user.name})`
     );
     assert(
       targetAdminFb.user.rollNo === 'ANONYMOUS',
