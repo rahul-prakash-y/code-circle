@@ -11,6 +11,7 @@ export interface ClubEvent {
   type: EventType;
   maxParticipants: number;
   registrationDeadline: string;
+  certificateTemplateUrl?: string;
   createdBy?: User | string;
   createdAt?: string;
   updatedAt?: string;

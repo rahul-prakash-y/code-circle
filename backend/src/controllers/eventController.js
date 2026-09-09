@@ -11,7 +11,8 @@ const createEvent = async (request, reply) => {
       type, 
       format,
       maxParticipants, 
-      registrationDeadline 
+      registrationDeadline,
+      certificateTemplateUrl 
     } = request.body;
 
     if (!title || !description || !date || !venueOrLink || !type || !registrationDeadline) {
@@ -32,6 +33,7 @@ const createEvent = async (request, reply) => {
       format: eventFormat,
       maxParticipants: computedMax,
       registrationDeadline,
+      certificateTemplateUrl: certificateTemplateUrl ? String(certificateTemplateUrl).trim() : '',
       createdBy: user._id
     });
 

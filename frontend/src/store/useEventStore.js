@@ -155,6 +155,20 @@ const useEventStore = create((set) => ({
       });
       throw error;
     }
+  },
+
+  uploadCertificateTemplate: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/upload/certificate-template', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return { success: true, url: res.data.url };
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to upload certificate template';
+      return { success: false, error: msg };
+    }
   }
 }));
 

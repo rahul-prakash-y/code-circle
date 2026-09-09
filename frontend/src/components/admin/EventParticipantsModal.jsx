@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Award,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
@@ -110,12 +111,34 @@ export const EventParticipantsModal = ({
   onClose,
   event,
 }) => {
-  const { fetchEventEnrollments, loading } = useEnrollmentStore();
+  const { fetchEventEnrollments, generateCertificates, loading } = useEnrollmentStore();
   const [enrollments, setEnrollments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [formatFilter, setFormatFilter] = useState('all');
   const [attendanceFilter, setAttendanceFilter] = useState('all');
   const [expandedTeams, setExpandedTeams] = useState(new Set());
+  const [generatingCertificates, setGeneratingCertificates] = useState(false);
+
+  const handleGenerateCertificates = async () => {
+    if (!event?._id) return;
+    if (!event.certificateTemplateUrl) {
+      return toast.error('No certificate template uploaded for this event! Please upload a certificate template before generating certificates.');
+    }
+    if (stats.presentStudents === 0) {
+      return toast.error('No participants have been marked present yet. Validate attendance before generating certificates.');
+    }
+    setGeneratingCertificates(true);
+    try {
+      const res = await generateCertificates(event._id);
+      toast.success(res.message || 'Certificates generated successfully!');
+      const data = await fetchEventEnrollments(event._id);
+      setEnrollments(data || []);
+    } catch (err) {
+      toast.error(err.message || 'Failed to generate certificates');
+    } finally {
+      setGeneratingCertificates(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen && event?._id) {
@@ -342,7 +365,31 @@ export const EventParticipantsModal = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {event.certificateTemplateUrl ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <Award size={13} /> Template Ready
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Award size={13} /> Template Missing
+                </span>
+              )}
+
+              <button
+                onClick={handleGenerateCertificates}
+                disabled={generatingCertificates}
+                className="btn-primary flex items-center gap-2 text-xs py-2 px-3.5 cursor-pointer disabled:opacity-50"
+                title="Generate Certificates for Attendees"
+              >
+                {generatingCertificates ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Award size={15} />
+                )}
+                <span>Generate Certificates</span>
+              </button>
+
               <button
                 onClick={exportCSV}
                 className="btn-secondary flex items-center gap-2 text-xs py-2 px-3.5 cursor-pointer"

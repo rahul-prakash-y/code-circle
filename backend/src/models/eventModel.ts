@@ -14,6 +14,7 @@ export interface IEvent extends Document {
   venueOrLink: string;
   maxParticipants: number;
   registrationDeadline: Date;
+  certificateTemplateUrl?: string;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -66,6 +67,11 @@ const eventSchema = new Schema<IEvent>(
       default: function (this: IEvent) {
         return this.date || new Date();
       },
+    },
+    certificateTemplateUrl: {
+      type: String,
+      default: '',
+      trim: true,
     },
     createdBy: {
       type: Schema.Types.ObjectId,

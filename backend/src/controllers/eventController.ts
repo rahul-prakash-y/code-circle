@@ -12,6 +12,7 @@ export interface CreateEventBody {
   venueOrLink?: string;
   maxParticipants?: number;
   registrationDeadline?: string | Date;
+  certificateTemplateUrl?: string;
 }
 
 export interface GetEventsQuery {
@@ -41,6 +42,7 @@ export const createEvent = async (
       venueOrLink = 'Campus / Online',
       maxParticipants = 0,
       registrationDeadline,
+      certificateTemplateUrl = '',
     } = request.body;
 
     if (!title || !description || !date) {
@@ -60,6 +62,7 @@ export const createEvent = async (
       venueOrLink: venueOrLink.trim(),
       maxParticipants: format === 'Duo' ? 2 : format === 'Team' ? (maxParticipants || 4) : 0,
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : new Date(date),
+      certificateTemplateUrl: certificateTemplateUrl ? certificateTemplateUrl.trim() : '',
       createdBy: new mongoose.Types.ObjectId(user.id || user._id),
     });
 

@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ArrowUpRight,
   UserCheck,
+  Award,
 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -245,6 +246,48 @@ export const EventDetailsModal = ({
               <div className="p-5 rounded-2xl bg-canvas/50 border border-separator text-sm text-label-secondary leading-relaxed whitespace-pre-wrap">
                 {event.description}
               </div>
+            </div>
+
+            {/* Certificate Template Preview */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs uppercase font-bold text-label-tertiary tracking-wider flex items-center gap-1.5">
+                  <Award size={14} className="text-amber-400" />
+                  Official Certificate Template
+                </h3>
+                {event.certificateTemplateUrl ? (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                    Template Ready
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface border border-separator px-2 py-0.5 rounded-full">
+                    Default Template
+                  </span>
+                )}
+              </div>
+              {event.certificateTemplateUrl ? (
+                <div className="relative group rounded-2xl overflow-hidden border border-separator bg-black/40">
+                  <img 
+                    src={event.certificateTemplateUrl} 
+                    alt="Event Certificate Template" 
+                    className="w-full h-40 object-contain"
+                  />
+                  <a 
+                    href={event.certificateTemplateUrl} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-semibold"
+                  >
+                    <span>View Full Certificate Template</span>
+                    <ExternalLink size={14} />
+                  </a>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-canvas border border-separator text-xs text-label-secondary flex items-center gap-2.5">
+                  <Award size={16} className="text-amber-400 shrink-0" />
+                  <span>Verified attendance certificate issued by Code Circle & Bannari Amman Institute of Technology upon event completion.</span>
+                </div>
+              )}
             </div>
 
             {/* Registration status / info banner */}

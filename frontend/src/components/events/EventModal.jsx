@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, MapPin, Users, Type, AlignLeft, Info, Layers, Activity, CheckCircle2, Loader2, Eye } from 'lucide-react';
+import { 
+  X, Calendar, MapPin, Users, Type, AlignLeft, Info, 
+  Layers, Activity, CheckCircle2, Loader2, Eye,
+  Award, Upload, Trash2, ExternalLink
+} from 'lucide-react';
 import useEventStore from '../../store/useEventStore';
 import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
@@ -14,9 +18,11 @@ export const EventModal = ({
   onClose,
   eventToEdit = null,
 }) => {
-  const { addEvent, updateEvent } = useEventStore();
+  const { addEvent, updateEvent, uploadCertificateTemplate } = useEventStore();
   const [loading, setLoading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [uploadingTemplate, setUploadingTemplate] = useState(false);
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -27,6 +33,7 @@ export const EventModal = ({
     status: 'Upcoming',
     maxParticipants: 4,
     registrationDeadline: '',
+    certificateTemplateUrl: '',
   });
 
   useEffect(() => {
@@ -43,6 +50,7 @@ export const EventModal = ({
         registrationDeadline: eventToEdit.registrationDeadline
           ? eventToEdit.registrationDeadline.split('T')[0]
           : (eventToEdit.date ? eventToEdit.date.split('T')[0] : ''),
+        certificateTemplateUrl: eventToEdit.certificateTemplateUrl || '',
       });
     } else {
       setFormData({
@@ -55,6 +63,7 @@ export const EventModal = ({
         status: 'Upcoming',
         maxParticipants: 4,
         registrationDeadline: '',
+        certificateTemplateUrl: '',
       });
     }
   }, [eventToEdit, isOpen]);
@@ -62,6 +71,29 @@ export const EventModal = ({
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleTemplateUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      return toast.error('Please upload an image file (PNG, JPG, WebP) for the certificate template');
+    }
+    setUploadingTemplate(true);
+    const res = await uploadCertificateTemplate(file);
+    if (res.success && res.url) {
+      setFormData((prev) => ({ ...prev, certificateTemplateUrl: res.url }));
+      toast.success('Certificate template uploaded successfully!');
+    } else {
+      toast.error(res.error || 'Failed to upload certificate template');
+    }
+    setUploadingTemplate(false);
+  };
+
+  const handleRemoveTemplate = () => {
+    setFormData((prev) => ({ ...prev, certificateTemplateUrl: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    toast('Certificate template removed', { icon: '🗑️' });
   };
 
   const handleSubmit = async (e) => {
@@ -81,6 +113,7 @@ export const EventModal = ({
             ? Number(formData.maxParticipants) || 4
             : 0,
         registrationDeadline: formData.registrationDeadline || formData.date,
+        certificateTemplateUrl: formData.certificateTemplateUrl || '',
       };
 
       if (eventToEdit) {
@@ -315,6 +348,102 @@ export const EventModal = ({
                   onChange={handleChange}
                   placeholder="e.g. Audi 2 / meet.google.com/xyz"
                   className="input-field text-xs py-2.5 focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
+                />
+              </div>
+
+              {/* Certificate Template */}
+              <div className="p-4 rounded-2xl bg-surface-elevated border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award size={16} className="text-amber-400" />
+                    <label className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                      Certificate Template
+                    </label>
+                  </div>
+                  {formData.certificateTemplateUrl ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 size={11} /> Uploaded
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      Required for Event
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Upload the official certificate template for this event (PNG or JPG). When attendance is confirmed, certificates are automatically generated using this custom template.
+                </p>
+
+                {formData.certificateTemplateUrl ? (
+                  <div className="relative group rounded-xl overflow-hidden border border-border bg-canvas">
+                    <img 
+                      src={formData.certificateTemplateUrl} 
+                      alt="Certificate Template Preview" 
+                      className="w-full h-36 object-contain bg-black/40"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <a 
+                        href={formData.certificateTemplateUrl} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                        title="View Full Template"
+                      >
+                        <ExternalLink size={16} />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 rounded-lg bg-accent/80 hover:bg-accent text-white transition-colors cursor-pointer"
+                        title="Replace Template"
+                      >
+                        <Upload size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemoveTemplate}
+                        className="p-2 rounded-lg bg-rose-500/80 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+                        title="Remove Template"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-border hover:border-accent/50 rounded-xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-canvas/50 hover:bg-accent/5"
+                  >
+                    {uploadingTemplate ? (
+                      <>
+                        <Loader2 size={24} className="animate-spin text-accent" />
+                        <span className="text-xs text-text-muted font-medium">Uploading template to Cloudinary...</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+                          <Upload size={18} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs font-semibold text-text-primary">
+                            Click or drop certificate template here
+                          </p>
+                          <p className="text-[10px] text-text-muted mt-0.5">
+                            PNG, JPG, or WebP (Recommended: A4 Landscape / 1920x1080)
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleTemplateUpload}
+                  className="hidden"
                 />
               </div>
 

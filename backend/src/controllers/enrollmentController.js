@@ -271,6 +271,12 @@ const generateCertificates = async (request, reply) => {
       return reply.status(404).send({ error: 'Event not found' });
     }
 
+    if (!event.certificateTemplateUrl) {
+      return reply.status(400).send({
+        error: 'No certificate template has been uploaded for this event. Please upload an official certificate template before generating certificates.'
+      });
+    }
+
     const eligibleEnrollments = await Enrollment.find({
       event: eventId,
       attendanceStatus: true,
@@ -289,7 +295,7 @@ const generateCertificates = async (request, reply) => {
       const results = await Promise.allSettled(
         batch.map(async (enrollment) => {
           const studentName = enrollment.enrolledBy.name;
-          const certUrl = await generateCertificate(studentName, event.title, event.date);
+          const certUrl = await generateCertificate(studentName, event.title, event.date, event.certificateTemplateUrl);
           enrollment.certificateUrl = certUrl;
           await enrollment.save();
           return certUrl;
