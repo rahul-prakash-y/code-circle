@@ -5,7 +5,9 @@ import useEventStore from '../../store/useEventStore';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import EventCard from './EventCard';
 import EnrollmentModal from './EnrollmentModal';
+import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
+import EventParticipantsModal from '../admin/EventParticipantsModal';
 import { EventCardSkeleton } from '../ui/LoadingSkeleton';
 import { 
   Search, 
@@ -21,11 +23,12 @@ import {
   Clock, 
   MapPin, 
   UserCheck, 
-  ArrowUpRight 
+  ArrowUpRight,
+  Eye
 } from 'lucide-react';
 
 const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop'];
-const EVENT_FORMATS = ['all', 'Individual', 'Team'];
+const EVENT_FORMATS = ['all', 'Individual', 'Duo', 'Team'];
 
 export const EventFeed = ({
   isAdmin = false,
@@ -40,9 +43,11 @@ export const EventFeed = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
 
-  // Selected event for enrollment / attendance modals triggered from table
+  // Selected event for modals
   const [enrollEvent, setEnrollEvent] = useState(null);
   const [attendanceEvent, setAttendanceEvent] = useState(null);
+  const [previewEvent, setPreviewEvent] = useState(null);
+  const [participantsEvent, setParticipantsEvent] = useState(null);
 
   useEffect(() => {
     fetchEvents({
@@ -53,6 +58,22 @@ export const EventFeed = ({
     });
     fetchMyEnrollments();
   }, [activeTab, selectedType, selectedFormat, fetchEvents, fetchMyEnrollments]);
+
+  const isEventLive = (e) => {
+    if (!e) return false;
+    if (e.status && e.status.toLowerCase() === 'live') return true;
+    if (e.status === 'Completed' || e.status === 'Cancelled') return false;
+    if (e.date) {
+      const d = new Date(e.date);
+      const now = new Date();
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      );
+    }
+    return false;
+  };
 
   // Determine list of events
   let eventsToDisplay = events;
@@ -67,7 +88,7 @@ export const EventFeed = ({
         ? pastEvents
         : events.filter((e) => e.status === 'Completed');
   } else if (activeTab === 'live') {
-    eventsToDisplay = events.filter((e) => e.status === 'Live');
+    eventsToDisplay = events.filter(isEventLive);
   }
 
   const filteredEvents = eventsToDisplay.filter((event) => {
@@ -81,7 +102,8 @@ export const EventFeed = ({
       selectedFormat === 'all' ||
       event.format === selectedFormat ||
       (selectedFormat === 'Team' && event.type === 'Team') ||
-      (selectedFormat === 'Individual' && event.type === 'Individual');
+      (selectedFormat === 'Individual' && event.type === 'Individual') ||
+      (selectedFormat === 'Duo' && (event.format === 'Duo' || event.maxParticipants === 2));
 
     return matchesSearch && matchesType && matchesFormat;
   });
@@ -311,17 +333,17 @@ export const EventFeed = ({
                         {event.date ? format(new Date(event.date), 'MMM d, yyyy') : 'TBA'}
                       </td>
 
-                      {/* Category */}
+                      {/* Category & Format */}
                       <td className="px-6 py-4">
                         <span className="text-xs text-label-secondary font-medium">
-                          {event.type || 'Technical'} • {event.format === 'Team' ? 'Team' : 'Solo'}
+                          {event.type || 'Technical'} • {event.format === 'Duo' ? 'Duo' : event.format === 'Team' ? 'Squad' : 'Solo'}
                         </span>
                       </td>
 
                       {/* Status */}
                       <td className="px-6 py-4">
-                        {event.status === 'Live' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-destructive">
+                        {isEventLive(event) ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-destructive border border-red-500/20">
                             <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
                             Live
                           </span>
@@ -335,9 +357,25 @@ export const EventFeed = ({
                       {/* Action buttons */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {/* Common Preview Button */}
+                          <button
+                            onClick={() => setPreviewEvent(event)}
+                            className="p-1.5 rounded-lg text-label-secondary hover:text-accent hover:bg-canvas transition-colors cursor-pointer"
+                            title="Preview Event Details"
+                          >
+                            <Eye size={15} />
+                          </button>
+
                           {/* Admin Controls */}
                           {isAdmin && (
                             <>
+                              <button
+                                onClick={() => setParticipantsEvent(event)}
+                                className="p-1.5 rounded-lg text-label-secondary hover:text-accent hover:bg-canvas transition-colors cursor-pointer"
+                                title="Participants Directory"
+                              >
+                                <Users size={15} />
+                              </button>
                               <button
                                 onClick={() => setAttendanceEvent(event)}
                                 className="p-1.5 rounded-lg text-label-secondary hover:text-accent hover:bg-canvas transition-colors cursor-pointer"
@@ -385,6 +423,29 @@ export const EventFeed = ({
             </table>
           </div>
         </div>
+      )}
+
+      {/* Event Details Preview Modal */}
+      {previewEvent && (
+        <EventDetailsModal
+          isOpen={Boolean(previewEvent)}
+          onClose={() => setPreviewEvent(null)}
+          event={previewEvent}
+          isEnrolled={myEnrolledEventIds.includes(previewEvent._id)}
+          isAdmin={isAdmin}
+          onEnroll={(ev) => setEnrollEvent(ev)}
+          onEdit={onEdit}
+          onViewParticipants={(ev) => setParticipantsEvent(ev)}
+        />
+      )}
+
+      {/* Event Participants Directory Modal for Admin */}
+      {participantsEvent && (
+        <EventParticipantsModal
+          isOpen={Boolean(participantsEvent)}
+          onClose={() => setParticipantsEvent(null)}
+          event={participantsEvent}
+        />
       )}
 
       {/* Table-triggered Enrollment Modal */}

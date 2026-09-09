@@ -131,11 +131,11 @@ function App() {
             }
           />
 
-          {/* Teams Management Module (Admin, SuperAdmin, Faculty, Committee) */}
+          {/* Teams Management Module (SuperAdmin Only) */}
           <Route
             path="/teams"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin']}>
                 <MainLayout>
                   <TeamsManagement />
                 </MainLayout>

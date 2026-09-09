@@ -142,13 +142,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
     },
   ];
 
+  const isSuperAdmin = user?.role === 'SuperAdmin' || profile?.role === 'SuperAdmin';
+
   const adminLinks: NavItem[] = [
-    {
-      to: '/teams',
-      label: 'Teams',
-      icon: Users,
-      match: (loc) => loc.pathname === '/teams',
-    },
+    ...(isSuperAdmin
+      ? [
+          {
+            to: '/teams',
+            label: 'Teams',
+            icon: Users,
+            match: (loc: { pathname: string; search: string }) => loc.pathname === '/teams',
+          },
+        ]
+      : []),
     {
       to: '/users',
       label: 'Directory',

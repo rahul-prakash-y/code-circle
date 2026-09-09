@@ -11,14 +11,21 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
 
   if (!isOpen || !event) return null;
 
-  const isTeamEvent = event.type === 'Team';
-  const maxAdditionalMembers = event.maxParticipants - 1; // Excluding the creator
+  const isDuoEvent = event.format === 'Duo';
+  const isSquadEvent = event.format === 'Team' || event.type === 'Team';
+  const isTeamEvent = isDuoEvent || isSquadEvent;
+  const maxParticipants = isDuoEvent ? 2 : (event.maxParticipants || 4);
+  const maxAdditionalMembers = isDuoEvent ? 1 : Math.max(0, maxParticipants - 1); // Excluding creator
 
   const handleAddMember = () => {
     if (members.length < maxAdditionalMembers) {
       setMembers([...members, '']);
     } else {
-      toast.error(`Maximum ${event.maxParticipants} members allowed per team.`);
+      toast.error(
+        isDuoEvent
+          ? 'Duo format allows exactly 1 partner (2 members total).'
+          : `Maximum ${maxParticipants} members allowed per team.`
+      );
     }
   };
 
@@ -37,23 +44,28 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
     e.preventDefault();
     
     if (isTeamEvent && !teamName.trim()) {
-      toast.error('Team name is required');
+      toast.error(isDuoEvent ? 'Duo / Pair name is required' : 'Team name is required');
       return;
     }
 
     // Filter out empty roll numbers if any
-    const filteredMembers = members.filter(m => m.trim() !== '');
+    const filteredMembers = members.filter(m => m && m.trim() !== '');
+
+    if (isDuoEvent && filteredMembers.length !== 1) {
+      toast.error('Please provide your Duo partner\'s Roll Number');
+      return;
+    }
 
     const enrollmentData = {
       event: event._id,
-      type: event.type,
-      teamName: isTeamEvent ? teamName : undefined,
+      type: isDuoEvent ? 'Duo' : isSquadEvent ? 'Team' : 'Individual',
+      teamName: isTeamEvent ? teamName.trim() : undefined,
       members: isTeamEvent ? filteredMembers : undefined
     };
 
     try {
       await enrollInEvent(enrollmentData);
-      toast.success('Successfully enrolled in the event!');
+      toast.success(isDuoEvent ? 'Successfully enrolled with your Duo partner!' : 'Successfully enrolled in the event!');
       onClose();
       // Reset state
       setTeamName('');
@@ -99,12 +111,14 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
             <>
               {/* Team Name */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-secondary ml-1">Team Name</label>
+                <label className="text-sm font-medium text-text-secondary ml-1">
+                  {isDuoEvent ? 'Duo / Pair Name *' : 'Team Name *'}
+                </label>
                 <input
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
-                  placeholder="Enter a catchy name..."
+                  placeholder={isDuoEvent ? 'e.g. Dynamic Duo' : 'Enter a catchy name...'}
                   className="w-full bg-surface-elevated/50 border border-slate-700/50 rounded-2xl px-4 py-3 text-text-primary placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                   required
                 />
@@ -113,9 +127,11 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
               {/* Team Members */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between ml-1">
-                  <label className="text-sm font-medium text-text-secondary">Team Members (Roll Numbers)</label>
+                  <label className="text-sm font-medium text-text-secondary">
+                    {isDuoEvent ? 'Partner Information (Roll Number)' : 'Team Members (Roll Numbers)'}
+                  </label>
                   <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold">
-                    {members.length + 1} / {event.maxParticipants}
+                    {members.length + 1} / {maxParticipants}
                   </span>
                 </div>
                 
@@ -124,7 +140,9 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs font-bold">
                       YOU
                     </div>
-                    <span className="text-sm text-indigo-200">Team Leader</span>
+                    <span className="text-sm text-indigo-200">
+                      {isDuoEvent ? 'Creator / Lead' : 'Team Leader'}
+                    </span>
                   </div>
 
                   <AnimatePresence>
@@ -140,7 +158,7 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
                           type="text"
                           value={member}
                           onChange={(e) => handleMemberChange(index, e.target.value)}
-                          placeholder={`Member #${index + 2} Roll No`}
+                          placeholder={isDuoEvent ? "Partner's Roll No (e.g. 21CS042)" : `Member #${index + 2} Roll No`}
                           className="flex-1 bg-surface-elevated/80 border border-slate-700/50 rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-indigo-500 transition-all"
                           required
                         />

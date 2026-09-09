@@ -27,8 +27,8 @@ async function userRoutes(fastify, options) {
     // Password Reset Link trigger (Admin & SuperAdmin)
     instance.post('/:id/reset-link', userManagementController.triggerResetLink);
 
-    // SuperAdmin Elevated Force Password Reset (NO ONE views raw passwords)
-    instance.post('/:id/force-reset-password', { preHandler: [requireSuperAdmin] }, userManagementController.forceResetPassword);
+    // Admin & SuperAdmin Force Temporary Password Reset
+    instance.post('/:id/force-reset-password', userManagementController.forceResetPassword);
 
     // Legacy backwards-compatible student routes
     instance.get('/students', adminController.getAllStudents);

@@ -131,13 +131,17 @@ const createUser = async (request, reply) => {
       ? password
       : generateSecureTemporaryPassword();
 
+    const isTemporary = !password || password.length < 6;
+
     const newUser = new User({
       name: name.trim(),
       email: normalizedEmail,
       rollNo: normalizedRollNo,
       role: requestedRole,
       department: department ? department.trim() : '',
+      college: 'BIT',
       password: initialPassword,
+      mustChangePassword: isTemporary,
       activeSessionId: null,
     });
 
@@ -338,11 +342,12 @@ const triggerResetLink = async (request, reply) => {
 const forceResetPassword = async (request, reply) => {
   try {
     const { id } = request.params;
+    const actorRole = request.user?.role;
 
-    if (request.user?.role !== 'SuperAdmin') {
+    if (actorRole !== 'SuperAdmin' && actorRole !== 'Admin') {
       return reply.status(403).send({
         success: false,
-        error: 'Forbidden: Elevated SuperAdmin privileges are required for forced password resets',
+        error: 'Forbidden: Admin or SuperAdmin privileges are required for temporary password generation',
       });
     }
 
@@ -351,9 +356,17 @@ const forceResetPassword = async (request, reply) => {
       return reply.status(404).send({ success: false, error: 'User not found' });
     }
 
+    if (actorRole === 'Admin' && (targetUser.role === 'SuperAdmin' || targetUser.role === 'Admin')) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Forbidden: Standard Admins cannot reset credentials for other administrators',
+      });
+    }
+
     const temporaryPassword = generateSecureTemporaryPassword();
 
     targetUser.password = temporaryPassword;
+    targetUser.mustChangePassword = true;
     targetUser.activeSessionId = null;
     targetUser.resetPasswordToken = null;
     targetUser.resetPasswordExpires = null;
@@ -362,7 +375,7 @@ const forceResetPassword = async (request, reply) => {
 
     return reply.send({
       success: true,
-      message: `Password forcefully reset for ${targetUser.name}. Inform the user to log in with this temporary default password.`,
+      message: `Temporary password generated for ${targetUser.name}. The student must set their own password upon logging in.`,
       temporaryPassword,
       user: sanitizeUser(targetUser),
     });

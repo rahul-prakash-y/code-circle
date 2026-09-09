@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, MapPin, Users, Type, AlignLeft, Info, Layers, Activity, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Type, AlignLeft, Info, Layers, Activity, CheckCircle2, Loader2, Eye } from 'lucide-react';
 import useEventStore from '../../store/useEventStore';
+import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
 
 const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop'];
-const EVENT_FORMATS = ['Individual', 'Team'];
+const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];
 const EVENT_STATUSES = ['Upcoming', 'Live', 'Completed', 'Cancelled'];
 
 export const EventModal = ({
@@ -15,6 +16,7 @@ export const EventModal = ({
 }) => {
   const { addEvent, updateEvent } = useEventStore();
   const [loading, setLoading] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -72,7 +74,12 @@ export const EventModal = ({
     try {
       const payload = {
         ...formData,
-        maxParticipants: formData.format === 'Team' ? Number(formData.maxParticipants) || 4 : 0,
+        maxParticipants:
+          formData.format === 'Duo'
+            ? 2
+            : formData.format === 'Team'
+            ? Number(formData.maxParticipants) || 4
+            : 0,
         registrationDeadline: formData.registrationDeadline || formData.date,
       };
 
@@ -196,19 +203,25 @@ export const EventModal = ({
                   <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                     <Users size={14} className="text-purple-400" /> Format
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {EVENT_FORMATS.map((f) => (
                       <button
                         type="button"
                         key={f}
-                        onClick={() => setFormData((prev) => ({ ...prev, format: f }))}
-                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            format: f,
+                            maxParticipants: f === 'Duo' ? 2 : f === 'Team' ? (prev.maxParticipants < 3 ? 4 : prev.maxParticipants) : 0,
+                          }))
+                        }
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer text-center ${
                           formData.format === f
                             ? 'bg-purple-600 text-white border-purple-500 shadow-sm shadow-purple-500/20'
                             : 'bg-surface-elevated text-text-muted border-border hover:text-text-primary'
                         }`}
                       >
-                        {f === 'Individual' ? 'Solo' : 'Squad (Team)'}
+                        {f === 'Individual' ? 'Solo' : f === 'Duo' ? 'Duo (2)' : 'Squad'}
                       </button>
                     ))}
                   </div>
@@ -234,16 +247,24 @@ export const EventModal = ({
                 </div>
               </div>
 
-              {/* Max Members (when Team format) */}
+              {/* Duo Note */}
+              {formData.format === 'Duo' && (
+                <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2.5 text-xs text-purple-300">
+                  <Users size={16} className="shrink-0 text-purple-400" />
+                  <span>Duo team format locks squad size to exactly <strong>2 members</strong> (Creator + 1 Partner).</span>
+                </div>
+              )}
+
+              {/* Max Members (when Squad Team format) */}
               {formData.format === 'Team' && (
                 <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
                   <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Users size={14} className="text-purple-400" /> Max Members per Team
+                    <Users size={14} className="text-purple-400" /> Max Members per Team (3 to 10)
                   </label>
                   <input
                     type="number"
                     name="maxParticipants"
-                    min="2"
+                    min="3"
                     max="10"
                     value={formData.maxParticipants}
                     onChange={handleChange}
@@ -302,9 +323,18 @@ export const EventModal = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-3 px-4 rounded-xl bg-surface-elevated text-text-muted text-xs font-bold uppercase tracking-wider hover:text-text-primary transition-all border border-border cursor-pointer"
+                  className="py-3 px-4 rounded-xl bg-surface-elevated text-text-muted text-xs font-bold uppercase tracking-wider hover:text-text-primary transition-all border border-border cursor-pointer"
                 >
                   Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPreviewModal(true)}
+                  className="py-3 px-4 rounded-xl bg-surface-elevated text-accent text-xs font-bold uppercase tracking-wider hover:bg-canvas transition-all border border-border flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Preview how this event will look"
+                >
+                  <Eye size={15} />
+                  <span>Preview</span>
                 </button>
                 <button
                   type="submit"
@@ -323,6 +353,26 @@ export const EventModal = ({
             </form>
           </motion.div>
         </div>
+      )}
+
+      {/* Live Preview Modal */}
+      {showPreviewModal && (
+        <EventDetailsModal
+          isOpen={showPreviewModal}
+          onClose={() => setShowPreviewModal(false)}
+          event={{
+            ...formData,
+            _id: eventToEdit?._id || 'preview-event',
+            maxParticipants:
+              formData.format === 'Duo'
+                ? 2
+                : formData.format === 'Team'
+                ? Number(formData.maxParticipants) || 4
+                : 0,
+            createdBy: { name: 'Preview Organizer (You)' },
+          }}
+          isAdmin={true}
+        />
       )}
     </AnimatePresence>
   );

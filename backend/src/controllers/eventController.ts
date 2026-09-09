@@ -58,7 +58,7 @@ export const createEvent = async (
       date: new Date(date),
       status,
       venueOrLink: venueOrLink.trim(),
-      maxParticipants: format === 'Team' ? (maxParticipants || 4) : 0,
+      maxParticipants: format === 'Duo' ? 2 : format === 'Team' ? (maxParticipants || 4) : 0,
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : new Date(date),
       createdBy: new mongoose.Types.ObjectId(user.id || user._id),
     });
@@ -90,7 +90,15 @@ export const getEvents = async (
       } else if (lower === 'past' || lower === 'completed') {
         query.$or = [{ date: { $lt: now } }, { status: 'Completed' }];
       } else if (lower === 'live') {
-        query.status = 'Live';
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        query.$or = [
+          { status: { $regex: /^live$/i } },
+          {
+            date: { $gte: startOfDay, $lte: endOfDay },
+            status: { $nin: ['Cancelled', 'Completed'] },
+          },
+        ];
       } else if (lower === 'cancelled') {
         query.status = 'Cancelled';
       } else {
@@ -168,6 +176,8 @@ export const updateEvent = async (
 
     if (updateData.format === 'Individual') {
       updateData.maxParticipants = 0;
+    } else if (updateData.format === 'Duo') {
+      updateData.maxParticipants = 2;
     }
 
     if (updateData.date) {

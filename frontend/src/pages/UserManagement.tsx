@@ -831,15 +831,15 @@ const UserManagement: React.FC = () => {
                                 <KeyRound size={15} strokeWidth={1.8} />
                               </button>
 
-                              {/* Force Reset (SuperAdmin) */}
-                              {isSuperAdmin() && (
+                              {/* Force Reset (Admin & SuperAdmin) */}
+                              {(isSuperAdmin?.() || isAdmin?.() || currentUser?.role === 'Admin' || currentUser?.role === 'SuperAdmin') && (currentUser?.role === 'SuperAdmin' || (item.role !== 'SuperAdmin' && item.role !== 'Admin')) && (
                                 <button
                                   onClick={() => handleForceResetPassword(item)}
                                   className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
                                   style={{ color: 'var(--text-muted)' }}
                                   onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#f59e0b')}
                                   onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
-                                  title="Force reset password"
+                                  title="Generate temporary password"
                                 >
                                   <Sparkles size={15} strokeWidth={1.8} />
                                 </button>
@@ -1111,14 +1111,14 @@ const UserManagement: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#f59e0b' }}>
-              SuperAdmin · Elevated Override
+              Admin / SuperAdmin Action
             </p>
             <h3 className="text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Force Reset
+              Temporary Password Generation
             </h3>
           </div>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
-            <Crown size={18} strokeWidth={1.8} />
+            <KeyRound size={18} strokeWidth={1.8} />
           </div>
         </div>
 
@@ -1129,13 +1129,13 @@ const UserManagement: React.FC = () => {
               style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', color: '#fbbf24' }}
             >
               <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
-                <AlertTriangle size={15} strokeWidth={2} style={{ color: '#f59e0b' }} />
-                Critical Privilege Action
+                <ShieldAlert size={15} strokeWidth={2} style={{ color: '#f59e0b' }} />
+                Temporary Access Generation
               </div>
               <p>
-                This will immediately overwrite the password for{' '}
-                <strong style={{ color: 'var(--text-primary)' }}>{selectedUser?.name}</strong> and
-                terminate all active sessions.
+                This will generate a secure temporary password for{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>{selectedUser?.name}</strong>.
+                When the student signs in with this temporary password, they will be required to create their own personal password before accessing Code Circle.
               </p>
             </div>
             <div className="flex gap-3">
@@ -1157,7 +1157,7 @@ const UserManagement: React.FC = () => {
               style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
             >
               <CheckCircle2 size={16} strokeWidth={2} style={{ color: '#34d399', flexShrink: 0, marginTop: 2 }} />
-              <p className="text-[13px]" style={{ color: '#34d399' }}>Password reset successful. One-time credentials below:</p>
+              <p className="text-[13px]" style={{ color: '#34d399' }}>Temporary password generated. Hand off to the student; they will be prompted to create their own personal password upon login:</p>
             </div>
             <div
               className="flex items-center gap-3 p-4 rounded-xl"

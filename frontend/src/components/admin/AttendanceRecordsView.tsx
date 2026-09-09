@@ -26,6 +26,7 @@ import useUserStore from '../../store/useUserStore';
 import GenerateOtpModal from './GenerateOtpModal';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { getStudentCollege, getStudentYear } from './EventParticipantsModal';
 
 const AttendanceRecordsView: React.FC = () => {
   const { recordsData, activeSession, fetchAttendanceRecords, fetchActiveSession, loading } =
@@ -110,12 +111,14 @@ const AttendanceRecordsView: React.FC = () => {
 
     let csvContent = 'data:text/csv;charset=utf-8,';
     if (filterMode === 'event') {
-      csvContent += 'Event,Student Name,Roll No,Email,Department,Session,Verified Timestamp\n';
+      csvContent += 'Event,Student Name,Roll No,College,Year,Email,Department,Session,Verified Timestamp\n';
       recordsData.records.forEach((r: any) => {
         const row = [
           recordsData.event?.title || '',
           r.user?.name || '',
           r.user?.rollNo || '',
+          getStudentCollege(r.user),
+          getStudentYear(r.user),
           r.user?.email || '',
           r.user?.department || '',
           r.session?.sessionName || '',
@@ -126,11 +129,13 @@ const AttendanceRecordsView: React.FC = () => {
         csvContent += row + '\n';
       });
     } else {
-      csvContent += 'Student,Roll No,Event Title,Event Date,Format,Session,Verified Timestamp\n';
+      csvContent += 'Student,Roll No,College,Year,Event Title,Event Date,Format,Session,Verified Timestamp\n';
       recordsData.records.forEach((r: any) => {
         const row = [
           recordsData.student?.name || '',
           recordsData.student?.rollNo || '',
+          getStudentCollege(recordsData.student),
+          getStudentYear(recordsData.student),
           r.event?.title || '',
           r.event?.date ? new Date(r.event.date).toISOString().slice(0, 10) : '',
           r.event?.format || '',
@@ -244,7 +249,7 @@ const AttendanceRecordsView: React.FC = () => {
                   onChange={(e) => setSelectedEventId(e.target.value)}
                   className="input-field py-2 text-xs"
                 >
-                  {events.map((ev) => (
+                  {events.map((ev:any) => (
                     <option key={ev._id} value={ev._id}>
                       {ev.title} ({format(new Date(ev.date), 'MMM dd, yyyy')}) — {ev.type}
                     </option>
@@ -339,6 +344,8 @@ const AttendanceRecordsView: React.FC = () => {
                   <tr className="border-b border-separator text-[11px] font-medium text-text-muted bg-canvas">
                     <th className="px-6 py-3.5">Student</th>
                     <th className="px-6 py-3.5">Roll Number</th>
+                    <th className="px-6 py-3.5">College</th>
+                    <th className="px-6 py-3.5">Year</th>
                     <th className="px-6 py-3.5">Department</th>
                     <th className="px-6 py-3.5">Session</th>
                     <th className="px-6 py-3.5">Verified At</th>
@@ -374,6 +381,14 @@ const AttendanceRecordsView: React.FC = () => {
                         </td>
                         <td className="px-6 py-3.5 text-xs font-mono text-text-secondary">
                           {r.user?.rollNo || '—'}
+                        </td>
+                        <td className="px-6 py-3.5 text-xs">
+                          <span className="px-2 py-0.5 rounded-md bg-accent/10 text-accent font-bold text-[11px] border border-accent/20">
+                            {getStudentCollege(r.user)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3.5 text-xs font-semibold text-text-primary">
+                          {getStudentYear(r.user)}
                         </td>
                         <td className="px-6 py-3.5 text-xs text-text-muted">
                           {r.user?.department || 'General'}
@@ -459,9 +474,17 @@ const AttendanceRecordsView: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="text-base font-bold text-text-primary">{recordsData.student.name}</h4>
-                    <p className="text-xs text-text-muted font-mono">
-                      Roll: <strong className="text-text-primary">{recordsData.student.rollNo}</strong> • Dept:{' '}
-                      <strong className="text-text-secondary">{recordsData.student.department || 'General'}</strong>
+                    <p className="text-xs text-text-muted font-mono flex items-center gap-2 flex-wrap mt-0.5">
+                      <span>Roll: <strong className="text-text-primary">{recordsData.student.rollNo}</strong></span>
+                      <span>•</span>
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-accent/10 text-accent border border-accent/20">
+                        {getStudentCollege(recordsData.student)}
+                      </span>
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-surface border border-separator text-text-primary">
+                        {getStudentYear(recordsData.student)}
+                      </span>
+                      <span>•</span>
+                      <span>Dept: <strong className="text-text-secondary">{recordsData.student.department || 'General'}</strong></span>
                     </p>
                   </div>
                 </div>

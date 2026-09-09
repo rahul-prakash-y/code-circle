@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import EnrollmentModal from './EnrollmentModal';
+import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
+import EventParticipantsModal from '../admin/EventParticipantsModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
@@ -11,6 +13,8 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [timeLeft, setTimeLeft] = useState('');
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -44,16 +48,40 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
     return () => clearInterval(timer);
   }, [event.registrationDeadline]);
 
-  const isPast = event.date ? new Date(event.date) < new Date() : false;
-  const isLive = event.status === 'Live';
-  const formatLabel = event.format === 'Team' || event.type === 'Team' ? 'Team' : 'Solo';
-  const categoryLabel = (event.type && event.type !== 'Team' && event.type !== 'Individual')
-    ? event.type
-    : 'Technical';
+  const eventDate = event.date ? new Date(event.date) : null;
+  const now = new Date();
+  const isPast = eventDate ? eventDate < now : false;
+
+  const checkIsLive = () => {
+    if (event.status && event.status.toLowerCase() === 'live') return true;
+    if (event.status === 'Completed' || event.status === 'Cancelled') return false;
+    if (eventDate) {
+      return (
+        eventDate.getFullYear() === now.getFullYear() &&
+        eventDate.getMonth() === now.getMonth() &&
+        eventDate.getDate() === now.getDate()
+      );
+    }
+    return false;
+  };
+
+  const isLive = checkIsLive();
+
+  const formatLabel =
+    event.format === 'Duo'
+      ? 'Duo'
+      : event.format === 'Team' || event.type === 'Team'
+      ? 'Squad'
+      : 'Solo';
+
+  const categoryLabel =
+    event.type && event.type !== 'Team' && event.type !== 'Individual'
+      ? event.type
+      : 'Technical';
 
   return (
     <>
-      <div className="surface interactive-card p-6 sm:p-7 flex flex-col justify-between h-full group">
+      <div className="surface interactive-card p-6 sm:p-7 flex flex-col justify-between h-full group transition-all duration-200">
         <div>
           {/* Top Bar: Editorial Metadata & Live indicator */}
           <div className="flex items-center justify-between gap-3 mb-4">
@@ -62,7 +90,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
             </span>
 
             {isLive ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-destructive">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-destructive border border-red-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
                 LIVE
               </span>
@@ -73,8 +101,12 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
             ) : null}
           </div>
 
-          {/* Event Title — Dominant Hero */}
-          <h3 className="text-xl sm:text-[21px] font-bold text-label-primary group-hover:text-accent transition-colors duration-150 tracking-tight leading-snug mb-2.5 font-heading">
+          {/* Event Title — Dominant Hero (Clickable to preview) */}
+          <h3
+            onClick={() => setIsDetailsOpen(true)}
+            className="text-xl sm:text-[21px] font-bold text-label-primary group-hover:text-accent transition-colors duration-150 tracking-tight leading-snug mb-2.5 font-heading cursor-pointer"
+            title="Click to preview event details"
+          >
             {event.title}
           </h3>
 
@@ -101,6 +133,13 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
               </div>
             )}
 
+            {event.format === 'Duo' && (
+              <div className="flex items-center gap-2.5">
+                <Users size={14} strokeWidth={1.75} className="shrink-0 text-label-tertiary" />
+                <span>Duo pair (2 members)</span>
+              </div>
+            )}
+
             {(event.format === 'Team' || event.type === 'Team') && event.maxParticipants && (
               <div className="flex items-center gap-2.5">
                 <Users size={14} strokeWidth={1.75} className="shrink-0 text-label-tertiary" />
@@ -116,16 +155,32 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
             <span className="text-[10px] uppercase font-semibold text-label-tertiary tracking-wider">
               {isPast ? 'Event' : 'Deadline'}
             </span>
-            <span className={`text-[13px] font-medium truncate ${
-              timeLeft === 'Closed' || isPast ? 'text-label-tertiary' : 'text-label-primary'
-            }`}>
-              {isPast ? 'Concluded' : (timeLeft || 'Open')}
+            <span
+              className={`text-[13px] font-medium truncate ${
+                timeLeft === 'Closed' || isPast ? 'text-label-tertiary' : 'text-label-primary'
+              }`}
+            >
+              {isPast ? 'Concluded' : timeLeft || 'Open'}
             </span>
           </div>
 
           <div>
             {isAdmin ? (
               <div className="flex items-center gap-0.5 p-1 rounded-xl bg-canvas border border-separator">
+                <button
+                  onClick={() => setIsDetailsOpen(true)}
+                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Preview Event Details"
+                >
+                  <Eye size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => setIsParticipantsOpen(true)}
+                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Participants Full Details"
+                >
+                  <Users size={15} strokeWidth={1.75} />
+                </button>
                 <button
                   onClick={() => onEdit(event)}
                   className="p-2 text-label-secondary hover:text-label-primary hover:bg-surface rounded-lg transition-colors cursor-pointer"
@@ -149,37 +204,79 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => !isEnrolled && setIsEnrollModalOpen(true)}
-                disabled={timeLeft === 'Closed' || isPast || isEnrolled}
-                className={
-                  isEnrolled
-                    ? 'btn-secondary text-[13px] py-1.5 px-4 opacity-90 cursor-default'
-                    : 'btn-primary text-[13px] py-1.5 px-4.5 flex items-center gap-1.5'
-                }
-              >
-                <span>
-                  {isEnrolled ? 'Enrolled' : (timeLeft === 'Closed' || isPast ? (isPast ? 'Concluded' : 'Closed') : 'Enroll')}
-                </span>
-                {!isPast && timeLeft !== 'Closed' && !isEnrolled && (
-                  <ArrowUpRight size={13} strokeWidth={2} className="transition-transform duration-200 group-hover:translate-x-[3px] group-hover:-translate-y-[3px]" />
-                )}
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setIsDetailsOpen(true)}
+                  className="btn-secondary text-[13px] py-1.5 px-3 cursor-pointer"
+                  title="Preview Details"
+                >
+                  <Eye size={14} />
+                </button>
+                <button
+                  onClick={() => !isEnrolled && setIsEnrollModalOpen(true)}
+                  disabled={timeLeft === 'Closed' || isPast || isEnrolled}
+                  className={
+                    isEnrolled
+                      ? 'btn-secondary text-[13px] py-1.5 px-4 opacity-90 cursor-default'
+                      : 'btn-primary text-[13px] py-1.5 px-4.5 flex items-center gap-1.5 cursor-pointer'
+                  }
+                >
+                  <span>
+                    {isEnrolled
+                      ? 'Enrolled'
+                      : isPast
+                      ? 'Concluded'
+                      : timeLeft === 'Closed'
+                      ? 'Closed'
+                      : 'Enroll'}
+                  </span>
+                  {!isPast && timeLeft !== 'Closed' && !isEnrolled && (
+                    <ArrowUpRight
+                      size={13}
+                      strokeWidth={2}
+                      className="transition-transform duration-200 group-hover:translate-x-[3px] group-hover:-translate-y-[3px]"
+                    />
+                  )}
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      <EnrollmentModal 
-        isOpen={isEnrollModalOpen} 
-        onClose={() => setIsEnrollModalOpen(false)} 
-        event={event} 
+      {/* Event Details Preview Modal */}
+      <EventDetailsModal
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+        event={event}
+        isEnrolled={isEnrolled}
+        isAdmin={isAdmin}
+        onEnroll={() => setIsEnrollModalOpen(true)}
+        onEdit={onEdit}
+        onViewParticipants={() => setIsParticipantsOpen(true)}
       />
 
-      <AttendanceDashboard 
-        isOpen={isAttendanceOpen} 
-        onClose={() => setIsAttendanceOpen(false)} 
-        event={event} 
+      {/* Event Participants Full Details Modal for Admin */}
+      {isAdmin && (
+        <EventParticipantsModal
+          isOpen={isParticipantsOpen}
+          onClose={() => setIsParticipantsOpen(false)}
+          event={event}
+        />
+      )}
+
+      {/* Enrollment Modal */}
+      <EnrollmentModal
+        isOpen={isEnrollModalOpen}
+        onClose={() => setIsEnrollModalOpen(false)}
+        event={event}
+      />
+
+      {/* Attendance Dashboard */}
+      <AttendanceDashboard
+        isOpen={isAttendanceOpen}
+        onClose={() => setIsAttendanceOpen(false)}
+        event={event}
       />
     </>
   );

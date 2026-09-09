@@ -28,6 +28,8 @@ export interface UserResponse {
   email: string;
   role: UserRole;
   department?: string;
+  college?: string;
+  year?: string;
   skills: string[];
   socialLinks: ISocialLinks;
   profilePicUrl?: string;

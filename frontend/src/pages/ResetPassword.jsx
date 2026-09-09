@@ -4,7 +4,18 @@ import useAuthStore from '../store/useAuthStore';
 import AuthLayout from '../layouts/AuthLayout';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Lock, KeyRound, CheckCircle2, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
+import { 
+  Lock, 
+  KeyRound, 
+  CheckCircle2, 
+  AlertCircle, 
+  Loader2, 
+  ArrowRight, 
+  Mail, 
+  Copy, 
+  ShieldCheck, 
+  Building2 
+} from 'lucide-react';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -15,15 +26,25 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   const { resetPasswordWithToken } = useAuthStore();
   const navigate = useNavigate();
+
+  const adminEmail = 'codecircle@bitsathy.ac.in';
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText(adminEmail);
+    setCopiedEmail(true);
+    toast.success('Admin email copied to clipboard!');
+    setTimeout(() => setCopiedEmail(false), 2500);
+  };
 
   const handleReset = async (e) => {
     e.preventDefault();
 
     if (!token) {
-      return toast.error('Missing password reset token in URL');
+      return toast.error('Missing password reset token');
     }
 
     if (password.length < 6) {
@@ -46,30 +67,7 @@ const ResetPassword = () => {
     setLoading(false);
   };
 
-  if (!token) {
-    return (
-      <AuthLayout
-        title="Invalid Reset Request"
-        subtitle="This link appears to be incomplete or corrupted."
-      >
-        <div className="text-center space-y-6">
-          <div className="w-16 h-16 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-center justify-center mx-auto text-destructive">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          <p className="text-sm text-text-muted">
-            No valid security token was detected in your reset link. Please contact an administrator or request a new reset link.
-          </p>
-          <Link
-            to="/login"
-            className="btn-primary w-full inline-flex items-center justify-center gap-2 py-3"
-          >
-            Back to Sign In
-          </Link>
-        </div>
-      </AuthLayout>
-    );
-  }
-
+  // If token was successfully used to update password
   if (isSubmitted) {
     return (
       <AuthLayout
@@ -94,6 +92,95 @@ const ResetPassword = () => {
     );
   }
 
+  // If no token is provided (standard self-service navigation), show the Contact Admin view
+  if (!token) {
+    return (
+      <AuthLayout
+        title="Password Reset Support"
+        subtitle="Administrator assistance required"
+      >
+        <motion.div 
+          className="space-y-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {/* Policy Banner */}
+          <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-2">
+            <div className="flex items-center gap-2 text-amber-500 font-semibold text-xs uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Admin-Managed Password Policy</span>
+            </div>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Self-service password reset links are disabled for student security. To regain access, an Administrator or SuperAdmin will issue a temporary password for your account.
+            </p>
+          </div>
+
+          {/* Contact Administrator Box */}
+          <div className="surface rounded-xl p-4 border border-separator space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-text-primary">
+                <Mail className="w-4 h-4 text-accent" />
+                <span>Contact Administrator</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyEmail}
+                className="text-xs text-text-muted hover:text-accent flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedEmail ? 'Copied!' : 'Copy'}</span>
+              </button>
+            </div>
+            <div className="p-3 bg-canvas rounded-lg border border-separator text-xs font-mono text-accent select-all flex items-center justify-between">
+              <span>{adminEmail}</span>
+              <a 
+                href={`mailto:${adminEmail}?subject=Password%20Reset%20Request`} 
+                className="text-[11px] underline text-text-muted hover:text-text-primary ml-2"
+              >
+                Send Email
+              </a>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-text-muted">
+              <Building2 className="w-3.5 h-3.5 opacity-70" />
+              <span>Bannari Amman Institute of Technology</span>
+            </div>
+          </div>
+
+          {/* Workflow Steps */}
+          <div className="space-y-2.5 pt-1">
+            <p className="text-xs font-semibold text-text-primary">How it works:</p>
+            <div className="space-y-2 text-xs text-text-muted">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-accent/10 text-accent font-bold flex items-center justify-center shrink-0 text-[11px]">1</span>
+                <span>Contact your club administrator or send an email with your Roll Number.</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-accent/10 text-accent font-bold flex items-center justify-center shrink-0 text-[11px]">2</span>
+                <span>Admin generates a secure temporary password for your profile.</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-accent/10 text-accent font-bold flex items-center justify-center shrink-0 text-[11px]">3</span>
+                <span>Sign in using the temporary password and create your own password immediately.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action button */}
+          <div className="pt-2">
+            <Link
+              to="/login"
+              className="btn-primary w-full inline-flex items-center justify-center gap-2 py-3 cursor-pointer"
+            >
+              Return to Sign In
+            </Link>
+          </div>
+        </motion.div>
+      </AuthLayout>
+    );
+  }
+
+  // If a valid token is present in the URL, provide the secure update form
   return (
     <AuthLayout
       title="Reset Password"

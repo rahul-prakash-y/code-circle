@@ -1,6 +1,9 @@
-const User = require('../models/userModel');
-const Event = require('../models/eventModel');
-const Enrollment = require('../models/enrollmentModel');
+const rawUser = require('../models/userModel');
+const User = rawUser.default || rawUser;
+const rawEvent = require('../models/eventModel');
+const Event = rawEvent.default || rawEvent;
+const rawEnrollment = require('../models/enrollmentModel');
+const Enrollment = rawEnrollment.default || rawEnrollment;
 const { getDashboardMetrics } = require('../services/metricsService');
 const { generateCsvReport, generatePdfReport } = require('../services/reportExportService');
 

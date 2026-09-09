@@ -12,7 +12,13 @@ import {
   X,
   Camera,
   Loader2,
-  LogOut
+  LogOut,
+  Lock,
+  KeyRound,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  CheckCircle2
 } from 'lucide-react';
 import useProfileStore from '../store/useProfileStore';
 import useAuthStore from '../store/useAuthStore';
@@ -24,9 +30,50 @@ import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
 
 const Profile = () => {
   const { profile, updateProfile, profileLoading } = useProfileStore();
-  const { user, logout } = useAuthStore();
+  const { user, logout, changePassword } = useAuthStore();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Security & Password state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: ''
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (!passwordData.currentPassword) {
+      return toast.error('Please enter your current password');
+    }
+    if (passwordData.newPassword.length < 6) {
+      return toast.error('New password must be at least 6 characters');
+    }
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      return toast.error('New passwords do not match');
+    }
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      return toast.error('New password must be different from current password');
+    }
+
+    setPasswordLoading(true);
+    const res = await changePassword(passwordData.currentPassword, passwordData.newPassword);
+    if (res.success) {
+      toast.success('Password updated successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: ''
+      });
+    } else {
+      toast.error(res.error || 'Failed to update password');
+    }
+    setPasswordLoading(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -379,6 +426,123 @@ const Profile = () => {
           </div>
         </div>
       </form>
+
+      {/* Security & Password Management */}
+      <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-accent" />
+              <h2 className="text-base font-semibold text-text-primary">Security & Password</h2>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              Change your password anytime to keep your Code Circle account secure.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handlePasswordChange} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Current Password */}
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">Current Password</label>
+              <div className="relative group">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
+                <input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  placeholder="Enter current password"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  className="input-field pl-10 pr-10 text-sm"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                >
+                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">New Password</label>
+              <div className="relative group">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  placeholder="At least 6 characters"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  className="input-field pl-10 pr-10 text-sm"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm New Password */}
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">Confirm New Password</label>
+              <div className="relative group">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Re-enter new password"
+                  value={passwordData.confirmNewPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmNewPassword: e.target.value }))}
+                  className="input-field pl-10 pr-10 text-sm"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Validation indicators */}
+          {passwordData.confirmNewPassword && passwordData.newPassword !== passwordData.confirmNewPassword && (
+            <p className="text-xs text-destructive">Passwords do not match</p>
+          )}
+          {passwordData.confirmNewPassword && passwordData.newPassword === passwordData.confirmNewPassword && passwordData.newPassword.length >= 6 && (
+            <p className="text-xs text-success flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Passwords match
+            </p>
+          )}
+
+          <div className="flex items-center justify-end pt-1">
+            <button
+              type="submit"
+              disabled={passwordLoading || !passwordData.currentPassword || passwordData.newPassword.length < 6 || passwordData.newPassword !== passwordData.confirmNewPassword}
+              className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {passwordLoading ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                <>
+                  <ShieldCheck size={16} />
+                  <span>Update Password</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
 
       <ImageUploadModal 
         isOpen={isModalOpen} 

@@ -9,6 +9,7 @@ const createEvent = async (request, reply) => {
       date, 
       venueOrLink, 
       type, 
+      format,
       maxParticipants, 
       registrationDeadline 
     } = request.body;
@@ -19,13 +20,17 @@ const createEvent = async (request, reply) => {
       });
     }
 
+    const eventFormat = format || (type === 'Team' ? 'Team' : 'Individual');
+    const computedMax = eventFormat === 'Duo' ? 2 : (eventFormat === 'Team' ? (maxParticipants || 4) : 0);
+
     const event = await Event.create({
       title,
       description,
       date,
       venueOrLink,
       type,
-      maxParticipants: type === 'Team' ? (maxParticipants || 4) : 0,
+      format: eventFormat,
+      maxParticipants: computedMax,
       registrationDeadline,
       createdBy: user._id
     });
@@ -39,14 +44,45 @@ const createEvent = async (request, reply) => {
 
 const getEvents = async (request, reply) => {
   try {
-    const { status } = request.query;
+    const { status, type, format, search } = request.query;
     const query = {};
     const now = new Date();
 
-    if (status === 'upcoming') {
-      query.date = { $gte: now };
-    } else if (status === 'past') {
-      query.date = { $lt: now };
+    if (status) {
+      const lower = status.toLowerCase();
+      if (lower === 'upcoming') {
+        query.date = { $gte: now };
+        query.status = { $ne: 'Cancelled' };
+      } else if (lower === 'past' || lower === 'completed') {
+        query.$or = [{ date: { $lt: now } }, { status: 'Completed' }];
+      } else if (lower === 'live') {
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        query.$or = [
+          { status: { $regex: /^live$/i } },
+          {
+            date: { $gte: startOfDay, $lte: endOfDay },
+            status: { $nin: ['Cancelled', 'Completed'] },
+          },
+        ];
+      } else if (lower === 'cancelled') {
+        query.status = 'Cancelled';
+      } else {
+        query.status = status;
+      }
+    }
+
+    if (type && type !== 'all') {
+      query.type = type;
+    }
+
+    if (format && format !== 'all') {
+      query.format = format;
+    }
+
+    if (search && search.trim()) {
+      const regex = new RegExp(search.trim(), 'i');
+      query.$or = [{ title: regex }, { description: regex }, { venueOrLink: regex }];
     }
 
     const events = await Event.find(query)

@@ -1,5 +1,7 @@
-const Bearer = require('../models/bearerModel');
-const User = require('../models/userModel');
+const rawBearer = require('../models/bearerModel');
+const Bearer = rawBearer.default || rawBearer;
+const rawUser = require('../models/userModel');
+const User = rawUser.default || rawUser;
 
 const getBearers = async (request, reply) => {
   try {

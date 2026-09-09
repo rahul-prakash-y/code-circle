@@ -185,36 +185,15 @@ export const getMe = async (request: FastifyRequest, reply: FastifyReply) => {
 
 export const forgotPassword = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const { email } = (request.body || {}) as any;
-
-    if (!email) {
-      return reply.status(400).send({ success: false, error: 'Email address is required' });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
-    if (!user) {
-      // Return success without disclosing user existence for security
-      return reply.send({
-        success: true,
-        message: 'If an account exists with this email, a password reset link has been dispatched.',
-      });
-    }
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour expiration
-    await user.save();
-
-    const resetLink = `${CLIENT_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
-
     return reply.send({
       success: true,
-      message: 'Password reset link generated successfully',
-      resetLink,
+      message: 'Password reset links cannot be self-generated. Please contact your club administrator to receive a secure temporary password.',
+      contactAdmin: true,
+      adminEmail: 'codecircle@bitsathy.ac.in',
     });
   } catch (error: any) {
     request.log.error(error);
-    return reply.status(500).send({ success: false, error: 'Failed to process password reset request' });
+    return reply.status(500).send({ success: false, error: 'Failed to process request' });
   }
 };
 

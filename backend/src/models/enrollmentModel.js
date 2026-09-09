@@ -13,17 +13,17 @@ const enrollmentSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['Individual', 'Team'],
+    enum: ['Individual', 'Team', 'Duo'],
     required: true
   },
   teamName: {
     type: String,
-    required: function() { return this.type === 'Team'; }
+    required: function() { return this.type === 'Team' || this.type === 'Duo'; }
   },
   members: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: function() { return this.type === 'Team'; }
+    required: function() { return this.type === 'Team' || this.type === 'Duo'; }
   }],
   attendanceStatus: {
     type: Boolean,

@@ -29,11 +29,15 @@ const useEventStore = create((set) => ({
 
       const response = await api.get(url);
       if (statusVal === 'upcoming') {
-        set({ upcomingEvents: response.data, loading: false });
+        set({ events: response.data, upcomingEvents: response.data, loading: false });
       } else if (statusVal === 'past') {
-        set({ pastEvents: response.data, loading: false });
+        set({ events: response.data, pastEvents: response.data, loading: false });
       } else {
-        set({ events: response.data, upcomingEvents: response.data.filter((e) => e.status !== 'Cancelled' && e.status !== 'Completed'), loading: false });
+        set({ 
+          events: response.data, 
+          upcomingEvents: response.data.filter((e) => e.status !== 'Cancelled' && e.status !== 'Completed'), 
+          loading: false 
+        });
       }
     } catch (error) {
       // Fallback Mock Events
@@ -44,38 +48,55 @@ const useEventStore = create((set) => ({
           description: 'A 24-hour sprint to build next-gen glassmorphic interfaces. Grand prize: ₹50,000.',
           date: new Date(Date.now() + 7 * 86400000), // 7 days from now
           registrationDeadline: new Date(Date.now() + 3 * 86400000),
-          type: 'Team',
+          type: 'Technical',
+          format: 'Team',
           maxParticipants: 4,
           venueOrLink: 'Main Audi / Discord',
-          status: 'upcoming'
+          status: 'Upcoming'
         },
         {
           _id: 'mock-2',
+          title: 'Live Algorithm Speed Duel 2026',
+          description: 'Head-to-head live programming battles with real-time leaderboard and algorithmic challenges.',
+          date: new Date(), // Today
+          registrationDeadline: new Date(Date.now() + 2 * 3600000),
+          type: 'Technical',
+          format: 'Duo',
+          maxParticipants: 2,
+          venueOrLink: 'Turing Innovation Lab & Live Stream',
+          status: 'Live'
+        },
+        {
+          _id: 'mock-3',
           title: 'React & Motion Workshop',
           description: 'Master Framer Motion and complex animations with seasoned engineers.',
           date: new Date(Date.now() + 14 * 86400000),
           registrationDeadline: new Date(Date.now() + 10 * 86400000),
-          type: 'Individual',
+          type: 'Workshop',
+          format: 'Individual',
           venueOrLink: 'Lab 402',
-          status: 'upcoming'
+          status: 'Upcoming'
         },
         {
-          _id: 'mock-3',
+          _id: 'mock-4',
           title: 'AI in 2026: Guest Lecture',
           description: 'Exploring agentic workflows and the future of LLMs in production.',
           date: new Date(Date.now() - 5 * 86400000), // 5 days ago
-          type: 'Individual',
+          type: 'Lecture',
+          format: 'Individual',
           venueOrLink: 'Seminar Hall',
-          status: 'past'
+          status: 'Completed'
         }
       ];
 
-      if (status === 'upcoming') {
-        set({ upcomingEvents: mockEvents.filter(e => e.status === 'upcoming'), loading: false });
-      } else if (status === 'past') {
-        set({ pastEvents: mockEvents.filter(e => e.status === 'past'), loading: false });
+      if (statusVal === 'upcoming') {
+        set({ events: mockEvents.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled'), upcomingEvents: mockEvents.filter(e => e.status === 'Upcoming'), loading: false });
+      } else if (statusVal === 'past') {
+        set({ events: mockEvents.filter(e => e.status === 'Completed'), pastEvents: mockEvents.filter(e => e.status === 'Completed'), loading: false });
+      } else if (statusVal === 'live') {
+        set({ events: mockEvents.filter(e => e.status === 'Live'), loading: false });
       } else {
-        set({ events: mockEvents, loading: false });
+        set({ events: mockEvents, upcomingEvents: mockEvents.filter(e => e.status === 'Upcoming'), loading: false });
       }
     }
   },

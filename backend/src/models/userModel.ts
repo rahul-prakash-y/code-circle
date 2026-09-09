@@ -12,6 +12,8 @@ export interface IUser extends Document {
   mustChangePassword: boolean;
   activeSessionId?: string | null;
   department?: string;
+  college?: string;
+  year?: string;
   skills: string[];
   socialLinks: ISocialLinks;
   profilePicUrl?: string;
@@ -39,6 +41,8 @@ const userSchema = new Schema<IUser>(
     mustChangePassword: { type: Boolean, default: false },
     activeSessionId: { type: String, default: null },
     department: { type: String, trim: true, index: true },
+    college: { type: String, default: 'BIT', trim: true },
+    year: { type: String, trim: true },
     skills: [{ type: String, trim: true }],
     socialLinks: {
       github: { type: String, default: '' },

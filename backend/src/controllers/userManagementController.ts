@@ -151,13 +151,17 @@ export const createUser = async (request: FastifyRequest, reply: FastifyReply) =
       ? password
       : generateSecureTemporaryPassword();
 
+    const isTemporary = !password || password.length < 6;
+
     const newUser = new User({
       name: name.trim(),
       email: normalizedEmail,
       rollNo: normalizedRollNo,
       role: requestedRole,
       department: department ? department.trim() : '',
+      college: 'BIT',
       password: initialPassword, // Pre-save hook hashes this
+      mustChangePassword: isTemporary,
       activeSessionId: null,
     });
 
@@ -384,12 +388,13 @@ export const triggerResetLink = async (request: FastifyRequest, reply: FastifyRe
 export const forceResetPassword = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = request.params as any;
+    const actorRole = request.user?.role;
 
-    // Strict SuperAdmin privilege check
-    if (request.user?.role !== 'SuperAdmin') {
+    // Both Admin and SuperAdmin can generate temporary passwords
+    if (actorRole !== 'SuperAdmin' && actorRole !== 'Admin') {
       return reply.status(403).send({
         success: false,
-        error: 'Forbidden: Elevated SuperAdmin privileges are required for forced password resets',
+        error: 'Forbidden: Admin or SuperAdmin privileges are required for temporary password generation',
       });
     }
 
@@ -398,11 +403,20 @@ export const forceResetPassword = async (request: FastifyRequest, reply: Fastify
       return reply.status(404).send({ success: false, error: 'User not found' });
     }
 
+    // Standard Admins cannot reset SuperAdmin or Admin passwords
+    if (actorRole === 'Admin' && (targetUser.role === 'SuperAdmin' || targetUser.role === 'Admin')) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Forbidden: Standard Admins cannot reset credentials for other administrators',
+      });
+    }
+
     // Generate high-entropy temporary default password
     const temporaryPassword = generateSecureTemporaryPassword();
 
     // Assign new password (pre-save hook will hash it with bcrypt before persisting)
     targetUser.password = temporaryPassword;
+    targetUser.mustChangePassword = true; // Student must create their own password on first login
     targetUser.activeSessionId = null; // Invalidate active session immediately
     targetUser.resetPasswordToken = null;
     targetUser.resetPasswordExpires = null;
@@ -411,7 +425,7 @@ export const forceResetPassword = async (request: FastifyRequest, reply: Fastify
 
     return reply.send({
       success: true,
-      message: `Password forcefully reset for ${targetUser.name}. Inform the user to log in with this temporary default password.`,
+      message: `Temporary password generated for ${targetUser.name}. The student must set their own password upon logging in.`,
       temporaryPassword,
       user: sanitizeUser(targetUser),
     });

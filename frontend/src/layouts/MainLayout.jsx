@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
+import MandatoryChangePasswordModal from '../components/auth/MandatoryChangePasswordModal';
 
 const EASE_TRANSITION = { duration: 0.24, ease: [0.16, 1, 0.3, 1] };
 
@@ -73,6 +74,9 @@ export const MainLayout = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const isSuperAdmin =
+    profile?.role === 'SuperAdmin' || user?.role === 'SuperAdmin';
+
   const mobileLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/events', label: 'Events', icon: Calendar },
@@ -83,9 +87,9 @@ export const MainLayout = ({ children }) => {
     { to: '/passport', label: 'Registrations', icon: Ticket },
     { to: '/feedback', label: 'Feedback', icon: MessageSquare },
     { to: '/news', label: 'News', icon: Newspaper },
+    ...(isSuperAdmin ? [{ to: '/teams', label: 'Teams', icon: Users }] : []),
     ...(isAdmin
       ? [
-          { to: '/teams', label: 'Teams', icon: Users },
           { to: '/users', label: 'Directory', icon: Shield },
           { to: '/analytics', label: 'Analytics', icon: BarChart3 },
         ]
@@ -226,6 +230,7 @@ export const MainLayout = ({ children }) => {
           </AnimatePresence>
         </main>
       </motion.div>
+      <MandatoryChangePasswordModal />
     </div>
   );
 };

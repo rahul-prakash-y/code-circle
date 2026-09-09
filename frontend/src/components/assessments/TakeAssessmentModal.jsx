@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -15,6 +15,10 @@ import {
   Trophy,
   HelpCircle,
   ShieldAlert,
+  Maximize2,
+  Minimize2,
+  Lock,
+  Loader2,
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
@@ -35,7 +39,15 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(0);
   const [startTime, setStartTime] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
+
+  // Anti-cheat proctoring state
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [showTabWarning, setShowTabWarning] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const maxStrikes = 3;
 
   // Timer ref to cancel interval safely
   const timerRef = useRef(null);
@@ -46,6 +58,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       setReviewMode(false);
       setAnswers({});
       setCurrentQuestionIndex(0);
+      setTabSwitchCount(0);
+      setShowTabWarning(false);
+      setIsLocked(false);
+      setShowExitConfirm(false);
       setLoading(true);
 
       fetchAssessmentById(assessmentId).then((assessment) => {
@@ -62,6 +78,104 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isOpen, assessmentId, fetchAssessmentById, clearCurrentResult]);
+
+  const executeSubmit = useCallback(async (forcedByViolation = false) => {
+    setShowConfirmModal(false);
+    setShowTabWarning(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const timeSpent = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+    const formattedAnswers = Object.entries(answers).map(([qIndex, optIndex]) => ({
+      questionIndex: Number(qIndex),
+      selectedOption: Number(optIndex),
+    }));
+
+    const res = await submitAssessment(assessmentId, formattedAnswers, timeSpent);
+    setIsLocked(false);
+    if (res.success) {
+      if (forcedByViolation) {
+        toast.error('Assessment automatically submitted due to tab-switching violations.', { duration: 5000 });
+      } else {
+        toast.success(res.result?.passed ? 'Congratulations! You passed!' : 'Assessment completed!');
+      }
+    } else {
+      toast.error(res.error || 'Failed to submit assessment');
+    }
+  }, [answers, assessmentId, startTime, submitAssessment]);
+
+  const handleAutoSubmit = useCallback(() => {
+    toast.error('Time is up! Submitting your assessment automatically...');
+    executeSubmit();
+  }, [executeSubmit]);
+
+  // Anti-cheat tab switch handler
+  const handleTabSwitchViolation = useCallback(() => {
+    if (!isOpen || !currentAssessment || currentResult || loading || isLocked) return;
+
+    setTabSwitchCount((prev) => {
+      const nextCount = prev + 1;
+      if (nextCount >= maxStrikes) {
+        setIsLocked(true);
+        setShowTabWarning(false);
+        toast.error('Maximum tab switch violations reached! Test locked and auto-submitting...', { duration: 4000 });
+        setTimeout(() => {
+          executeSubmit(true);
+        }, 1200);
+      } else {
+        setShowTabWarning(true);
+      }
+      return nextCount;
+    });
+  }, [isOpen, currentAssessment, currentResult, loading, isLocked, executeSubmit, maxStrikes]);
+
+  // Anti-cheat event listeners for active proctoring
+  useEffect(() => {
+    if (!isOpen || !currentAssessment || currentResult || loading || isLocked) return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleTabSwitchViolation();
+      }
+    };
+
+    const onWindowBlur = () => {
+      handleTabSwitchViolation();
+    };
+
+    const onContextMenu = (e) => {
+      e.preventDefault();
+      toast.error('Right-click is disabled during proctored assessment.');
+    };
+
+    const onKeyDown = (e) => {
+      if (
+        (e.ctrlKey && ['c', 'v', 'u', 'a', 'w', 't', 'j'].includes(e.key.toLowerCase())) ||
+        (e.metaKey && ['c', 'v', 'u', 'a', 'w', 't', 'j'].includes(e.key.toLowerCase())) ||
+        e.key === 'F12'
+      ) {
+        e.preventDefault();
+        toast.error('Keyboard shortcuts are disabled during proctored assessment.');
+      }
+    };
+
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('blur', onWindowBlur);
+    window.addEventListener('contextmenu', onContextMenu);
+    window.addEventListener('keydown', onKeyDown);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('blur', onWindowBlur);
+      window.removeEventListener('contextmenu', onContextMenu);
+      window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+    };
+  }, [isOpen, currentAssessment, currentResult, loading, isLocked, handleTabSwitchViolation]);
 
   // Live Timer Countdown Effect
   useEffect(() => {
@@ -81,14 +195,9 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         if (timerRef.current) clearInterval(timerRef.current);
       };
     }
-  }, [loading, currentAssessment, currentResult]);
+  }, [loading, currentAssessment, currentResult, timeLeftSeconds, handleAutoSubmit]);
 
   if (!isOpen) return null;
-
-  const handleAutoSubmit = () => {
-    toast.error('Time is up! Submitting your assessment automatically...');
-    executeSubmit();
-  };
 
   const handleSelectOption = (optIndex) => {
     setAnswers((prev) => ({
@@ -109,21 +218,14 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     }
   };
 
-  const executeSubmit = async () => {
-    setShowConfirmModal(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    const timeSpent = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
-    const formattedAnswers = Object.entries(answers).map(([qIndex, optIndex]) => ({
-      questionIndex: Number(qIndex),
-      selectedOption: Number(optIndex),
-    }));
-
-    const res = await submitAssessment(assessmentId, formattedAnswers, timeSpent);
-    if (res.success) {
-      toast.success(res.result?.passed ? 'Congratulations! You passed!' : 'Assessment completed!');
+  const handleSafeClose = () => {
+    if (!currentResult && currentAssessment && !loading) {
+      setShowExitConfirm(true);
     } else {
-      toast.error(res.error || 'Failed to submit assessment');
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      onClose();
     }
   };
 
@@ -152,11 +254,11 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
         {/* Top Assessment Header */}
         <div className="p-5 sm:p-6 border-b border-border flex items-center justify-between gap-4 relative z-10 flex-shrink-0 bg-white/[0.01]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
               <Award size={20} />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-base sm:text-lg font-black text-text-primary line-clamp-1">
                 {currentAssessment?.title || 'Loading Assessment...'}
               </h2>
@@ -166,26 +268,63 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Right Header Items: Timer & Close */}
-          <div className="flex items-center gap-3">
+          {/* Right Header Items: Proctoring Badge, Fullscreen, Timer & Close */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {!currentResult && (
-              <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                  isTimeCritical
-                    ? 'bg-red-500/15 border-red-500/40 text-red-400 animate-pulse'
-                    : 'bg-surface-elevated border-border text-text-primary'
-                }`}
-              >
-                <Clock size={16} className={isTimeCritical ? 'text-red-400' : 'text-purple-400'} />
-                <span className="font-mono text-sm font-black tabular-nums">
-                  {formatTime(timeLeftSeconds)}
-                </span>
-              </div>
+              <>
+                {/* Anti-Cheat Proctoring Badge */}
+                <div
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                    tabSwitchCount === 0
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : tabSwitchCount === 1
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/25'
+                      : 'bg-red-500/15 text-red-400 border-red-500/40 animate-pulse'
+                  }`}
+                  title="Anti-cheat proctoring active. Tab switches are strictly monitored."
+                >
+                  <ShieldAlert size={14} className={tabSwitchCount > 1 ? 'animate-bounce' : ''} />
+                  <span>
+                    Tab Switches: {tabSwitchCount} / {maxStrikes}
+                  </span>
+                </div>
+
+                {/* Fullscreen Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!document.fullscreenElement) {
+                      document.documentElement.requestFullscreen?.().catch(() => {});
+                    } else {
+                      document.exitFullscreen?.().catch(() => {});
+                    }
+                  }}
+                  className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer hidden sm:flex"
+                  title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                >
+                  {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                </button>
+
+                {/* Timer */}
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                    isTimeCritical
+                      ? 'bg-red-500/15 border-red-500/40 text-red-400 animate-pulse'
+                      : 'bg-surface-elevated border-border text-text-primary'
+                  }`}
+                >
+                  <Clock size={16} className={isTimeCritical ? 'text-red-400' : 'text-purple-400'} />
+                  <span className="font-mono text-sm font-black tabular-nums">
+                    {formatTime(timeLeftSeconds)}
+                  </span>
+                </div>
+              </>
             )}
 
             <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border"
+              onClick={handleSafeClose}
+              className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer"
+              title="Close Test"
             >
               <X size={18} />
             </button>
@@ -511,6 +650,129 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                     className="btn-primary py-2.5 px-6 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 disabled:opacity-50"
                   >
                     {submitting ? 'Calculating Score...' : 'Yes, Submit Now'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Anti-Cheat Tab Switch Warning Modal (Strikes 1 & 2) */}
+        <AnimatePresence>
+          {showTabWarning && !isLocked && !currentResult && (
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="w-full max-w-md bg-surface border border-amber-500/40 rounded-3xl p-6 sm:p-8 text-center space-y-5 shadow-2xl relative overflow-hidden"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+                  <ShieldAlert size={36} />
+                </div>
+
+                <div className="space-y-2">
+                  <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    Security Warning: Strike {tabSwitchCount} of {maxStrikes}
+                  </span>
+                  <h3 className="text-xl font-black text-text-primary tracking-tight font-heading mt-2">
+                    Tab Switching Is Prohibited!
+                  </h3>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    You have navigated away from the assessment window or switched tabs. Switching tabs, minimizing windows, or using secondary apps during this test is strictly disallowed.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator text-xs text-left space-y-1.5 font-medium">
+                  <p className="text-destructive font-bold flex items-center gap-1.5">
+                    <AlertTriangle size={14} /> Strike {tabSwitchCount} Recorded
+                  </p>
+                  <p className="text-text-muted text-[11px]">
+                    If you switch tabs {maxStrikes - tabSwitchCount} more time{maxStrikes - tabSwitchCount > 1 ? 's' : ''}, your assessment will be <strong>automatically locked and submitted</strong> with current answers.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowTabWarning(false)}
+                  className="w-full btn-primary py-3 text-xs font-bold uppercase tracking-wider cursor-pointer"
+                >
+                  I Understand, Return to Test
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Anti-Cheat Max Violations Auto-Submit Modal (Strike 3) */}
+        <AnimatePresence>
+          {isLocked && (
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full max-w-md bg-surface border border-red-500/40 rounded-3xl p-8 text-center space-y-5 shadow-2xl"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-destructive mx-auto">
+                  <Lock size={36} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-text-primary tracking-tight font-heading">
+                    Assessment Disqualified & Locked
+                  </h3>
+                  <p className="text-xs text-destructive font-bold uppercase tracking-wider mt-1">
+                    Exceeded Maximum {maxStrikes} Tab Switch Violations
+                  </p>
+                  <p className="text-xs text-text-secondary mt-2 leading-relaxed">
+                    You have repeatedly left the test window. Your session has been locked and your answers are being automatically submitted to the evaluator.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-xs text-text-muted">
+                  <Loader2 size={16} className="animate-spin text-destructive" />
+                  <span>Finalizing submission...</span>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Safe Exit Confirmation Modal */}
+        <AnimatePresence>
+          {showExitConfirm && (
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="w-full max-w-md glass border border-border p-6 rounded-3xl text-center space-y-4 shadow-2xl"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-destructive flex items-center justify-center mx-auto">
+                  <AlertTriangle size={28} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-text-primary">Exit Assessment?</h3>
+                  <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                    Your test timer is running. If you leave now without submitting, your answers will not be saved.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <button
+                    onClick={() => setShowExitConfirm(false)}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-text-primary bg-surface-elevated border border-border hover:bg-canvas transition-all"
+                  >
+                    Continue Test
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowExitConfirm(false);
+                      if (document.fullscreenElement) {
+                        document.exitFullscreen().catch(() => {});
+                      }
+                      onClose();
+                    }}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-destructive hover:bg-red-600 transition-all cursor-pointer"
+                  >
+                    Exit Anyway
                   </button>
                 </div>
               </motion.div>

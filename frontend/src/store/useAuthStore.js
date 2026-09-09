@@ -112,6 +112,10 @@ const useAuthStore = create((set, get) => ({
   changePassword: async (currentPassword, newPassword) => {
     try {
       const response = await api.post('/auth/change-password', { currentPassword, newPassword });
+      const currentUser = get().user;
+      if (currentUser) {
+        set({ user: { ...currentUser, mustChangePassword: false } });
+      }
       return { success: true, message: response.data.message };
     } catch (err) {
       return {

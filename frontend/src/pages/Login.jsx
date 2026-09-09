@@ -65,7 +65,7 @@ const Login = () => {
     }
 
     if (newPassword === loginCredentials.password) {
-      return toast.error('New password must be different from the default password');
+      return toast.error('New password must be different from the temporary password');
     }
     
     setChangePasswordLoading(true);
@@ -237,7 +237,7 @@ const Login = () => {
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-5">
                 <p className="text-xs text-amber-400 leading-relaxed flex items-start gap-2">
                   <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
-                  You're using a default password. For security, please set your own password before continuing.
+                  You're using a temporary password provided by an administrator. For security, please create your own personal password to continue.
                 </p>
               </div>
 
@@ -314,7 +314,7 @@ const Login = () => {
         )}
       </AnimatePresence>
 
-      {/* Forgot Password Modal */}
+      {/* Contact Admin / Forgot Password Modal */}
       <AnimatePresence>
         {showForgotModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -329,113 +329,84 @@ const Login = () => {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md glass-elevated p-8 rounded-2xl z-10"
+              className="relative w-full max-w-md glass-elevated p-6 sm:p-8 rounded-2xl z-10 space-y-5"
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-accent/10 rounded-xl border border-accent/20 text-accent">
+                  <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-500">
                     <KeyRound className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-text-primary font-heading">Reset Password</h3>
-                    <p className="text-xs text-text-muted font-medium">Request an account recovery link</p>
+                    <h3 className="text-lg font-bold text-text-primary font-heading">Forgot Password?</h3>
+                    <p className="text-xs text-text-muted font-medium">Contact administration for assistance</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowForgotModal(false)}
-                  className="p-2 hover:bg-surface-elevated rounded-lg text-text-muted hover:text-text-primary transition-colors"
+                  className="p-2 hover:bg-surface-elevated rounded-lg text-text-muted hover:text-text-primary transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {!resetResult ? (
-                <form onSubmit={handleForgotPassword} className="space-y-5">
-                  <div className="space-y-2">
-                    <label className="input-label">Registered Email</label>
-                    <div className="relative group">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
-                      <input
-                        type="email"
-                        placeholder="name@university.edu"
-                        value={forgotEmail}
-                        onChange={(e) => setForgotEmail(e.target.value)}
-                        className="input-field pl-12"
-                        required
-                      />
-                    </div>
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Admin-Managed Credentials</span>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Self-service password reset links are disabled for campus data integrity. If you have forgotten your password, an administrator or faculty coordinator will generate a secure temporary password for your account.
+                </p>
+              </div>
+
+              {/* Contact Admin Card */}
+              <div className="p-4 rounded-xl bg-surface border border-separator space-y-3">
+                <p className="text-[11px] font-bold uppercase text-text-muted tracking-wider">
+                  Club Support Contact
+                </p>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-canvas border border-separator">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Mail className="w-4 h-4 text-accent shrink-0" />
+                    <span className="text-xs font-mono font-semibold text-text-primary truncate">
+                      codecircle@bitsathy.ac.in
+                    </span>
                   </div>
-
-                  <p className="text-xs text-text-muted leading-relaxed">
-                    We will generate a secure one-time password reset link valid for 1 hour.
-                  </p>
-
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotModal(false)}
-                      className="btn-secondary flex-1 text-xs font-semibold uppercase tracking-wider"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={forgotLoading}
-                      className="btn-primary flex-1 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Reset Link'}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-5">
-                  <div className="p-4 bg-success/10 border border-success/20 rounded-xl flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-sm font-bold text-text-primary">Reset Link Ready</h4>
-                      <p className="text-xs text-success mt-1 leading-relaxed">
-                        {resetResult.message}
-                      </p>
-                    </div>
-                  </div>
-
-                  {resetResult.resetLink && (
-                    <div className="space-y-2">
-                      <label className="input-label">Recovery Link (Direct Access)</label>
-                      <div className="flex items-center gap-2 p-3 bg-surface-elevated border border-border rounded-xl">
-                        <input
-                          type="text"
-                          readOnly
-                          value={resetResult.resetLink}
-                          className="bg-transparent text-xs text-text-secondary font-mono flex-1 outline-none truncate"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(resetResult.resetLink)}
-                          className="p-1.5 hover:bg-accent/10 rounded-lg text-accent hover:text-accent-muted transition-all cursor-pointer"
-                          title="Copy Link"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <a
-                        href={resetResult.resetLink}
-                        className="btn-primary w-full block text-center mt-3 text-xs py-3"
-                      >
-                        Proceed to Reset Password Page
-                      </a>
-                    </div>
-                  )}
-
                   <button
                     type="button"
-                    onClick={() => setShowForgotModal(false)}
-                    className="btn-secondary w-full text-xs font-semibold uppercase tracking-wider"
+                    onClick={() => {
+                      navigator.clipboard.writeText('codecircle@bitsathy.ac.in');
+                      toast.success('Admin email copied to clipboard!');
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-surface-elevated text-text-muted hover:text-accent transition-colors cursor-pointer"
+                    title="Copy Email"
                   >
-                    Close
+                    <Copy className="w-4 h-4" />
                   </button>
                 </div>
-              )}
+
+                <div className="text-[11px] text-text-muted space-y-1 pl-1">
+                  <p><strong>Institution:</strong> Bannari Amman Institute of Technology (BIT)</p>
+                  <p><strong>Include in request:</strong> Your Full Name, Roll Number, and Department.</p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+                <a
+                  href="mailto:codecircle@bitsathy.ac.in?subject=Code%20Circle%20Password%20Reset%20Request&body=Hello%20Administrator,%0D%0A%0D%0AI%20am%20requesting%20a%20temporary%20password%20reset%20for%20my%20Code%20Circle%20account.%0D%0A%0D%0AName:%20%0D%0ARoll%20Number:%20%0D%0ADepartment:%20%0D%0A%0D%0AThank%20you!"
+                  className="btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-2 text-center"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Email Administrator</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(false)}
+                  className="btn-secondary py-2.5 px-5 text-xs cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

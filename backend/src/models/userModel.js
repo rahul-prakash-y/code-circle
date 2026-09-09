@@ -14,8 +14,11 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, required: true },
   isBlocked: { type: Boolean, default: false, index: true },
+  mustChangePassword: { type: Boolean, default: false },
   activeSessionId: { type: String, default: null },
   department: { type: String, trim: true, index: true },
+  college: { type: String, default: 'BIT', trim: true },
+  year: { type: String, trim: true },
   skills: [{ type: String, trim: true }],
   socialLinks: {
     github: { type: String, default: '' },

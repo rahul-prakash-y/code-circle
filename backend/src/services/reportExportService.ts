@@ -4,8 +4,17 @@ import mongoose from 'mongoose';
 import User from '../models/userModel';
 import { getDashboardMetrics } from './metricsService';
 
-const getEventModel = () => mongoose.models.Event || require('../models/eventModel');
-const getAttendanceRecordModel = () => mongoose.models.AttendanceRecord || require('../models/attendanceRecordModel');
+const getEventModel = () => {
+  const mod: any = mongoose.models.Event || require('../models/eventModel');
+  return mod.default || mod;
+};
+const getAttendanceRecordModel = () => {
+  if (!mongoose.models.AttendanceSession) {
+    require('../models/attendanceSessionModel');
+  }
+  const mod: any = mongoose.models.AttendanceRecord || require('../models/attendanceRecordModel');
+  return mod.default || mod;
+};
 
 // Helper to escape CSV values safely
 const escapeCsvCell = (val: any): string => {
@@ -23,6 +32,79 @@ const buildCsv = (headers: string[], rows: (string | number)[][]): string => {
   return [headerLine, ...rowLines].join('\r\n');
 };
 
+// Helper to derive student year accurately
+const deriveStudentYear = (user: any): string => {
+  if (!user) return '3rd Year';
+  if (user.year) {
+    const yStr = String(user.year).trim();
+    if (/^[1-4]$/.test(yStr)) {
+      const map: Record<string, string> = { '1': '1st Year', '2': '2nd Year', '3': '3rd Year', '4': '4th Year' };
+      return map[yStr] || `${yStr} Year`;
+    }
+    if (yStr.toLowerCase().includes('year')) return yStr;
+    return `${yStr} Year`;
+  }
+
+  const roll = String(user.rollNo || '').toUpperCase().trim();
+  const email = String(user.email || '').toLowerCase().trim();
+
+  // Anna University register format: 7376YY... (e.g. 7376231CS272 -> admitted 2023)
+  const auMatch = roll.match(/^7376(\d{2})/);
+  if (auMatch) {
+    const admitYear = 2000 + parseInt(auMatch[1], 10);
+    const now = new Date();
+    let diff = now.getFullYear() - admitYear;
+    if (now.getMonth() >= 6) diff += 1;
+    if (diff <= 1) return '1st Year';
+    if (diff === 2) return '2nd Year';
+    if (diff === 3) return '3rd Year';
+    return '4th Year';
+  }
+
+  // BIT Roll format: 2026UAD1021 (Graduation year prefix)
+  const bitPassMatch = roll.match(/^(20\d{2})[A-Z]/);
+  if (bitPassMatch) {
+    const passYear = parseInt(bitPassMatch[1], 10);
+    const now = new Date();
+    const admitYear = passYear - 4;
+    let diff = now.getFullYear() - admitYear;
+    if (now.getMonth() >= 6) diff += 1;
+    if (diff <= 1) return '1st Year';
+    if (diff === 2) return '2nd Year';
+    if (diff === 3) return '3rd Year';
+    return '4th Year';
+  }
+
+  // Institutional email format: .ad26@bitsathy.ac.in or .cs23@bitsathy.ac.in
+  const emailMatch = email.match(/([a-z]+)(\d{2})@bitsathy\.ac\.in/);
+  if (emailMatch) {
+    const num = parseInt(emailMatch[2], 10);
+    const admitYear = num >= 25 ? 2000 + num - 4 : 2000 + num;
+    const now = new Date();
+    let diff = now.getFullYear() - admitYear;
+    if (now.getMonth() >= 6) diff += 1;
+    if (diff <= 1) return '1st Year';
+    if (diff === 2) return '2nd Year';
+    if (diff === 3) return '3rd Year';
+    return '4th Year';
+  }
+
+  // General 2-digit roll format: e.g. 23CS012
+  const generalRollMatch = roll.match(/^(\d{2})[A-Z]/);
+  if (generalRollMatch) {
+    const admitYear = 2000 + parseInt(generalRollMatch[1], 10);
+    const now = new Date();
+    let diff = now.getFullYear() - admitYear;
+    if (now.getMonth() >= 6) diff += 1;
+    if (diff <= 1) return '1st Year';
+    if (diff === 2) return '2nd Year';
+    if (diff === 3) return '3rd Year';
+    return '4th Year';
+  }
+
+  return '3rd Year';
+};
+
 export type ReportType = 'users' | 'events' | 'attendance' | 'summary';
 
 /**
@@ -33,10 +115,12 @@ export const generateCsvReport = async (type: ReportType): Promise<{ data: strin
 
   if (type === 'users') {
     const users = await User.find({}).sort({ createdAt: -1 }).lean();
-    const headers = ['Name', 'Roll Number', 'Email', 'Role', 'Department', 'Blocked', 'Created Date'];
-    const rows = users.map((u) => [
+    const headers = ['Name', 'Roll Number', 'College', 'Year', 'Email', 'Role', 'Department', 'Blocked', 'Created Date'];
+    const rows = users.map((u: any) => [
       u.name,
       u.rollNo,
+      u.college || 'BIT',
+      deriveStudentYear(u),
       u.email,
       u.role,
       u.department || 'N/A',
@@ -71,16 +155,18 @@ export const generateCsvReport = async (type: ReportType): Promise<{ data: strin
     const AttendanceRecord = getAttendanceRecordModel();
     const records = await AttendanceRecord.find({})
       .populate('session')
-      .populate('user', 'name rollNo department email')
+      .populate('user', 'name rollNo department email college year')
       .sort({ createdAt: -1 })
       .limit(500)
       .lean();
 
-    const headers = ['Session Name', 'Student Name', 'Roll Number', 'Department', 'Email', 'Marked At'];
+    const headers = ['Session Name', 'Student Name', 'Roll Number', 'College', 'Year', 'Department', 'Email', 'Marked At'];
     const rows = records.map((rec: any) => [
       rec.session?.sessionName || 'Session',
       rec.user?.name || 'Unknown',
       rec.user?.rollNo || 'N/A',
+      rec.user?.college || 'BIT',
+      deriveStudentYear(rec.user),
       rec.user?.department || 'N/A',
       rec.user?.email || 'N/A',
       rec.timestamp ? new Date(rec.timestamp).toISOString() : 'N/A',
@@ -207,13 +293,14 @@ export const generatePdfReport = async (type: ReportType): Promise<{ buffer: Buf
         doc.rect(40, currentY, doc.page.width - 80, 20).fill('#1e293b');
         doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold');
         doc.text('NAME', 45, currentY + 6);
-        doc.text('ROLL NO', 180, currentY + 6);
-        doc.text('ROLE', 260, currentY + 6);
-        doc.text('DEPT', 340, currentY + 6);
-        doc.text('EMAIL', 410, currentY + 6);
+        doc.text('ROLL NO', 160, currentY + 6);
+        doc.text('COLLEGE', 235, currentY + 6);
+        doc.text('YEAR', 285, currentY + 6);
+        doc.text('DEPT', 335, currentY + 6);
+        doc.text('EMAIL', 420, currentY + 6);
         currentY += 22;
 
-        users.forEach((u, i) => {
+        users.forEach((u: any, i: number) => {
           if (currentY > 750) {
             doc.addPage();
             currentY = 40;
@@ -221,12 +308,13 @@ export const generatePdfReport = async (type: ReportType): Promise<{ buffer: Buf
           if (i % 2 === 0) {
             doc.rect(40, currentY, doc.page.width - 80, 18).fill('#f8fafc');
           }
-          doc.fillColor('#334155').fontSize(8).font('Helvetica');
-          doc.text(u.name.slice(0, 22), 45, currentY + 5);
-          doc.text(u.rollNo, 180, currentY + 5);
-          doc.text(u.role, 260, currentY + 5);
-          doc.text(u.department || '-', 340, currentY + 5);
-          doc.text(u.email.slice(0, 26), 410, currentY + 5);
+          doc.fillColor('#334155').fontSize(7.5).font('Helvetica');
+          doc.text(u.name.slice(0, 18), 45, currentY + 5);
+          doc.text(u.rollNo, 160, currentY + 5);
+          doc.text(u.college || 'BIT', 235, currentY + 5);
+          doc.text(deriveStudentYear(u), 285, currentY + 5);
+          doc.text((u.department || '-').slice(0, 14), 335, currentY + 5);
+          doc.text(u.email.slice(0, 24), 420, currentY + 5);
           currentY += 19;
         });
       } else if (type === 'events') {
