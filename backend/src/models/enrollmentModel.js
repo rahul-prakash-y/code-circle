@@ -32,6 +32,10 @@ const enrollmentSchema = new mongoose.Schema({
   certificateUrl: {
     type: String,
     default: null
+  },
+  customResponses: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, { timestamps: true });
 

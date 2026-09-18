@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   UserCheck,
   Award,
+  Sliders,
 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -247,6 +248,52 @@ export const EventDetailsModal = ({
                 {event.description}
               </div>
             </div>
+
+            {/* Custom Registration Requirements / Questions */}
+            {event.customFields && event.customFields.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs uppercase font-bold text-label-tertiary tracking-wider flex items-center gap-1.5">
+                    <Sliders size={14} className="text-accent" />
+                    Registration Questions / Custom Options ({event.customFields.length})
+                  </h3>
+                  <span className="text-[10px] text-text-muted font-medium">
+                    Asked during attendee enrollment
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {event.customFields.map((cf, idx) => (
+                    <div
+                      key={cf.id || idx}
+                      className="p-3.5 rounded-xl bg-canvas border border-separator space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-label-primary truncate">
+                          {cf.label}
+                        </span>
+                        {cf.required ? (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400 font-bold uppercase tracking-wider shrink-0">
+                            Required
+                          </span>
+                        ) : (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-surface text-text-muted font-bold uppercase tracking-wider shrink-0">
+                            Optional
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-label-tertiary">
+                        <span className="capitalize font-mono">{cf.type}</span>
+                        {cf.type === 'select' && cf.options?.length > 0 && (
+                          <span className="truncate text-text-muted">
+                            • Choices: {cf.options.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Certificate Template Preview */}
             <div className="space-y-2.5">

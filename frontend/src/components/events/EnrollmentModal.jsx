@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, Plus, Trash2, CheckCircle, AlertCircle, Loader2, UserPlus } from 'lucide-react';
+import { X, Users, Plus, Trash2, CheckCircle, AlertCircle, Loader2, UserPlus, Sliders } from 'lucide-react';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import { toast } from 'react-hot-toast';
 
@@ -8,6 +8,7 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
   const { enrollInEvent, loading, resetStatus } = useEnrollmentStore();
   const [teamName, setTeamName] = useState('');
   const [members, setMembers] = useState(['']); // Array of roll numbers for team members
+  const [customResponses, setCustomResponses] = useState({});
 
   if (!isOpen || !event) return null;
 
@@ -56,11 +57,31 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
       return;
     }
 
+    // Validate required custom fields
+    if (event.customFields && event.customFields.length > 0) {
+      for (const cf of event.customFields) {
+        if (cf.required) {
+          const fieldKey = cf.id || cf.label;
+          const val = customResponses[fieldKey];
+          if (cf.type === 'checkbox') {
+            if (!val) {
+              toast.error(`Please check the required box: "${cf.label}"`);
+              return;
+            }
+          } else if (val === undefined || val === null || String(val).trim() === '') {
+            toast.error(`Please provide an answer for: "${cf.label}"`);
+            return;
+          }
+        }
+      }
+    }
+
     const enrollmentData = {
       event: event._id,
       type: isDuoEvent ? 'Duo' : isSquadEvent ? 'Team' : 'Individual',
       teamName: isTeamEvent ? teamName.trim() : undefined,
-      members: isTeamEvent ? filteredMembers : undefined
+      members: isTeamEvent ? filteredMembers : undefined,
+      customResponses: customResponses,
     };
 
     try {
@@ -70,6 +91,7 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
       // Reset state
       setTeamName('');
       setMembers(['']);
+      setCustomResponses({});
       resetStatus();
     } catch (error) {
       toast.error(error.message || 'Enrollment failed');
@@ -196,6 +218,91 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
                 <p className="text-sm text-text-muted max-w-[280px] mx-auto">
                   You are about to enroll in <span className="text-indigo-300 font-medium">"{event.title}"</span> as an individual participant.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Custom Questions / Options Section */}
+          {event.customFields && event.customFields.length > 0 && (
+            <div className="space-y-3 pt-3 border-t border-border/80">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center">
+                  <Sliders size={13} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                    Required Information & Details
+                  </h4>
+                  <p className="text-[10px] text-text-muted">
+                    Please provide the requested details for this event
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 bg-surface/60 p-4 rounded-2xl border border-border/80">
+                {event.customFields.map((field) => {
+                  const fieldKey = field.id || field.label;
+                  return (
+                    <div key={fieldKey} className="space-y-1.5">
+                      <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                        <span>
+                          {field.label} {field.required && <span className="text-rose-400">*</span>}
+                        </span>
+                        {field.required && (
+                          <span className="text-[9px] text-rose-400 font-bold uppercase px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
+                            Required
+                          </span>
+                        )}
+                      </label>
+
+                      {field.type === 'select' ? (
+                        <select
+                          value={customResponses[fieldKey] || ''}
+                          onChange={(e) => setCustomResponses(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                          required={field.required}
+                          className="w-full bg-surface-elevated/90 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-xs text-text-primary focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                        >
+                          <option value="">{field.placeholder || '-- Select an option --'}</option>
+                          {(field.options || []).map((opt, i) => (
+                            <option key={i} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : field.type === 'textarea' ? (
+                        <textarea
+                          value={customResponses[fieldKey] || ''}
+                          onChange={(e) => setCustomResponses(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                          placeholder={field.placeholder || 'Type your response here...'}
+                          required={field.required}
+                          rows={2}
+                          className="w-full bg-surface-elevated/90 border border-slate-700/60 rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted/60 focus:outline-none focus:border-indigo-500 transition-all resize-none"
+                        />
+                      ) : field.type === 'checkbox' ? (
+                        <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface-elevated/50 border border-border/70 hover:border-border transition-colors cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!customResponses[fieldKey]}
+                            onChange={(e) => setCustomResponses(prev => ({ ...prev, [fieldKey]: e.target.checked }))}
+                            className="w-4 h-4 rounded text-indigo-500 bg-surface border-border focus:ring-0 cursor-pointer"
+                          />
+                          <span className="text-xs text-text-primary font-medium select-none">
+                            {field.placeholder || 'I confirm / agree'}
+                          </span>
+                        </label>
+                      ) : (
+                        <input
+                          type={field.type === 'number' ? 'number' : 'text'}
+                          value={customResponses[fieldKey] || ''}
+                          onChange={(e) => setCustomResponses(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                          placeholder={field.placeholder || 'Enter your response...'}
+                          required={field.required}
+                          className="w-full bg-surface-elevated/90 border border-slate-700/60 rounded-xl px-3.5 py-2 text-xs text-text-primary placeholder-text-muted/60 focus:outline-none focus:border-indigo-500 transition-all"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

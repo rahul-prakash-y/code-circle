@@ -12,7 +12,8 @@ const createEvent = async (request, reply) => {
       format,
       maxParticipants, 
       registrationDeadline,
-      certificateTemplateUrl 
+      certificateTemplateUrl,
+      customFields
     } = request.body;
 
     if (!title || !description || !date || !venueOrLink || !type || !registrationDeadline) {
@@ -34,6 +35,7 @@ const createEvent = async (request, reply) => {
       maxParticipants: computedMax,
       registrationDeadline,
       certificateTemplateUrl: certificateTemplateUrl ? String(certificateTemplateUrl).trim() : '',
+      customFields: Array.isArray(customFields) ? customFields : [],
       createdBy: user._id
     });
 

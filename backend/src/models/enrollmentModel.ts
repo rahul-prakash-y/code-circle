@@ -8,6 +8,7 @@ export interface IEnrollment extends Document {
   members: mongoose.Types.ObjectId[];
   attendanceStatus: boolean;
   certificateUrl?: string | null;
+  customResponses?: Record<string, any>;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -51,6 +52,10 @@ const enrollmentSchema = new Schema<IEnrollment>(
     certificateUrl: {
       type: String,
       default: null,
+    },
+    customResponses: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
   },
   { timestamps: true }

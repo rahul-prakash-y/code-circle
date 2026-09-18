@@ -15,9 +15,19 @@ export interface IEvent extends Document {
   maxParticipants: number;
   registrationDeadline: Date;
   certificateTemplateUrl?: string;
+  customFields?: ICustomField[];
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ICustomField {
+  id?: string;
+  label: string;
+  type: 'text' | 'select' | 'number' | 'textarea' | 'checkbox';
+  options?: string[];
+  required?: boolean;
+  placeholder?: string;
 }
 
 const eventSchema = new Schema<IEvent>(
@@ -73,6 +83,20 @@ const eventSchema = new Schema<IEvent>(
       default: '',
       trim: true,
     },
+    customFields: [
+      {
+        id: { type: String },
+        label: { type: String, required: true },
+        type: {
+          type: String,
+          enum: ['text', 'select', 'number', 'textarea', 'checkbox'],
+          default: 'text',
+        },
+        options: [{ type: String }],
+        required: { type: Boolean, default: false },
+        placeholder: { type: String, default: '' },
+      },
+    ],
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',

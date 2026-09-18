@@ -35,6 +35,20 @@ const eventSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  customFields: [
+    {
+      id: { type: String },
+      label: { type: String, required: true },
+      type: {
+        type: String,
+        enum: ['text', 'select', 'number', 'textarea', 'checkbox'],
+        default: 'text'
+      },
+      options: [{ type: String }],
+      required: { type: Boolean, default: false },
+      placeholder: { type: String, default: '' }
+    }
+  ],
   createdBy: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User',

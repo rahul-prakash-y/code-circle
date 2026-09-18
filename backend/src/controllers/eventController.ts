@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
-import Event, { EventType, EventFormat, EventStatus } from '../models/eventModel';
+import Event, { EventType, EventFormat, EventStatus, ICustomField } from '../models/eventModel';
 
 export interface CreateEventBody {
   title: string;
@@ -13,6 +13,7 @@ export interface CreateEventBody {
   maxParticipants?: number;
   registrationDeadline?: string | Date;
   certificateTemplateUrl?: string;
+  customFields?: ICustomField[];
 }
 
 export interface GetEventsQuery {
@@ -43,6 +44,7 @@ export const createEvent = async (
       maxParticipants = 0,
       registrationDeadline,
       certificateTemplateUrl = '',
+      customFields = [],
     } = request.body;
 
     if (!title || !description || !date) {
@@ -63,6 +65,7 @@ export const createEvent = async (
       maxParticipants: format === 'Duo' ? 2 : format === 'Team' ? (maxParticipants || 4) : 0,
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : new Date(date),
       certificateTemplateUrl: certificateTemplateUrl ? certificateTemplateUrl.trim() : '',
+      customFields: Array.isArray(customFields) ? customFields : [],
       createdBy: new mongoose.Types.ObjectId(user.id || user._id),
     });
 

@@ -9,7 +9,7 @@ const { generateCertificate } = require('../utils/pdfGenerator');
 const enrollInEvent = async (request, reply) => {
   try {
     const user = request.user;
-    const { event: eventId, type: rawType, teamName, members: memberRollNumbers } = request.body;
+    const { event: eventId, type: rawType, teamName, members: memberRollNumbers, customResponses } = request.body;
 
     if (!eventId) {
       return reply.status(400).send({ error: 'Event ID is required' });
@@ -120,6 +120,7 @@ const enrollInEvent = async (request, reply) => {
       type,
       teamName: isGroup ? teamName.trim() : undefined,
       members: isGroup ? teamMembers : undefined,
+      customResponses: customResponses && typeof customResponses === 'object' ? customResponses : {},
     };
 
     const enrollment = await Enrollment.create(enrollmentData);

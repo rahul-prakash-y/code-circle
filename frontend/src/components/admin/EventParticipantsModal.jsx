@@ -20,6 +20,7 @@ import {
   ChevronUp,
   Loader2,
   Award,
+  Sliders,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
@@ -188,7 +189,7 @@ export const EventParticipantsModal = ({
   // Filter logic
   const filteredEnrollments = useMemo(() => {
     return enrollments.filter((e) => {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
 
       // Check leader
       const leaderMatch =
@@ -241,6 +242,9 @@ export const EventParticipantsModal = ({
       return;
     }
 
+    const customFieldCols = event?.customFields || [];
+    const customHeaders = customFieldCols.map((cf) => `"${(cf.label || 'Custom Field').replace(/"/g, '""')}"`);
+
     const headers = [
       'Event Title',
       'Registration Type',
@@ -254,6 +258,7 @@ export const EventParticipantsModal = ({
       'College',
       'Attendance Status',
       'Enrolled At',
+      ...customHeaders,
     ];
 
     const rows = [];
@@ -266,6 +271,12 @@ export const EventParticipantsModal = ({
       // Lead student
       const leadCollege = getStudentCollege(e.enrolledBy);
       const leadYear = getStudentYear(e.enrolledBy);
+
+      const customValues = customFieldCols.map((cf) => {
+        const val = e.customResponses?.[cf.id || cf.label] ?? e.customResponses?.[cf.label] ?? '';
+        const displayVal = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val);
+        return `"${displayVal.replace(/"/g, '""')}"`;
+      });
 
       rows.push([
         `"${event.title.replace(/"/g, '""')}"`,
@@ -280,6 +291,7 @@ export const EventParticipantsModal = ({
         `"${leadCollege}"`,
         `"${attendance}"`,
         `"${enrolledAt}"`,
+        ...customValues,
       ]);
 
       // Team members
@@ -301,6 +313,7 @@ export const EventParticipantsModal = ({
             `"${memberCollege}"`,
             `"${attendance}"`,
             `"${enrolledAt}"`,
+            ...customValues,
           ]);
         });
       }
@@ -620,6 +633,29 @@ export const EventParticipantsModal = ({
                         )}
                       </div>
                     </div>
+
+                    {/* Custom Responses (if any) */}
+                    {e.customResponses && Object.keys(e.customResponses).length > 0 && (
+                      <div className="pt-2.5 border-t border-separator/40 flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] uppercase font-bold text-label-tertiary flex items-center gap-1">
+                          <Sliders size={11} className="text-accent" /> Custom Responses:
+                        </span>
+                        {Object.entries(e.customResponses).map(([key, val]) => {
+                          const matchedField = event.customFields?.find((cf) => cf.id === key || cf.label === key);
+                          const displayKey = matchedField?.label || key;
+                          const displayVal = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val || 'N/A');
+                          return (
+                            <span
+                              key={key}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-separator text-[11px] font-medium text-label-secondary"
+                            >
+                              <strong className="text-label-primary font-semibold">{displayKey}:</strong>
+                              <span>{displayVal}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {/* Expandable Team Roster */}
                     {isGroup && hasMembers && isExpanded && (
