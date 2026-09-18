@@ -4,6 +4,7 @@ import AttendanceSession, { IAttendanceSession } from '../models/attendanceSessi
 import AttendanceRecord, { IAttendanceRecord } from '../models/attendanceRecordModel';
 import Event from '../models/eventModel';
 import User from '../models/userModel';
+import attendanceBuffer from './attendanceBuffer';
 const Enrollment = require('../models/enrollmentModel');
 
 export interface CreateSessionInput {
@@ -77,6 +78,9 @@ export class AttendanceService {
       isActive: true,
       createdBy: new mongoose.Types.ObjectId(adminId),
     });
+
+    // Prime the high-performance in-memory AttendanceBuffer for instant reads
+    attendanceBuffer.setEventOTP(event._id.toString(), otp);
 
     return {
       _id: session._id,
