@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { User, UserRole } from '../types/user';
+import { useDebounce } from '../hooks/useDebounce';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
@@ -147,7 +148,10 @@ const UserManagement: React.FC = () => {
 
   const { user: currentUser, isSuperAdmin, isAdmin } = useAuthStore();
 
-  const [searchInput, setSearchInput] = useState(filters.search);
+  // Table search state & lagging debounced value
+  const [searchTerm, setSearchTerm] = useState(filters.search || '');
+  const debouncedSearch = useDebounce(searchTerm, 500);
+  const isSearchMounted = useRef(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Panel/modal states
@@ -180,10 +184,17 @@ const UserManagement: React.FC = () => {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
+  // Sync debounced search to store / trigger API fetch
+  useEffect(() => {
+    if (!isSearchMounted.current) {
+      isSearchMounted.current = true;
+      return;
+    }
+    setSearch(debouncedSearch);
+  }, [debouncedSearch, setSearch]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchInput(val);
-    setSearch(val);
+    setSearchTerm(e.target.value);
   };
 
   const openEditPanel = (targetUser: User) => {
@@ -567,7 +578,7 @@ const UserManagement: React.FC = () => {
           <input
             type="text"
             placeholder="Search name, roll number, email..."
-            value={searchInput}
+            value={searchTerm}
             onChange={handleSearchChange}
             className="w-full text-base font-medium bg-transparent border-none pl-7 py-2 focus:outline-none"
             style={{ color: 'var(--text-primary)' }}
@@ -904,7 +915,7 @@ const UserManagement: React.FC = () => {
                       No users match your filters
                     </p>
                     <button
-                      onClick={() => { setSearchInput(''); setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}
+                      onClick={() => { setSearchTerm(''); setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}
                       className="text-[12px] font-semibold cursor-pointer"
                       style={{ color: 'var(--accent)' }}
                     >

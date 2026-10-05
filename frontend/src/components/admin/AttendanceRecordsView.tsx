@@ -27,6 +27,7 @@ import GenerateOtpModal from './GenerateOtpModal';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { getStudentCollege, getStudentYear } from './EventParticipantsModal';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const AttendanceRecordsView: React.FC = () => {
   const { recordsData, activeSession, fetchAttendanceRecords, fetchActiveSession, loading } =
@@ -41,7 +42,9 @@ const AttendanceRecordsView: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>('');
-  const [tableSearch, setTableSearch] = useState<string>('');
+  // Table search with debouncing
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const debouncedSearch = useDebounce<string>(searchTerm, 500);
 
   // Modals & Active Session state
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -61,15 +64,15 @@ const AttendanceRecordsView: React.FC = () => {
     }
   }, [events, selectedEventId]);
 
-  // Fetch records whenever selection changes
+  // Fetch records whenever selection or debounced search changes
   useEffect(() => {
     if (filterMode === 'event' && selectedEventId) {
-      fetchAttendanceRecords({ eventId: selectedEventId, search: tableSearch });
+      fetchAttendanceRecords({ eventId: selectedEventId, search: debouncedSearch });
       fetchActiveSession(selectedEventId);
     } else if (filterMode === 'student' && selectedStudentId) {
-      fetchAttendanceRecords({ studentId: selectedStudentId, search: tableSearch });
+      fetchAttendanceRecords({ studentId: selectedStudentId, search: debouncedSearch });
     }
-  }, [filterMode, selectedEventId, selectedStudentId, tableSearch, fetchAttendanceRecords, fetchActiveSession]);
+  }, [filterMode, selectedEventId, selectedStudentId, debouncedSearch, fetchAttendanceRecords, fetchActiveSession]);
 
   // Countdown timer for active OTP session
   useEffect(() => {
@@ -263,8 +266,8 @@ const AttendanceRecordsView: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Filter attendees by name, roll no..."
-                  value={tableSearch}
-                  onChange={(e) => setTableSearch(e.target.value)}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="input-field pl-9 text-xs"
                 />
               </div>
