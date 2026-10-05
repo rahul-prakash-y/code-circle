@@ -49,6 +49,28 @@ const enrollInEvent = async (request, reply) => {
       return reply.status(400).send({ error: 'You are already enrolled in this event' });
     }
 
+    // Check overall event registration limit / student participation capacity
+    if (event.maxParticipants && event.maxParticipants > 0) {
+      const existingEventEnrollments = await Enrollment.find({ event: eventId });
+      const currentParticipantsCount = existingEventEnrollments.reduce(
+        (sum, enr) => sum + 1 + (enr.members ? enr.members.length : 0),
+        0
+      );
+
+      const incomingCount = (type === 'Team' || type === 'Duo') && Array.isArray(memberRollNumbers)
+        ? memberRollNumbers.length + 1
+        : 1;
+
+      if (currentParticipantsCount + incomingCount > event.maxParticipants) {
+        const remaining = Math.max(0, event.maxParticipants - currentParticipantsCount);
+        return reply.status(400).send({
+          error: remaining === 0
+            ? 'Registration full: This event has reached its maximum student participation limit.'
+            : `Registration limit exceeded: Only ${remaining} spot(s) remaining for this event.`
+        });
+      }
+    }
+
     let teamMembers = [];
 
     if (type === 'Team' || type === 'Duo') {
@@ -66,10 +88,13 @@ const enrollInEvent = async (request, reply) => {
             error: 'Duo format requires exactly 1 partner roll number' 
           });
         }
-      } else if (event.maxParticipants > 0 && totalMembers > event.maxParticipants) {
-        return reply.status(400).send({ 
-          error: `Team size exceeds maximum limit of ${event.maxParticipants} members` 
-        });
+      } else if (type === 'Team') {
+        const maxTeam = event.maxTeamSize || 4;
+        if (totalMembers > maxTeam) {
+          return reply.status(400).send({ 
+            error: `Team size exceeds maximum limit of ${maxTeam} members` 
+          });
+        }
       }
 
       if (memberRollNumbers && memberRollNumbers.length > 0) {

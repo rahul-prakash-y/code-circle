@@ -7,7 +7,7 @@ import BackgroundGradient from '../components/ui/BackgroundGradient';
 import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
   Medal, Trophy, Ticket, MessageSquare,
-  Newspaper, Users, Shield, BarChart3,
+  Newspaper, Users, Crown, Shield, BarChart3,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -87,7 +87,8 @@ export const MainLayout = ({ children }) => {
     { to: '/passport', label: 'Registrations', icon: Ticket },
     { to: '/feedback', label: 'Feedback', icon: MessageSquare },
     { to: '/news', label: 'News', icon: Newspaper },
-    ...(isSuperAdmin ? [{ to: '/teams', label: 'Teams', icon: Users }] : []),
+    { to: '/bearers', label: 'Students Bearers', icon: Crown},
+    ...(isSuperAdmin ? [{ to: '/bearers/manage', label: 'Student Bearers', icon: Crown }] : []),
     ...(isAdmin
       ? [
           { to: '/users', label: 'Directory', icon: Shield },

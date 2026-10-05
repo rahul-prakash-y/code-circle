@@ -22,6 +22,8 @@ export interface ClubEvent {
   format?: EventFormat;
   status?: string;
   maxParticipants: number;
+  maxTeamSize?: number;
+  enrolledCount?: number;
   registrationDeadline: string;
   certificateTemplateUrl?: string;
   customFields?: CustomField[];

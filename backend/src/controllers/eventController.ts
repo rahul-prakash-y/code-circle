@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import Event, { EventType, EventFormat, EventStatus, ICustomField } from '../models/eventModel';
+import Enrollment from '../models/enrollmentModel';
 
 export interface CreateEventBody {
   title: string;
@@ -11,6 +12,7 @@ export interface CreateEventBody {
   status?: EventStatus;
   venueOrLink?: string;
   maxParticipants?: number;
+  maxTeamSize?: number;
   registrationDeadline?: string | Date;
   certificateTemplateUrl?: string;
   customFields?: ICustomField[];
@@ -42,6 +44,7 @@ export const createEvent = async (
       status = 'Upcoming',
       venueOrLink = 'Campus / Online',
       maxParticipants = 0,
+      maxTeamSize = 4,
       registrationDeadline,
       certificateTemplateUrl = '',
       customFields = [],
@@ -62,7 +65,8 @@ export const createEvent = async (
       date: new Date(date),
       status,
       venueOrLink: venueOrLink.trim(),
-      maxParticipants: format === 'Duo' ? 2 : format === 'Team' ? (maxParticipants || 4) : 0,
+      maxParticipants: Number(maxParticipants) >= 0 ? Number(maxParticipants) : 0,
+      maxTeamSize: format === 'Duo' ? 2 : (Number(maxTeamSize) > 0 ? Number(maxTeamSize) : 4),
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : new Date(date),
       certificateTemplateUrl: certificateTemplateUrl ? certificateTemplateUrl.trim() : '',
       customFields: Array.isArray(customFields) ? customFields : [],
@@ -129,7 +133,22 @@ export const getEvents = async (
       .sort({ date: 1 })
       .populate('createdBy', 'name email profilePicUrl role');
 
-    return reply.send(events);
+    const eventIds = events.map((e) => e._id);
+    const enrollments = await (Enrollment as any).find({ event: { $in: eventIds } });
+    const countMap: Record<string, number> = {};
+    for (const enr of enrollments) {
+      const evId = enr.event.toString();
+      const count = 1 + (enr.members?.length || 0);
+      countMap[evId] = (countMap[evId] || 0) + count;
+    }
+
+    const eventsWithCounts = events.map((e) => {
+      const obj: any = e.toObject ? e.toObject() : { ...e };
+      obj.enrolledCount = countMap[e._id.toString()] || 0;
+      return obj;
+    });
+
+    return reply.send(eventsWithCounts);
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({
@@ -158,7 +177,16 @@ export const getEventById = async (
       return reply.status(404).send({ success: false, error: 'Event not found' });
     }
 
-    return reply.send(event);
+    const enrollments = await (Enrollment as any).find({ event: event._id });
+    const enrolledCount = enrollments.reduce(
+      (sum: number, enr: any) => sum + 1 + (enr.members?.length || 0),
+      0
+    );
+
+    const obj: any = event.toObject ? event.toObject() : { ...event };
+    obj.enrolledCount = enrolledCount;
+
+    return reply.send(obj);
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({
@@ -180,10 +208,11 @@ export const updateEvent = async (
 
     const updateData: any = { ...request.body };
 
-    if (updateData.format === 'Individual') {
-      updateData.maxParticipants = 0;
-    } else if (updateData.format === 'Duo') {
-      updateData.maxParticipants = 2;
+    if (updateData.maxParticipants !== undefined) {
+      updateData.maxParticipants = Number(updateData.maxParticipants) >= 0 ? Number(updateData.maxParticipants) : 0;
+    }
+    if (updateData.maxTeamSize !== undefined) {
+      updateData.maxTeamSize = Number(updateData.maxTeamSize) > 0 ? Number(updateData.maxTeamSize) : 4;
     }
 
     if (updateData.date) {

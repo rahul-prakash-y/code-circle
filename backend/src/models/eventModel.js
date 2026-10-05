@@ -26,6 +26,10 @@ const eventSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  maxTeamSize: {
+    type: Number,
+    default: 4
+  },
   registrationDeadline: { 
     type: Date, 
     required: true 

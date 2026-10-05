@@ -311,7 +311,8 @@ export const EventModal = ({
     type: 'Technical',
     format: 'Individual',
     status: 'Upcoming',
-    maxParticipants: 4,
+    maxParticipants: 0,
+    maxTeamSize: 4,
     registrationDeadline: '',
     certificateTemplateUrl: '',
     customFields: [],
@@ -327,7 +328,8 @@ export const EventModal = ({
         type: eventToEdit.type === 'Individual' || eventToEdit.type === 'Team' ? 'Technical' : (eventToEdit.type || 'Technical'),
         format: eventToEdit.format || (eventToEdit.type === 'Team' ? 'Team' : 'Individual'),
         status: eventToEdit.status || 'Upcoming',
-        maxParticipants: eventToEdit.maxParticipants || 4,
+        maxParticipants: eventToEdit.maxParticipants !== undefined ? eventToEdit.maxParticipants : 0,
+        maxTeamSize: eventToEdit.maxTeamSize || 4,
         registrationDeadline: eventToEdit.registrationDeadline
           ? eventToEdit.registrationDeadline.split('T')[0]
           : (eventToEdit.date ? eventToEdit.date.split('T')[0] : ''),
@@ -345,7 +347,8 @@ export const EventModal = ({
         type: 'Technical',
         format: 'Individual',
         status: 'Upcoming',
-        maxParticipants: 4,
+        maxParticipants: 0,
+        maxTeamSize: 4,
         registrationDeadline: '',
         certificateTemplateUrl: '',
         customFields: [],
@@ -465,12 +468,8 @@ export const EventModal = ({
 
       const payload = {
         ...formData,
-        maxParticipants:
-          formData.format === 'Duo'
-            ? 2
-            : formData.format === 'Team'
-            ? Number(formData.maxParticipants) || 4
-            : 0,
+        maxParticipants: Math.max(0, Number(formData.maxParticipants) || 0),
+        maxTeamSize: formData.format === 'Duo' ? 2 : (Number(formData.maxTeamSize) || 4),
         registrationDeadline: formData.registrationDeadline || formData.date,
         certificateTemplateUrl: formData.certificateTemplateUrl || '',
         customFields: sanitizedCustomFields,
@@ -605,7 +604,6 @@ export const EventModal = ({
                           setFormData((prev) => ({
                             ...prev,
                             format: f,
-                            maxParticipants: f === 'Duo' ? 2 : f === 'Team' ? (prev.maxParticipants < 3 ? 4 : prev.maxParticipants) : 0,
                           }))
                         }
                         className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer text-center ${
@@ -640,6 +638,38 @@ export const EventModal = ({
                 </div>
               </div>
 
+              {/* Student Registration Limit / Participation Capacity */}
+              <div className="space-y-1.5 p-3.5 rounded-xl bg-surface-elevated/50 border border-border">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                    <Users size={14} className="text-accent" /> Student Registration Limit
+                  </label>
+                  <span className="text-[11px] text-text-muted font-mono">
+                    {Number(formData.maxParticipants) > 0
+                      ? `${formData.maxParticipants} students max`
+                      : 'Unlimited Capacity'}
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  name="maxParticipants"
+                  min="0"
+                  placeholder="e.g. 50 (Enter 0 or leave empty for unlimited)"
+                  value={formData.maxParticipants === 0 ? '' : formData.maxParticipants}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData((prev) => ({
+                      ...prev,
+                      maxParticipants: val === '' ? 0 : Math.max(0, parseInt(val, 10) || 0),
+                    }));
+                  }}
+                  className="input-field text-xs py-2.5 font-mono focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
+                />
+                <p className="text-[11px] text-text-muted">
+                  Restricts registration once this total number of students participate in the event.
+                </p>
+              </div>
+
               {/* Duo Note */}
               {formData.format === 'Duo' && (
                 <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2.5 text-xs text-purple-300">
@@ -656,10 +686,10 @@ export const EventModal = ({
                   </label>
                   <input
                     type="number"
-                    name="maxParticipants"
+                    name="maxTeamSize"
                     min="3"
                     max="10"
-                    value={formData.maxParticipants}
+                    value={formData.maxTeamSize}
                     onChange={handleChange}
                     className="input-field text-xs py-2.5 font-mono focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all"
                   />
@@ -933,12 +963,8 @@ export const EventModal = ({
           event={{
             ...formData,
             _id: eventToEdit?._id || 'preview-event',
-            maxParticipants:
-              formData.format === 'Duo'
-                ? 2
-                : formData.format === 'Team'
-                ? Number(formData.maxParticipants) || 4
-                : 0,
+            maxParticipants: Math.max(0, Number(formData.maxParticipants) || 0),
+            maxTeamSize: formData.format === 'Duo' ? 2 : (Number(formData.maxTeamSize) || 4),
             createdBy: { name: 'Preview Organizer (You)' },
           }}
           isAdmin={true}

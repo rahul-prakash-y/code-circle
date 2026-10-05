@@ -218,11 +218,30 @@ export const EventDetailsModal = ({
                     {event.format === 'Duo'
                       ? 'Duo (2 Participants)'
                       : event.format === 'Team' || event.type === 'Team'
-                      ? `Squad (Max ${event.maxParticipants || 4} Members)`
+                      ? `Squad (Max ${event.maxTeamSize || 4} Members)`
                       : 'Individual Participant'}
                   </p>
                 </div>
               </div>
+
+              {event.maxParticipants > 0 && (
+                <div className="p-4 rounded-2xl bg-canvas border border-separator flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
+                    <Users size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase font-semibold text-label-tertiary tracking-wider">
+                      Registration Limit / Capacity
+                    </p>
+                    <p className="text-sm font-bold text-label-primary mt-0.5">
+                      {event.enrolledCount || 0} / {event.maxParticipants} Students Enrolled{' '}
+                      {(event.enrolledCount || 0) >= event.maxParticipants && (
+                        <span className="text-xs text-rose-500 font-semibold">(Full)</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 rounded-2xl bg-canvas border border-separator flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">

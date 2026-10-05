@@ -85,7 +85,11 @@ const MyCertificates = () => {
                   </h3>
                   <div className="flex items-center gap-2 text-text-muted text-xs">
                     <Calendar size={14} />
-                    <span>{format(new Date(cert.event.date), 'MMMM dd, yyyy')}</span>
+                    <span>
+                      {cert.event?.date && !isNaN(new Date(cert.event.date).getTime())
+                        ? format(new Date(cert.event.date), 'MMMM dd, yyyy')
+                        : 'Date TBA'}
+                    </span>
                   </div>
                 </div>
 

@@ -140,10 +140,21 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
               </div>
             )}
 
-            {(event.format === 'Team' || event.type === 'Team') && event.maxParticipants && (
+            {(event.format === 'Team' || event.type === 'Team') && (
               <div className="flex items-center gap-2.5">
                 <Users size={14} strokeWidth={1.75} className="shrink-0 text-label-tertiary" />
-                <span>Squad up to {event.maxParticipants} members</span>
+                <span>Squad (up to {event.maxTeamSize || 4} members)</span>
+              </div>
+            )}
+
+            {event.maxParticipants > 0 && (
+              <div className="flex items-center gap-2.5">
+                <Users size={14} strokeWidth={1.75} className="shrink-0 text-accent" />
+                <span className={event.enrolledCount >= event.maxParticipants ? 'text-rose-500 font-medium' : 'text-label-secondary'}>
+                  {event.enrolledCount >= event.maxParticipants
+                    ? `Capacity Full (${event.maxParticipants}/${event.maxParticipants})`
+                    : `${event.enrolledCount || 0} / ${event.maxParticipants} students registered`}
+                </span>
               </div>
             )}
           </div>
@@ -213,11 +224,13 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   <Eye size={14} />
                 </button>
                 <button
-                  onClick={() => !isEnrolled && setIsEnrollModalOpen(true)}
-                  disabled={timeLeft === 'Closed' || isPast || isEnrolled}
+                  onClick={() => !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && setIsEnrollModalOpen(true)}
+                  disabled={timeLeft === 'Closed' || isPast || isEnrolled || (event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants)}
                   className={
                     isEnrolled
                       ? 'btn-secondary text-[13px] py-1.5 px-4 opacity-90 cursor-default'
+                      : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
+                      ? 'btn-secondary text-[13px] py-1.5 px-3.5 opacity-60 cursor-not-allowed text-rose-500'
                       : 'btn-primary text-[13px] py-1.5 px-4.5 flex items-center gap-1.5 cursor-pointer'
                   }
                 >
@@ -228,9 +241,11 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                       ? 'Concluded'
                       : timeLeft === 'Closed'
                       ? 'Closed'
+                      : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
+                      ? 'Full'
                       : 'Enroll'}
                   </span>
-                  {!isPast && timeLeft !== 'Closed' && !isEnrolled && (
+                  {!isPast && timeLeft !== 'Closed' && !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && (
                     <ArrowUpRight
                       size={13}
                       strokeWidth={2}

@@ -23,7 +23,7 @@ const createEvent = async (request, reply) => {
     }
 
     const eventFormat = format || (type === 'Team' ? 'Team' : 'Individual');
-    const computedMax = eventFormat === 'Duo' ? 2 : (eventFormat === 'Team' ? (maxParticipants || 4) : 0);
+    const computedMax = Number(maxParticipants) >= 0 ? Number(maxParticipants) : 0;
 
     const event = await Event.create({
       title,
@@ -33,6 +33,7 @@ const createEvent = async (request, reply) => {
       type,
       format: eventFormat,
       maxParticipants: computedMax,
+      maxTeamSize: eventFormat === 'Duo' ? 2 : (Number(request.body.maxTeamSize) > 0 ? Number(request.body.maxTeamSize) : 4),
       registrationDeadline,
       certificateTemplateUrl: certificateTemplateUrl ? String(certificateTemplateUrl).trim() : '',
       customFields: Array.isArray(customFields) ? customFields : [],
@@ -105,8 +106,11 @@ const updateEvent = async (request, reply) => {
     const { id } = request.params;
     const updateData = { ...request.body };
 
-    if (updateData.type === 'Individual') {
-      updateData.maxParticipants = 0;
+    if (updateData.maxParticipants !== undefined) {
+      updateData.maxParticipants = Number(updateData.maxParticipants) >= 0 ? Number(updateData.maxParticipants) : 0;
+    }
+    if (updateData.maxTeamSize !== undefined) {
+      updateData.maxTeamSize = Number(updateData.maxTeamSize) > 0 ? Number(updateData.maxTeamSize) : 4;
     }
 
     const event = await Event.findByIdAndUpdate(

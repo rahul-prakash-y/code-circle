@@ -96,6 +96,7 @@ export const requireSuperAdmin = async (request: FastifyRequest, reply: FastifyR
     });
   }
 };
+export const isSuperAdmin = requireSuperAdmin;
 export const isAdminOrFaculty = requireRole('Admin', 'Faculty', 'Committee');
 
 export default {
@@ -103,5 +104,6 @@ export default {
   requireRole,
   requireAdmin,
   requireSuperAdmin,
+  isSuperAdmin,
   isAdminOrFaculty,
 };

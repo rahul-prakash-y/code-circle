@@ -15,8 +15,14 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
   const isDuoEvent = event.format === 'Duo';
   const isSquadEvent = event.format === 'Team' || event.type === 'Team';
   const isTeamEvent = isDuoEvent || isSquadEvent;
-  const maxParticipants = isDuoEvent ? 2 : (event.maxParticipants || 4);
-  const maxAdditionalMembers = isDuoEvent ? 1 : Math.max(0, maxParticipants - 1); // Excluding creator
+  const maxTeamSize = isDuoEvent ? 2 : (event.maxTeamSize || 4);
+  const maxAdditionalMembers = isDuoEvent ? 1 : Math.max(0, maxTeamSize - 1); // Excluding creator
+
+  const remainingSpots =
+    event.maxParticipants > 0
+      ? Math.max(0, event.maxParticipants - (event.enrolledCount || 0))
+      : null;
+  const isFull = remainingSpots !== null && remainingSpots <= 0;
 
   const handleAddMember = () => {
     if (members.length < maxAdditionalMembers) {
@@ -25,7 +31,7 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
       toast.error(
         isDuoEvent
           ? 'Duo format allows exactly 1 partner (2 members total).'
-          : `Maximum ${maxParticipants} members allowed per team.`
+          : `Maximum ${maxTeamSize} members allowed per team.`
       );
     }
   };
@@ -44,6 +50,11 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (isFull) {
+      toast.error('Registration full. This event has reached its maximum participation limit.');
+      return;
+    }
+
     if (isTeamEvent && !teamName.trim()) {
       toast.error(isDuoEvent ? 'Duo / Pair name is required' : 'Team name is required');
       return;
@@ -51,6 +62,16 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
 
     // Filter out empty roll numbers if any
     const filteredMembers = members.filter(m => m && m.trim() !== '');
+
+    const incomingCount = isTeamEvent ? filteredMembers.length + 1 : 1;
+    if (remainingSpots !== null && incomingCount > remainingSpots) {
+      toast.error(
+        remainingSpots === 0
+          ? 'Event registration is full.'
+          : `Only ${remainingSpots} spot(s) remaining for this event.`
+      );
+      return;
+    }
 
     if (isDuoEvent && filteredMembers.length !== 1) {
       toast.error('Please provide your Duo partner\'s Roll Number');
@@ -129,6 +150,25 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          {event.maxParticipants > 0 && (
+            <div
+              className={`p-3.5 rounded-2xl flex items-center justify-between text-xs border ${
+                isFull
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+              }`}
+            >
+              <span className="font-semibold flex items-center gap-1.5">
+                <Users size={14} /> Student Registration Capacity:
+              </span>
+              <span className="font-mono font-bold">
+                {isFull
+                  ? 'Registration Full'
+                  : `${remainingSpots} spot(s) remaining (${event.enrolledCount || 0}/${event.maxParticipants})`}
+              </span>
+            </div>
+          )}
+
           {isTeamEvent ? (
             <>
               {/* Team Name */}
@@ -153,7 +193,7 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
                     {isDuoEvent ? 'Partner Information (Roll Number)' : 'Team Members (Roll Numbers)'}
                   </label>
                   <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold">
-                    {members.length + 1} / {maxParticipants}
+                    {members.length + 1} / {maxTeamSize}
                   </span>
                 </div>
                 
@@ -318,14 +358,20 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="flex-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-violet-600 text-text-primary rounded-2xl font-bold shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
+              disabled={loading || isFull}
+              className={`flex-2 px-6 py-3 rounded-2xl font-bold shadow-xl transition-all disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2 ${
+                isFull
+                  ? 'bg-surface-elevated text-text-muted border border-border cursor-not-allowed shadow-none'
+                  : 'bg-linear-to-r from-indigo-600 to-violet-600 text-text-primary shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
+              }`}
             >
               {loading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
                   Processing...
                 </>
+              ) : isFull ? (
+                'Registration Full'
               ) : (
                 'Confirm Enrollment'
               )}

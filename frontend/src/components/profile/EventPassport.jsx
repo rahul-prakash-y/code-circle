@@ -14,8 +14,17 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 
 const PassportTimelineItem = ({ item, index }) => {
-  const date = new Date(item.eventDate);
+  const parseSafeDate = (d) => {
+    if (!d) return null;
+    const parsed = new Date(d);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const dateObj = parseSafeDate(item.eventDate) || parseSafeDate(item.createdAt);
   const isAttended = item.attendanceStatus;
+
+  const formattedDate = dateObj ? format(dateObj, 'MMMM dd, yyyy') : 'Date TBA';
+  const formattedTime = dateObj ? format(dateObj, 'hh:mm a') : 'Time TBA';
 
   return (
     <div className="relative pl-12 pb-16 group last:pb-0">
@@ -52,21 +61,21 @@ const PassportTimelineItem = ({ item, index }) => {
                 ${isAttended ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-accent/10 border-accent/20 text-accent-muted'}`}>
                 {isAttended ? 'Attended' : 'Registered'}
               </span>
-              <span className="text-text-muted font-bold uppercase tracking-widest text-[10px]">{format(date, 'MMMM dd, yyyy')}</span>
+              <span className="text-text-muted font-bold uppercase tracking-widest text-[10px]">{formattedDate}</span>
             </div>
             
             <h3 className="text-2xl font-black text-text-primary group-hover:text-accent-muted transition-colors uppercase tracking-tight leading-none">
-              {item.eventTitle}
+              {item.eventTitle || 'Untitled Event'}
             </h3>
             
             <div className="flex flex-wrap items-center gap-6 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">
               <div className="flex items-center gap-2">
                 <Calendar size={14} className="text-accent" />
-                <span>{format(date, 'hh:mm a')}</span>
+                <span>{formattedTime}</span>
               </div>
               <div className="flex items-center gap-2">
                 {item.type === 'Team' ? <Users size={14} className="text-accent" /> : <MapPin size={14} className="text-accent" />}
-                <span>{item.type} {item.teamName ? `(${item.teamName})` : ''}</span>
+                <span>{item.type || 'Individual'} {item.teamName ? `(${item.teamName})` : ''}</span>
               </div>
             </div>
           </div>

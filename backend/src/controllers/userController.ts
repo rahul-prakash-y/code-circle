@@ -68,8 +68,8 @@ export const getEventPassport = async (request: FastifyRequest, reply: FastifyRe
     const passportData = activities.map((act: any) => ({
       id: act._id,
       eventId: act.event?._id,
-      eventTitle: act.event?.title,
-      eventDate: act.event?.date,
+      eventTitle: act.event?.title || 'Code Circle Event',
+      eventDate: act.event?.date || act.createdAt,
       type: act.type,
       attendanceStatus: act.attendanceStatus,
       certificateUrl: act.certificateUrl,

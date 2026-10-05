@@ -13,10 +13,16 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Info,
+  Plus,
+  Trash2,
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
+import useNotificationStore from '../../store/useNotificationStore';
+import CreateNotificationModal from '../notifications/CreateNotificationModal';
 import ThemeToggle from '../ui/ThemeToggle';
 import {
   DropdownMenu,
@@ -38,37 +44,22 @@ interface HeaderProps {
 
 const EASE_TRANSITION = { duration: 0.18, ease: [0.16, 1, 0.3, 1] } as const;
 
-const mockNotifications = [
-  {
-    id: 1,
-    title: 'Nebula Hackathon Live',
-    message: 'The coding phase has started. Good luck!',
-    time: '10m ago',
-    type: 'info' as const,
-    unread: true,
-  },
-  {
-    id: 2,
-    title: 'Achievement Unlocked',
-    message: 'You earned the "Top Performer" badge.',
-    time: '2h ago',
-    type: 'success' as const,
-    unread: true,
-  },
-  {
-    id: 3,
-    title: 'Evaluation Complete',
-    message: 'Round scoring has been finalized.',
-    time: '1d ago',
-    type: 'warning' as const,
-    unread: false,
-  },
-];
-
 const notifIcons = {
   info: { Icon: Info, color: 'var(--accent)' },
   success: { Icon: CheckCircle2, color: 'var(--success)' },
-  warning: { Icon: AlertCircle, color: 'var(--warning)' },
+  warning: { Icon: AlertTriangle, color: 'var(--warning)' },
+  urgent: { Icon: AlertCircle, color: '#FF3B30' },
+};
+
+const getTimeAgo = (dateStr?: string) => {
+  if (!dateStr) return 'Recently';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Recently';
+    return formatDistanceToNow(d, { addSuffix: true });
+  } catch {
+    return 'Recently';
+  }
 };
 
 const roleColors: Record<string, string> = {
@@ -84,13 +75,41 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
   const { profile } = useProfileStore();
   const navigate = useNavigate();
 
+  const {
+    notifications,
+    unreadCount,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+  } = useNotificationStore();
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const unread = notifications.filter((n) => n.unread).length;
+  const isAdmin =
+    profile?.role === 'Admin' ||
+    profile?.role === 'SuperAdmin' ||
+    user?.role === 'Admin' ||
+    user?.role === 'SuperAdmin';
+
+  const unread = unreadCount;
+
+  // Fetch live notifications on mount and when dropdown opens
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user, fetchNotifications]);
+
+  useEffect(() => {
+    if (showNotifications && user) {
+      fetchNotifications();
+    }
+  }, [showNotifications, user, fetchNotifications]);
 
   // Close notif panel on outside click
   useEffect(() => {
@@ -232,7 +251,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
               >
                 {/* Notif header */}
                 <div
-                  className="flex items-center justify-between px-5 py-4"
+                  className="flex items-center justify-between px-5 py-3.5"
                   style={{ borderBottom: '1px solid var(--separator)' }}
                 >
                   <div className="flex items-center gap-2">
@@ -251,81 +270,147 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                       </span>
                     )}
                   </div>
-                  <button
-                    onClick={() => setNotifications((p) => p.map((n) => ({ ...n, unread: false })))}
-                    className="text-[13px] font-medium cursor-pointer"
-                    style={{ color: 'var(--accent)' }}
-                  >
-                    Mark all read
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {unread > 0 && (
+                      <button
+                        onClick={() => markAllAsRead()}
+                        className="text-[12px] font-medium cursor-pointer hover:underline"
+                        style={{ color: 'var(--accent)' }}
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setShowNotifications(false);
+                          setIsBroadcastModalOpen(true);
+                        }}
+                        className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-accent text-white flex items-center gap-1 hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+                        title="Broadcast new announcement"
+                      >
+                        <Plus size={12} strokeWidth={2.5} />
+                        <span>Broadcast</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Notif list — staggered */}
-                <motion.div
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: {},
-                    visible: { transition: { staggerChildren: 0.05 } },
-                  }}
-                  className="divide-y"
-                  style={{ borderColor: 'var(--separator)' }}
-                >
-                  {notifications.map((n) => {
-                    const { Icon, color } = notifIcons[n.type];
-                    return (
-                      <motion.div
-                        key={n.id}
-                        variants={{
-                          hidden: { opacity: 0, x: 10 },
-                          visible: { opacity: 1, x: 0, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } },
-                        }}
-                        className="flex gap-3.5 px-5 py-4 cursor-pointer transition-colors duration-150"
-                        style={{
-                          background: n.unread ? 'var(--accent-subtle)' : 'transparent',
-                          borderColor: 'var(--separator)',
-                        }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'var(--canvas)')}
-                        onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = n.unread ? 'var(--accent-subtle)' : 'transparent')}
-                      >
-                        <div
-                          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                          style={{ background: `${color}18`, color }}
+                {notifications.length === 0 ? (
+                  <div className="py-10 px-5 text-center flex flex-col items-center justify-center">
+                    <Bell size={24} className="text-label-tertiary mb-2 opacity-50" />
+                    <p className="text-[13px] font-medium text-label-secondary">
+                      No notifications yet
+                    </p>
+                    <p className="text-[11px] text-label-tertiary mt-0.5">
+                      Club announcements and updates will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                      hidden: {},
+                      visible: { transition: { staggerChildren: 0.05 } },
+                    }}
+                    className="divide-y max-h-[360px] overflow-y-auto"
+                    style={{ borderColor: 'var(--separator)' }}
+                  >
+                    {notifications.map((n) => {
+                      const notifConf = notifIcons[n.type] || notifIcons.info;
+                      const Icon = notifConf.Icon;
+                      const color = notifConf.color;
+                      const notifId = n.id || n._id;
+
+                      return (
+                        <motion.div
+                          key={notifId}
+                          variants={{
+                            hidden: { opacity: 0, x: 10 },
+                            visible: { opacity: 1, x: 0, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } },
+                          }}
+                          onClick={() => {
+                            if (n.unread) markAsRead(notifId);
+                            if (n.link) {
+                              setShowNotifications(false);
+                              navigate(n.link);
+                            }
+                          }}
+                          className="group/item flex gap-3 px-4 py-3.5 cursor-pointer transition-colors duration-150 relative"
+                          style={{
+                            background: n.unread ? 'var(--accent-subtle)' : 'transparent',
+                            borderColor: 'var(--separator)',
+                          }}
+                          onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = 'var(--canvas)')}
+                          onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = n.unread ? 'var(--accent-subtle)' : 'transparent')}
                         >
-                          <Icon size={14} strokeWidth={2} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <p
-                              className="text-[13px] leading-tight"
-                              style={{ fontWeight: n.unread ? 600 : 400, color: 'var(--label-primary)' }}
-                            >
-                              {n.title}
-                            </p>
-                            {n.unread && (
-                              <span
-                                className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5"
-                                style={{ background: 'var(--accent)' }}
-                              />
-                            )}
+                          <div
+                            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                            style={{ background: `${color}18`, color }}
+                          >
+                            <Icon size={14} strokeWidth={2} />
                           </div>
-                          <p
-                            className="text-[12px] leading-relaxed mt-0.5 line-clamp-2"
-                            style={{ color: 'var(--label-secondary)' }}
-                          >
-                            {n.message}
-                          </p>
-                          <p
-                            className="text-[11px] mt-1.5 font-mono"
-                            style={{ color: 'var(--label-tertiary)' }}
-                          >
-                            {n.time}
-                          </p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1.5">
+                              <p
+                                className="text-[13px] leading-tight line-clamp-1"
+                                style={{ fontWeight: n.unread ? 600 : 400, color: 'var(--label-primary)' }}
+                              >
+                                {n.title}
+                              </p>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {n.unread && (
+                                  <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ background: 'var(--accent)' }}
+                                  />
+                                )}
+                                {isAdmin && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteNotification(notifId);
+                                    }}
+                                    className="opacity-0 group-hover/item:opacity-100 p-0.5 text-label-tertiary hover:text-red-500 rounded transition-all cursor-pointer"
+                                    title="Delete notification"
+                                  >
+                                    <Trash2 size={12} strokeWidth={2} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <p
+                              className="text-[12px] leading-relaxed mt-1 line-clamp-2"
+                              style={{ color: 'var(--label-secondary)' }}
+                            >
+                              {n.message}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span
+                                className="text-[11px] font-mono"
+                                style={{ color: 'var(--label-tertiary)' }}
+                              >
+                                {getTimeAgo(n.createdAt)}
+                              </span>
+                              {n.targetRole && n.targetRole !== 'All' && (
+                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-canvas border border-separator text-label-tertiary">
+                                  {n.targetRole}
+                                </span>
+                              )}
+                              {n.link && (
+                                <span className="text-[10.5px] text-accent font-medium hover:underline">
+                                  View link →
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -458,6 +543,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
           </Link>
         )}
       </div>
+
+      {/* Admin Broadcast Notification Modal */}
+      {isAdmin && (
+        <CreateNotificationModal
+          isOpen={isBroadcastModalOpen}
+          onClose={() => setIsBroadcastModalOpen(false)}
+        />
+      )}
     </header>
   );
 };

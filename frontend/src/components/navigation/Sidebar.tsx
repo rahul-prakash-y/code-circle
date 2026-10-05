@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Newspaper,
   Users,
+  Crown,
   Shield,
   BarChart3,
   ChevronLeft,
@@ -140,6 +141,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       icon: Newspaper,
       match: (loc) => loc.pathname === '/news',
     },
+    {
+      to: '/bearers',
+      label: 'Student Bearers',
+      icon: Crown,
+      match: (loc) => loc.pathname === '/bearers',
+    },
   ];
 
   const isSuperAdmin = user?.role === 'SuperAdmin' || profile?.role === 'SuperAdmin';
@@ -148,10 +155,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
     ...(isSuperAdmin
       ? [
           {
-            to: '/teams',
-            label: 'Teams',
-            icon: Users,
-            match: (loc: { pathname: string; search: string }) => loc.pathname === '/teams',
+            to: '/bearers/manage',
+            label: 'Student Bearers',
+            icon: Crown,
+            match: (loc: { pathname: string; search: string }) =>
+              loc.pathname === '/bearers/manage' ||
+              loc.pathname === '/teams' ||
+              loc.pathname === '/admin/bearers',
           },
         ]
       : []),

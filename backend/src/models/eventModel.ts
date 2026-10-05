@@ -13,6 +13,8 @@ export interface IEvent extends Document {
   status: EventStatus;
   venueOrLink: string;
   maxParticipants: number;
+  maxTeamSize?: number;
+  enrolledCount?: number;
   registrationDeadline: Date;
   certificateTemplateUrl?: string;
   customFields?: ICustomField[];
@@ -71,6 +73,10 @@ const eventSchema = new Schema<IEvent>(
     maxParticipants: {
       type: Number,
       default: 0,
+    },
+    maxTeamSize: {
+      type: Number,
+      default: 4,
     },
     registrationDeadline: {
       type: Date,

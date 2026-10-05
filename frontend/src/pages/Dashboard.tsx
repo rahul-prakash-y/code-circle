@@ -20,12 +20,16 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  Crown,
+  Sparkles,
+  Linkedin,
 } from 'lucide-react';
 
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import useEventStore from '../store/useEventStore';
 import useMetricsStore from '../store/useMetricsStore';
+import useBearerStore, { StudentBearer } from '../store/useBearerStore';
 
 import CountUp from '../components/ui/CountUp';
 import QuickActions from '../components/admin/QuickActions';
@@ -275,6 +279,73 @@ const QuickPathwayCard = ({
   </Link>
 );
 
+// ── Student Bearer Card for Dashboard ─────────────────────────────────────────
+const DashboardBearerCard = ({ bearer }: { bearer: StudentBearer }) => {
+  const [imageError, setImageError] = useState(false);
+  const fallbackInitial = bearer.name ? bearer.name.charAt(0).toUpperCase() : 'C';
+
+  return (
+    <div className="surface spotlight-card interactive-card p-5 rounded-2xl border border-separator flex flex-col justify-between group transition-all duration-200">
+      <div>
+        <div className="flex items-start gap-3.5 mb-3.5">
+          <div className="relative w-12 h-12 rounded-2xl overflow-hidden bg-canvas border border-separator shrink-0">
+            {!imageError && bearer.photoUrl ? (
+              <img
+                src={bearer.photoUrl}
+                alt={bearer.name}
+                onError={() => setImageError(true)}
+                className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center font-bold text-accent bg-accent/10 text-base">
+                {fallbackInitial}
+              </div>
+            )}
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-surface" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-accent/10 text-accent mb-1 max-w-full">
+              <Sparkles size={10} className="shrink-0" />
+              <span className="truncate">{bearer.position}</span>
+            </div>
+            <h4 className="text-[15px] font-bold text-label-primary tracking-tight truncate group-hover:text-accent transition-colors">
+              {bearer.name}
+            </h4>
+          </div>
+        </div>
+
+        <p className="text-[12.5px] text-label-secondary line-clamp-2 leading-relaxed mb-4 font-normal">
+          {bearer.bio || 'Club executive driving Code Circle technical initiatives and workshops.'}
+        </p>
+      </div>
+
+      <div className="pt-3 border-t border-separator/60 flex items-center justify-between">
+        <Link
+          to="/bearers"
+          className="inline-flex items-center gap-1 text-[11.5px] font-medium text-label-tertiary hover:text-accent transition-colors"
+        >
+          <span>View Profile</span>
+          <ArrowUpRight size={12} strokeWidth={2} />
+        </Link>
+
+        {bearer.linkedinUrl && (
+          <a
+            href={bearer.linkedinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-label-tertiary hover:text-blue-500 hover:bg-canvas transition-colors cursor-pointer"
+            title={`Connect with ${bearer.name} on LinkedIn`}
+          >
+            <Linkedin size={13} strokeWidth={1.8} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -283,6 +354,7 @@ export const Dashboard: React.FC = () => {
   const { profile } = useProfileStore();
   const { upcomingEvents, fetchEvents } = useEventStore();
   const { metrics, fetchMetrics } = useMetricsStore();
+  const { bearers, fetchBearers, loading: bearersLoading } = useBearerStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<any>(null);
@@ -319,7 +391,8 @@ export const Dashboard: React.FC = () => {
       fetchMetrics();
     }
     fetchEvents('upcoming');
-  }, [isAdmin, isFaculty, fetchMetrics, fetchEvents]);
+    fetchBearers();
+  }, [isAdmin, isFaculty, fetchMetrics, fetchEvents, fetchBearers]);
 
   const handleCreateEvent = () => {
     setEventToEdit(null);
@@ -487,6 +560,57 @@ export const Dashboard: React.FC = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      {/* Student Bearers & Club Leadership Section */}
+      <section className="py-8 border-t border-separator">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+          <div>
+            <div className="flex items-center gap-1.5 mb-1 text-accent">
+              <Crown size={14} strokeWidth={2} />
+              <p className="meta-editorial text-label-secondary uppercase tracking-wider text-[11px] font-semibold">
+                Club Leadership
+              </p>
+            </div>
+            <h2 className="text-[22px] font-bold tracking-tight text-label-primary">
+              Student Bearers
+            </h2>
+            <p className="text-[13px] text-label-secondary mt-1">
+              Meet the executive student bearers of Code Circle driving technical initiatives and workshops.
+            </p>
+          </div>
+          <Link
+            to="/bearers"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-label-secondary hover:text-label-primary transition-colors duration-150 self-start sm:self-end"
+          >
+            <span>Meet All Bearers</span>
+            <ArrowUpRight size={14} strokeWidth={2} />
+          </Link>
+        </div>
+
+        {bearersLoading && bearers.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="surface p-5 rounded-2xl border border-separator animate-pulse h-44" />
+            ))}
+          </div>
+        ) : bearers.length === 0 ? (
+          <div className="surface p-8 text-center rounded-2xl border border-separator">
+            <Crown size={28} className="mx-auto text-label-tertiary mb-2 opacity-60" />
+            <p className="text-[14px] font-semibold text-label-primary">
+              Student Bearers being appointed for this term
+            </p>
+            <p className="text-[12px] text-label-secondary mt-0.5">
+              Stay tuned as club executives and coordinators finalize.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {bearers.slice(0, 4).map((bearer) => (
+              <DashboardBearerCard key={bearer._id} bearer={bearer} />
+            ))}
           </div>
         )}
       </section>

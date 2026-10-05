@@ -25,6 +25,7 @@ const CodingWorkspace = lazy(() => import('./components/coding/CodingWorkspace')
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 const TeamsManagement = lazy(() => import('./pages/TeamsManagement'));
+const BearerManagement = lazy(() => import('./pages/BearerManagement'));
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuthStore();
@@ -131,13 +132,33 @@ function App() {
             }
           />
 
-          {/* Teams Management Module (SuperAdmin Only) */}
+          {/* Student Bearers (Club Executives) Management Module (SuperAdmin Only) */}
+          <Route
+            path="/bearers/manage"
+            element={
+              <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                <MainLayout>
+                  <BearerManagement />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/bearers"
+            element={
+              <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                <MainLayout>
+                  <BearerManagement />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/teams"
             element={
               <ProtectedRoute allowedRoles={['SuperAdmin']}>
                 <MainLayout>
-                  <TeamsManagement />
+                  <BearerManagement />
                 </MainLayout>
               </ProtectedRoute>
             }

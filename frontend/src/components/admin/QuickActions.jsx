@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { KeyRound, Award, Calendar, Download, ArrowUpRight } from 'lucide-react';
+import { KeyRound, Award, Calendar, Download, ArrowUpRight, Bell } from 'lucide-react';
 import GenerateOtpModal from './GenerateOtpModal';
 import AssessmentManagerModal from './AssessmentManagerModal';
 import DownloadReportsModal from './DownloadReportsModal';
+import CreateNotificationModal from '../notifications/CreateNotificationModal';
 
 export const QuickActions = ({
   onManageEvents,
@@ -12,6 +13,7 @@ export const QuickActions = ({
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
   const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
 
   const actions = [
     {
@@ -20,6 +22,13 @@ export const QuickActions = ({
       subtitle: 'Instant session verification code',
       icon: KeyRound,
       onClick: () => setIsOtpModalOpen(true),
+    },
+    {
+      id: 'broadcast',
+      title: 'Broadcast Announcement',
+      subtitle: 'Push live notifications to club',
+      icon: Bell,
+      onClick: () => setIsNotificationModalOpen(true),
     },
     {
       id: 'assessments',
@@ -64,8 +73,8 @@ export const QuickActions = ({
           </div>
         </div>
 
-        {/* 4 Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {actions.map((act) => {
             const Icon = act.icon;
             return (
@@ -103,6 +112,11 @@ export const QuickActions = ({
       <GenerateOtpModal
         isOpen={isOtpModalOpen}
         onClose={() => setIsOtpModalOpen(false)}
+      />
+
+      <CreateNotificationModal
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
       />
 
       <AssessmentManagerModal
