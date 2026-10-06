@@ -18,6 +18,7 @@ import { feedbackRoutes } from './routes/feedbackRoutes';
 import { bearerRoutes } from './routes/bearerRoutes';
 import { notificationRoutes } from './routes/notificationRoutes';
 import { adminRoutes } from './routes/adminRoutes';
+import { statsRoutes } from './routes/statsRoutes';
 import path from 'path';
 import fs from 'fs';
 import fastifyStatic from '@fastify/static';
@@ -66,6 +67,7 @@ server.register(require('./routes/analyticsRoutes'), { prefix: '/api/analytics' 
 server.register(require('./routes/quizRoutes'), { prefix: '/api/quizzes' });
 server.register(bearerRoutes, { prefix: '/api/bearers' });
 server.register(notificationRoutes, { prefix: '/api/notifications' });
+server.register(statsRoutes, { prefix: '/api/stats' });
 
 // API 404 Handler
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');

@@ -27,6 +27,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ImageUploadModal from '../components/profile/ImageUploadModal';
 import LeetCodeCard from '../components/profile/LeetCodeCard';
+import HackerRankCard from '../components/profile/HackerRankCard';
+import GitHubCard from '../components/profile/GitHubCard';
 import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
 
 const Profile = () => {
@@ -228,15 +230,28 @@ const Profile = () => {
       </div>
 
       {/*
-        LeetCode Stats Card — shown when the user has saved a LeetCode handle.
-        On md+ viewports it sits alongside the edit form in a 2-column grid.
-        On mobile it stacks below the identity header.
+        Mobile Coding Stats Cards — shown when the user has saved or typed handles.
       */}
-      {(formData.socialLinks?.leetcode || profile.socialLinks?.leetcode) && (
-        <LeetCodeCard
-          username={formData.socialLinks?.leetcode || profile.socialLinks?.leetcode}
-          className="md:hidden mb-6"
-        />
+      {((formData.socialLinks?.github || profile.socialLinks?.github) ||
+        (formData.socialLinks?.leetcode || profile.socialLinks?.leetcode) ||
+        (formData.socialLinks?.hackerrank || profile.socialLinks?.hackerrank)) && (
+        <div className="space-y-4 md:hidden mb-6">
+          {(formData.socialLinks?.github || profile.socialLinks?.github) && (
+            <GitHubCard
+              username={formData.socialLinks?.github || profile.socialLinks?.github}
+            />
+          )}
+          {(formData.socialLinks?.leetcode || profile.socialLinks?.leetcode) && (
+            <LeetCodeCard
+              username={formData.socialLinks?.leetcode || profile.socialLinks?.leetcode}
+            />
+          )}
+          {(formData.socialLinks?.hackerrank || profile.socialLinks?.hackerrank) && (
+            <HackerRankCard
+              username={formData.socialLinks?.hackerrank || profile.socialLinks?.hackerrank}
+            />
+          )}
+        </div>
       )}
 
 
@@ -443,24 +458,40 @@ const Profile = () => {
       </form>
 
       {/*
-        Desktop LeetCode card — appears as a full-width section below the form,
-        but only on md+ (complementing the mobile card above the form).
-        Hidden on mobile since we already show it above.
+        Desktop Coding Stats Cards — displayed in a clean responsive grid on md+ screens
       */}
-      {(formData.socialLinks?.leetcode || profile.socialLinks?.leetcode) && (
+      {((formData.socialLinks?.github || profile.socialLinks?.github) ||
+        (formData.socialLinks?.leetcode || profile.socialLinks?.leetcode) ||
+        (formData.socialLinks?.hackerrank || profile.socialLinks?.hackerrank)) && (
         <div className="hidden md:block">
-          <div className="mb-3">
+          <div className="mb-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.07em]" style={{ color: 'var(--label-tertiary)' }}>
-              Coding Platform
+              Developer Platforms
             </p>
             <h2 className="text-base font-semibold tracking-tight" style={{ color: 'var(--label-primary)', letterSpacing: '-0.015em' }}>
-              LeetCode Performance
+              Performance &amp; Repositories
             </h2>
           </div>
-          <LeetCodeCard
-            username={formData.socialLinks?.leetcode || profile.socialLinks?.leetcode}
-            className="max-w-xl"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+            {(formData.socialLinks?.github || profile.socialLinks?.github) && (
+              <GitHubCard
+                username={formData.socialLinks?.github || profile.socialLinks?.github}
+                className="h-full"
+              />
+            )}
+            {(formData.socialLinks?.leetcode || profile.socialLinks?.leetcode) && (
+              <LeetCodeCard
+                username={formData.socialLinks?.leetcode || profile.socialLinks?.leetcode}
+                className="h-full"
+              />
+            )}
+            {(formData.socialLinks?.hackerrank || profile.socialLinks?.hackerrank) && (
+              <HackerRankCard
+                username={formData.socialLinks?.hackerrank || profile.socialLinks?.hackerrank}
+                className="h-full"
+              />
+            )}
+          </div>
         </div>
       )}
 

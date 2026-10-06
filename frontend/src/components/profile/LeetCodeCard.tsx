@@ -47,9 +47,9 @@ const EASE   = { duration: 0.22, ease: [0.16, 1, 0.3, 1] }    as const;
 
 // ── Skeleton ─────────────────────────────────────────────────────────────────
 
-const LeetCodeSkeleton: React.FC = () => (
+const LeetCodeSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div
-    className="w-full rounded-[22px] p-6 sm:p-7 overflow-hidden"
+    className={`w-full h-full min-h-[380px] rounded-[22px] p-6 sm:p-7 flex flex-col justify-between overflow-hidden ${className}`}
     style={{
       background: 'var(--surface)',
       boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)',
@@ -178,11 +178,10 @@ export const LeetCodeCard: React.FC<LeetCodeCardProps> = ({ username, className 
   if (!username) {
     return (
       <div
-        className={`w-full rounded-[22px] p-6 sm:p-7 flex flex-col items-center justify-center gap-3 text-center ${className}`}
+        className={`w-full h-full min-h-[380px] rounded-[22px] p-6 sm:p-7 flex flex-col items-center justify-center gap-3 text-center ${className}`}
         style={{
           background: 'var(--surface)',
           boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)',
-          minHeight: 200,
         }}
       >
         <div
@@ -204,17 +203,16 @@ export const LeetCodeCard: React.FC<LeetCodeCardProps> = ({ username, className 
   }
 
   // ── Loading skeleton (initial load only) ──
-  if (status === 'loading' && !stats) return <LeetCodeSkeleton />;
+  if (status === 'loading' && !stats) return <LeetCodeSkeleton className={className} />;
 
   // ── Error / Not-found state (when no cached data exists) ──
   if ((status === 'error' || status === 'not_found') && !stats) {
     return (
       <div
-        className={`w-full rounded-[22px] p-6 sm:p-7 flex flex-col items-center justify-center gap-3 text-center ${className}`}
+        className={`w-full h-full min-h-[380px] rounded-[22px] p-6 sm:p-7 flex flex-col items-center justify-center gap-3 text-center ${className}`}
         style={{
           background: 'var(--surface)',
           boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)',
-          minHeight: 200,
         }}
       >
         <div
@@ -263,15 +261,17 @@ export const LeetCodeCard: React.FC<LeetCodeCardProps> = ({ username, className 
         transition={EASE}
         whileHover={{ scale: 1.01, transition: SPRING }}
         whileTap={{ scale: 0.99, transition: SPRING }}
-        className={`w-full rounded-[22px] p-6 sm:p-7 cursor-default select-none ${className}`}
+        className={`w-full h-full min-h-[380px] flex flex-col justify-between rounded-[22px] p-6 sm:p-7 cursor-default select-none ${className}`}
         style={{
           background: 'var(--surface)',
           boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)',
         }}
         aria-label={`LeetCode stats for ${displayHandle}`}
       >
-        {/* ── Header ── */}
-        <div className="flex items-start justify-between gap-3 mb-5 sm:mb-6">
+        {/* ── Top Section (Header + Hero) ── */}
+        <div>
+          {/* ── Header ── */}
+          <div className="flex items-start justify-between gap-3 mb-5 sm:mb-6">
           <div className="flex items-center gap-3">
             {/* LeetCode logo mark */}
             <div
@@ -368,9 +368,16 @@ export const LeetCodeCard: React.FC<LeetCodeCardProps> = ({ username, className 
             ) : null}
           </div>
         </motion.div>
+        </div>
 
-        {/* ── Difficulty Breakdown ── */}
-        <div className="space-y-3.5 mb-5 sm:mb-6">
+        {/* ── Difficulty Breakdown (Middle Section) ── */}
+        <div className="my-auto py-2 space-y-3.5 border-t border-separator/40 pt-3">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-[0.07em] px-1"
+            style={{ color: 'var(--label-tertiary)' }}
+          >
+            Problem Solving Breakdown
+          </p>
           {DIFFICULTY.map((d, i) => (
             <DifficultyRow
               key={d.key}
@@ -392,7 +399,7 @@ export const LeetCodeCard: React.FC<LeetCodeCardProps> = ({ username, className 
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : { opacity: 0 }}
           transition={{ ...EASE, delay: 0.35 }}
-          className="pt-4 grid grid-cols-3 gap-2 items-center"
+          className="pt-4 grid grid-cols-3 gap-2 items-center mt-auto"
           style={{ borderTop: '1px solid var(--separator)' }}
         >
           {/* Global Rank */}
