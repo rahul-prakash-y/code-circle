@@ -88,41 +88,12 @@ function App() {
       />
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
+          {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/bearers" element={<StudentBearers />} />
-          <Route 
-            path="/news" 
-            element={
-              <MainLayout>
-                <NewsFeed />
-              </MainLayout>
-            } 
-          />
-          
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Dashboard />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
 
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <Profile />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-
+          {/* Fullscreen Coding Workspace without App Shell */}
           <Route
             path="/problem/:id"
             element={
@@ -132,152 +103,150 @@ function App() {
             }
           />
 
-          {/* Student Bearers (Club Executives) Management Module (SuperAdmin Only) */}
-          <Route
-            path="/bearers/manage"
-            element={
-              <ProtectedRoute allowedRoles={['SuperAdmin']}>
-                <MainLayout>
-                  <BearerManagement />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/bearers"
-            element={
-              <ProtectedRoute allowedRoles={['SuperAdmin']}>
-                <MainLayout>
-                  <BearerManagement />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/teams"
-            element={
-              <ProtectedRoute allowedRoles={['SuperAdmin']}>
-                <MainLayout>
-                  <BearerManagement />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+          {/* Persistent App Shell Layout Route */}
+          <Route element={<MainLayout />}>
+            <Route path="/news" element={<NewsFeed />} />
+            <Route path="/bearers" element={<StudentBearers />} />
 
-          {/* User Management Module (Admin & SuperAdmin) */}
-          <Route
-            path="/users"
-            element={
-              <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
-                <MainLayout>
-                  <UserManagement />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Legacy backward compatibility for /students */}
-          <Route
-            path="/students"
-            element={
-              <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
-                <MainLayout>
-                  <UserManagement />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Dedicated Student & Academic Routes */}
-          <Route
-            path="/events"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
+            {/* Dedicated Student & Academic Routes */}
+            <Route
+              path="/events"
+              element={
+                <ProtectedRoute>
                   <EventsPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/assessments"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
+            <Route
+              path="/assessments"
+              element={
+                <ProtectedRoute>
                   <AssessmentsPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/attendance"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
+            <Route
+              path="/attendance"
+              element={
+                <ProtectedRoute>
                   <AttendancePage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/certificates"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
+            <Route
+              path="/certificates"
+              element={
+                <ProtectedRoute>
                   <CertificatesPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/leaderboard"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
+            <Route
+              path="/leaderboard"
+              element={
+                <ProtectedRoute>
                   <LeaderboardPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/passport"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
+            <Route
+              path="/passport"
+              element={
+                <ProtectedRoute>
                   <PassportPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/registrations" element={<Navigate to="/passport" replace />} />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/registrations" element={<Navigate to="/passport" replace />} />
 
-          <Route
-            path="/feedback"
-            element={
-              <ProtectedRoute>
-                <MainLayout>
+            <Route
+              path="/feedback"
+              element={
+                <ProtectedRoute>
                   <FeedbackPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Admin Analytics Module */}
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
-                <MainLayout>
+            {/* Student Bearers (Club Executives) Management Module (SuperAdmin Only) */}
+            <Route
+              path="/bearers/manage"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                  <BearerManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/bearers"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                  <BearerManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teams"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                  <BearerManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* User Management Module (Admin & SuperAdmin) */}
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Legacy backward compatibility for /students */}
+            <Route
+              path="/students"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Analytics Module */}
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
                   <AnalyticsPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

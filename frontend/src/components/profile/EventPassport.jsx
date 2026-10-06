@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Award, 
   Calendar, 
@@ -139,12 +140,12 @@ const EventPassport = () => {
             You haven't registered for any events yet. Check out the Events Feed to explore upcoming hackathons, coding workshops, and club sessions!
           </p>
         </div>
-        <button 
-           onClick={() => window.location.href = '/dashboard'}
+        <Link 
+           to="/events"
            className="btn-primary"
         >
           Browse Upcoming Events
-        </button>
+        </Link>
       </div>
     );
   }

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useOutlet, Link, Outlet } from 'react-router-dom';
 import Sidebar from '../components/navigation/Sidebar';
 import Header from '../components/navigation/Header';
 import BottomNav from '../components/navigation/BottomNav';
 import BackgroundGradient from '../components/ui/BackgroundGradient';
+import PageTransitionWrapper from '../components/ui/PageTransitionWrapper';
 import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
   Medal, Trophy, Ticket, MessageSquare,
@@ -25,8 +26,14 @@ export const MainLayout = ({ children }) => {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const outlet = useOutlet();
   const { user } = useAuthStore();
   const { profile } = useProfileStore();
+
+  // Scroll window to top on route change for native SPA feel
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname]);
 
   const isAdmin =
     profile?.role === 'Admin' || profile?.role === 'SuperAdmin' ||
@@ -237,15 +244,9 @@ export const MainLayout = ({ children }) => {
         */}
         <main className="flex-1 w-full max-w-[1260px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-7 pb-28 md:pb-8">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname + location.search}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {children}
-            </motion.div>
+            <PageTransitionWrapper key={location.pathname}>
+              {children || outlet || <Outlet />}
+            </PageTransitionWrapper>
           </AnimatePresence>
         </main>
       </motion.div>
