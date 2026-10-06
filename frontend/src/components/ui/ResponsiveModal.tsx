@@ -67,13 +67,7 @@ export const useResponsiveModal = () => React.useContext(ResponsiveModalContext)
  * Automatically renders a centered Shadcn Dialog on desktop (min-width: 768px),
  * and an Apple-inspired swipeable Vaul Drawer (Bottom Sheet) on mobile viewports.
  *
- * Adheres strictly to iOS Apple spatial aesthetics:
- * - Rounded top corners (`rounded-t-[32px]`)
- * - Surface colors `#FFFFFF` (light) / `#161617` (dark) with zero borders
- * - Subtle pill-shaped drag handle (`w-12 h-1.5`)
- * - Deep blur backdrop (`backdrop-blur-md bg-black/40`)
- * - Safe-area inset handling (`pb-8`)
- * - Keyboard-safe scrollable viewport (`overflow-y-auto`)
+ * Full dark mode support using CSS variables (`var(--surface)` / `var(--text-primary)`).
  */
 export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
   open,
@@ -101,20 +95,27 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
           {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
           <DialogContent
             className={cn(
-              'sm:max-w-lg border-0 bg-[#FFFFFF] dark:bg-[#161617] rounded-3xl p-6 shadow-2xl',
+              'sm:max-w-lg border border-separator bg-surface text-text-primary rounded-3xl p-6 shadow-2xl',
               dialogClassName,
               className
             )}
+            style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
           >
             {(title || description) && (
               <DialogHeader className="mb-2">
                 {title && (
-                  <DialogTitle className="text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
+                  <DialogTitle
+                    className="text-xl font-bold tracking-tight text-text-primary"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
                     {title}
                   </DialogTitle>
                 )}
                 {description && (
-                  <DialogDescription className="text-sm text-[#86868B] mt-1">
+                  <DialogDescription
+                    className="text-sm text-text-muted mt-1"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
                     {description}
                   </DialogDescription>
                 )}
@@ -148,20 +149,27 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
         {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
         <DrawerContent
           className={cn(
-            'border-0 bg-[#FFFFFF] dark:bg-[#161617] rounded-t-[32px] shadow-2xl',
+            'border-0 bg-surface text-text-primary rounded-t-[32px] shadow-2xl',
             drawerClassName,
             className
           )}
+          style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
         >
           {(title || description) && (
             <DrawerHeader className="px-6 pt-2 pb-2 text-left shrink-0">
               {title && (
-                <DrawerTitle className="text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
+                <DrawerTitle
+                  className="text-xl font-bold tracking-tight text-text-primary"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   {title}
                 </DrawerTitle>
               )}
               {description && (
-                <DrawerDescription className="text-sm text-[#86868B] mt-1">
+                <DrawerDescription
+                  className="text-sm text-text-muted mt-1"
+                  style={{ color: 'var(--text-muted)' }}
+                >
                   {description}
                 </DrawerDescription>
               )}

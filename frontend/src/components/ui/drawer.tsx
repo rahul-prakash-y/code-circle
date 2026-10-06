@@ -14,9 +14,7 @@ const Drawer = ({
 Drawer.displayName = 'Drawer';
 
 const DrawerTrigger = DrawerPrimitive.Trigger;
-
 const DrawerPortal = DrawerPrimitive.Portal;
-
 const DrawerClose = DrawerPrimitive.Close;
 
 const DrawerOverlay = React.forwardRef<
@@ -26,7 +24,7 @@ const DrawerOverlay = React.forwardRef<
   <DrawerPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-black/40 backdrop-blur-md duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'fixed inset-0 z-50 bg-black/50 backdrop-blur-md duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className
     )}
     {...props}
@@ -43,13 +41,17 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed inset-x-0 bottom-0 z-50 mt-24 flex max-h-[92vh] flex-col rounded-t-[32px] border-0 bg-[#FFFFFF] dark:bg-[#161617] shadow-2xl outline-none focus:outline-none pb-8 [padding-bottom:max(2rem,env(safe-area-inset-bottom))]',
+        'fixed inset-x-0 bottom-0 z-50 mt-24 flex max-h-[92vh] flex-col rounded-t-[32px] border-0 bg-surface text-text-primary shadow-2xl outline-none focus:outline-none pb-8 [padding-bottom:max(2rem,env(safe-area-inset-bottom))]',
         className
       )}
+      style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
       {...props}
     >
       {/* Subtle pill-shaped drag handle indicator */}
-      <div className="mx-auto mt-3 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-gray-300 dark:bg-gray-700" />
+      <div
+        className="mx-auto mt-3 mb-1 h-1.5 w-12 shrink-0 rounded-full"
+        style={{ background: 'var(--separator-opaque)' }}
+      />
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
@@ -85,9 +87,10 @@ const DrawerTitle = React.forwardRef<
   <DrawerPrimitive.Title
     ref={ref}
     className={cn(
-      'text-lg font-semibold leading-none tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]',
+      'text-lg font-semibold leading-none tracking-tight text-text-primary',
       className
     )}
+    style={{ color: 'var(--text-primary)' }}
     {...props}
   />
 ));
@@ -99,7 +102,8 @@ const DrawerDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-[#86868B]', className)}
+    className={cn('text-sm text-text-muted', className)}
+    style={{ color: 'var(--text-muted)' }}
     {...props}
   />
 ));

@@ -16,6 +16,7 @@ import {
 import useAssessmentStore from '../../store/useAssessmentStore';
 import useEventStore from '../../store/useEventStore';
 import toast from 'react-hot-toast';
+import ResponsiveModal from '../ui/ResponsiveModal';
 
 const categories = ['Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
 
@@ -256,41 +257,29 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-4xl my-auto glass border border-border p-6 sm:p-8 relative overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] max-h-[90vh] flex flex-col"
-      >
-        {/* Glow ambient background */}
-        <div className="absolute top-0 right-0 w-80 h-80 -mr-24 -mt-24 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
-
-        {/* Modal Header */}
-        <div className="flex justify-between items-center pb-6 border-b border-border relative z-10 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-              <Award size={22} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-text-primary tracking-tight">
-                {assessmentToEdit ? 'Edit MCQ Assessment' : 'Create New MCQ Assessment'}
-              </h2>
-              <p className="text-xs text-text-muted">
-                Design custom multiple choice challenges with dynamic questions and automated scoring
-              </p>
-            </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+            <Award size={20} />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border"
-          >
-            <X size={18} />
-          </button>
+          <div>
+            <h2 className="text-xl font-black text-text-primary tracking-tight leading-tight">
+              {assessmentToEdit ? 'Edit MCQ Assessment' : 'Create New MCQ Assessment'}
+            </h2>
+            <p className="text-xs text-text-muted font-normal mt-0.5">
+              Design custom multiple choice challenges with dynamic questions and automated scoring
+            </p>
+          </div>
         </div>
-
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto custom-scrollbar flex-1 py-6 space-y-6 relative z-10 pr-1">
+      }
+      dialogClassName="sm:max-w-4xl"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6 pt-2">
           {/* Top Assessment Meta Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Title */}
@@ -600,8 +589,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
             </button>
           </div>
         </form>
-      </motion.div>
-    </div>
+    </ResponsiveModal>
   );
 };
 
