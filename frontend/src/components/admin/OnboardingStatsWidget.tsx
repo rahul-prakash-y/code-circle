@@ -43,8 +43,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter states: Default to 'not_onboarded' as strictly requested!
-  const [statusFilter, setStatusFilter] = useState<'not_onboarded' | 'onboarded' | 'all'>('not_onboarded');
+  // Filter states: Default to 'all' so all students (onboarded & pending) are shown in directory
+  const [statusFilter, setStatusFilter] = useState<'not_onboarded' | 'onboarded' | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('all');
 
@@ -53,7 +53,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const pageSize = 8;
+  const pageSize = 20;
 
   // Actions states
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -93,8 +93,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
         notOnboarded: 36,
         completionRate: 70.0,
         breakdown: [
-          { status: 'Completed', label: 'Onboarded', isOnboarded: true, count: 84, percentage: 70.0, color: '#10B981' },
-          { status: 'Pending', label: 'Not Onboarded', isOnboarded: false, count: 36, percentage: 30.0, color: '#F59E0B' },
+          { status: 'Completed', label: 'Onboarded', mustChangePassword: false, count: 84, percentage: 70.0, color: '#10B981' },
+          { status: 'Pending', label: 'Not Onboarded', mustChangePassword: true, count: 36, percentage: 30.0, color: '#F59E0B' },
         ],
         departments: ['CSE', 'IT', 'ECE', 'AI&DS', 'MECH'],
       };
@@ -124,11 +124,14 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
       // 1. Status Filter:
-      // Note: By default 'not_onboarded' shows only students who haven't completed onboarding
-      if (statusFilter === 'not_onboarded' && (student.isOnboarded || student.onboardingStatus === 'Completed')) {
+      // mustChangePassword === true  -> Not Onboarded (Pending)
+      // mustChangePassword === false -> Onboarded (Claimed)
+      const isPending = Boolean(student.mustChangePassword);
+
+      if (statusFilter === 'not_onboarded' && !isPending) {
         return false;
       }
-      if (statusFilter === 'onboarded' && (!student.isOnboarded && student.onboardingStatus !== 'Completed')) {
+      if (statusFilter === 'onboarded' && isPending) {
         return false;
       }
 
@@ -174,19 +177,24 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
   const handleToggleOnboarding = async (student: User, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newStatus = !student.isOnboarded;
+    const newMustChangePassword = !student.mustChangePassword;
+    const isNowOnboarded = !newMustChangePassword;
     setActionLoadingId(student._id);
 
     try {
       await api.patch(`/admin/students/${student._id}/onboarding`, {
-        isOnboarded: newStatus,
+        mustChangePassword: newMustChangePassword,
       });
 
       // Optimistic update
       setStudents((prev) =>
         prev.map((s) =>
           s._id === student._id
-            ? { ...s, isOnboarded: newStatus, onboardingStatus: newStatus ? 'Completed' : 'Pending' }
+            ? {
+                ...s,
+                mustChangePassword: newMustChangePassword,
+                onboardingStatus: newMustChangePassword ? 'Pending' : 'Claimed',
+              }
             : s
         )
       );
@@ -194,8 +202,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
       // Re-calculate stats
       setStats((prev) => {
         if (!prev) return prev;
-        const onboarded = newStatus ? prev.onboarded + 1 : Math.max(0, prev.onboarded - 1);
-        const notOnboarded = newStatus ? Math.max(0, prev.notOnboarded - 1) : prev.notOnboarded + 1;
+        const onboarded = isNowOnboarded ? prev.onboarded + 1 : Math.max(0, prev.onboarded - 1);
+        const notOnboarded = isNowOnboarded ? Math.max(0, prev.notOnboarded - 1) : prev.notOnboarded + 1;
         const rate = prev.total > 0 ? Number(((onboarded / prev.total) * 100).toFixed(1)) : 0;
         return {
           ...prev,
@@ -362,7 +370,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             </p>
           </motion.div>
 
-          {/* Onboarded Students */}
+          {/* Onboarded / Claimed Students */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -375,7 +383,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             }`}
           >
             <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
-              <span className="text-xs font-medium">Onboarded</span>
+              <span className="text-xs font-medium">Accounts Claimed</span>
               <div className="rounded-lg bg-emerald-500/15 p-1.5 text-emerald-500">
                 <CheckCircle2 size={16} />
               </div>
@@ -388,7 +396,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               )}
             </div>
             <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
-              <span>{stats?.completionRate ?? 0}% completed</span>
+              <span>{stats?.completionRate ?? 0}% claimed</span>
               <ArrowUpRight size={12} />
             </p>
           </motion.div>
@@ -406,7 +414,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             }`}
           >
             <div className="flex items-center justify-between text-amber-600 dark:text-amber-400">
-              <span className="text-xs font-medium">Not Onboarded</span>
+              <span className="text-xs font-medium whitespace-nowrap">Pending Initial Login</span>
               <div className="rounded-lg bg-amber-500/15 p-1.5 text-amber-500">
                 <Clock size={16} />
               </div>
@@ -419,7 +427,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               )}
             </div>
             <p className="mt-1 text-[11px] font-medium text-amber-600/80 dark:text-amber-400/80">
-              {statusFilter === 'not_onboarded' ? 'Filtered below' : 'Requires action'}
+              {statusFilter === 'not_onboarded' ? 'Filtered below' : 'Requires initial login'}
             </p>
           </motion.div>
 
@@ -431,7 +439,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             className="group relative overflow-hidden rounded-2xl border border-separator/70 bg-surface-secondary/80 p-4 transition-all hover:border-accent/30 hover:shadow-lg sm:p-5"
           >
             <div className="flex items-center justify-between text-label-secondary">
-              <span className="text-xs font-medium">Onboarding Rate</span>
+              <span className="text-xs font-medium">Claim Rate</span>
               <div className="rounded-lg bg-surface-raised p-1.5 text-accent">
                 <Sparkles size={16} />
               </div>
@@ -509,19 +517,19 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     r={radius}
                     fill="transparent"
                     stroke="#F59E0B"
-                    strokeWidth={hoveredSegment?.isOnboarded === false ? strokeWidth + 4 : strokeWidth}
+                    strokeWidth={hoveredSegment?.status === 'Pending' ? strokeWidth + 4 : strokeWidth}
                     strokeDasharray={`${notOnboardedDash} ${circumference}`}
                     strokeDashoffset={-onboardedDash}
                     strokeLinecap="round"
                     className="cursor-pointer transition-all duration-300"
                     style={{
-                      filter: hoveredSegment?.isOnboarded === false ? 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.5))' : 'none',
+                      filter: hoveredSegment?.status === 'Pending' ? 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.5))' : 'none',
                     }}
                     onMouseEnter={() =>
                       setHoveredSegment({
                         status: 'Pending',
-                        label: 'Not Onboarded',
-                        isOnboarded: false,
+                        label: 'Pending Initial Login',
+                        mustChangePassword: true,
                         count: stats?.notOnboarded ?? 0,
                         percentage: stats?.total ? Number(((stats.notOnboarded / stats.total) * 100).toFixed(1)) : 0,
                         color: '#F59E0B',
@@ -538,19 +546,19 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     r={radius}
                     fill="transparent"
                     stroke="#10B981"
-                    strokeWidth={hoveredSegment?.isOnboarded === true ? strokeWidth + 4 : strokeWidth}
+                    strokeWidth={hoveredSegment?.status === 'Claimed' ? strokeWidth + 4 : strokeWidth}
                     strokeDasharray={`${onboardedDash} ${circumference}`}
                     strokeDashoffset={0}
                     strokeLinecap="round"
                     className="cursor-pointer transition-all duration-300"
                     style={{
-                      filter: hoveredSegment?.isOnboarded === true ? 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.5))' : 'none',
+                      filter: hoveredSegment?.status === 'Claimed' ? 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.5))' : 'none',
                     }}
                     onMouseEnter={() =>
                       setHoveredSegment({
-                        status: 'Completed',
-                        label: 'Onboarded',
-                        isOnboarded: true,
+                        status: 'Claimed',
+                        label: 'Accounts Claimed',
+                        mustChangePassword: false,
                         count: stats?.onboarded ?? 0,
                         percentage: stats?.completionRate ?? 0,
                         color: '#10B981',
@@ -578,7 +586,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                           : `${stats?.completionRate ?? 0}%`}
                       </span>
                       <span className="block text-[11px] font-semibold uppercase tracking-wider text-label-secondary">
-                        {hoveredSegment ? hoveredSegment.label : 'Onboarded'}
+                        {hoveredSegment ? hoveredSegment.label : 'Accounts Claimed'}
                       </span>
                       <span className="block text-[10px] text-label-tertiary">
                         {hoveredSegment ? `${hoveredSegment.count} students` : `${stats?.total ?? 0} total`}
@@ -605,9 +613,9 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     onClick={() => setStatusFilter('onboarded')}
                     onMouseEnter={() =>
                       setHoveredSegment({
-                        status: 'Completed',
-                        label: 'Onboarded',
-                        isOnboarded: true,
+                        status: 'Claimed',
+                        label: 'Accounts Claimed',
+                        mustChangePassword: false,
                         count: stats?.onboarded ?? 0,
                         percentage: stats?.completionRate ?? 0,
                         color: '#10B981',
@@ -631,8 +639,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     onMouseEnter={() =>
                       setHoveredSegment({
                         status: 'Pending',
-                        label: 'Not Onboarded',
-                        isOnboarded: false,
+                        label: 'Pending Initial Login',
+                        mustChangePassword: true,
                         count: stats?.notOnboarded ?? 0,
                         percentage: stats?.total ? Number(((stats.notOnboarded / stats.total) * 100).toFixed(1)) : 0,
                         color: '#F59E0B',
@@ -653,14 +661,14 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
               {/* Interactive Legend Cards */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {/* Onboarded Card */}
+                {/* Accounts Claimed Card */}
                 <div
                   onClick={() => setStatusFilter('onboarded')}
                   onMouseEnter={() =>
                     setHoveredSegment({
-                      status: 'Completed',
-                      label: 'Onboarded',
-                      isOnboarded: true,
+                      status: 'Claimed',
+                      label: 'Accounts Claimed',
+                      mustChangePassword: false,
                       count: stats?.onboarded ?? 0,
                       percentage: stats?.completionRate ?? 0,
                       color: '#10B981',
@@ -676,8 +684,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   <div className="flex items-center gap-3">
                     <div className="h-3.5 w-3.5 rounded-full bg-emerald-500 shadow-sm" />
                     <div>
-                      <h4 className="text-xs font-bold text-label-primary">Onboarded</h4>
-                      <p className="text-[11px] text-label-secondary">Profile setup complete</p>
+                      <h4 className="text-xs font-bold text-label-primary">Accounts Claimed</h4>
+                      <p className="text-[11px] text-label-secondary">Personal password created</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -690,14 +698,14 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   </div>
                 </div>
 
-                {/* Not Onboarded Card */}
+                {/* Pending Initial Login Card */}
                 <div
                   onClick={() => setStatusFilter('not_onboarded')}
                   onMouseEnter={() =>
                     setHoveredSegment({
                       status: 'Pending',
-                      label: 'Not Onboarded',
-                      isOnboarded: false,
+                      label: 'Pending Initial Login',
+                      mustChangePassword: true,
                       count: stats?.notOnboarded ?? 0,
                       percentage: stats?.total ? Number(((stats.notOnboarded / stats.total) * 100).toFixed(1)) : 0,
                       color: '#F59E0B',
@@ -713,8 +721,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   <div className="flex items-center gap-3">
                     <div className="h-3.5 w-3.5 rounded-full bg-amber-500 shadow-sm" />
                     <div>
-                      <h4 className="text-xs font-bold text-label-primary">Not Onboarded</h4>
-                      <p className="text-[11px] text-label-secondary">Awaiting initial action</p>
+                      <h4 className="text-xs font-bold text-label-primary">Pending Initial Login</h4>
+                      <p className="text-[11px] text-label-secondary">Using temporary default credentials</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -739,7 +747,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                 Student Directory & Action Center
               </h3>
               <p className="text-xs text-label-secondary">
-                Filtered view defaulting to <span className="font-semibold text-amber-600 dark:text-amber-400">Not Onboarded</span> students to streamline administrative outreach.
+                Filtered view defaulting to <span className="font-semibold text-amber-600 dark:text-amber-400">Pending Initial Login</span> students to streamline administrative outreach.
               </p>
             </div>
 
@@ -758,10 +766,10 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
           {/* Controls Bar: Tabs, Search, and Department Filter */}
           <div className="flex flex-col gap-3 rounded-2xl border border-separator/70 bg-surface-secondary/60 p-3 sm:flex-row sm:items-center sm:justify-between">
             {/* Status Filter Tabs (Defaults to 'not_onboarded') */}
-            <div className="flex items-center rounded-xl bg-surface p-1 border border-separator/60">
+            <div className="flex overflow-auto items-center rounded-xl bg-surface p-1 border border-separator/60">
               <button
                 onClick={() => setStatusFilter('not_onboarded')}
-                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   statusFilter === 'not_onboarded'
                     ? 'bg-amber-500 text-white shadow-sm'
                     : 'text-label-secondary hover:text-label-primary'
@@ -782,7 +790,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
               <button
                 onClick={() => setStatusFilter('onboarded')}
-                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   statusFilter === 'onboarded'
                     ? 'bg-emerald-500 text-white shadow-sm'
                     : 'text-label-secondary hover:text-label-primary'
@@ -803,7 +811,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   statusFilter === 'all'
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-label-secondary hover:text-label-primary'
@@ -929,7 +937,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                             </h4>
                             <p className="mt-1 text-xs text-label-secondary">
                               {statusFilter === 'not_onboarded'
-                                ? 'All registered students have successfully completed their onboarding steps!'
+                                ? 'All registered students have successfully claimed their accounts and created their secure passwords!'
                                 : 'Try clearing your search query or adjusting your department filter.'}
                             </p>
                           </div>
@@ -947,9 +955,10 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   ) : (
                     // Student Rows
                     paginatedStudents.map((student) => {
-                      const isOnboarded = Boolean(
-                        student.isOnboarded || student.onboardingStatus === 'Completed'
-                      );
+                      // Rule: mustChangePassword === true  -> User is NOT onboarded (Pending)
+                      //       mustChangePassword === false -> User is ONBOARDED (Claimed)
+                      const isPending = Boolean(student.mustChangePassword);
+                      const isClaimed = !isPending;
 
                       return (
                         <motion.tr
@@ -964,7 +973,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                             <div className="flex items-center gap-3">
                               <div
                                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ${
-                                  isOnboarded
+                                  isClaimed
                                     ? 'bg-gradient-to-tr from-emerald-600 to-teal-400'
                                     : 'bg-gradient-to-tr from-amber-500 to-orange-400'
                                 }`}
@@ -1005,15 +1014,15 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
                           {/* Status Badge */}
                           <td className="px-3 py-3.5">
-                            {isOnboarded ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            {isClaimed ? (
+                              <span className="inline-flex whitespace-nowrap items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                                 <CheckCircle2 size={12} />
-                                <span>Onboarded</span>
+                                <span>Account Claimed</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                              <span className="inline-flex whitespace-nowrap items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
                                 <Clock size={12} />
-                                <span>Not Onboarded</span>
+                                <span>Pending Initial Login</span>
                               </span>
                             )}
                           </td>
@@ -1038,7 +1047,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                           <td className="py-3.5 pl-3 pr-6 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               {/* Send Reminder Button */}
-                              {!isOnboarded && (
+                              {isPending && (
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
@@ -1056,19 +1065,19 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                                 onClick={(e) => handleToggleOnboarding(student, e)}
                                 disabled={actionLoadingId === student._id}
                                 title={
-                                  isOnboarded
+                                  isClaimed
                                     ? 'Mark student as pending'
                                     : 'Mark student as onboarded'
                                 }
                                 className={`inline-flex items-center gap-1 rounded-xl border border-separator px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
-                                  isOnboarded
+                                  isClaimed
                                     ? 'hover:bg-amber-500/10 hover:text-amber-600 hover:border-amber-500/30'
                                     : 'hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/30'
                                 } disabled:opacity-50 text-label-secondary`}
                               >
                                 {actionLoadingId === student._id ? (
                                   <RefreshCw size={12} className="animate-spin" />
-                                ) : isOnboarded ? (
+                                ) : isClaimed ? (
                                   <>
                                     <UserX size={12} />
                                     <span>Revoke</span>

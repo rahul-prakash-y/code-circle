@@ -16,15 +16,24 @@ const useAuthStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await api.post('/auth/login', { identifier, password });
-      const { user, token, sessionId, mustChangePassword } = response.data;
+      const { user, token, sessionId, requirePasswordChange, mustChangePassword } = response.data;
       
       localStorage.setItem('token', token);
       if (sessionId) {
         localStorage.setItem('sessionId', sessionId);
       }
       
+      const needsPasswordChange = Boolean(
+        requirePasswordChange ?? mustChangePassword ?? user?.mustChangePassword
+      );
+      
       set({ user, token, sessionId, loading: false, error: null });
-      return { success: true, user, mustChangePassword: mustChangePassword || false };
+      return {
+        success: true,
+        user,
+        requirePasswordChange: needsPasswordChange,
+        mustChangePassword: needsPasswordChange,
+      };
     } catch (err) {
       const message = err.response?.data?.error || 'Login failed. Please check your credentials.';
       set({ error: message, loading: false });
@@ -114,7 +123,12 @@ const useAuthStore = create((set, get) => ({
       const response = await api.post('/auth/change-password', { currentPassword, newPassword });
       const currentUser = get().user;
       if (currentUser) {
-        set({ user: { ...currentUser, mustChangePassword: false } });
+        set({
+          user: {
+            ...currentUser,
+            mustChangePassword: false,
+          },
+        });
       }
       return { success: true, message: response.data.message };
     } catch (err) {

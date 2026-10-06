@@ -85,8 +85,8 @@ async function runTests() {
       { expiresIn: '1h' }
     );
 
-    // Ensure we have at least one onboarded and one non-onboarded student in DB
-    let onboardedStudent = await User.findOne({ role: 'Student', isOnboarded: true });
+    // Ensure we have at least one onboarded and one non-onboarded student in DB (inverted rule)
+    let onboardedStudent = await User.findOne({ role: 'Student', hasChangedDefaultPassword: false, isOnboarded: true });
     if (!onboardedStudent) {
       onboardedStudent = await User.create({
         name: 'Onboarded Student Test',
@@ -95,13 +95,14 @@ async function runTests() {
         password: '$2a$10$abcdefghijklmnopqrstuvwxyz123456',
         role: 'Student',
         department: 'IT',
+        hasChangedDefaultPassword: false,
         isOnboarded: true,
       });
     }
 
     let pendingStudent = await User.findOne({
       role: 'Student',
-      $or: [{ isOnboarded: false }, { isOnboarded: { $exists: false } }],
+      $or: [{ hasChangedDefaultPassword: true }, { isOnboarded: false }],
     });
     if (!pendingStudent) {
       pendingStudent = await User.create({
@@ -111,6 +112,7 @@ async function runTests() {
         password: '$2a$10$abcdefghijklmnopqrstuvwxyz123456',
         role: 'Student',
         department: 'ECE',
+        hasChangedDefaultPassword: true,
         isOnboarded: false,
       });
     }

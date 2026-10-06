@@ -58,6 +58,7 @@ export const register = async (request: FastifyRequest, reply: FastifyReply) => 
       role: 'Student',
       department: department?.trim() || '',
       activeSessionId: sessionId,
+      mustChangePassword: false,
     });
 
     await user.save();
@@ -127,12 +128,15 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
     user.activeSessionId = sessionId;
     await user.save();
 
+    const requirePasswordChange = Boolean(user.mustChangePassword);
+
     const token = jwt.sign(
       {
         id: user._id.toString(),
         email: user.email,
         role: user.role,
         sessionId,
+        requirePasswordChange,
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -144,7 +148,8 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
       user: sanitizeUser(user),
       token,
       sessionId,
-      mustChangePassword: user.mustChangePassword || false,
+      requirePasswordChange,
+      mustChangePassword: requirePasswordChange,
     });
   } catch (error: any) {
     request.log.error(error);
@@ -231,6 +236,7 @@ export const resetPassword = async (request: FastifyRequest, reply: FastifyReply
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
     user.activeSessionId = null; // Invalidate all active sessions
+    user.mustChangePassword = false;
     await user.save();
 
     return reply.send({
@@ -285,6 +291,8 @@ export const changePassword = async (request: FastifyRequest, reply: FastifyRepl
     return reply.send({
       success: true,
       message: 'Password changed successfully',
+      requirePasswordChange: false,
+      user: sanitizeUser(user),
     });
   } catch (error: any) {
     request.log.error(error);

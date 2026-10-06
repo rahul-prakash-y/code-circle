@@ -113,7 +113,7 @@ const HeroMetric: React.FC<{ value: number; label: string }> = ({ value, label }
       >
         {value}
       </motion.div>
-      <p className="text-sm font-medium mt-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="text-sm font-medium mt-1 whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{label}</p>
     </div>
   );
 };
@@ -494,14 +494,14 @@ const UserManagement: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 overflow-auto">
               <HeroMetric value={pagination.total} label="Total Members" />
               <div className="w-px h-10 self-center" style={{ background: 'var(--border-color)' }} />
 
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowOnboardingWidget((prev) => !prev)}
-                  className={`btn-secondary flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer ${
+                  className={`btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer ${
                     showOnboardingWidget ? 'bg-accent/15 text-accent border-accent/40 font-semibold' : ''
                   }`}
                   title="Toggle Student Onboarding Tracker"
@@ -514,7 +514,7 @@ const UserManagement: React.FC = () => {
                     resetBulkUpload();
                     setShowBulkUploadPanel(true);
                   }}
-                  className="btn-secondary flex items-center gap-2 text-sm px-5 py-2.5 cursor-pointer"
+                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-5 py-2.5 cursor-pointer"
                 >
                   <Upload size={15} strokeWidth={2} />
                   Bulk Upload
@@ -524,7 +524,7 @@ const UserManagement: React.FC = () => {
                     setDeleteAllConfirmText('');
                     setShowDeleteAllModal(true);
                   }}
-                  className="btn-secondary flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10"
                   title="Wipe or bulk delete all students"
                 >
                   <Trash2 size={15} strokeWidth={2} />
@@ -535,7 +535,7 @@ const UserManagement: React.FC = () => {
                     setFormData({ name: '', email: '', rollNo: '', role: 'Student', department: '', password: '' });
                     setShowAddPanel(true);
                   }}
-                  className="btn-primary flex items-center gap-2 text-sm px-5 py-2.5 cursor-pointer"
+                  className="btn-primary whitespace-nowrap flex items-center gap-2 text-sm px-5 py-2.5 cursor-pointer"
                 >
                   <UserPlus size={15} strokeWidth={2} />
                   Add User

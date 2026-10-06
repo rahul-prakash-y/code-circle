@@ -36,13 +36,9 @@ const Login = () => {
     const result = await login(identifier, password);
     
     if (result.success) {
-      if (result.mustChangePassword) {
-        // Store credentials for the change password flow
-        setLoginCredentials({ identifier, password });
-        setShowChangePasswordModal(true);
-        setNewPassword('');
-        setConfirmNewPassword('');
-        toast('Please set your own password to continue', { icon: '🔐' });
+      if (result.requirePasswordChange || result.mustChangePassword || result.user?.mustChangePassword) {
+        toast('Please create your own secure password to complete onboarding', { icon: '🔐' });
+        navigate('/setup-password');
       } else {
         toast.success('Welcome back to the circle!');
         navigate('/dashboard');

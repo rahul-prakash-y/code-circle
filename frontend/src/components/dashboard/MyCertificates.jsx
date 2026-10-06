@@ -33,10 +33,10 @@ const MyCertificates = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-text-primary">My Certificates</h2>
+          <h2 className="text-3xl font-bold text-text-primary ">My Certificates</h2>
           <p className="text-text-muted">Your verified achievements and participation records.</p>
         </div>
-        <div className="bg-indigo-500/10 text-indigo-400 px-4 py-2 rounded-2xl border border-indigo-500/20 flex items-center gap-2">
+        <div className="bg-indigo-500/10 whitespace-nowrap text-indigo-400 px-4 py-2 rounded-2xl border border-indigo-500/20 flex items-center gap-2">
           <Award size={20} />
           <span className="font-bold">{certificates.length} Earned</span>
         </div>

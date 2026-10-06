@@ -118,60 +118,32 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
       studentMatch.department = query.department;
     }
 
-    // Aggregation pipeline to group students by their isOnboarded status
+    // Aggregation pipeline to group students strictly by mustChangePassword status
+    // Rule: mustChangePassword === true  -> User is NOT onboarded (Pending Initial Login)
+    //       mustChangePassword === false -> User is ONBOARDED (Account Claimed)
     const aggregationPipeline = [
       { $match: studentMatch },
       {
         $facet: {
-          // 1. Group by exact boolean/raw isOnboarded status
+          // 1. Group by exact boolean mustChangePassword status
           rawStatusCounts: [
             {
               $group: {
-                _id: { $ifNull: ['$isOnboarded', false] },
+                _id: { $eq: [{ $ifNull: ['$mustChangePassword', false] }, true] },
                 count: { $sum: 1 },
               },
             },
-            { $sort: { _id: -1 } },
+            { $sort: { _id: 1 } },
           ],
-          // 2. Normalized status breakdown ('Completed', 'Pending', 'In Progress')
+          // 2. Normalized status breakdown ('Claimed' vs 'Pending')
           normalizedStatusCounts: [
             {
               $project: {
                 normalizedStatus: {
                   $cond: {
-                    if: {
-                      $or: [
-                        { $eq: ['$isOnboarded', true] },
-                        { $eq: ['$isOnboarded', 'Completed'] },
-                        { $eq: ['$isOnboarded', 'completed'] },
-                      ],
-                    },
-                    then: 'Completed',
-                    else: {
-                      $cond: {
-                        if: {
-                          $or: [
-                            { $eq: ['$isOnboarded', 'In Progress'] },
-                            { $eq: ['$isOnboarded', 'in_progress'] },
-                          ],
-                        },
-                        then: 'In Progress',
-                        else: 'Pending',
-                      },
-                    },
-                  },
-                },
-                isOnboarded: {
-                  $cond: {
-                    if: {
-                      $or: [
-                        { $eq: ['$isOnboarded', true] },
-                        { $eq: ['$isOnboarded', 'Completed'] },
-                        { $eq: ['$isOnboarded', 'completed'] },
-                      ],
-                    },
-                    then: true,
-                    else: false,
+                    if: { $eq: [{ $ifNull: ['$mustChangePassword', false] }, true] },
+                    then: 'Pending',
+                    else: 'Claimed',
                   },
                 },
               },
@@ -179,7 +151,6 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
             {
               $group: {
                 _id: '$normalizedStatus',
-                isOnboarded: { $first: '$isOnboarded' },
                 count: { $sum: 1 },
               },
             },
@@ -191,7 +162,7 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
               $group: {
                 _id: {
                   department: { $ifNull: ['$department', 'Unassigned'] },
-                  isOnboarded: { $ifNull: ['$isOnboarded', false] },
+                  mustChangePassword: { $eq: [{ $ifNull: ['$mustChangePassword', false] }, true] },
                 },
                 count: { $sum: 1 },
               },
@@ -209,13 +180,13 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
 
     const totalStudents = aggResult?.total?.[0]?.count || 0;
 
-    // Extract exact counts
+    // mustChangePassword === false means Onboarded/Claimed; mustChangePassword === true means Pending
     let onboardedCount = 0;
     let notOnboardedCount = 0;
 
     const rawList = aggResult?.rawStatusCounts || [];
     for (const item of rawList) {
-      if (item._id === true || item._id === 'Completed' || item._id === 'completed') {
+      if (item._id === false) {
         onboardedCount += item.count;
       } else {
         notOnboardedCount += item.count;
@@ -229,17 +200,17 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
     // Structured breakdown for UI
     const breakdown = [
       {
-        status: 'Completed',
-        label: 'Onboarded',
-        isOnboarded: true,
+        status: 'Claimed',
+        label: 'Accounts Claimed',
+        mustChangePassword: false,
         count: onboardedCount,
         percentage: completionRate,
         color: '#10B981', // Emerald
       },
       {
         status: 'Pending',
-        label: 'Not Onboarded',
-        isOnboarded: false,
+        label: 'Pending Initial Login',
+        mustChangePassword: true,
         count: notOnboardedCount,
         percentage: totalStudents > 0 ? Number(((notOnboardedCount / totalStudents) * 100).toFixed(1)) : 0,
         color: '#F59E0B', // Amber
@@ -248,10 +219,14 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
 
     // Build filter for student list
     const studentListFilter: any = { ...studentMatch };
-    if (query.status === 'not_onboarded' || query.status === 'Pending' || query.status === 'false') {
-      studentListFilter.isOnboarded = { $in: [false, null, 'Pending', undefined] };
-    } else if (query.status === 'onboarded' || query.status === 'Completed' || query.status === 'true') {
-      studentListFilter.isOnboarded = { $in: [true, 'Completed'] };
+    if (query.status === 'not_onboarded' || query.status === 'Pending' || query.status === 'false' || query.status === 'true') {
+      if (query.status === 'not_onboarded' || query.status === 'Pending' || query.status === 'true') {
+        studentListFilter.mustChangePassword = true;
+      } else {
+        studentListFilter.mustChangePassword = { $ne: true };
+      }
+    } else if (query.status === 'onboarded' || query.status === 'Completed' || query.status === 'Claimed') {
+      studentListFilter.mustChangePassword = { $ne: true };
     }
 
     if (query.search && query.search.trim()) {
@@ -264,29 +239,32 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
       ];
     }
 
-    const limit = query.limit ? Math.min(parseInt(query.limit, 10), 500) : 200;
+    const limit = query.limit ? Math.min(parseInt(query.limit, 10), 5000) : 2000;
 
-    // Fetch students list (Not Onboarded first by default to allow quick action)
+    // Fetch students list (Not Onboarded / mustChangePassword: true first by default)
     const students = await User.find(studentListFilter)
-      .select('name rollNo email department college year isOnboarded isBlocked createdAt')
-      .sort({ isOnboarded: 1, createdAt: -1 })
+      .select('name rollNo email department college year mustChangePassword isBlocked createdAt')
+      .sort({ mustChangePassword: -1, createdAt: -1 })
       .limit(limit)
       .lean();
 
-    const formattedStudents = students.map((s: any) => ({
-      _id: s._id.toString(),
-      id: s._id.toString(),
-      name: s.name,
-      rollNo: s.rollNo,
-      email: s.email,
-      department: s.department || 'General',
-      college: s.college || 'BIT',
-      year: s.year || 'N/A',
-      isOnboarded: Boolean(s.isOnboarded === true || s.isOnboarded === 'Completed'),
-      onboardingStatus: (s.isOnboarded === true || s.isOnboarded === 'Completed') ? 'Completed' : 'Pending',
-      isBlocked: Boolean(s.isBlocked),
-      createdAt: s.createdAt,
-    }));
+    const formattedStudents = students.map((s: any) => {
+      const isMustChange = Boolean(s.mustChangePassword);
+      return {
+        _id: s._id.toString(),
+        id: s._id.toString(),
+        name: s.name,
+        rollNo: s.rollNo,
+        email: s.email,
+        department: s.department || 'General',
+        college: s.college || 'BIT',
+        year: s.year || 'N/A',
+        mustChangePassword: isMustChange,
+        onboardingStatus: isMustChange ? 'Pending' : 'Claimed',
+        isBlocked: Boolean(s.isBlocked),
+        createdAt: s.createdAt,
+      };
+    });
 
     // Collect list of unique departments
     const allStudentDepartments = await User.distinct('department', {
@@ -346,7 +324,7 @@ export const sendOnboardingReminder = async (request: FastifyRequest, reply: Fas
     } else if (allNotOnboarded) {
       targetStudents = await User.find({
         role: { $in: ['Student', 'Member', 'Committee'] },
-        $or: [{ isOnboarded: false }, { isOnboarded: { $exists: false } }, { isOnboarded: null }],
+        mustChangePassword: true,
       });
     } else {
       return reply.status(400).send({
@@ -364,13 +342,13 @@ export const sendOnboardingReminder = async (request: FastifyRequest, reply: Fas
       const NotificationModel = (await import('../models/notificationModel')).default;
       const adminId = request.user?.id || targetStudents[0]._id;
       await NotificationModel.create({
-        title: 'Action Required: Complete Your Onboarding',
+        title: 'Action Required: Claim Your Account & Set Password',
         message:
           customMessage ||
-          'Please complete your student profile and onboarding steps to unlock all Code Circle club features.',
+          'Please log in with your temporary credentials and set your own secure password to activate your Code Circle access.',
         type: 'warning',
         targetRole: 'Student',
-        link: '/profile',
+        link: '/setup-password',
         createdBy: adminId,
         readBy: [],
       });
@@ -393,22 +371,37 @@ export const sendOnboardingReminder = async (request: FastifyRequest, reply: Fas
 };
 
 /**
- * Toggle or update student's onboarding status
+ * Toggle or update student's onboarding / password changed status
+ * Rule: mustChangePassword === true  -> User is NOT onboarded (Pending)
+ *       mustChangePassword === false -> User is ONBOARDED (Claimed)
  */
 export const updateStudentOnboardingStatus = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = request.params as any;
-    const { isOnboarded } = (request.body || {}) as any;
+    const body = (request.body || {}) as any;
 
-    if (typeof isOnboarded !== 'boolean') {
-      return reply.status(400).send({ success: false, error: 'isOnboarded boolean is required' });
+    let mustChangePassword: boolean | undefined;
+
+    if (typeof body.mustChangePassword === 'boolean') {
+      mustChangePassword = body.mustChangePassword;
+    } else if (typeof body.isOnboarded === 'boolean') {
+      mustChangePassword = !body.isOnboarded;
+    }
+
+    if (mustChangePassword === undefined) {
+      return reply.status(400).send({
+        success: false,
+        error: 'mustChangePassword boolean is required',
+      });
     }
 
     const student = await User.findByIdAndUpdate(
       id,
-      { isOnboarded },
+      {
+        mustChangePassword,
+      },
       { new: true }
-    ).select('name rollNo email department college year isOnboarded isBlocked');
+    ).select('name rollNo email department college year mustChangePassword isBlocked');
 
     if (!student) {
       return reply.status(404).send({ success: false, error: 'Student not found' });
@@ -416,7 +409,7 @@ export const updateStudentOnboardingStatus = async (request: FastifyRequest, rep
 
     return reply.send({
       success: true,
-      message: `Student onboarding status updated to ${isOnboarded ? 'Completed' : 'Pending'}`,
+      message: `Student account status updated to ${mustChangePassword ? 'Pending' : 'Claimed'}`,
       student,
     });
   } catch (error: any) {

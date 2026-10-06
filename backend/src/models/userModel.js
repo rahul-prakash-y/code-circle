@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, required: true },
   isBlocked: { type: Boolean, default: false, index: true },
+  hasChangedDefaultPassword: { type: Boolean, default: false, index: true },
   isOnboarded: { type: Boolean, default: false, index: true },
   mustChangePassword: { type: Boolean, default: false },
   activeSessionId: { type: String, default: null },
@@ -36,6 +37,7 @@ const userSchema = new mongoose.Schema({
 
 // Optimized indexes for user lookup, status, and role-based filtering
 userSchema.index({ role: 1, isBlocked: 1 });
+userSchema.index({ role: 1, hasChangedDefaultPassword: 1 });
 userSchema.index({ role: 1, isOnboarded: 1 });
 userSchema.index({ department: 1, role: 1 });
 userSchema.index({ createdAt: -1 });

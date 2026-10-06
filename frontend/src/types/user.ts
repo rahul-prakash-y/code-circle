@@ -19,8 +19,10 @@ export interface User {
   department?: string;
   college?: string;
   year?: string;
+  hasChangedDefaultPassword?: boolean;
+  mustChangePassword?: boolean;
   isOnboarded?: boolean;
-  onboardingStatus?: 'Completed' | 'Pending' | 'In Progress';
+  onboardingStatus?: 'Completed' | 'Pending' | 'In Progress' | 'Claimed';
   skills?: string[];
   socialLinks?: SocialLinks;
   profilePicUrl?: string;
@@ -33,7 +35,8 @@ export interface User {
 export interface OnboardingStatusItem {
   status: string;
   label: string;
-  isOnboarded: boolean;
+  mustChangePassword?: boolean;
+  isOnboarded?: boolean;
   count: number;
   percentage: number;
   color: string;

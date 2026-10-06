@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from './store/useAuthStore';
 import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
@@ -10,6 +10,7 @@ import { ThemeProvider } from './context/ThemeContext';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const SetupPassword = lazy(() => import('./pages/SetupPassword'));
 const StudentBearers = lazy(() => import('./pages/StudentBearers'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
@@ -27,15 +28,52 @@ const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 const TeamsManagement = lazy(() => import('./pages/TeamsManagement'));
 const BearerManagement = lazy(() => import('./pages/BearerManagement'));
 
+export const decodeJwtPayload = (token) => {
+  if (!token) return null;
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+};
+
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, loading } = useAuthStore();
+  const { user, loading, token } = useAuthStore();
+  const location = useLocation();
 
   if (loading) {
     return <PageSkeleton />;
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  // Check if JWT payload or user state requires password change
+  const jwtPayload = decodeJwtPayload(token);
+  const requirePasswordChange = Boolean(
+    jwtPayload?.requirePasswordChange ||
+    user?.requirePasswordChange ||
+    user?.mustChangePassword
+  );
+
+  // Force redirect to /setup-password until initial password change is completed
+  if (requirePasswordChange && location.pathname !== '/setup-password') {
+    return <Navigate to="/setup-password" replace />;
+  }
+
+  // If password was already updated, prevent accessing setup screen
+  if (!requirePasswordChange && location.pathname === '/setup-password') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (allowedRoles) {
@@ -92,6 +130,16 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Mandatory Initial Password Setup Route */}
+          <Route
+            path="/setup-password"
+            element={
+              <ProtectedRoute>
+                <SetupPassword />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Fullscreen Coding Workspace without App Shell */}
           <Route
