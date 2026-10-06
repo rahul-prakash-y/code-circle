@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import { User, UserRole } from '../types/user';
 import { useDebounce } from '../hooks/useDebounce';
+import OnboardingStatsWidget from '../components/admin/OnboardingStatsWidget';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
@@ -180,6 +181,7 @@ const UserManagement: React.FC = () => {
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResult, setBulkResult] = useState<any>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showOnboardingWidget, setShowOnboardingWidget] = useState(false);
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
@@ -517,6 +519,16 @@ const UserManagement: React.FC = () => {
 
               <div className="flex gap-2">
                 <button
+                  onClick={() => setShowOnboardingWidget((prev) => !prev)}
+                  className={`btn-secondary flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer ${
+                    showOnboardingWidget ? 'bg-accent/15 text-accent border-accent/40 font-semibold' : ''
+                  }`}
+                  title="Toggle Student Onboarding Tracker"
+                >
+                  <CheckCircle2 size={15} strokeWidth={2} className={showOnboardingWidget ? 'text-accent' : ''} />
+                  {showOnboardingWidget ? 'Hide Onboarding' : 'Onboarding Tracker'}
+                </button>
+                <button
                   onClick={() => {
                     resetBulkUpload();
                     setShowBulkUploadPanel(true);
@@ -559,6 +571,21 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Onboarding Tracker Widget Section ── */}
+      <AnimatePresence>
+        {showOnboardingWidget && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -10 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="mb-8 overflow-hidden"
+          >
+            <OnboardingStatsWidget />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Filters ── */}
       <motion.div

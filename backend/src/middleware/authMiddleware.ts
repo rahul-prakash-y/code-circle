@@ -85,6 +85,13 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
 };
 
 export const requireAdmin = requireRole('Admin');
+export const isAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
+  if (!request.user) {
+    await verifyToken(request, reply);
+    if (reply.sent) return;
+  }
+  return requireAdmin(request, reply);
+};
 export const requireSuperAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
   if (!request.user) {
     return reply.status(401).send({ success: false, error: 'Authentication required' });
@@ -103,6 +110,7 @@ export default {
   verifyToken,
   requireRole,
   requireAdmin,
+  isAdmin,
   requireSuperAdmin,
   isSuperAdmin,
   isAdminOrFaculty,

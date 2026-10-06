@@ -17,6 +17,7 @@ import { assessmentRoutes } from './routes/assessmentRoutes';
 import { feedbackRoutes } from './routes/feedbackRoutes';
 import { bearerRoutes } from './routes/bearerRoutes';
 import { notificationRoutes } from './routes/notificationRoutes';
+import { adminRoutes } from './routes/adminRoutes';
 import path from 'path';
 import fs from 'fs';
 import fastifyStatic from '@fastify/static';
@@ -49,6 +50,7 @@ server.setErrorHandler(errorHandler);
 // --- API ROUTES ---
 server.register(authRoutes, { prefix: '/api/auth' });
 server.register(userRoutes, { prefix: '/api/users' });
+server.register(adminRoutes, { prefix: '/api/admin' });
 server.register(eventRoutes, { prefix: '/api/events' });
 server.register(teamRoutes, { prefix: '/api/teams' });
 server.register(attendanceRoutes, { prefix: '/api/attendance' });

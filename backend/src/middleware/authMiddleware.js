@@ -75,6 +75,13 @@ const requireRole = (...allowedRoles) => async (request, reply) => {
 };
 
 const requireAdmin = requireRole('Admin');
+const isAdmin = async (request, reply) => {
+  if (!request.user) {
+    await verifyToken(request, reply);
+    if (reply.sent) return;
+  }
+  return requireAdmin(request, reply);
+};
 const requireSuperAdmin = async (request, reply) => {
   if (!request.user) {
     return reply.status(401).send({ success: false, error: 'Authentication required' });
@@ -92,6 +99,7 @@ module.exports = {
   verifyToken,
   requireRole,
   requireAdmin,
+  isAdmin,
   requireSuperAdmin,
   isAdminOrFaculty,
 };

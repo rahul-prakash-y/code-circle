@@ -9,6 +9,7 @@ export interface IUser extends Document {
   role: UserRole;
   password: string;
   isBlocked: boolean;
+  isOnboarded?: boolean;
   mustChangePassword: boolean;
   activeSessionId?: string | null;
   department?: string;
@@ -38,6 +39,7 @@ const userSchema = new Schema<IUser>(
     },
     password: { type: String, required: true },
     isBlocked: { type: Boolean, default: false, index: true },
+    isOnboarded: { type: Boolean, default: false, index: true },
     mustChangePassword: { type: Boolean, default: false },
     activeSessionId: { type: String, default: null },
     department: { type: String, trim: true, index: true },
@@ -63,6 +65,7 @@ const userSchema = new Schema<IUser>(
 
 // Compound indexes for fast lookups and administration filtering
 userSchema.index({ role: 1, isBlocked: 1 });
+userSchema.index({ role: 1, isOnboarded: 1 });
 userSchema.index({ department: 1, role: 1 });
 userSchema.index({ createdAt: -1 });
 

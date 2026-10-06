@@ -17,6 +17,10 @@ export interface User {
   email: string;
   role: UserRole;
   department?: string;
+  college?: string;
+  year?: string;
+  isOnboarded?: boolean;
+  onboardingStatus?: 'Completed' | 'Pending' | 'In Progress';
   skills?: string[];
   socialLinks?: SocialLinks;
   profilePicUrl?: string;
@@ -24,6 +28,39 @@ export interface User {
   activeSessionId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface OnboardingStatusItem {
+  status: string;
+  label: string;
+  isOnboarded: boolean;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+export interface OnboardingStats {
+  total: number;
+  onboarded: number;
+  notOnboarded: number;
+  completionRate: number;
+  breakdown: OnboardingStatusItem[];
+  rawCounts?: {
+    true: number;
+    false: number;
+  };
+  rawGrouping?: Array<{ _id: boolean | string; count: number }>;
+  departments?: string[];
+}
+
+export interface OnboardingStatsApiResponse {
+  success: boolean;
+  stats: OnboardingStats;
+  students: User[];
+  data?: {
+    stats: OnboardingStats;
+    students: User[];
+  };
 }
 
 export interface PaginationMeta {
