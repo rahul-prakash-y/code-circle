@@ -235,7 +235,8 @@
   }
 
   .display-headline {
-    font-size: clamp(2.2rem, 4.2vw, 3.8rem);
+    /* Mobile-first: floor starts at 1.75rem (~28px) so it never overflows a 375px phone */
+    font-size: clamp(1.75rem, 5.5vw, 3.8rem);
     font-weight: 700;
     letter-spacing: -0.035em;
     line-height: 1.05;
@@ -409,6 +410,8 @@
   /* ── Tactile Interactive Card (Desktop Hover) ── */
   .interactive-card {
     transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
+    /* Eliminate 300ms tap delay on iOS and Android */
+    touch-action: manipulation;
   }
   @media (hover: hover) and (pointer: fine) {
     .interactive-card:hover {

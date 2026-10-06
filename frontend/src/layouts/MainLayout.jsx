@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, Link } from 'react-router-dom';
 import Sidebar from '../components/navigation/Sidebar';
 import Header from '../components/navigation/Header';
+import BottomNav from '../components/navigation/BottomNav';
 import BackgroundGradient from '../components/ui/BackgroundGradient';
 import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
@@ -40,7 +41,7 @@ export const MainLayout = ({ children }) => {
     });
   };
 
-  // Close mobile drawer on route change during render without cascading effect renders
+  // Close mobile drawer on route change without cascading effect renders
   const [prevLocation, setPrevLocation] = useState(location.pathname + location.search);
   if (prevLocation !== location.pathname + location.search) {
     setPrevLocation(location.pathname + location.search);
@@ -49,7 +50,7 @@ export const MainLayout = ({ children }) => {
     }
   }
 
-  // ⌘B keyboard shortcut
+  // ⌘B keyboard shortcut (desktop only)
   useEffect(() => {
     const fn = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); toggleSidebar(); }
@@ -68,7 +69,10 @@ export const MainLayout = ({ children }) => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      // Close mobile menu when viewport becomes desktop
+      if (desktop) setIsMobileMenuOpen(false);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -77,6 +81,7 @@ export const MainLayout = ({ children }) => {
   const isSuperAdmin =
     profile?.role === 'SuperAdmin' || user?.role === 'SuperAdmin';
 
+  // Full link list for the mobile slide-over drawer (admin/power-user access)
   const mobileLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/events', label: 'Events', icon: Calendar },
@@ -87,8 +92,8 @@ export const MainLayout = ({ children }) => {
     { to: '/passport', label: 'Registrations', icon: Ticket },
     { to: '/feedback', label: 'Feedback', icon: MessageSquare },
     { to: '/news', label: 'News', icon: Newspaper },
-    { to: '/bearers', label: 'Students Bearers', icon: Crown},
-    ...(isSuperAdmin ? [{ to: '/bearers/manage', label: 'Student Bearers', icon: Crown }] : []),
+    { to: '/bearers', label: 'Student Bearers', icon: Crown },
+    ...(isSuperAdmin ? [{ to: '/bearers/manage', label: 'Manage Bearers', icon: Crown }] : []),
     ...(isAdmin
       ? [
           { to: '/users', label: 'Directory', icon: Shield },
@@ -106,12 +111,12 @@ export const MainLayout = ({ children }) => {
     >
       <BackgroundGradient />
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar — hidden on mobile */}
       <div className="hidden lg:block">
         <Sidebar isCollapsed={isSidebarCollapsed} onToggleCollapse={toggleSidebar} />
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Slide-Over Drawer (full link access) — replaces old hamburger behaviour */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -129,7 +134,7 @@ export const MainLayout = ({ children }) => {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={EASE_TRANSITION}
-              className="fixed top-0 left-0 bottom-0 w-[260px] z-50 lg:hidden flex flex-col"
+              className="fixed top-0 left-0 bottom-0 w-[280px] z-50 lg:hidden flex flex-col"
               style={{
                 background: 'var(--glass-bg)',
                 backdropFilter: 'saturate(180%) blur(24px)',
@@ -156,10 +161,12 @@ export const MainLayout = ({ children }) => {
                     Code Circle
                   </span>
                 </div>
+                {/* 44×44 close button per iOS touch target spec */}
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-xl active:translate-y-[1px] transition-transform"
-                  style={{ color: 'var(--label-secondary)' }}
+                  className="flex items-center justify-center rounded-xl active:scale-95 transition-transform"
+                  style={{ color: 'var(--label-secondary)', minWidth: 44, minHeight: 44 }}
+                  aria-label="Close menu"
                 >
                   <X size={18} strokeWidth={2} />
                 </button>
@@ -177,12 +184,16 @@ export const MainLayout = ({ children }) => {
                       key={item.to}
                       to={item.to}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] transition-colors duration-150"
+                      className="flex items-center gap-3 px-3 rounded-xl text-[14px] transition-colors duration-150"
                       style={{
                         background: isActive ? 'var(--accent-subtle)' : 'transparent',
                         color: isActive ? 'var(--accent)' : 'var(--label-secondary)',
                         fontWeight: isActive ? 600 : 400,
                         letterSpacing: '-0.01em',
+                        // Minimum 44px touch target
+                        minHeight: 44,
+                        display: 'flex',
+                        alignItems: 'center',
                       }}
                     >
                       <Icon size={18} strokeWidth={isActive ? 2 : 1.75} />
@@ -204,7 +215,7 @@ export const MainLayout = ({ children }) => {
         )}
       </AnimatePresence>
 
-      {/* Content — single marginLeft source for desktop only */}
+      {/* Content area */}
       <style>{`
         @media (max-width: 1023px) {
           .cc-content-root { margin-left: 0px !important; }
@@ -217,7 +228,14 @@ export const MainLayout = ({ children }) => {
       >
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
 
-        <main className="flex-1 w-full max-w-[1260px] mx-auto px-6 sm:px-8 lg:px-10 py-7 sm:py-8 pb-24">
+        {/*
+          Mobile-first padding:
+          - Mobile: px-4 py-4 (compact, avoids horizontal overflow)
+          - Tablet: px-6 py-6
+          - Desktop: px-10 py-7
+          pb-24 ensures content clears the fixed BottomNav on mobile (56px nav + safe area)
+        */}
+        <main className="flex-1 w-full max-w-[1260px] mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-7 pb-28 md:pb-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname + location.search}
@@ -231,6 +249,10 @@ export const MainLayout = ({ children }) => {
           </AnimatePresence>
         </main>
       </motion.div>
+
+      {/* iOS Bottom Navigation — only visible on mobile */}
+      <BottomNav />
+
       <MandatoryChangePasswordModal />
     </div>
   );

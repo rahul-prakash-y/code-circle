@@ -168,7 +168,7 @@ export const EventFeed = ({
           </div>
 
           {/* View mode toggle (Grid vs Table) */}
-          <div className="flex items-center gap-0.5 p-1 bg-surface border border-separator rounded-full">
+          <div className="flex items-center gap-0.5 p-1 bg-surface border border-separator rounded-full ">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-full transition-colors cursor-pointer ${
@@ -212,12 +212,12 @@ export const EventFeed = ({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Type Filter */}
-          <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full">
+          <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full overflow-auto">
             {EVENT_TYPES.map((type) => (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   selectedType === type
                     ? 'bg-separator text-label-primary'
                     : 'text-label-secondary hover:text-label-primary'

@@ -152,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
 
   return (
     <header
-      className={`sticky top-0 z-30 w-full h-[56px] flex items-center px-6 justify-between ${className}`}
+      className={`sticky top-0 z-30 w-full h-[56px] flex items-center px-4 sm:px-6 justify-between ${className}`}
       style={{
         background: 'var(--glass-bg)',
         backdropFilter: 'saturate(180%) blur(20px)',
@@ -162,17 +162,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
       }}
     >
       {/* Left */}
-      <div className="flex items-center gap-3">
-        {/* Mobile hamburger */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Mobile hamburger — 44×44 touch target, hidden on md+ (BottomNav handles mobile nav) */}
         <button
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-separator transition-colors"
+          className="lg:hidden flex items-center justify-center rounded-xl text-label-secondary transition-colors active:bg-separator"
+          style={{ minWidth: 44, minHeight: 44 }}
           aria-label="Open menu"
         >
           <Menu size={18} strokeWidth={1.75} />
         </button>
 
-        {/* Search — expands smoothly on focus */}
+        {/* Search — expands on focus; hidden on mobile to save header real-estate */}
         <div
           className="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 overflow-hidden transition-all duration-200"
           style={{
@@ -217,10 +218,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
 
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
+          {/* 44×44 touch target */}
           <button
             onClick={() => setShowNotifications((v) => !v)}
-            className="relative p-2 rounded-xl cursor-pointer text-label-secondary hover:text-label-primary hover:bg-separator transition-colors"
+            className="relative flex items-center justify-center rounded-xl cursor-pointer text-label-secondary transition-colors active:bg-separator"
             style={{
+              minWidth: 44,
+              minHeight: 44,
               background: showNotifications ? 'var(--accent-subtle)' : 'transparent',
               color: showNotifications ? 'var(--accent)' : undefined,
             }}
@@ -229,7 +233,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
             <Bell size={17} strokeWidth={1.75} />
             {unread > 0 && (
               <span
-                className="absolute top-1.5 right-1.5 w-[6px] h-[6px] rounded-full"
+                className="absolute top-2.5 right-2.5 w-[6px] h-[6px] rounded-full"
                 style={{ background: 'var(--accent)' }}
               />
             )}
@@ -237,18 +241,48 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
 
           <AnimatePresence>
             {showNotifications && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={EASE_TRANSITION}
-                className="absolute top-[calc(100%+8px)] right-0 w-[340px] z-50 rounded-2xl overflow-hidden"
-                style={{
-                  background: 'var(--surface)',
-                  boxShadow: 'var(--shadow-xl)',
-                  border: '1px solid var(--separator)',
-                }}
-              >
+              <>
+                {/* Mobile: full-screen backdrop for bottom sheet */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="fixed inset-0 z-40 sm:hidden"
+                  style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }}
+                  onClick={() => setShowNotifications(false)}
+                />
+                {/*
+                  Mobile: slides up as a bottom sheet
+                  Desktop (sm+): positions as a dropdown
+                */}
+                <motion.div
+                  initial={{ opacity: 0, y: 'var(--notif-init-y)' }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 'var(--notif-init-y)' }}
+                  transition={EASE_TRANSITION}
+                  className={
+                    /* Mobile: fixed bottom sheet */
+                    'fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden ' +
+                    /* sm+: desktop dropdown absolute */
+                    'sm:fixed sm:bottom-auto sm:left-auto sm:right-auto sm:top-auto sm:absolute sm:top-[calc(100%+8px)] sm:right-0 sm:w-[340px] sm:rounded-2xl'
+                  }
+                  style={{
+                    background: 'var(--surface)',
+                    boxShadow: 'var(--shadow-xl)',
+                    border: '1px solid var(--separator)',
+                    /* CSS custom prop used in initial/exit y */
+                    ['--notif-init-y' as any]: '100%',
+                    maxHeight: '80vh',
+                  }}
+                >
+                  {/* Drag handle — mobile only */}
+                  <div className="sm:hidden flex justify-center pt-3 pb-1">
+                    <div
+                      className="w-10 h-1 rounded-full"
+                      style={{ background: 'var(--separator-opaque)' }}
+                    />
+                  </div>
                 {/* Notif header */}
                 <div
                   className="flex items-center justify-between px-5 py-3.5"
@@ -411,17 +445,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                     })}
                   </motion.div>
                 )}
-              </motion.div>
+                </motion.div>
+              </>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Avatar / Dropdown */}
+        {/* Avatar / Dropdown — 44px minimum touch target on mobile */}
         {user || profile ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full cursor-pointer outline-none bg-separator hover:bg-separator-opaque transition-colors duration-150"
+                className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-1.5 pr-2 sm:pr-2.5 py-1 rounded-full cursor-pointer outline-none bg-separator active:bg-separator-opaque transition-colors duration-150"
+                style={{ minHeight: 44 }}
               >
                 <Avatar className="w-7 h-7 rounded-full">
                   {profile?.profilePicUrl && (

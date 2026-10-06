@@ -82,7 +82,7 @@ const useAttendanceStore = create((set) => ({
   recordsData: null,
   activeSession: null,
 
-  fetchAttendanceRecords: async ({ studentId = '', eventId = '', sessionId = '', search = '', page = 1, limit = 50 } = {}) => {
+  fetchAttendanceRecords: async ({ studentId = '', eventId = '', sessionId = '', search = '', page = 1, limit = 50, all = false } = {}) => {
     set({ loading: true, error: null });
     try {
       const params = new URLSearchParams();
@@ -90,8 +90,13 @@ const useAttendanceStore = create((set) => ({
       if (eventId) params.append('eventId', eventId);
       if (sessionId) params.append('sessionId', sessionId);
       if (search) params.append('search', search);
-      params.append('page', page);
-      params.append('limit', limit);
+      if (all) {
+        params.append('all', 'true');
+        params.append('limit', '0');
+      } else {
+        params.append('page', page);
+        params.append('limit', limit);
+      }
 
       const res = await api.get(`/attendance/records?${params.toString()}`);
       if (res.data.success) {
@@ -104,6 +109,27 @@ const useAttendanceStore = create((set) => ({
       const message = error.response?.data?.error || 'Failed to load attendance records';
       set({ error: message, loading: false });
       toast.error(message);
+      return null;
+    }
+  },
+
+  fetchAllAttendanceRecords: async ({ studentId = '', eventId = '', sessionId = '', search = '' } = {}) => {
+    try {
+      const params = new URLSearchParams();
+      if (studentId) params.append('studentId', studentId);
+      if (eventId) params.append('eventId', eventId);
+      if (sessionId) params.append('sessionId', sessionId);
+      if (search) params.append('search', search);
+      params.append('all', 'true');
+      params.append('limit', '0');
+
+      const res = await api.get(`/attendance/records?${params.toString()}`);
+      if (res.data.success) {
+        return res.data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to load all attendance records:', error);
       return null;
     }
   },

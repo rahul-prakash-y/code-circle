@@ -83,7 +83,7 @@ const Hero = ({
         </span>
       </motion.div>
 
-      {/* 2. Macro headline */}
+      {/* 2. Macro headline — clamp ensures it never overflows a phone viewport */}
       <motion.div style={{ y: headingY }} className="mb-2.5">
         <h1 className="display-headline text-label-primary">
           {greeting},
@@ -159,7 +159,7 @@ const MetricCard = ({
       onMouseMove={handleMouseMove}
       className={`${
         isPrimary ? 'surface-primary-metric' : 'surface'
-      } spotlight-card interactive-card p-5 sm:p-6 flex flex-col justify-between min-h-[162px] group cursor-default`}
+      } spotlight-card interactive-card p-4 sm:p-6 flex flex-col justify-between min-h-[148px] sm:min-h-[162px] group cursor-default`}
     >
       {/* Top row: Label on left, quiet icon + quiet arrow on right */}
       <div className="flex items-center justify-between gap-2">
@@ -183,9 +183,9 @@ const MetricCard = ({
         </div>
       </div>
 
-      {/* Middle & Bottom: LARGE NUMBER then SUPPORTING INFORMATION */}
+      {/* Number: scaled down on mobile so large values don't break layout */}
       <div className="mt-3">
-        <div className={`${isPrimary ? 'text-[2.6rem] sm:text-[2.9rem]' : 'text-[2.3rem] sm:text-[2.6rem]'} font-bold leading-none tracking-tight text-label-primary`}>
+        <div className={`${isPrimary ? 'text-[2rem] sm:text-[2.6rem] md:text-[2.9rem]' : 'text-[1.8rem] sm:text-[2.3rem] md:text-[2.6rem]'} font-bold leading-none tracking-tight text-label-primary`}>
           {isInView ? <CountUp value={value} /> : <span>0</span>}
         </div>
         {sublabel && (
@@ -204,11 +204,12 @@ const ParticipationBar = () => {
   const isInView = useInView(ref, { once: true, margin: '-40px 0px' });
 
   return (
-    <div ref={ref} className="surface p-6 sm:p-7 col-span-full">
+    <div ref={ref} className="surface p-4 sm:p-6 lg:p-7 col-span-full">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4">
         <div>
           <p className="meta-editorial text-label-secondary mb-1.5">Participation Rate</p>
-          <div className="text-[2.8rem] sm:text-[3.2rem] font-bold leading-none tracking-tight text-label-primary">
+          {/* Scale down on mobile: clamp-based so it never breaks narrow viewports */}
+          <div className="text-[2.2rem] sm:text-[2.8rem] md:text-[3.2rem] font-bold leading-none tracking-tight text-label-primary">
             94.8%
           </div>
         </div>
@@ -450,9 +451,9 @@ export const Dashboard: React.FC = () => {
         onBrowse={() => navigate('/events')}
       />
 
-      {/* Metrics grid — intentional 4-column desktop layout with primary metric hierarchy */}
-      <section className="pb-8 pt-1">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      {/* Metrics grid — mobile: 1-col, tablet: 2-col, desktop: 4-col */}
+      <section className="pb-6 sm:pb-8 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
           {metricsData.map((m, idx) => (
             <MetricCard key={m.label} {...m} isPrimary={idx === 0} />
           ))}
@@ -498,7 +499,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {featuredUpcoming.length === 0 ? (
-          <div className="surface p-10 text-center rounded-2xl border border-separator">
+          <div className="surface p-8 sm:p-10 text-center rounded-2xl border border-separator">
             <Calendar size={28} className="mx-auto text-label-tertiary mb-3" />
             <p className="text-[15px] font-semibold text-label-primary">
               No upcoming sessions scheduled
@@ -508,7 +509,7 @@ export const Dashboard: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
             {featuredUpcoming.map((event: any) => {
               const eventDate = event.date ? new Date(event.date) : new Date();
               return (
@@ -591,7 +592,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {bearersLoading && bearers.length === 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="surface p-5 rounded-2xl border border-separator animate-pulse h-44" />
             ))}
@@ -607,7 +608,7 @@ export const Dashboard: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {bearers.slice(0, 4).map((bearer) => (
               <DashboardBearerCard key={bearer._id} bearer={bearer} />
             ))}
@@ -624,7 +625,8 @@ export const Dashboard: React.FC = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Mobile: 1-col; tablet: 2-col; desktop: 4-col */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <QuickPathwayCard
             title="Skill Assessments"
             description="Algorithmic problem tracks, timed coding tests, and practical tasks."

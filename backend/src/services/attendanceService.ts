@@ -26,6 +26,7 @@ export interface AttendanceFilterOptions {
   search?: string;
   page?: number;
   limit?: number;
+  all?: boolean;
 }
 
 /**
@@ -38,6 +39,7 @@ export class AttendanceService {
   public static generateOTP(): string {
     return crypto.randomInt(100000, 1000000).toString();
   }
+
 
   /**
    * Generates a time-sensitive 6-digit OTP for a specific active event
@@ -205,8 +207,11 @@ export class AttendanceService {
    * Admin view: Query attendance records filtered by specific Student OR specific Event
    */
   public static async getAttendanceRecords(options: AttendanceFilterOptions) {
-    const { studentId, eventId, sessionId, search, page = 1, limit = 50 } = options;
-    const skip = (page - 1) * limit;
+    const { studentId, eventId, sessionId, search, page = 1, limit = 50, all } = options;
+    const isAll = Boolean(all || limit === 0);
+    const parsedLimit = isAll ? 0 : Math.max(1, limit || 50);
+    const parsedPage = isAll ? 1 : Math.max(1, page || 1);
+    const skip = isAll ? 0 : (parsedPage - 1) * parsedLimit;
 
     // Filter by student
     if (studentId) {
@@ -215,13 +220,13 @@ export class AttendanceService {
       }
 
       const student = await User.findById(studentId).select(
-        'name rollNo email department profilePicUrl'
+        'name rollNo email department college year profilePicUrl'
       );
       if (!student) {
         throw new Error('Student not found');
       }
 
-      const records = await AttendanceRecord.find({ user: studentId })
+      let query = AttendanceRecord.find({ user: studentId })
         .populate({
           path: 'session',
           populate: {
@@ -229,19 +234,22 @@ export class AttendanceService {
             select: 'title type format date status venueOrLink',
           },
         })
-        .sort({ timestamp: -1 })
-        .skip(skip)
-        .limit(limit);
+        .sort({ timestamp: -1 });
 
+      if (!isAll && parsedLimit > 0) {
+        query = query.skip(skip).limit(parsedLimit);
+      }
+
+      const records = await query;
       const total = await AttendanceRecord.countDocuments({ user: studentId });
 
       return {
         mode: 'student',
         student,
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: parsedLimit > 0 ? Math.ceil(total / parsedLimit) : 1,
         records: records.map((r: any) => ({
           _id: r._id,
           timestamp: r.timestamp,
@@ -274,39 +282,44 @@ export class AttendanceService {
       const sessions = await AttendanceSession.find(sessionQuery).select('_id sessionName otp otpExpiry isActive');
       const sessionIds = sessions.map((s) => s._id);
 
-      const records = await AttendanceRecord.find({ session: { $in: sessionIds } })
-        .populate('user', 'name rollNo email department profilePicUrl')
-        .populate('session', 'sessionName otp otpExpiry')
-        .sort({ timestamp: -1 })
-        .skip(skip)
-        .limit(limit);
+      const recordFilter: any = { session: { $in: sessionIds } };
 
-      // Search filter in-memory or on populated fields if requested
-      let filteredRecords = records;
+      // If search is provided, find user IDs matching term
       if (search && search.trim()) {
-        const term = search.trim().toLowerCase();
-        filteredRecords = records.filter((r: any) => {
-          const user = r.user;
-          return (
-            user?.name?.toLowerCase().includes(term) ||
-            user?.rollNo?.toLowerCase().includes(term) ||
-            user?.email?.toLowerCase().includes(term) ||
-            user?.department?.toLowerCase().includes(term)
-          );
-        });
+        const term = search.trim();
+        const searchRegex = new RegExp(term, 'i');
+        const matchingUsers = await User.find({
+          $or: [
+            { name: searchRegex },
+            { rollNo: searchRegex },
+            { email: searchRegex },
+            { department: searchRegex },
+          ],
+        }).select('_id');
+        recordFilter.user = { $in: matchingUsers.map((u) => u._id) };
       }
 
-      const total = await AttendanceRecord.countDocuments({ session: { $in: sessionIds } });
+      let query = AttendanceRecord.find(recordFilter)
+        .populate('user', 'name rollNo email department college year profilePicUrl')
+        .populate('session', 'sessionName otp otpExpiry')
+        .sort({ timestamp: -1 });
+
+      if (!isAll && parsedLimit > 0) {
+        query = query.skip(skip).limit(parsedLimit);
+      }
+
+      const records = await query;
+      const total = await AttendanceRecord.countDocuments(recordFilter);
 
       return {
         mode: 'event',
         event,
         sessions,
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        records: filteredRecords.map((r: any) => ({
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: parsedLimit > 0 ? Math.ceil(total / parsedLimit) : 1,
+        records: records.map((r: any) => ({
           _id: r._id,
           timestamp: r.timestamp,
           user: r.user,
@@ -316,8 +329,8 @@ export class AttendanceService {
     }
 
     // Default general query: latest attendance records across the system
-    const records = await AttendanceRecord.find()
-      .populate('user', 'name rollNo email department profilePicUrl')
+    let query = AttendanceRecord.find()
+      .populate('user', 'name rollNo email department college year profilePicUrl')
       .populate({
         path: 'session',
         populate: {
@@ -325,18 +338,21 @@ export class AttendanceService {
           select: 'title type format date status',
         },
       })
-      .sort({ timestamp: -1 })
-      .skip(skip)
-      .limit(limit);
+      .sort({ timestamp: -1 });
 
+    if (!isAll && parsedLimit > 0) {
+      query = query.skip(skip).limit(parsedLimit);
+    }
+
+    const records = await query;
     const total = await AttendanceRecord.countDocuments();
 
     return {
       mode: 'general',
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: parsedPage,
+      limit: parsedLimit,
+      totalPages: parsedLimit > 0 ? Math.ceil(total / parsedLimit) : 1,
       records: records.map((r: any) => ({
         _id: r._id,
         timestamp: r.timestamp,

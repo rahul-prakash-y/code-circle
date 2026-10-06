@@ -21,6 +21,7 @@ export interface AttendanceRecordsQuery {
   search?: string;
   page?: string;
   limit?: string;
+  all?: string;
 }
 
 export const createSession = async (
@@ -91,16 +92,20 @@ export const getAttendanceRecords = async (
   reply: FastifyReply
 ) => {
   try {
-    const { studentId, eventId, sessionId, search, page = '1', limit = '50' } =
+    const { studentId, eventId, sessionId, search, page = '1', limit = '50', all } =
       request.query;
+
+    const isAll = all === 'true' || all === '1' || limit === '0' || limit === 'all';
+    const parsedLimit = isAll ? 0 : (parseInt(limit, 10) || 50);
 
     const result = await AttendanceService.getAttendanceRecords({
       studentId: studentId ? String(studentId) : undefined,
       eventId: eventId ? String(eventId) : undefined,
       sessionId: sessionId ? String(sessionId) : undefined,
       search: search ? String(search) : undefined,
-      page: parseInt(page, 10) || 1,
-      limit: parseInt(limit, 10) || 50,
+      page: isAll ? 1 : (parseInt(page, 10) || 1),
+      limit: parsedLimit,
+      all: isAll,
     });
 
     return reply.send({

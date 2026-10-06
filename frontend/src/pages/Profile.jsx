@@ -26,6 +26,7 @@ import { auth as firebaseAuth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ImageUploadModal from '../components/profile/ImageUploadModal';
+import LeetCodeCard from '../components/profile/LeetCodeCard';
 import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
 
 const Profile = () => {
@@ -173,9 +174,9 @@ const Profile = () => {
   if (!profile) return <ProfileSkeleton />;
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 space-y-10">
+    <div className="max-w-4xl mx-auto py-6 sm:py-10 px-4 sm:px-6 space-y-6 sm:space-y-10">
       {/* Identity Header Card */}
-      <div className="surface rounded-[18px] p-8 border border-separator shadow-card relative">
+      <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card relative">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <div className="relative group cursor-pointer" onClick={() => setIsModalOpen(true)}>
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border border-separator bg-surface-elevated">
@@ -226,7 +227,21 @@ const Profile = () => {
         </div>
       </div>
 
+      {/*
+        LeetCode Stats Card — shown when the user has saved a LeetCode handle.
+        On md+ viewports it sits alongside the edit form in a 2-column grid.
+        On mobile it stacks below the identity header.
+      */}
+      {(formData.socialLinks?.leetcode || profile.socialLinks?.leetcode) && (
+        <LeetCodeCard
+          username={formData.socialLinks?.leetcode || profile.socialLinks?.leetcode}
+          className="md:hidden mb-6"
+        />
+      )}
+
+
       <form onSubmit={handleSubmit} className="space-y-8">
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Basic Information */}
@@ -426,6 +441,28 @@ const Profile = () => {
           </div>
         </div>
       </form>
+
+      {/*
+        Desktop LeetCode card — appears as a full-width section below the form,
+        but only on md+ (complementing the mobile card above the form).
+        Hidden on mobile since we already show it above.
+      */}
+      {(formData.socialLinks?.leetcode || profile.socialLinks?.leetcode) && (
+        <div className="hidden md:block">
+          <div className="mb-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.07em]" style={{ color: 'var(--label-tertiary)' }}>
+              Coding Platform
+            </p>
+            <h2 className="text-base font-semibold tracking-tight" style={{ color: 'var(--label-primary)', letterSpacing: '-0.015em' }}>
+              LeetCode Performance
+            </h2>
+          </div>
+          <LeetCodeCard
+            username={formData.socialLinks?.leetcode || profile.socialLinks?.leetcode}
+            className="max-w-xl"
+          />
+        </div>
+      )}
 
       {/* Security & Password Management */}
       <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card space-y-6">

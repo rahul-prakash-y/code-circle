@@ -157,7 +157,6 @@ export const generateCsvReport = async (type: ReportType): Promise<{ data: strin
       .populate('session')
       .populate('user', 'name rollNo department email college year')
       .sort({ createdAt: -1 })
-      .limit(500)
       .lean();
 
     const headers = ['Session Name', 'Student Name', 'Roll Number', 'College', 'Year', 'Department', 'Email', 'Marked At'];
