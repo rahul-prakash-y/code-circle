@@ -22,6 +22,7 @@ import { Link } from 'react-router-dom';
 import useBearerStore, { StudentBearer, BearerFormData } from '../store/useBearerStore';
 import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
+import ResponsiveModal from '../components/ui/ResponsiveModal';
 
 export const BearerManagement: React.FC = () => {
   const { user } = useAuthStore();
@@ -408,38 +409,25 @@ export const BearerManagement: React.FC = () => {
         </div>
       )}
 
-      {/* --- MODAL: CREATE / EDIT BEARER --- */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              className="w-full max-w-lg surface border border-separator rounded-[24px] p-6 shadow-card space-y-5"
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-separator pb-3.5">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-surface-elevated border border-separator text-text-primary flex items-center justify-center">
-                    <Crown size={18} className="text-accent" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-text-primary">
-                      {editingBearer ? 'Edit Executive Bearer' : 'Add Executive Bearer'}
-                    </h3>
-                    <p className="text-xs text-text-muted">
-                      Configure profile, portrait, role, and public bio
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-surface-elevated transition-colors cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+      {/* --- RESPONSIVE MODAL: CREATE / EDIT BEARER --- */}
+      <ResponsiveModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-surface-elevated border border-separator text-text-primary flex items-center justify-center shrink-0">
+              <Crown size={18} className="text-accent" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-text-primary">
+                {editingBearer ? 'Edit Executive Bearer' : 'Add Executive Bearer'}
+              </h3>
+            </div>
+          </div>
+        }
+        description="Configure profile portrait, leadership title, and public bio"
+        dialogClassName="sm:max-w-lg"
+      >
 
               {/* Modal Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -592,51 +580,42 @@ export const BearerManagement: React.FC = () => {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </ResponsiveModal>
 
-      {/* --- MODAL: DELETE CONFIRMATION --- */}
-      <AnimatePresence>
-        {deleteConfirmId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm surface border border-separator rounded-[24px] p-6 shadow-card space-y-4 text-center"
+      {/* --- RESPONSIVE MODAL: DELETE CONFIRMATION --- */}
+      <ResponsiveModal
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmId(null);
+        }}
+        title="Remove Bearer?"
+        description="Are you sure you want to remove this student bearer from the club council? This action is irreversible."
+        dialogClassName="sm:max-w-sm"
+      >
+        <div className="space-y-4 py-2 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto border border-destructive/20">
+            <AlertTriangle size={24} />
+          </div>
+
+          <div className="flex gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmId(null)}
+              className="flex-1 btn-secondary py-2 text-xs font-medium rounded-xl cursor-pointer"
             >
-              <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto border border-destructive/20">
-                <AlertTriangle size={24} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-text-primary">Remove Bearer?</h3>
-                <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  Are you sure you want to remove this student bearer from the club council? This action
-                  is irreversible.
-                </p>
-              </div>
-
-              <div className="flex gap-2.5 pt-2">
-                <button
-                  onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 btn-secondary py-2 text-xs font-medium rounded-xl cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDelete(deleteConfirmId)}
-                  disabled={actionLoading}
-                  className="flex-1 py-2 px-4 rounded-xl text-xs font-semibold bg-destructive hover:bg-destructive/90 text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  {actionLoading ? <Loader2 size={14} className="animate-spin" /> : 'Delete'}
-                </button>
-              </div>
-            </motion.div>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+              disabled={actionLoading}
+              className="flex-1 py-2 px-4 rounded-xl text-xs font-semibold bg-destructive hover:bg-destructive/90 text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              {actionLoading ? <Loader2 size={14} className="animate-spin" /> : 'Delete'}
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </ResponsiveModal>
     </div>
   );
 };

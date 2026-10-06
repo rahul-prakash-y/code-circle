@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { User, UserRole } from '../types/user';
 import { useDebounce } from '../hooks/useDebounce';
 import OnboardingStatsWidget from '../components/admin/OnboardingStatsWidget';
+import ResponsiveModal from '../components/ui/ResponsiveModal';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
@@ -81,40 +82,20 @@ const SlideOver: React.FC<{
   </AnimatePresence>
 );
 
-// ── Centered Modal wrapper ───────────────────────────────────────────────────
+// ── Centered Modal wrapper (powered by ResponsiveModal for Desktop Dialog + iOS Drawer)
 const CenteredModal: React.FC<{
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }> = ({ open, onClose, children }) => (
-  <AnimatePresence>
-    {open && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0"
-          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
-        />
-        <motion.div
-          initial={{ scale: 0.96, opacity: 0, y: 16 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.96, opacity: 0, y: 16 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          className="relative w-full max-w-md z-10 rounded-3xl p-8 space-y-6"
-          style={{
-            background: 'var(--surface)',
-            boxShadow: 'var(--shadow-deep-val)',
-            border: '1px solid var(--border-color)',
-          }}
-        >
-          {children}
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
+  <ResponsiveModal
+    open={open}
+    onOpenChange={(val) => {
+      if (!val) onClose();
+    }}
+  >
+    {children}
+  </ResponsiveModal>
 );
 
 // ── Metric hero number ───────────────────────────────────────────────────────
@@ -408,8 +389,8 @@ const UserManagement: React.FC = () => {
 
   // ── Shared form body ──────────────────────────────────────────────────────
   const renderUserForm = (onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
-    <form onSubmit={onSubmit} className="space-y-7 flex-1 overflow-y-auto px-6 py-6">
-      <div className="grid grid-cols-2 gap-6">
+    <form onSubmit={onSubmit} className="space-y-6 py-2 px-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <Field label="Full Name">
           <input
             type="text" required placeholder="Jane Doe"
@@ -437,7 +418,7 @@ const UserManagement: React.FC = () => {
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <Field label="Assigned Role">
           <select
             value={formData.role}
@@ -1017,81 +998,64 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* ════════════════════════════════════════════════════════
-          SLIDE-OVER: ADD USER
+          RESPONSIVE MODAL: CREATE USER
       ════════════════════════════════════════════════════════ */}
-      <SlideOver open={showAddPanel} onClose={() => setShowAddPanel(false)}>
-        <div
-          className="flex items-center justify-between px-6 py-5 shrink-0"
-          style={{ borderBottom: '1px solid var(--border-color)' }}
-        >
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-              New Member
-            </p>
-            <h2
-              className="text-xl font-black mt-0.5"
-              style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
-            >
-              Create User
-            </h2>
-          </div>
-          <button
-            onClick={() => setShowAddPanel(false)}
-            className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
-            style={{ color: 'var(--text-muted)', background: 'var(--glass-bg)' }}
-          >
-            <X size={18} strokeWidth={2} />
-          </button>
-        </div>
+      <ResponsiveModal
+        open={showAddPanel}
+        onOpenChange={setShowAddPanel}
+        title="Create User"
+        description="Add a new student, faculty member, or administrator"
+        dialogClassName="sm:max-w-xl"
+      >
         {renderUserForm(handleCreateSubmit, 'Create User')}
-      </SlideOver>
+      </ResponsiveModal>
 
       {/* ════════════════════════════════════════════════════════
-          SLIDE-OVER: EDIT USER
+          RESPONSIVE MODAL: EDIT USER
       ════════════════════════════════════════════════════════ */}
-      <SlideOver open={showEditPanel && !!selectedUser} onClose={() => { setShowEditPanel(false); setSelectedUser(null); }}>
-        {selectedUser && (
-          <>
-            <div
-              className="px-6 py-5 shrink-0"
-              style={{ borderBottom: '1px solid var(--border-color)' }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold overflow-hidden"
-                    style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
-                  >
-                    {selectedUser.profilePicUrl
-                      ? <img src={selectedUser.profilePicUrl} alt={selectedUser.name} className="w-full h-full object-cover" />
-                      : selectedUser.name.charAt(0).toUpperCase()
-                    }
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                      Editing
-                    </p>
-                    <h2
-                      className="text-lg font-black"
-                      style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
-                    >
-                      {selectedUser.name}
-                    </h2>
-                  </div>
-                </div>
-                <button
-                  onClick={() => { setShowEditPanel(false); setSelectedUser(null); }}
-                  className="p-2 rounded-xl cursor-pointer"
-                  style={{ color: 'var(--text-muted)', background: 'var(--glass-bg)' }}
-                >
-                  <X size={18} strokeWidth={2} />
-                </button>
+      <ResponsiveModal
+        open={showEditPanel && !!selectedUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowEditPanel(false);
+            setSelectedUser(null);
+          }
+        }}
+        title={
+          selectedUser ? (
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold overflow-hidden shrink-0"
+                style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
+              >
+                {selectedUser.profilePicUrl ? (
+                  <img
+                    src={selectedUser.profilePicUrl}
+                    alt={selectedUser.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  selectedUser.name.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+                  Editing Account
+                </p>
+                <h3 className="text-lg font-bold text-text-primary leading-tight">
+                  {selectedUser.name}
+                </h3>
               </div>
             </div>
-            {renderUserForm(handleEditSubmit, 'Save Changes')}
-          </>
-        )}
-      </SlideOver>
+          ) : (
+            'Edit User'
+          )
+        }
+        description="Modify student profile details, assigned permissions, and department access."
+        dialogClassName="sm:max-w-xl"
+      >
+        {selectedUser && renderUserForm(handleEditSubmit, 'Save Changes')}
+      </ResponsiveModal>
 
       {/* ════════════════════════════════════════════════════════
           CENTERED MODAL: RESET LINK
