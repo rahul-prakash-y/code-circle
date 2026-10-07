@@ -19,6 +19,12 @@ export interface User {
   department?: string;
   college?: string;
   year?: string;
+  phone?: string;
+  phoneNumber?: string;
+  dob?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bio?: string;
   hasChangedDefaultPassword?: boolean;
   mustChangePassword?: boolean;
   isOnboarded?: boolean;

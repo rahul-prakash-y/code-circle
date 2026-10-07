@@ -18,6 +18,8 @@ export interface UserPayload {
   rollNo?: string;
   department?: string;
   sessionId?: string;
+  phone?: string;
+  phoneNumber?: string;
 }
 
 export interface UserResponse {
@@ -30,6 +32,12 @@ export interface UserResponse {
   department?: string;
   college?: string;
   year?: string;
+  phone?: string;
+  phoneNumber?: string;
+  dob?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bio?: string;
   skills: string[];
   socialLinks: ISocialLinks;
   profilePicUrl?: string;

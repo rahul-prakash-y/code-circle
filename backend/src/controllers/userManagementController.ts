@@ -186,7 +186,23 @@ export const createUser = async (request: FastifyRequest, reply: FastifyReply) =
 export const updateUser = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = request.params as any;
-    const { name, email, rollNo, role, department, skills, socialLinks } = (request.body || {}) as any;
+    const {
+      name,
+      email,
+      rollNo,
+      role,
+      department,
+      skills,
+      socialLinks,
+      phone,
+      phoneNumber,
+      dob,
+      dateOfBirth,
+      gender,
+      year,
+      college,
+      bio,
+    } = (request.body || {}) as any;
     const callerRole = request.user?.role;
     const callerId = request.user?.id;
 
@@ -233,6 +249,20 @@ export const updateUser = async (request: FastifyRequest, reply: FastifyReply) =
     if (role !== undefined) targetUser.role = role;
     if (skills !== undefined) targetUser.skills = skills;
     if (socialLinks !== undefined) targetUser.socialLinks = socialLinks;
+    if (phone !== undefined || phoneNumber !== undefined) {
+      const p = (phone !== undefined ? phone : phoneNumber)?.trim() || '';
+      targetUser.phone = p;
+      targetUser.phoneNumber = p;
+    }
+    if (dob !== undefined || dateOfBirth !== undefined) {
+      const d = (dob !== undefined ? dob : dateOfBirth)?.trim() || '';
+      targetUser.dob = d;
+      targetUser.dateOfBirth = d;
+    }
+    if (gender !== undefined) targetUser.gender = gender?.trim() || '';
+    if (year !== undefined) targetUser.year = year?.trim() || '';
+    if (college !== undefined) targetUser.college = college?.trim() || 'BIT';
+    if (bio !== undefined) targetUser.bio = bio?.trim() || '';
 
     await targetUser.save();
 
