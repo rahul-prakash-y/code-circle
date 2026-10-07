@@ -24,6 +24,7 @@ const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const Profile = lazy(() => import('./pages/Profile'));
 const CodingWorkspace = lazy(() => import('./components/coding/CodingWorkspace'));
+const CodingAssessmentWorkspace = lazy(() => import('./components/coding/CodingAssessmentWorkspace'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 const TeamsManagement = lazy(() => import('./pages/TeamsManagement'));
@@ -151,6 +152,23 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/assessments/code/:problemId"
+            element={
+              <ProtectedRoute>
+                <CodingAssessmentWorkspace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assessment/code/:problemId"
+            element={
+              <ProtectedRoute>
+                <CodingAssessmentWorkspace />
+              </ProtectedRoute>
+            }
+          />
+
 
           {/* Persistent App Shell Layout Route */}
           <Route element={<MainLayout />}>

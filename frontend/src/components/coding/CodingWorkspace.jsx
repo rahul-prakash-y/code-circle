@@ -7,7 +7,7 @@ import Console from './Console';
 import useCodingStore from '../../store/useCodingStore';
 import useAntiCheat from '../../hooks/useAntiCheat';
 import AntiCheatModal from './AntiCheatModal';
-import { Loader2, Play, ChevronLeft, Star } from 'lucide-react';
+import { Loader2, Play, ChevronLeft, Star, Clock } from 'lucide-react';
 import BackgroundGradient from '../ui/BackgroundGradient';
 
 const CodingWorkspace = () => {
@@ -17,23 +17,35 @@ const CodingWorkspace = () => {
   const [code, setCode] = useState('// Write your code here...');
   const [languageId, setLanguageId] = useState(63); // Default JavaScript
   const [showConsole, setShowConsole] = useState(true);
+  const [cooldown, setCooldown] = useState(0);
 
   const { warnings, isLocked } = useAntiCheat(3, () => {
     console.log('Workspace locked due to anti-cheat trigger');
   });
 
   useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
+
+  useEffect(() => {
     fetchProblemById(id);
   }, [id, fetchProblemById]);
 
   const handleSubmit = async () => {
+    if (cooldown > 0 || isLoading) return;
     try {
+      setCooldown(10); // Enforce 10s cooldown on run
       await submitCode(id, code, languageId);
       setShowConsole(true);
     } catch (err) {
       console.error('Submission failed', err);
     }
   };
+
 
   if (!currentProblem) return (
     <div className="h-screen bg-surface flex items-center justify-center">
@@ -85,16 +97,25 @@ const CodingWorkspace = () => {
 
           <button
             onClick={handleSubmit}
-            disabled={isLoading}
-            className="btn-primary !py-2 !px-6 !text-[10px] !uppercase !tracking-widest flex items-center gap-2 group/run"
+            disabled={isLoading || cooldown > 0}
+            className="btn-primary !py-2 !px-6 !text-[10px] !uppercase !tracking-widest flex items-center gap-2 group/run disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <Loader2 className="animate-spin" size={14} />
+            ) : cooldown > 0 ? (
+              <Clock size={12} className="text-white/70 animate-pulse" />
             ) : (
               <Play size={12} strokeWidth={3} className="group-hover/run:scale-110 transition-transform" />
             )}
-            <span>{isLoading ? 'Running...' : 'Execute'}</span>
+            <span>
+              {isLoading
+                ? 'Running...'
+                : cooldown > 0
+                ? `Execute (${cooldown}s)`
+                : 'Execute'}
+            </span>
           </button>
+
         </div>
       </div>
 
