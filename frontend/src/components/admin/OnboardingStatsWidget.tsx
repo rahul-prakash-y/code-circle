@@ -26,6 +26,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import { User, OnboardingStats, OnboardingStatusItem } from '../../types/user';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface OnboardingStatsWidgetProps {
   className?: string;
@@ -46,6 +47,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
   // Filter states: Default to 'all' so all students (onboarded & pending) are shown in directory
   const [statusFilter, setStatusFilter] = useState<'not_onboarded' | 'onboarded' | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const debouncedSearch = useDebounce<string>(searchTerm, 400);
   const [selectedDept, setSelectedDept] = useState<string>('all');
 
   // Chart hover state
@@ -141,8 +143,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
       }
 
       // 3. Search Term:
-      if (searchTerm.trim()) {
-        const query = searchTerm.toLowerCase();
+      if (debouncedSearch.trim()) {
+        const query = debouncedSearch.toLowerCase();
         const matchesName = student.name?.toLowerCase().includes(query);
         const matchesEmail = student.email?.toLowerCase().includes(query);
         const matchesRoll = student.rollNo?.toLowerCase().includes(query);
@@ -152,12 +154,12 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
       return true;
     });
-  }, [students, statusFilter, selectedDept, searchTerm]);
+  }, [students, statusFilter, selectedDept, debouncedSearch]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, selectedDept, searchTerm]);
+  }, [statusFilter, selectedDept, debouncedSearch]);
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / pageSize));

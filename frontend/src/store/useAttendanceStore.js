@@ -147,6 +147,39 @@ const useAttendanceStore = create((set) => ({
       return null;
     }
   },
+
+  markManualAttendance: async ({ eventId, studentId, studentIds, sessionId, sessionName }) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.post('/attendance/manual', {
+        eventId,
+        studentId,
+        studentIds,
+        sessionId,
+        sessionName,
+      });
+      toast.success(response.data.message || 'Attendance marked successfully');
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.error || 'Failed to mark manual attendance';
+      set({ error: message, loading: false });
+      toast.error(message);
+      return null;
+    }
+  },
+
+  deleteAttendanceRecord: async (recordId) => {
+    try {
+      const response = await api.delete(`/attendance/records/${recordId}`);
+      toast.success(response.data.message || 'Attendance entry removed');
+      return true;
+    } catch (error) {
+      const message = error.response?.data?.error || 'Failed to remove attendance record';
+      toast.error(message);
+      return false;
+    }
+  },
 }));
 
 export default useAttendanceStore;

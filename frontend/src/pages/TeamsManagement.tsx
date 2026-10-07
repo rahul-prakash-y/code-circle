@@ -26,6 +26,7 @@ import useTeamStore, { Team, TeamStatus } from '../store/useTeamStore';
 import useEventStore from '../store/useEventStore';
 import useUserStore from '../store/useUserStore';
 import toast from 'react-hot-toast';
+import { useDebounce } from '../hooks/useDebounce';
 
 const TeamsManagement: React.FC = () => {
   const {
@@ -47,6 +48,7 @@ const TeamsManagement: React.FC = () => {
   const { users, fetchUsers } = useUserStore();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
   // Modal states
@@ -66,6 +68,7 @@ const TeamsManagement: React.FC = () => {
 
   // Member assignment state
   const [studentSearch, setStudentSearch] = useState('');
+  const debouncedStudentSearch = useDebounce(studentSearch, 300);
   const [manualRollNo, setManualRollNo] = useState('');
 
   useEffect(() => {
@@ -85,8 +88,9 @@ const TeamsManagement: React.FC = () => {
 
   // Filtered teams list
   const filteredTeams = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) return teams;
+    const q = debouncedSearchQuery.toLowerCase().trim();
     return teams.filter((t) => {
-      const q = searchQuery.toLowerCase();
       const matchesSearch =
         t.name.toLowerCase().includes(q) ||
         (t.description && t.description.toLowerCase().includes(q)) ||
@@ -98,7 +102,7 @@ const TeamsManagement: React.FC = () => {
         );
       return matchesSearch;
     });
-  }, [teams, searchQuery]);
+  }, [teams, debouncedSearchQuery]);
 
   // Handle Create Submit
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -804,11 +808,11 @@ const TeamsManagement: React.FC = () => {
                   />
                 </div>
 
-                {studentSearch.trim() && (
+                {debouncedStudentSearch.trim() && (
                   <div className="max-h-36 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                     {users
                       .filter((u) => {
-                        const q = studentSearch.toLowerCase();
+                        const q = debouncedStudentSearch.toLowerCase().trim();
                         const isAlreadyMember = selectedTeam.members?.some((m) => m._id === u._id);
                         return (
                           !isAlreadyMember &&

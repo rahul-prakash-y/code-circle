@@ -23,6 +23,7 @@ import toast from 'react-hot-toast';
 import TakeAssessmentModal from './TakeAssessmentModal';
 import AssessmentEditorModal from './AssessmentEditorModal';
 import AssessmentSubmissionsModal from './AssessmentSubmissionsModal';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const categories = ['All', 'Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
 
@@ -54,10 +55,16 @@ export const AssessmentList = () => {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [submissionsAssessmentId, setSubmissionsAssessmentId] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
+  const [searchTerm, setSearchTerm] = useState(searchQuery || '');
+  const debouncedSearch = useDebounce(searchTerm, 400);
 
   useEffect(() => {
     fetchAssessments();
   }, [fetchAssessments]);
+
+  useEffect(() => {
+    setSearchQuery(debouncedSearch);
+  }, [debouncedSearch, setSearchQuery]);
 
   const handleDelete = async (id, title) => {
     if (window.confirm(`Are you sure you want to permanently delete the assessment "${title}"?`)) {
@@ -113,8 +120,8 @@ export const AssessmentList = () => {
               <input
                 type="text"
                 placeholder="Search assessments..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="bg-transparent border-none text-xs text-text-primary focus:outline-none placeholder-text-muted/70 w-36 sm:w-48"
               />
             </div>

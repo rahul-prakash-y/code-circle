@@ -20,11 +20,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
+  Trash2,
+  UserPlus,
 } from 'lucide-react';
 import useAttendanceStore from '../../store/useAttendanceStore';
 import useEventStore from '../../store/useEventStore';
 import useUserStore from '../../store/useUserStore';
 import GenerateOtpModal from './GenerateOtpModal';
+import ManualAttendanceModal from './ManualAttendanceModal';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { getStudentCollege, getStudentYear } from './EventParticipantsModal';
@@ -37,6 +40,7 @@ const AttendanceRecordsView: React.FC = () => {
     fetchAttendanceRecords,
     fetchAllAttendanceRecords,
     fetchActiveSession,
+    deleteAttendanceRecord,
     loading,
   } = useAttendanceStore();
   const { events, fetchEvents } = useEventStore();
@@ -49,6 +53,7 @@ const AttendanceRecordsView: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>('');
+  const debouncedStudentSearch = useDebounce<string>(studentSearchTerm, 350);
   // Table search with debouncing
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearch = useDebounce<string>(searchTerm, 400);
@@ -60,8 +65,37 @@ const AttendanceRecordsView: React.FC = () => {
 
   // Modals & Active Session state
   const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
   const [copiedOtp, setCopiedOtp] = useState(false);
   const [remainingSecs, setRemainingSecs] = useState<number>(0);
+
+  // Helper to re-fetch attendance records
+  const refreshRecords = () => {
+    setCurrentPage(1);
+    if (filterMode === 'event' && selectedEventId) {
+      fetchAttendanceRecords({ eventId: selectedEventId, search: debouncedSearch, all: true });
+      fetchActiveSession(selectedEventId);
+    } else if (filterMode === 'student' && selectedStudentId) {
+      fetchAttendanceRecords({ studentId: selectedStudentId, search: debouncedSearch, all: true });
+    }
+  };
+
+  const handleDeleteRecord = async (recordId: string, studentName?: string) => {
+    if (!window.confirm(`Are you sure you want to remove attendance for ${studentName || 'this student'}?`)) {
+      return;
+    }
+
+    setDeletingRecordId(recordId);
+    try {
+      const ok = await deleteAttendanceRecord(recordId);
+      if (ok) {
+        refreshRecords();
+      }
+    } finally {
+      setDeletingRecordId(null);
+    }
+  };
 
   // Load initial events & users
   useEffect(() => {
@@ -120,7 +154,7 @@ const AttendanceRecordsView: React.FC = () => {
   const formatCountdown = (secs: number) => {
     const mins = Math.floor(secs / 60);
     const remainder = secs % 60;
-    return `${mins}m ${remainder < 10 ? '0' : ''}${remainder}s`;
+    return `${mins}m ${remainder < 10 ? '0' : ''}${remainder}`;
   };
 
   // Helper for generating pagination numbers
@@ -140,8 +174,8 @@ const AttendanceRecordsView: React.FC = () => {
   // Filtered and paginated records in Event mode
   const allEventRecords = useMemo(() => recordsData?.records || [], [recordsData]);
   const filteredEventRecords = useMemo(() => {
-    if (!searchTerm.trim()) return allEventRecords;
-    const term = searchTerm.toLowerCase();
+    if (!debouncedSearch.trim()) return allEventRecords;
+    const term = debouncedSearch.toLowerCase();
     return allEventRecords.filter((r: any) => {
       const user = r.user;
       return (
@@ -152,7 +186,7 @@ const AttendanceRecordsView: React.FC = () => {
         r.session?.sessionName?.toLowerCase().includes(term)
       );
     });
-  }, [allEventRecords, searchTerm]);
+  }, [allEventRecords, debouncedSearch]);
 
   const totalEventPages = Math.max(1, Math.ceil(filteredEventRecords.length / pageSize));
   const paginatedEventRecords = useMemo(() => {
@@ -163,8 +197,8 @@ const AttendanceRecordsView: React.FC = () => {
   // Filtered and paginated records in Student mode
   const allStudentRecords = useMemo(() => recordsData?.records || [], [recordsData]);
   const filteredStudentRecords = useMemo(() => {
-    if (!searchTerm.trim()) return allStudentRecords;
-    const term = searchTerm.toLowerCase();
+    if (!debouncedSearch.trim()) return allStudentRecords;
+    const term = debouncedSearch.toLowerCase();
     return allStudentRecords.filter((r: any) => {
       return (
         r.event?.title?.toLowerCase().includes(term) ||
@@ -173,7 +207,7 @@ const AttendanceRecordsView: React.FC = () => {
         r.event?.format?.toLowerCase().includes(term)
       );
     });
-  }, [allStudentRecords, searchTerm]);
+  }, [allStudentRecords, debouncedSearch]);
 
   const totalStudentPages = Math.max(1, Math.ceil(filteredStudentRecords.length / pageSize));
   const paginatedStudentRecords = useMemo(() => {
@@ -340,8 +374,8 @@ const AttendanceRecordsView: React.FC = () => {
 
   // Filtered student candidates for student mode search
   const studentCandidates = useMemo(() => {
-    if (!studentSearchTerm.trim()) return users.slice(0, 8);
-    const q = studentSearchTerm.toLowerCase();
+    if (!debouncedStudentSearch.trim()) return users.slice(0, 8);
+    const q = debouncedStudentSearch.toLowerCase();
     return users.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
@@ -349,7 +383,7 @@ const AttendanceRecordsView: React.FC = () => {
         u.email.toLowerCase().includes(q) ||
         (u.department && u.department.toLowerCase().includes(q))
     );
-  }, [users, studentSearchTerm]);
+  }, [users, debouncedStudentSearch]);
 
   return (
     <div className="space-y-4 sm:space-y-6 py-2 max-w-7xl mx-auto">
@@ -362,7 +396,17 @@ const AttendanceRecordsView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => setShowManualModal(true)}
+            className="btn-secondary flex items-center gap-2 text-xs font-semibold cursor-pointer"
+            style={{ minHeight: 44 }}
+            title="Mark attendance manually for a student without requiring OTP"
+          >
+            <UserCheck size={15} className="text-accent" />
+            <span>Manual Attendance</span>
+          </button>
+
           <button
             onClick={() => setShowOtpModal(true)}
             className="btn-primary flex items-center gap-2 text-xs font-semibold cursor-pointer"
@@ -496,14 +540,24 @@ const AttendanceRecordsView: React.FC = () => {
 
             {/* Event Summary Editorial Meta */}
             {recordsData?.event && (
-              <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-separator text-xs text-text-muted">
-                <span>Type: <strong className="text-text-primary font-medium">{recordsData.event.type}</strong></span>
-                <span>•</span>
-                <span>Format: <strong className="text-text-primary font-medium">{recordsData.event.format}</strong></span>
-                <span>•</span>
-                <span>Status: <strong className="text-text-primary font-medium">{recordsData.event.status}</strong></span>
-                <span>•</span>
-                <span>Total Present: <strong className="text-text-primary font-semibold">{filteredEventRecords.length}</strong></span>
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-separator text-xs text-text-muted">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span>Type: <strong className="text-text-primary font-medium">{recordsData.event.type}</strong></span>
+                  <span>•</span>
+                  <span>Format: <strong className="text-text-primary font-medium">{recordsData.event.format}</strong></span>
+                  <span>•</span>
+                  <span>Status: <strong className="text-text-primary font-medium">{recordsData.event.status}</strong></span>
+                  <span>•</span>
+                  <span>Total Present: <strong className="text-text-primary font-semibold">{filteredEventRecords.length}</strong></span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowManualModal(true)}
+                  className="text-xs font-semibold text-accent hover:underline flex items-center gap-1.5 cursor-pointer ml-auto"
+                >
+                  <UserPlus size={13} />
+                  <span>+ Mark Student Attendance</span>
+                </button>
               </div>
             )}
           </div>
@@ -591,10 +645,25 @@ const AttendanceRecordsView: React.FC = () => {
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
                           {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
                         </td>
-                        <td className="px-4 sm:px-6 py-3.5 text-right">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase whitespace-nowrap">
-                            Verified
-                          </span>
+                        <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
+                              Verified
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRecord(r._id, r.user?.name)}
+                              disabled={deletingRecordId === r._id}
+                              className="p-1 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer disabled:opacity-40"
+                              title="Delete this attendance record"
+                            >
+                              {deletingRecordId === r._id ? (
+                                <RefreshCw size={12} className="animate-spin text-red-500" />
+                              ) : (
+                                <Trash2 size={13} />
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -661,6 +730,8 @@ const AttendanceRecordsView: React.FC = () => {
                       <option value={25}>25</option>
                       <option value={50}>50</option>
                       <option value={100}>100</option>
+                      <option value={250}>250</option>
+                      <option value={500}>All (500)</option>
                     </select>
                   </div>
                 </div>
@@ -838,10 +909,25 @@ const AttendanceRecordsView: React.FC = () => {
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
                           {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
                         </td>
-                        <td className="px-4 sm:px-6 py-3.5 text-right">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase whitespace-nowrap">
-                            Verified
-                          </span>
+                        <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
+                              Verified
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRecord(r._id, recordsData?.student?.name)}
+                              disabled={deletingRecordId === r._id}
+                              className="p-1 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer disabled:opacity-40"
+                              title="Delete this attendance record"
+                            >
+                              {deletingRecordId === r._id ? (
+                                <RefreshCw size={12} className="animate-spin text-red-500" />
+                              ) : (
+                                <Trash2 size={13} />
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -908,6 +994,8 @@ const AttendanceRecordsView: React.FC = () => {
                       <option value={25}>25</option>
                       <option value={50}>50</option>
                       <option value={100}>100</option>
+                      <option value={250}>250</option>
+                      <option value={500}>All (500)</option>
                     </select>
                   </div>
                 </div>
@@ -963,6 +1051,14 @@ const AttendanceRecordsView: React.FC = () => {
 
       {/* Reusable Generate OTP Modal */}
       <GenerateOtpModal isOpen={showOtpModal} onClose={() => setShowOtpModal(false)} />
+
+      {/* Manual Attendance Entry Modal */}
+      <ManualAttendanceModal
+        isOpen={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        initialEventId={selectedEventId}
+        onSuccess={refreshRecords}
+      />
     </div>
   );
 };

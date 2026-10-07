@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -21,6 +21,7 @@ import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import SubmitFeedbackModal from './SubmitFeedbackModal';
 import toast from 'react-hot-toast';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const FeedbackDashboard = () => {
   const {
@@ -43,6 +44,7 @@ const FeedbackDashboard = () => {
 
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
 
   const effectiveRole = profile?.role || user?.role || 'Student';
   const isSuperAdminRole = effectiveRole?.toLowerCase() === 'superadmin';
@@ -65,20 +67,22 @@ const FeedbackDashboard = () => {
     }
   };
 
-  const filteredFeedbacks = feedbacks.filter((fb) => {
-    const q = search.toLowerCase().trim();
-    if (!q) return true;
-    const authorName = isSuperAdmin ? (fb.user?.name || '') : 'anonymous user';
-    const authorRoll = isSuperAdmin ? (fb.user?.rollNo || '') : '';
-    const commentText = fb.comment || '';
-    const cat = fb.category || '';
-    return (
-      authorName.toLowerCase().includes(q) ||
-      authorRoll.toLowerCase().includes(q) ||
-      commentText.toLowerCase().includes(q) ||
-      cat.toLowerCase().includes(q)
-    );
-  });
+  const filteredFeedbacks = useMemo(() => {
+    return feedbacks.filter((fb) => {
+      const q = debouncedSearch.toLowerCase().trim();
+      if (!q) return true;
+      const authorName = isSuperAdmin ? (fb.user?.name || '') : 'anonymous user';
+      const authorRoll = isSuperAdmin ? (fb.user?.rollNo || '') : '';
+      const commentText = fb.comment || '';
+      const cat = fb.category || '';
+      return (
+        authorName.toLowerCase().includes(q) ||
+        authorRoll.toLowerCase().includes(q) ||
+        commentText.toLowerCase().includes(q) ||
+        cat.toLowerCase().includes(q)
+      );
+    });
+  }, [feedbacks, debouncedSearch, isSuperAdmin]);
 
   return (
     <div className="space-y-6">

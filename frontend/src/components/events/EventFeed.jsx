@@ -9,6 +9,7 @@ import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
 import EventParticipantsModal from '../admin/EventParticipantsModal';
 import { EventCardSkeleton } from '../ui/LoadingSkeleton';
+import { useDebounce } from '../../hooks/useDebounce';
 import { 
   Search, 
   CalendarCheck, 
@@ -41,6 +42,7 @@ export const EventFeed = ({
   const [selectedType, setSelectedType] = useState('all');
   const [selectedFormat, setSelectedFormat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 350);
   const [viewMode, setViewMode] = useState('grid');
 
   // Selected event for modals
@@ -92,10 +94,12 @@ export const EventFeed = ({
   }
 
   const filteredEvents = eventsToDisplay.filter((event) => {
+    const q = debouncedSearch.toLowerCase().trim();
     const matchesSearch =
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (event.venueOrLink && event.venueOrLink.toLowerCase().includes(searchQuery.toLowerCase()));
+      !q ||
+      event.title.toLowerCase().includes(q) ||
+      event.description.toLowerCase().includes(q) ||
+      (event.venueOrLink && event.venueOrLink.toLowerCase().includes(q));
 
     const matchesType = selectedType === 'all' || event.type === selectedType;
     const matchesFormat =

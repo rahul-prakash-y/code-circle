@@ -23,6 +23,7 @@ import useBearerStore, { StudentBearer, BearerFormData } from '../store/useBeare
 import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const BearerManagement: React.FC = () => {
   const { user } = useAuthStore();
@@ -38,6 +39,7 @@ export const BearerManagement: React.FC = () => {
   } = useBearerStore();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 350);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBearer, setEditingBearer] = useState<StudentBearer | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -105,15 +107,16 @@ export const BearerManagement: React.FC = () => {
 
   // Filter bearers
   const filteredBearers = useMemo(() => {
+    if (!debouncedSearch.trim()) return bearers;
+    const q = debouncedSearch.toLowerCase().trim();
     return bearers.filter((b) => {
-      const q = searchQuery.toLowerCase();
       return (
         b.name.toLowerCase().includes(q) ||
         b.position.toLowerCase().includes(q) ||
         (b.bio && b.bio.toLowerCase().includes(q))
       );
     });
-  }, [bearers, searchQuery]);
+  }, [bearers, debouncedSearch]);
 
   // Open modal for Create
   const handleOpenCreate = () => {

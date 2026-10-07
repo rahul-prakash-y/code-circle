@@ -138,10 +138,84 @@ const getUserAttendanceHistory = async (request, reply) => {
   }
 };
 
+const markManualAttendance = async (request, reply) => {
+  try {
+    const user = request.user;
+    const { eventId, studentId, studentIds, sessionId, sessionName } = request.body || {};
+    const AttendanceService = require('../services/attendanceService').default || require('../services/attendanceService');
+
+    const result = await AttendanceService.markManualAttendance({
+      eventId,
+      studentId,
+      studentIds,
+      sessionId,
+      sessionName,
+      adminId: String(user.id || user._id),
+    });
+
+    return reply.send(result);
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(400).send({ success: false, error: error.message || 'Failed to mark manual attendance' });
+  }
+};
+
+const deleteAttendanceRecord = async (request, reply) => {
+  try {
+    const { recordId } = request.params;
+    const AttendanceService = require('../services/attendanceService').default || require('../services/attendanceService');
+    const result = await AttendanceService.deleteAttendanceRecord(recordId);
+    return reply.send(result);
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(400).send({ success: false, error: error.message || 'Failed to delete record' });
+  }
+};
+
+const getAttendanceRecords = async (request, reply) => {
+  try {
+    const { studentId, eventId, sessionId, search, page = '1', limit = '50', all } = request.query || {};
+    const AttendanceService = require('../services/attendanceService').default || require('../services/attendanceService');
+    const isAll = all === 'true' || all === '1' || limit === '0' || limit === 'all';
+    const parsedLimit = isAll ? 0 : (parseInt(limit, 10) || 50);
+
+    const result = await AttendanceService.getAttendanceRecords({
+      studentId: studentId ? String(studentId) : undefined,
+      eventId: eventId ? String(eventId) : undefined,
+      sessionId: sessionId ? String(sessionId) : undefined,
+      search: search ? String(search) : undefined,
+      page: isAll ? 1 : (parseInt(page, 10) || 1),
+      limit: parsedLimit,
+      all: isAll,
+    });
+
+    return reply.send({ success: true, data: result });
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(400).send({ success: false, error: error.message || 'Failed to fetch attendance records' });
+  }
+};
+
+const getActiveSession = async (request, reply) => {
+  try {
+    const { eventId } = request.params;
+    const AttendanceService = require('../services/attendanceService').default || require('../services/attendanceService');
+    const session = await AttendanceService.getActiveSessionForEvent(eventId);
+    return reply.send({ success: true, session });
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to fetch active session' });
+  }
+};
+
 module.exports = {
   createSession,
   markAttendance,
+  markManualAttendance,
+  deleteAttendanceRecord,
   getEventSessions,
   getSessionAttendance,
-  getUserAttendanceHistory
+  getUserAttendanceHistory,
+  getAttendanceRecords,
+  getActiveSession,
 };

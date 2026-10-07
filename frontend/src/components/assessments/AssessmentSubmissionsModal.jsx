@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { X, Users, Award, CheckCircle2, XCircle, Search, Clock, Calendar } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const AssessmentSubmissionsModal = ({ assessmentId, isOpen, onClose }) => {
   const { assessmentSubmissions, fetchAssessmentSubmissions, loading } = useAssessmentStore();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
 
   useEffect(() => {
     if (isOpen && assessmentId) {
@@ -13,17 +15,20 @@ const AssessmentSubmissionsModal = ({ assessmentId, isOpen, onClose }) => {
     }
   }, [isOpen, assessmentId, fetchAssessmentSubmissions]);
 
-  if (!isOpen) return null;
+  const filteredSubmissions = useMemo(() => {
+    if (!debouncedSearch.trim()) return assessmentSubmissions;
+    const query = debouncedSearch.toLowerCase().trim();
+    return assessmentSubmissions.filter((sub) => {
+      const student = sub.user || {};
+      return (
+        (student.name || '').toLowerCase().includes(query) ||
+        (student.rollNo || '').toLowerCase().includes(query) ||
+        (student.email || '').toLowerCase().includes(query)
+      );
+    });
+  }, [assessmentSubmissions, debouncedSearch]);
 
-  const filteredSubmissions = assessmentSubmissions.filter((sub) => {
-    const student = sub.user || {};
-    const query = search.toLowerCase().trim();
-    return (
-      (student.name || '').toLowerCase().includes(query) ||
-      (student.rollNo || '').toLowerCase().includes(query) ||
-      (student.email || '').toLowerCase().includes(query)
-    );
-  });
+  if (!isOpen) return null;
 
   const formatSeconds = (sec) => {
     const mins = Math.floor((sec || 0) / 60);

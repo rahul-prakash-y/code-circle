@@ -25,6 +25,7 @@ import {
 import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import toast from 'react-hot-toast';
+import { useDebounce } from '../../hooks/useDebounce';
 
 // Helper to get student college, always defaulting to 'BIT'
 export const getStudentCollege = (user) => {
@@ -115,6 +116,7 @@ export const EventParticipantsModal = ({
   const { fetchEventEnrollments, generateCertificates, loading } = useEnrollmentStore();
   const [enrollments, setEnrollments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 350);
   const [formatFilter, setFormatFilter] = useState('all');
   const [attendanceFilter, setAttendanceFilter] = useState('all');
   const [expandedTeams, setExpandedTeams] = useState(new Set());
@@ -189,7 +191,7 @@ export const EventParticipantsModal = ({
   // Filter logic
   const filteredEnrollments = useMemo(() => {
     return enrollments.filter((e) => {
-      const q = searchQuery.toLowerCase().trim();
+      const q = debouncedSearch.toLowerCase().trim();
 
       // Check leader
       const leaderMatch =
@@ -225,7 +227,7 @@ export const EventParticipantsModal = ({
 
       return matchesSearch && matchesFormat && matchesAttendance;
     });
-  }, [enrollments, searchQuery, formatFilter, attendanceFilter]);
+  }, [enrollments, debouncedSearch, formatFilter, attendanceFilter]);
 
   const toggleExpand = (id) => {
     setExpandedTeams((prev) => {

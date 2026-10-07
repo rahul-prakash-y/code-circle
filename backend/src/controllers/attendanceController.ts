@@ -207,9 +207,74 @@ export const getUserAttendanceHistory = async (
   }
 };
 
+export interface MarkManualAttendanceBody {
+  eventId: string;
+  studentId?: string;
+  studentIds?: string[];
+  sessionId?: string;
+  sessionName?: string;
+}
+
+export const markManualAttendance = async (
+  request: FastifyRequest<{ Body: MarkManualAttendanceBody }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { eventId, studentId, studentIds, sessionId, sessionName } = request.body || {};
+
+    if (!eventId) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Event ID is required',
+      });
+    }
+
+    const result = await AttendanceService.markManualAttendance({
+      eventId,
+      studentId,
+      studentIds,
+      sessionId,
+      sessionName,
+      adminId: (user.id || user._id) as string,
+    });
+
+    return reply.status(200).send(result);
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(400).send({
+      success: false,
+      error: error.message || 'Failed to mark manual attendance',
+    });
+  }
+};
+
+export const deleteAttendanceRecord = async (
+  request: FastifyRequest<{ Params: { recordId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { recordId } = request.params;
+    const result = await AttendanceService.deleteAttendanceRecord(recordId);
+    return reply.send(result);
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(400).send({
+      success: false,
+      error: error.message || 'Failed to delete attendance record',
+    });
+  }
+};
+
 export default {
   createSession,
   markAttendance,
+  markManualAttendance,
+  deleteAttendanceRecord,
   getAttendanceRecords,
   getActiveSession,
   getEventSessions,

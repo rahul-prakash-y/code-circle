@@ -284,7 +284,7 @@ export class AttendanceService {
 
       const recordFilter: any = { session: { $in: sessionIds } };
 
-      // If search is provided, find user IDs matching term
+      // If search is provided, find user IDs matching term or session names matching term
       if (search && search.trim()) {
         const term = search.trim();
         const searchRegex = new RegExp(term, 'i');
@@ -296,7 +296,16 @@ export class AttendanceService {
             { department: searchRegex },
           ],
         }).select('_id');
-        recordFilter.user = { $in: matchingUsers.map((u) => u._id) };
+
+        const matchingSessions = await AttendanceSession.find({
+          event: eventId,
+          sessionName: searchRegex,
+        }).select('_id');
+
+        recordFilter.$or = [
+          { user: { $in: matchingUsers.map((u) => u._id) } },
+          { session: { $in: matchingSessions.map((s) => s._id) } },
+        ];
       }
 
       let query = AttendanceRecord.find(recordFilter)
@@ -360,6 +369,204 @@ export class AttendanceService {
         sessionName: r.session?.sessionName,
         event: r.session?.event,
       })),
+    };
+  }
+
+  /**
+   * Admin manual attendance entry: marks attendance for a student (or multiple students) without requiring OTP
+   */
+  public static async markManualAttendance({
+    eventId,
+    studentId,
+    studentIds,
+    sessionId,
+    sessionName,
+    adminId,
+  }: {
+    eventId: string;
+    studentId?: string;
+    studentIds?: string[];
+    sessionId?: string;
+    sessionName?: string;
+    adminId: string;
+  }) {
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      throw new Error('Invalid event ID format');
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    if (event.status === 'Cancelled') {
+      throw new Error('Cannot mark attendance for a cancelled event');
+    }
+
+    // Resolve or create session
+    let session: IAttendanceSession | null = null;
+    if (sessionId) {
+      if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+        throw new Error('Invalid session ID format');
+      }
+      session = await AttendanceSession.findOne({ _id: sessionId, event: eventId });
+      if (!session) {
+        throw new Error('Selected session does not belong to this event');
+      }
+    } else {
+      // Look for active unexpired session first
+      session = await AttendanceSession.findOne({
+        event: eventId,
+        isActive: true,
+        otpExpiry: { $gt: new Date() },
+      }).sort({ createdAt: -1 });
+
+      // If no active session, look for the most recently created session
+      if (!session) {
+        session = await AttendanceSession.findOne({ event: eventId }).sort({ createdAt: -1 });
+      }
+
+      // If still no session exists for the event, auto-create a manual attendance session
+      if (!session) {
+        const otp = this.generateOTP();
+        const title = sessionName?.trim() || 'Manual Attendance Session';
+        session = await AttendanceSession.create({
+          event: event._id,
+          sessionName: title,
+          otp,
+          otpExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          isActive: true,
+          createdBy: new mongoose.Types.ObjectId(adminId),
+        });
+        attendanceBuffer.setEventOTP(event._id.toString(), otp);
+      }
+    }
+
+    // Normalize student IDs
+    const rawList = studentIds && Array.isArray(studentIds) ? studentIds : (studentId ? [studentId] : []);
+    const validIds = rawList.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length === 0) {
+      throw new Error('Please select at least one valid student to mark attendance');
+    }
+
+    const users = await User.find({ _id: { $in: validIds } }).select('_id name rollNo email department college year profilePicUrl');
+    if (users.length === 0) {
+      throw new Error('Selected student(s) not found in system');
+    }
+
+    const newlyMarked: any[] = [];
+    const alreadyMarked: any[] = [];
+
+    for (const u of users) {
+      // Find existing record in current session OR across any session of this event
+      let existing = await AttendanceRecord.findOne({
+        session: session._id,
+        user: u._id,
+      });
+
+      if (!existing) {
+        const allEventSessions = await AttendanceSession.find({ event: event._id }).select('_id');
+        existing = await AttendanceRecord.findOne({
+          session: { $in: allEventSessions.map((s) => s._id) },
+          user: u._id,
+        });
+      }
+
+      if (existing) {
+        // Refresh timestamp to NOW so the manual entry floats to the top of verified attendees
+        existing.timestamp = new Date();
+        existing.session = session._id;
+        await existing.save();
+        alreadyMarked.push(u);
+        newlyMarked.push(u);
+      } else {
+        await AttendanceRecord.create({
+          session: session._id,
+          user: u._id,
+          timestamp: new Date(),
+        });
+        newlyMarked.push(u);
+      }
+
+      // Synchronize attendanceStatus in Enrollment if enrolled
+      try {
+        const enrollment = await Enrollment.findOne({
+          event: event._id,
+          $or: [{ enrolledBy: u._id }, { members: u._id }],
+        });
+
+        if (enrollment && !enrollment.attendanceStatus) {
+          enrollment.attendanceStatus = true;
+          await enrollment.save();
+        }
+      } catch (enrollErr) {
+        console.warn('[AttendanceService] Could not sync enrollment attendanceStatus for manual entry:', enrollErr);
+      }
+    }
+
+    return {
+      success: true,
+      message:
+        newlyMarked.length > 0
+          ? `Successfully marked attendance for ${newlyMarked.length} student${newlyMarked.length > 1 ? 's' : ''}${alreadyMarked.length > 0 ? ` (${alreadyMarked.length} already marked)` : ''}`
+          : `Student(s) (${alreadyMarked.length}) already marked present for "${session.sessionName}"`,
+      markedCount: newlyMarked.length,
+      alreadyMarkedCount: alreadyMarked.length,
+      newlyMarked,
+      alreadyMarked,
+      session: {
+        _id: session._id,
+        sessionName: session.sessionName,
+        otp: session.otp,
+      },
+    };
+  }
+
+  /**
+   * Delete attendance record manually (Admin override)
+   */
+  public static async deleteAttendanceRecord(recordId: string) {
+    if (!mongoose.Types.ObjectId.isValid(recordId)) {
+      throw new Error('Invalid record ID format');
+    }
+
+    const record = await AttendanceRecord.findById(recordId).populate<{ session: any }>('session');
+    if (!record) {
+      throw new Error('Attendance record not found');
+    }
+
+    const userId = record.user;
+    const eventId = record.session?.event;
+
+    await AttendanceRecord.findByIdAndDelete(recordId);
+
+    // Revert enrollment status if no remaining attendance records for this student in this event
+    if (eventId) {
+      const eventSessions = await AttendanceSession.find({ event: eventId }).select('_id');
+      const remainingCount = await AttendanceRecord.countDocuments({
+        user: userId,
+        session: { $in: eventSessions.map((s) => s._id) },
+      });
+
+      if (remainingCount === 0) {
+        try {
+          const enrollment = await Enrollment.findOne({
+            event: eventId,
+            $or: [{ enrolledBy: userId }, { members: userId }],
+          });
+          if (enrollment && enrollment.attendanceStatus) {
+            enrollment.attendanceStatus = false;
+            await enrollment.save();
+          }
+        } catch (err) {
+          console.warn('[AttendanceService] Could not revert enrollment attendanceStatus:', err);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Attendance record deleted successfully',
     };
   }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import useStudentStore from '../store/useStudentStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -7,6 +7,7 @@ import {
   AlertTriangle, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useDebounce } from '../hooks/useDebounce';
 
 const StudentManagement = () => {
   const { 
@@ -16,6 +17,7 @@ const StudentManagement = () => {
   } = useStudentStore();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 400);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -24,11 +26,15 @@ const StudentManagement = () => {
     fetchStudents();
   }, [fetchStudents]);
 
-  const filteredStudents = students.filter(student => 
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = useMemo(() => {
+    if (!debouncedSearch.trim()) return students;
+    const q = debouncedSearch.toLowerCase().trim();
+    return students.filter(student => 
+      student.name.toLowerCase().includes(q) ||
+      student.rollNo.toLowerCase().includes(q) ||
+      student.email.toLowerCase().includes(q)
+    );
+  }, [students, debouncedSearch]);
 
   const handleToggleBlock = async (student) => {
     const action = student.isBlocked ? 'unblock' : 'block';
