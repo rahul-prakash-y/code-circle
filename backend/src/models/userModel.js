@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema({
     email: { type: String, default: '' }
   },
   profilePicUrl: { type: String, default: '' },
+  points: { type: Number, default: 0, index: true },
   resetPasswordToken: { type: String, default: null, index: true },
   resetPasswordExpires: { type: Date, default: null }
 }, { timestamps: true });

@@ -175,7 +175,23 @@ export const EventDetailsModal = ({
                     Date & Schedule
                   </p>
                   <p className="text-sm font-bold text-label-primary mt-0.5">
-                    {eventDate ? format(eventDate, 'EEEE, MMMM d, yyyy') : 'TBA'}
+                    {event.startDate && event.endDate && event.startDate.split('T')[0] !== event.endDate.split('T')[0]
+                      ? `${format(new Date(event.startDate), 'MMM d')} – ${format(new Date(event.endDate), 'MMM d, yyyy')}`
+                      : eventDate ? format(eventDate, 'EEEE, MMMM d, yyyy') : 'TBA'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-canvas border border-separator flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                  <Award size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary tracking-wider">
+                    Attendance Points
+                  </p>
+                  <p className="text-sm font-bold text-amber-500 mt-0.5 font-mono">
+                    {event.hourlyPoints !== undefined ? event.hourlyPoints : 50} pts / class hour
                   </p>
                 </div>
               </div>

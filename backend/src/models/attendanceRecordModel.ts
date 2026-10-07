@@ -4,6 +4,7 @@ export interface IAttendanceRecord extends Document {
   session: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
   timestamp: Date;
+  pointsAwarded: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +24,11 @@ const attendanceRecordSchema = new Schema<IAttendanceRecord>(
     timestamp: {
       type: Date,
       default: Date.now,
+    },
+    pointsAwarded: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
   },
   {

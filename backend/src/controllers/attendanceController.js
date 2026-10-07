@@ -9,87 +9,46 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 const createSession = async (request, reply) => {
   try {
     const user = request.user;
-    const { event: eventId, sessionName, durationMinutes = 60 } = request.body;
+    const { event: eventId, sessionName, durationMinutes = 60, classHours, hourlyPoints } = request.body || {};
 
     if (!eventId || !sessionName) {
       return reply.status(400).send({ error: 'Event ID and session name are required' });
     }
 
-    const event = await Event.findById(eventId);
-    if (!event) return reply.status(404).send({ error: 'Event not found' });
-
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + durationMinutes * 60000);
-
-    const session = await AttendanceSession.create({
-      event: eventId,
-      sessionName: sessionName.trim(),
-      otp,
-      otpExpiry,
-      createdBy: user._id
+    const AttendanceService = require('../services/attendanceService').default || require('../services/attendanceService');
+    const session = await AttendanceService.createSession({
+      eventId,
+      sessionName,
+      durationMinutes: Number(durationMinutes) || 60,
+      adminId: String(user.id || user._id),
+      classHours: Array.isArray(classHours) ? classHours : undefined,
+      hourlyPoints: typeof hourlyPoints === 'number' ? hourlyPoints : (hourlyPoints ? Number(hourlyPoints) : undefined),
     });
 
     return reply.status(201).send(session);
   } catch (error) {
     request.log.error(error);
-    return reply.status(500).send({ error: 'Failed to create attendance session' });
+    return reply.status(400).send({ error: error.message || 'Failed to create attendance session' });
   }
 };
 
 const markAttendance = async (request, reply) => {
   try {
     const user = request.user;
-    const { otp } = request.body;
+    const { otp } = request.body || {};
 
     if (!otp) return reply.status(400).send({ error: 'OTP is required' });
 
-    // Find active session matching this OTP
-    const session = await AttendanceSession.findOne({ 
-      otp: otp.trim(), 
-      isActive: true,
-      otpExpiry: { $gt: new Date() }
-    }).populate('event');
-
-    if (!session) {
-      return reply.status(400).send({ error: 'Invalid or expired OTP' });
-    }
-
-    // Check if user is enrolled in the event
-    const enrollment = await Enrollment.findOne({
-      event: session.event._id,
-      $or: [{ enrolledBy: user._id }, { members: user._id }]
+    const AttendanceService = require('../services/attendanceService').default || require('../services/attendanceService');
+    const result = await AttendanceService.markAttendance({
+      userId: String(user.id || user._id),
+      otp,
     });
 
-    if (!enrollment) {
-      return reply.status(403).send({ error: 'You are not enrolled in this event' });
-    }
-
-    // Create attendance record and sync enrollment status
-    try {
-      await AttendanceRecord.create({
-        session: session._id,
-        user: user._id
-      });
-
-      // Synchronize attendanceStatus on the enrollment
-      if (!enrollment.attendanceStatus) {
-        enrollment.attendanceStatus = true;
-        await enrollment.save();
-      }
-
-      return reply.send({ 
-        message: `Attendance marked successfully for "${session.sessionName}"`,
-        sessionName: session.sessionName
-      });
-    } catch (err) {
-      if (err.code === 11000) {
-        return reply.status(400).send({ error: 'Attendance has already been marked for this session' });
-      }
-      throw err;
-    }
+    return reply.send(result);
   } catch (error) {
     request.log.error(error);
-    return reply.status(500).send({ error: 'Failed to mark attendance' });
+    return reply.status(400).send({ error: error.message || 'Failed to mark attendance' });
   }
 };
 
@@ -141,7 +100,7 @@ const getUserAttendanceHistory = async (request, reply) => {
 const markManualAttendance = async (request, reply) => {
   try {
     const user = request.user;
-    const { eventId, studentId, studentIds, sessionId, sessionName } = request.body || {};
+    const { eventId, studentId, studentIds, sessionId, sessionName, classHours, hourlyPoints } = request.body || {};
     const AttendanceService = require('../services/attendanceService').default || require('../services/attendanceService');
 
     const result = await AttendanceService.markManualAttendance({
@@ -151,6 +110,8 @@ const markManualAttendance = async (request, reply) => {
       sessionId,
       sessionName,
       adminId: String(user.id || user._id),
+      classHours: Array.isArray(classHours) ? classHours : undefined,
+      hourlyPoints: typeof hourlyPoints === 'number' ? hourlyPoints : (hourlyPoints ? Number(hourlyPoints) : undefined),
     });
 
     return reply.send(result);

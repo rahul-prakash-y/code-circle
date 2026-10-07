@@ -12,6 +12,8 @@ export interface CreateSessionInput {
   sessionName: string;
   durationMinutes?: number;
   adminId: string;
+  classHours?: number[];
+  hourlyPoints?: number;
 }
 
 export interface MarkAttendanceInput {
@@ -49,6 +51,8 @@ export class AttendanceService {
     sessionName,
     durationMinutes = 60,
     adminId,
+    classHours,
+    hourlyPoints,
   }: CreateSessionInput) {
     if (!mongoose.Types.ObjectId.isValid(eventId)) {
       throw new Error('Invalid event ID format');
@@ -69,6 +73,20 @@ export class AttendanceService {
       { $set: { isActive: false } }
     );
 
+    // Validate and sanitize class hours (1-7)
+    const rawHours = Array.isArray(classHours) && classHours.length > 0 ? classHours : [1];
+    const sanitizedHours = Array.from(new Set(rawHours.map(Number)))
+      .filter((h) => Number.isInteger(h) && h >= 1 && h <= 7)
+      .sort((a, b) => a - b);
+    const finalClassHours = sanitizedHours.length > 0 ? sanitizedHours : [1];
+
+    const finalHourlyPoints =
+      typeof hourlyPoints === 'number' && !isNaN(hourlyPoints) && hourlyPoints >= 0
+        ? hourlyPoints
+        : ((event as any).hourlyPoints ?? 50);
+
+    const totalPoints = finalHourlyPoints * finalClassHours.length;
+
     const otp = this.generateOTP();
     const otpExpiry = new Date(Date.now() + Math.max(1, durationMinutes) * 60 * 1000);
 
@@ -79,6 +97,9 @@ export class AttendanceService {
       otpExpiry,
       isActive: true,
       createdBy: new mongoose.Types.ObjectId(adminId),
+      classHours: finalClassHours,
+      hourlyPoints: finalHourlyPoints,
+      totalPoints,
     });
 
     // Prime the high-performance in-memory AttendanceBuffer for instant reads
@@ -92,12 +113,18 @@ export class AttendanceService {
         type: event.type,
         format: event.format,
         date: event.date,
+        startDate: (event as any).startDate,
+        endDate: (event as any).endDate,
+        hourlyPoints: (event as any).hourlyPoints,
         status: event.status,
       },
       sessionName: session.sessionName,
       otp: session.otp,
       otpExpiry: session.otpExpiry,
       durationMinutes,
+      classHours: session.classHours,
+      hourlyPoints: session.hourlyPoints,
+      totalPoints: session.totalPoints,
       isActive: session.isActive,
       createdAt: session.createdAt,
     };
@@ -138,12 +165,24 @@ export class AttendanceService {
       throw new Error('Attendance has already been marked for this session');
     }
 
+    // Determine points to award based on mapped class hours
+    const pointsToAward =
+      typeof (session as any).totalPoints === 'number'
+        ? (session as any).totalPoints
+        : (((session as any).hourlyPoints || 50) * (((session as any).classHours && (session as any).classHours.length) ? (session as any).classHours.length : 1));
+
     // Record attendance
     const record = await AttendanceRecord.create({
       session: session._id,
       user: new mongoose.Types.ObjectId(userId),
       timestamp: new Date(),
+      pointsAwarded: pointsToAward,
     });
+
+    // Credit points to user profile for leaderboard
+    if (pointsToAward > 0) {
+      await User.findByIdAndUpdate(userId, { $inc: { points: pointsToAward } });
+    }
 
     // Synchronize attendanceStatus in Enrollment if enrolled
     try {
@@ -162,12 +201,15 @@ export class AttendanceService {
 
     return {
       success: true,
-      message: `Attendance marked successfully for "${session.sessionName}"`,
+      message: `Attendance marked successfully for "${session.sessionName}" (+${pointsToAward} pts awarded)`,
       recordId: record._id,
+      pointsAwarded: pointsToAward,
       event: {
         _id: session.event._id,
         title: session.event.title,
         date: session.event.date,
+        startDate: session.event.startDate,
+        endDate: session.event.endDate,
         type: session.event.type,
         format: session.event.format,
       },
@@ -229,9 +271,10 @@ export class AttendanceService {
       let query = AttendanceRecord.find({ user: studentId })
         .populate({
           path: 'session',
+          select: 'sessionName otp classHours hourlyPoints totalPoints event',
           populate: {
             path: 'event',
-            select: 'title type format date status venueOrLink',
+            select: 'title type format date startDate endDate hourlyPoints status venueOrLink',
           },
         })
         .sort({ timestamp: -1 });
@@ -256,6 +299,8 @@ export class AttendanceService {
           sessionName: r.session?.sessionName || 'General Session',
           otp: r.session?.otp,
           event: r.session?.event || null,
+          pointsAwarded: r.pointsAwarded ?? r.session?.totalPoints ?? 0,
+          classHours: r.session?.classHours || [],
         })),
       };
     }
@@ -267,7 +312,7 @@ export class AttendanceService {
       }
 
       const event = await Event.findById(eventId).select(
-        'title description type format date status venueOrLink'
+        'title description type format date startDate endDate hourlyPoints status venueOrLink'
       );
       if (!event) {
         throw new Error('Event not found');
@@ -279,7 +324,7 @@ export class AttendanceService {
         sessionQuery._id = sessionId;
       }
 
-      const sessions = await AttendanceSession.find(sessionQuery).select('_id sessionName otp otpExpiry isActive');
+      const sessions = await AttendanceSession.find(sessionQuery).select('_id sessionName otp otpExpiry isActive classHours hourlyPoints totalPoints');
       const sessionIds = sessions.map((s) => s._id);
 
       const recordFilter: any = { session: { $in: sessionIds } };
@@ -309,8 +354,8 @@ export class AttendanceService {
       }
 
       let query = AttendanceRecord.find(recordFilter)
-        .populate('user', 'name rollNo email department college year profilePicUrl')
-        .populate('session', 'sessionName otp otpExpiry')
+        .populate('user', 'name rollNo email department college year profilePicUrl points')
+        .populate('session', 'sessionName otp otpExpiry classHours hourlyPoints totalPoints')
         .sort({ timestamp: -1 });
 
       if (!isAll && parsedLimit > 0) {
@@ -333,18 +378,21 @@ export class AttendanceService {
           timestamp: r.timestamp,
           user: r.user,
           session: r.session,
+          pointsAwarded: r.pointsAwarded ?? r.session?.totalPoints ?? 0,
+          classHours: r.session?.classHours || [],
         })),
       };
     }
 
     // Default general query: latest attendance records across the system
     let query = AttendanceRecord.find()
-      .populate('user', 'name rollNo email department college year profilePicUrl')
+      .populate('user', 'name rollNo email department college year profilePicUrl points')
       .populate({
         path: 'session',
+        select: 'sessionName otp classHours hourlyPoints totalPoints event',
         populate: {
           path: 'event',
-          select: 'title type format date status',
+          select: 'title type format date startDate endDate hourlyPoints status',
         },
       })
       .sort({ timestamp: -1 });
@@ -367,7 +415,10 @@ export class AttendanceService {
         timestamp: r.timestamp,
         user: r.user,
         sessionName: r.session?.sessionName,
+        session: r.session,
         event: r.session?.event,
+        pointsAwarded: r.pointsAwarded ?? r.session?.totalPoints ?? 0,
+        classHours: r.session?.classHours || [],
       })),
     };
   }
@@ -382,6 +433,8 @@ export class AttendanceService {
     sessionId,
     sessionName,
     adminId,
+    classHours,
+    hourlyPoints,
   }: {
     eventId: string;
     studentId?: string;
@@ -389,6 +442,8 @@ export class AttendanceService {
     sessionId?: string;
     sessionName?: string;
     adminId: string;
+    classHours?: number[];
+    hourlyPoints?: number;
   }) {
     if (!mongoose.Types.ObjectId.isValid(eventId)) {
       throw new Error('Invalid event ID format');
@@ -430,6 +485,17 @@ export class AttendanceService {
       if (!session) {
         const otp = this.generateOTP();
         const title = sessionName?.trim() || 'Manual Attendance Session';
+        const rawHours = Array.isArray(classHours) && classHours.length > 0 ? classHours : [1];
+        const sanitizedHours = Array.from(new Set(rawHours.map(Number)))
+          .filter((h) => Number.isInteger(h) && h >= 1 && h <= 7)
+          .sort((a, b) => a - b);
+        const finalClassHours = sanitizedHours.length > 0 ? sanitizedHours : [1];
+        const finalHourlyPoints =
+          typeof hourlyPoints === 'number' && !isNaN(hourlyPoints) && hourlyPoints >= 0
+            ? hourlyPoints
+            : ((event as any).hourlyPoints ?? 50);
+        const totalPoints = finalHourlyPoints * finalClassHours.length;
+
         session = await AttendanceSession.create({
           event: event._id,
           sessionName: title,
@@ -437,6 +503,9 @@ export class AttendanceService {
           otpExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
           isActive: true,
           createdBy: new mongoose.Types.ObjectId(adminId),
+          classHours: finalClassHours,
+          hourlyPoints: finalHourlyPoints,
+          totalPoints,
         });
         attendanceBuffer.setEventOTP(event._id.toString(), otp);
       }
@@ -449,10 +518,15 @@ export class AttendanceService {
       throw new Error('Please select at least one valid student to mark attendance');
     }
 
-    const users = await User.find({ _id: { $in: validIds } }).select('_id name rollNo email department college year profilePicUrl');
+    const users = await User.find({ _id: { $in: validIds } }).select('_id name rollNo email department college year profilePicUrl points');
     if (users.length === 0) {
       throw new Error('Selected student(s) not found in system');
     }
+
+    const pointsToAward =
+      typeof (session as any).totalPoints === 'number'
+        ? (session as any).totalPoints
+        : (((session as any).hourlyPoints || 50) * (((session as any).classHours && (session as any).classHours.length) ? (session as any).classHours.length : 1));
 
     const newlyMarked: any[] = [];
     const alreadyMarked: any[] = [];
@@ -476,6 +550,11 @@ export class AttendanceService {
         // Refresh timestamp to NOW so the manual entry floats to the top of verified attendees
         existing.timestamp = new Date();
         existing.session = session._id;
+        // If existing record did not have points awarded yet, award them now
+        if ((!existing.pointsAwarded || existing.pointsAwarded === 0) && pointsToAward > 0) {
+          existing.pointsAwarded = pointsToAward;
+          await User.findByIdAndUpdate(u._id, { $inc: { points: pointsToAward } });
+        }
         await existing.save();
         alreadyMarked.push(u);
         newlyMarked.push(u);
@@ -484,7 +563,11 @@ export class AttendanceService {
           session: session._id,
           user: u._id,
           timestamp: new Date(),
+          pointsAwarded: pointsToAward,
         });
+        if (pointsToAward > 0) {
+          await User.findByIdAndUpdate(u._id, { $inc: { points: pointsToAward } });
+        }
         newlyMarked.push(u);
       }
 
@@ -508,8 +591,9 @@ export class AttendanceService {
       success: true,
       message:
         newlyMarked.length > 0
-          ? `Successfully marked attendance for ${newlyMarked.length} student${newlyMarked.length > 1 ? 's' : ''}${alreadyMarked.length > 0 ? ` (${alreadyMarked.length} already marked)` : ''}`
+          ? `Successfully marked attendance for ${newlyMarked.length} student${newlyMarked.length > 1 ? 's' : ''}${alreadyMarked.length > 0 ? ` (${alreadyMarked.length} already marked)` : ''} (+${pointsToAward} pts each)`
           : `Student(s) (${alreadyMarked.length}) already marked present for "${session.sessionName}"`,
+      pointsAwarded: pointsToAward,
       markedCount: newlyMarked.length,
       alreadyMarkedCount: alreadyMarked.length,
       newlyMarked,
@@ -518,6 +602,9 @@ export class AttendanceService {
         _id: session._id,
         sessionName: session.sessionName,
         otp: session.otp,
+        classHours: (session as any).classHours,
+        hourlyPoints: (session as any).hourlyPoints,
+        totalPoints: (session as any).totalPoints,
       },
     };
   }
@@ -537,8 +624,14 @@ export class AttendanceService {
 
     const userId = record.user;
     const eventId = record.session?.event;
+    const pointsToDeduct = (record as any).pointsAwarded || 0;
 
     await AttendanceRecord.findByIdAndDelete(recordId);
+
+    // Deduct points awarded from user
+    if (pointsToDeduct > 0 && userId) {
+      await User.findByIdAndUpdate(userId, { $inc: { points: -pointsToDeduct } });
+    }
 
     // Revert enrollment status if no remaining attendance records for this student in this event
     if (eventId) {

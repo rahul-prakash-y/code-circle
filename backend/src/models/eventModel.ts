@@ -10,6 +10,9 @@ export interface IEvent extends Document {
   type: EventType;
   format: EventFormat;
   date: Date;
+  startDate: Date;
+  endDate: Date;
+  hourlyPoints: number;
   status: EventStatus;
   venueOrLink: string;
   maxParticipants: number;
@@ -59,6 +62,17 @@ const eventSchema = new Schema<IEvent>(
     date: {
       type: Date,
       required: [true, 'Event date is required'],
+    },
+    startDate: {
+      type: Date,
+    },
+    endDate: {
+      type: Date,
+    },
+    hourlyPoints: {
+      type: Number,
+      default: 50,
+      min: [0, 'Hourly points cannot be negative'],
     },
     status: {
       type: String,
@@ -114,12 +128,23 @@ const eventSchema = new Schema<IEvent>(
   }
 );
 
-// Backward compatibility pre-save hook:
-// If an older payload provided type='Individual' or 'Team', map it to format
+// Backward compatibility and date sync pre-save hook:
 eventSchema.pre('save', function () {
   if (this.type === 'Individual' || this.type === 'Team') {
     this.format = this.type as EventFormat;
     this.type = 'Technical';
+  }
+  if (!this.startDate && this.date) {
+    this.startDate = this.date;
+  }
+  if (!this.date && this.startDate) {
+    this.date = this.startDate;
+  }
+  if (!this.endDate) {
+    this.endDate = this.startDate || this.date;
+  }
+  if (this.hourlyPoints === undefined || this.hourlyPoints === null) {
+    this.hourlyPoints = 50;
   }
 });
 

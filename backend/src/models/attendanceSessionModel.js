@@ -24,6 +24,20 @@ const attendanceSessionSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  classHours: {
+    type: [Number],
+    default: [1]
+  },
+  hourlyPoints: {
+    type: Number,
+    default: 50,
+    min: 0
+  },
+  totalPoints: {
+    type: Number,
+    default: 50,
+    min: 0
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

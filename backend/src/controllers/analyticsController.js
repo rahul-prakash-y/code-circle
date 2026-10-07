@@ -154,6 +154,7 @@ exports.getLeaderboard = async (req, reply) => {
         $addFields: {
           totalPoints: {
             $add: [
+              { $ifNull: ['$points', 0] },
               { $multiply: ['$eventsAttended', 10] },
               { $multiply: ['$problemsSolved', 5] }
             ]
@@ -166,6 +167,7 @@ exports.getLeaderboard = async (req, reply) => {
           rollNo: 1,
           department: 1,
           profilePicUrl: 1,
+          points: { $ifNull: ['$points', 0] },
           totalPoints: 1,
           eventsAttended: 1,
           problemsSolved: 1

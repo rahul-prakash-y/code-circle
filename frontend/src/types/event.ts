@@ -17,6 +17,9 @@ export interface ClubEvent {
   title: string;
   description: string;
   date: string;
+  startDate?: string;
+  endDate?: string;
+  hourlyPoints?: number;
   venueOrLink: string;
   type: string;
   format?: EventFormat;
@@ -53,6 +56,9 @@ export interface AttendanceSession {
   otp: string;
   otpExpiry: string;
   isActive: boolean;
+  classHours?: number[];
+  hourlyPoints?: number;
+  totalPoints?: number;
   createdBy?: User | string;
   createdAt?: string;
   updatedAt?: string;
@@ -63,6 +69,8 @@ export interface AttendanceRecord {
   session: AttendanceSession | string;
   user: User | string;
   timestamp: string;
+  pointsAwarded?: number;
+  classHours?: number[];
 }
 
 export interface LeaderboardEntry {
@@ -71,6 +79,7 @@ export interface LeaderboardEntry {
   rollNo: string;
   department?: string;
   profilePicUrl?: string;
+  points?: number;
   totalPoints: number;
   eventsAttended: number;
   problemsSolved: number;

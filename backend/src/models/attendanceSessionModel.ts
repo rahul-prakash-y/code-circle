@@ -6,6 +6,9 @@ export interface IAttendanceSession extends Document {
   otp: string;
   otpExpiry: Date;
   isActive: boolean;
+  classHours: number[];
+  hourlyPoints: number;
+  totalPoints: number;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -34,6 +37,20 @@ const attendanceSessionSchema = new Schema<IAttendanceSession>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    classHours: {
+      type: [Number],
+      default: [1],
+    },
+    hourlyPoints: {
+      type: Number,
+      default: 50,
+      min: 0,
+    },
+    totalPoints: {
+      type: Number,
+      default: 50,
+      min: 0,
     },
     createdBy: {
       type: Schema.Types.ObjectId,

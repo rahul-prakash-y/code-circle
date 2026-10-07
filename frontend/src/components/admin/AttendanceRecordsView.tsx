@@ -22,6 +22,7 @@ import {
   Layers,
   Trash2,
   UserPlus,
+  Award,
 } from 'lucide-react';
 import useAttendanceStore from '../../store/useAttendanceStore';
 import useEventStore from '../../store/useEventStore';
@@ -516,9 +517,19 @@ const AttendanceRecordsView: React.FC = () => {
                       </p>
                     </div>
                     <h4 className="text-lg font-bold text-text-primary">{activeSession.sessionName}</h4>
-                    <p className="text-xs text-text-muted font-mono">
-                      Expires in: <strong className="text-text-primary">{formatCountdown(remainingSecs)}</strong>
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <p className="text-xs text-text-muted font-mono">
+                        Expires in: <strong className="text-text-primary">{formatCountdown(remainingSecs)}</strong>
+                      </p>
+                      {activeSession.classHours && activeSession.classHours.length > 0 && (
+                        <span className="px-2 py-0.5 rounded-md bg-accent/10 text-accent font-semibold text-[10.5px] border border-accent/20">
+                          {activeSession.classHours.length} Period{activeSession.classHours.length > 1 ? 's' : ''} (Hrs {activeSession.classHours.join(', ')})
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 font-bold font-mono text-[10.5px] border border-amber-500/20">
+                        +{activeSession.totalPoints || ((activeSession.hourlyPoints || 50) * (activeSession.classHours?.length || 1))} Leaderboard Pts
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -593,7 +604,8 @@ const AttendanceRecordsView: React.FC = () => {
                     <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">College</th>
                     <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Year</th>
                     <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Department</th>
-                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Session</th>
+                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Session & Hours</th>
+                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Points Awarded</th>
                     <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Verified At</th>
                     <th className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">Status</th>
                   </tr>
@@ -640,7 +652,20 @@ const AttendanceRecordsView: React.FC = () => {
                           {r.user?.department || 'General'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-secondary whitespace-nowrap">
-                          {r.session?.sessionName || 'General Session'}
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-text-primary">{r.session?.sessionName || 'General Session'}</span>
+                            {r.session?.classHours && r.session.classHours.length > 0 && (
+                              <span className="text-[10px] text-accent font-mono">
+                                Hours {r.session.classHours.join(', ')} ({r.session.classHours.length} hr{r.session.classHours.length > 1 ? 's' : ''})
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 sm:px-6 py-3.5 text-xs whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 rounded-full font-mono font-bold text-[11px]">
+                            <Award size={11} className="text-amber-400" />
+                            +{r.pointsAwarded ?? r.session?.totalPoints ?? 0} pts
+                          </span>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
                           {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
@@ -669,7 +694,7 @@ const AttendanceRecordsView: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="px-6 py-14 text-center">
+                      <td colSpan={9} className="px-6 py-14 text-center">
                         <div className="max-w-sm mx-auto space-y-1.5">
                           <ShieldCheck className="w-9 h-9 text-text-muted mx-auto opacity-30" />
                           <p className="text-text-primary font-medium text-sm">
@@ -884,7 +909,8 @@ const AttendanceRecordsView: React.FC = () => {
                       <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Event Title</th>
                       <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Type & Format</th>
                       <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Event Date</th>
-                      <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Session Name</th>
+                      <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Session & Hours</th>
+                      <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Points</th>
                       <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Verified At</th>
                       <th className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">Status</th>
                     </tr>
@@ -904,7 +930,20 @@ const AttendanceRecordsView: React.FC = () => {
                           {r.event?.date ? format(new Date(r.event.date), 'MMM dd, yyyy') : '—'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-secondary whitespace-nowrap">
-                          {r.sessionName || 'General Session'}
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-text-primary">{r.sessionName || 'General Session'}</span>
+                            {r.classHours && r.classHours.length > 0 && (
+                              <span className="text-[10px] text-accent font-mono">
+                                Hours {r.classHours.join(', ')} ({r.classHours.length} hr{r.classHours.length > 1 ? 's' : ''})
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 sm:px-6 py-3.5 text-xs whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 rounded-full font-mono font-bold text-[11px]">
+                            <Award size={11} className="text-amber-400" />
+                            +{r.pointsAwarded || 0} pts
+                          </span>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
                           {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
@@ -933,7 +972,7 @@ const AttendanceRecordsView: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-14 text-center">
+                      <td colSpan={7} className="px-6 py-14 text-center">
                         <div className="max-w-sm mx-auto space-y-1.5">
                           <ShieldCheck className="w-9 h-9 text-text-muted mx-auto opacity-30" />
                           <p className="text-text-primary font-medium text-sm">

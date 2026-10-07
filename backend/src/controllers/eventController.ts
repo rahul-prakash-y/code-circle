@@ -9,6 +9,9 @@ export interface CreateEventBody {
   type?: EventType;
   format?: EventFormat;
   date: string | Date;
+  startDate?: string | Date;
+  endDate?: string | Date;
+  hourlyPoints?: number;
   status?: EventStatus;
   venueOrLink?: string;
   maxParticipants?: number;
@@ -41,6 +44,9 @@ export const createEvent = async (
       type = 'Technical',
       format = 'Individual',
       date,
+      startDate,
+      endDate,
+      hourlyPoints = 50,
       status = 'Upcoming',
       venueOrLink = 'Campus / Online',
       maxParticipants = 0,
@@ -50,24 +56,31 @@ export const createEvent = async (
       customFields = [],
     } = request.body;
 
-    if (!title || !description || !date) {
+    if (!title || !description || (!date && !startDate)) {
       return reply.status(400).send({
         success: false,
-        error: 'Title, description, and date are required fields',
+        error: 'Title, description, and event date are required fields',
       });
     }
+
+    const eventDate = startDate ? new Date(startDate) : (date ? new Date(date) : new Date());
+    const evStartDate = startDate ? new Date(startDate) : eventDate;
+    const evEndDate = endDate ? new Date(endDate) : evStartDate;
 
     const event = await Event.create({
       title: title.trim(),
       description: description.trim(),
       type,
       format,
-      date: new Date(date),
+      date: eventDate,
+      startDate: evStartDate,
+      endDate: evEndDate,
+      hourlyPoints: Number(hourlyPoints) >= 0 ? Number(hourlyPoints) : 50,
       status,
       venueOrLink: venueOrLink.trim(),
       maxParticipants: Number(maxParticipants) >= 0 ? Number(maxParticipants) : 0,
       maxTeamSize: format === 'Duo' ? 2 : (Number(maxTeamSize) > 0 ? Number(maxTeamSize) : 4),
-      registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : new Date(date),
+      registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : eventDate,
       certificateTemplateUrl: certificateTemplateUrl ? certificateTemplateUrl.trim() : '',
       customFields: Array.isArray(customFields) ? customFields : [],
       createdBy: new mongoose.Types.ObjectId(user.id || user._id),
@@ -217,6 +230,19 @@ export const updateEvent = async (
 
     if (updateData.date) {
       updateData.date = new Date(updateData.date);
+    }
+
+    if (updateData.startDate) {
+      updateData.startDate = new Date(updateData.startDate);
+      if (!updateData.date) updateData.date = updateData.startDate;
+    }
+
+    if (updateData.endDate) {
+      updateData.endDate = new Date(updateData.endDate);
+    }
+
+    if (updateData.hourlyPoints !== undefined) {
+      updateData.hourlyPoints = Number(updateData.hourlyPoints) >= 0 ? Number(updateData.hourlyPoints) : 50;
     }
 
     if (updateData.registrationDeadline) {

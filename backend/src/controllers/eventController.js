@@ -7,6 +7,9 @@ const createEvent = async (request, reply) => {
       title, 
       description, 
       date, 
+      startDate,
+      endDate,
+      hourlyPoints = 50,
       venueOrLink, 
       type, 
       format,
@@ -16,25 +19,31 @@ const createEvent = async (request, reply) => {
       customFields
     } = request.body;
 
-    if (!title || !description || !date || !venueOrLink || !type || !registrationDeadline) {
+    if (!title || !description || (!date && !startDate) || !venueOrLink || !type) {
       return reply.status(400).send({ 
-        error: 'Title, description, date, venue/link, type, and registration deadline are required' 
+        error: 'Title, description, event date, venue/link, and type are required' 
       });
     }
 
+    const eventDate = startDate ? new Date(startDate) : new Date(date);
+    const evStartDate = startDate ? new Date(startDate) : eventDate;
+    const evEndDate = endDate ? new Date(endDate) : evStartDate;
     const eventFormat = format || (type === 'Team' ? 'Team' : 'Individual');
     const computedMax = Number(maxParticipants) >= 0 ? Number(maxParticipants) : 0;
 
     const event = await Event.create({
       title,
       description,
-      date,
+      date: eventDate,
+      startDate: evStartDate,
+      endDate: evEndDate,
+      hourlyPoints: Number(hourlyPoints) >= 0 ? Number(hourlyPoints) : 50,
       venueOrLink,
       type,
       format: eventFormat,
       maxParticipants: computedMax,
       maxTeamSize: eventFormat === 'Duo' ? 2 : (Number(request.body.maxTeamSize) > 0 ? Number(request.body.maxTeamSize) : 4),
-      registrationDeadline,
+      registrationDeadline: registrationDeadline || eventDate,
       certificateTemplateUrl: certificateTemplateUrl ? String(certificateTemplateUrl).trim() : '',
       customFields: Array.isArray(customFields) ? customFields : [],
       createdBy: user._id

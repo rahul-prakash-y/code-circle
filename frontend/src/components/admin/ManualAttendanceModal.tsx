@@ -17,6 +17,7 @@ import {
   Plus,
   Clock,
   Sparkles,
+  Award,
 } from 'lucide-react';
 import useAttendanceStore from '../../store/useAttendanceStore';
 import useEventStore from '../../store/useEventStore';
@@ -69,6 +70,8 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [isCreatingNewSession, setIsCreatingNewSession] = useState<boolean>(false);
   const [newSessionName, setNewSessionName] = useState<string>('Manual Attendance Session');
+  const [selectedClassHours, setSelectedClassHours] = useState<number[]>([1]);
+  const [hourlyPoints, setHourlyPoints] = useState<number>(50);
 
   // Active view tab
   const [activeTab, setActiveTab] = useState<'roster' | 'search'>('roster');
@@ -102,6 +105,7 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
       setRosterSearch('');
       setIsCreatingNewSession(false);
       setNewSessionName('Manual Attendance Session');
+      setSelectedClassHours([1]);
       if (initialEventId) {
         setSelectedEventId(initialEventId);
       }
@@ -114,6 +118,18 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
       setSelectedEventId(initialEventId || events[0]._id);
     }
   }, [isOpen, events, selectedEventId, initialEventId]);
+
+  // Synchronize hourly points from selected event
+  useEffect(() => {
+    if (events && selectedEventId) {
+      const ev = events.find((e: any) => e._id === selectedEventId);
+      if (ev && ev.hourlyPoints !== undefined && !isNaN(Number(ev.hourlyPoints))) {
+        setHourlyPoints(Number(ev.hourlyPoints));
+      } else {
+        setHourlyPoints(50);
+      }
+    }
+  }, [events, selectedEventId]);
 
   // Load event sessions and enrolled roster when selectedEventId changes
   useEffect(() => {
@@ -267,6 +283,8 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
 
       if (isCreatingNewSession) {
         payload.sessionName = newSessionName.trim() || 'Manual Attendance Session';
+        payload.classHours = selectedClassHours;
+        payload.hourlyPoints = Number(hourlyPoints) || 50;
       } else if (selectedSessionId) {
         payload.sessionId = selectedSessionId;
       }
@@ -319,6 +337,8 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
 
       if (isCreatingNewSession) {
         payload.sessionName = newSessionName.trim() || 'Manual Attendance Session';
+        payload.classHours = selectedClassHours;
+        payload.hourlyPoints = Number(hourlyPoints) || 50;
       } else if (selectedSessionId) {
         payload.sessionId = selectedSessionId;
       }
@@ -492,35 +512,121 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                   onClick={() => setIsCreatingNewSession(!isCreatingNewSession)}
                   className="text-[11px] font-bold text-accent hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  {isCreatingNewSession ? 'Pick Existing Session' : '+ New Session'}
+                  {isCreatingNewSession ? 'Pick Existing Session' : '+ New Session with Hours'}
                 </button>
               </div>
 
               {isCreatingNewSession ? (
-                <input
-                  type="text"
-                  value={newSessionName}
-                  onChange={(e) => setNewSessionName(e.target.value)}
-                  placeholder="e.g. Day 1 - Lab Manual Entry"
-                  className="input-field py-2 text-xs w-full"
-                />
+                <div className="space-y-2.5 pt-1">
+                  <input
+                    type="text"
+                    value={newSessionName}
+                    onChange={(e) => setNewSessionName(e.target.value)}
+                    placeholder="e.g. Day 1 - Lab Manual Entry"
+                    className="input-field py-2 text-xs w-full"
+                  />
+
+                  {/* 7 Class Hours Mapping */}
+                  <div className="p-2.5 rounded-xl bg-canvas/70 border border-separator space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-label-secondary flex items-center gap-1">
+                        <Layers size={12} className="text-accent" /> Map Class Hours:
+                      </span>
+                      <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">
+                        +{selectedClassHours.length * (Number(hourlyPoints) || 0)} pts/student
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1">
+                      {[1, 2, 3, 4, 5, 6, 7].map((hr) => {
+                        const isSelected = selectedClassHours.includes(hr);
+                        return (
+                          <button
+                            key={hr}
+                            type="button"
+                            onClick={() => {
+                              setSelectedClassHours((prev) => {
+                                if (prev.includes(hr)) {
+                                  if (prev.length === 1) return prev;
+                                  return prev.filter((h) => h !== hr).sort((a, b) => a - b);
+                                } else {
+                                  return [...prev, hr].sort((a, b) => a - b);
+                                }
+                              });
+                            }}
+                            className={`py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                              isSelected
+                                ? 'bg-accent text-white border-blue-400 shadow-xs'
+                                : 'bg-surface text-label-secondary border-separator hover:text-label-primary'
+                            }`}
+                          >
+                            H{hr}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-label-secondary">
+                      <span>{selectedClassHours.length} hr{selectedClassHours.length > 1 ? 's' : ''} × {hourlyPoints} pts</span>
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedClassHours([1, 2, 3, 4])}
+                          className="hover:text-accent font-semibold underline"
+                        >
+                          1-4
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedClassHours([5, 6, 7])}
+                          className="hover:text-accent font-semibold underline"
+                        >
+                          5-7
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedClassHours([1, 2, 3, 4, 5, 6, 7])}
+                          className="hover:text-accent font-semibold underline"
+                        >
+                          All 7
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <select
-                  value={selectedSessionId}
-                  onChange={(e) => setSelectedSessionId(e.target.value)}
-                  className="input-field py-2 text-xs w-full font-medium"
-                  disabled={sessions.length === 0}
-                >
-                  {sessions.length === 0 ? (
-                    <option value="">No sessions yet (auto-generates manual session)</option>
-                  ) : (
-                    sessions.map((s: any) => (
-                      <option key={s._id} value={s._id}>
-                        {s.sessionName} {s.isActive ? '(Active)' : '(Closed)'} • OTP: {s.otp}
-                      </option>
-                    ))
-                  )}
-                </select>
+                <div className="space-y-1">
+                  <select
+                    value={selectedSessionId}
+                    onChange={(e) => setSelectedSessionId(e.target.value)}
+                    className="input-field py-2 text-xs w-full font-medium"
+                    disabled={sessions.length === 0}
+                  >
+                    {sessions.length === 0 ? (
+                      <option value="">No sessions yet (auto-generates manual session)</option>
+                    ) : (
+                      sessions.map((s: any) => (
+                        <option key={s._id} value={s._id}>
+                          {s.sessionName} {s.isActive ? '(Active)' : '(Closed)'} • {s.classHours?.length || 1} hr{s.classHours?.length > 1 ? 's' : ''} (+{s.totalPoints || ((s.hourlyPoints || 50) * (s.classHours?.length || 1))} pts)
+                        </option>
+                      ))
+                    )}
+                  </select>
+
+                  {/* Selected session summary badge */}
+                  {selectedSessionId && (() => {
+                    const activeS = sessions.find((s: any) => s._id === selectedSessionId);
+                    if (!activeS) return null;
+                    const hoursList = activeS.classHours && activeS.classHours.length > 0 ? activeS.classHours.join(', ') : '1';
+                    const points = activeS.totalPoints || ((activeS.hourlyPoints || 50) * (activeS.classHours?.length || 1));
+                    return (
+                      <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10.5px] text-amber-600 dark:text-amber-400">
+                        <span className="font-semibold">Mapped Periods: Hours {hoursList}</span>
+                        <span className="font-mono font-bold">+{points} pts/student</span>
+                      </div>
+                    );
+                  })()}
+                </div>
               )}
             </div>
           </div>

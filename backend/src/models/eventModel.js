@@ -13,6 +13,17 @@ const eventSchema = new mongoose.Schema({
     type: Date, 
     required: true 
   },
+  startDate: { 
+    type: Date 
+  },
+  endDate: { 
+    type: Date 
+  },
+  hourlyPoints: { 
+    type: Number, 
+    default: 50,
+    min: 0 
+  },
   venueOrLink: { 
     type: String, 
     required: true 

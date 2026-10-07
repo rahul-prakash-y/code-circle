@@ -148,7 +148,7 @@ const useAttendanceStore = create((set) => ({
     }
   },
 
-  markManualAttendance: async ({ eventId, studentId, studentIds, sessionId, sessionName }) => {
+  markManualAttendance: async ({ eventId, studentId, studentIds, sessionId, sessionName, classHours, hourlyPoints }) => {
     set({ loading: true, error: null });
     try {
       const response = await api.post('/attendance/manual', {
@@ -157,6 +157,8 @@ const useAttendanceStore = create((set) => ({
         studentIds,
         sessionId,
         sessionName,
+        classHours,
+        hourlyPoints,
       });
       toast.success(response.data.message || 'Attendance marked successfully');
       set({ loading: false });

@@ -307,6 +307,9 @@ export const EventModal = ({
     title: '',
     description: '',
     date: '',
+    startDate: '',
+    endDate: '',
+    hourlyPoints: 50,
     venueOrLink: '',
     type: 'Technical',
     format: 'Individual',
@@ -320,10 +323,20 @@ export const EventModal = ({
 
   useEffect(() => {
     if (eventToEdit) {
+      const effectiveDate = eventToEdit.startDate
+        ? eventToEdit.startDate.split('T')[0]
+        : (eventToEdit.date ? eventToEdit.date.split('T')[0] : '');
+      const effectiveEndDate = eventToEdit.endDate
+        ? eventToEdit.endDate.split('T')[0]
+        : effectiveDate;
+
       setFormData({
         title: eventToEdit.title || '',
         description: eventToEdit.description || '',
-        date: eventToEdit.date ? eventToEdit.date.split('T')[0] : '',
+        date: effectiveDate,
+        startDate: effectiveDate,
+        endDate: effectiveEndDate,
+        hourlyPoints: eventToEdit.hourlyPoints !== undefined ? eventToEdit.hourlyPoints : 50,
         venueOrLink: eventToEdit.venueOrLink || '',
         type: eventToEdit.type === 'Individual' || eventToEdit.type === 'Team' ? 'Technical' : (eventToEdit.type || 'Technical'),
         format: eventToEdit.format || (eventToEdit.type === 'Team' ? 'Team' : 'Individual'),
@@ -332,7 +345,7 @@ export const EventModal = ({
         maxTeamSize: eventToEdit.maxTeamSize || 4,
         registrationDeadline: eventToEdit.registrationDeadline
           ? eventToEdit.registrationDeadline.split('T')[0]
-          : (eventToEdit.date ? eventToEdit.date.split('T')[0] : ''),
+          : effectiveDate,
         certificateTemplateUrl: eventToEdit.certificateTemplateUrl || '',
         customFields: Array.isArray(eventToEdit.customFields)
           ? JSON.parse(JSON.stringify(eventToEdit.customFields))
@@ -343,6 +356,9 @@ export const EventModal = ({
         title: '',
         description: '',
         date: '',
+        startDate: '',
+        endDate: '',
+        hourlyPoints: 50,
         venueOrLink: 'Campus / Online',
         type: 'Technical',
         format: 'Individual',
@@ -438,8 +454,15 @@ export const EventModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.title || !formData.description || !formData.date) {
-      return toast.error('Title, description, and event date are required');
+    const effectiveStartDate = formData.startDate || formData.date;
+    const effectiveEndDate = formData.endDate || effectiveStartDate;
+
+    if (!formData.title || !formData.description || !effectiveStartDate) {
+      return toast.error('Title, description, and event start date are required');
+    }
+
+    if (formData.startDate && formData.endDate && new Date(formData.endDate) < new Date(formData.startDate)) {
+      return toast.error('End date cannot be earlier than start date');
     }
 
     // Validate custom fields
@@ -468,9 +491,13 @@ export const EventModal = ({
 
       const payload = {
         ...formData,
+        date: effectiveStartDate,
+        startDate: effectiveStartDate,
+        endDate: effectiveEndDate,
+        hourlyPoints: Math.max(0, Number(formData.hourlyPoints) !== undefined && !isNaN(Number(formData.hourlyPoints)) ? Number(formData.hourlyPoints) : 50),
         maxParticipants: Math.max(0, Number(formData.maxParticipants) || 0),
         maxTeamSize: formData.format === 'Duo' ? 2 : (Number(formData.maxTeamSize) || 4),
-        registrationDeadline: formData.registrationDeadline || formData.date,
+        registrationDeadline: formData.registrationDeadline || effectiveStartDate,
         certificateTemplateUrl: formData.certificateTemplateUrl || '',
         customFields: sanitizedCustomFields,
       };
@@ -696,22 +723,51 @@ export const EventModal = ({
                 </div>
               )}
 
-              {/* Date & Deadline */}
+              {/* Dates & Schedule */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Calendar size={14} className="text-accent" /> Event Date *
+                    <Calendar size={14} className="text-accent" /> Start Date *
                   </label>
                   <input
                     type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleChange}
+                    name="startDate"
+                    value={formData.startDate || formData.date}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        startDate: val,
+                        date: val,
+                        endDate: prev.endDate && prev.endDate >= val ? prev.endDate : val,
+                        registrationDeadline: prev.registrationDeadline || val,
+                      }));
+                    }}
                     required
                     className="input-field text-xs py-2.5 focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
                   />
                 </div>
 
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                    <Calendar size={14} className="text-emerald-400" /> End Date
+                  </label>
+                  <input
+                    type="date"
+                    name="endDate"
+                    min={formData.startDate || formData.date}
+                    value={formData.endDate || formData.startDate || formData.date}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData((prev) => ({ ...prev, endDate: val }));
+                    }}
+                    className="input-field text-xs py-2.5 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Deadline & Hourly Points Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                     <Info size={14} className="text-amber-400" /> RSVP Deadline
@@ -723,6 +779,35 @@ export const EventModal = ({
                     onChange={handleChange}
                     className="input-field text-xs py-2.5 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                      <Award size={14} className="text-amber-400" /> Hourly Points (Per Class Hr)
+                    </label>
+                    <span className="text-[11px] font-bold text-amber-400/90 font-mono">
+                      {Math.max(0, Number(formData.hourlyPoints) || 0)} pts/hr
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    name="hourlyPoints"
+                    min="0"
+                    placeholder="e.g. 50"
+                    value={formData.hourlyPoints === undefined ? '' : formData.hourlyPoints}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        hourlyPoints: val === '' ? '' : Math.max(0, parseInt(val, 10) || 0),
+                      }));
+                    }}
+                    className="input-field text-xs py-2.5 font-mono focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
+                  />
+                  <p className="text-[10.5px] text-text-muted leading-tight">
+                    Awarded to attending students for each mapped class hour (e.g. 50 pts/hr × 4 hrs = 200 pts).
+                  </p>
                 </div>
               </div>
 

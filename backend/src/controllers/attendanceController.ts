@@ -8,6 +8,8 @@ export interface CreateSessionBody {
   event: string;
   sessionName: string;
   durationMinutes?: number;
+  classHours?: number[];
+  hourlyPoints?: number;
 }
 
 export interface MarkAttendanceBody {
@@ -34,7 +36,7 @@ export const createSession = async (
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
 
-    const { event: eventId, sessionName, durationMinutes = 60 } = request.body;
+    const { event: eventId, sessionName, durationMinutes = 60, classHours, hourlyPoints } = request.body;
 
     if (!eventId || !sessionName) {
       return reply.status(400).send({
@@ -48,6 +50,8 @@ export const createSession = async (
       sessionName,
       durationMinutes: Number(durationMinutes) || 60,
       adminId: (user.id || user._id) as string,
+      classHours: Array.isArray(classHours) ? classHours : undefined,
+      hourlyPoints: typeof hourlyPoints === 'number' ? hourlyPoints : (hourlyPoints ? Number(hourlyPoints) : undefined),
     });
 
     return reply.status(201).send(session);
@@ -213,6 +217,8 @@ export interface MarkManualAttendanceBody {
   studentIds?: string[];
   sessionId?: string;
   sessionName?: string;
+  classHours?: number[];
+  hourlyPoints?: number;
 }
 
 export const markManualAttendance = async (
@@ -225,7 +231,7 @@ export const markManualAttendance = async (
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
 
-    const { eventId, studentId, studentIds, sessionId, sessionName } = request.body || {};
+    const { eventId, studentId, studentIds, sessionId, sessionName, classHours, hourlyPoints } = request.body || {};
 
     if (!eventId) {
       return reply.status(400).send({
@@ -241,6 +247,8 @@ export const markManualAttendance = async (
       sessionId,
       sessionName,
       adminId: (user.id || user._id) as string,
+      classHours: Array.isArray(classHours) ? classHours : undefined,
+      hourlyPoints: typeof hourlyPoints === 'number' ? hourlyPoints : (hourlyPoints ? Number(hourlyPoints) : undefined),
     });
 
     return reply.status(200).send(result);

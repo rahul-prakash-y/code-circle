@@ -18,6 +18,7 @@ export interface IUser extends Document {
   year?: string;
   skills: string[];
   socialLinks: ISocialLinks;
+  points?: number;
   profilePicUrl?: string;
   resetPasswordToken?: string | null;
   resetPasswordExpires?: Date | null;
@@ -57,6 +58,7 @@ const userSchema = new Schema<IUser>(
       email: { type: String, default: '' },
     },
     profilePicUrl: { type: String, default: '' },
+    points: { type: Number, default: 0, index: true },
     resetPasswordToken: { type: String, default: null, index: true },
     resetPasswordExpires: { type: Date, default: null },
   },

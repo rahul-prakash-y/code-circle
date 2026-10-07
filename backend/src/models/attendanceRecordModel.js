@@ -14,6 +14,11 @@ const attendanceRecordSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now
+  },
+  pointsAwarded: {
+    type: Number,
+    default: 0,
+    min: 0
   }
 }, { timestamps: true });
 
