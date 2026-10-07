@@ -138,7 +138,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
       description={
         lastQuestResult?.passed ? undefined : (
           <div className="flex items-center justify-between text-xs text-label-secondary mt-1">
-            <span>5-Question Verification Quest</span>
+            <span>{totalQuestions}-Question Verification Quest</span>
             <span>
               Question {currentQuestionIdx + 1} of {totalQuestions}
             </span>
@@ -195,7 +195,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
                 Quest Completed Successfully!
               </h2>
               <p className="text-sm text-label-secondary max-w-md mx-auto leading-relaxed">
-                You scored <span className="font-semibold text-emerald-500">5 out of 5</span>. Your
+                You scored <span className="font-semibold text-emerald-500">{lastQuestResult.score} out of {lastQuestResult.total}</span>. Your
                 mastery has unlocked the official accredited evaluation!
               </p>
             </motion.div>
@@ -261,7 +261,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
                 Pass Threshold Not Reached
               </h2>
               <p className="text-sm text-label-secondary max-w-md mx-auto">
-                You scored <span className="font-semibold text-rose-500">{lastQuestResult.score} / {lastQuestResult.total}</span>. A perfect 100% score (5/5) is required to unlock the main assessment.
+                You scored <span className="font-semibold text-rose-500">{lastQuestResult.score} / {lastQuestResult.total}</span>. A perfect 100% score ({lastQuestResult.total}/{lastQuestResult.total}) is required to unlock the main assessment.
               </p>
             </div>
 

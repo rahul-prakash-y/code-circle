@@ -110,11 +110,11 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                   <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-label-secondary">
                     <span className="inline-flex items-center gap-1">
                       <HelpCircle className="w-3.5 h-3.5 text-accent" />
-                      5-Question Quest
+                      {lvl.questQuestions?.length || 0}-Question Quest
                     </span>
 
                     {assessment && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium">
+                      <span className="inline-flex whitespace-nowrap items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium">
                         <Award className="w-3.5 h-3.5 text-purple-500" />
                         Unlocks: {assessment.title}
                       </span>

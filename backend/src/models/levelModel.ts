@@ -7,16 +7,50 @@ export interface IQuestQuestion {
   correctOption: number;
 }
 
+export interface IStudyMaterial {
+  _id?: mongoose.Types.ObjectId;
+  title: string;
+  type: 'article' | 'link' | 'code' | 'notes' | 'pdf';
+  url?: string;
+  content?: string;
+}
+
 export interface ILevel extends Document {
   domainId: mongoose.Types.ObjectId;
   levelNumber: number;
   title: string;
   youtubeVideoId: string;
+  studyMaterials: IStudyMaterial[];
   questQuestions: IQuestQuestion[];
   assessmentId?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const studyMaterialSchema = new Schema<IStudyMaterial>(
+  {
+    title: {
+      type: String,
+      required: [true, 'Material title is required'],
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: ['article', 'link', 'code', 'notes', 'pdf'],
+      default: 'notes',
+    },
+    url: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    content: {
+      type: String,
+      default: '',
+    },
+  },
+  { _id: true }
+);
 
 const questQuestionSchema = new Schema<IQuestQuestion>(
   {
@@ -64,6 +98,10 @@ const levelSchema = new Schema<ILevel>(
       type: String,
       required: [true, 'YouTube video ID is required'],
       trim: true,
+    },
+    studyMaterials: {
+      type: [studyMaterialSchema],
+      default: [],
     },
     questQuestions: {
       type: [questQuestionSchema],

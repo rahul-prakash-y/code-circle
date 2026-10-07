@@ -9,6 +9,8 @@ export async function domainRoutes(fastify: FastifyInstance) {
 
   // Administrative endpoints
   fastify.post('/', { preHandler: [verifyToken, isAdminOrFaculty] }, domainController.createDomain as any);
+  fastify.put('/:id', { preHandler: [verifyToken, isAdminOrFaculty] }, domainController.updateDomain as any);
+  fastify.delete('/:id', { preHandler: [verifyToken, isAdminOrFaculty] }, domainController.deleteDomain as any);
   fastify.post('/:id/levels', { preHandler: [verifyToken, isAdminOrFaculty] }, domainController.createLevel as any);
 }
 

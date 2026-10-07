@@ -23,6 +23,14 @@ interface DomainState {
   closeQuestModal: () => void;
   resetQuestResult: () => void;
   submitQuest: (levelId: string, answers: number[]) => Promise<IQuestSubmitResult | null>;
+
+  // Admin Management Actions
+  createDomain: (payload: { name: string; description: string; coverImageUrl: string }) => Promise<boolean>;
+  updateDomain: (id: string, payload: { name: string; description: string; coverImageUrl: string }) => Promise<boolean>;
+  deleteDomain: (id: string) => Promise<boolean>;
+  createLevel: (domainId: string, payload: Partial<ILevel>) => Promise<boolean>;
+  updateLevel: (id: string, payload: Partial<ILevel>) => Promise<boolean>;
+  deleteLevel: (id: string) => Promise<boolean>;
 }
 
 export const useDomainStore = create<DomainState>((set, get) => ({
@@ -61,7 +69,6 @@ export const useDomainStore = create<DomainState>((set, get) => ({
       if (res.data?.success) {
         const { domain, levels, userProgress } = res.data.data;
         const currentActive = get().activeLevel;
-        // Keep active level if still within the levels, or pick first unlocked incomplete level, or first level
         let nextActive = levels.find((lvl: ILevel) => lvl._id === currentActive?._id);
         if (!nextActive) {
           nextActive = levels.find((lvl: ILevel) => lvl.isUnlocked && !lvl.isCompleted) || levels[0] || null;
@@ -127,6 +134,106 @@ export const useDomainStore = create<DomainState>((set, get) => ({
       const msg = err.response?.data?.error || err.message || 'Failed to submit quest';
       toast.error(msg);
       return null;
+    }
+  },
+
+  // Admin Actions
+  createDomain: async (payload) => {
+    try {
+      const res = await api.post('/domains', payload);
+      if (res.data?.success) {
+        toast.success('Domain created successfully');
+        await get().fetchDomains();
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to create domain');
+      return false;
+    }
+  },
+
+  updateDomain: async (id, payload) => {
+    try {
+      const res = await api.put(`/domains/${id}`, payload);
+      if (res.data?.success) {
+        toast.success('Domain updated successfully');
+        await get().fetchDomains();
+        if (get().currentDomain?._id === id) {
+          set({ currentDomain: res.data.data });
+        }
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update domain');
+      return false;
+    }
+  },
+
+  deleteDomain: async (id) => {
+    try {
+      const res = await api.delete(`/domains/${id}`);
+      if (res.data?.success) {
+        toast.success('Domain deleted successfully');
+        await get().fetchDomains();
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete domain');
+      return false;
+    }
+  },
+
+  createLevel: async (domainId, payload) => {
+    try {
+      const res = await api.post(`/domains/${domainId}/levels`, payload);
+      if (res.data?.success) {
+        toast.success('Level created successfully');
+        await get().fetchDomainLevels(domainId);
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to create level');
+      return false;
+    }
+  },
+
+  updateLevel: async (id, payload) => {
+    try {
+      const res = await api.put(`/levels/${id}`, payload);
+      if (res.data?.success) {
+        toast.success('Level updated successfully');
+        const currentDomain = get().currentDomain;
+        if (currentDomain?._id) {
+          await get().fetchDomainLevels(currentDomain._id);
+        }
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update level');
+      return false;
+    }
+  },
+
+  deleteLevel: async (id) => {
+    try {
+      const res = await api.delete(`/levels/${id}`);
+      if (res.data?.success) {
+        toast.success('Level deleted successfully');
+        const currentDomain = get().currentDomain;
+        if (currentDomain?._id) {
+          await get().fetchDomainLevels(currentDomain._id);
+        }
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete level');
+      return false;
     }
   },
 }));

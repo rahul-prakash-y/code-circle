@@ -479,12 +479,30 @@ export const getDomainLevels = async (
         ...(isAdmin ? { correctOption: q.correctOption } : {}),
       }));
 
+      // Fallback study materials if empty
+      const studyMaterials = (lvl.studyMaterials && lvl.studyMaterials.length > 0)
+        ? lvl.studyMaterials
+        : [
+            {
+              title: `${lvl.title} - Core Study Notes`,
+              type: 'notes',
+              content: `Key study takeaways for Level ${lvl.levelNumber}:\n• Carefully watch the lecture video before starting the verification quest.\n• Answer all questions correctly (100% threshold) to unlock the assessment.\n• Pay special attention to algorithmic complexity, best practices, and runtime architecture.`,
+            },
+            {
+              title: 'Curated Documentation & References',
+              type: 'link',
+              url: 'https://developer.mozilla.org',
+              content: 'Comprehensive technical documentation and API reference for deeper architectural context.',
+            },
+          ];
+
       return {
         _id: lvl._id,
         domainId: lvl.domainId,
         levelNumber: lvl.levelNumber,
         title: lvl.title,
         youtubeVideoId: lvl.youtubeVideoId,
+        studyMaterials,
         questQuestions: sanitizedQuestions,
         assessmentId: lvl.assessmentId,
         isCompleted,
@@ -666,6 +684,70 @@ export const createDomain = async (request: FastifyRequest, reply: FastifyReply)
 };
 
 /**
+ * PUT /api/domains/:id (Admin)
+ * Update an existing domain
+ */
+export const updateDomain = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id } = request.params;
+    const { name, description, coverImageUrl } = request.body as any;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid domain ID' });
+    }
+
+    const domain = await Domain.findByIdAndUpdate(
+      id,
+      { $set: { name, description, coverImageUrl } },
+      { new: true, runValidators: true }
+    );
+
+    if (!domain) {
+      return reply.status(404).send({ success: false, error: 'Domain not found' });
+    }
+
+    return reply.status(200).send({ success: true, data: domain });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+/**
+ * DELETE /api/domains/:id (Admin)
+ * Delete domain and its levels
+ */
+export const deleteDomain = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id } = request.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid domain ID' });
+    }
+
+    const domain = await Domain.findByIdAndDelete(id);
+    if (!domain) {
+      return reply.status(404).send({ success: false, error: 'Domain not found' });
+    }
+
+    // Cascade delete levels
+    await Level.deleteMany({ domainId: id });
+
+    return reply.status(200).send({
+      success: true,
+      message: 'Domain and associated levels deleted successfully',
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+/**
  * POST /api/domains/:id/levels (Admin)
  * Add a new level to a domain
  */
@@ -675,7 +757,8 @@ export const createLevel = async (
 ) => {
   try {
     const { id: domainId } = request.params;
-    const { levelNumber, title, youtubeVideoId, questQuestions, assessmentId } = request.body as any;
+    const { levelNumber, title, youtubeVideoId, studyMaterials, questQuestions, assessmentId } =
+      request.body as any;
 
     if (!levelNumber || !title || !youtubeVideoId || !Array.isArray(questQuestions)) {
       return reply.status(400).send({
@@ -689,6 +772,7 @@ export const createLevel = async (
       levelNumber,
       title,
       youtubeVideoId,
+      studyMaterials: Array.isArray(studyMaterials) ? studyMaterials : [],
       questQuestions,
       assessmentId: assessmentId || null,
     });
@@ -699,10 +783,104 @@ export const createLevel = async (
   }
 };
 
+/**
+ * GET /api/levels/:id
+ * Fetch single level details
+ */
+export const getLevelById = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid level ID' });
+    }
+
+    const level = await Level.findById(id).populate('assessmentId').lean();
+    if (!level) {
+      return reply.status(404).send({ success: false, error: 'Level not found' });
+    }
+
+    return reply.status(200).send({ success: true, data: level });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+/**
+ * PUT /api/levels/:id (Admin)
+ * Update an existing level
+ */
+export const updateLevel = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id } = request.params;
+    const { levelNumber, title, youtubeVideoId, studyMaterials, questQuestions, assessmentId } =
+      request.body as any;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid level ID' });
+    }
+
+    const updateDoc: any = {};
+    if (levelNumber !== undefined) updateDoc.levelNumber = levelNumber;
+    if (title) updateDoc.title = title;
+    if (youtubeVideoId) updateDoc.youtubeVideoId = youtubeVideoId;
+    if (Array.isArray(studyMaterials)) updateDoc.studyMaterials = studyMaterials;
+    if (Array.isArray(questQuestions)) updateDoc.questQuestions = questQuestions;
+    if (assessmentId !== undefined) {
+      updateDoc.assessmentId = assessmentId ? new mongoose.Types.ObjectId(assessmentId) : null;
+    }
+
+    const level = await Level.findByIdAndUpdate(id, { $set: updateDoc }, { new: true });
+    if (!level) {
+      return reply.status(404).send({ success: false, error: 'Level not found' });
+    }
+
+    return reply.status(200).send({ success: true, data: level });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+/**
+ * DELETE /api/levels/:id (Admin)
+ * Delete a level
+ */
+export const deleteLevel = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id } = request.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid level ID' });
+    }
+
+    const level = await Level.findByIdAndDelete(id);
+    if (!level) {
+      return reply.status(404).send({ success: false, error: 'Level not found' });
+    }
+
+    return reply.status(200).send({ success: true, message: 'Level deleted successfully' });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
 export default {
   getDomains,
   getDomainLevels,
   submitLevelQuest,
   createDomain,
+  updateDomain,
+  deleteDomain,
   createLevel,
+  getLevelById,
+  updateLevel,
+  deleteLevel,
 };

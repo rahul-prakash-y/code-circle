@@ -17,12 +17,21 @@ export interface IQuestQuestion {
   correctOption?: number;
 }
 
+export interface IStudyMaterial {
+  _id?: string;
+  title: string;
+  type: 'article' | 'link' | 'code' | 'notes' | 'pdf';
+  url?: string;
+  content?: string;
+}
+
 export interface ILevel {
   _id: string;
   domainId: string;
   levelNumber: number;
   title: string;
   youtubeVideoId: string;
+  studyMaterials?: IStudyMaterial[];
   questQuestions: IQuestQuestion[];
   assessmentId?: {
     _id: string;
