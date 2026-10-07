@@ -27,6 +27,10 @@ import {
   Edit3,
   Trash2,
   Shield,
+  ShieldAlert,
+  ShieldCheck,
+  Lock,
+  Unlock,
   BookOpen,
 } from 'lucide-react';
 
@@ -46,6 +50,7 @@ export const DomainsPage: React.FC = () => {
     setActiveLevel,
     closeQuestModal,
     deleteDomain,
+    toggleDomainLock,
   } = useDomainStore();
 
   const { user } = useAuthStore();
@@ -149,6 +154,26 @@ export const DomainsPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => toggleDomainLock(currentDomain._id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${
+                    currentDomain.isLocked
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                  }`}
+                  title={currentDomain.isLocked ? 'Approve & Unlock track for students' : 'Lock track for students'}
+                >
+                  {currentDomain.isLocked ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5 text-amber-500" /> Unlock for Students
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Track Approved
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setLevelToEdit(null);
                     setIsLevelModalOpen(true);
@@ -171,6 +196,37 @@ export const DomainsPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Locked Status Banner for Students & Faculty */}
+        {currentDomain.isLocked && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider">
+                  Track Locked • Pending Administrator Approval
+                </div>
+                <p className="text-xs opacity-90 mt-0.5">
+                  {currentDomain.isLockedForStudent
+                    ? 'This domain track is currently locked by administrators. Video quests and assessment certifications will be accessible once approved.'
+                    : 'This domain is currently locked for students. As an administrator, you have full preview and testing privileges.'}
+                </p>
+              </div>
+            </div>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => toggleDomainLock(currentDomain._id)}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-500 transition shadow cursor-pointer"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" /> Approve & Unlock Track Now
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Track Content: Video & Quest Left, Vertical Timeline Path Right */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -387,6 +443,41 @@ export const DomainsPage: React.FC = () => {
                   </span>
 
                   <div className="flex items-center gap-1.5">
+                    {/* Lock Status Pill / Admin Quick-Toggle */}
+                    {domain.isLocked ? (
+                      isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDomainLock(domain._id);
+                          }}
+                          className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-amber-500/90 text-white border border-amber-400/30 flex items-center gap-1 hover:bg-amber-600 transition shadow cursor-pointer"
+                          title="Track is locked for students. Click to approve & unlock."
+                        >
+                          <Lock className="w-3 h-3" /> Locked
+                        </button>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-amber-500/90 text-white border border-amber-400/30 flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> Locked
+                        </span>
+                      )
+                    ) : (
+                      isAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDomainLock(domain._id);
+                          }}
+                          className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-emerald-500/85 text-white border border-emerald-400/30 flex items-center gap-1 hover:bg-emerald-600 transition shadow cursor-pointer"
+                          title="Track is approved for students. Click to lock."
+                        >
+                          <ShieldCheck className="w-3 h-3" /> Approved
+                        </button>
+                      )
+                    )}
+
                     {pct === 100 && (
                       <span className="px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-emerald-500/80 text-white border border-emerald-400/30 flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3" /> Mastered
@@ -456,12 +547,23 @@ export const DomainsPage: React.FC = () => {
                   </div>
 
                   {/* Card Action Link */}
-                  <div className="pt-2 flex items-center justify-between text-xs font-semibold text-accent group-hover:text-accent-hover">
-                    <span>Explore Track, Notes & Quests</span>
-                    <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center transition-transform group-hover:translate-x-1">
-                      <ArrowRight className="w-3.5 h-3.5" />
+                  {domain.isLockedForStudent ? (
+                    <div className="pt-2 flex items-center justify-between text-xs font-semibold text-amber-600 dark:text-amber-400 group-hover:text-amber-500">
+                      <span className="flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5" /> Awaiting Admin Approval
+                      </span>
+                      <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center transition-transform group-hover:translate-x-1">
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="pt-2 flex items-center justify-between text-xs font-semibold text-accent group-hover:text-accent-hover">
+                      <span>Explore Track, Notes & Quests</span>
+                      <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center transition-transform group-hover:translate-x-1">
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

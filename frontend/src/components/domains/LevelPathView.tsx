@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ILevel } from '../../types/domain';
 import useDomainStore from '../../store/useDomainStore';
+import toast from 'react-hot-toast';
 import {
   CheckCircle2,
   Lock,
@@ -23,6 +24,8 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
   activeLevelId,
   onSelectLevel,
 }) => {
+  const { currentDomain } = useDomainStore();
+
   return (
     <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-3 sm:before:left-4 before:top-4 before:bottom-4 before:w-[2px] before:bg-separator">
       {levels.map((lvl, index) => {
@@ -34,6 +37,23 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
           typeof lvl.assessmentId === 'object' && lvl.assessmentId !== null
             ? lvl.assessmentId
             : null;
+
+        const handleCardClick = () => {
+          if (isUnlocked) {
+            onSelectLevel(lvl);
+          } else {
+            if (currentDomain?.isLockedForStudent) {
+              toast.error('🔒 Track is locked pending administrator approval.');
+            } else {
+              const prev = lvl.requiresPreviousLevel || (lvl.levelNumber > 1 ? lvl.levelNumber - 1 : null);
+              if (prev) {
+                toast.error(`🔒 Level ${lvl.levelNumber} is locked! Complete Level ${prev} quest first with 100% score.`);
+              } else {
+                toast.error('🔒 Level is currently locked.');
+              }
+            }
+          }
+        };
 
         return (
           <motion.div
@@ -66,15 +86,13 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
 
             {/* Level Card */}
             <div
-              onClick={() => {
-                if (isUnlocked) onSelectLevel(lvl);
-              }}
+              onClick={handleCardClick}
               className={`rounded-2xl p-4 sm:p-5 border transition-all duration-200 cursor-pointer ${
                 isActive
                   ? 'bg-surface border-accent/50 shadow-[0_8px_25px_rgba(0,113,227,0.08)] ring-1 ring-accent/30'
                   : isUnlocked
                   ? 'bg-surface border-separator/70 hover:border-separator-opaque hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:-translate-y-0.5'
-                  : 'bg-surface-secondary/50 border-separator/40 opacity-60 cursor-not-allowed'
+                  : 'bg-surface-secondary/40 border-separator/40 opacity-70 hover:opacity-85'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -97,8 +115,11 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                     )}
 
                     {!isUnlocked && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-separator text-label-secondary">
-                        Locked
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-separator text-label-secondary flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" />
+                        {lvl.requiresPreviousLevel
+                          ? `Requires Lvl ${lvl.requiresPreviousLevel}`
+                          : 'Locked'}
                       </span>
                     )}
                   </div>
@@ -117,6 +138,12 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                       <span className="inline-flex whitespace-nowrap items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium">
                         <Award className="w-3.5 h-3.5 text-purple-500" />
                         Unlocks: {assessment.title}
+                      </span>
+                    )}
+
+                    {!isUnlocked && (
+                      <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                        Complete Level {lvl.requiresPreviousLevel || (lvl.levelNumber - 1)} to unlock
                       </span>
                     )}
                   </div>

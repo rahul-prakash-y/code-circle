@@ -268,31 +268,48 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
 
           {/* Primary Action Button: "Mark as Studied & Start Quest" */}
           <div className="shrink-0 flex items-center gap-3">
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={openQuestModal}
-              disabled={!isUnlocked}
-              className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full text-sm font-semibold transition-all shadow-md cursor-pointer ${
-                isCompleted
-                  ? 'bg-surface border border-separator text-label-primary hover:bg-surface-secondary shadow-sm'
-                  : 'bg-accent text-white hover:bg-accent-hover shadow-accent/25'
-              } disabled:opacity-40 disabled:pointer-events-none`}
-            >
-              {isCompleted ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>Review & Retake Quest</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>Mark as Studied & Start Quest</span>
-                </>
-              )}
-              <ArrowRight className="w-4 h-4 opacity-80" />
-            </motion.button>
+            {!isUnlocked ? (
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full text-sm font-semibold bg-surface-secondary border border-separator/80 text-label-secondary cursor-not-allowed opacity-80 shadow-sm"
+                >
+                  <Lock className="w-4 h-4 text-amber-500" />
+                  <span>Quest Locked</span>
+                </button>
+                <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                  {currentDomain?.isLockedForStudent
+                    ? 'Track locked pending admin approval'
+                    : `Complete Level ${level.requiresPreviousLevel || (level.levelNumber - 1)} first`}
+                </span>
+              </div>
+            ) : (
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={openQuestModal}
+                className={`inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full text-sm font-semibold transition-all shadow-md cursor-pointer ${
+                  isCompleted
+                    ? 'bg-surface border border-separator text-label-primary hover:bg-surface-secondary shadow-sm'
+                    : 'bg-accent text-white hover:bg-accent-hover shadow-accent/25'
+                }`}
+              >
+                {isCompleted ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span>Review & Retake Quest</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>Mark as Studied & Start Quest</span>
+                  </>
+                )}
+                <ArrowRight className="w-4 h-4 opacity-80" />
+              </motion.button>
+            )}
           </div>
         </div>
 

@@ -3,6 +3,10 @@ export interface IDomain {
   name: string;
   description: string;
   coverImageUrl: string;
+  isLocked?: boolean;
+  isLockedForStudent?: boolean;
+  approvedBy?: any;
+  approvedAt?: string | null;
   totalLevels?: number;
   completedLevelsCount?: number;
   progressPercentage?: number;
@@ -43,6 +47,7 @@ export interface ILevel {
   } | string | null;
   isCompleted?: boolean;
   isUnlocked?: boolean;
+  requiresPreviousLevel?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -25,8 +25,9 @@ interface DomainState {
   submitQuest: (levelId: string, answers: number[]) => Promise<IQuestSubmitResult | null>;
 
   // Admin Management Actions
-  createDomain: (payload: { name: string; description: string; coverImageUrl: string }) => Promise<boolean>;
-  updateDomain: (id: string, payload: { name: string; description: string; coverImageUrl: string }) => Promise<boolean>;
+  createDomain: (payload: { name: string; description: string; coverImageUrl: string; isLocked?: boolean }) => Promise<boolean>;
+  updateDomain: (id: string, payload: { name: string; description: string; coverImageUrl: string; isLocked?: boolean }) => Promise<boolean>;
+  toggleDomainLock: (id: string) => Promise<boolean>;
   deleteDomain: (id: string) => Promise<boolean>;
   createLevel: (domainId: string, payload: Partial<ILevel>) => Promise<boolean>;
   updateLevel: (id: string, payload: Partial<ILevel>) => Promise<boolean>;
@@ -167,6 +168,33 @@ export const useDomainStore = create<DomainState>((set, get) => ({
       return false;
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to update domain');
+      return false;
+    }
+  },
+
+  toggleDomainLock: async (id: string) => {
+    try {
+      const res = await api.patch(`/domains/${id}/toggle-lock`);
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Domain lock status updated');
+        await get().fetchDomains();
+        if (get().currentDomain?._id === id) {
+          set((state) => ({
+            currentDomain: state.currentDomain
+              ? {
+                  ...state.currentDomain,
+                  ...res.data.data,
+                  isLocked: Boolean(res.data.data.isLocked),
+                }
+              : null,
+          }));
+          await get().fetchDomainLevels(id);
+        }
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to toggle domain lock');
       return false;
     }
   },

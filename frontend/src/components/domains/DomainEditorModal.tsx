@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveModal from '../ui/ResponsiveModal';
 import useDomainStore from '../../store/useDomainStore';
 import { IDomain } from '../../types/domain';
-import { Layers, Image, FileText, Check, Loader2 } from 'lucide-react';
+import { Layers, Image, FileText, Check, Loader2, Lock, ShieldCheck } from 'lucide-react';
 
 interface DomainEditorModalProps {
   isOpen: boolean;
@@ -28,6 +28,7 @@ export const DomainEditorModal: React.FC<DomainEditorModalProps> = ({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState(PRESET_COVERS[0].url);
+  const [isLocked, setIsLocked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -35,10 +36,12 @@ export const DomainEditorModal: React.FC<DomainEditorModalProps> = ({
       setName(domainToEdit.name || '');
       setDescription(domainToEdit.description || '');
       setCoverImageUrl(domainToEdit.coverImageUrl || PRESET_COVERS[0].url);
+      setIsLocked(Boolean(domainToEdit.isLocked));
     } else {
       setName('');
       setDescription('');
       setCoverImageUrl(PRESET_COVERS[0].url);
+      setIsLocked(false);
     }
   }, [domainToEdit, isOpen]);
 
@@ -53,12 +56,14 @@ export const DomainEditorModal: React.FC<DomainEditorModalProps> = ({
         name: name.trim(),
         description: description.trim(),
         coverImageUrl: coverImageUrl.trim(),
+        isLocked,
       });
     } else {
       success = await createDomain({
         name: name.trim(),
         description: description.trim(),
         coverImageUrl: coverImageUrl.trim(),
+        isLocked,
       });
     }
     setSubmitting(false);
@@ -164,6 +169,48 @@ export const DomainEditorModal: React.FC<DomainEditorModalProps> = ({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Domain Lock & Student Approval Toggle */}
+        <div className="p-4 rounded-2xl bg-surface-secondary/70 border border-separator/80 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+                  isLocked
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                }`}
+              >
+                {isLocked ? <Lock className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+              </div>
+              <div>
+                <div className="text-xs font-bold text-label-primary">
+                  {isLocked ? 'Domain Locked (Restricted)' : 'Approved & Unlocked for Students'}
+                </div>
+                <div className="text-[11px] text-label-secondary">
+                  {isLocked
+                    ? 'Students cannot access levels or submit quests until approved.'
+                    : 'Enrolled students can freely study and progress sequentially.'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsLocked(!isLocked)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                !isLocked ? 'bg-emerald-500' : 'bg-separator'
+              }`}
+              title={isLocked ? 'Click to approve & unlock' : 'Click to lock'}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  !isLocked ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">

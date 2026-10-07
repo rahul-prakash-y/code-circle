@@ -4,6 +4,7 @@ export interface IStudentProgress extends Document {
   userId: mongoose.Types.ObjectId;
   completedLevels: mongoose.Types.ObjectId[];
   unlockedAssessments: mongoose.Types.ObjectId[];
+  unlockedDomains: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +28,12 @@ const studentProgressSchema = new Schema<IStudentProgress>(
       {
         type: Schema.Types.ObjectId,
         ref: 'Assessment',
+      },
+    ],
+    unlockedDomains: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Domain',
       },
     ],
   },

@@ -373,14 +373,27 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
     const userId = request.user?.id || (request.user as any)?._id;
     let completedLevelIds: string[] = [];
 
+    const isAdmin =
+      request.user?.role === 'Admin' ||
+      request.user?.role === 'SuperAdmin' ||
+      request.user?.role === 'Faculty' ||
+      request.user?.role === 'Committee';
+
+    let unlockedDomainIds: string[] = [];
+
     if (userId) {
       const studentProgress = await StudentProgress.findOne({ userId }).lean();
-      if (studentProgress && studentProgress.completedLevels) {
-        completedLevelIds = studentProgress.completedLevels.map((id) => id.toString());
+      if (studentProgress) {
+        if (studentProgress.completedLevels) {
+          completedLevelIds = studentProgress.completedLevels.map((id) => id.toString());
+        }
+        if (studentProgress.unlockedDomains) {
+          unlockedDomainIds = studentProgress.unlockedDomains.map((id) => id.toString());
+        }
       }
     }
 
-    // Enrich each domain with total levels and completed levels
+    // Enrich each domain with total levels, completed levels, and lock status
     const enrichedDomains = await Promise.all(
       domains.map(async (domain) => {
         const levels = await Level.find({ domainId: domain._id }).select('_id levelNumber').lean();
@@ -392,11 +405,16 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
         const progressPercentage =
           totalLevels > 0 ? Math.round((completedLevelsCount / totalLevels) * 100) : 0;
 
+        const isDomainApproved = !domain.isLocked || unlockedDomainIds.includes(domain._id.toString());
+        const isLockedForStudent = !isAdmin && !isDomainApproved;
+
         return {
           ...domain,
           totalLevels,
           completedLevelsCount,
           progressPercentage,
+          isLocked: Boolean(domain.isLocked),
+          isLockedForStudent,
         };
       })
     );
@@ -444,6 +462,7 @@ export const getDomainLevels = async (
     // Fetch user progress
     const userId = request.user?.id || (request.user as any)?._id;
     let completedLevelsSet = new Set<string>();
+    let unlockedDomainsSet = new Set<string>();
     let unlockedAssessmentsSet = new Set<string>();
 
     if (userId) {
@@ -451,6 +470,7 @@ export const getDomainLevels = async (
       if (progress) {
         progress.completedLevels?.forEach((lvlId) => completedLevelsSet.add(lvlId.toString()));
         progress.unlockedAssessments?.forEach((assId) => unlockedAssessmentsSet.add(assId.toString()));
+        progress.unlockedDomains?.forEach((domId) => unlockedDomainsSet.add(domId.toString()));
       }
     }
 
@@ -461,14 +481,16 @@ export const getDomainLevels = async (
       request.user?.role === 'Faculty' ||
       request.user?.role === 'Committee';
 
-    // Map levels with progression state & sanitize correct answers for students
-    let previousCompleted = true;
-    const mappedLevels = levels.map((lvl) => {
-      const isCompleted = completedLevelsSet.has(lvl._id.toString());
-      const isUnlocked = isAdmin || previousCompleted || lvl.levelNumber === 1;
+    const isDomainApproved = !domain.isLocked || unlockedDomainsSet.has(domain._id.toString());
+    const isDomainLockedForStudent = !isAdmin && !isDomainApproved;
 
-      // Keep track for sequential chain unlock
-      previousCompleted = isCompleted;
+    // Map levels: each level unlocks strictly on completion of previous level
+    const mappedLevels = levels.map((lvl, index) => {
+      const isCompleted = completedLevelsSet.has(lvl._id.toString());
+      const previousLevel = index > 0 ? levels[index - 1] : null;
+      const previousLevelDone = index === 0 || (previousLevel ? completedLevelsSet.has(previousLevel._id.toString()) : false);
+      const isUnlocked = isAdmin || (!isDomainLockedForStudent && previousLevelDone);
+      const requiresPreviousLevel = index > 0 ? (previousLevel?.levelNumber || (lvl.levelNumber - 1)) : null;
 
       // Sanitize quest questions (strip correctOption to prevent cheating, unless admin)
       const sanitizedQuestions = lvl.questQuestions.map((q: any) => ({
@@ -507,13 +529,18 @@ export const getDomainLevels = async (
         assessmentId: lvl.assessmentId,
         isCompleted,
         isUnlocked,
+        requiresPreviousLevel,
       };
     });
 
     return reply.status(200).send({
       success: true,
       data: {
-        domain,
+        domain: {
+          ...domain,
+          isLocked: Boolean(domain.isLocked),
+          isLockedForStudent: isDomainLockedForStudent,
+        },
         levels: mappedLevels,
         userProgress: {
           completedLevels: Array.from(completedLevelsSet),
@@ -533,8 +560,9 @@ export const getDomainLevels = async (
 
 /**
  * POST /api/levels/:id/submit-quest
- * Accepts array of 5 answers. Validates against the database.
+ * Accepts array of answers. Validates against the database.
  * If pass rate is 100%, pushes Level ID to completedLevels and linked Assessment ID to unlockedAssessments.
+ * Strictly verifies that domain is approved and previous level was completed.
  */
 export const submitLevelQuest = async (
   request: FastifyRequest<{ Params: { id: string }; Body: SubmitQuestBody }>,
@@ -557,6 +585,46 @@ export const submitLevelQuest = async (
       return reply.status(404).send({ success: false, error: 'Level not found' });
     }
 
+    const isAdmin =
+      request.user?.role === 'Admin' ||
+      request.user?.role === 'SuperAdmin' ||
+      request.user?.role === 'Faculty' ||
+      request.user?.role === 'Committee';
+
+    // Anti-tamper verification for student submissions
+    if (!isAdmin) {
+      // 1. Verify that the parent domain is approved / unlocked
+      const domain = await Domain.findById(level.domainId);
+      if (!domain) {
+        return reply.status(404).send({ success: false, error: 'Domain track not found' });
+      }
+
+      const progress = await StudentProgress.findOne({ userId });
+      const unlockedDomains = progress?.unlockedDomains?.map((d) => d.toString()) || [];
+      const isDomainApproved = !domain.isLocked || unlockedDomains.includes(domain._id.toString());
+
+      if (!isDomainApproved) {
+        return reply.status(403).send({
+          success: false,
+          error: 'This domain is locked pending administrator approval. Quest submissions are restricted.',
+        });
+      }
+
+      // 2. Verify strict sequential progression: Level N requires Level N-1 completed
+      const domainLevels = await Level.find({ domainId: level.domainId }).sort({ levelNumber: 1 }).lean();
+      const currentLevelIndex = domainLevels.findIndex((lvl) => lvl._id.toString() === level._id.toString());
+      if (currentLevelIndex > 0) {
+        const previousLevel = domainLevels[currentLevelIndex - 1];
+        const completedLevels = progress?.completedLevels?.map((l) => l.toString()) || [];
+        if (!completedLevels.includes(previousLevel._id.toString())) {
+          return reply.status(403).send({
+            success: false,
+            error: `Level ${level.levelNumber} is locked. You must complete Level ${previousLevel.levelNumber} ("${previousLevel.title}") before attempting this quest.`,
+          });
+        }
+      }
+    }
+
     const rawAnswers = request.body?.answers;
     if (!Array.isArray(rawAnswers)) {
       return reply.status(400).send({
@@ -574,7 +642,7 @@ export const submitLevelQuest = async (
     }
 
     // Parse answers array (supports numbers array or object array { questionIndex, selectedOption })
-    const userAnswers: number[] = rawAnswers.map((item: any, idx: number) => {
+    const userAnswers: number[] = rawAnswers.map((item: any) => {
       if (typeof item === 'number') return item;
       if (typeof item === 'object' && item !== null && typeof item.selectedOption === 'number') {
         return item.selectedOption;
@@ -625,13 +693,12 @@ export const submitLevelQuest = async (
       );
 
       // Check next level in the domain
-      const nextLevel = await Level.findOne({
-        domainId: level.domainId,
-        levelNumber: level.levelNumber + 1,
-      }).select('_id levelNumber title');
-
-      if (nextLevel) {
-        nextLevelId = nextLevel._id.toString();
+      const allLevels = await Level.find({ domainId: level.domainId })
+        .sort({ levelNumber: 1 })
+        .select('_id levelNumber title');
+      const currentIndex = allLevels.findIndex((lvl) => lvl._id.toString() === level._id.toString());
+      if (currentIndex !== -1 && currentIndex + 1 < allLevels.length) {
+        nextLevelId = allLevels[currentIndex + 1]._id.toString();
       }
     }
 
@@ -646,8 +713,8 @@ export const submitLevelQuest = async (
         nextLevelId,
         feedback: questionFeedback,
         message: passed
-          ? 'Quest Mastered! 100% Score achieved. Assessment unlocked.'
-          : `Score: ${correctCount}/${totalQuestions}. You must answer all questions correctly to unlock the assessment.`,
+          ? 'Quest Mastered! 100% Score achieved. Next level and assessment unlocked!'
+          : `Score: ${correctCount}/${totalQuestions}. You must answer all questions correctly (100%) to advance.`,
       },
     });
   } catch (error: any) {
@@ -666,7 +733,7 @@ export const submitLevelQuest = async (
  */
 export const createDomain = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const { name, description, coverImageUrl } = request.body as any;
+    const { name, description, coverImageUrl, isLocked } = request.body as any;
     if (!name || !description) {
       return reply.status(400).send({ success: false, error: 'Name and description are required' });
     }
@@ -675,6 +742,9 @@ export const createDomain = async (request: FastifyRequest, reply: FastifyReply)
       name,
       description,
       coverImageUrl: coverImageUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+      isLocked: Boolean(isLocked),
+      approvedBy: isLocked ? null : request.user?.id || null,
+      approvedAt: isLocked ? null : new Date(),
     });
 
     return reply.status(201).send({ success: true, data: domain });
@@ -693,15 +763,30 @@ export const updateDomain = async (
 ) => {
   try {
     const { id } = request.params;
-    const { name, description, coverImageUrl } = request.body as any;
+    const { name, description, coverImageUrl, isLocked } = request.body as any;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return reply.status(400).send({ success: false, error: 'Invalid domain ID' });
     }
 
+    const updateDoc: any = {};
+    if (name) updateDoc.name = name;
+    if (description !== undefined) updateDoc.description = description;
+    if (coverImageUrl) updateDoc.coverImageUrl = coverImageUrl;
+    if (isLocked !== undefined) {
+      updateDoc.isLocked = Boolean(isLocked);
+      if (!isLocked) {
+        updateDoc.approvedBy = request.user?.id || null;
+        updateDoc.approvedAt = new Date();
+      } else {
+        updateDoc.approvedBy = null;
+        updateDoc.approvedAt = null;
+      }
+    }
+
     const domain = await Domain.findByIdAndUpdate(
       id,
-      { $set: { name, description, coverImageUrl } },
+      { $set: updateDoc },
       { new: true, runValidators: true }
     );
 
@@ -711,6 +796,54 @@ export const updateDomain = async (
 
     return reply.status(200).send({ success: true, data: domain });
   } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+/**
+ * PATCH /api/domains/:id/toggle-lock (Admin)
+ * Toggle domain lock status (Approved/Unlocked for students vs. Locked)
+ */
+export const toggleDomainLock = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id } = request.params;
+    const userId = request.user?.id || (request.user as any)?._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid domain ID' });
+    }
+
+    const domain = await Domain.findById(id);
+    if (!domain) {
+      return reply.status(404).send({ success: false, error: 'Domain not found' });
+    }
+
+    const newLockState = !domain.isLocked;
+    domain.isLocked = newLockState;
+    if (!newLockState) {
+      // Unlocked & approved
+      domain.approvedBy = userId ? new mongoose.Types.ObjectId(userId) : null;
+      domain.approvedAt = new Date();
+    } else {
+      // Locked
+      domain.approvedBy = null;
+      domain.approvedAt = null;
+    }
+
+    await domain.save();
+
+    return reply.status(200).send({
+      success: true,
+      data: domain,
+      message: newLockState
+        ? `Domain "${domain.name}" locked. Students cannot access quests pending approval.`
+        : `Domain "${domain.name}" approved and unlocked for students!`,
+    });
+  } catch (error: any) {
+    request.log.error(error);
     return reply.status(500).send({ success: false, error: error.message });
   }
 };
@@ -878,6 +1011,7 @@ export default {
   submitLevelQuest,
   createDomain,
   updateDomain,
+  toggleDomainLock,
   deleteDomain,
   createLevel,
   getLevelById,

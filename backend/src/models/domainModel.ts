@@ -4,6 +4,9 @@ export interface IDomain extends Document {
   name: string;
   description: string;
   coverImageUrl: string;
+  isLocked: boolean;
+  approvedBy?: mongoose.Types.ObjectId | null;
+  approvedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +31,20 @@ const domainSchema = new Schema<IDomain>(
       required: [true, 'Cover image URL is required'],
       trim: true,
       default: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    },
+    isLocked: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    approvedAt: {
+      type: Date,
+      default: null,
     },
   },
   {
