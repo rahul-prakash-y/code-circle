@@ -14,6 +14,7 @@ const SetupPassword = lazy(() => import('./pages/SetupPassword'));
 const StudentBearers = lazy(() => import('./pages/StudentBearers'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
+const DomainsPage = lazy(() => import('./pages/DomainsPage'));
 const AssessmentsPage = lazy(() => import('./pages/AssessmentsPage'));
 const AttendancePage = lazy(() => import('./pages/AttendancePage'));
 const CertificatesPage = lazy(() => import('./pages/CertificatesPage'));
@@ -180,6 +181,23 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EventsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/domains"
+              element={
+                <ProtectedRoute>
+                  <DomainsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/domains/:domainId"
+              element={
+                <ProtectedRoute>
+                  <DomainsPage />
                 </ProtectedRoute>
               }
             />

@@ -16,6 +16,7 @@ import {
   Shield,
   BarChart3,
   ChevronLeft,
+  Compass,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -98,6 +99,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       label: 'Events',
       icon: Calendar,
       match: (loc) => loc.pathname === '/events',
+    },
+    {
+      to: '/domains',
+      label: 'Domains',
+      icon: Compass,
+      match: (loc) => loc.pathname.startsWith('/domains'),
     },
     {
       to: '/assessments',
