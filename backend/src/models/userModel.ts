@@ -16,6 +16,12 @@ export interface IUser extends Document {
   department?: string;
   college?: string;
   year?: string;
+  phone?: string;
+  phoneNumber?: string;
+  dob?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bio?: string;
   skills: string[];
   socialLinks: ISocialLinks;
   points?: number;
@@ -48,6 +54,12 @@ const userSchema = new Schema<IUser>(
     department: { type: String, trim: true, index: true },
     college: { type: String, default: 'BIT', trim: true },
     year: { type: String, trim: true },
+    phone: { type: String, default: '', trim: true },
+    phoneNumber: { type: String, default: '', trim: true },
+    dob: { type: String, default: '', trim: true },
+    dateOfBirth: { type: String, default: '', trim: true },
+    gender: { type: String, default: '', trim: true },
+    bio: { type: String, default: '', trim: true },
     skills: [{ type: String, trim: true }],
     socialLinks: {
       github: { type: String, default: '' },

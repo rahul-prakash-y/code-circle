@@ -21,7 +21,21 @@ export const getMe = async (request: FastifyRequest, reply: FastifyReply) => {
 export const updateMe = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = (request.user || {}) as any;
-    const { name, department, skills, socialLinks, profilePicUrl } = (request.body || {}) as any;
+    const {
+      name,
+      department,
+      skills,
+      socialLinks,
+      profilePicUrl,
+      phone,
+      phoneNumber,
+      dob,
+      dateOfBirth,
+      gender,
+      year,
+      college,
+      bio,
+    } = (request.body || {}) as any;
     
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
@@ -29,6 +43,23 @@ export const updateMe = async (request: FastifyRequest, reply: FastifyReply) => 
     if (skills !== undefined) updateData.skills = skills;
     if (socialLinks !== undefined) updateData.socialLinks = socialLinks;
     if (profilePicUrl !== undefined) updateData.profilePicUrl = profilePicUrl;
+
+    const rawPhone = phone !== undefined ? phone : phoneNumber;
+    if (rawPhone !== undefined) {
+      updateData.phone = rawPhone ? String(rawPhone).trim() : '';
+      updateData.phoneNumber = updateData.phone;
+    }
+
+    const rawDob = dob !== undefined ? dob : dateOfBirth;
+    if (rawDob !== undefined) {
+      updateData.dob = rawDob ? String(rawDob).trim() : '';
+      updateData.dateOfBirth = updateData.dob;
+    }
+
+    if (gender !== undefined) updateData.gender = gender ? String(gender).trim() : '';
+    if (year !== undefined) updateData.year = year ? String(year).trim() : '';
+    if (college !== undefined) updateData.college = college ? String(college).trim() : 'BIT';
+    if (bio !== undefined) updateData.bio = bio ? String(bio).trim() : '';
 
     const user = await User.findByIdAndUpdate(
       id,

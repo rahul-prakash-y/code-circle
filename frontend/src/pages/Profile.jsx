@@ -18,7 +18,13 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
-  CheckCircle2
+  CheckCircle2,
+  Phone,
+  Calendar,
+  GraduationCap,
+  FileText,
+  Instagram,
+  Sparkles
 } from 'lucide-react';
 import useProfileStore from '../store/useProfileStore';
 import useAuthStore from '../store/useAuthStore';
@@ -30,6 +36,22 @@ import LeetCodeCard from '../components/profile/LeetCodeCard';
 import HackerRankCard from '../components/profile/HackerRankCard';
 import GitHubCard from '../components/profile/GitHubCard';
 import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
+
+// Timezone-safe date formatter for YYYY-MM-DD strings
+const formatDob = (dobStr) => {
+  if (!dobStr) return '';
+  try {
+    const parts = String(dobStr).substring(0, 10).split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    return new Date(dobStr).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return dobStr;
+  }
+};
 
 const Profile = () => {
   const { profile, updateProfile, profileLoading } = useProfileStore();
@@ -93,11 +115,18 @@ const Profile = () => {
     name: '',
     department: '',
     rollNo: '',
+    phone: '',
+    dob: '',
+    gender: '',
+    year: '',
+    college: '',
+    bio: '',
     socialLinks: {
       github: '',
       linkedin: '',
       leetcode: '',
-      hackerrank: ''
+      hackerrank: '',
+      instagram: '',
     },
     skills: []
   });
@@ -110,11 +139,18 @@ const Profile = () => {
         name: profile.name || '',
         department: profile.department || '',
         rollNo: profile.rollNo || '',
+        phone: profile.phone || profile.phoneNumber || '',
+        dob: (profile.dob || profile.dateOfBirth) ? String(profile.dob || profile.dateOfBirth).substring(0, 10) : '',
+        gender: profile.gender || '',
+        year: profile.year || '',
+        college: profile.college || 'BIT',
+        bio: profile.bio || '',
         socialLinks: {
           github: profile.socialLinks?.github || '',
           linkedin: profile.socialLinks?.linkedin || '',
           leetcode: profile.socialLinks?.leetcode || '',
-          hackerrank: profile.socialLinks?.hackerrank || ''
+          hackerrank: profile.socialLinks?.hackerrank || '',
+          instagram: profile.socialLinks?.instagram || '',
         },
         skills: profile.skills || []
       });
@@ -157,6 +193,10 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (formData.phone && !/^[+0-9\s\-()]{7,20}$/.test(formData.phone.trim())) {
+      return toast.error('Please enter a valid phone number');
+    }
+
     // Add pending skill if any
     let finalFormData = { ...formData };
     if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
@@ -169,7 +209,7 @@ const Profile = () => {
     if (res.success) {
       toast.success('Profile updated successfully');
     } else {
-      toast.error(res.error);
+      toast.error(res.error || 'Failed to update profile');
     }
   };
 
@@ -211,9 +251,14 @@ const Profile = () => {
             </div>
             <p className="text-sm text-text-muted flex items-center justify-center sm:justify-start gap-2">
               <Building2 size={14} className="opacity-70" />
-              <span>Bannari Amman Institute of Technology</span>
+              <span>{profile.college || 'Bannari Amman Institute of Technology'}</span>
             </p>
-            <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-text-muted">
+            {profile.bio && (
+              <p className="text-xs text-text-secondary italic max-w-xl line-clamp-2">
+                "{profile.bio}"
+              </p>
+            )}
+            <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-xs text-text-muted">
               {profile.rollNo && (
                 <span className="font-mono bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary">
                   Roll: {profile.rollNo}
@@ -222,6 +267,29 @@ const Profile = () => {
               {profile.department && (
                 <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary">
                   {profile.department}
+                </span>
+              )}
+              {profile.year && (
+                <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary flex items-center gap-1.5">
+                  <GraduationCap size={12} className="opacity-70 text-accent" />
+                  {profile.year}
+                </span>
+              )}
+              {(profile.phone || profile.phoneNumber) && (
+                <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary flex items-center gap-1.5 font-mono">
+                  <Phone size={12} className="opacity-70 text-accent" />
+                  {profile.phone || profile.phoneNumber}
+                </span>
+              )}
+              {Boolean(profile.dob || profile.dateOfBirth) && (
+                <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary flex items-center gap-1.5">
+                  <Calendar size={12} className="opacity-70 text-accent" />
+                  {formatDob(profile.dob || profile.dateOfBirth)}
+                </span>
+              )}
+              {profile.gender && (
+                <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary">
+                  {profile.gender}
                 </span>
               )}
             </div>
@@ -259,11 +327,16 @@ const Profile = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          {/* Basic Information */}
+          {/* Personal Details */}
           <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card space-y-6">
-            <div>
-              <h2 className="text-base font-semibold text-text-primary">Personal Details</h2>
-              <p className="text-xs text-text-muted mt-0.5">Manage your student profile information</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-text-primary">Personal Details</h2>
+                <p className="text-xs text-text-muted mt-0.5">Manage your student profile information</p>
+              </div>
+              <span className="text-[11px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
+                Student Profile
+              </span>
             </div>
             
             <div className="space-y-4">
@@ -304,13 +377,132 @@ const Profile = () => {
                 </div>
               </div>
 
+              {/* Phone Number & Date of Birth */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                    <Phone size={13} className="text-accent" />
+                    <span>Phone Number</span>
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="input-field font-mono text-sm"
+                    placeholder="+91 98765 43210"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                    <Calendar size={13} className="text-accent" />
+                    <span>Date of Birth</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="dob"
+                    max={new Date().toISOString().split('T')[0]}
+                    value={formData.dob}
+                    onChange={handleChange}
+                    className="input-field text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Gender & Academic Year */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                    <UserIcon size={13} className="text-text-muted" />
+                    <span>Gender</span>
+                  </label>
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    className="input-field text-sm cursor-pointer"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                    <GraduationCap size={13} className="text-text-muted" />
+                    <span>Academic Year</span>
+                  </label>
+                  <select
+                    name="year"
+                    value={formData.year}
+                    onChange={handleChange}
+                    className="input-field text-sm cursor-pointer"
+                  >
+                    <option value="">Select Year</option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                    <option value="Post Graduate">Post Graduate</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* College / Institution */}
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">Registered Email</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                  <Building2 size={13} className="text-text-muted" />
+                  <span>College / Institution</span>
+                </label>
+                <input
+                  type="text"
+                  name="college"
+                  value={formData.college}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="e.g. Bannari Amman Institute of Technology"
+                />
+              </div>
+
+              {/* Bio / Tagline */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
+                    <FileText size={13} className="text-text-muted" />
+                    <span>Bio / Tagline</span>
+                  </label>
+                  <span className="text-[10px] text-text-muted">{formData.bio?.length || 0}/200</span>
+                </div>
+                <textarea
+                  name="bio"
+                  rows={2}
+                  maxLength={200}
+                  value={formData.bio}
+                  onChange={handleChange}
+                  className="input-field resize-none text-xs leading-relaxed"
+                  placeholder="Short bio, tech interests, or student headline..."
+                />
+              </div>
+
+              {/* Registered Email */}
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Mail size={13} className="text-text-muted" />
+                    <span>Registered Email</span>
+                  </span>
+                  <span className="text-[11px] text-accent flex items-center gap-1 font-medium">
+                    <ShieldCheck size={12} />
+                    Verified
+                  </span>
+                </label>
                 <input
                   type="email"
                   value={profile.email}
                   disabled
-                  className="input-field opacity-60 cursor-not-allowed bg-canvas"
+                  className="input-field opacity-60 cursor-not-allowed bg-canvas font-mono text-xs"
                 />
               </div>
             </div>
@@ -325,7 +517,10 @@ const Profile = () => {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">GitHub Username or URL</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                  <Github size={13} className="text-text-muted" />
+                  <span>GitHub Username or URL</span>
+                </label>
                 <input
                   type="text"
                   name="socialLinks.github"
@@ -337,7 +532,10 @@ const Profile = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">LinkedIn Profile</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                  <Linkedin size={13} className="text-text-muted" />
+                  <span>LinkedIn Profile</span>
+                </label>
                 <input
                   type="text"
                   name="socialLinks.linkedin"
@@ -350,7 +548,10 @@ const Profile = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5">LeetCode</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                    <Code2 size={13} className="text-text-muted" />
+                    <span>LeetCode</span>
+                  </label>
                   <input
                     type="text"
                     name="socialLinks.leetcode"
@@ -361,7 +562,10 @@ const Profile = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5">HackerRank</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                    <Trophy size={13} className="text-text-muted" />
+                    <span>HackerRank</span>
+                  </label>
                   <input
                     type="text"
                     name="socialLinks.hackerrank"
@@ -371,6 +575,21 @@ const Profile = () => {
                     placeholder="Username"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                  <Instagram size={13} className="text-text-muted" />
+                  <span>Instagram Profile</span>
+                </label>
+                <input
+                  type="text"
+                  name="socialLinks.instagram"
+                  value={formData.socialLinks.instagram || ''}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="instagram.com/username or @handle"
+                />
               </div>
             </div>
           </div>

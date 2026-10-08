@@ -21,6 +21,12 @@ const userSchema = new mongoose.Schema({
   department: { type: String, trim: true, index: true },
   college: { type: String, default: 'BIT', trim: true },
   year: { type: String, trim: true },
+  phone: { type: String, default: '', trim: true },
+  phoneNumber: { type: String, default: '', trim: true },
+  dob: { type: String, default: '', trim: true },
+  dateOfBirth: { type: String, default: '', trim: true },
+  gender: { type: String, default: '', trim: true },
+  bio: { type: String, default: '', trim: true },
   skills: [{ type: String, trim: true }],
   socialLinks: {
     github: { type: String, default: '' },

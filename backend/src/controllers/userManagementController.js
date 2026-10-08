@@ -162,7 +162,23 @@ const createUser = async (request, reply) => {
 const updateUser = async (request, reply) => {
   try {
     const { id } = request.params;
-    const { name, email, rollNo, role, department, skills, socialLinks } = request.body || {};
+    const {
+      name,
+      email,
+      rollNo,
+      role,
+      department,
+      skills,
+      socialLinks,
+      phone,
+      phoneNumber,
+      dob,
+      dateOfBirth,
+      gender,
+      year,
+      college,
+      bio,
+    } = request.body || {};
     const callerRole = request.user?.role;
     const callerId = request.user?.id;
 
@@ -206,6 +222,20 @@ const updateUser = async (request, reply) => {
     if (role !== undefined) targetUser.role = role;
     if (skills !== undefined) targetUser.skills = skills;
     if (socialLinks !== undefined) targetUser.socialLinks = socialLinks;
+    if (phone !== undefined || phoneNumber !== undefined) {
+      const p = (phone !== undefined ? phone : phoneNumber)?.trim() || '';
+      targetUser.phone = p;
+      targetUser.phoneNumber = p;
+    }
+    if (dob !== undefined || dateOfBirth !== undefined) {
+      const d = (dob !== undefined ? dob : dateOfBirth)?.trim() || '';
+      targetUser.dob = d;
+      targetUser.dateOfBirth = d;
+    }
+    if (gender !== undefined) targetUser.gender = gender?.trim() || '';
+    if (year !== undefined) targetUser.year = year?.trim() || '';
+    if (college !== undefined) targetUser.college = college?.trim() || 'BIT';
+    if (bio !== undefined) targetUser.bio = bio?.trim() || '';
 
     await targetUser.save();
 

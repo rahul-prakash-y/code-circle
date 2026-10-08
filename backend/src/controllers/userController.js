@@ -19,8 +19,21 @@ const getMe = async (request, reply) => {
 
 const updateMe = async (request, reply) => {
   try {
-    const { id } = request.user;
-    const { name, department, skills, socialLinks, profilePicUrl } = request.body;
+    const {
+      name,
+      department,
+      skills,
+      socialLinks,
+      profilePicUrl,
+      phone,
+      phoneNumber,
+      dob,
+      dateOfBirth,
+      gender,
+      year,
+      college,
+      bio,
+    } = request.body || {};
     
     const updateData = {};
     if (name !== undefined) updateData.name = name;
@@ -28,6 +41,23 @@ const updateMe = async (request, reply) => {
     if (skills !== undefined) updateData.skills = skills;
     if (socialLinks !== undefined) updateData.socialLinks = socialLinks;
     if (profilePicUrl !== undefined) updateData.profilePicUrl = profilePicUrl;
+
+    const rawPhone = phone !== undefined ? phone : phoneNumber;
+    if (rawPhone !== undefined) {
+      updateData.phone = rawPhone ? String(rawPhone).trim() : '';
+      updateData.phoneNumber = updateData.phone;
+    }
+
+    const rawDob = dob !== undefined ? dob : dateOfBirth;
+    if (rawDob !== undefined) {
+      updateData.dob = rawDob ? String(rawDob).trim() : '';
+      updateData.dateOfBirth = updateData.dob;
+    }
+
+    if (gender !== undefined) updateData.gender = gender ? String(gender).trim() : '';
+    if (year !== undefined) updateData.year = year ? String(year).trim() : '';
+    if (college !== undefined) updateData.college = college ? String(college).trim() : 'BIT';
+    if (bio !== undefined) updateData.bio = bio ? String(bio).trim() : '';
 
     const user = await User.findByIdAndUpdate(
       id,
