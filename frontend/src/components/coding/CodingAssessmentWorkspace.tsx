@@ -1055,8 +1055,8 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                 </div>
                 <p className="text-[11px] text-emerald-300/90">
                   {submissionVerdict.unlockedNextLevel
-                    ? 'All requirements satisfied! The next level in this domain has been unlocked.'
-                    : 'All requirements satisfied! Learning track progress updated.'}
+                    ? 'All requirements satisfied! The next level in this course has been unlocked.'
+                    : 'All requirements satisfied! Course progress updated.'}
                 </p>
               </div>
             )}
@@ -1070,17 +1070,17 @@ export const CodingAssessmentWorkspace: React.FC = () => {
               </button>
               {submissionVerdict.domainId || queryDomainId ? (
                 <button
-                  onClick={() => navigate(`/domains/${submissionVerdict.domainId || queryDomainId}`)}
+                  onClick={() => navigate(`/courses/${submissionVerdict.domainId || queryDomainId}`)}
                   className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-600/30"
                 >
-                  Return to Learning Track
+                  Return to Course
                 </button>
               ) : (
                 <button
-                  onClick={() => navigate('/domains')}
+                  onClick={() => navigate('/courses')}
                   className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-600/30"
                 >
-                  Return to Domains
+                  Return to Courses
                 </button>
               )}
             </div>

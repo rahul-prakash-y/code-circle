@@ -10,6 +10,8 @@ export interface IDomain {
   totalLevels?: number;
   completedLevelsCount?: number;
   progressPercentage?: number;
+  isEnrolled?: boolean;
+  enrolledStudentsCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -56,12 +58,33 @@ export interface ILevel {
   } | string | null;
   isCompleted?: boolean;
   isUnlocked?: boolean;
+  requiresRegistration?: boolean;
   isQuestCompleted?: boolean;
   isCodingChallengeUnlocked?: boolean;
   isCodingChallengeCompleted?: boolean;
   requiresPreviousLevel?: number | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface IEnrolledStudent {
+  enrollmentId: string;
+  user: {
+    _id: string;
+    name: string;
+    rollNo: string;
+    email: string;
+    department?: string;
+    year?: string;
+    college?: string;
+    profilePicUrl?: string;
+    role?: string;
+  };
+  enrolledAt: string;
+  status: 'enrolled' | 'in_progress' | 'completed';
+  completedLevelsCount: number;
+  totalLevels: number;
+  progressPercentage: number;
 }
 
 export interface IStudentProgress {
@@ -92,3 +115,33 @@ export interface IQuestSubmitResult {
   feedback?: IQuestFeedback[];
   message: string;
 }
+
+export interface ICourseAccessConfig {
+  coursesVisibleToAll: boolean;
+  hasAccess: boolean;
+  isEarlyAccess?: boolean;
+  isComingSoon?: boolean;
+  allowedStudentsCount?: number;
+}
+
+export interface IStudentAccessItem {
+  _id: string;
+  name: string;
+  rollNo: string;
+  email: string;
+  department?: string;
+  year?: string;
+  college?: string;
+  isAllowed: boolean;
+}
+
+export interface IStudentAccessPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalStudents?: number;
+  totalAllowed?: number;
+}
+
+

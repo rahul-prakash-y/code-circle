@@ -204,6 +204,23 @@ function App() {
             />
 
             <Route
+              path="/courses"
+              element={
+                <ProtectedRoute>
+                  <DomainsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/courses/:domainId"
+              element={
+                <ProtectedRoute>
+                  <DomainsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/domains"
               element={
                 <ProtectedRoute>

@@ -101,10 +101,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       match: (loc) => loc.pathname === '/events',
     },
     {
-      to: '/domains',
-      label: 'Domains',
+      to: '/courses',
+      label: 'Courses',
       icon: Compass,
-      match: (loc) => loc.pathname.startsWith('/domains'),
+      match: (loc) => loc.pathname.startsWith('/courses') || loc.pathname.startsWith('/domains'),
     },
     {
       to: '/assessments',

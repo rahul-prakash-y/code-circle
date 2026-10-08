@@ -8,6 +8,7 @@ import CodingChallenge, {
 import CodingSubmission from '../models/codingSubmissionModel';
 import Level from '../models/levelModel';
 import StudentProgress from '../models/studentProgressModel';
+import DomainEnrollment from '../models/domainEnrollmentModel';
 import rceService from '../services/rceService';
 import { ApiError } from '../utils/ApiError';
 
@@ -547,6 +548,24 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
       if (currentIdx !== -1 && currentIdx + 1 < allLevels.length) {
         unlockedNextLevel = true;
         nextLevelId = allLevels[currentIdx + 1]._id.toString();
+      }
+
+      // Update student's course enrollment status
+      const domainEnrollment = await DomainEnrollment.findOne({
+        userId: user.id,
+        domainId: firstLinked.domainId,
+      });
+      if (domainEnrollment) {
+        if (domainEnrollment.status === 'enrolled') {
+          domainEnrollment.status = 'in_progress';
+        }
+        const updatedProgress = await StudentProgress.findOne({ userId: user.id }).lean();
+        const doneSet = new Set((updatedProgress?.completedLevels || []).map((id) => id.toString()));
+        if (allLevels.length > 0 && allLevels.every((l) => doneSet.has(l._id.toString()))) {
+          domainEnrollment.status = 'completed';
+          domainEnrollment.completedAt = new Date();
+        }
+        await domainEnrollment.save();
       }
     }
   }

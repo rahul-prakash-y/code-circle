@@ -93,7 +93,7 @@ export const MainLayout = ({ children }) => {
   const mobileLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/events', label: 'Events', icon: Calendar },
-    { to: '/domains', label: 'Domains', icon: Compass },
+    { to: '/courses', label: 'Courses', icon: Compass },
     { to: '/assessments', label: 'Assessments', icon: Award },
     { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
     { to: '/certificates', label: 'Certificates', icon: Medal },

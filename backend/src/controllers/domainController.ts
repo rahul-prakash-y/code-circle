@@ -4,6 +4,9 @@ import Domain, { IDomain } from '../models/domainModel';
 import Level, { ILevel, IQuestQuestion } from '../models/levelModel';
 import StudentProgress from '../models/studentProgressModel';
 import Assessment from '../models/assessmentModel';
+import DomainEnrollment from '../models/domainEnrollmentModel';
+import User from '../models/userModel';
+import CourseConfig from '../models/courseConfigModel';
 
 // Interface for submitting answers
 export interface SubmitQuestBody {
@@ -379,7 +382,26 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
       request.user?.role === 'Faculty' ||
       request.user?.role === 'Committee';
 
+    const courseConfig = await CourseConfig.getOrCreate();
+    const isStudentAllowed = Boolean(
+      userId &&
+        courseConfig.allowedStudentIds?.some((id) => id.toString() === userId.toString())
+    );
+    const hasAccess = isAdmin || courseConfig.coursesVisibleToAll || isStudentAllowed;
+
+    // If courses are in Coming Soon mode and requester does not have access:
+    if (!hasAccess) {
+      return reply.status(200).send({
+        success: true,
+        isComingSoon: true,
+        hasAccess: false,
+        coursesVisibleToAll: false,
+        data: [],
+      });
+    }
+
     let unlockedDomainIds: string[] = [];
+    let userEnrolledDomainIds = new Set<string>();
 
     if (userId) {
       const studentProgress = await StudentProgress.findOne({ userId }).lean();
@@ -391,7 +413,19 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
           unlockedDomainIds = studentProgress.unlockedDomains.map((id) => id.toString());
         }
       }
+
+      const userEnrollments = await DomainEnrollment.find({ userId }).select('domainId').lean();
+      userEnrollments.forEach((e) => userEnrolledDomainIds.add(e.domainId.toString()));
     }
+
+    // Aggregate enrollment counts across all domains
+    const enrollmentCounts = await DomainEnrollment.aggregate([
+      { $group: { _id: '$domainId', count: { $sum: 1 } } },
+    ]);
+    const enrollmentCountMap = new Map<string, number>();
+    enrollmentCounts.forEach((ec) => {
+      enrollmentCountMap.set(ec._id.toString(), ec.count);
+    });
 
     // Enrich each domain with total levels, completed levels, and lock status
     const enrichedDomains = await Promise.all(
@@ -407,6 +441,8 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
 
         const isDomainApproved = !domain.isLocked || unlockedDomainIds.includes(domain._id.toString());
         const isLockedForStudent = !isAdmin && !isDomainApproved;
+        const enrolledStudentsCount = enrollmentCountMap.get(domain._id.toString()) || 0;
+        const isEnrolled = isAdmin || userEnrolledDomainIds.has(domain._id.toString());
 
         return {
           ...domain,
@@ -415,12 +451,21 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
           progressPercentage,
           isLocked: Boolean(domain.isLocked),
           isLockedForStudent,
+          enrolledStudentsCount,
+          isEnrolled,
         };
       })
     );
 
     return reply.status(200).send({
       success: true,
+      isComingSoon: false,
+      hasAccess: true,
+      isEarlyAccess: !isAdmin && !courseConfig.coursesVisibleToAll && isStudentAllowed,
+      config: {
+        coursesVisibleToAll: courseConfig.coursesVisibleToAll,
+        allowedStudentsCount: courseConfig.allowedStudentIds?.length || 0,
+      },
       data: enrichedDomains,
     });
   } catch (error: any) {
@@ -468,8 +513,38 @@ export const getDomainLevels = async (
     let completedQuestsSet = new Set<string>();
     let unlockedCodingChallengesSet = new Set<string>();
     let completedCodingChallengesSet = new Set<string>();
+    let isEnrolled = false;
+
+    const isAdmin =
+      request.user?.role === 'Admin' ||
+      request.user?.role === 'SuperAdmin' ||
+      request.user?.role === 'Faculty' ||
+      request.user?.role === 'Committee';
+
+    if (!isAdmin) {
+      const courseConfig = await CourseConfig.getOrCreate();
+      const isStudentAllowed = Boolean(
+        userId &&
+          courseConfig.allowedStudentIds?.some((id) => id.toString() === userId.toString())
+      );
+      const hasAccess = courseConfig.coursesVisibleToAll || isStudentAllowed;
+      if (!hasAccess) {
+        return reply.status(403).send({
+          success: false,
+          isComingSoon: true,
+          error: 'Courses are currently in Coming Soon mode. SuperAdmin early access is required.',
+        });
+      }
+    }
 
     if (userId) {
+      if (isAdmin) {
+        isEnrolled = true;
+      } else {
+        const enrollment = await DomainEnrollment.findOne({ userId, domainId }).lean();
+        isEnrolled = Boolean(enrollment);
+      }
+
       const progress = await StudentProgress.findOne({ userId }).lean();
       if (progress) {
         progress.completedLevels?.forEach((lvlId) => completedLevelsSet.add(lvlId.toString()));
@@ -481,22 +556,16 @@ export const getDomainLevels = async (
       }
     }
 
-    // Check user clearance (Admins/SuperAdmin have all levels unlocked)
-    const isAdmin =
-      request.user?.role === 'Admin' ||
-      request.user?.role === 'SuperAdmin' ||
-      request.user?.role === 'Faculty' ||
-      request.user?.role === 'Committee';
-
     const isDomainApproved = !domain.isLocked || unlockedDomainsSet.has(domain._id.toString());
     const isDomainLockedForStudent = !isAdmin && !isDomainApproved;
 
-    // Map levels: each level unlocks strictly on completion of previous level
+    // Map levels: each level unlocks strictly on completion of previous level, IF student is registered (or admin)
     const mappedLevels = levels.map((lvl, index) => {
       const isCompleted = completedLevelsSet.has(lvl._id.toString());
       const previousLevel = index > 0 ? levels[index - 1] : null;
       const previousLevelDone = index === 0 || (previousLevel ? completedLevelsSet.has(previousLevel._id.toString()) : false);
-      const isUnlocked = isAdmin || (!isDomainLockedForStudent && previousLevelDone);
+      const requiresRegistration = !isAdmin && !isEnrolled;
+      const isUnlocked = isAdmin || (isEnrolled && !isDomainLockedForStudent && previousLevelDone);
       const requiresPreviousLevel = index > 0 ? (previousLevel?.levelNumber || (lvl.levelNumber - 1)) : null;
 
       const isQuestCompleted = completedQuestsSet.has(lvl._id.toString()) || isCompleted;
@@ -551,12 +620,15 @@ export const getDomainLevels = async (
         codingChallengeId: lvl.codingChallengeId,
         isCompleted,
         isUnlocked,
+        requiresRegistration,
         isQuestCompleted,
         isCodingChallengeUnlocked,
         isCodingChallengeCompleted,
         requiresPreviousLevel,
       };
     });
+
+    const enrolledStudentsCount = await DomainEnrollment.countDocuments({ domainId });
 
     return reply.status(200).send({
       success: true,
@@ -565,6 +637,8 @@ export const getDomainLevels = async (
           ...domain,
           isLocked: Boolean(domain.isLocked),
           isLockedForStudent: isDomainLockedForStudent,
+          isEnrolled,
+          enrolledStudentsCount,
         },
         levels: mappedLevels,
         userProgress: {
@@ -621,6 +695,16 @@ export const submitLevelQuest = async (
 
     // Anti-tamper verification for student submissions
     if (!isAdmin) {
+      // 0. Verify that the student is registered for the course
+      const enrollment = await DomainEnrollment.findOne({ userId, domainId: level.domainId });
+      if (!enrollment) {
+        return reply.status(403).send({
+          success: false,
+          error: 'You must register for this course before attempting quests and unlocking levels.',
+          requiresRegistration: true,
+        });
+      }
+
       // 1. Verify that the parent domain is approved / unlocked
       const domain = await Domain.findById(level.domainId);
       if (!domain) {
@@ -745,6 +829,25 @@ export const submitLevelQuest = async (
         updateOperations,
         { upsert: true, new: true }
       );
+
+      // Update student's course enrollment status
+      const studentEnrollment = await DomainEnrollment.findOne({ userId, domainId: level.domainId });
+      if (studentEnrollment) {
+        if (studentEnrollment.status === 'enrolled') {
+          studentEnrollment.status = 'in_progress';
+          await studentEnrollment.save();
+        }
+        if (!hasCodingChallenge || !level.codingChallengeId) {
+          const allDomainLevels = await Level.find({ domainId: level.domainId }).select('_id').lean();
+          const currentProgress = await StudentProgress.findOne({ userId: new mongoose.Types.ObjectId(userId) }).lean();
+          const doneLevelIds = new Set((currentProgress?.completedLevels || []).map((id) => id.toString()));
+          if (allDomainLevels.length > 0 && allDomainLevels.every((l) => doneLevelIds.has(l._id.toString()))) {
+            studentEnrollment.status = 'completed';
+            studentEnrollment.completedAt = new Date();
+            await studentEnrollment.save();
+          }
+        }
+      }
     }
 
     const message = passed
@@ -1079,6 +1182,491 @@ export const deleteLevel = async (
   }
 };
 
+/**
+ * POST /api/domains/:id/register (or /enroll)
+ * Student registration for a course track.
+ */
+export const registerForDomain = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id: domainId } = request.params;
+    const userId = request.user?.id || (request.user as any)?._id;
+
+    if (!userId) {
+      return reply.status(401).send({ success: false, error: 'Authentication required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(domainId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid course ID' });
+    }
+
+    const domain = await Domain.findById(domainId);
+    if (!domain) {
+      return reply.status(404).send({ success: false, error: 'Course not found' });
+    }
+
+    const isAdmin =
+      request.user?.role === 'Admin' ||
+      request.user?.role === 'SuperAdmin' ||
+      request.user?.role === 'Faculty' ||
+      request.user?.role === 'Committee';
+
+    if (!isAdmin) {
+      const courseConfig = await CourseConfig.getOrCreate();
+      const isStudentAllowed = Boolean(
+        userId &&
+          courseConfig.allowedStudentIds?.some((id) => id.toString() === userId.toString())
+      );
+      const hasAccess = courseConfig.coursesVisibleToAll || isStudentAllowed;
+      if (!hasAccess) {
+        return reply.status(403).send({
+          success: false,
+          isComingSoon: true,
+          error: 'Course registration is temporarily unavailable. Courses are coming soon.',
+        });
+      }
+    }
+
+    if (!isAdmin && domain.isLocked) {
+      const progress = await StudentProgress.findOne({ userId });
+      const unlockedDomains = progress?.unlockedDomains?.map((d) => d.toString()) || [];
+      if (!unlockedDomains.includes(domain._id.toString())) {
+        return reply.status(403).send({
+          success: false,
+          error: 'This course is locked pending administrator approval. Registration is temporarily closed.',
+        });
+      }
+    }
+
+    // Check if already registered
+    let enrollment = await DomainEnrollment.findOne({ userId, domainId });
+    if (enrollment) {
+      return reply.status(200).send({
+        success: true,
+        message: 'Already registered for this course',
+        data: enrollment,
+      });
+    }
+
+    enrollment = await DomainEnrollment.create({
+      userId,
+      domainId,
+      enrolledAt: new Date(),
+      status: 'enrolled',
+    });
+
+    return reply.status(201).send({
+      success: true,
+      message: `Successfully registered for ${domain.name}!`,
+      data: enrollment,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to register for course',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * GET /api/domains/:id/students (Admin / Faculty)
+ * View list of registered students for a course track with their progress metrics.
+ */
+export const getEnrolledStudents = async (
+  request: FastifyRequest<{ Params: { id: string }; Querystring: { search?: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id: domainId } = request.params;
+    const { search } = (request.query || {}) as any;
+
+    if (!mongoose.Types.ObjectId.isValid(domainId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid course ID' });
+    }
+
+    const domain = await Domain.findById(domainId).lean();
+    if (!domain) {
+      return reply.status(404).send({ success: false, error: 'Course not found' });
+    }
+
+    // Get all levels for this domain
+    const levels = await Level.find({ domainId }).select('_id levelNumber').lean();
+    const totalLevels = levels.length;
+    const levelIdStrings = new Set(levels.map((lvl) => lvl._id.toString()));
+
+    // Fetch enrollments populated with user info
+    const enrollments = await DomainEnrollment.find({ domainId })
+      .populate('userId', 'name rollNo email department year college profilePicUrl role')
+      .sort({ enrolledAt: -1 })
+      .lean();
+
+    // Batch fetch student progress
+    const userIds = enrollments.map((e) => (e.userId as any)?._id).filter(Boolean);
+    const progressDocs = await StudentProgress.find({ userId: { $in: userIds } }).lean();
+    const progressMap = new Map<string, string[]>();
+    progressDocs.forEach((doc) => {
+      progressMap.set(
+        doc.userId.toString(),
+        (doc.completedLevels || []).map((id) => id.toString())
+      );
+    });
+
+    let enrolledStudents = enrollments
+      .filter((e) => e.userId != null)
+      .map((e) => {
+        const u = e.userId as any;
+        const userCompleted = progressMap.get(u._id.toString()) || [];
+        const completedLevelsCount = userCompleted.filter((lvlId) => levelIdStrings.has(lvlId)).length;
+        const progressPercentage =
+          totalLevels > 0 ? Math.round((completedLevelsCount / totalLevels) * 100) : 0;
+
+        let status = e.status;
+        if (progressPercentage === 100) {
+          status = 'completed';
+        } else if (completedLevelsCount > 0) {
+          status = 'in_progress';
+        } else {
+          status = 'enrolled';
+        }
+
+        return {
+          enrollmentId: e._id,
+          user: {
+            _id: u._id,
+            name: u.name,
+            rollNo: u.rollNo,
+            email: u.email,
+            department: u.department,
+            year: u.year,
+            college: u.college,
+            profilePicUrl: u.profilePicUrl,
+            role: u.role,
+          },
+          enrolledAt: e.enrolledAt,
+          status,
+          completedLevelsCount,
+          totalLevels,
+          progressPercentage,
+        };
+      });
+
+    // Optional query filter
+    if (search && typeof search === 'string' && search.trim()) {
+      const q = search.trim().toLowerCase();
+      enrolledStudents = enrolledStudents.filter(
+        (s) =>
+          s.user.name?.toLowerCase().includes(q) ||
+          s.user.rollNo?.toLowerCase().includes(q) ||
+          s.user.email?.toLowerCase().includes(q) ||
+          s.user.department?.toLowerCase().includes(q)
+      );
+    }
+
+    return reply.status(200).send({
+      success: true,
+      data: {
+        domain: {
+          _id: domain._id,
+          name: domain.name,
+          description: domain.description,
+          totalLevels,
+        },
+        totalStudents: enrolledStudents.length,
+        students: enrolledStudents,
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to fetch enrolled students',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * GET /api/courses/config/access
+ * Returns course access & visibility state for the requester.
+ */
+export const getCourseAccessConfig = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    const userId = user?.id || (user as any)?._id;
+    const isAdmin =
+      user?.role === 'Admin' ||
+      user?.role === 'SuperAdmin' ||
+      user?.role === 'Faculty' ||
+      user?.role === 'Committee';
+    const isSuperAdmin = user?.role === 'SuperAdmin';
+
+    const config = await CourseConfig.getOrCreate();
+
+    const isStudentAllowed = Boolean(
+      userId &&
+      config.allowedStudentIds?.some((id) => id.toString() === userId.toString())
+    );
+
+    const hasAccess = isAdmin || config.coursesVisibleToAll || isStudentAllowed;
+    const isComingSoon = !hasAccess;
+    const isEarlyAccess = !isAdmin && !config.coursesVisibleToAll && isStudentAllowed;
+
+    return reply.status(200).send({
+      success: true,
+      data: {
+        coursesVisibleToAll: config.coursesVisibleToAll,
+        hasAccess,
+        isEarlyAccess,
+        isComingSoon,
+        allowedStudentsCount: config.allowedStudentIds?.length || 0,
+        ...(isSuperAdmin ? { allowedStudentIds: config.allowedStudentIds } : {}),
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to fetch course access config',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * PATCH /api/courses/config/visibility (SuperAdmin)
+ * Toggle whether courses are live for all students or in "Courses Coming Soon" mode.
+ */
+export const updateCourseVisibility = async (
+  request: FastifyRequest<{ Body: { coursesVisibleToAll: boolean } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { coursesVisibleToAll } = request.body || {};
+    if (typeof coursesVisibleToAll !== 'boolean') {
+      return reply.status(400).send({
+        success: false,
+        error: 'coursesVisibleToAll boolean is required',
+      });
+    }
+
+    const config = await CourseConfig.getOrCreate();
+    config.coursesVisibleToAll = coursesVisibleToAll;
+    config.updatedBy = new mongoose.Types.ObjectId(request.user!.id);
+    await config.save();
+
+    return reply.status(200).send({
+      success: true,
+      message: coursesVisibleToAll
+        ? 'Courses are now LIVE for all students.'
+        : 'Courses are now in Coming Soon mode. Only SuperAdmin-approved students can view them.',
+      data: {
+        coursesVisibleToAll: config.coursesVisibleToAll,
+        allowedStudentsCount: config.allowedStudentIds?.length || 0,
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to update course visibility',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * POST /api/courses/config/allow-student (SuperAdmin)
+ * Grant or revoke course access for an individual student.
+ */
+export const setStudentCourseAccess = async (
+  request: FastifyRequest<{ Body: { studentId: string; allow: boolean } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { studentId, allow } = request.body || {};
+    if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
+      return reply.status(400).send({ success: false, error: 'Valid studentId is required' });
+    }
+    if (typeof allow !== 'boolean') {
+      return reply.status(400).send({ success: false, error: 'allow boolean is required' });
+    }
+
+    const student = await User.findById(studentId).select('name email rollNo');
+    if (!student) {
+      return reply.status(404).send({ success: false, error: 'Student not found' });
+    }
+
+    const config = await CourseConfig.getOrCreate();
+    const studentObjId = new mongoose.Types.ObjectId(studentId);
+
+    if (allow) {
+      if (!config.allowedStudentIds.some((id) => id.toString() === studentId)) {
+        config.allowedStudentIds.push(studentObjId);
+      }
+    } else {
+      config.allowedStudentIds = config.allowedStudentIds.filter(
+        (id) => id.toString() !== studentId
+      );
+    }
+
+    config.updatedBy = new mongoose.Types.ObjectId(request.user!.id);
+    await config.save();
+
+    return reply.status(200).send({
+      success: true,
+      message: allow
+        ? `Access granted for ${student.name} (${student.rollNo})`
+        : `Course access revoked for ${student.name} (${student.rollNo})`,
+      data: {
+        studentId,
+        isAllowed: allow,
+        allowedStudentsCount: config.allowedStudentIds.length,
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to update student course access',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * POST /api/courses/config/batch-allow (SuperAdmin)
+ * Batch grant or revoke course access across students.
+ */
+export const batchSetCourseAccess = async (
+  request: FastifyRequest<{
+    Body: { action: 'allow_all' | 'revoke_all' | 'allow_selected'; studentIds?: string[] };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { action, studentIds } = request.body || {};
+    const config = await CourseConfig.getOrCreate();
+
+    if (action === 'allow_all') {
+      const allStudents = await User.find({ role: 'Student' }).select('_id').lean();
+      config.allowedStudentIds = allStudents.map((s) => s._id);
+    } else if (action === 'revoke_all') {
+      config.allowedStudentIds = [];
+    } else if (action === 'allow_selected' && Array.isArray(studentIds)) {
+      const validIds = studentIds
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+      config.allowedStudentIds = validIds;
+    } else {
+      return reply.status(400).send({ success: false, error: 'Invalid batch action' });
+    }
+
+    config.updatedBy = new mongoose.Types.ObjectId(request.user!.id);
+    await config.save();
+
+    return reply.status(200).send({
+      success: true,
+      message: `Batch update successful. ${config.allowedStudentIds.length} students now have course access.`,
+      data: {
+        allowedStudentsCount: config.allowedStudentIds.length,
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to batch update student access',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * GET /api/courses/config/students (SuperAdmin)
+ * Fetch directory of students indicating their course access status.
+ */
+export const getStudentsWithCourseAccess = async (
+  request: FastifyRequest<{ Querystring: { search?: string; page?: string; limit?: string; filter?: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { search = '', page = '1', limit = '10', filter: statusFilter = 'all' } = request.query || {};
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit) || 10));
+
+    const config = await CourseConfig.getOrCreate();
+    const allowedSet = new Set(config.allowedStudentIds.map((id) => id.toString()));
+
+    const mongoFilter: any = { role: 'Student' };
+
+    if (statusFilter === 'allowed') {
+      mongoFilter._id = { $in: config.allowedStudentIds };
+    } else if (statusFilter === 'locked') {
+      mongoFilter._id = { $nin: config.allowedStudentIds };
+    }
+
+    if (search.trim()) {
+      const sanitizedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(sanitizedSearch, 'i');
+      mongoFilter.$or = [
+        { name: regex },
+        { rollNo: regex },
+        { email: regex },
+        { department: regex },
+      ];
+    }
+
+    const [total, students, totalStudents] = await Promise.all([
+      User.countDocuments(mongoFilter),
+      User.find(mongoFilter)
+        .select('name rollNo email department year college createdAt')
+        .sort({ name: 1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .lean(),
+      User.countDocuments({ role: 'Student' }),
+    ]);
+
+    const mappedStudents = students.map((s) => ({
+      _id: s._id.toString(),
+      name: s.name,
+      rollNo: s.rollNo,
+      email: s.email,
+      department: s.department || 'N/A',
+      year: s.year || 'N/A',
+      college: s.college || 'BIT',
+      isAllowed: allowedSet.has(s._id.toString()),
+    }));
+
+    const totalPages = Math.max(1, Math.ceil(total / limitNum));
+
+    return reply.status(200).send({
+      success: true,
+      data: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+        totalStudents,
+        totalAllowed: config.allowedStudentIds.length,
+        coursesVisibleToAll: config.coursesVisibleToAll,
+        students: mappedStudents,
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to fetch student access list',
+      details: error.message,
+    });
+  }
+};
+
 export default {
   getDomains,
   getDomainLevels,
@@ -1091,4 +1679,11 @@ export default {
   getLevelById,
   updateLevel,
   deleteLevel,
+  registerForDomain,
+  getEnrolledStudents,
+  getCourseAccessConfig,
+  updateCourseVisibility,
+  setStudentCourseAccess,
+  batchSetCourseAccess,
+  getStudentsWithCourseAccess,
 };

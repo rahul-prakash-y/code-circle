@@ -84,16 +84,16 @@ export const DomainEditorModal: React.FC<DomainEditorModalProps> = ({
           <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
             <Layers className="w-4 h-4" />
           </div>
-          <span>{domainToEdit ? 'Edit Learning Domain' : 'Create Learning Domain'}</span>
+          <span>{domainToEdit ? 'Edit Course' : 'Create Course'}</span>
         </div>
       }
-      description="Configure domain properties, visual cover art, and curriculum overview."
+      description="Configure course curriculum properties, visual cover art, and learning objectives."
       dialogClassName="sm:max-w-lg p-6"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider">
-            Domain Name *
+            Course Title *
           </label>
           <input
             type="text"
@@ -234,7 +234,7 @@ export const DomainEditorModal: React.FC<DomainEditorModalProps> = ({
             ) : domainToEdit ? (
               'Save Changes'
             ) : (
-              'Create Track'
+              'Create Course'
             )}
           </button>
         </div>

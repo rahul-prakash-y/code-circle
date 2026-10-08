@@ -71,6 +71,7 @@ server.register(bearerRoutes, { prefix: '/api/bearers' });
 server.register(notificationRoutes, { prefix: '/api/notifications' });
 server.register(statsRoutes, { prefix: '/api/stats' });
 server.register(domainRoutes, { prefix: '/api/domains' });
+server.register(domainRoutes, { prefix: '/api/courses' });
 server.register(levelRoutes, { prefix: '/api/levels' });
 
 // API 404 Handler

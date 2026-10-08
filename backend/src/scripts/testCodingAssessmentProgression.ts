@@ -10,6 +10,7 @@ import '../models/levelModel';
 import '../models/studentProgressModel';
 import '../models/codingChallengeModel';
 import '../models/codingSubmissionModel';
+import '../models/domainEnrollmentModel';
 
 const API_BASE = 'http://localhost:5000/api';
 const JWT_SECRET = process.env.JWT_SECRET || 'stellar-minimalist-secret-key-2026';
@@ -52,9 +53,11 @@ async function runTest() {
     });
   }
 
-  // Clear previous progress and submissions for student
+  // Clear previous progress, submissions, and enrollments for student
   await StudentProgressModel.deleteOne({ userId: testUser._id });
   await CodingSubmissionModel.deleteMany({ student: testUser._id });
+  const DomainEnrollmentModel = mongoose.model('DomainEnrollment');
+  await DomainEnrollmentModel.deleteMany({ userId: testUser._id });
 
   const token = jwt.sign(
     {
@@ -135,10 +138,13 @@ async function runTest() {
     ],
   });
 
+  console.log('--- Step 0: Register Student for Test Course ---');
+  await axios.post(`${API_BASE}/domains/${testDomain._id}/register`, {}, { headers: authHeaders });
+
   console.log('--- Step 1: Check Initial Level States ---');
   const initialLevelsRes = await axios.get(`${API_BASE}/domains/${testDomain._id}/levels`, { headers: authHeaders });
   const levelsData = initialLevelsRes.data.data.levels;
-  assert(levelsData[0].isUnlocked === true, 'Level 1 is unlocked initially');
+  assert(levelsData[0].isUnlocked === true, 'Level 1 is unlocked initially after registration');
   assert(levelsData[0].isCompleted === false, 'Level 1 is not completed initially');
   assert(levelsData[0].isCodingChallengeUnlocked === false, 'Coding challenge for Level 1 is initially LOCKED');
   assert(levelsData[1].isUnlocked === false, 'Level 2 is initially LOCKED');
