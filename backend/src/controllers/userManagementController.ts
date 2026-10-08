@@ -382,6 +382,7 @@ export const toggleBlockUser = async (request: FastifyRequest, reply: FastifyRep
 export const triggerResetLink = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = request.params as any;
+     const clientUrl = request.headers.origin;
 
     const targetUser = await User.findById(id);
     if (!targetUser) {
@@ -395,7 +396,7 @@ export const triggerResetLink = async (request: FastifyRequest, reply: FastifyRe
     targetUser.resetPasswordExpires = expiresAt;
     await targetUser.save();
 
-    const resetLink = `${CLIENT_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(targetUser.email)}`;
+    const resetLink = `${clientUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(targetUser.email)}`;
 
     return reply.send({
       success: true,
