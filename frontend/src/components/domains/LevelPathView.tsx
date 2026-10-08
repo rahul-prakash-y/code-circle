@@ -150,7 +150,7 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                     </span>
 
                     {codingChallenge && (
-                      <span className="inline-flex whitespace-nowrap items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
                         <Code2 className="w-3.5 h-3.5 text-blue-500" />
                         Coding: {codingChallenge.title}
                       </span>

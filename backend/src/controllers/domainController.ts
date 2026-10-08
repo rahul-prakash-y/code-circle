@@ -368,7 +368,7 @@ export const ensureSeedData = async (adminUserId?: string) => {
 export const getDomains = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     // Seed initial domains if database has none
-    await ensureSeedData(request.user?.id);
+    // await ensureSeedData(request.user?.id);
 
     const domains = await Domain.find().sort({ createdAt: 1 }).lean();
 
