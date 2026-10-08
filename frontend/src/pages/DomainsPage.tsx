@@ -358,7 +358,7 @@ export const DomainsPage: React.FC = () => {
 
           {/* Level Timeline Path (4 cols on desktop) */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-            <div className="p-5 rounded-[22px] bg-surface border border-separator/60 shadow-[0_4px_24px_rgba(0,0,0,0.02)] space-y-4">
+            <div className="p-5 rounded-[22px] overflow-auto md:max-h-[calc(100dvh)] bg-surface border border-separator/60 shadow-[0_4px_24px_rgba(0,0,0,0.02)] space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-separator">
                 <div className="flex items-center gap-2">
                   <Compass className="w-4 h-4 text-accent" />
