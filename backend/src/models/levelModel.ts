@@ -15,18 +15,34 @@ export interface IStudyMaterial {
   content?: string;
 }
 
+export interface ILevelVideo {
+  _id?: mongoose.Types.ObjectId;
+  title?: string;
+  youtubeVideoId: string;
+}
+
 export interface ILevel extends Document {
   domainId: mongoose.Types.ObjectId;
   levelNumber: number;
   title: string;
   youtubeVideoId: string;
+  youtubeVideoIds?: string[];
+  videos?: ILevelVideo[];
   studyMaterials: IStudyMaterial[];
   questQuestions: IQuestQuestion[];
+  points?: number;
   assessmentId?: mongoose.Types.ObjectId | null;
   codingChallengeId?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export const getDefaultPointsForLevel = (levelNumber: number): number => {
+  const num = Number(levelNumber) || 1;
+  if (num <= 3) return 25;
+  if (num <= 7) return 50;
+  return 100;
+};
 
 const studyMaterialSchema = new Schema<IStudyMaterial>(
   {
@@ -77,6 +93,22 @@ const questQuestionSchema = new Schema<IQuestQuestion>(
   { _id: true }
 );
 
+const levelVideoSchema = new Schema<ILevelVideo>(
+  {
+    title: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    youtubeVideoId: {
+      type: String,
+      required: [true, 'YouTube video ID is required'],
+      trim: true,
+    },
+  },
+  { _id: true }
+);
+
 const levelSchema = new Schema<ILevel>(
   {
     domainId: {
@@ -100,6 +132,14 @@ const levelSchema = new Schema<ILevel>(
       required: [true, 'YouTube video ID is required'],
       trim: true,
     },
+    youtubeVideoIds: {
+      type: [String],
+      default: [],
+    },
+    videos: {
+      type: [levelVideoSchema],
+      default: [],
+    },
     studyMaterials: {
       type: [studyMaterialSchema],
       default: [],
@@ -111,6 +151,11 @@ const levelSchema = new Schema<ILevel>(
         validator: (questions: IQuestQuestion[]) => Array.isArray(questions) && questions.length > 0,
         message: 'A level must have quest questions configured',
       },
+    },
+    points: {
+      type: Number,
+      default: 50,
+      min: [0, 'Points cannot be negative'],
     },
     assessmentId: {
       type: Schema.Types.ObjectId,

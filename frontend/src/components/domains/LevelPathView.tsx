@@ -13,6 +13,7 @@ import {
   Sparkles,
   Code2,
   Terminal,
+  Film,
 } from 'lucide-react';
 
 interface LevelPathViewProps {
@@ -144,10 +145,39 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                   </h3>
 
                   <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-label-secondary">
+                    {(() => {
+                      const pts =
+                        typeof lvl.points === 'number' && lvl.points >= 0
+                          ? lvl.points
+                          : (lvl.levelNumber <= 3 ? 25 : lvl.levelNumber <= 7 ? 50 : 100);
+                      return (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold border border-amber-500/20">
+                          <Award className="w-3.5 h-3.5 text-amber-500" />
+                          +{pts} pts
+                        </span>
+                      );
+                    })()}
+
                     <span className="inline-flex items-center gap-1">
                       <HelpCircle className="w-3.5 h-3.5 text-accent" />
                       {lvl.questQuestions?.length || 0}-Question Quest
                     </span>
+
+                    {(() => {
+                      const vidCount =
+                        (Array.isArray(lvl.videos) && lvl.videos.length) ||
+                        (Array.isArray(lvl.youtubeVideoIds) && lvl.youtubeVideoIds.length) ||
+                        (lvl.youtubeVideoId ? 1 : 0);
+                      if (vidCount > 1) {
+                        return (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 font-medium">
+                            <Film className="w-3.5 h-3.5 text-red-500" />
+                            {vidCount} Videos
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     {codingChallenge && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
@@ -157,7 +187,7 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                     )}
 
                     {assessment && (
-                      <span className="inline-flex whitespace-nowrap items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium">
                         <Award className="w-3.5 h-3.5 text-purple-500" />
                         Unlocks: {assessment.title}
                       </span>

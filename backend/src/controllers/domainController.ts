@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import Domain, { IDomain } from '../models/domainModel';
-import Level, { ILevel, IQuestQuestion } from '../models/levelModel';
+import Level, { ILevel, IQuestQuestion, getDefaultPointsForLevel } from '../models/levelModel';
 import StudentProgress from '../models/studentProgressModel';
 import Assessment from '../models/assessmentModel';
 import DomainEnrollment from '../models/domainEnrollmentModel';
@@ -608,12 +608,41 @@ export const getDomainLevels = async (
             },
           ];
 
+      const videos =
+        Array.isArray(lvl.videos) && lvl.videos.length > 0
+          ? lvl.videos
+          : Array.isArray(lvl.youtubeVideoIds) && lvl.youtubeVideoIds.length > 0
+          ? lvl.youtubeVideoIds.map((vid: string, i: number) => ({
+              title: `Part ${i + 1}`,
+              youtubeVideoId: vid,
+            }))
+          : lvl.youtubeVideoId
+          ? [{ title: 'Main Lecture', youtubeVideoId: lvl.youtubeVideoId }]
+          : [];
+
+      const youtubeVideoIds =
+        Array.isArray(lvl.youtubeVideoIds) && lvl.youtubeVideoIds.length > 0
+          ? lvl.youtubeVideoIds
+          : Array.isArray(lvl.videos) && lvl.videos.length > 0
+          ? lvl.videos.map((v: any) => v.youtubeVideoId)
+          : lvl.youtubeVideoId
+          ? [lvl.youtubeVideoId]
+          : [];
+
+      const levelPoints =
+        typeof lvl.points === 'number' && lvl.points >= 0
+          ? lvl.points
+          : getDefaultPointsForLevel(lvl.levelNumber);
+
       return {
         _id: lvl._id,
         domainId: lvl.domainId,
         levelNumber: lvl.levelNumber,
         title: lvl.title,
+        points: levelPoints,
         youtubeVideoId: lvl.youtubeVideoId,
+        youtubeVideoIds,
+        videos,
         studyMaterials,
         questQuestions: sanitizedQuestions,
         assessmentId: lvl.assessmentId,
@@ -786,6 +815,7 @@ export const submitLevelQuest = async (
     let unlockedCodingChallengeId: string | null = null;
     let nextLevelId: string | null = null;
     let requiresCodingAssessment = false;
+    let pointsAwarded = 0;
 
     if (passed) {
       const hasCodingChallenge = Boolean(level.codingChallengeId);
@@ -807,6 +837,24 @@ export const submitLevelQuest = async (
         // No coding assessment mapped:
         // Complete level directly and unlock next level
         updateOperations.$addToSet.completedLevels = level._id;
+
+        // Award points if completing this level for the first time
+        const currentProgress = await StudentProgress.findOne({
+          userId: new mongoose.Types.ObjectId(userId),
+        }).lean();
+        const alreadyCompleted = Boolean(
+          currentProgress?.completedLevels?.some((l: any) => l.toString() === level._id.toString())
+        );
+        if (!alreadyCompleted) {
+          const levelPoints =
+            typeof level.points === 'number' && level.points >= 0
+              ? level.points
+              : getDefaultPointsForLevel(level.levelNumber);
+          pointsAwarded = levelPoints;
+          if (pointsAwarded > 0) {
+            await User.findByIdAndUpdate(userId, { $inc: { points: pointsAwarded } });
+          }
+        }
 
         if (level.assessmentId) {
           updateOperations.$addToSet.unlockedAssessments = level.assessmentId;
@@ -852,8 +900,8 @@ export const submitLevelQuest = async (
 
     const message = passed
       ? requiresCodingAssessment
-        ? `Quest Passed with ${Math.round(passRate)}%! Coding assessment is unlocked. Complete the coding assessment to unlock the next level.`
-        : `Quest Mastered! ${Math.round(passRate)}% score achieved. Next level unlocked!`
+        ? `Quest Passed with ${Math.round(passRate)}%! Coding assessment is unlocked. Complete the coding assessment to clear Level ${level.levelNumber}.`
+        : `Quest Mastered! ${Math.round(passRate)}% score achieved.${pointsAwarded > 0 ? ` +${pointsAwarded} pts earned!` : ''} Next level unlocked!`
       : `Score: ${correctCount}/${totalQuestions} (${Math.round(passRate)}%). You must score at least 70% to pass the quest.`;
 
     return reply.status(200).send({
@@ -863,6 +911,7 @@ export const submitLevelQuest = async (
         score: correctCount,
         total: totalQuestions,
         passRate: Math.round(passRate),
+        pointsAwarded,
         unlockedAssessmentId,
         unlockedCodingChallengeId,
         nextLevelId,
@@ -1047,25 +1096,68 @@ export const createLevel = async (
     const {
       levelNumber,
       title,
+      points,
       youtubeVideoId,
+      youtubeVideoIds,
+      videos,
       studyMaterials,
       questQuestions,
       assessmentId,
       codingChallengeId,
     } = request.body as any;
 
-    if (!levelNumber || !title || !youtubeVideoId || !Array.isArray(questQuestions)) {
+    const sanitizedVideos = Array.isArray(videos)
+      ? videos
+          .filter((v: any) => v && (v.youtubeVideoId || typeof v === 'string'))
+          .map((v: any) => ({
+            title: v.title || '',
+            youtubeVideoId: typeof v === 'string' ? v : v.youtubeVideoId,
+          }))
+      : Array.isArray(youtubeVideoIds)
+      ? youtubeVideoIds.filter(Boolean).map((id: string, idx: number) => ({
+          title: `Video ${idx + 1}`,
+          youtubeVideoId: id,
+        }))
+      : [];
+
+    const effectiveVideoId =
+      youtubeVideoId ||
+      sanitizedVideos[0]?.youtubeVideoId ||
+      (Array.isArray(youtubeVideoIds) && youtubeVideoIds[0]) ||
+      '';
+
+    const effectiveVideoIds =
+      sanitizedVideos.length > 0
+        ? sanitizedVideos.map((v) => v.youtubeVideoId)
+        : Array.isArray(youtubeVideoIds) && youtubeVideoIds.length > 0
+        ? youtubeVideoIds
+        : effectiveVideoId
+        ? [effectiveVideoId]
+        : [];
+
+    if (!levelNumber || !title || !effectiveVideoId || !Array.isArray(questQuestions)) {
       return reply.status(400).send({
         success: false,
-        error: 'levelNumber, title, youtubeVideoId, and questQuestions are required',
+        error: 'levelNumber, title, video, and questQuestions are required',
       });
     }
+
+    const effectivePoints =
+      typeof points === 'number' && points >= 0
+        ? points
+        : getDefaultPointsForLevel(Number(levelNumber) || 1);
 
     const level = await Level.create({
       domainId,
       levelNumber,
       title,
-      youtubeVideoId,
+      points: effectivePoints,
+      youtubeVideoId: effectiveVideoId,
+      youtubeVideoIds: effectiveVideoIds,
+      videos:
+        sanitizedVideos.length > 0
+          ? sanitizedVideos
+          : [{ title: 'Main Lecture', youtubeVideoId: effectiveVideoId }],
       studyMaterials: Array.isArray(studyMaterials) ? studyMaterials : [],
       questQuestions,
       assessmentId: assessmentId ? new mongoose.Types.ObjectId(assessmentId) : null,
@@ -1119,7 +1211,10 @@ export const updateLevel = async (
     const {
       levelNumber,
       title,
+      points,
       youtubeVideoId,
+      youtubeVideoIds,
+      videos,
       studyMaterials,
       questQuestions,
       assessmentId,
@@ -1133,7 +1228,48 @@ export const updateLevel = async (
     const updateDoc: any = {};
     if (levelNumber !== undefined) updateDoc.levelNumber = levelNumber;
     if (title) updateDoc.title = title;
-    if (youtubeVideoId) updateDoc.youtubeVideoId = youtubeVideoId;
+    if (points !== undefined) updateDoc.points = Math.max(0, Number(points) || 0);
+
+    if (videos !== undefined || youtubeVideoIds !== undefined || youtubeVideoId !== undefined) {
+      const sanitizedVideos = Array.isArray(videos)
+        ? videos
+            .filter((v: any) => v && (v.youtubeVideoId || typeof v === 'string'))
+            .map((v: any) => ({
+              title: v.title || '',
+              youtubeVideoId: typeof v === 'string' ? v : v.youtubeVideoId,
+            }))
+        : Array.isArray(youtubeVideoIds)
+        ? youtubeVideoIds.filter(Boolean).map((vidId: string, idx: number) => ({
+            title: `Video ${idx + 1}`,
+            youtubeVideoId: vidId,
+          }))
+        : [];
+
+      const effectiveVideoId =
+        sanitizedVideos[0]?.youtubeVideoId ||
+        youtubeVideoId ||
+        (Array.isArray(youtubeVideoIds) && youtubeVideoIds[0]) ||
+        '';
+
+      const effectiveVideoIds =
+        sanitizedVideos.length > 0
+          ? sanitizedVideos.map((v) => v.youtubeVideoId)
+          : Array.isArray(youtubeVideoIds) && youtubeVideoIds.length > 0
+          ? youtubeVideoIds
+          : effectiveVideoId
+          ? [effectiveVideoId]
+          : [];
+
+      if (effectiveVideoId) updateDoc.youtubeVideoId = effectiveVideoId;
+      updateDoc.youtubeVideoIds = effectiveVideoIds;
+      updateDoc.videos =
+        sanitizedVideos.length > 0
+          ? sanitizedVideos
+          : effectiveVideoId
+          ? [{ title: 'Main Lecture', youtubeVideoId: effectiveVideoId }]
+          : [];
+    }
+
     if (Array.isArray(studyMaterials)) updateDoc.studyMaterials = studyMaterials;
     if (Array.isArray(questQuestions)) updateDoc.questQuestions = questQuestions;
     if (assessmentId !== undefined) {
@@ -1145,7 +1281,9 @@ export const updateLevel = async (
         : null;
     }
 
-    const level = await Level.findByIdAndUpdate(id, { $set: updateDoc }, { new: true });
+    const level = await Level.findByIdAndUpdate(id, { $set: updateDoc }, { new: true })
+      .populate('assessmentId', 'title description category passingScorePercentage timeLimitMinutes')
+      .populate('codingChallengeId', 'title description difficulty allowedLanguages timeLimitMinutes isPublished');
     if (!level) {
       return reply.status(404).send({ success: false, error: 'Level not found' });
     }

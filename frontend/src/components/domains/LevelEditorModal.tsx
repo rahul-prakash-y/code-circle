@@ -18,7 +18,15 @@ import {
   Link,
   FileText,
   Loader2,
+  Film,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+interface IVideoField {
+  id: string;
+  title: string;
+  url: string;
+}
 
 interface LevelEditorModalProps {
   isOpen: boolean;
@@ -37,6 +45,13 @@ const extractYouTubeId = (input: string): string => {
     /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/
   );
   return match ? match[1] : trimmed;
+};
+
+const getDefaultPointsForLevel = (levelNumber: number): number => {
+  const num = Number(levelNumber) || 1;
+  if (num <= 3) return 25;
+  if (num <= 7) return 50;
+  return 100;
 };
 
 const createDefaultQuestions = (): IQuestQuestion[] => [
@@ -78,7 +93,10 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
 
   const [levelNumber, setLevelNumber] = useState(1);
   const [title, setTitle] = useState('');
-  const [videoInput, setVideoInput] = useState('');
+  const [points, setPoints] = useState<number>(50);
+  const [videoFields, setVideoFields] = useState<IVideoField[]>([
+    { id: '1', title: 'Main Lecture', url: '' },
+  ]);
   const [assessmentId, setAssessmentId] = useState<string>('');
   const [codingChallengeId, setCodingChallengeId] = useState<string>('');
   const [codingChallenges, setCodingChallenges] = useState<any[]>([]);
@@ -102,7 +120,41 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
     if (levelToEdit) {
       setLevelNumber(levelToEdit.levelNumber || 1);
       setTitle(levelToEdit.title || '');
-      setVideoInput(levelToEdit.youtubeVideoId || '');
+      setPoints(
+        typeof levelToEdit.points === 'number' && levelToEdit.points >= 0
+          ? levelToEdit.points
+          : getDefaultPointsForLevel(levelToEdit.levelNumber || 1)
+      );
+
+      if (Array.isArray(levelToEdit.videos) && levelToEdit.videos.length > 0) {
+        setVideoFields(
+          levelToEdit.videos.map((v, i) => ({
+            id: String(i + 1),
+            title: v.title || `Part ${i + 1}`,
+            url: v.youtubeVideoId || '',
+          }))
+        );
+      } else if (
+        Array.isArray(levelToEdit.youtubeVideoIds) &&
+        levelToEdit.youtubeVideoIds.length > 0
+      ) {
+        setVideoFields(
+          levelToEdit.youtubeVideoIds.map((vid, i) => ({
+            id: String(i + 1),
+            title: `Part ${i + 1}`,
+            url: vid,
+          }))
+        );
+      } else {
+        setVideoFields([
+          {
+            id: '1',
+            title: 'Main Lecture',
+            url: levelToEdit.youtubeVideoId || '',
+          },
+        ]);
+      }
+
       const assId =
         typeof levelToEdit.assessmentId === 'object' && levelToEdit.assessmentId !== null
           ? levelToEdit.assessmentId._id
@@ -120,9 +172,13 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
           : createDefaultQuestions()
       );
     } else {
-      setLevelNumber(levels.length + 1);
+      const nextLvlNum = levels.length + 1;
+      setLevelNumber(nextLvlNum);
       setTitle('');
-      setVideoInput('aircAruvnKk');
+      setPoints(getDefaultPointsForLevel(nextLvlNum));
+      setVideoFields([
+        { id: '1', title: 'Main Lecture', url: 'aircAruvnKk' },
+      ]);
       setAssessmentId('');
       setCodingChallengeId('');
       setStudyMaterials([
@@ -205,18 +261,57 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
     setStudyMaterials((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const handleAddVideo = () => {
+    setVideoFields((prev) => [
+      ...prev,
+      { id: Date.now().toString(), title: `Part ${prev.length + 1}`, url: '' },
+    ]);
+  };
+
+  const handleUpdateVideo = (idx: number, field: 'title' | 'url', value: string) => {
+    setVideoFields((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [field]: value };
+      return next;
+    });
+  };
+
+  const handleRemoveVideo = (idx: number) => {
+    if (videoFields.length <= 1) return;
+    setVideoFields((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !videoInput.trim()) return;
+    if (!title.trim()) {
+      toast.error('Level title is required');
+      return;
+    }
 
-    const youtubeVideoId = extractYouTubeId(videoInput);
+    const sanitizedVideos = videoFields
+      .map((v, idx) => {
+        const id = extractYouTubeId(v.url.trim());
+        return {
+          title: v.title.trim() || `Part ${idx + 1}: Lecture Video`,
+          youtubeVideoId: id,
+        };
+      })
+      .filter((v) => v.youtubeVideoId.length > 0);
+
+    if (sanitizedVideos.length === 0) {
+      toast.error('Please specify at least one valid YouTube video ID or URL');
+      return;
+    }
 
     setSubmitting(true);
     let success = false;
     const payload = {
       levelNumber: Number(levelNumber),
       title: title.trim(),
-      youtubeVideoId,
+      points: Number(points) || 0,
+      youtubeVideoId: sanitizedVideos[0].youtubeVideoId,
+      youtubeVideoIds: sanitizedVideos.map((v) => v.youtubeVideoId),
+      videos: sanitizedVideos,
       studyMaterials,
       questQuestions,
       assessmentId: assessmentId || null,
@@ -293,8 +388,8 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
         {/* TAB 1: INFO & LECTURE */}
         {activeTab === 'info' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <div className="sm:col-span-1 space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-2 space-y-1">
                 <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider">
                   Level #
                 </label>
@@ -303,12 +398,18 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
                   min={1}
                   required
                   value={levelNumber}
-                  onChange={(e) => setLevelNumber(Number(e.target.value))}
+                  onChange={(e) => {
+                    const newNum = Number(e.target.value);
+                    setLevelNumber(newNum);
+                    if (!levelToEdit) {
+                      setPoints(getDefaultPointsForLevel(newNum));
+                    }
+                  }}
                   className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-sm text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
 
-              <div className="sm:col-span-3 space-y-1">
+              <div className="sm:col-span-6 space-y-1">
                 <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider">
                   Level Title *
                 </label>
@@ -321,21 +422,133 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
                   className="w-full px-4 py-2 rounded-xl bg-surface-secondary border border-separator text-sm text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
+
+              <div className="sm:col-span-4 space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5 text-amber-500" />
+                    Points Reward *
+                  </label>
+                  <span className="text-[10px] text-label-tertiary">
+                    {points <= 35 ? 'Foundation' : points <= 75 ? 'Standard' : 'Capstone'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min={0}
+                      max={1000}
+                      required
+                      value={points}
+                      onChange={(e) => setPoints(Math.max(0, Number(e.target.value)))}
+                      className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-sm font-semibold text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent pr-11"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-amber-500 uppercase">
+                      PTS
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    {[25, 50, 100].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setPoints(preset)}
+                        className={`px-2 py-2 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
+                          points === preset
+                            ? 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400'
+                            : 'bg-surface border-separator text-label-tertiary hover:text-label-primary'
+                        }`}
+                        title={`Set to ${preset} points`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center justify-between">
-                <span>YouTube Video ID or URL *</span>
-                <span className="text-[11px] font-mono lowercase text-accent">Auto-detects ID</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={videoInput}
-                onChange={(e) => setVideoInput(e.target.value)}
-                placeholder="e.g. aircAruvnKk or https://www.youtube.com/watch?v=..."
-                className="w-full px-4 py-2 rounded-xl bg-surface-secondary border border-separator text-sm text-label-primary font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-              />
+            {/* Multiple YouTube Videos List */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1.5">
+                    <Film className="w-3.5 h-3.5 text-accent" />
+                    YouTube Lecture Videos ({videoFields.length}) *
+                  </label>
+                  <p className="text-[11px] text-label-tertiary mt-0.5">
+                    Add one or multiple video lessons for this level. Auto-detects YouTube IDs from URLs.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddVideo}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Video</span>
+                </button>
+              </div>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                {videoFields.map((field, idx) => {
+                  const detectedId = extractYouTubeId(field.url);
+                  return (
+                    <div
+                      key={field.id}
+                      className="p-3 rounded-2xl bg-surface-secondary/60 border border-separator/80 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-surface text-label-secondary border border-separator text-[11px] font-bold flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          <span className="text-xs font-semibold text-label-primary">
+                            {field.title || `Video ${idx + 1}`}
+                          </span>
+                        </div>
+
+                        {videoFields.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVideo(idx)}
+                            className="w-6 h-6 rounded-lg text-label-tertiary hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition cursor-pointer"
+                            title="Remove Video"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          value={field.title}
+                          onChange={(e) => handleUpdateVideo(idx, 'title', e.target.value)}
+                          placeholder={`e.g. Part ${idx + 1}: Core Concepts`}
+                          className="w-full px-3 py-1.5 rounded-xl bg-surface border border-separator text-xs text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            value={field.url}
+                            onChange={(e) => handleUpdateVideo(idx, 'url', e.target.value)}
+                            placeholder="YouTube URL or 11-char ID"
+                            className="w-full px-3 py-1.5 rounded-xl bg-surface border border-separator text-xs text-label-primary font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent pr-16"
+                          />
+                          {detectedId && (
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                              {detectedId}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Mapped Coding Assessment (Gated Progression) */}
@@ -612,7 +825,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={submitting || !title.trim() || !videoInput.trim()}
+              disabled={submitting || !title.trim() || !videoFields.some((v) => v.url.trim())}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition cursor-pointer shadow"
             >
               {submitting ? (

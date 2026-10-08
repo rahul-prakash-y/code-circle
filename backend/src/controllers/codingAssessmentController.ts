@@ -6,7 +6,8 @@ import CodingChallenge, {
   SupportedLanguage,
 } from '../models/codingChallengeModel';
 import CodingSubmission from '../models/codingSubmissionModel';
-import Level from '../models/levelModel';
+import Level, { getDefaultPointsForLevel } from '../models/levelModel';
+import User from '../models/userModel';
 import StudentProgress from '../models/studentProgressModel';
 import DomainEnrollment from '../models/domainEnrollmentModel';
 import rceService from '../services/rceService';
@@ -502,6 +503,7 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
   let unlockedNextLevel = false;
   let nextLevelId: string | null = null;
   let domainId: string | null = null;
+  let pointsAwarded = 0;
 
   if (submissionStatus === 'passed') {
     // 1. Mark coding challenge as completed in student progress
@@ -519,6 +521,28 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
       const assessmentIdsToUnlock = linkedLevels
         .filter((lvl) => lvl.assessmentId)
         .map((lvl) => lvl.assessmentId);
+
+      // Check which levels are newly completed to award points
+      const existingProgress = await StudentProgress.findOne({
+        userId: new mongoose.Types.ObjectId(user.id),
+      }).lean();
+      const existingCompleted = new Set(
+        (existingProgress?.completedLevels || []).map((id) => id.toString())
+      );
+
+      for (const lvl of linkedLevels) {
+        if (!existingCompleted.has(lvl._id.toString())) {
+          const pts =
+            typeof lvl.points === 'number' && lvl.points >= 0
+              ? lvl.points
+              : getDefaultPointsForLevel(lvl.levelNumber);
+          pointsAwarded += pts;
+        }
+      }
+
+      if (pointsAwarded > 0) {
+        await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
+      }
 
       const updateOp: any = {
         $addToSet: {
@@ -578,6 +602,7 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
     total,
     status: submissionStatus,
     levelCompleted,
+    pointsAwarded,
     unlockedNextLevel,
     nextLevelId,
     domainId,

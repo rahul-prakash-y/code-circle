@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ILevel, IStudyMaterial } from '../../types/domain';
@@ -27,6 +27,10 @@ import {
   Trash2,
   ShieldCheck,
   GraduationCap,
+  Film,
+  ChevronLeft,
+  ChevronRight,
+  ListVideo,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -50,8 +54,41 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'video' | 'notes'>('video');
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
+
+  // Normalize multi-video list
+  const videoList = useMemo(() => {
+    if (Array.isArray(level.videos) && level.videos.length > 0) {
+      return level.videos
+        .filter((v) => v && v.youtubeVideoId)
+        .map((v, i) => ({
+          title: v.title?.trim() || `Part ${i + 1}: Lecture Video`,
+          youtubeVideoId: v.youtubeVideoId,
+        }));
+    }
+    if (Array.isArray(level.youtubeVideoIds) && level.youtubeVideoIds.length > 0) {
+      return level.youtubeVideoIds
+        .filter(Boolean)
+        .map((id, i) => ({
+          title: `Part ${i + 1}: Lecture Video`,
+          youtubeVideoId: id,
+        }));
+    }
+    if (level.youtubeVideoId) {
+      return [{ title: 'Main Lecture Video', youtubeVideoId: level.youtubeVideoId }];
+    }
+    return [];
+  }, [level]);
+
+  // Reset active video index when switching levels
+  useEffect(() => {
+    setActiveVideoIndex(0);
+  }, [level._id]);
+
+  const currentVideo = videoList[activeVideoIndex] || videoList[0];
+  const hasMultipleVideos = videoList.length > 1;
 
   const isCompleted = Boolean(level.isCompleted);
   const isUnlocked = Boolean(level.isUnlocked);
@@ -125,7 +162,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
             }`}
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            Lecture Video
+            {hasMultipleVideos ? `Lecture Videos (${videoList.length})` : 'Lecture Video'}
           </button>
           <button
             type="button"
@@ -168,19 +205,104 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
 
       {/* VIDEO TAB CONTENT */}
       {activeTab === 'video' && (
-        <div className="relative w-full rounded-[24px] overflow-hidden bg-black shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-separator/40 aspect-video group">
-          {level.youtubeVideoId ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${level.youtubeVideoId}?rel=0&modestbranding=1&enablejsapi=1`}
-              title={level.title}
-              className="w-full h-full border-0 rounded-[24px]"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-label-secondary gap-3 bg-surface-secondary">
-              <Play className="w-12 h-12 stroke-[1.5]" />
-              <span className="text-sm">Video stream not available</span>
+        <div className="space-y-3">
+          {/* Multi-Video Playlist Switcher Bar */}
+          {hasMultipleVideos && (
+            <div className="p-3 sm:p-4 rounded-2xl bg-surface border border-separator/80 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center font-bold text-xs">
+                    <Film className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="font-bold text-label-primary">
+                    Course Video Playlist ({videoList.length} Lessons)
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono text-label-secondary bg-surface-secondary px-2.5 py-0.5 rounded-full border border-separator/60">
+                  Lesson {activeVideoIndex + 1} of {videoList.length}
+                </span>
+              </div>
+
+              {/* Horizontal Scrollable Video Selector Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                {videoList.map((vid, idx) => {
+                  const isSelected = activeVideoIndex === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveVideoIndex(idx)}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 border ${
+                        isSelected
+                          ? 'bg-accent text-white border-accent shadow-sm'
+                          : 'bg-surface-secondary/70 border-separator text-label-secondary hover:text-label-primary hover:bg-surface'
+                      }`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                          isSelected ? 'bg-white/20 text-white' : 'bg-surface text-label-tertiary border border-separator'
+                        }`}
+                      >
+                        {idx + 1}
+                      </div>
+                      <span className="truncate max-w-[220px]">{vid.title || `Video ${idx + 1}`}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Video Player */}
+          <div className="relative w-full rounded-[24px] overflow-hidden bg-black shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-separator/40 aspect-video group">
+            {currentVideo?.youtubeVideoId ? (
+              <iframe
+                key={currentVideo.youtubeVideoId}
+                src={`https://www.youtube.com/embed/${currentVideo.youtubeVideoId}?rel=0&modestbranding=1&enablejsapi=1`}
+                title={currentVideo.title || level.title}
+                className="w-full h-full border-0 rounded-[24px]"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-label-secondary gap-3 bg-surface-secondary">
+                <Play className="w-12 h-12 stroke-[1.5]" />
+                <span className="text-sm">Video stream not available</span>
+              </div>
+            )}
+          </div>
+
+          {/* Previous / Next Video Navigation Controls */}
+          {hasMultipleVideos && (
+            <div className="p-3 px-4 rounded-2xl bg-surface border border-separator/60 flex items-center justify-between gap-3 text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveVideoIndex((i) => Math.max(0, i - 1))}
+                disabled={activeVideoIndex === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-secondary border border-separator text-label-primary hover:bg-surface disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer font-medium"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Previous Video</span>
+              </button>
+
+              <div className="text-center min-w-0 px-2">
+                <div className="font-semibold text-label-primary truncate max-w-sm sm:max-w-md">
+                  {currentVideo?.title || `Video ${activeVideoIndex + 1}`}
+                </div>
+                <div className="text-[11px] text-label-tertiary">
+                  Lesson {activeVideoIndex + 1} of {videoList.length}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveVideoIndex((i) => Math.min(videoList.length - 1, i + 1))}
+                disabled={activeVideoIndex === videoList.length - 1}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-secondary border border-separator text-label-primary hover:bg-surface disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer font-medium"
+              >
+                <span>Next Video</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
         </div>
@@ -280,10 +402,17 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
       <div className="p-6 rounded-[22px] bg-surface border border-separator/60 shadow-[0_4px_24px_rgba(0,0,0,0.03)] space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-label-secondary">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-label-secondary">
               <span className="text-accent">Level {level.levelNumber}</span>
               <span>•</span>
               <span>{currentDomain?.name || 'Track'}</span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/20 lowercase tracking-normal">
+                <Award className="w-3.5 h-3.5 text-amber-500" />
+                +{typeof level.points === 'number' && level.points >= 0
+                  ? level.points
+                  : (level.levelNumber <= 3 ? 25 : level.levelNumber <= 7 ? 50 : 100)} pts
+              </span>
               {isCompleted && (
                 <>
                   <span>•</span>

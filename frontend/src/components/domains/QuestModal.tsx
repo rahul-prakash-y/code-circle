@@ -207,8 +207,15 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
               transition={{ delay: 0.3 }}
               className="space-y-2"
             >
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <Sparkles className="w-3.5 h-3.5" /> {lastQuestResult.passRate}% Score Achieved (≥70% Required)
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <Sparkles className="w-3.5 h-3.5" /> {lastQuestResult.passRate}% Score Achieved (≥70% Required)
+                </div>
+                {lastQuestResult.pointsAwarded && lastQuestResult.pointsAwarded > 0 ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                    <Award className="w-3.5 h-3.5 text-amber-500" /> +{lastQuestResult.pointsAwarded} Points Earned!
+                  </div>
+                ) : null}
               </div>
               <h2 className="text-2xl font-bold tracking-tight text-label-primary">
                 Quest Passed Successfully!

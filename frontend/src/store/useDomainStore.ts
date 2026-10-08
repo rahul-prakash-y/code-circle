@@ -184,10 +184,11 @@ export const useDomainStore = create<DomainState>((set, get) => ({
         set({ lastQuestResult: result, submittingQuest: false });
 
         if (result.passed) {
+          const ptsMsg = result.pointsAwarded && result.pointsAwarded > 0 ? ` (+${result.pointsAwarded} pts earned!)` : '';
           if (result.requiresCodingAssessment) {
-            toast.success(`🎉 Quest Passed (${result.passRate}%)! Coding assessment unlocked.`);
+            toast.success(`🎉 Quest Passed (${result.passRate}%)! Coding assessment unlocked.${ptsMsg}`);
           } else {
-            toast.success(`🎉 Quest Mastered (${result.passRate}%)! Next level unlocked.`);
+            toast.success(`🎉 Level Mastered (${result.passRate}%)!${ptsMsg} Next level unlocked.`);
           }
 
           // Refresh current domain levels to update unlocked & completed indicators
@@ -346,6 +347,14 @@ export const useDomainStore = create<DomainState>((set, get) => ({
       const res = await api.put(`/levels/${id}`, payload);
       if (res.data?.success) {
         toast.success('Level updated successfully');
+        const updatedLevel = res.data.data;
+        if (updatedLevel) {
+          set((state) => ({
+            levels: state.levels.map((lvl) => (lvl._id === id ? { ...lvl, ...updatedLevel } : lvl)),
+            activeLevel:
+              state.activeLevel?._id === id ? { ...state.activeLevel, ...updatedLevel } : state.activeLevel,
+          }));
+        }
         const currentDomain = get().currentDomain;
         if (currentDomain?._id) {
           await get().fetchDomainLevels(currentDomain._id);

@@ -31,12 +31,21 @@ export interface IStudyMaterial {
   content?: string;
 }
 
+export interface ILevelVideo {
+  _id?: string;
+  title?: string;
+  youtubeVideoId: string;
+}
+
 export interface ILevel {
   _id: string;
   domainId: string;
   levelNumber: number;
   title: string;
+  points?: number;
   youtubeVideoId: string;
+  youtubeVideoIds?: string[];
+  videos?: ILevelVideo[];
   studyMaterials?: IStudyMaterial[];
   questQuestions: IQuestQuestion[];
   assessmentId?: {
@@ -108,6 +117,7 @@ export interface IQuestSubmitResult {
   score: number;
   total: number;
   passRate: number;
+  pointsAwarded?: number;
   unlockedAssessmentId?: string | null;
   unlockedCodingChallengeId?: string | null;
   nextLevelId?: string | null;

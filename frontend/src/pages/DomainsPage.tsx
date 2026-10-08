@@ -421,7 +421,7 @@ export const DomainsPage: React.FC = () => {
 
   // --- GRID VIEW: Apple Spatial UI ---
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+    <div className="space-y-8 mx-auto pb-16">
       {/* Editorial Header */}
       <div className="pb-4 border-b border-separator flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
