@@ -45,8 +45,20 @@ export interface ILevel {
     passingScorePercentage?: number;
     timeLimitMinutes?: number;
   } | string | null;
+  codingChallengeId?: {
+    _id: string;
+    title: string;
+    description?: string;
+    difficulty?: 'Easy' | 'Medium' | 'Hard';
+    allowedLanguages?: string[];
+    timeLimitMinutes?: number;
+    isPublished?: boolean;
+  } | string | null;
   isCompleted?: boolean;
   isUnlocked?: boolean;
+  isQuestCompleted?: boolean;
+  isCodingChallengeUnlocked?: boolean;
+  isCodingChallengeCompleted?: boolean;
   requiresPreviousLevel?: number | null;
   createdAt?: string;
   updatedAt?: string;
@@ -55,6 +67,9 @@ export interface ILevel {
 export interface IStudentProgress {
   completedLevels: string[];
   unlockedAssessments: string[];
+  completedQuests?: string[];
+  unlockedCodingChallenges?: string[];
+  completedCodingChallenges?: string[];
 }
 
 export interface IQuestFeedback {
@@ -71,7 +86,9 @@ export interface IQuestSubmitResult {
   total: number;
   passRate: number;
   unlockedAssessmentId?: string | null;
+  unlockedCodingChallengeId?: string | null;
   nextLevelId?: string | null;
+  requiresCodingAssessment?: boolean;
   feedback?: IQuestFeedback[];
   message: string;
 }

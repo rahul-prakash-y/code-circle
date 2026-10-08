@@ -115,7 +115,11 @@ export const useDomainStore = create<DomainState>((set, get) => ({
         set({ lastQuestResult: result, submittingQuest: false });
 
         if (result.passed) {
-          toast.success('🎉 Quest Mastered! 100% Score! Assessment unlocked.');
+          if (result.requiresCodingAssessment) {
+            toast.success(`🎉 Quest Passed (${result.passRate}%)! Coding assessment unlocked.`);
+          } else {
+            toast.success(`🎉 Quest Mastered (${result.passRate}%)! Next level unlocked.`);
+          }
 
           // Refresh current domain levels to update unlocked & completed indicators
           const currentDomain = get().currentDomain;
@@ -123,7 +127,7 @@ export const useDomainStore = create<DomainState>((set, get) => ({
             await get().fetchDomainLevels(currentDomain._id);
           }
         } else {
-          toast.error(`Score: ${result.score}/${result.total}. Review the video and try again!`);
+          toast.error(`Score: ${result.score}/${result.total} (${result.passRate}%). Review the video and try again (70% required)!`);
         }
 
         return result;

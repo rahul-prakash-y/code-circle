@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import toast from 'react-hot-toast';
@@ -80,6 +80,10 @@ export interface SubmissionResponseData {
   passed: number;
   total: number;
   status: 'passed' | 'failed' | 'compilation_error' | 'runtime_error' | 'timeout';
+  levelCompleted?: boolean;
+  unlockedNextLevel?: boolean;
+  nextLevelId?: string | null;
+  domainId?: string | null;
   error?: string;
 }
 
@@ -103,6 +107,8 @@ export const CodingAssessmentWorkspace: React.FC = () => {
   const { id, problemId: routeProblemId } = useParams<{ id?: string; problemId?: string }>();
   const activeProblemId = id || routeProblemId;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryDomainId = searchParams.get('domainId');
 
   // Challenge and code state
   const [challenge, setChallenge] = useState<ChallengeData | null>(null);
@@ -1040,19 +1046,43 @@ export const CodingAssessmentWorkspace: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* Level Completion Feedback */}
+            {submissionVerdict.levelCompleted && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs space-y-1">
+                <div className="font-bold flex items-center justify-center gap-1.5 text-sm">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  Level Completed!
+                </div>
+                <p className="text-[11px] text-emerald-300/90">
+                  {submissionVerdict.unlockedNextLevel
+                    ? 'All requirements satisfied! The next level in this domain has been unlocked.'
+                    : 'All requirements satisfied! Learning track progress updated.'}
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => setSubmissionVerdict(null)}
                 className="flex-1 py-2.5 rounded-full text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] text-neutral-200 transition-all border border-white/[0.08]"
               >
                 Review Code
               </button>
-              <button
-                onClick={() => navigate('/assessments')}
-                className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-600/30"
-              >
-                All Assessments
-              </button>
+              {submissionVerdict.domainId || queryDomainId ? (
+                <button
+                  onClick={() => navigate(`/domains/${submissionVerdict.domainId || queryDomainId}`)}
+                  className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-600/30"
+                >
+                  Return to Learning Track
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/domains')}
+                  className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-600/30"
+                >
+                  Return to Domains
+                </button>
+              )}
             </div>
           </div>
         </div>

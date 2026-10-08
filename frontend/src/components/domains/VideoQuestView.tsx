@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ILevel, IStudyMaterial } from '../../types/domain';
 import useDomainStore from '../../store/useDomainStore';
@@ -19,6 +20,8 @@ import {
   Check,
   FileText,
   Code,
+  Code2,
+  Terminal,
   Link as LinkIcon,
   Edit3,
   Trash2,
@@ -45,6 +48,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
     user?.role === 'Admin' ||
     user?.role === 'SuperAdmin';
 
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'video' | 'notes'>('video');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
@@ -61,6 +65,34 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
   const assessmentId = assessment?._id || (typeof level.assessmentId === 'string' ? level.assessmentId : null);
   const isAssessmentUnlocked = Boolean(
     assessmentId && userProgress.unlockedAssessments?.includes(assessmentId)
+  );
+
+  const codingChallenge =
+    typeof level.codingChallengeId === 'object' && level.codingChallengeId !== null
+      ? level.codingChallengeId
+      : null;
+  const codingChallengeId =
+    codingChallenge?._id ||
+    (typeof level.codingChallengeId === 'string' ? level.codingChallengeId : null);
+
+  const isQuestCompleted = Boolean(
+    level.isQuestCompleted ||
+    (level._id && userProgress.completedQuests?.includes(level._id)) ||
+    level.isCompleted
+  );
+
+  const isCodingChallengeCompleted = Boolean(
+    level.isCodingChallengeCompleted ||
+    (codingChallengeId && userProgress.completedCodingChallenges?.includes(codingChallengeId)) ||
+    level.isCompleted
+  );
+
+  // Coding assessment opens only if MCQ quest is completed with >=70% marks:
+  const isCodingChallengeUnlocked = Boolean(
+    isAdmin ||
+    level.isCodingChallengeUnlocked ||
+    (codingChallengeId && userProgress.unlockedCodingChallenges?.includes(codingChallengeId)) ||
+    isQuestCompleted
   );
 
   const materials = level.studyMaterials || [];
@@ -322,17 +354,131 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
 
           <div className="flex items-center gap-2 p-2.5 rounded-xl bg-surface-secondary/70">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>100% Pass Threshold</span>
+            <span>70% Pass Threshold</span>
           </div>
 
           <div className="flex items-center whitespace-nowrap gap-2 p-2.5 rounded-xl bg-surface-secondary/70">
-            <Award className="w-4 h-4 text-purple-500" />
-            <span className="truncate">
-              {assessment ? `Unlocks: ${assessment.title}` : 'Unlocks Next Milestone'}
-            </span>
+            {codingChallenge ? (
+              <>
+                <Terminal className="w-4 h-4 text-blue-500 shrink-0" />
+                <span className="truncate">
+                  Unlocks: Coding Challenge
+                </span>
+              </>
+            ) : assessment ? (
+              <>
+                <Award className="w-4 h-4 text-purple-500 shrink-0" />
+                <span className="truncate">Unlocks: {assessment.title}</span>
+              </>
+            ) : (
+              <>
+                <Award className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="truncate">Unlocks Next Milestone</span>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {/* CODING ASSESSMENT BANNER (Gated Progression) */}
+      {codingChallenge && (
+        <div
+          className={`p-5 rounded-[22px] border transition-all ${
+            isCodingChallengeCompleted
+              ? 'bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-surface border-emerald-500/30 shadow-sm'
+              : isCodingChallengeUnlocked
+              ? 'bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-surface border-blue-500/30 shadow-sm ring-1 ring-blue-500/20'
+              : 'bg-surface border-separator/60 opacity-80'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                <Code2
+                  className={`w-4 h-4 ${
+                    isCodingChallengeCompleted
+                      ? 'text-emerald-500'
+                      : isCodingChallengeUnlocked
+                      ? 'text-blue-500'
+                      : 'text-label-tertiary'
+                  }`}
+                />
+                <span
+                  className={
+                    isCodingChallengeCompleted
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : isCodingChallengeUnlocked
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-label-secondary'
+                  }
+                >
+                  {isCodingChallengeCompleted
+                    ? 'Coding Assessment Completed'
+                    : isCodingChallengeUnlocked
+                    ? 'Coding Assessment Opened • Required for Next Level'
+                    : 'Coding Assessment (Locked)'}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h4 className="text-base font-bold text-label-primary">{codingChallenge.title}</h4>
+                {codingChallenge.difficulty && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      codingChallenge.difficulty === 'Easy'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        : codingChallenge.difficulty === 'Hard'
+                        ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    }`}
+                  >
+                    {codingChallenge.difficulty}
+                  </span>
+                )}
+                {codingChallenge.timeLimitMinutes && (
+                  <span className="text-xs text-label-secondary">
+                    {codingChallenge.timeLimitMinutes} mins limit
+                  </span>
+                )}
+              </div>
+
+              <p className="text-xs text-label-secondary leading-relaxed">
+                {isCodingChallengeCompleted
+                  ? 'Great job! You passed all test cases. Level completed and next level unlocked!'
+                  : isCodingChallengeUnlocked
+                  ? 'MCQ quest passed with ≥ 70%! You must complete this coding assessment to unlock the next level.'
+                  : `Score at least 70% in the MCQ quest above to open this coding assessment.`}
+              </p>
+            </div>
+
+            <div className="shrink-0">
+              {isCodingChallengeUnlocked ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      `/assessments/code/${codingChallengeId}?levelId=${level._id}&domainId=${level.domainId}`
+                    )
+                  }
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold text-white shadow transition cursor-pointer active:scale-98 ${
+                    isCodingChallengeCompleted
+                      ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
+                      : 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20 ring-2 ring-blue-500/20 animate-pulse'
+                  }`}
+                >
+                  <Terminal className="w-4 h-4" />
+                  {isCodingChallengeCompleted ? 'Review Code Workspace' : 'Open Coding Assessment'}
+                </button>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-separator/50 text-label-secondary">
+                  <Lock className="w-3.5 h-3.5" />
+                  Pass Quest (70%+) to Open
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* UNLOCKED ASSESSMENT BANNER (Direct Student Access) */}
       {assessment && (
@@ -352,8 +498,8 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
               <h4 className="text-base font-bold text-label-primary">{assessment.title}</h4>
               <p className="text-xs text-label-secondary">
                 {isAssessmentUnlocked
-                  ? 'You have mastered the quest! Take your official accredited evaluation now.'
-                  : `Answer all ${questionsCount} questions correctly in the quest above to unlock this assessment.`}
+                  ? 'You have mastered the requirements! Take your official accredited evaluation now.'
+                  : `Complete the requirements in this level to unlock this assessment.`}
               </p>
             </div>
 
@@ -369,7 +515,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
             ) : (
               <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-separator/50 text-label-secondary">
                 <Lock className="w-3.5 h-3.5" />
-                Pass Quest to Unlock
+                Complete Level to Unlock
               </div>
             )}
           </div>

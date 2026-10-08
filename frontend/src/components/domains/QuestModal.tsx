@@ -14,6 +14,8 @@ import {
   Sparkles,
   ArrowRight,
   Loader2,
+  Terminal,
+  Code2,
 } from 'lucide-react';
 
 interface QuestModalProps {
@@ -81,6 +83,23 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
     setCurrentQuestionIdx(0);
   };
 
+  const codingChallenge =
+    typeof activeLevel?.codingChallengeId === 'object' && activeLevel?.codingChallengeId !== null
+      ? activeLevel.codingChallengeId
+      : null;
+  const codingChallengeId =
+    codingChallenge?._id ||
+    (typeof activeLevel?.codingChallengeId === 'string' ? activeLevel.codingChallengeId : null);
+
+  const handleGoToCodingAssessment = () => {
+    onClose();
+    if (codingChallengeId && activeLevel) {
+      navigate(
+        `/assessments/code/${codingChallengeId}?levelId=${activeLevel._id}&domainId=${activeLevel.domainId}`
+      );
+    }
+  };
+
   const handleGoToAssessment = () => {
     onClose();
     // Navigate to assessments page
@@ -138,7 +157,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
       description={
         lastQuestResult?.passed ? undefined : (
           <div className="flex items-center justify-between text-xs text-label-secondary mt-1">
-            <span>{totalQuestions}-Question Verification Quest</span>
+            <span>{totalQuestions}-Question Verification Quest (70% Pass Required)</span>
             <span>
               Question {currentQuestionIdx + 1} of {totalQuestions}
             </span>
@@ -189,16 +208,38 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
               className="space-y-2"
             >
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <Sparkles className="w-3.5 h-3.5" /> 100% Score Achieved
+                <Sparkles className="w-3.5 h-3.5" /> {lastQuestResult.passRate}% Score Achieved (≥70% Required)
               </div>
               <h2 className="text-2xl font-bold tracking-tight text-label-primary">
-                Quest Completed Successfully!
+                Quest Passed Successfully!
               </h2>
               <p className="text-sm text-label-secondary max-w-md mx-auto leading-relaxed">
-                You scored <span className="font-semibold text-emerald-500">{lastQuestResult.score} out of {lastQuestResult.total}</span>. Your
-                mastery has unlocked the official accredited evaluation!
+                You scored <span className="font-semibold text-emerald-500">{lastQuestResult.score} out of {lastQuestResult.total}</span> ({lastQuestResult.passRate}%).
+                {codingChallengeId
+                  ? ' You have successfully opened the coding assessment! Complete it to unlock the next level.'
+                  : ' Your mastery has unlocked the next milestone!'}
               </p>
             </motion.div>
+
+            {/* Unlocked Coding Assessment Notification Card */}
+            {codingChallenge && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.35 }}
+                className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-surface-secondary border border-blue-500/30 text-left space-y-2 shadow-sm"
+              >
+                <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                  <Terminal className="w-4 h-4 text-blue-500" /> Coding Assessment Opened
+                </div>
+                <div className="text-[15px] font-semibold text-label-primary">
+                  {codingChallenge.title}
+                </div>
+                <p className="text-xs text-label-secondary">
+                  Hands-on challenge ready! You must pass all test cases in this coding assessment to unlock the next level.
+                </p>
+              </motion.div>
+            )}
 
             {/* Unlocked Assessment Notification Card */}
             {activeLevel?.assessmentId && (
@@ -220,14 +261,25 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
 
             {/* Actions */}
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleGoToAssessment}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer"
-              >
-                <Award className="w-4 h-4" />
-                Register for Assessment
-              </button>
+              {codingChallengeId ? (
+                <button
+                  type="button"
+                  onClick={handleGoToCodingAssessment}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 active:scale-98 transition shadow-md shadow-blue-500/20 cursor-pointer"
+                >
+                  <Terminal className="w-4 h-4" />
+                  Open Coding Assessment
+                </button>
+              ) : activeLevel?.assessmentId ? (
+                <button
+                  type="button"
+                  onClick={handleGoToAssessment}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer"
+                >
+                  <Award className="w-4 h-4" />
+                  Register for Assessment
+                </button>
+              ) : null}
 
               {lastQuestResult.nextLevelId ? (
                 <button
@@ -261,7 +313,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
                 Pass Threshold Not Reached
               </h2>
               <p className="text-sm text-label-secondary max-w-md mx-auto">
-                You scored <span className="font-semibold text-rose-500">{lastQuestResult.score} / {lastQuestResult.total}</span>. A perfect 100% score ({lastQuestResult.total}/{lastQuestResult.total}) is required to unlock the main assessment.
+                You scored <span className="font-semibold text-rose-500">{lastQuestResult.score} / {lastQuestResult.total}</span> ({lastQuestResult.passRate}%). A minimum score of 70% is required to pass and open the coding assessment.
               </p>
             </div>
 

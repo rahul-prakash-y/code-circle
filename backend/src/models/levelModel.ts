@@ -23,6 +23,7 @@ export interface ILevel extends Document {
   studyMaterials: IStudyMaterial[];
   questQuestions: IQuestQuestion[];
   assessmentId?: mongoose.Types.ObjectId | null;
+  codingChallengeId?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -114,6 +115,12 @@ const levelSchema = new Schema<ILevel>(
     assessmentId: {
       type: Schema.Types.ObjectId,
       ref: 'Assessment',
+      default: null,
+      index: true,
+    },
+    codingChallengeId: {
+      type: Schema.Types.ObjectId,
+      ref: 'CodingChallenge',
       default: null,
       index: true,
     },

@@ -132,6 +132,20 @@ async function runTests() {
   const finalLevelWithAssessment = levels.find((l: any) => l.assessmentId);
   if (finalLevelWithAssessment) {
     console.log(`\n--- Test 6: Test Assessment Unlocking for Level ${finalLevelWithAssessment.levelNumber} ---`);
+
+    // Complete intermediate levels between Level 1 and finalLevelWithAssessment
+    for (const interLvl of levels) {
+      if (interLvl.levelNumber > 1 && interLvl.levelNumber < finalLevelWithAssessment.levelNumber) {
+        const fullInter = await LevelModel.findById(interLvl._id);
+        const interAnswers = fullInter.questQuestions.map((q: any) => q.correctOption);
+        await axios.post(
+          `${API_BASE}/levels/${interLvl._id}/submit-quest`,
+          { answers: interAnswers },
+          { headers: authHeaders }
+        );
+      }
+    }
+
     const fullFinalLevel = await LevelModel.findById(finalLevelWithAssessment._id);
     const finalAnswers = fullFinalLevel.questQuestions.map((q: any) => q.correctOption);
     const finalSubmitRes = await axios.post(

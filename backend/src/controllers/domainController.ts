@@ -456,6 +456,7 @@ export const getDomainLevels = async (
     // Fetch levels ordered by levelNumber
     const levels = await Level.find({ domainId })
       .populate('assessmentId', 'title description category passingScorePercentage timeLimitMinutes')
+      .populate('codingChallengeId', 'title description difficulty allowedLanguages timeLimitMinutes isPublished')
       .sort({ levelNumber: 1 })
       .lean();
 
@@ -464,6 +465,9 @@ export const getDomainLevels = async (
     let completedLevelsSet = new Set<string>();
     let unlockedDomainsSet = new Set<string>();
     let unlockedAssessmentsSet = new Set<string>();
+    let completedQuestsSet = new Set<string>();
+    let unlockedCodingChallengesSet = new Set<string>();
+    let completedCodingChallengesSet = new Set<string>();
 
     if (userId) {
       const progress = await StudentProgress.findOne({ userId }).lean();
@@ -471,6 +475,9 @@ export const getDomainLevels = async (
         progress.completedLevels?.forEach((lvlId) => completedLevelsSet.add(lvlId.toString()));
         progress.unlockedAssessments?.forEach((assId) => unlockedAssessmentsSet.add(assId.toString()));
         progress.unlockedDomains?.forEach((domId) => unlockedDomainsSet.add(domId.toString()));
+        progress.completedQuests?.forEach((qId) => completedQuestsSet.add(qId.toString()));
+        progress.unlockedCodingChallenges?.forEach((cId) => unlockedCodingChallengesSet.add(cId.toString()));
+        progress.completedCodingChallenges?.forEach((cId) => completedCodingChallengesSet.add(cId.toString()));
       }
     }
 
@@ -492,6 +499,20 @@ export const getDomainLevels = async (
       const isUnlocked = isAdmin || (!isDomainLockedForStudent && previousLevelDone);
       const requiresPreviousLevel = index > 0 ? (previousLevel?.levelNumber || (lvl.levelNumber - 1)) : null;
 
+      const isQuestCompleted = completedQuestsSet.has(lvl._id.toString()) || isCompleted;
+      const codingChallenge = lvl.codingChallengeId as any;
+      const codingChallengeIdStr = codingChallenge?._id
+        ? codingChallenge._id.toString()
+        : codingChallenge
+        ? codingChallenge.toString()
+        : null;
+      const isCodingChallengeCompleted = codingChallengeIdStr
+        ? completedCodingChallengesSet.has(codingChallengeIdStr) || isCompleted
+        : false;
+      // The coding assessment is opened only if the MCQ quest is completed (70% threshold):
+      const isCodingChallengeUnlocked =
+        isAdmin || (isQuestCompleted && Boolean(codingChallengeIdStr));
+
       // Sanitize quest questions (strip correctOption to prevent cheating, unless admin)
       const sanitizedQuestions = lvl.questQuestions.map((q: any) => ({
         _id: q._id,
@@ -508,7 +529,7 @@ export const getDomainLevels = async (
             {
               title: `${lvl.title} - Core Study Notes`,
               type: 'notes',
-              content: `Key study takeaways for Level ${lvl.levelNumber}:\n• Carefully watch the lecture video before starting the verification quest.\n• Answer all questions correctly (100% threshold) to unlock the assessment.\n• Pay special attention to algorithmic complexity, best practices, and runtime architecture.`,
+              content: `Key study takeaways for Level ${lvl.levelNumber}:\n• Carefully watch the lecture video before starting the verification quest.\n• Answer all questions correctly (at least 70% threshold) to unlock the hands-on coding assessment or milestone.\n• Pay special attention to algorithmic complexity, best practices, and runtime architecture.`,
             },
             {
               title: 'Curated Documentation & References',
@@ -527,8 +548,12 @@ export const getDomainLevels = async (
         studyMaterials,
         questQuestions: sanitizedQuestions,
         assessmentId: lvl.assessmentId,
+        codingChallengeId: lvl.codingChallengeId,
         isCompleted,
         isUnlocked,
+        isQuestCompleted,
+        isCodingChallengeUnlocked,
+        isCodingChallengeCompleted,
         requiresPreviousLevel,
       };
     });
@@ -545,6 +570,9 @@ export const getDomainLevels = async (
         userProgress: {
           completedLevels: Array.from(completedLevelsSet),
           unlockedAssessments: Array.from(unlockedAssessmentsSet),
+          completedQuests: Array.from(completedQuestsSet),
+          unlockedCodingChallenges: Array.from(unlockedCodingChallengesSet),
+          completedCodingChallenges: Array.from(completedCodingChallengesSet),
         },
       },
     });
@@ -667,22 +695,48 @@ export const submitLevelQuest = async (
     });
 
     const passRate = (correctCount / totalQuestions) * 100;
-    // 100% pass threshold required to master the quest
-    const passed = correctCount === totalQuestions;
+    // 70% pass threshold required to pass the quest and unlock coding assessment
+    const passed = passRate >= 70;
 
     let unlockedAssessmentId: string | null = null;
+    let unlockedCodingChallengeId: string | null = null;
     let nextLevelId: string | null = null;
+    let requiresCodingAssessment = false;
 
     if (passed) {
+      const hasCodingChallenge = Boolean(level.codingChallengeId);
+      requiresCodingAssessment = hasCodingChallenge;
+
       const updateOperations: any = {
         $addToSet: {
-          completedLevels: level._id,
+          completedQuests: level._id,
         },
       };
 
-      if (level.assessmentId) {
-        updateOperations.$addToSet.unlockedAssessments = level.assessmentId;
-        unlockedAssessmentId = level.assessmentId.toString();
+      if (hasCodingChallenge && level.codingChallengeId) {
+        // Coding assessment is mapped:
+        // Unlock coding assessment, but do NOT complete level or unlock next level yet!
+        updateOperations.$addToSet.unlockedCodingChallenges = level.codingChallengeId;
+        unlockedCodingChallengeId = level.codingChallengeId.toString();
+        nextLevelId = null;
+      } else {
+        // No coding assessment mapped:
+        // Complete level directly and unlock next level
+        updateOperations.$addToSet.completedLevels = level._id;
+
+        if (level.assessmentId) {
+          updateOperations.$addToSet.unlockedAssessments = level.assessmentId;
+          unlockedAssessmentId = level.assessmentId.toString();
+        }
+
+        // Check next level in the domain
+        const allLevels = await Level.find({ domainId: level.domainId })
+          .sort({ levelNumber: 1 })
+          .select('_id levelNumber title');
+        const currentIndex = allLevels.findIndex((lvl) => lvl._id.toString() === level._id.toString());
+        if (currentIndex !== -1 && currentIndex + 1 < allLevels.length) {
+          nextLevelId = allLevels[currentIndex + 1]._id.toString();
+        }
       }
 
       // Atomically persist progress
@@ -691,16 +745,13 @@ export const submitLevelQuest = async (
         updateOperations,
         { upsert: true, new: true }
       );
-
-      // Check next level in the domain
-      const allLevels = await Level.find({ domainId: level.domainId })
-        .sort({ levelNumber: 1 })
-        .select('_id levelNumber title');
-      const currentIndex = allLevels.findIndex((lvl) => lvl._id.toString() === level._id.toString());
-      if (currentIndex !== -1 && currentIndex + 1 < allLevels.length) {
-        nextLevelId = allLevels[currentIndex + 1]._id.toString();
-      }
     }
+
+    const message = passed
+      ? requiresCodingAssessment
+        ? `Quest Passed with ${Math.round(passRate)}%! Coding assessment is unlocked. Complete the coding assessment to unlock the next level.`
+        : `Quest Mastered! ${Math.round(passRate)}% score achieved. Next level unlocked!`
+      : `Score: ${correctCount}/${totalQuestions} (${Math.round(passRate)}%). You must score at least 70% to pass the quest.`;
 
     return reply.status(200).send({
       success: true,
@@ -710,11 +761,11 @@ export const submitLevelQuest = async (
         total: totalQuestions,
         passRate: Math.round(passRate),
         unlockedAssessmentId,
+        unlockedCodingChallengeId,
         nextLevelId,
+        requiresCodingAssessment,
         feedback: questionFeedback,
-        message: passed
-          ? 'Quest Mastered! 100% Score achieved. Next level and assessment unlocked!'
-          : `Score: ${correctCount}/${totalQuestions}. You must answer all questions correctly (100%) to advance.`,
+        message,
       },
     });
   } catch (error: any) {
@@ -890,8 +941,15 @@ export const createLevel = async (
 ) => {
   try {
     const { id: domainId } = request.params;
-    const { levelNumber, title, youtubeVideoId, studyMaterials, questQuestions, assessmentId } =
-      request.body as any;
+    const {
+      levelNumber,
+      title,
+      youtubeVideoId,
+      studyMaterials,
+      questQuestions,
+      assessmentId,
+      codingChallengeId,
+    } = request.body as any;
 
     if (!levelNumber || !title || !youtubeVideoId || !Array.isArray(questQuestions)) {
       return reply.status(400).send({
@@ -907,7 +965,8 @@ export const createLevel = async (
       youtubeVideoId,
       studyMaterials: Array.isArray(studyMaterials) ? studyMaterials : [],
       questQuestions,
-      assessmentId: assessmentId || null,
+      assessmentId: assessmentId ? new mongoose.Types.ObjectId(assessmentId) : null,
+      codingChallengeId: codingChallengeId ? new mongoose.Types.ObjectId(codingChallengeId) : null,
     });
 
     return reply.status(201).send({ success: true, data: level });
@@ -930,7 +989,10 @@ export const getLevelById = async (
       return reply.status(400).send({ success: false, error: 'Invalid level ID' });
     }
 
-    const level = await Level.findById(id).populate('assessmentId').lean();
+    const level = await Level.findById(id)
+      .populate('assessmentId')
+      .populate('codingChallengeId')
+      .lean();
     if (!level) {
       return reply.status(404).send({ success: false, error: 'Level not found' });
     }
@@ -951,8 +1013,15 @@ export const updateLevel = async (
 ) => {
   try {
     const { id } = request.params;
-    const { levelNumber, title, youtubeVideoId, studyMaterials, questQuestions, assessmentId } =
-      request.body as any;
+    const {
+      levelNumber,
+      title,
+      youtubeVideoId,
+      studyMaterials,
+      questQuestions,
+      assessmentId,
+      codingChallengeId,
+    } = request.body as any;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return reply.status(400).send({ success: false, error: 'Invalid level ID' });
@@ -966,6 +1035,11 @@ export const updateLevel = async (
     if (Array.isArray(questQuestions)) updateDoc.questQuestions = questQuestions;
     if (assessmentId !== undefined) {
       updateDoc.assessmentId = assessmentId ? new mongoose.Types.ObjectId(assessmentId) : null;
+    }
+    if (codingChallengeId !== undefined) {
+      updateDoc.codingChallengeId = codingChallengeId
+        ? new mongoose.Types.ObjectId(codingChallengeId)
+        : null;
     }
 
     const level = await Level.findByIdAndUpdate(id, { $set: updateDoc }, { new: true });

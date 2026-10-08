@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveModal from '../ui/ResponsiveModal';
 import useDomainStore from '../../store/useDomainStore';
 import useAssessmentStore from '../../store/useAssessmentStore';
+import api from '../../lib/axios';
 import { ILevel, IQuestQuestion, IStudyMaterial } from '../../types/domain';
 import {
   Compass,
@@ -13,6 +14,7 @@ import {
   CheckCircle2,
   HelpCircle,
   Code,
+  Code2,
   Link,
   FileText,
   Loader2,
@@ -78,6 +80,8 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
   const [title, setTitle] = useState('');
   const [videoInput, setVideoInput] = useState('');
   const [assessmentId, setAssessmentId] = useState<string>('');
+  const [codingChallengeId, setCodingChallengeId] = useState<string>('');
+  const [codingChallenges, setCodingChallenges] = useState<any[]>([]);
   const [studyMaterials, setStudyMaterials] = useState<IStudyMaterial[]>([]);
   const [questQuestions, setQuestQuestions] = useState<IQuestQuestion[]>([]);
   const [activeTab, setActiveTab] = useState<'info' | 'materials' | 'questions'>('info');
@@ -85,6 +89,13 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
 
   useEffect(() => {
     fetchAssessments();
+    api.get('/assessments/code/challenges')
+      .then((res) => {
+        if (res.data?.success) {
+          setCodingChallenges(res.data.data || []);
+        }
+      })
+      .catch((err) => console.error('Failed to load coding challenges', err));
   }, [fetchAssessments]);
 
   useEffect(() => {
@@ -97,6 +108,11 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
           ? levelToEdit.assessmentId._id
           : levelToEdit.assessmentId || '';
       setAssessmentId(assId);
+      const codeId =
+        typeof levelToEdit.codingChallengeId === 'object' && levelToEdit.codingChallengeId !== null
+          ? levelToEdit.codingChallengeId._id
+          : levelToEdit.codingChallengeId || '';
+      setCodingChallengeId(codeId);
       setStudyMaterials(levelToEdit.studyMaterials ? [...levelToEdit.studyMaterials] : []);
       setQuestQuestions(
         levelToEdit.questQuestions && levelToEdit.questQuestions.length > 0
@@ -108,6 +124,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
       setTitle('');
       setVideoInput('aircAruvnKk');
       setAssessmentId('');
+      setCodingChallengeId('');
       setStudyMaterials([
         {
           title: 'Core Concepts & Cheatsheet',
@@ -203,6 +220,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
       studyMaterials,
       questQuestions,
       assessmentId: assessmentId || null,
+      codingChallengeId: codingChallengeId || null,
     };
 
     if (levelToEdit?._id) {
@@ -320,9 +338,37 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
               />
             </div>
 
+            {/* Mapped Coding Assessment (Gated Progression) */}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center justify-between">
-                <span>Linked Assessment (Unlocked on 100% Pass)</span>
+                <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold">
+                  <Code2 className="w-3.5 h-3.5" />
+                  Mapped Coding Assessment (Gated Progression)
+                </span>
+                <span className="text-[11px] font-normal text-blue-600 dark:text-blue-400">
+                  Optional
+                </span>
+              </label>
+              <select
+                value={codingChallengeId}
+                onChange={(e) => setCodingChallengeId(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-surface-secondary border border-separator text-sm text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer"
+              >
+                <option value="">None (MCQ Quest passes level directly)</option>
+                {codingChallenges.map((challenge) => (
+                  <option key={challenge._id} value={challenge._id}>
+                    {challenge.title} [{challenge.difficulty || 'Medium'}] - {challenge.timeLimitMinutes || 45} mins
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-label-secondary">
+                If mapped, students must score at least 70% on the MCQ quest to open this coding assessment. The next level will only be unlocked after this coding assessment is completed!
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center justify-between">
+                <span>Linked MCQ Assessment (Unlocked on Pass)</span>
                 <span className="text-[11px] font-normal text-purple-600 dark:text-purple-400">
                   Optional
                 </span>
@@ -340,7 +386,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
                 ))}
               </select>
               <p className="text-[11px] text-label-secondary">
-                Students will be awarded and granted direct access to this assessment upon passing this level's quest.
+                Students will be awarded and granted direct access to this evaluation upon passing this level's requirements.
               </p>
             </div>
           </div>

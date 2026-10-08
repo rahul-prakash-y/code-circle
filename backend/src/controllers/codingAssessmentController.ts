@@ -6,6 +6,8 @@ import CodingChallenge, {
   SupportedLanguage,
 } from '../models/codingChallengeModel';
 import CodingSubmission from '../models/codingSubmissionModel';
+import Level from '../models/levelModel';
+import StudentProgress from '../models/studentProgressModel';
 import rceService from '../services/rceService';
 import { ApiError } from '../utils/ApiError';
 
@@ -59,6 +61,44 @@ function normalizeOutput(output: string): string {
 }
 
 /**
+ * Verify whether student has access to the coding challenge.
+ * If challenge is mapped to any level, the student must have completed the MCQ quest
+ * with at least 70% marks (present in completedQuests or unlockedCodingChallenges).
+ */
+async function checkCodingChallengeAccess(
+  challengeId: mongoose.Types.ObjectId,
+  user: any
+) {
+  if (!user || user.role !== 'Student') {
+    return; // Privileged roles (Admin, Faculty, Committee) have unrestricted access
+  }
+
+  // Check if challenge is mapped to any level
+  const mappedLevels = await Level.find({ codingChallengeId: challengeId }).lean();
+  if (mappedLevels.length === 0) {
+    return; // Standalone challenge without level mapping
+  }
+
+  const progress = await StudentProgress.findOne({ userId: user.id }).lean();
+  const completedQuests = progress?.completedQuests?.map((q) => q.toString()) || [];
+  const completedLevels = progress?.completedLevels?.map((l) => l.toString()) || [];
+  const unlockedChallenges = progress?.unlockedCodingChallenges?.map((c) => c.toString()) || [];
+
+  const isUnlocked = mappedLevels.some(
+    (lvl) =>
+      completedQuests.includes(lvl._id.toString()) ||
+      completedLevels.includes(lvl._id.toString()) ||
+      unlockedChallenges.includes(challengeId.toString())
+  );
+
+  if (!isUnlocked) {
+    throw ApiError.forbidden(
+      'This coding assessment is locked. You must complete the Level MCQ quest with at least 70% marks to open it.'
+    );
+  }
+}
+
+/**
  * GET /api/assessments/code/:problemId
  * Fetch problem details for the student workspace.
  * SECURITY: NEVER returns hidden test cases.
@@ -75,6 +115,9 @@ export const getCodingChallenge = async (request: FastifyRequest, reply: Fastify
   if (!challenge || (!challenge.isPublished && user?.role === 'Student')) {
     throw ApiError.notFound('Coding challenge not found or not currently active');
   }
+
+  // Verify access gating if challenge is mapped to a level
+  await checkCodingChallengeAccess(challenge._id as mongoose.Types.ObjectId, user);
 
   // Check if student has already submitted
   let existingSubmission = null;
@@ -223,6 +266,9 @@ export const executeCode = async (request: FastifyRequest, reply: FastifyReply) 
     throw ApiError.notFound('Coding challenge not found');
   }
 
+  // Verify access gating if challenge is mapped to a level
+  await checkCodingChallengeAccess(challenge._id as mongoose.Types.ObjectId, user);
+
   // 4. Validate language against challenge allowlist & system supported languages
   const normalizedLanguage = rceService.normalizeAndValidateLanguage(language);
   if (!challenge.allowedLanguages.includes(normalizedLanguage)) {
@@ -336,6 +382,9 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
     throw ApiError.notFound('Coding challenge not found');
   }
 
+  // Verify access gating if challenge is mapped to a level
+  await checkCodingChallengeAccess(challenge._id as mongoose.Types.ObjectId, user);
+
   // 3. Verify single submission restriction
   if (challenge.singleSubmissionOnly) {
     const existingSubmission = await CodingSubmission.findOne({
@@ -447,14 +496,72 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
 
   await submission.save();
 
-  // 7. Return ONLY the strict submission response format
-  // NEVER return hidden inputs or expected outputs
+  // If passed all test cases, handle progression unlock for mapped levels
+  let levelCompleted = false;
+  let unlockedNextLevel = false;
+  let nextLevelId: string | null = null;
+  let domainId: string | null = null;
+
+  if (submissionStatus === 'passed') {
+    // 1. Mark coding challenge as completed in student progress
+    await StudentProgress.findOneAndUpdate(
+      { userId: new mongoose.Types.ObjectId(user.id) },
+      { $addToSet: { completedCodingChallenges: challenge._id } },
+      { upsert: true }
+    );
+
+    // 2. Find any domain levels where this challenge is mapped
+    const linkedLevels = await Level.find({ codingChallengeId: challenge._id }).lean();
+    if (linkedLevels.length > 0) {
+      levelCompleted = true;
+      const linkedLevelIds = linkedLevels.map((lvl) => lvl._id);
+      const assessmentIdsToUnlock = linkedLevels
+        .filter((lvl) => lvl.assessmentId)
+        .map((lvl) => lvl.assessmentId);
+
+      const updateOp: any = {
+        $addToSet: {
+          completedLevels: { $each: linkedLevelIds },
+        },
+      };
+
+      if (assessmentIdsToUnlock.length > 0) {
+        updateOp.$addToSet.unlockedAssessments = { $each: assessmentIdsToUnlock };
+      }
+
+      await StudentProgress.findOneAndUpdate(
+        { userId: new mongoose.Types.ObjectId(user.id) },
+        updateOp,
+        { upsert: true }
+      );
+
+      // Check next level in the domain
+      const firstLinked = linkedLevels[0];
+      domainId = firstLinked.domainId.toString();
+      const allLevels = await Level.find({ domainId: firstLinked.domainId })
+        .sort({ levelNumber: 1 })
+        .lean();
+      const currentIdx = allLevels.findIndex(
+        (lvl) => lvl._id.toString() === firstLinked._id.toString()
+      );
+      if (currentIdx !== -1 && currentIdx + 1 < allLevels.length) {
+        unlockedNextLevel = true;
+        nextLevelId = allLevels[currentIdx + 1]._id.toString();
+      }
+    }
+  }
+
+  // 7. Return submission response format with progression feedback
   return reply.send({
     submitted: true,
     score,
     passed: passedCount,
     total,
     status: submissionStatus,
+    levelCompleted,
+    unlockedNextLevel,
+    nextLevelId,
+    domainId,
   });
 };
 

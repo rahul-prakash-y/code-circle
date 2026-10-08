@@ -11,6 +11,8 @@ import {
   ChevronRight,
   HelpCircle,
   Sparkles,
+  Code2,
+  Terminal,
 } from 'lucide-react';
 
 interface LevelPathViewProps {
@@ -38,6 +40,11 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
             ? lvl.assessmentId
             : null;
 
+        const codingChallenge =
+          typeof lvl.codingChallengeId === 'object' && lvl.codingChallengeId !== null
+            ? lvl.codingChallengeId
+            : null;
+
         const handleCardClick = () => {
           if (isUnlocked) {
             onSelectLevel(lvl);
@@ -47,7 +54,7 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
             } else {
               const prev = lvl.requiresPreviousLevel || (lvl.levelNumber > 1 ? lvl.levelNumber - 1 : null);
               if (prev) {
-                toast.error(`🔒 Level ${lvl.levelNumber} is locked! Complete Level ${prev} quest first with 100% score.`);
+                toast.error(`🔒 Level ${lvl.levelNumber} is locked! Complete all Level ${prev} requirements first.`);
               } else {
                 toast.error('🔒 Level is currently locked.');
               }
@@ -108,6 +115,12 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                       </span>
                     )}
 
+                    {!isCompleted && lvl.isQuestCompleted && codingChallenge && !lvl.isCodingChallengeCompleted && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 animate-pulse">
+                        Code Challenge Pending
+                      </span>
+                    )}
+
                     {isActive && (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/10 text-accent">
                         Selected
@@ -133,6 +146,13 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                       <HelpCircle className="w-3.5 h-3.5 text-accent" />
                       {lvl.questQuestions?.length || 0}-Question Quest
                     </span>
+
+                    {codingChallenge && (
+                      <span className="inline-flex whitespace-nowrap items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                        <Code2 className="w-3.5 h-3.5 text-blue-500" />
+                        Coding: {codingChallenge.title}
+                      </span>
+                    )}
 
                     {assessment && (
                       <span className="inline-flex whitespace-nowrap items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium">
