@@ -29,6 +29,7 @@ const UserManagement = lazy(() => import('./pages/UserManagement'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 const TeamsManagement = lazy(() => import('./pages/TeamsManagement'));
 const BearerManagement = lazy(() => import('./pages/BearerManagement'));
+const StudentTrackingPage = lazy(() => import('./pages/StudentTrackingPage'));
 
 export const decodeJwtPayload = (token) => {
   if (!token) return null;
@@ -334,6 +335,16 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
                   <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Student Tracking Module (SuperAdmin & Admin) */}
+            <Route
+              path="/tracking"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
+                  <StudentTrackingPage />
                 </ProtectedRoute>
               }
             />

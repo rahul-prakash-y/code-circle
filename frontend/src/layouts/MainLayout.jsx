@@ -10,7 +10,7 @@ import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
   Medal, Trophy, Ticket, MessageSquare,
   Newspaper, Users, Crown, Shield, BarChart3,
-  Compass,
+  Compass, UserCheck,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -106,6 +106,7 @@ export const MainLayout = ({ children }) => {
     ...(isAdmin
       ? [
           { to: '/users', label: 'Directory', icon: Shield },
+          { to: '/tracking', label: 'Student Tracking', icon: UserCheck },
           { to: '/analytics', label: 'Analytics', icon: BarChart3 },
         ]
       : []),

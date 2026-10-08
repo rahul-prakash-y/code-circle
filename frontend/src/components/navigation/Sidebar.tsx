@@ -17,6 +17,7 @@ import {
   BarChart3,
   ChevronLeft,
   Compass,
+  UserCheck,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -177,6 +178,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       label: 'Directory',
       icon: Shield,
       match: (loc) => loc.pathname === '/users' || loc.pathname === '/students',
+    },
+    {
+      to: '/tracking',
+      label: 'Student Tracking',
+      icon: UserCheck,
+      match: (loc) => loc.pathname === '/tracking',
     },
     {
       to: '/analytics',
