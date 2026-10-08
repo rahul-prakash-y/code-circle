@@ -16,31 +16,32 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import useAnalyticsStore from '../../store/useAnalyticsStore';
+import useThemeStore from '../../store/useThemeStore';
 import { motion } from 'framer-motion';
 
 const StatCard = ({ title, value, icon: Icon, trend, color }) => (
   <motion.div 
-    whileHover={{ y: -5, scale: 1.02 }}
-    className="bg-surface-elevated backdrop-blur-xl border border-border p-6 rounded-2xl relative overflow-hidden group shadow-xl"
+    whileHover={{ y: -4, scale: 1.01 }}
+    className="bg-surface border border-separator/80 p-6 rounded-2xl relative overflow-hidden group shadow-card hover:shadow-card-elevated transition-all"
   >
-    <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 ${color}`} />
+    <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-15 dark:opacity-25 ${color}`} />
     
     <div className="flex justify-between items-start mb-4">
-      <div className={`p-3 rounded-lg bg-surface-elevated border border-border text-text-primary`}>
-        <Icon size={24} />
+      <div className="p-3 rounded-xl bg-surface-secondary border border-separator text-label-primary shadow-sm">
+        <Icon size={22} />
       </div>
       {trend && (
-        <span className="flex items-center text-emerald-400 text-sm font-medium bg-emerald-400/10 px-2 py-1 rounded-full">
-          <ArrowUpRight size={14} className="mr-1" />
+        <span className="flex items-center text-emerald-600 dark:text-emerald-400 text-xs font-semibold bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+          <ArrowUpRight size={13} className="mr-1" />
           {trend}
         </span>
       )}
     </div>
     
-    <h3 className="text-white/60 text-sm font-medium mb-1">{title}</h3>
-    <div className="text-3xl font-bold text-text-primary mb-2">{value}</div>
+    <h3 className="text-label-secondary text-xs font-semibold uppercase tracking-wider mb-1">{title}</h3>
+    <div className="text-3xl font-bold text-label-primary tracking-tight mb-3">{value}</div>
     
-    <div className="w-full h-1 bg-surface-elevated rounded-full overflow-hidden">
+    <div className="w-full h-1.5 bg-separator/60 dark:bg-white/10 rounded-full overflow-hidden">
       <motion.div 
         initial={{ width: 0 }}
         animate={{ width: '70%' }}
@@ -58,6 +59,8 @@ const AdminAnalytics = () => {
     loading, 
     fetchDashboardStats 
   } = useAnalyticsStore();
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     fetchDashboardStats();
@@ -66,7 +69,7 @@ const AdminAnalytics = () => {
   if (loading || !dashboardStats) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-accent border-t-transparent"></div>
       </div>
     );
   }
@@ -75,11 +78,11 @@ const AdminAnalytics = () => {
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-          <TrendingUp className="text-indigo-400" />
+        <h2 className="text-xl sm:text-2xl font-bold text-label-primary flex items-center gap-2">
+          <TrendingUp className="text-accent" size={24} />
           Dashboard Analytics
         </h2>
-        <p className="text-white/50 text-sm">Real-time performance and participation tracking</p>
+        <p className="text-label-secondary text-xs sm:text-sm mt-0.5">Real-time performance and participation tracking</p>
       </div>
 
       {/* Stats Grid */}
@@ -113,11 +116,11 @@ const AdminAnalytics = () => {
       </div>
 
       {/* Participation Chart */}
-      <div className="bg-surface-elevated backdrop-blur-xl border border-border p-8 rounded-3xl shadow-2xl">
-        <div className="flex justify-between items-center mb-8">
+      <div className="bg-surface border border-separator/80 p-6 sm:p-8 rounded-3xl shadow-card">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h3 className="text-xl font-bold text-text-primary">Participation Trends</h3>
-            <p className="text-white/50 text-sm">Event attendance over the last 6 months</p>
+            <h3 className="text-lg sm:text-xl font-bold text-label-primary">Participation Trends</h3>
+            <p className="text-label-secondary text-xs sm:text-sm mt-0.5">Event attendance over the last 6 months</p>
           </div>
         </div>
 
@@ -126,40 +129,54 @@ const AdminAnalytics = () => {
             <AreaChart data={growthData}>
               <defs>
                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  <stop offset="5%" stopColor={isDark ? '#38bdf8' : '#0071E3'} stopOpacity={isDark ? 0.35 : 0.2}/>
+                  <stop offset="95%" stopColor={isDark ? '#38bdf8' : '#0071E3'} stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'} 
+                vertical={false} 
+              />
               <XAxis 
                 dataKey="monthName" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#ffffff60', fontSize: 12 }}
+                tick={{ fill: isDark ? '#A1A1A6' : '#86868B', fontSize: 12 }}
                 dy={10}
               />
               <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#ffffff60', fontSize: 12 }}
+                tick={{ fill: isDark ? '#A1A1A6' : '#86868B', fontSize: 12 }}
               />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#1e1b4b', 
-                  borderColor: '#ffffff10', 
-                  borderRadius: '12px',
-                  color: '#fff' 
+                  backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', 
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)', 
+                  borderRadius: '14px',
+                  color: isDark ? '#F5F5F7' : '#1D1D1F',
+                  boxShadow: isDark
+                    ? '0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3)'
+                    : '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+                  padding: '10px 14px',
                 }}
-                itemStyle={{ color: '#6366f1' }}
+                labelStyle={{
+                  color: isDark ? '#F5F5F7' : '#1D1D1F',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  marginBottom: '4px',
+                }}
+                itemStyle={{ color: isDark ? '#38bdf8' : '#0071E3', fontSize: '12px', fontWeight: 500 }}
               />
               <Area 
                 type="monotone" 
                 dataKey="count" 
-                stroke="#6366f1" 
-                strokeWidth={3}
+                stroke={isDark ? '#38bdf8' : '#0071E3'} 
+                strokeWidth={2.5}
                 fillOpacity={1} 
                 fill="url(#colorCount)" 
-                animationDuration={2000}
+                animationDuration={1500}
               />
             </AreaChart>
           </ResponsiveContainer>

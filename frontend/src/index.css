@@ -19,6 +19,7 @@
 
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
   --color-surface-raised: var(--surface-raised);
   --color-surface-elevated: var(--surface-raised);
   --color-surface-overlay: var(--surface-overlay);
@@ -104,6 +105,7 @@
 .dark {
   --canvas: #000000;
   --surface: #161617;
+  --surface-secondary: #1C1C1E;
   --surface-raised: #1C1C1E;
   --surface-overlay: rgba(22, 22, 23, 0.92);
 
