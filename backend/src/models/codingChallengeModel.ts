@@ -32,6 +32,9 @@ export interface ICodingChallenge extends Document {
   timeLimitMinutes?: number;
   singleSubmissionOnly?: boolean;
   isPublished?: boolean;
+  isCourseChallenge?: boolean;
+  domainId?: mongoose.Types.ObjectId | null;
+  levelId?: mongoose.Types.ObjectId | null;
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -147,6 +150,23 @@ const codingChallengeSchema = new Schema<ICodingChallenge>(
       default: null,
       index: true,
     },
+    isCourseChallenge: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    domainId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Domain',
+      default: null,
+      index: true,
+    },
+    levelId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Level',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -155,6 +175,7 @@ const codingChallengeSchema = new Schema<ICodingChallenge>(
 
 // Indexes for query optimization
 codingChallengeSchema.index({ isPublished: 1, createdAt: -1 });
+codingChallengeSchema.index({ isCourseChallenge: 1, createdAt: -1 });
 
 export const CodingChallenge: Model<ICodingChallenge> =
   mongoose.models.CodingChallenge ||

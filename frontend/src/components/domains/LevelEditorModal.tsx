@@ -19,8 +19,12 @@ import {
   FileText,
   Loader2,
   Film,
+  FileSpreadsheet,
+  Sparkles,
+  Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CodingBulkUploadModal from '../coding/admin/CodingBulkUploadModal';
 
 interface IVideoField {
   id: string;
@@ -100,6 +104,10 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
   const [assessmentId, setAssessmentId] = useState<string>('');
   const [codingChallengeId, setCodingChallengeId] = useState<string>('');
   const [codingChallenges, setCodingChallenges] = useState<any[]>([]);
+  const [codingPool, setCodingPool] = useState<any[]>([]);
+  const [candidateChallengeId, setCandidateChallengeId] = useState<string>('');
+  const [bulkUploadOpen, setBulkUploadOpen] = useState<boolean>(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState<boolean>(false);
   const [studyMaterials, setStudyMaterials] = useState<IStudyMaterial[]>([]);
   const [questQuestions, setQuestQuestions] = useState<IQuestQuestion[]>([]);
   const [activeTab, setActiveTab] = useState<'info' | 'materials' | 'questions'>('info');
@@ -115,6 +123,57 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
       })
       .catch((err) => console.error('Failed to load coding challenges', err));
   }, [fetchAssessments]);
+
+  const fetchLevelPool = async () => {
+    if (levelToEdit?._id) {
+      try {
+        const res = await api.get(`/assessments/code/level/${levelToEdit._id}/pool`);
+        if (res.data?.success && res.data?.data?.challenges) {
+          setCodingPool(res.data.data.challenges);
+        }
+      } catch (err) {
+        console.warn('Failed to load level pool', err);
+      }
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      setDownloadingTemplate(true);
+      const res = await api.get('/assessments/code/admin/template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'coding_challenges_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Sample template downloaded successfully');
+    } catch (err: any) {
+      toast.error('Failed to download sample template');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
+  const handleAddToPool = (challengeId: string) => {
+    if (!challengeId) return;
+    const challenge = codingChallenges.find((c) => c._id === challengeId);
+    if (!challenge) return;
+    if (codingPool.some((c) => (typeof c === 'object' ? c._id : c) === challengeId)) {
+      toast.error('Question is already in pool');
+      return;
+    }
+    setCodingPool([...codingPool, challenge]);
+    setCandidateChallengeId('');
+    toast.success(`Added "${challenge.title}" to pool`);
+  };
+
+  const handleRemoveFromPool = (index: number) => {
+    setCodingPool((prev) => prev.filter((_, idx) => idx !== index));
+    toast.success('Question removed from pool');
+  };
 
   useEffect(() => {
     if (levelToEdit) {
@@ -165,6 +224,28 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
           ? levelToEdit.codingChallengeId._id
           : levelToEdit.codingChallengeId || '';
       setCodingChallengeId(codeId);
+
+      // Initialize coding pool from levelToEdit
+      const initialPool: any[] = [];
+      if (Array.isArray(levelToEdit.codingChallengePool) && levelToEdit.codingChallengePool.length > 0) {
+        levelToEdit.codingChallengePool.forEach((c: any) => {
+          if (c) initialPool.push(c);
+        });
+      }
+      if (
+        levelToEdit.codingChallengeId &&
+        !initialPool.some(
+          (c: any) =>
+            (typeof c === 'object' ? c._id : c) ===
+            (typeof levelToEdit.codingChallengeId === 'object'
+              ? (levelToEdit.codingChallengeId as any)._id
+              : levelToEdit.codingChallengeId)
+        )
+      ) {
+        initialPool.push(levelToEdit.codingChallengeId);
+      }
+      setCodingPool(initialPool);
+      fetchLevelPool();
       setStudyMaterials(levelToEdit.studyMaterials ? [...levelToEdit.studyMaterials] : []);
       setQuestQuestions(
         levelToEdit.questQuestions && levelToEdit.questQuestions.length > 0
@@ -305,6 +386,10 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
 
     setSubmitting(true);
     let success = false;
+    const poolIds = codingPool
+      .map((c) => (typeof c === 'object' && c !== null ? c._id : c))
+      .filter(Boolean);
+
     const payload = {
       levelNumber: Number(levelNumber),
       title: title.trim(),
@@ -315,7 +400,9 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
       studyMaterials,
       questQuestions,
       assessmentId: assessmentId || null,
-      codingChallengeId: codingChallengeId || null,
+      codingChallengeId: poolIds[0] || codingChallengeId || null,
+      codingChallengePool: poolIds,
+      codingTimeLimitMinutes: 60,
     };
 
     if (levelToEdit?._id) {
@@ -331,7 +418,8 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
   };
 
   return (
-    <ResponsiveModal
+    <>
+      <ResponsiveModal
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) onClose();
@@ -551,32 +639,146 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
               </div>
             </div>
 
-            {/* Mapped Coding Assessment (Gated Progression) */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold">
-                  <Code2 className="w-3.5 h-3.5" />
-                  Mapped Coding Assessment (Gated Progression)
-                </span>
-                <span className="text-[11px] font-normal text-blue-600 dark:text-blue-400">
-                  Optional
-                </span>
-              </label>
-              <select
-                value={codingChallengeId}
-                onChange={(e) => setCodingChallengeId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-surface-secondary border border-separator text-sm text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer"
-              >
-                <option value="">None (MCQ Quest passes level directly)</option>
-                {codingChallenges.map((challenge) => (
-                  <option key={challenge._id} value={challenge._id}>
-                    {challenge.title} [{challenge.difficulty || 'Medium'}] - {challenge.timeLimitMinutes || 45} mins
-                  </option>
-                ))}
-              </select>
-              <p className="text-[11px] text-label-secondary">
-                If mapped, students must score at least 70% on the MCQ quest to open this coding assessment. The next level will only be unlocked after this coding assessment is completed!
-              </p>
+            {/* Level Coding Assessment Question Pool */}
+            <div className="space-y-3 p-4 rounded-2xl bg-surface-secondary/70 border border-separator/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      <Code2 className="w-4 h-4" />
+                    </span>
+                    <span className="text-xs font-bold text-label-primary uppercase tracking-wider">
+                      Level Coding Assessment Pool
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                      2 Random Questions • 1 Hour Limit
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-label-secondary mt-1">
+                    Students must score ≥ 70% in the MCQ quest to access this assessment. When launched, 2 questions are randomly assigned from this pool for a 60-minute coding session.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleDownloadTemplate}
+                    disabled={downloadingTemplate}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-xs disabled:opacity-50"
+                    title="Download Excel sample template"
+                  >
+                    {downloadingTemplate ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-label-tertiary" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    )}
+                    <span>Template (.xlsx)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBulkUploadOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Bulk Upload</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Pool count & list */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-label-secondary">
+                    Pool Questions ({codingPool.length})
+                  </span>
+                  {codingPool.length < 2 && (
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                      ⚠️ Add at least 2 questions for random 2-question assignment
+                    </span>
+                  )}
+                </div>
+
+                {codingPool.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-separator text-center text-xs text-label-tertiary bg-surface/40">
+                    No coding questions added to this level yet. Bulk upload from Excel above or select from existing questions below.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                    {codingPool.map((c: any, idx: number) => {
+                      const title = typeof c === 'object' ? c.title || c.problemName || `Problem ${idx + 1}` : `Challenge ${c}`;
+                      const difficulty = typeof c === 'object' ? c.difficulty || 'Medium' : 'Medium';
+                      const diffColors: Record<string, string> = {
+                        Easy: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+                        Medium: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+                        Hard: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+                      };
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-surface border border-separator/80 text-xs gap-2"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-5 h-5 rounded-md bg-surface-secondary text-label-secondary text-[11px] font-bold flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <span className="font-medium text-label-primary truncate">
+                              {title}
+                            </span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                                diffColors[difficulty] || diffColors.Medium
+                              }`}
+                            >
+                              {difficulty}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFromPool(idx)}
+                            className="w-6 h-6 rounded-lg text-label-tertiary hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition cursor-pointer shrink-0"
+                            title="Remove from pool"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Add question from existing list */}
+              <div className="flex items-center gap-2 pt-1 border-t border-separator/60">
+                <select
+                  value={candidateChallengeId}
+                  onChange={(e) => setCandidateChallengeId(e.target.value)}
+                  className="flex-1 px-3 py-1.5 rounded-xl bg-surface border border-separator text-xs text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer"
+                >
+                  <option value="">-- Add existing question to pool --</option>
+                  {codingChallenges
+                    .filter(
+                      (ch) =>
+                        !codingPool.some(
+                          (p: any) => (typeof p === 'object' ? p._id : p) === ch._id
+                        )
+                    )
+                    .map((ch) => (
+                      <option key={ch._id} value={ch._id}>
+                        {ch.title} [{ch.difficulty || 'Medium'}]
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => handleAddToPool(candidateChallengeId)}
+                  disabled={!candidateChallengeId}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 disabled:opacity-40 transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -843,6 +1045,19 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
         </div>
       </form>
     </ResponsiveModal>
+
+    {bulkUploadOpen && (
+      <CodingBulkUploadModal
+        isOpen={bulkUploadOpen}
+        onClose={() => setBulkUploadOpen(false)}
+        preselectedDomainId={domainId}
+        preselectedLevelId={levelToEdit?._id}
+        onSuccess={() => {
+          fetchLevelPool();
+        }}
+      />
+    )}
+  </>
   );
 };
 

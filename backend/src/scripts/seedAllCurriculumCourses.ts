@@ -111,8 +111,10 @@ async function seedAllCurriculumCourses() {
           allowedLanguages: lvl.challenge.allowedLanguages,
           starterCode: lvl.challenge.starterCode,
           testCases: lvl.challenge.testCases,
-          timeLimitMinutes: 30,
+          timeLimitMinutes: 60,
           isPublished: true,
+          isCourseChallenge: true,
+          domainId: domain._id,
           createdBy: adminUser._id,
         });
         totalChallengesSeeded++;
@@ -122,6 +124,8 @@ async function seedAllCurriculumCourses() {
         challenge.starterCode = lvl.challenge.starterCode as any;
         challenge.testCases = lvl.challenge.testCases as any;
         challenge.isPublished = true;
+        challenge.isCourseChallenge = true;
+        challenge.domainId = domain._id;
         await challenge.save();
       }
 
@@ -154,8 +158,14 @@ async function seedAllCurriculumCourses() {
         studyMaterials: lvl.studyMaterials,
         questQuestions: lvl.questQuestions,
         codingChallengeId: challenge._id,
+        codingChallengePool: [challenge._id],
+        codingTimeLimitMinutes: 60,
         assessmentId: assessment._id,
       });
+
+      // Update challenge's levelId
+      challenge.levelId = levelDoc._id;
+      await challenge.save();
 
       totalLevelsSeeded++;
       console.log(

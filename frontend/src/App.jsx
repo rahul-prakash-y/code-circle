@@ -162,6 +162,14 @@ function App() {
             }
           />
           <Route
+            path="/assessments/code/level/:levelId"
+            element={
+              <ProtectedRoute>
+                <CodingAssessmentWorkspace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/assessment/code/:problemId"
             element={
               <ProtectedRoute>

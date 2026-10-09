@@ -33,6 +33,8 @@ export interface ILevel extends Document {
   points?: number;
   assessmentId?: mongoose.Types.ObjectId | null;
   codingChallengeId?: mongoose.Types.ObjectId | null;
+  codingChallengePool?: mongoose.Types.ObjectId[];
+  codingTimeLimitMinutes?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -168,6 +170,17 @@ const levelSchema = new Schema<ILevel>(
       ref: 'CodingChallenge',
       default: null,
       index: true,
+    },
+    codingChallengePool: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'CodingChallenge',
+      },
+    ],
+    codingTimeLimitMinutes: {
+      type: Number,
+      default: 60, // 1 hour timing
+      min: [1, 'Time limit must be at least 1 minute'],
     },
   },
   {

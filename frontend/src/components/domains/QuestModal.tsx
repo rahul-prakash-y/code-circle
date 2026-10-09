@@ -83,19 +83,16 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
     setCurrentQuestionIdx(0);
   };
 
-  const codingChallenge =
-    typeof activeLevel?.codingChallengeId === 'object' && activeLevel?.codingChallengeId !== null
-      ? activeLevel.codingChallengeId
-      : null;
-  const codingChallengeId =
-    codingChallenge?._id ||
-    (typeof activeLevel?.codingChallengeId === 'string' ? activeLevel.codingChallengeId : null);
+  const hasCodingAssessment = Boolean(
+    activeLevel?.codingChallengeId ||
+    (Array.isArray(activeLevel?.codingChallengePool) && activeLevel.codingChallengePool.length > 0)
+  );
 
   const handleGoToCodingAssessment = () => {
     onClose();
-    if (codingChallengeId && activeLevel) {
+    if (activeLevel) {
       navigate(
-        `/assessments/code/${codingChallengeId}?levelId=${activeLevel._id}&domainId=${activeLevel.domainId}`
+        `/assessments/code/level/${activeLevel._id}?domainId=${activeLevel.domainId}`
       );
     }
   };
@@ -222,28 +219,33 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
               </h2>
               <p className="text-sm text-label-secondary max-w-md mx-auto leading-relaxed">
                 You scored <span className="font-semibold text-emerald-500">{lastQuestResult.score} out of {lastQuestResult.total}</span> ({lastQuestResult.passRate}%).
-                {codingChallengeId
-                  ? ' You have successfully opened the coding assessment! Complete it to unlock the next level.'
+                {hasCodingAssessment
+                  ? ' You have successfully unlocked the 1-hour coding assessment! Solve both assigned problems to unlock the next level.'
                   : ' Your mastery has unlocked the next milestone!'}
               </p>
             </motion.div>
 
             {/* Unlocked Coding Assessment Notification Card */}
-            {codingChallenge && (
+            {hasCodingAssessment && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.35 }}
                 className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-surface-secondary border border-blue-500/30 text-left space-y-2 shadow-sm"
               >
-                <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                  <Terminal className="w-4 h-4 text-blue-500" /> Coding Assessment Opened
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                    <Terminal className="w-4 h-4 text-blue-500" /> Coding Assessment Unlocked
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25">
+                    2 Questions • 1 Hour Limit
+                  </span>
                 </div>
                 <div className="text-[15px] font-semibold text-label-primary">
-                  {codingChallenge.title}
+                  {`Level ${activeLevel?.levelNumber || 1} Coding Assessment`}
                 </div>
                 <p className="text-xs text-label-secondary">
-                  Hands-on challenge ready! You must pass all test cases in this coding assessment to unlock the next level.
+                  Two randomly assigned questions from the course pool. You have 60 minutes to pass all test cases and unlock the next level.
                 </p>
               </motion.div>
             )}
@@ -268,14 +270,14 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
 
             {/* Actions */}
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              {codingChallengeId ? (
+              {hasCodingAssessment ? (
                 <button
                   type="button"
                   onClick={handleGoToCodingAssessment}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 active:scale-98 transition shadow-md shadow-blue-500/20 cursor-pointer"
                 >
                   <Terminal className="w-4 h-4" />
-                  Open Coding Assessment
+                  Start Coding Assessment (1h • 2 Questions)
                 </button>
               ) : activeLevel?.assessmentId ? (
                 <button

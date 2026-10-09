@@ -65,6 +65,15 @@ export interface ILevel {
     timeLimitMinutes?: number;
     isPublished?: boolean;
   } | string | null;
+  codingChallengePool?: Array<{
+    _id: string;
+    title: string;
+    difficulty?: 'Easy' | 'Medium' | 'Hard';
+    allowedLanguages?: string[];
+    timeLimitMinutes?: number;
+    isPublished?: boolean;
+  } | string>;
+  codingTimeLimitMinutes?: number;
   isCompleted?: boolean;
   isUnlocked?: boolean;
   requiresRegistration?: boolean;

@@ -502,6 +502,7 @@ export const getDomainLevels = async (
     const levels = await Level.find({ domainId })
       .populate('assessmentId', 'title description category passingScorePercentage timeLimitMinutes')
       .populate('codingChallengeId', 'title description difficulty allowedLanguages timeLimitMinutes isPublished')
+      .populate('codingChallengePool', 'title description difficulty allowedLanguages timeLimitMinutes isPublished')
       .sort({ levelNumber: 1 })
       .lean();
 
@@ -575,12 +576,14 @@ export const getDomainLevels = async (
         : codingChallenge
         ? codingChallenge.toString()
         : null;
-      const isCodingChallengeCompleted = codingChallengeIdStr
-        ? completedCodingChallengesSet.has(codingChallengeIdStr) || isCompleted
+      const poolLength = Array.isArray(lvl.codingChallengePool) ? lvl.codingChallengePool.length : 0;
+      const hasCodingAssessment = Boolean(codingChallengeIdStr || poolLength > 0);
+      const isCodingChallengeCompleted = hasCodingAssessment
+        ? isCompleted || Boolean(codingChallengeIdStr && completedCodingChallengesSet.has(codingChallengeIdStr))
         : false;
       // The coding assessment is opened only if the MCQ quest is completed (70% threshold):
       const isCodingChallengeUnlocked =
-        isAdmin || (isQuestCompleted && Boolean(codingChallengeIdStr));
+        isAdmin || (isQuestCompleted && hasCodingAssessment);
 
       // Sanitize quest questions (strip correctOption to prevent cheating, unless admin)
       const sanitizedQuestions = lvl.questQuestions.map((q: any) => ({

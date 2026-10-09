@@ -16,12 +16,14 @@ import {
   AlertCircle,
   Search,
   Filter,
+  FileSpreadsheet,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import useAuthStore from '../../store/useAuthStore';
 import CodingChallengeEditorModal from './admin/CodingChallengeEditorModal';
 import CodingSubmissionsModal from './admin/CodingSubmissionsModal';
+import CodingBulkUploadModal from './admin/CodingBulkUploadModal';
 
 interface StudentSubmissionInfo {
   score: number;
@@ -72,6 +74,7 @@ export const CodingChallengeList: React.FC = () => {
   const [submissionsModalOpen, setSubmissionsModalOpen] = useState<boolean>(false);
   const [submissionsChallengeId, setSubmissionsChallengeId] = useState<string | null>(null);
   const [submissionsChallengeTitle, setSubmissionsChallengeTitle] = useState<string>('');
+  const [bulkUploadOpen, setBulkUploadOpen] = useState<boolean>(false);
 
   const fetchChallenges = useCallback(async () => {
     try {
@@ -154,13 +157,23 @@ export const CodingChallengeList: React.FC = () => {
 
         {/* Admin Controls */}
         {isAdmin && (
-          <button
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-accent hover:bg-accent-hover text-white transition-all shadow-md shadow-accent/20 cursor-pointer self-start sm:self-auto"
-          >
-            <Plus size={16} />
-            <span>Create Coding Challenge</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            <button
+              onClick={() => setBulkUploadOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold bg-surface-secondary border border-separator hover:border-accent hover:text-accent text-label-primary transition-all shadow-sm cursor-pointer"
+            >
+              <FileSpreadsheet size={15} className="text-emerald-500" />
+              <span>Bulk Upload (Excel)</span>
+            </button>
+
+            <button
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-accent hover:bg-accent-hover text-white transition-all shadow-md shadow-accent/20 cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Create Coding Challenge</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -385,6 +398,15 @@ export const CodingChallengeList: React.FC = () => {
           challengeTitle={submissionsChallengeTitle}
           isOpen={submissionsModalOpen}
           onClose={() => setSubmissionsModalOpen(false)}
+        />
+      )}
+
+      {/* Admin Bulk Upload Modal */}
+      {bulkUploadOpen && (
+        <CodingBulkUploadModal
+          isOpen={bulkUploadOpen}
+          onClose={() => setBulkUploadOpen(false)}
+          onSuccess={fetchChallenges}
         />
       )}
     </div>

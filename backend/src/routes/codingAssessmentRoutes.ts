@@ -49,7 +49,33 @@ export async function codingAssessmentRoutes(fastify: FastifyInstance) {
   // All coding assessment endpoints require student authentication
   fastify.addHook('preHandler', verifyToken);
 
-  // List available coding challenges
+  // ── Course Level Assessment Endpoints (1-hour, 2 random questions) ──
+  fastify.get('/level/:levelId/session', codingAssessmentController.getLevelAssessmentSession as any);
+  fastify.post('/level/:levelId/submit', codingAssessmentController.submitLevelAssessmentCode as any);
+
+  // ── Admin Excel Template & Bulk Upload Endpoints ────────────────
+  fastify.get(
+    '/admin/template',
+    { preHandler: [isAdminOrFaculty] },
+    codingAssessmentController.downloadSampleTemplate as any
+  );
+  fastify.post(
+    '/admin/bulk-upload',
+    { preHandler: [isAdminOrFaculty] },
+    codingAssessmentController.bulkUploadCodingChallenges as any
+  );
+  fastify.get(
+    '/level/:levelId/pool',
+    { preHandler: [isAdminOrFaculty] },
+    codingAssessmentController.getLevelPool as any
+  );
+  fastify.post(
+    '/level/:levelId/pool',
+    { preHandler: [isAdminOrFaculty] },
+    codingAssessmentController.updateLevelPool as any
+  );
+
+  // List available standalone coding challenges (assessment tab)
   fastify.get('/challenges', codingAssessmentController.listCodingChallenges as any);
 
   // Fetch challenge workspace data (Visible test cases only)

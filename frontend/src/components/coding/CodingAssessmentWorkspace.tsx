@@ -104,16 +104,36 @@ const LANG_DISPLAY_NAMES: Record<string, string> = {
 };
 
 export const CodingAssessmentWorkspace: React.FC = () => {
-  const { id, problemId: routeProblemId } = useParams<{ id?: string; problemId?: string }>();
+  const { id, problemId: routeProblemId, levelId: routeLevelId } = useParams<{
+    id?: string;
+    problemId?: string;
+    levelId?: string;
+  }>();
+  const [searchParams] = useSearchParams();
+  const activeLevelId = routeLevelId || searchParams.get('levelId') || null;
   const activeProblemId = id || routeProblemId;
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const queryDomainId = searchParams.get('domainId');
 
   // Challenge and code state
   const [challenge, setChallenge] = useState<ChallengeData | null>(null);
   const [loadingChallenge, setLoadingChallenge] = useState<boolean>(true);
   const [errorChallenge, setErrorChallenge] = useState<string | null>(null);
+
+  // Level assessment session state
+  const [levelSession, setLevelSession] = useState<any | null>(null);
+  const [levelMeta, setLevelMeta] = useState<any | null>(null);
+  const [levelQuestions, setLevelQuestions] = useState<ChallengeData[]>([]);
+  const [activeQuestionIdx, setActiveQuestionIdx] = useState<number>(0);
+  const [codeStoreByQuestion, setCodeStoreByQuestion] = useState<Record<string, Record<string, string>>>({});
+  const [questionStatuses, setQuestionStatuses] = useState<Record<string, { status: string; score: number; passed?: number; total?: number }>>({});
+  const [levelCompletionData, setLevelCompletionData] = useState<{
+    allPassed: boolean;
+    levelCompleted: boolean;
+    unlockedNextLevel: boolean;
+    nextLevelId: string | null;
+    pointsAwarded: number;
+  } | null>(null);
 
   const [activeLanguage, setActiveLanguage] = useState<string>('python');
   const [codeByLanguage, setCodeByLanguage] = useState<Record<string, string>>({});
@@ -134,8 +154,8 @@ export const CodingAssessmentWorkspace: React.FC = () => {
   const [consoleOutput, setConsoleOutput] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
-  // Timer state
-  const [remainingSeconds, setRemainingSeconds] = useState<number>(45 * 60);
+  // Timer state (Default 60 mins for level assessment, 45 mins standalone)
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(60 * 60);
 
   // Reference to current active code and language for auto-submit
   const currentCodeRef = useRef<string>('');
@@ -150,7 +170,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
   } = useVisibilityChange({
     maxWarnings: 3,
     isActive: Boolean(challenge && !submissionVerdict && !challenge.isLocked),
-    problemId: activeProblemId,
+    problemId: activeProblemId || activeLevelId || 'assessment',
     onLockTriggered: (events) => {
       handleAutoSubmitOnLock(events);
     },
@@ -159,13 +179,14 @@ export const CodingAssessmentWorkspace: React.FC = () => {
   const isWorkspaceLocked = Boolean(
     antiCheatLocked ||
     (challenge && challenge.isLocked) ||
-    (submissionVerdict && submissionVerdict.submitted)
+    (!activeLevelId && submissionVerdict && submissionVerdict.submitted) ||
+    (activeLevelId && (levelCompletionData?.allPassed || levelSession?.isCompleted))
   );
 
   // Fetch challenge data
   const fetchChallenge = useCallback(async () => {
-    if (!activeProblemId) {
-      setErrorChallenge('No problem identifier provided in URL route.');
+    if (!activeProblemId && !activeLevelId) {
+      setErrorChallenge('No problem or level identifier provided in URL route.');
       setLoadingChallenge(false);
       return;
     }
@@ -173,42 +194,138 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     try {
       setLoadingChallenge(true);
       setErrorChallenge(null);
-      const res = await api.get(`/assessments/code/${activeProblemId}`);
-      const data: ChallengeData = res.data.data;
-      setChallenge(data);
 
-      // Determine initial language
-      const initialLang = data.allowedLanguages[0] || 'python';
-      setActiveLanguage(initialLang);
-      currentLangRef.current = initialLang;
+      if (activeLevelId) {
+        // Course Level Assessment mode (2 questions, 60 minutes)
+        const res = await api.get(`/assessments/code/level/${activeLevelId}/session`);
+        const { session, level } = res.data.data;
+        setLevelSession(session);
+        setLevelMeta(level);
 
-      // Seed starter codes
-      const initialCodeMap: Record<string, string> = {};
-      data.allowedLanguages.forEach((lang) => {
-        initialCodeMap[lang] = data.starterCode[lang] || `// Write your ${lang} code here\n`;
-      });
+        const assigned: any[] = session.assignedQuestions || [];
+        if (assigned.length === 0) {
+          throw new Error('No coding questions found in this level pool.');
+        }
 
-      setCodeByLanguage(initialCodeMap);
-      currentCodeRef.current = initialCodeMap[initialLang] || '';
-
-      // Set initial timer
-      if (data.timeLimitMinutes) {
-        setRemainingSeconds(data.timeLimitMinutes * 60);
-      }
-
-      // Check if already locked from a previous session
-      if (data.isLocked && data.previousSubmission) {
-        setSubmissionVerdict({
-          submitted: true,
-          score: data.previousSubmission.score,
-          passed: data.previousSubmission.passed,
-          total: data.previousSubmission.total,
-          status: data.previousSubmission.status as any,
+        const mapped: ChallengeData[] = assigned.map((q: any) => {
+          const starterMap = q.starterCode || {};
+          const allowedLangs = q.allowedLanguages?.length
+            ? q.allowedLanguages
+            : ['python', 'c', 'cpp', 'java', 'javascript'];
+          return {
+            id: q._id?.toString() || q.id,
+            title: q.title,
+            description: q.description,
+            inputFormat: q.inputFormat || '',
+            outputFormat: q.outputFormat || '',
+            constraints: q.constraints || '',
+            sampleInput: q.sampleInput || '',
+            sampleOutput: q.sampleOutput || '',
+            difficulty: q.difficulty || 'Medium',
+            allowedLanguages: allowedLangs,
+            starterCode: starterMap,
+            visibleTestCases: (q.testCases || [])
+              .filter((tc: any) => !tc.isHidden)
+              .map((tc: any, i: number) => ({
+                testCaseIndex: i + 1,
+                input: tc.input,
+                expectedOutput: tc.expectedOutput,
+              })),
+            timeLimitMinutes: 60,
+            hasSubmitted: session.questionStatuses?.some(
+              (qs: any) =>
+                qs.questionId?.toString() === (q._id?.toString() || q.id) &&
+                qs.status === 'passed'
+            ),
+            isLocked: session.isCompleted || false,
+          };
         });
-        manuallyLock();
+
+        setLevelQuestions(mapped);
+
+        // Seed starter codes per question
+        const initialCodeStore: Record<string, Record<string, string>> = {};
+        mapped.forEach((q) => {
+          initialCodeStore[q.id] = {};
+          q.allowedLanguages.forEach((lang) => {
+            initialCodeStore[q.id][lang] =
+              q.starterCode[lang] || `// Write your ${lang} code here\n`;
+          });
+        });
+        setCodeStoreByQuestion(initialCodeStore);
+
+        // First question active
+        const firstQ = mapped[0];
+        setChallenge(firstQ);
+        setActiveQuestionIdx(0);
+        const initialLang = firstQ.allowedLanguages[0] || 'python';
+        setActiveLanguage(initialLang);
+        currentLangRef.current = initialLang;
+        currentCodeRef.current = initialCodeStore[firstQ.id][initialLang] || '';
+        setCodeByLanguage(initialCodeStore[firstQ.id]);
+
+        // Statuses
+        const statusMap: Record<string, any> = {};
+        (session.questionStatuses || []).forEach((qs: any) => {
+          statusMap[qs.questionId?.toString()] = qs;
+        });
+        setQuestionStatuses(statusMap);
+
+        // Timer (Session remainingSeconds or 3600)
+        if (typeof session.remainingSeconds === 'number') {
+          setRemainingSeconds(session.remainingSeconds);
+        } else {
+          setRemainingSeconds(60 * 60);
+        }
+
+        if (session.isCompleted || session.allPassed) {
+          setLevelCompletionData({
+            allPassed: true,
+            levelCompleted: true,
+            unlockedNextLevel: false,
+            nextLevelId: null,
+            pointsAwarded: 0,
+          });
+        }
+      } else {
+        // Standalone problem mode
+        const res = await api.get(`/assessments/code/${activeProblemId}`);
+        const data: ChallengeData = res.data.data;
+        setChallenge(data);
+
+        // Determine initial language
+        const initialLang = data.allowedLanguages[0] || 'python';
+        setActiveLanguage(initialLang);
+        currentLangRef.current = initialLang;
+
+        // Seed starter codes
+        const initialCodeMap: Record<string, string> = {};
+        data.allowedLanguages.forEach((lang) => {
+          initialCodeMap[lang] = data.starterCode[lang] || `// Write your ${lang} code here\n`;
+        });
+
+        setCodeByLanguage(initialCodeMap);
+        currentCodeRef.current = initialCodeMap[initialLang] || '';
+
+        // Set initial timer
+        if (data.timeLimitMinutes) {
+          setRemainingSeconds(data.timeLimitMinutes * 60);
+        }
+
+        // Check if already locked from a previous session
+        if (data.isLocked && data.previousSubmission) {
+          setSubmissionVerdict({
+            submitted: true,
+            score: data.previousSubmission.score,
+            passed: data.previousSubmission.passed,
+            total: data.previousSubmission.total,
+            status: data.previousSubmission.status as any,
+          });
+          manuallyLock();
+        }
       }
     } catch (err: any) {
-      console.error('[Workspace] Failed to fetch challenge:', err);
+      console.error('[Workspace] Failed to fetch challenge or session:', err);
       setErrorChallenge(
         err.response?.data?.error ||
           err.message ||
@@ -217,7 +334,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     } finally {
       setLoadingChallenge(false);
     }
-  }, [activeProblemId, manuallyLock]);
+  }, [activeProblemId, activeLevelId, manuallyLock]);
 
   useEffect(() => {
     fetchChallenge();
@@ -251,6 +368,52 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     return () => clearInterval(interval);
   }, [runCooldown]);
 
+  // Switch active question in Course Level Assessment mode
+  const handleSwitchQuestion = (targetIdx: number) => {
+    if (targetIdx === activeQuestionIdx || targetIdx < 0 || targetIdx >= levelQuestions.length) return;
+    if (!challenge) return;
+
+    // 1. Save current question's current code
+    const currQId = challenge.id;
+    const currLang = currentLangRef.current;
+    const currCode = currentCodeRef.current;
+    setCodeStoreByQuestion((prev) => ({
+      ...prev,
+      [currQId]: {
+        ...(prev[currQId] || {}),
+        [currLang]: currCode,
+      },
+    }));
+
+    // 2. Target next question
+    const nextQ = levelQuestions[targetIdx];
+    let nextLang = activeLanguage;
+    if (!nextQ.allowedLanguages.includes(nextLang)) {
+      nextLang = nextQ.allowedLanguages[0] || 'python';
+    }
+    setActiveLanguage(nextLang);
+    currentLangRef.current = nextLang;
+
+    // 3. Load target question code
+    const nextCode =
+      codeStoreByQuestion[nextQ.id]?.[nextLang] ??
+      nextQ.starterCode[nextLang] ??
+      `// Write your ${nextLang} code here\n`;
+
+    const nextCodeMap = {
+      ...(codeStoreByQuestion[nextQ.id] || {}),
+      [nextLang]: nextCode,
+    };
+    setCodeByLanguage(nextCodeMap);
+    currentCodeRef.current = nextCode;
+
+    // 4. Update challenge, question index, and clear execution results
+    setChallenge(nextQ);
+    setActiveQuestionIdx(targetIdx);
+    setExecutionResults(null);
+    setSelectedTestCaseTab(0);
+  };
+
   // Keep references synced
   const handleCodeChange = (newCode?: string) => {
     if (isWorkspaceLocked) return;
@@ -260,6 +423,15 @@ export const CodingAssessmentWorkspace: React.FC = () => {
       ...prev,
       [activeLanguage]: val,
     }));
+    if (challenge) {
+      setCodeStoreByQuestion((prev) => ({
+        ...prev,
+        [challenge.id]: {
+          ...(prev[challenge.id] || {}),
+          [activeLanguage]: val,
+        },
+      }));
+    }
   };
 
   const handleLanguageChange = (newLang: string) => {
@@ -267,16 +439,25 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     setActiveLanguage(newLang);
     currentLangRef.current = newLang;
 
-    // If no code exists yet for this language, initialize with starter code
-    if (!codeByLanguage[newLang] && challenge) {
-      const defaultCode = challenge.starterCode[newLang] || `// Solution in ${newLang}\n`;
-      setCodeByLanguage((prev) => ({
+    const storedCode =
+      (challenge && codeStoreByQuestion[challenge.id]?.[newLang]) ||
+      codeByLanguage[newLang] ||
+      (challenge && challenge.starterCode[newLang]) ||
+      `// Solution in ${newLang}\n`;
+
+    setCodeByLanguage((prev) => ({
+      ...prev,
+      [newLang]: storedCode,
+    }));
+    currentCodeRef.current = storedCode;
+    if (challenge) {
+      setCodeStoreByQuestion((prev) => ({
         ...prev,
-        [newLang]: defaultCode,
+        [challenge.id]: {
+          ...(prev[challenge.id] || {}),
+          [newLang]: storedCode,
+        },
       }));
-      currentCodeRef.current = defaultCode;
-    } else {
-      currentCodeRef.current = codeByLanguage[newLang] || '';
     }
   };
 
@@ -342,31 +523,98 @@ export const CodingAssessmentWorkspace: React.FC = () => {
       setShowSubmitModal(false);
       toast.loading('Submitting code for official evaluation...', { id: 'submit-assessment' });
 
-      const res = await api.post('/assessments/code/submit', {
-        problemId: challenge.id,
-        language: activeLanguage,
-        code,
-        integrityEvents: eventsToSend,
-      });
+      if (activeLevelId) {
+        // Course Level Assessment Submission
+        const res = await api.post(`/assessments/code/level/${activeLevelId}/submit`, {
+          questionId: challenge.id,
+          language: activeLanguage,
+          sourceCode: code,
+          integrityEvents: eventsToSend,
+        });
 
-      const verdict: SubmissionResponseData = res.data;
-      setSubmissionVerdict(verdict);
-      manuallyLock();
+        const data = res.data;
+        const problemResult = data.problemResult;
 
-      if (verdict.status === 'passed') {
-        toast.success(`Submission Accepted! Score: ${verdict.score}%`, {
-          id: 'submit-assessment',
-          duration: 6000,
+        setQuestionStatuses((prev) => ({
+          ...prev,
+          [challenge.id]: {
+            status: problemResult.status,
+            score: problemResult.score,
+            passed: problemResult.passed,
+            total: problemResult.total,
+          },
+        }));
+
+        if (data.allPassed) {
+          setLevelCompletionData({
+            allPassed: true,
+            levelCompleted: data.levelCompleted,
+            unlockedNextLevel: data.unlockedNextLevel,
+            nextLevelId: data.nextLevelId,
+            pointsAwarded: data.pointsAwarded,
+          });
+          manuallyLock();
+          toast.success('🎉 Both questions solved! Level completed successfully!', {
+            id: 'submit-assessment',
+            duration: 7000,
+          });
+        } else if (problemResult.status === 'passed') {
+          const otherIdx = activeQuestionIdx === 0 ? 1 : 0;
+          const otherTitle = levelQuestions[otherIdx]?.title || 'Question 2';
+          toast.success(
+            `Problem ${activeQuestionIdx + 1} Accepted! Now solve Problem ${otherIdx + 1} (${otherTitle}) to finish the assessment.`,
+            { id: 'submit-assessment', duration: 7000 }
+          );
+        } else {
+          toast(
+            `Problem ${activeQuestionIdx + 1} evaluated: ${problemResult.passed}/${problemResult.total} passed (${problemResult.score}%)`,
+            {
+              icon: '📋',
+              id: 'submit-assessment',
+              duration: 6000,
+            }
+          );
+        }
+
+        setSubmissionVerdict({
+          submitted: true,
+          score: problemResult.score,
+          passed: problemResult.passed,
+          total: problemResult.total,
+          status: problemResult.status,
+          levelCompleted: data.levelCompleted,
+          unlockedNextLevel: data.unlockedNextLevel,
+          nextLevelId: data.nextLevelId,
+          domainId: levelMeta?.domainId || queryDomainId,
         });
       } else {
-        toast(
-          `Assessment Submitted. Score: ${verdict.score}% (${verdict.passed}/${verdict.total} passed)`,
-          {
-            icon: '📋',
+        // Standalone Assessment Submission
+        const res = await api.post('/assessments/code/submit', {
+          problemId: challenge.id,
+          language: activeLanguage,
+          code,
+          integrityEvents: eventsToSend,
+        });
+
+        const verdict: SubmissionResponseData = res.data;
+        setSubmissionVerdict(verdict);
+        manuallyLock();
+
+        if (verdict.status === 'passed') {
+          toast.success(`Submission Accepted! Score: ${verdict.score}%`, {
             id: 'submit-assessment',
             duration: 6000,
-          }
-        );
+          });
+        } else {
+          toast(
+            `Assessment Submitted. Score: ${verdict.score}% (${verdict.passed}/${verdict.total} passed)`,
+            {
+              icon: '📋',
+              id: 'submit-assessment',
+              duration: 6000,
+            }
+          );
+        }
       }
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Submission failed';
@@ -442,34 +690,98 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     <div className="h-screen w-full bg-[#000000] text-neutral-100 flex flex-col overflow-hidden font-sans select-none antialiased">
       {/* ── Top Apple Spatial Control Bar ────────────────────────────── */}
       <header className="h-14 border-b border-white/[0.08] bg-black/60 backdrop-blur-2xl flex items-center justify-between px-5 shrink-0 z-40">
-        {/* Left: Back & Title */}
+        {/* Left: Back & Title or Problem Switcher */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/assessments')}
-            title="Leave Assessment"
-            className="p-1.5 rounded-xl hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-colors"
+            onClick={() => {
+              if (activeLevelId) {
+                navigate(
+                  levelMeta?.domainId || queryDomainId
+                    ? `/courses/${levelMeta?.domainId || queryDomainId}`
+                    : '/courses'
+                );
+              } else {
+                navigate('/assessments');
+              }
+            }}
+            title={activeLevelId ? 'Return to Course' : 'Leave Assessment'}
+            className="p-1.5 rounded-xl hover:bg-white/[0.08] text-neutral-400 hover:text-white transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
           <div className="h-4 w-[1px] bg-white/[0.12]" />
 
-          <div className="flex items-center gap-2.5">
-            <span className="text-[13px] font-semibold tracking-tight text-white truncate max-w-[220px] md:max-w-[340px]">
-              {challenge.title}
-            </span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                challenge.difficulty === 'Easy'
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                  : challenge.difficulty === 'Hard'
-                  ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25'
-                  : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-              }`}
-            >
-              {challenge.difficulty}
-            </span>
-          </div>
+          {activeLevelId && levelQuestions.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold shrink-0">
+                <span>{`Level ${levelMeta?.levelNumber || 1}`}</span>
+              </div>
+
+              {/* 2 Problem Switcher Tabs */}
+              <div className="flex items-center gap-1 p-0.5 rounded-xl bg-white/[0.06] border border-white/[0.08]">
+                {levelQuestions.map((q, idx) => {
+                  const isPassed = questionStatuses[q.id]?.status === 'passed';
+                  const isActive = activeQuestionIdx === idx;
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      onClick={() => handleSwitchQuestion(idx)}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      <span>{`Problem ${idx + 1}`}</span>
+                      {isPassed ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="h-4 w-[1px] bg-white/[0.12] hidden md:block" />
+
+              <div className="hidden md:flex items-center gap-2">
+                <span className="text-[13px] font-semibold tracking-tight text-white truncate max-w-[200px]">
+                  {challenge.title}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                    challenge.difficulty === 'Easy'
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                      : challenge.difficulty === 'Hard'
+                      ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25'
+                      : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                  }`}
+                >
+                  {challenge.difficulty}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5">
+              <span className="text-[13px] font-semibold tracking-tight text-white truncate max-w-[220px] md:max-w-[340px]">
+                {challenge.title}
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                  challenge.difficulty === 'Easy'
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                    : challenge.difficulty === 'Hard'
+                    ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25'
+                    : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                }`}
+              >
+                {challenge.difficulty}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Center: Live Timer & Anti-Cheat Warnings Pill */}
@@ -1068,20 +1380,35 @@ export const CodingAssessmentWorkspace: React.FC = () => {
               >
                 Review Code
               </button>
-              {submissionVerdict.domainId || queryDomainId ? (
+
+              {activeLevelId && !submissionVerdict.levelCompleted && levelQuestions.length > 1 && (
                 <button
-                  onClick={() => navigate(`/courses/${submissionVerdict.domainId || queryDomainId}`)}
-                  className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-600/30"
-                >
-                  Return to Course
-                </button>
-              ) : (
-                <button
-                  onClick={() => navigate('/courses')}
+                  onClick={() => {
+                    setSubmissionVerdict(null);
+                    handleSwitchQuestion(activeQuestionIdx === 0 ? 1 : 0);
+                  }}
                   className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-600/30"
                 >
-                  Return to Courses
+                  {`Solve Problem ${activeQuestionIdx === 0 ? 2 : 1}`}
                 </button>
+              )}
+
+              {(submissionVerdict.levelCompleted || !activeLevelId) && (
+                submissionVerdict.domainId || queryDomainId ? (
+                  <button
+                    onClick={() => navigate(`/courses/${submissionVerdict.domainId || queryDomainId}`)}
+                    className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-600/30"
+                  >
+                    Return to Course
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/courses')}
+                    className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-600/30"
+                  >
+                    Return to Courses
+                  </button>
+                )
               )}
             </div>
           </div>

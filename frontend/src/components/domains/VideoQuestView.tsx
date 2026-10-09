@@ -104,6 +104,11 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
     assessmentId && userProgress.unlockedAssessments?.includes(assessmentId)
   );
 
+  const hasCodingAssessment = Boolean(
+    level.codingChallengeId ||
+    (Array.isArray(level.codingChallengePool) && level.codingChallengePool.length > 0)
+  );
+
   const codingChallenge =
     typeof level.codingChallengeId === 'object' && level.codingChallengeId !== null
       ? level.codingChallengeId
@@ -510,7 +515,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
       </div>
 
       {/* CODING ASSESSMENT BANNER (Gated Progression) */}
-      {codingChallenge && (
+      {hasCodingAssessment && (
         <div
           className={`p-5 rounded-[22px] border transition-all ${
             isCodingChallengeCompleted
@@ -544,14 +549,19 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
                   {isCodingChallengeCompleted
                     ? 'Coding Assessment Completed'
                     : isCodingChallengeUnlocked
-                    ? 'Coding Assessment Opened • Required for Next Level'
+                    ? 'Coding Assessment Unlocked • Required for Next Level'
                     : 'Coding Assessment (Locked)'}
                 </span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
-                <h4 className="text-base font-bold text-label-primary">{codingChallenge.title}</h4>
-                {codingChallenge.difficulty && (
+                <h4 className="text-base font-bold text-label-primary">
+                  {codingChallenge?.title || `Level ${level.levelNumber} Coding Assessment`}
+                </h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  2 Questions • 1 Hour Limit
+                </span>
+                {codingChallenge?.difficulty && (
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       codingChallenge.difficulty === 'Easy'
@@ -564,19 +574,14 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
                     {codingChallenge.difficulty}
                   </span>
                 )}
-                {codingChallenge.timeLimitMinutes && (
-                  <span className="text-xs text-label-secondary">
-                    {codingChallenge.timeLimitMinutes} mins limit
-                  </span>
-                )}
               </div>
 
               <p className="text-xs text-label-secondary leading-relaxed">
                 {isCodingChallengeCompleted
                   ? 'Great job! You passed all test cases. Level completed and next level unlocked!'
                   : isCodingChallengeUnlocked
-                  ? 'MCQ quest passed with ≥ 70%! You must complete this coding assessment to unlock the next level.'
-                  : `Score at least 70% in the MCQ quest above to open this coding assessment.`}
+                  ? 'MCQ quest passed with ≥ 70%! You are assigned 2 coding questions with a 1-hour time limit. Complete both to unlock the next level.'
+                  : 'Score at least 70% in the MCQ quest above to unlock this 1-hour coding assessment.'}
               </p>
             </div>
 
@@ -586,7 +591,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
                   type="button"
                   onClick={() =>
                     navigate(
-                      `/assessments/code/${codingChallengeId}?levelId=${level._id}&domainId=${level.domainId}`
+                      `/assessments/code/level/${level._id}?domainId=${level.domainId}`
                     )
                   }
                   className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold text-white shadow transition cursor-pointer active:scale-98 ${
@@ -596,7 +601,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
                   }`}
                 >
                   <Terminal className="w-4 h-4" />
-                  {isCodingChallengeCompleted ? 'Review Code Workspace' : 'Open Coding Assessment'}
+                  {isCodingChallengeCompleted ? 'Review Code Workspace' : 'Open Coding Assessment (1h • 2Q)'}
                 </button>
               ) : (
                 <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-separator/50 text-label-secondary">
