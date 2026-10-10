@@ -456,6 +456,12 @@ export const submitContest = async (req: FastifyRequest, reply: FastifyReply) =>
 
     // Check contest point allocation mode (AUTOMATIC, MANUAL, HYBRID)
     const pointMode = contest.pointAllocationMode || 'AUTOMATIC';
+    const contestTargetPoints =
+      typeof contest.totalPoints === 'number' && contest.totalPoints > 0 ? contest.totalPoints : 100;
+    const maxQuestionsPoints =
+      (contest.mcqQuestions || []).reduce((acc: number, q: any) => acc + (q.points || 0), 0) +
+      (contest.codingProblems || []).reduce((acc: number, p: any) => acc + (p.points || 0), 0);
+
     let awardedClubPoints = 0;
     let pointsAwarded = false;
 
@@ -465,7 +471,13 @@ export const submitContest = async (req: FastifyRequest, reply: FastifyReply) =>
       pointsAwarded = false;
     } else {
       // AUTOMATIC or HYBRID: base points automatically credited
-      awardedClubPoints = Math.round(totalScore);
+      // If questions point sum differs from contest target totalPoints, scale proportionally
+      if (maxQuestionsPoints > 0 && maxQuestionsPoints !== contestTargetPoints) {
+        awardedClubPoints = Math.round((totalScore / maxQuestionsPoints) * contestTargetPoints);
+      } else {
+        awardedClubPoints = Math.round(totalScore);
+      }
+
       if (!submission.pointsAwarded && awardedClubPoints > 0) {
         await User.findByIdAndUpdate(userId, { $inc: { points: awardedClubPoints } });
         pointsAwarded = true;
@@ -570,11 +582,11 @@ export const createContest = async (req: FastifyRequest, reply: FastifyReply) =>
     const randomSuffix = Math.floor(100 + Math.random() * 900);
     const slug = `${baseSlug}-${randomSuffix}`;
 
-    // Compute totalPoints from questions
-    let totalPoints = body.totalPoints || 0;
-    if (!body.totalPoints) {
-      const mcqPts = (body.mcqQuestions || []).reduce((acc: number, q: any) => acc + (q.points || 10), 0);
-      const codingPts = (body.codingProblems || []).reduce((acc: number, p: any) => acc + (p.points || 30), 0);
+    // Compute totalPoints: respect admin specified points if > 0
+    let totalPoints = typeof body.totalPoints === 'number' && body.totalPoints > 0 ? Number(body.totalPoints) : 0;
+    if (!totalPoints) {
+      const mcqPts = (body.mcqQuestions || []).reduce((acc: number, q: any) => acc + (Number(q.points) || 10), 0);
+      const codingPts = (body.codingProblems || []).reduce((acc: number, p: any) => acc + (Number(p.points) || 30), 0);
       totalPoints = mcqPts + codingPts || 100;
     }
 
@@ -597,6 +609,10 @@ export const updateContest = async (req: FastifyRequest, reply: FastifyReply) =>
   try {
     const { id } = req.params as { id: string };
     const body = req.body as any;
+
+    if (body.totalPoints !== undefined) {
+      body.totalPoints = Math.max(1, Number(body.totalPoints));
+    }
 
     const contest = await Contest.findByIdAndUpdate(id, { $set: body }, { new: true });
     if (!contest) {

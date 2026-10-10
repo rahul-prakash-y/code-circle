@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Plus,
+  Minus,
   Trash2,
   Code2,
   HelpCircle,
   Clock,
   Award,
+  Zap,
   Sparkles,
   Layers,
   Save,
@@ -31,6 +33,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
   const [activeTab, setActiveTab] = useState<'info' | 'mcq' | 'coding'>('info');
 
+  // Default start: now, end: 7 days from now
+  const defaultStart = new Date().toISOString().slice(0, 16);
+  const defaultEnd = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 16);
+
   // Form State
   const [title, setTitle] = useState(editingContest?.title || 'Weekly Coding Battle #1');
   const [description, setDescription] = useState(
@@ -40,14 +46,11 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
   const [type, setType] = useState<'CODING' | 'MCQ' | 'HYBRID'>(editingContest?.type || 'HYBRID');
   const [difficulty, setDifficulty] = useState<any>(editingContest?.difficulty || 'All Levels');
   const [durationMinutes, setDurationMinutes] = useState(editingContest?.durationMinutes || 60);
-
+  const [totalPoints, setTotalPoints] = useState<number>(editingContest?.totalPoints || 100);
   const [pointAllocationMode, setPointAllocationMode] = useState<'AUTOMATIC' | 'MANUAL' | 'HYBRID'>(
     editingContest?.pointAllocationMode || 'AUTOMATIC'
   );
 
-  // Default start: now, end: 7 days from now
-  const defaultStart = new Date().toISOString().slice(0, 16);
-  const defaultEnd = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 16);
   const [startTime, setStartTime] = useState(
     editingContest?.startTime ? new Date(editingContest.startTime).toISOString().slice(0, 16) : defaultStart
   );
@@ -87,6 +90,48 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
       },
     ]
   );
+
+  // Reset or populate when editingContest / isOpen changes
+  useEffect(() => {
+    if (editingContest) {
+      setTitle(editingContest.title || '');
+      setDescription(editingContest.description || '');
+      setType(editingContest.type || 'HYBRID');
+      setDifficulty(editingContest.difficulty || 'All Levels');
+      setDurationMinutes(editingContest.durationMinutes || 60);
+      setTotalPoints(editingContest.totalPoints || 100);
+      setPointAllocationMode(editingContest.pointAllocationMode || 'AUTOMATIC');
+      setStartTime(
+        editingContest.startTime ? new Date(editingContest.startTime).toISOString().slice(0, 16) : defaultStart
+      );
+      setEndTime(
+        editingContest.endTime ? new Date(editingContest.endTime).toISOString().slice(0, 16) : defaultEnd
+      );
+      if (editingContest.mcqQuestions?.length) {
+        setMcqQuestions(editingContest.mcqQuestions);
+      }
+      if (editingContest.codingProblems?.length) {
+        setCodingProblems(editingContest.codingProblems);
+      }
+    } else {
+      setTitle('Weekly Coding Battle #1');
+      setDescription(
+        'Compete with fellow developers in algorithmic challenges and technical problem-solving to climb the campus leaderboard!'
+      );
+      setType('HYBRID');
+      setDifficulty('All Levels');
+      setDurationMinutes(60);
+      setTotalPoints(100);
+      setPointAllocationMode('AUTOMATIC');
+      setStartTime(defaultStart);
+      setEndTime(defaultEnd);
+    }
+  }, [editingContest, isOpen]);
+
+  // Dynamic sum of question points
+  const questionsPointSum =
+    (type !== 'CODING' ? mcqQuestions.reduce((sum, q) => sum + (Number(q.points) || 0), 0) : 0) +
+    (type !== 'MCQ' ? codingProblems.reduce((sum, p) => sum + (Number(p.points) || 0), 0) : 0);
 
   if (!isOpen) return null;
 
@@ -131,6 +176,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
       type,
       difficulty,
       durationMinutes: Number(durationMinutes),
+      totalPoints: Math.max(1, Number(totalPoints) || 100),
       pointAllocationMode,
       startTime: new Date(startTime).toISOString(),
       endTime: new Date(endTime).toISOString(),
@@ -274,6 +320,117 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     max={360}
                     className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none"
                   />
+                </div>
+              </div>
+
+              {/* Total Reward Points Controller */}
+              <div className="space-y-3 p-4 rounded-2xl bg-surface-raised border border-separator">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
+                      <Zap size={14} className="text-amber-500 fill-current" />
+                      <span>Contest Reward Points (Total XP)</span>
+                    </label>
+                    <p className="text-[11px] text-label-tertiary mt-0.5">
+                      Default is 100 points. Increase or decrease freely to match tournament stakes.
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-mono font-black">
+                    {totalPoints} Points
+                  </span>
+                </div>
+
+                {/* Interactive Stepper & Direct Input */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setTotalPoints(Math.max(10, totalPoints - 50))}
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      title="Decrease by 50"
+                    >
+                      -50
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTotalPoints(Math.max(5, totalPoints - 10))}
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      title="Decrease by 10"
+                    >
+                      -10
+                    </button>
+                  </div>
+
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min={1}
+                      step={5}
+                      value={totalPoints}
+                      onChange={(e) => setTotalPoints(Math.max(1, parseInt(e.target.value) || 0))}
+                      className="w-full px-4 py-2 text-center text-base font-black text-primary font-mono bg-surface border border-separator rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setTotalPoints(totalPoints + 10)}
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      title="Increase by 10"
+                    >
+                      +10
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTotalPoints(totalPoints + 50)}
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      title="Increase by 50"
+                    >
+                      +50
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTotalPoints(totalPoints + 100)}
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      title="Increase by 100"
+                    >
+                      +100
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Presets & Questions Sum Sync */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-separator/60">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] text-label-tertiary mr-1 font-medium">Quick Presets:</span>
+                    {[25, 50, 100, 150, 200, 300, 500].map((pts) => (
+                      <button
+                        key={pts}
+                        type="button"
+                        onClick={() => setTotalPoints(pts)}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold transition-all ${
+                          totalPoints === pts
+                            ? 'bg-primary text-white shadow-xs'
+                            : 'bg-surface border border-separator text-label-secondary hover:text-label-primary'
+                        }`}
+                      >
+                        {pts} pts{pts === 100 ? ' (Default)' : ''}
+                      </button>
+                    ))}
+                  </div>
+
+                  {questionsPointSum > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setTotalPoints(questionsPointSum)}
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border border-indigo-500/20 font-bold transition-colors inline-flex items-center gap-1"
+                      title="Set contest total points to the exact sum of all MCQ and Coding questions"
+                    >
+                      <Sparkles size={11} />
+                      <span>Sync Questions ({questionsPointSum} pts)</span>
+                    </button>
+                  )}
                 </div>
               </div>
 

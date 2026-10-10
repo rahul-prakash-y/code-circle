@@ -126,7 +126,7 @@ const contestSchema = new Schema<IContest>(
     startTime: { type: Date, required: true, index: true },
     endTime: { type: Date, required: true, index: true },
     durationMinutes: { type: Number, required: true, default: 60, min: 5 },
-    totalPoints: { type: Number, default: 100, min: 10 },
+    totalPoints: { type: Number, default: 100, min: 1 },
     pointAllocationMode: {
       type: String,
       enum: ['AUTOMATIC', 'MANUAL', 'HYBRID'],
