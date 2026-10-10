@@ -107,7 +107,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
           className="bg-surface border border-separator rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden"
         >
           {/* Header */}
-          <div className="p-6 border-b border-separator flex items-center justify-between bg-surface-raised/40">
+          <div className="p-6 border-b border-separator flex items-center justify-between bg-surface-secondary">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
                 <Sliders size={20} />
@@ -128,14 +128,14 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-label-tertiary hover:text-label-primary rounded-xl hover:bg-surface-raised transition-colors"
+              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Action Toolbar */}
-          <div className="p-4 border-b border-separator bg-surface-raised/20 flex flex-wrap items-center justify-between gap-4">
+          <div className="p-4 border-b border-separator bg-surface-secondary/50 flex flex-wrap items-center justify-between gap-4">
             {/* Search & Filter */}
             <div className="flex items-center gap-3 flex-1 min-w-[280px]">
               <div className="relative flex-1 max-w-xs">
@@ -173,7 +173,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                 type="button"
                 onClick={handleBulkMatchScores}
                 disabled={bulkLoading || submissions.length === 0}
-                className="px-3 py-1.5 bg-surface-raised border border-separator hover:border-primary/50 text-label-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                className="px-3 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-label-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
                 title="Automatically set awarded points = student's total score"
               >
                 <Zap size={13} className="text-amber-500" />
@@ -183,7 +183,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                 type="button"
                 onClick={handleBulkBonus}
                 disabled={bulkLoading || submissions.length === 0}
-                className="px-3 py-1.5 bg-surface-raised border border-separator hover:border-primary/50 text-label-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                className="px-3 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-label-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Sparkles size={13} className="text-indigo-500" />
                 <span>Bulk +Bonus</span>
@@ -192,7 +192,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                 type="button"
                 onClick={loadData}
                 disabled={loading}
-                className="p-1.5 text-label-tertiary hover:text-label-primary rounded-xl hover:bg-surface-raised transition-colors"
+                className="p-1.5 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
                 title="Refresh"
               >
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -218,7 +218,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
             ) : (
               <div className="border border-separator rounded-2xl overflow-hidden">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-surface-raised border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
+                  <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="py-3 px-4">Student</th>
                       <th className="py-3 px-4 text-center">Score Earned</th>
@@ -235,7 +235,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                       const codingCount = s.codingSubmissions?.length || 0;
 
                       return (
-                        <tr key={s._id} className="hover:bg-surface-raised/40 transition-colors">
+                        <tr key={s._id} className="hover:bg-surface-secondary/70 transition-colors">
                           <td className="py-3 px-4">
                             <p className="font-bold text-label-primary">{s.userId?.name || 'Anonymous'}</p>
                             <p className="text-[10px] text-label-tertiary font-mono">
@@ -253,7 +253,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                           </td>
 
                           <td className="py-3 px-4 text-center">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-surface-raised border border-separator">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-surface-secondary border border-separator text-label-secondary">
                               {mcqCorrect}/{mcqTotal} correct
                             </span>
                           </td>
@@ -323,13 +323,13 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-separator bg-surface-raised/40 flex items-center justify-between text-xs text-label-secondary">
+          <div className="p-4 border-t border-separator bg-surface-secondary flex items-center justify-between text-xs text-label-secondary">
             <span>
               Showing {filtered.length} of {submissions.length} participants
             </span>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-surface-raised border border-separator rounded-xl font-bold hover:bg-surface transition-colors"
+              className="px-4 py-2 bg-surface border border-separator rounded-xl font-bold text-label-primary hover:bg-surface-secondary transition-colors"
             >
               Close
             </button>
@@ -340,7 +340,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
       {/* Code Viewer Modal */}
       {viewingCodeProblem && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="bg-surface border border-separator rounded-3xl max-w-3xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
+          <div className="bg-surface border border-separator rounded-3xl max-w-3xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col shadow-2xl">
             <div className="flex items-center justify-between border-b border-separator pb-4">
               <div>
                 <h4 className="text-sm font-bold text-label-primary">
@@ -350,7 +350,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
               </div>
               <button
                 onClick={() => setViewingCodeProblem(null)}
-                className="p-1.5 text-label-tertiary hover:text-label-primary rounded-xl"
+                className="p-1.5 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
               >
                 <X size={16} />
               </button>
@@ -358,10 +358,10 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
 
             <div className="flex-1 overflow-y-auto space-y-4">
               {viewingCodeProblem.codingSubmissions?.map((cs: any, idx: number) => (
-                <div key={idx} className="border border-separator rounded-2xl p-4 bg-surface-raised/40 space-y-2">
+                <div key={idx} className="border border-separator rounded-2xl p-4 bg-surface-secondary space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-label-primary font-mono uppercase">{cs.language} Solution</span>
-                    <span className="font-mono text-[11px] text-emerald-500 font-bold">
+                    <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
                       {cs.passedTestCases}/{cs.totalTestCases} Tests Passed (+{cs.pointsEarned} pts)
                     </span>
                   </div>

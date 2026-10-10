@@ -130,13 +130,13 @@ export const DiagnosticsPage: React.FC = () => {
 
         <div className="flex items-center gap-3">
           {/* Tabs */}
-          <div className="flex items-center p-1 bg-surface-raised border border-separator rounded-2xl shadow-xs">
+          <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
             <button
               onClick={() => setActiveTab('health')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'health'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-label-tertiary hover:text-label-primary'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               <Activity size={15} />
@@ -147,7 +147,7 @@ export const DiagnosticsPage: React.FC = () => {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'database'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-label-tertiary hover:text-label-primary'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               <Database size={15} />
@@ -165,7 +165,7 @@ export const DiagnosticsPage: React.FC = () => {
             {/* KPI 1: Memory */}
             <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-label-tertiary uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
                   RAM Footprint
                 </span>
                 <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-xl">
@@ -180,7 +180,7 @@ export const DiagnosticsPage: React.FC = () => {
                   / {healthData?.memory.rssMB || 0} MB RSS
                 </span>
               </div>
-              <div className="w-full bg-surface-raised rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-slate-200 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                 <div
                   className="bg-indigo-500 h-full rounded-full transition-all duration-500"
                   style={{
@@ -198,7 +198,7 @@ export const DiagnosticsPage: React.FC = () => {
             {/* KPI 2: Event Loop Lag */}
             <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-label-tertiary uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
                   Event Loop Latency
                 </span>
                 <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl">
@@ -209,7 +209,7 @@ export const DiagnosticsPage: React.FC = () => {
                 <span className="text-2xl font-black text-label-primary">
                   {healthData?.eventLoopLagMs || 0} ms
                 </span>
-                <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                   Sub-5ms
                 </span>
               </div>
@@ -219,7 +219,7 @@ export const DiagnosticsPage: React.FC = () => {
             {/* KPI 3: Process Uptime */}
             <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-label-tertiary uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
                   Process Uptime
                 </span>
                 <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl">
@@ -237,7 +237,7 @@ export const DiagnosticsPage: React.FC = () => {
             {/* KPI 4: Database Pool */}
             <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-label-tertiary uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
                   MongoDB Status
                 </span>
                 <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl">
@@ -245,7 +245,7 @@ export const DiagnosticsPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-emerald-500">
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                   {healthData?.database.status || 'Connected'}
                 </span>
               </div>
@@ -274,10 +274,10 @@ export const DiagnosticsPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setAutoRefresh(!autoRefresh)}
-                className={`px-3 py-2 text-xs font-semibold rounded-xl border transition-all ${
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all ${
                   autoRefresh
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'
-                    : 'bg-surface-raised border-separator text-label-tertiary'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-surface-secondary border-separator text-label-secondary hover:text-label-primary'
                 }`}
               >
                 Auto-Refresh {autoRefresh ? 'ON (10s)' : 'OFF'}
@@ -295,46 +295,46 @@ export const DiagnosticsPage: React.FC = () => {
 
           {/* Infrastructure Services Grid */}
           <div className="bg-surface rounded-3xl border border-separator p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-label-primary uppercase tracking-wider text-xs text-label-secondary">
+            <h3 className="text-xs font-bold text-label-secondary uppercase tracking-wider">
               Core Microservices & Integration Grid
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 bg-surface-raised rounded-2xl border border-separator/60 flex items-center justify-between">
+              <div className="p-4 bg-surface-secondary rounded-2xl border border-separator flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-label-primary">MongoDB Atlas</p>
                   <p className="text-[10px] text-label-tertiary">Primary Persistence</p>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-full border border-emerald-500/20">
                   {healthData?.services.mongodb || 'Operational'}
                 </span>
               </div>
 
-              <div className="p-4 bg-surface-raised rounded-2xl border border-separator/60 flex items-center justify-between">
+              <div className="p-4 bg-surface-secondary rounded-2xl border border-separator flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-label-primary">Cloudinary CDN</p>
                   <p className="text-[10px] text-label-tertiary">Media & Certificates</p>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-full border border-emerald-500/20">
                   {healthData?.services.cloudinary || 'Operational'}
                 </span>
               </div>
 
-              <div className="p-4 bg-surface-raised rounded-2xl border border-separator/60 flex items-center justify-between">
+              <div className="p-4 bg-surface-secondary rounded-2xl border border-separator flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-label-primary">Piston Sandbox RCE</p>
                   <p className="text-[10px] text-label-tertiary">Coding Assessments</p>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-full border border-emerald-500/20">
                   {healthData?.services.pistonRce || 'Operational'}
                 </span>
               </div>
 
-              <div className="p-4 bg-surface-raised rounded-2xl border border-separator/60 flex items-center justify-between">
+              <div className="p-4 bg-surface-secondary rounded-2xl border border-separator flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-label-primary">Firebase Admin</p>
                   <p className="text-[10px] text-label-tertiary">Google SSO Gateway</p>
                 </div>
-                <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                <span className="px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-full border border-emerald-500/20">
                   {healthData?.services.firebaseAuth || 'Operational'}
                 </span>
               </div>
@@ -354,7 +354,7 @@ export const DiagnosticsPage: React.FC = () => {
               </span>
               <button
                 onClick={fetchDatabaseStats}
-                className="p-1.5 text-label-tertiary hover:text-label-primary transition-colors"
+                className="p-1.5 text-label-secondary hover:text-label-primary transition-colors"
                 title="Refresh Collections"
               >
                 <RefreshCw size={14} className={loadingDb ? 'animate-spin' : ''} />
@@ -369,14 +369,16 @@ export const DiagnosticsPage: React.FC = () => {
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 ${
                     selectedCollection === col.name
                       ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
-                      : 'bg-surface-raised border-separator text-label-primary hover:border-primary/40'
+                      : 'bg-surface-secondary border-separator text-label-primary hover:border-primary/40 hover:bg-surface'
                   }`}
                 >
                   <Database size={13} />
                   <span>{col.name}</span>
                   <span
                     className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-                      selectedCollection === col.name ? 'bg-white/20 text-white' : 'bg-surface text-label-tertiary'
+                      selectedCollection === col.name
+                        ? 'bg-white/20 text-white'
+                        : 'bg-surface border border-separator/60 text-label-secondary'
                     }`}
                   >
                     {col.count}
@@ -411,7 +413,7 @@ export const DiagnosticsPage: React.FC = () => {
                         fetchCollectionDocuments(selectedCollection, 1, 20, e.target.value);
                       }}
                       placeholder="Search collection records..."
-                      className="pl-8 pr-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary w-52"
+                      className="pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface w-52"
                     />
                   </div>
 
@@ -428,7 +430,7 @@ export const DiagnosticsPage: React.FC = () => {
               {/* Table of Records */}
               <div className="overflow-x-auto border border-separator rounded-2xl">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-surface-raised border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
+                  <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="py-3 px-4">_id</th>
                       <th className="py-3 px-4">Key Preview</th>
@@ -451,7 +453,7 @@ export const DiagnosticsPage: React.FC = () => {
                       </tr>
                     ) : (
                       collectionDocs.map((doc: any) => (
-                        <tr key={doc._id} className="hover:bg-surface-raised/40 transition-colors">
+                        <tr key={doc._id} className="hover:bg-surface-secondary/70 transition-colors">
                           <td className="py-3 px-4 font-mono text-primary font-bold">{doc._id}</td>
                           <td className="py-3 px-4 max-w-md truncate font-mono text-[11px] text-label-secondary">
                             {doc.title || doc.name || doc.email || doc.username || JSON.stringify(doc).slice(0, 80)}
@@ -462,7 +464,7 @@ export const DiagnosticsPage: React.FC = () => {
                           <td className="py-3 px-4 text-right space-x-1.5">
                             <button
                               onClick={() => setViewDoc(doc)}
-                              className="p-1.5 hover:bg-surface-raised text-label-secondary rounded-lg transition-colors"
+                              className="p-1.5 hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors"
                               title="Inspect JSON"
                             >
                               <Eye size={14} />
@@ -497,7 +499,7 @@ export const DiagnosticsPage: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between text-xs text-label-tertiary pt-2">
+              <div className="flex items-center justify-between text-xs text-label-secondary pt-2">
                 <span>
                   Page {collectionPagination.page} of {collectionPagination.pages || 1}
                 </span>
@@ -512,7 +514,7 @@ export const DiagnosticsPage: React.FC = () => {
                         docSearch
                       )
                     }
-                    className="p-1.5 bg-surface-raised rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors"
+                    className="p-1.5 bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors"
                   >
                     <ChevronLeft size={16} />
                   </button>
@@ -526,7 +528,7 @@ export const DiagnosticsPage: React.FC = () => {
                         docSearch
                       )
                     }
-                    className="p-1.5 bg-surface-raised rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors"
+                    className="p-1.5 bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -548,7 +550,7 @@ export const DiagnosticsPage: React.FC = () => {
       {/* View Document Modal */}
       <AnimatePresence>
         {viewDoc && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -561,18 +563,18 @@ export const DiagnosticsPage: React.FC = () => {
                 </h3>
                 <button
                   onClick={() => setViewDoc(null)}
-                  className="p-1 hover:bg-surface-raised rounded-lg text-label-tertiary"
+                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
                 >
                   <X size={16} />
                 </button>
               </div>
-              <pre className="flex-1 overflow-auto bg-surface-raised p-4 rounded-xl text-xs font-mono text-label-primary border border-separator">
+              <pre className="flex-1 overflow-auto bg-surface-secondary dark:bg-zinc-950 p-4 rounded-xl text-xs font-mono text-label-primary dark:text-emerald-400 border border-separator">
                 {JSON.stringify(viewDoc, null, 2)}
               </pre>
               <div className="flex justify-end pt-2">
                 <button
                   onClick={() => setViewDoc(null)}
-                  className="px-4 py-2 bg-surface-raised text-label-primary text-xs font-bold rounded-xl border border-separator hover:bg-surface transition-colors"
+                  className="px-4 py-2 bg-surface-secondary text-label-primary text-xs font-bold rounded-xl border border-separator hover:bg-surface transition-colors"
                 >
                   Close
                 </button>
@@ -585,7 +587,7 @@ export const DiagnosticsPage: React.FC = () => {
       {/* Edit Document Modal */}
       <AnimatePresence>
         {editDoc && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -598,7 +600,7 @@ export const DiagnosticsPage: React.FC = () => {
                 </h3>
                 <button
                   onClick={() => setEditDoc(null)}
-                  className="p-1 hover:bg-surface-raised rounded-lg text-label-tertiary"
+                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
                 >
                   <X size={16} />
                 </button>
@@ -607,12 +609,12 @@ export const DiagnosticsPage: React.FC = () => {
                 rows={14}
                 value={editDocJson}
                 onChange={(e) => setEditDocJson(e.target.value)}
-                className="w-full flex-1 font-mono text-xs p-4 bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
+                className="w-full flex-1 font-mono text-xs p-4 bg-surface-secondary dark:bg-zinc-950 border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
               />
               <div className="flex justify-end gap-2 pt-2 border-t border-separator">
                 <button
                   onClick={() => setEditDoc(null)}
-                  className="px-4 py-2 text-xs font-bold text-label-tertiary hover:text-label-primary"
+                  className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary"
                 >
                   Cancel
                 </button>
@@ -631,7 +633,7 @@ export const DiagnosticsPage: React.FC = () => {
       {/* Insert Document Modal */}
       <AnimatePresence>
         {isNewDocModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -644,7 +646,7 @@ export const DiagnosticsPage: React.FC = () => {
                 </h3>
                 <button
                   onClick={() => setIsNewDocModalOpen(false)}
-                  className="p-1 hover:bg-surface-raised rounded-lg text-label-tertiary"
+                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
                 >
                   <X size={16} />
                 </button>
@@ -653,12 +655,12 @@ export const DiagnosticsPage: React.FC = () => {
                 rows={12}
                 value={newDocJson}
                 onChange={(e) => setNewDocJson(e.target.value)}
-                className="w-full flex-1 font-mono text-xs p-4 bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
+                className="w-full flex-1 font-mono text-xs p-4 bg-surface-secondary dark:bg-zinc-950 border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
               />
               <div className="flex justify-end gap-2 pt-2 border-t border-separator">
                 <button
                   onClick={() => setIsNewDocModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-label-tertiary hover:text-label-primary"
+                  className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary"
                 >
                   Cancel
                 </button>

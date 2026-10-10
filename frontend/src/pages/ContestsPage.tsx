@@ -83,13 +83,13 @@ export const ContestsPage: React.FC = () => {
         {/* View Switcher for Admins */}
         <div className="flex items-center gap-3">
           {isPrivileged && (
-            <div className="flex items-center p-1 bg-surface-raised border border-separator rounded-2xl shadow-xs">
+            <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
               <button
                 onClick={() => setViewMode('arena')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   viewMode === 'arena'
-                    ? 'bg-primary text-white shadow-md shadow-primary/20'
-                    : 'text-label-tertiary hover:text-label-primary'
+                    ? 'bg-primary text-white shadow-md shadow-primary/25'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
                 <Trophy size={15} />
@@ -99,8 +99,8 @@ export const ContestsPage: React.FC = () => {
                 onClick={() => setViewMode('manage')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   viewMode === 'manage'
-                    ? 'bg-primary text-white shadow-md shadow-primary/20'
-                    : 'text-label-tertiary hover:text-label-primary'
+                    ? 'bg-primary text-white shadow-md shadow-primary/25'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
                 <Award size={15} />
@@ -147,11 +147,14 @@ export const ContestsPage: React.FC = () => {
                     key={c._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="group bg-gradient-to-br from-surface via-surface to-primary/5 rounded-3xl border border-primary/30 p-6 sm:p-8 shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden flex flex-col justify-between"
+                    className="group bg-surface rounded-3xl border border-separator hover:border-primary/40 p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden flex flex-col justify-between"
                   >
+                    {/* Subtle decorative glow in top right */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
                     <div className="space-y-4 relative z-10">
                       <div className="flex items-center justify-between">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 animate-pulse flex items-center gap-1.5">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 animate-pulse flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           <span>LIVE ARENA</span>
                         </span>
@@ -171,15 +174,15 @@ export const ContestsPage: React.FC = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-label-secondary pt-2">
-                        <span className="flex items-center gap-1.5 bg-surface-raised px-2.5 py-1 rounded-lg border border-separator">
+                        <span className="flex items-center gap-1.5 bg-surface-secondary px-2.5 py-1 rounded-xl border border-separator/80">
                           <Zap size={13} className="text-amber-500" />
                           <span>{c.totalPoints} Reward Points</span>
                         </span>
-                        <span className="flex items-center gap-1.5 bg-surface-raised px-2.5 py-1 rounded-lg border border-separator">
+                        <span className="flex items-center gap-1.5 bg-surface-secondary px-2.5 py-1 rounded-xl border border-separator/80">
                           <Clock size={13} className="text-primary" />
                           <span>{c.durationMinutes} Mins</span>
                         </span>
-                        <span className="flex items-center gap-1.5 bg-surface-raised px-2.5 py-1 rounded-lg border border-separator">
+                        <span className="flex items-center gap-1.5 bg-surface-secondary px-2.5 py-1 rounded-xl border border-separator/80">
                           <Users size={13} className="text-indigo-500" />
                           <span>{c.participantsCount} Joined</span>
                         </span>
@@ -225,21 +228,25 @@ export const ContestsPage: React.FC = () => {
                     key={c._id}
                     className="bg-surface rounded-2xl border border-separator p-6 space-y-4 shadow-sm hover:border-primary/40 transition-colors"
                   >
-                    <div className="flex items-center justify-between text-[10px] font-mono font-bold text-primary">
-                      <span>{c.type}</span>
-                      <span>Starts {new Date(c.startTime).toLocaleDateString()}</span>
+                    <div className="flex items-center justify-between text-[10px] font-mono font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                        {c.type}
+                      </span>
+                      <span className="text-label-secondary font-semibold">
+                        Starts {new Date(c.startTime).toLocaleDateString()}
+                      </span>
                     </div>
 
                     <div>
                       <h4 className="text-base font-extrabold text-label-primary tracking-tight line-clamp-1">
                         {c.title}
                       </h4>
-                      <p className="text-xs text-label-tertiary mt-1 line-clamp-2">{c.description}</p>
+                      <p className="text-xs text-label-tertiary mt-1 line-clamp-2 leading-relaxed">{c.description}</p>
                     </div>
 
                     <div className="flex items-center justify-between pt-3 border-t border-separator text-xs">
-                      <span className="font-bold text-amber-500">{c.totalPoints} Points</span>
-                      <span className="text-label-tertiary">{c.durationMinutes} Minutes</span>
+                      <span className="font-bold text-amber-500 font-mono">{c.totalPoints} Points</span>
+                      <span className="text-label-secondary font-medium">{c.durationMinutes} Minutes</span>
                     </div>
                   </div>
                 ))}
@@ -261,12 +268,16 @@ export const ContestsPage: React.FC = () => {
                   className="bg-surface rounded-2xl border border-separator p-6 space-y-4 shadow-sm hover:border-primary/40 transition-colors flex flex-col justify-between"
                 >
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-label-tertiary">
-                      <span className="uppercase">{c.difficulty}</span>
-                      <span>Ended {new Date(c.endTime).toLocaleDateString()}</span>
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="uppercase font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                        {c.difficulty}
+                      </span>
+                      <span className="text-label-secondary">
+                        Ended {new Date(c.endTime).toLocaleDateString()}
+                      </span>
                     </div>
                     <h4 className="text-base font-bold text-label-primary tracking-tight">{c.title}</h4>
-                    <p className="text-xs text-label-tertiary line-clamp-2">{c.description}</p>
+                    <p className="text-xs text-label-tertiary line-clamp-2 leading-relaxed">{c.description}</p>
                   </div>
 
                   <div className="pt-3 border-t border-separator flex items-center justify-between">
@@ -301,7 +312,7 @@ export const ContestsPage: React.FC = () => {
 
           <div className="overflow-x-auto border border-separator rounded-2xl">
             <table className="w-full text-left text-xs">
-              <thead className="bg-surface-raised border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
+              <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Title & Slug</th>
                   <th className="py-3 px-4">Type</th>
@@ -322,30 +333,30 @@ export const ContestsPage: React.FC = () => {
                   </tr>
                 ) : (
                   contests.map((c) => (
-                    <tr key={c._id} className="hover:bg-surface-raised/40 transition-colors">
+                    <tr key={c._id} className="hover:bg-surface-secondary/60 transition-colors">
                       <td className="py-3 px-4">
                         <p className="font-bold text-label-primary">{c.title}</p>
                         <p className="text-[10px] text-label-tertiary font-mono">{c.slug}</p>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
                           {c.type}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-[11px] text-label-secondary">
+                      <td className="py-3 px-4 text-[11px] text-label-secondary font-mono">
                         {new Date(c.startTime).toLocaleDateString()} - {new Date(c.endTime).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4 font-mono">{c.durationMinutes}m</td>
-                      <td className="py-3 px-4 font-bold text-amber-500">{c.totalPoints} pts</td>
+                      <td className="py-3 px-4 font-bold font-mono text-amber-500">{c.totalPoints} pts</td>
                       <td className="py-3 px-4 font-mono">{c.participantsCount}</td>
                       <td className="py-3 px-4">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             c.status === 'LIVE'
-                              ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                               : c.status === 'UPCOMING'
-                              ? 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20'
-                              : 'bg-slate-500/10 text-slate-500'
+                              ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
+                              : 'bg-surface-secondary text-label-secondary border border-separator'
                           }`}
                         >
                           {c.status}
@@ -361,7 +372,7 @@ export const ContestsPage: React.FC = () => {
                         </button>
                         <button
                           onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                          className="p-1.5 hover:bg-surface-raised text-amber-500 rounded-lg transition-colors"
+                          className="p-1.5 hover:bg-surface-secondary text-amber-500 rounded-lg transition-colors"
                           title="Leaderboard"
                         >
                           <Trophy size={14} />

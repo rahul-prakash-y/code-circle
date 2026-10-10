@@ -208,11 +208,13 @@ export const ContestArenaPage: React.FC = () => {
 
         {/* Section Switcher (if Hybrid) */}
         {activeContest.type === 'HYBRID' && (
-          <div className="flex items-center gap-1 p-1 bg-surface-raised border border-separator rounded-xl text-xs font-bold">
+          <div className="flex items-center gap-1 p-1 bg-surface-secondary border border-separator rounded-xl text-xs font-bold">
             <button
               onClick={() => setSelectedSection('mcq')}
               className={`px-3 py-1 rounded-lg transition-all ${
-                selectedSection === 'mcq' ? 'bg-primary text-white shadow-xs' : 'text-label-tertiary'
+                selectedSection === 'mcq'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               MCQs ({mcqs.length})
@@ -220,7 +222,9 @@ export const ContestArenaPage: React.FC = () => {
             <button
               onClick={() => setSelectedSection('coding')}
               className={`px-3 py-1 rounded-lg transition-all ${
-                selectedSection === 'coding' ? 'bg-primary text-white shadow-xs' : 'text-label-tertiary'
+                selectedSection === 'coding'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               Coding ({codings.length})
@@ -259,7 +263,7 @@ export const ContestArenaPage: React.FC = () => {
                 <span className="text-xs font-mono font-bold text-primary">
                   Question {currentMcqIdx + 1} of {mcqs.length}
                 </span>
-                <span className="text-xs font-mono text-label-tertiary">
+                <span className="text-xs font-mono text-label-secondary font-semibold">
                   +{currentMcq.points} Points
                 </span>
               </div>
@@ -292,7 +296,7 @@ export const ContestArenaPage: React.FC = () => {
                           className={`w-6 h-6 rounded-lg border flex items-center justify-center font-bold font-mono text-[11px] shrink-0 ${
                             isSelected
                               ? 'bg-primary text-white border-primary'
-                              : 'bg-surface-raised border-separator text-label-tertiary'
+                              : 'bg-surface-secondary border-separator text-label-secondary'
                           }`}
                         >
                           {String.fromCharCode(65 + optIdx)}
@@ -309,7 +313,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   disabled={currentMcqIdx === 0}
                   onClick={() => setCurrentMcqIdx(currentMcqIdx - 1)}
-                  className="px-4 py-2 bg-surface-raised border border-separator rounded-xl text-xs font-semibold disabled:opacity-30 hover:bg-surface flex items-center gap-1"
+                  className="px-4 py-2 bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1"
                 >
                   <ChevronLeft size={14} />
                   <span>Previous</span>
@@ -317,7 +321,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   disabled={currentMcqIdx === mcqs.length - 1}
                   onClick={() => setCurrentMcqIdx(currentMcqIdx + 1)}
-                  className="px-4 py-2 bg-surface-raised border border-separator rounded-xl text-xs font-semibold disabled:opacity-30 hover:bg-surface flex items-center gap-1"
+                  className="px-4 py-2 bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1"
                 >
                   <span>Next</span>
                   <ChevronRight size={14} />
@@ -342,8 +346,8 @@ export const ContestArenaPage: React.FC = () => {
                         isCurrent
                           ? 'ring-2 ring-primary border-primary text-primary bg-primary/10'
                           : isAnswered
-                          ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'
-                          : 'bg-surface-raised border-separator text-label-tertiary hover:border-primary/40'
+                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                          : 'bg-surface-secondary border-separator text-label-secondary hover:border-primary/40 hover:text-label-primary'
                       }`}
                     >
                       {idx + 1}
@@ -358,7 +362,7 @@ export const ContestArenaPage: React.FC = () => {
                   <span>Answered ({Object.keys(mcqAnswers).length})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-md bg-surface-raised border border-separator" />
+                  <span className="w-3 h-3 rounded-md bg-surface-secondary border border-separator" />
                   <span>Unanswered ({mcqs.length - Object.keys(mcqAnswers).length})</span>
                 </div>
               </div>
@@ -381,7 +385,7 @@ export const ContestArenaPage: React.FC = () => {
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         currentCodingIdx === idx
                           ? 'bg-primary text-white shadow-xs'
-                          : 'bg-surface-raised text-label-secondary'
+                          : 'bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary'
                       }`}
                     >
                       Problem {idx + 1}
@@ -392,7 +396,7 @@ export const ContestArenaPage: React.FC = () => {
 
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                     {currentCoding.difficulty}
                   </span>
                   <span className="text-xs font-mono font-bold text-amber-500">
@@ -412,18 +416,18 @@ export const ContestArenaPage: React.FC = () => {
               {currentCoding.sampleInput && (
                 <div className="space-y-3 pt-2">
                   <div>
-                    <span className="text-[10px] font-bold text-label-tertiary uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
                       Sample Input
                     </span>
-                    <pre className="mt-1 p-3 bg-surface-raised rounded-xl font-mono text-xs text-label-primary border border-separator">
+                    <pre className="mt-1 p-3 bg-surface-secondary rounded-xl font-mono text-xs text-label-primary border border-separator">
                       {currentCoding.sampleInput}
                     </pre>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-label-tertiary uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
                       Sample Output
                     </span>
-                    <pre className="mt-1 p-3 bg-surface-raised rounded-xl font-mono text-xs text-label-primary border border-separator">
+                    <pre className="mt-1 p-3 bg-surface-secondary rounded-xl font-mono text-xs text-label-primary border border-separator">
                       {currentCoding.sampleOutput}
                     </pre>
                   </div>
@@ -556,14 +560,14 @@ export const ContestArenaPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
                   onClick={() => setIsSubmitModalOpen(false)}
-                  className="py-2.5 bg-surface-raised border border-separator rounded-xl text-xs font-semibold text-label-secondary"
+                  className="py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors"
                 >
                   Back to Arena
                 </button>
                 <button
                   onClick={handleFinalSubmit}
                   disabled={submitting}
-                  className="py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110"
+                  className="py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all"
                 >
                   Confirm & Submit
                 </button>
@@ -587,7 +591,7 @@ export const ContestArenaPage: React.FC = () => {
               </div>
 
               <div>
-                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   Contest Completed
                 </span>
                 <h3 className="text-2xl font-black text-label-primary tracking-tight mt-2">
@@ -599,14 +603,14 @@ export const ContestArenaPage: React.FC = () => {
               </div>
 
               {/* Score Highlight Card */}
-              <div className="p-4 bg-surface-raised rounded-2xl border border-separator space-y-1">
+              <div className="p-4 bg-surface-secondary rounded-2xl border border-separator space-y-1">
                 <p className="text-[10px] font-bold text-label-tertiary uppercase tracking-wider">
                   Total Score Earned
                 </p>
                 <p className="text-3xl font-black text-primary">
                   {submissionCompleteData.totalScore} PTS
                 </p>
-                <p className="text-xs text-emerald-500 font-bold">
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
                   +{submissionCompleteData.awardedClubPoints} Club XP Added to Profile!
                 </p>
               </div>
@@ -614,13 +618,13 @@ export const ContestArenaPage: React.FC = () => {
               <div className="flex items-center gap-3 pt-2">
                 <button
                   onClick={() => navigate('/contests')}
-                  className="flex-1 py-2.5 bg-surface-raised border border-separator rounded-xl text-xs font-semibold text-label-secondary"
+                  className="flex-1 py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors"
                 >
                   All Battles
                 </button>
                 <button
                   onClick={() => navigate(`/contests/${activeContest._id}/leaderboard`)}
-                  className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110"
+                  className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
                 >
                   View Rankings
                 </button>

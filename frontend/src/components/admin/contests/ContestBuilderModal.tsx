@@ -213,19 +213,19 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               Design timed coding challenges and MCQ quests for collegiate students.
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-surface-raised rounded-xl text-label-tertiary">
+          <button onClick={onClose} className="p-2 hover:bg-surface-secondary rounded-xl text-label-secondary hover:text-label-primary transition-colors">
             <X size={18} />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-2 p-1 bg-surface-raised rounded-2xl border border-separator/60 shrink-0">
+        <div className="flex items-center gap-2 p-1 bg-surface-secondary rounded-2xl border border-separator shrink-0">
           <button
             onClick={() => setActiveTab('info')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'info'
                 ? 'bg-primary text-white shadow-xs'
-                : 'text-label-tertiary hover:text-label-primary'
+                : 'text-label-secondary hover:text-label-primary'
             }`}
           >
             1. Basic Settings
@@ -236,7 +236,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'mcq'
                   ? 'bg-primary text-white shadow-xs'
-                  : 'text-label-tertiary hover:text-label-primary'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               2. MCQ Questions ({mcqQuestions.length})
@@ -248,7 +248,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'coding'
                   ? 'bg-primary text-white shadow-xs'
-                  : 'text-label-tertiary hover:text-label-primary'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               3. Coding Challenges ({codingProblems.length})
@@ -268,7 +268,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Weekly Algorithm Arena #12"
-                  className="w-full px-4 py-2.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary font-medium"
+                  className="w-full px-4 py-2.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface font-medium"
                 />
               </div>
 
@@ -278,7 +278,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary font-medium resize-none"
+                  className="w-full px-4 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface font-medium resize-none"
                 />
               </div>
 
@@ -288,7 +288,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface"
                   >
                     <option value="HYBRID">Hybrid (Coding + MCQ)</option>
                     <option value="CODING">Coding Challenges Only</option>
@@ -301,7 +301,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface"
                   >
                     <option value="All Levels">All Levels</option>
                     <option value="Beginner">Beginner</option>
@@ -318,13 +318,13 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     onChange={(e) => setDurationMinutes(Number(e.target.value))}
                     min={5}
                     max={360}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface"
                   />
                 </div>
               </div>
 
               {/* Total Reward Points Controller */}
-              <div className="space-y-3 p-4 rounded-2xl bg-surface-raised border border-separator">
+              <div className="space-y-3 p-4 rounded-2xl bg-surface-secondary border border-separator">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
@@ -441,7 +441,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     type="datetime-local"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none font-medium"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface font-medium"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -450,13 +450,13 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     type="datetime-local"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none font-medium"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface font-medium"
                   />
                 </div>
               </div>
 
               {/* Point Allocation Policy */}
-              <div className="space-y-1.5 p-4 rounded-2xl bg-surface-raised border border-separator">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-surface-secondary border border-separator">
                 <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                   <Award size={14} className="text-amber-500" />
                   <span>Point Allocation Policy</span>
@@ -540,7 +540,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               {mcqQuestions.map((q, qIdx) => (
                 <div
                   key={qIdx}
-                  className="p-5 bg-surface-raised rounded-2xl border border-separator space-y-3 relative group"
+                  className="p-5 bg-surface-secondary rounded-2xl border border-separator space-y-3 relative group"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-primary font-mono">Question #{qIdx + 1}</span>
@@ -596,7 +596,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
                   <div className="flex items-center gap-3 pt-1">
                     <div className="w-28">
-                      <label className="text-[10px] text-label-tertiary">Points</label>
+                      <label className="text-[10px] text-label-secondary font-medium">Points</label>
                       <input
                         type="number"
                         value={q.points}
@@ -605,11 +605,11 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           updated[qIdx].points = Number(e.target.value);
                           setMcqQuestions(updated);
                         }}
-                        className="w-full px-2 py-1 text-xs bg-surface border border-separator rounded-lg"
+                        className="w-full px-2 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] text-label-tertiary">Explanation (Revealed after contest)</label>
+                      <label className="text-[10px] text-label-secondary font-medium">Explanation (Revealed after contest)</label>
                       <input
                         type="text"
                         value={q.explanation || ''}
@@ -619,7 +619,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           setMcqQuestions(updated);
                         }}
                         placeholder="Why is this option correct?"
-                        className="w-full px-2.5 py-1 text-xs bg-surface border border-separator rounded-lg"
+                        className="w-full px-2.5 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary"
                       />
                     </div>
                   </div>
@@ -648,7 +648,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               {codingProblems.map((p, pIdx) => (
                 <div
                   key={pIdx}
-                  className="p-5 bg-surface-raised rounded-2xl border border-separator space-y-3"
+                  className="p-5 bg-surface-secondary rounded-2xl border border-separator space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-primary font-mono">Problem #{pIdx + 1}</span>
@@ -663,7 +663,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-2">
-                      <label className="text-[10px] text-label-tertiary">Problem Title</label>
+                      <label className="text-[10px] text-label-secondary font-medium">Problem Title</label>
                       <input
                         type="text"
                         value={p.title}
@@ -676,7 +676,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-label-tertiary">Points</label>
+                      <label className="text-[10px] text-label-secondary font-medium">Points</label>
                       <input
                         type="number"
                         value={p.points}
@@ -685,13 +685,13 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           updated[pIdx].points = Number(e.target.value);
                           setCodingProblems(updated);
                         }}
-                        className="w-full px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl"
+                        className="w-full px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] text-label-tertiary">Problem Statement</label>
+                    <label className="text-[10px] text-label-secondary font-medium">Problem Statement</label>
                     <textarea
                       rows={3}
                       value={p.description}
@@ -700,13 +700,13 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                         updated[pIdx].description = e.target.value;
                         setCodingProblems(updated);
                       }}
-                      className="w-full px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl resize-none"
+                      className="w-full px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl resize-none text-label-primary"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] text-label-tertiary">Sample Input</label>
+                      <label className="text-[10px] text-label-secondary font-medium">Sample Input</label>
                       <textarea
                         rows={2}
                         value={p.sampleInput || ''}
@@ -716,11 +716,11 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           setCodingProblems(updated);
                         }}
                         placeholder="e.g. 5\n1 2 3 4 5"
-                        className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface border border-separator rounded-xl resize-none"
+                        className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface border border-separator rounded-xl resize-none text-label-primary"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-label-tertiary">Sample Expected Output</label>
+                      <label className="text-[10px] text-label-secondary font-medium">Sample Expected Output</label>
                       <textarea
                         rows={2}
                         value={p.sampleOutput || ''}
@@ -730,7 +730,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           setCodingProblems(updated);
                         }}
                         placeholder="e.g. 15"
-                        className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface border border-separator rounded-xl resize-none"
+                        className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface border border-separator rounded-xl resize-none text-label-primary"
                       />
                     </div>
                   </div>
@@ -750,7 +750,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-label-tertiary hover:text-label-primary"
+            className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary transition-colors"
           >
             Cancel
           </button>

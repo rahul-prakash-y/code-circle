@@ -86,7 +86,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
           className="bg-surface border border-separator rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="p-6 border-b border-separator flex items-center justify-between bg-surface-raised/40">
+          <div className="p-6 border-b border-separator flex items-center justify-between bg-surface-secondary">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center">
                 <Zap size={20} />
@@ -102,7 +102,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-label-tertiary hover:text-label-primary rounded-xl hover:bg-surface-raised transition-colors"
+              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
             >
               <X size={18} />
             </button>
@@ -110,7 +110,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Student Spotlight */}
-            <div className="p-4 rounded-2xl bg-surface-raised/60 border border-separator/80 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center border border-primary/20 text-sm">
                   {entry.user?.name ? entry.user.name.charAt(0).toUpperCase() : <User size={16} />}
@@ -124,10 +124,10 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
               </div>
 
               <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-label-tertiary">Contest Score</p>
+                <p className="text-[10px] uppercase font-bold text-label-secondary">Contest Score</p>
                 <p className="text-sm font-black text-primary font-mono">{entry.totalScore} pts</p>
                 <p className="text-[10px] text-label-tertiary">
-                  Current XP: <span className="font-bold text-emerald-500">+{currentAwarded}</span>
+                  Current XP: <span className="font-bold text-emerald-600 dark:text-emerald-400">+{currentAwarded}</span>
                 </p>
               </div>
             </div>
@@ -137,7 +137,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
               <label className="text-xs font-bold text-label-secondary uppercase tracking-wider">
                 Allocation Method
               </label>
-              <div className="grid grid-cols-2 gap-2 bg-surface-raised p-1 rounded-2xl border border-separator">
+              <div className="grid grid-cols-2 gap-2 bg-surface-secondary p-1 rounded-2xl border border-separator">
                 <button
                   type="button"
                   onClick={() => {
@@ -146,8 +146,8 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                   }}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${
                     mode === 'direct'
-                      ? 'bg-surface text-label-primary shadow-sm border border-separator/60'
-                      : 'text-label-tertiary hover:text-label-secondary'
+                      ? 'bg-surface text-label-primary shadow-sm border border-separator'
+                      : 'text-label-secondary hover:text-label-primary'
                   }`}
                 >
                   Direct Points (Override)
@@ -160,8 +160,8 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                   }}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${
                     mode === 'bonus'
-                      ? 'bg-surface text-label-primary shadow-sm border border-separator/60'
-                      : 'text-label-tertiary hover:text-label-secondary'
+                      ? 'bg-surface text-label-primary shadow-sm border border-separator'
+                      : 'text-label-secondary hover:text-label-primary'
                   }`}
                 >
                   Add Bonus XP (+)
@@ -187,7 +187,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                 step="1"
                 value={points}
                 onChange={(e) => setPoints(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full px-4 py-3 bg-surface-raised border border-separator rounded-2xl text-lg font-black text-label-primary font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full px-4 py-3 bg-surface-secondary border border-separator rounded-2xl text-lg font-black text-label-primary font-mono focus:outline-none focus:border-primary focus:bg-surface focus:ring-1 focus:ring-primary"
                 required
               />
 
@@ -198,21 +198,21 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setPoints(entry.totalScore)}
-                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface-raised border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
                     >
                       Match Score ({entry.totalScore})
                     </button>
                     <button
                       type="button"
                       onClick={() => setPoints(Math.round(entry.totalScore * 1.2))}
-                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface-raised border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
                     >
                       +20% Bonus ({Math.round(entry.totalScore * 1.2)})
                     </button>
                     <button
                       type="button"
                       onClick={() => setPoints(100)}
-                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface-raised border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
                     >
                       100 pts
                     </button>
@@ -224,7 +224,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                         key={b}
                         type="button"
                         onClick={() => setPoints(b)}
-                        className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface-raised border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                        className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
                       >
                         +{b} pts
                       </button>
@@ -245,7 +245,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="e.g. Clean algorithmic optimization, contest bonus..."
-                className="w-full px-4 py-2.5 bg-surface-raised border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-primary"
+                className="w-full px-4 py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-primary focus:bg-surface"
               />
 
               {/* Quick reason suggestions */}
@@ -255,7 +255,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                     key={r}
                     type="button"
                     onClick={() => setReason(r)}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-surface-raised border border-separator/60 text-label-tertiary hover:text-label-primary hover:border-separator transition-colors"
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary hover:border-primary/40 transition-colors"
                   >
                     {r}
                   </button>
@@ -281,7 +281,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 text-xs font-bold text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-raised transition-colors"
+                className="px-4 py-2.5 text-xs font-bold text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
               >
                 Cancel
               </button>
