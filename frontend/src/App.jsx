@@ -30,6 +30,8 @@ const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 const TeamsManagement = lazy(() => import('./pages/TeamsManagement'));
 const BearerManagement = lazy(() => import('./pages/BearerManagement'));
 const StudentTrackingPage = lazy(() => import('./pages/StudentTrackingPage'));
+const VerifyCertificatePage = lazy(() => import('./pages/VerifyCertificatePage'));
+const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'));
 
 export const decodeJwtPayload = (token) => {
   if (!token) return null;
@@ -133,6 +135,10 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Public Certificate Verification Routes */}
+          <Route path="/verify/:code" element={<VerifyCertificatePage />} />
+          <Route path="/certificates/verify/:code" element={<VerifyCertificatePage />} />
 
           {/* Mandatory Initial Password Setup Route */}
           <Route
@@ -363,6 +369,24 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
                   <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* SuperAdmin Diagnostics & Database Manager Module */}
+            <Route
+              path="/diagnostics"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                  <DiagnosticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/diagnostics"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                  <DiagnosticsPage />
                 </ProtectedRoute>
               }
             />

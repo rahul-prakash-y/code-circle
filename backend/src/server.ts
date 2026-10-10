@@ -21,6 +21,8 @@ import { adminRoutes } from './routes/adminRoutes';
 import { statsRoutes } from './routes/statsRoutes';
 import { domainRoutes } from './routes/domainRoutes';
 import { levelRoutes } from './routes/levelRoutes';
+import { certificateRoutes } from './routes/certificateRoutes';
+import { diagnosticsRoutes } from './routes/diagnosticsRoutes';
 import path from 'path';
 import fs from 'fs';
 import fastifyStatic from '@fastify/static';
@@ -73,6 +75,8 @@ server.register(statsRoutes, { prefix: '/api/stats' });
 server.register(domainRoutes, { prefix: '/api/domains' });
 server.register(domainRoutes, { prefix: '/api/courses' });
 server.register(levelRoutes, { prefix: '/api/levels' });
+server.register(certificateRoutes, { prefix: '/api/certificates' });
+server.register(diagnosticsRoutes, { prefix: '/api/admin/diagnostics' });
 
 // API 404 Handler
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
