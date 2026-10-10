@@ -20,7 +20,10 @@ import {
   XCircle,
   HelpCircle,
   Clock,
+  FileText,
+  Download,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '@/lib/axios';
 import { useGitHubStats, normalizeGitHubHandle } from '@/hooks/useGitHubStats';
 import { useLeetCodeStats } from '@/hooks/useLeetCodeStats';
@@ -139,6 +142,33 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
 
   const { stats: ghStats, isFetching: ghLoading } = useGitHubStats(githubUser);
   const { stats: lcStats, isFetching: lcLoading } = useLeetCodeStats(leetcodeUser);
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+
+  const handleDownloadPdf = async () => {
+    if (!data?.student || isExportingPdf) return;
+    try {
+      setIsExportingPdf(true);
+      const res = await api.get(`/admin/tracking/students/${userId}/pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      const safeName = (data.student.rollNo || data.student.name || 'student').replace(/[^a-zA-Z0-9_-]/g, '_');
+      link.download = `CodeCircle_Report_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success('Student PDF report generated successfully!');
+    } catch (err: any) {
+      console.error('Failed to download student PDF report:', err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to generate PDF report');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -262,6 +292,28 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
               <span>{student.rollNo}</span>
               <span>•</span>
               <span>{student.email}</span>
+            </div>
+
+            {/* Action Bar: Download Student Dossier PDF */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isExportingPdf}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
+              >
+                {isExportingPdf ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Generating PDF Dossier...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 text-white" />
+                    <span>Download PDF Report</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 

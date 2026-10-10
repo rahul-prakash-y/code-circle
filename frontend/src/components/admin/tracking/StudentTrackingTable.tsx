@@ -17,7 +17,9 @@ import {
   Download,
   Loader2,
   CheckCircle2,
+  FileText,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '@/lib/axios';
 import { useDebounce } from '@/hooks/useDebounce';
 import ResponsiveModal from '@/components/ui/ResponsiveModal';
@@ -66,6 +68,40 @@ export const StudentTrackingTable: React.FC = () => {
   // Detail Modal / Slide-over state
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
+
+  const handleDownloadStudentPdf = async (
+    e: React.MouseEvent,
+    studentId: string,
+    rollNo: string,
+    name: string
+  ) => {
+    e.stopPropagation();
+    if (generatingPdfId) return;
+
+    try {
+      setGeneratingPdfId(studentId);
+      const res = await api.get(`/admin/tracking/students/${studentId}/pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      const safeName = (rollNo || name || 'student').replace(/[^a-zA-Z0-9_-]/g, '_');
+      link.download = `CodeCircle_Report_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success(`PDF report downloaded for ${name}!`);
+    } catch (err: any) {
+      console.error('Failed to download student PDF report:', err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to download student PDF report');
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  };
 
   // Fetch students
   const fetchStudents = useCallback(async () => {
@@ -390,10 +426,30 @@ export const StudentTrackingTable: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Row action chevron */}
-                      <td className="py-4 px-6 text-right">
-                        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full text-neutral-400 group-hover:text-blue-500 group-hover:bg-blue-500/10 transition-colors">
-                          <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                      {/* Row action: PDF report & chevron */}
+                      <td className="py-4 px-6 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            title="Download Student PDF Report"
+                            onClick={(e) => handleDownloadStudentPdf(e, student._id, student.rollNo, student.name)}
+                            disabled={generatingPdfId === student._id}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full text-neutral-400 hover:text-blue-600 hover:bg-blue-500/10 transition-colors"
+                          >
+                            {generatingPdfId === student._id ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                            ) : (
+                              <FileText className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            title="View Student 360 Profile"
+                            onClick={() => handleRowClick(student._id)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full text-neutral-400 group-hover:text-blue-500 group-hover:bg-blue-500/10 transition-colors"
+                          >
+                            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>

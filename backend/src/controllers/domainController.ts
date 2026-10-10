@@ -479,6 +479,50 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
 };
 
 /**
+ * GET /api/domains/:id
+ * Fetch a single domain along with its levels.
+ */
+export const getDomainById = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id: domainId } = request.params;
+
+    if (!mongoose.Types.ObjectId.isValid(domainId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid domain ID' });
+    }
+
+    const domain = await Domain.findById(domainId).lean();
+    if (!domain) {
+      return reply.status(404).send({ success: false, error: 'Domain not found' });
+    }
+
+    const levels = await Level.find({ domainId: domain._id })
+      .select('title levelNumber points domainId codingChallengeId codingChallengePool studyMaterials questQuestions assessmentId')
+      .sort({ levelNumber: 1 })
+      .lean();
+
+    return reply.status(200).send({
+      success: true,
+      data: {
+        ...domain,
+        domain,
+        levels,
+        totalLevels: levels.length,
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to fetch domain',
+      details: error.message,
+    });
+  }
+};
+
+/**
  * GET /api/domains/:id/levels
  * Fetch levels for a domain, ordered by levelNumber, with user progression state.
  */
@@ -1810,6 +1854,7 @@ export const getStudentsWithCourseAccess = async (
 
 export default {
   getDomains,
+  getDomainById,
   getDomainLevels,
   submitLevelQuest,
   createDomain,

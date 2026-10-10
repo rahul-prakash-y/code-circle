@@ -18,11 +18,14 @@ import {
 } from 'lucide-react';
 
 interface CodingBulkUploadModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
+  open?: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   initialDomainId?: string;
+  preselectedDomainId?: string;
   initialLevelId?: string;
+  preselectedLevelId?: string;
 }
 
 interface DomainOption {
@@ -37,19 +40,26 @@ interface LevelOption {
 }
 
 export const CodingBulkUploadModal: React.FC<CodingBulkUploadModalProps> = ({
-  isOpen,
+  isOpen: propIsOpen,
+  open: propOpen,
   onClose,
   onSuccess,
   initialDomainId,
+  preselectedDomainId,
   initialLevelId,
+  preselectedLevelId,
 }) => {
+  const isModalOpen = propOpen !== undefined ? propOpen : Boolean(propIsOpen);
+  const effectiveDomainId = preselectedDomainId || initialDomainId || '';
+  const effectiveLevelId = preselectedLevelId || initialLevelId || '';
+
   const [destination, setDestination] = useState<'course' | 'standalone'>(
-    initialLevelId ? 'course' : 'course'
+    effectiveLevelId ? 'course' : 'course'
   );
   const [domains, setDomains] = useState<DomainOption[]>([]);
-  const [selectedDomainId, setSelectedDomainId] = useState<string>(initialDomainId || '');
+  const [selectedDomainId, setSelectedDomainId] = useState<string>(effectiveDomainId);
   const [levels, setLevels] = useState<LevelOption[]>([]);
-  const [selectedLevelId, setSelectedLevelId] = useState<string>(initialLevelId || '');
+  const [selectedLevelId, setSelectedLevelId] = useState<string>(effectiveLevelId);
   const [loadingDomains, setLoadingDomains] = useState<boolean>(false);
   const [loadingLevels, setLoadingLevels] = useState<boolean>(false);
 
@@ -68,7 +78,7 @@ export const CodingBulkUploadModal: React.FC<CodingBulkUploadModalProps> = ({
 
   // Load domains
   useEffect(() => {
-    if (isOpen) {
+    if (propIsOpen) {
       setLoadingDomains(true);
       api
         .get('/domains')
@@ -84,16 +94,28 @@ export const CodingBulkUploadModal: React.FC<CodingBulkUploadModalProps> = ({
         })
         .finally(() => setLoadingDomains(false));
     }
-  }, [isOpen, initialDomainId]);
+  }, [propIsOpen, initialDomainId]);
 
   // Load levels for selected domain
   useEffect(() => {
     if (selectedDomainId && destination === 'course') {
       setLoadingLevels(true);
-      api
-        .get(`/domains/${selectedDomainId}`)
-        .then((res) => {
-          const fetchedLevels = res.data?.data?.levels || [];
+      const loadDomainLevels = async () => {
+        try {
+          let fetchedLevels: any[] = [];
+          try {
+            const res = await api.get(`/domains/${selectedDomainId}`);
+            fetchedLevels = res.data?.data?.levels || res.data?.levels || [];
+          } catch {
+            const res = await api.get(`/domains/${selectedDomainId}/levels`);
+            fetchedLevels = res.data?.data?.levels || res.data?.levels || [];
+          }
+
+          if (fetchedLevels.length === 0) {
+            const res = await api.get(`/domains/${selectedDomainId}/levels`);
+            fetchedLevels = res.data?.data?.levels || res.data?.levels || [];
+          }
+
           setLevels(fetchedLevels);
           if (fetchedLevels.length > 0) {
             if (initialLevelId && fetchedLevels.some((l: any) => l._id === initialLevelId)) {
@@ -104,13 +126,16 @@ export const CodingBulkUploadModal: React.FC<CodingBulkUploadModalProps> = ({
           } else {
             setSelectedLevelId('');
           }
-        })
-        .catch((err) => {
+        } catch (err) {
           console.error('Failed to load levels', err);
           setLevels([]);
           setSelectedLevelId('');
-        })
-        .finally(() => setLoadingLevels(false));
+        } finally {
+          setLoadingLevels(false);
+        }
+      };
+
+      loadDomainLevels();
     }
   }, [selectedDomainId, destination, initialLevelId]);
 
@@ -190,15 +215,24 @@ export const CodingBulkUploadModal: React.FC<CodingBulkUploadModalProps> = ({
     try {
       setIsUploading(true);
       const formData = new FormData();
-      formData.append('file', file);
-      if (destination === 'course') {
+      if (destination === 'course' && selectedLevelId) {
         formData.append('levelId', selectedLevelId);
-        formData.append('domainId', selectedDomainId);
+        if (selectedDomainId) formData.append('domainId', selectedDomainId);
       }
+      formData.append('file', file);
 
-      const res = await api.post('/assessments/code/admin/bulk-upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Also pass as query params for maximum server compatibility
+      const queryParams = new URLSearchParams();
+      if (destination === 'course' && selectedLevelId) {
+        queryParams.set('levelId', selectedLevelId);
+        if (selectedDomainId) queryParams.set('domainId', selectedDomainId);
+      }
+      const endpoint = `/assessments/code/admin/bulk-upload${
+        queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
+
+      // Omit explicit Content-Type header so Axios generates the boundary correctly
+      const res = await api.post(endpoint, formData);
 
       const { count, errors, message } = res.data;
       setUploadResult({ count, errors, message });
@@ -220,11 +254,15 @@ export const CodingBulkUploadModal: React.FC<CodingBulkUploadModalProps> = ({
 
   return (
     <ResponsiveModal
-      isOpen={isOpen}
+      open={isModalOpen}
+      isOpen={isModalOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
       onClose={onClose}
       title="Bulk Upload Coding Questions"
       description="Upload multiple coding challenges via Excel to populate course level question pools or standalone assessments."
-      maxWidth="max-w-2xl"
+      dialogClassName="sm:max-w-2xl p-6 z-[70]"
     >
       <div className="space-y-5 py-1">
         {/* Destination Mode Segmented Pill */}

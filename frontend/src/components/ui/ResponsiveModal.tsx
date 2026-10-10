@@ -26,9 +26,11 @@ import { X } from 'lucide-react';
 
 export interface ResponsiveModalProps {
   /** Controls open state of the modal or bottom sheet */
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   /** Callback fired when open state changes */
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
   /** Primary title header */
   title?: React.ReactNode;
   /** Optional secondary subtitle or description */
@@ -74,8 +76,10 @@ export const useResponsiveModal = () => React.useContext(ResponsiveModalContext)
  * Full dark mode support using CSS variables (`var(--surface)` / `var(--text-primary)`).
  */
 export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
-  open,
-  onOpenChange,
+  open: propOpen,
+  isOpen,
+  onOpenChange: propOnOpenChange,
+  onClose,
   title,
   description,
   children,
@@ -91,6 +95,11 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
   setActiveSnapPoint,
   shouldScaleBackground = true,
 }) => {
+  const open = propOpen !== undefined ? propOpen : Boolean(isOpen);
+  const onOpenChange = (nextOpen: boolean) => {
+    if (propOnOpenChange) propOnOpenChange(nextOpen);
+    if (!nextOpen && onClose) onClose();
+  };
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
   if (isDesktop) {

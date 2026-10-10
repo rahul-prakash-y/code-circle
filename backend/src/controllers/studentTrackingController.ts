@@ -14,6 +14,7 @@ import '../models/eventModel';
 import '../models/attendanceSessionModel';
 import '../models/assessmentModel';
 import '../models/codingChallengeModel';
+import { generateStudentReportPdf } from '../services/studentReportPdfService';
 
 export interface TrackingStudentsQuery {
   page?: string;
@@ -265,324 +266,368 @@ export const getTrackingStudents = async (
  * - Assessment results
  * - Unified, chronological activityTimeline array
  */
+export const fetchStudent360DataInternal = async (userId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error('Invalid user ID format');
+  }
+
+  const userObjId = new mongoose.Types.ObjectId(userId);
+  const user = await User.findById(userObjId).select('-password -resetPasswordToken -resetPasswordExpires');
+
+  if (!user) {
+    throw new Error('Student not found');
+  }
+
+  // 1. Calculate Club Rank based on points
+  const userPoints = user.points || 0;
+  const rank =
+    (await User.countDocuments({
+      role: { $in: ['Student', 'Member', 'Committee'] },
+      points: { $gt: userPoints },
+    })) + 1;
+  const totalStudents = await User.countDocuments({
+    role: { $in: ['Student', 'Member', 'Committee'] },
+  });
+
+  // 2. Fetch exact Attendance records (populated with Event details)
+  const [attendanceRecords, legacyAttendances] = await Promise.all([
+    AttendanceRecord.find({ user: userObjId })
+      .populate({
+        path: 'session',
+        populate: {
+          path: 'event',
+          select: 'title description type format venueOrLink date hourlyPoints status',
+        },
+      })
+      .sort({ timestamp: -1 })
+      .lean(),
+    AttendanceModel.find({
+      $or: [{ user: userObjId }, { userId: userId }],
+    })
+      .populate({
+        path: 'event',
+        select: 'title description type format venueOrLink date hourlyPoints status',
+      })
+      .sort({ timestamp: -1 })
+      .lean(),
+  ]);
+
+  // Normalize attendance records into a consistent structure
+  const formattedAttendance = [
+    ...attendanceRecords.map((r: any) => ({
+      id: r._id.toString(),
+      eventName: r.session?.event?.title || r.session?.sessionName || 'Club Event',
+      eventDescription: r.session?.event?.description || '',
+      eventType: r.session?.event?.type || 'Technical',
+      eventFormat: r.session?.event?.format || 'Individual',
+      venueOrLink: r.session?.event?.venueOrLink || '',
+      sessionName: r.session?.sessionName || 'Attendance Session',
+      timestamp: r.timestamp || r.createdAt,
+      status: 'Present',
+      pointsAwarded: r.pointsAwarded || r.session?.hourlyPoints || 0,
+    })),
+    ...legacyAttendances.map((r: any) => ({
+      id: r._id.toString(),
+      eventName: r.event?.title || 'Club Event',
+      eventDescription: r.event?.description || '',
+      eventType: r.event?.type || 'Technical',
+      eventFormat: r.event?.format || 'Individual',
+      venueOrLink: r.event?.venueOrLink || '',
+      sessionName: 'General Attendance',
+      timestamp: r.timestamp || r.createdAt,
+      status: r.status || 'Present',
+      pointsAwarded: r.event?.hourlyPoints || 0,
+    })),
+  ];
+
+  // 3. Fetch StudentProgress (Domains/Levels/Quests)
+  const [progressDoc, allDomains, domainLevelCounts] = await Promise.all([
+    StudentProgress.findOne({ userId: userObjId })
+      .populate({ path: 'completedLevels', select: 'title levelNumber domainId' })
+      .populate({ path: 'completedQuests', select: 'title levelNumber domainId' })
+      .populate({ path: 'unlockedAssessments', select: 'title category passingScorePercentage' })
+      .populate({ path: 'unlockedCodingChallenges', select: 'title difficulty' })
+      .populate({ path: 'completedCodingChallenges', select: 'title difficulty' })
+      .populate({ path: 'unlockedDomains', select: 'name description coverImageUrl' })
+      .lean(),
+    Domain.find({}).lean(),
+    Level.aggregate([
+      {
+        $group: {
+          _id: '$domainId',
+          totalLevels: { $sum: 1 },
+          levelIds: { $push: '$_id' },
+        },
+      },
+    ]),
+  ]);
+
+  const domainLevelCountMap = new Map<string, { totalLevels: number; levelIds: any[] }>();
+  for (const d of domainLevelCounts) {
+    if (d._id) domainLevelCountMap.set(d._id.toString(), { totalLevels: d.totalLevels, levelIds: d.levelIds });
+  }
+
+  const completedLevelIdSet = new Set<string>(
+    (progressDoc?.completedLevels || []).map((l: any) =>
+      typeof l === 'object' && l._id ? l._id.toString() : l.toString()
+    )
+  );
+
+  const completedQuestIdSet = new Set<string>(
+    (progressDoc?.completedQuests || []).map((q: any) =>
+      typeof q === 'object' && q._id ? q._id.toString() : q.toString()
+    )
+  );
+
+  // Map domains with progress details
+  const domainProgress = allDomains.map((domain: any) => {
+    const dId = domain._id.toString();
+    const meta = domainLevelCountMap.get(dId) || { totalLevels: 0, levelIds: [] };
+    const completedInDomain = meta.levelIds.filter((lid) => completedLevelIdSet.has(lid.toString())).length;
+    const progressPercent = meta.totalLevels > 0 ? Math.round((completedInDomain / meta.totalLevels) * 100) : 0;
+
+    return {
+      id: dId,
+      name: domain.name,
+      description: domain.description,
+      coverImageUrl: domain.coverImageUrl,
+      totalLevels: meta.totalLevels,
+      completedLevels: completedInDomain,
+      progressPercent,
+      isUnlocked:
+        !domain.isLocked ||
+        Boolean(progressDoc?.unlockedDomains?.some((ud: any) => ud._id?.toString() === dId)),
+    };
+  });
+
+  // 4. Fetch CodingChallenge results
+  const codingSubmissions = await CodingSubmission.find({ student: userObjId })
+    .populate({ path: 'challenge', select: 'title difficulty description' })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const formattedCodingChallenges = codingSubmissions.map((sub: any) => ({
+    id: sub._id.toString(),
+    challengeId: sub.challenge?._id?.toString() || '',
+    challengeTitle: sub.challenge?.title || 'Coding Challenge',
+    difficulty: sub.challenge?.difficulty || 'Medium',
+    language: sub.language,
+    score: sub.score,
+    passed: sub.passed,
+    total: sub.total,
+    status: sub.status,
+    submittedAt: sub.submittedAt || sub.createdAt,
+  }));
+
+  // 5. Fetch Assessment Submissions
+  const assessmentSubmissions = await AssessmentSubmission.find({ user: userObjId })
+    .populate({ path: 'assessment', select: 'title category passingScorePercentage totalPoints' })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const formattedAssessments = assessmentSubmissions.map((sub: any) => ({
+    id: sub._id.toString(),
+    assessmentTitle: sub.assessment?.title || 'Knowledge Assessment',
+    category: sub.assessment?.category || 'General',
+    score: sub.score,
+    totalPoints: sub.totalPoints,
+    percentage: sub.percentage,
+    passed: sub.passed,
+    timeSpentSeconds: sub.timeSpentSeconds,
+    createdAt: sub.createdAt,
+  }));
+
+  // 6. Build unified chronological activityTimeline array
+  interface TimelineItem {
+    id: string;
+    category: 'attendance' | 'assessment' | 'coding' | 'quest' | 'onboarding';
+    title: string;
+    subtitle: string;
+    timestamp: Date;
+    status: string;
+    semanticColor: 'green' | 'gray' | 'blue' | 'red' | 'amber';
+    meta?: Record<string, any>;
+  }
+
+  const activityTimeline: TimelineItem[] = [];
+
+  // Add Attendance events
+  for (const att of formattedAttendance) {
+    activityTimeline.push({
+      id: `att-${att.id}`,
+      category: 'attendance',
+      title: `Attended: ${att.eventName}`,
+      subtitle: att.venueOrLink ? `Venue: ${att.venueOrLink}` : 'Session verified & attendance logged',
+      timestamp: new Date(att.timestamp),
+      status: 'Attended',
+      semanticColor: 'gray',
+      meta: { points: att.pointsAwarded, session: att.sessionName },
+    });
+  }
+
+  // Add Assessment events
+  for (const sub of formattedAssessments) {
+    activityTimeline.push({
+      id: `as-${sub.id}`,
+      category: 'assessment',
+      title: `${sub.passed ? 'Passed' : 'Completed'}: ${sub.assessmentTitle}`,
+      subtitle: `Scored ${sub.percentage}% (${sub.score}/${sub.totalPoints} pts) • ${sub.category}`,
+      timestamp: new Date(sub.createdAt),
+      status: sub.passed ? 'Passed' : 'Completed',
+      semanticColor: sub.passed ? 'green' : 'amber',
+      meta: { percentage: sub.percentage, passed: sub.passed },
+    });
+  }
+
+  // Add Coding Challenge events
+  for (const code of formattedCodingChallenges) {
+    const isPass = code.status === 'passed';
+    activityTimeline.push({
+      id: `code-${code.id}`,
+      category: 'coding',
+      title: `${isPass ? 'Passed' : 'Attempted'}: ${code.challengeTitle}`,
+      subtitle: `${code.language.toUpperCase()} • Passed ${code.passed}/${code.total} test cases (${code.difficulty})`,
+      timestamp: new Date(code.submittedAt),
+      status: isPass ? 'Passed' : code.status,
+      semanticColor: isPass ? 'green' : code.status === 'failed' ? 'red' : 'amber',
+      meta: { score: code.score, language: code.language },
+    });
+  }
+
+  // Add Quest completions
+  if (progressDoc?.completedQuests && progressDoc.completedQuests.length > 0) {
+    for (const quest of progressDoc.completedQuests as any[]) {
+      const qTitle = typeof quest === 'object' && quest.title ? quest.title : 'Domain Quest';
+      activityTimeline.push({
+        id: `quest-${quest._id || Math.random()}`,
+        category: 'quest',
+        title: `Passed Quest: ${qTitle}`,
+        subtitle: 'Knowledge checks verified and quest reward unlocked',
+        timestamp: new Date(progressDoc.updatedAt || progressDoc.createdAt),
+        status: 'Passed',
+        semanticColor: 'green',
+      });
+    }
+  }
+
+  // Add Onboarding milestone
+  if (user.createdAt) {
+    activityTimeline.push({
+      id: `onboarding-${user._id}`,
+      category: 'onboarding',
+      title: user.isOnboarded ? 'Student Onboarded' : 'Account Created',
+      subtitle: `Enrolled in ${user.department || 'Academic Department'} • Code Circle Member`,
+      timestamp: new Date(user.createdAt),
+      status: 'Onboarded',
+      semanticColor: 'blue',
+    });
+  }
+
+  // Sort descending by timestamp
+  activityTimeline.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+  // Summary metrics
+  const totalEventsAttended = formattedAttendance.length;
+  const questsCompletedCount = completedQuestIdSet.size;
+  const codingSolvedCount = formattedCodingChallenges.filter((c) => c.status === 'passed').length;
+  const avgAssessmentScore =
+    formattedAssessments.length > 0
+      ? Math.round(
+          (formattedAssessments.reduce((acc, cur) => acc + cur.percentage, 0) /
+            formattedAssessments.length) *
+            10
+        ) / 10
+      : 0;
+
+  return {
+    student: {
+      _id: user._id.toString(),
+      name: user.name,
+      rollNo: user.rollNo,
+      email: user.email,
+      role: user.role,
+      department: user.department || '',
+      college: user.college || 'BIT',
+      year: user.year || '',
+      points: user.points || 0,
+      skills: user.skills || [],
+      socialLinks: user.socialLinks || {},
+      profilePicUrl: user.profilePicUrl || '',
+      isOnboarded: user.isOnboarded || false,
+      isBlocked: user.isBlocked || false,
+      createdAt: user.createdAt,
+    },
+    stats: {
+      rank,
+      totalStudents,
+      totalEventsAttended,
+      questsCompleted: questsCompletedCount,
+      codingChallengesSolved: codingSolvedCount,
+      averageAssessmentScore: avgAssessmentScore,
+    },
+    domainProgress,
+    attendanceRecords: formattedAttendance,
+    codingResults: formattedCodingChallenges,
+    assessmentResults: formattedAssessments,
+    activityTimeline,
+  };
+};
+
 export const getStudent360Profile = async (
   request: FastifyRequest<{ Params: { userId: string } }>,
   reply: FastifyReply
 ) => {
   try {
     const { userId } = request.params;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return reply.status(400).send({ success: false, error: 'Invalid user ID format' });
-    }
-
-    const userObjId = new mongoose.Types.ObjectId(userId);
-    const user = await User.findById(userObjId).select('-password -resetPasswordToken -resetPasswordExpires');
-
-    if (!user) {
-      return reply.status(404).send({ success: false, error: 'Student not found' });
-    }
-
-    // 1. Calculate Club Rank based on points
-    const userPoints = user.points || 0;
-    const rank =
-      (await User.countDocuments({
-        role: { $in: ['Student', 'Member', 'Committee'] },
-        points: { $gt: userPoints },
-      })) + 1;
-    const totalStudents = await User.countDocuments({
-      role: { $in: ['Student', 'Member', 'Committee'] },
-    });
-
-    // 2. Fetch exact Attendance records (populated with Event details)
-    const [attendanceRecords, legacyAttendances] = await Promise.all([
-      AttendanceRecord.find({ user: userObjId })
-        .populate({
-          path: 'session',
-          populate: {
-            path: 'event',
-            select: 'title description type format venueOrLink date hourlyPoints status',
-          },
-        })
-        .sort({ timestamp: -1 })
-        .lean(),
-      AttendanceModel.find({
-        $or: [{ user: userObjId }, { userId: userId }],
-      })
-        .populate({
-          path: 'event',
-          select: 'title description type format venueOrLink date hourlyPoints status',
-        })
-        .sort({ timestamp: -1 })
-        .lean(),
-    ]);
-
-    // Normalize attendance records into a consistent structure
-    const formattedAttendance = [
-      ...attendanceRecords.map((r: any) => ({
-        id: r._id.toString(),
-        eventName: r.session?.event?.title || r.session?.sessionName || 'Club Event',
-        eventDescription: r.session?.event?.description || '',
-        eventType: r.session?.event?.type || 'Technical',
-        eventFormat: r.session?.event?.format || 'Individual',
-        venueOrLink: r.session?.event?.venueOrLink || '',
-        sessionName: r.session?.sessionName || 'Attendance Session',
-        timestamp: r.timestamp || r.createdAt,
-        status: 'Present',
-        pointsAwarded: r.pointsAwarded || r.session?.hourlyPoints || 0,
-      })),
-      ...legacyAttendances.map((r: any) => ({
-        id: r._id.toString(),
-        eventName: r.event?.title || 'Club Event',
-        eventDescription: r.event?.description || '',
-        eventType: r.event?.type || 'Technical',
-        eventFormat: r.event?.format || 'Individual',
-        venueOrLink: r.event?.venueOrLink || '',
-        sessionName: 'General Attendance',
-        timestamp: r.timestamp || r.createdAt,
-        status: r.status || 'Present',
-        pointsAwarded: r.event?.hourlyPoints || 0,
-      })),
-    ];
-
-    // 3. Fetch StudentProgress (Domains/Levels/Quests)
-    const [progressDoc, allDomains, domainLevelCounts] = await Promise.all([
-      StudentProgress.findOne({ userId: userObjId })
-        .populate({ path: 'completedLevels', select: 'title levelNumber domainId' })
-        .populate({ path: 'completedQuests', select: 'title levelNumber domainId' })
-        .populate({ path: 'unlockedAssessments', select: 'title category passingScorePercentage' })
-        .populate({ path: 'unlockedCodingChallenges', select: 'title difficulty' })
-        .populate({ path: 'completedCodingChallenges', select: 'title difficulty' })
-        .populate({ path: 'unlockedDomains', select: 'name description coverImageUrl' })
-        .lean(),
-      Domain.find({}).lean(),
-      Level.aggregate([
-        {
-          $group: {
-            _id: '$domainId',
-            totalLevels: { $sum: 1 },
-            levelIds: { $push: '$_id' },
-          },
-        },
-      ]),
-    ]);
-
-    const domainLevelCountMap = new Map<string, { totalLevels: number; levelIds: any[] }>();
-    for (const d of domainLevelCounts) {
-      if (d._id) domainLevelCountMap.set(d._id.toString(), { totalLevels: d.totalLevels, levelIds: d.levelIds });
-    }
-
-    const completedLevelIdSet = new Set<string>(
-      (progressDoc?.completedLevels || []).map((l: any) =>
-        typeof l === 'object' && l._id ? l._id.toString() : l.toString()
-      )
-    );
-
-    const completedQuestIdSet = new Set<string>(
-      (progressDoc?.completedQuests || []).map((q: any) =>
-        typeof q === 'object' && q._id ? q._id.toString() : q.toString()
-      )
-    );
-
-    // Map domains with progress details
-    const domainProgress = allDomains.map((domain: any) => {
-      const dId = domain._id.toString();
-      const meta = domainLevelCountMap.get(dId) || { totalLevels: 0, levelIds: [] };
-      const completedInDomain = meta.levelIds.filter((lid) => completedLevelIdSet.has(lid.toString())).length;
-      const progressPercent = meta.totalLevels > 0 ? Math.round((completedInDomain / meta.totalLevels) * 100) : 0;
-
-      return {
-        id: dId,
-        name: domain.name,
-        description: domain.description,
-        coverImageUrl: domain.coverImageUrl,
-        totalLevels: meta.totalLevels,
-        completedLevels: completedInDomain,
-        progressPercent,
-        isUnlocked:
-          !domain.isLocked ||
-          Boolean(progressDoc?.unlockedDomains?.some((ud: any) => ud._id?.toString() === dId)),
-      };
-    });
-
-    // 4. Fetch CodingChallenge results
-    const codingSubmissions = await CodingSubmission.find({ student: userObjId })
-      .populate({ path: 'challenge', select: 'title difficulty description' })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const formattedCodingChallenges = codingSubmissions.map((sub: any) => ({
-      id: sub._id.toString(),
-      challengeId: sub.challenge?._id?.toString() || '',
-      challengeTitle: sub.challenge?.title || 'Coding Challenge',
-      difficulty: sub.challenge?.difficulty || 'Medium',
-      language: sub.language,
-      score: sub.score,
-      passed: sub.passed,
-      total: sub.total,
-      status: sub.status,
-      submittedAt: sub.submittedAt || sub.createdAt,
-    }));
-
-    // 5. Fetch Assessment Submissions
-    const assessmentSubmissions = await AssessmentSubmission.find({ user: userObjId })
-      .populate({ path: 'assessment', select: 'title category passingScorePercentage totalPoints' })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const formattedAssessments = assessmentSubmissions.map((sub: any) => ({
-      id: sub._id.toString(),
-      assessmentTitle: sub.assessment?.title || 'Knowledge Assessment',
-      category: sub.assessment?.category || 'General',
-      score: sub.score,
-      totalPoints: sub.totalPoints,
-      percentage: sub.percentage,
-      passed: sub.passed,
-      timeSpentSeconds: sub.timeSpentSeconds,
-      createdAt: sub.createdAt,
-    }));
-
-    // 6. Build unified chronological activityTimeline array
-    interface TimelineItem {
-      id: string;
-      category: 'attendance' | 'assessment' | 'coding' | 'quest' | 'onboarding';
-      title: string;
-      subtitle: string;
-      timestamp: Date;
-      status: string;
-      semanticColor: 'green' | 'gray' | 'blue' | 'red' | 'amber';
-      meta?: Record<string, any>;
-    }
-
-    const activityTimeline: TimelineItem[] = [];
-
-    // Add Attendance events
-    for (const att of formattedAttendance) {
-      activityTimeline.push({
-        id: `att-${att.id}`,
-        category: 'attendance',
-        title: `Attended: ${att.eventName}`,
-        subtitle: att.venueOrLink ? `Venue: ${att.venueOrLink}` : 'Session verified & attendance logged',
-        timestamp: new Date(att.timestamp),
-        status: 'Attended',
-        semanticColor: 'gray',
-        meta: { points: att.pointsAwarded, session: att.sessionName },
-      });
-    }
-
-    // Add Assessment events
-    for (const sub of formattedAssessments) {
-      activityTimeline.push({
-        id: `as-${sub.id}`,
-        category: 'assessment',
-        title: `${sub.passed ? 'Passed' : 'Completed'}: ${sub.assessmentTitle}`,
-        subtitle: `Scored ${sub.percentage}% (${sub.score}/${sub.totalPoints} pts) • ${sub.category}`,
-        timestamp: new Date(sub.createdAt),
-        status: sub.passed ? 'Passed' : 'Completed',
-        semanticColor: sub.passed ? 'green' : 'amber',
-        meta: { percentage: sub.percentage, passed: sub.passed },
-      });
-    }
-
-    // Add Coding Challenge events
-    for (const code of formattedCodingChallenges) {
-      const isPass = code.status === 'passed';
-      activityTimeline.push({
-        id: `code-${code.id}`,
-        category: 'coding',
-        title: `${isPass ? 'Passed' : 'Attempted'}: ${code.challengeTitle}`,
-        subtitle: `${code.language.toUpperCase()} • Passed ${code.passed}/${code.total} test cases (${code.difficulty})`,
-        timestamp: new Date(code.submittedAt),
-        status: isPass ? 'Passed' : code.status,
-        semanticColor: isPass ? 'green' : code.status === 'failed' ? 'red' : 'amber',
-        meta: { score: code.score, language: code.language },
-      });
-    }
-
-    // Add Quest completions
-    if (progressDoc?.completedQuests && progressDoc.completedQuests.length > 0) {
-      for (const quest of progressDoc.completedQuests as any[]) {
-        const qTitle = typeof quest === 'object' && quest.title ? quest.title : 'Domain Quest';
-        activityTimeline.push({
-          id: `quest-${quest._id || Math.random()}`,
-          category: 'quest',
-          title: `Passed Quest: ${qTitle}`,
-          subtitle: 'Knowledge checks verified and quest reward unlocked',
-          timestamp: new Date(progressDoc.updatedAt || progressDoc.createdAt),
-          status: 'Passed',
-          semanticColor: 'green',
-        });
-      }
-    }
-
-    // Add Onboarding milestone
-    if (user.createdAt) {
-      activityTimeline.push({
-        id: `onboarding-${user._id}`,
-        category: 'onboarding',
-        title: user.isOnboarded ? 'Student Onboarded' : 'Account Created',
-        subtitle: `Enrolled in ${user.department || 'Academic Department'} • Code Circle Member`,
-        timestamp: new Date(user.createdAt),
-        status: 'Onboarded',
-        semanticColor: 'blue',
-      });
-    }
-
-    // Sort descending by timestamp
-    activityTimeline.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-    // Summary metrics
-    const totalEventsAttended = formattedAttendance.length;
-    const questsCompletedCount = completedQuestIdSet.size;
-    const codingSolvedCount = formattedCodingChallenges.filter((c) => c.status === 'passed').length;
-    const avgAssessmentScore =
-      formattedAssessments.length > 0
-        ? Math.round(
-            (formattedAssessments.reduce((acc, cur) => acc + cur.percentage, 0) /
-              formattedAssessments.length) *
-              10
-          ) / 10
-        : 0;
-
+    const data = await fetchStudent360DataInternal(userId);
     return reply.send({
       success: true,
-      student: {
-        _id: user._id,
-        name: user.name,
-        rollNo: user.rollNo,
-        email: user.email,
-        role: user.role,
-        department: user.department || '',
-        college: user.college || 'BIT',
-        year: user.year || '',
-        points: user.points || 0,
-        skills: user.skills || [],
-        socialLinks: user.socialLinks || {},
-        profilePicUrl: user.profilePicUrl || '',
-        isOnboarded: user.isOnboarded || false,
-        isBlocked: user.isBlocked || false,
-        createdAt: user.createdAt,
-      },
-      stats: {
-        rank,
-        totalStudents,
-        totalEventsAttended,
-        questsCompleted: questsCompletedCount,
-        codingChallengesSolved: codingSolvedCount,
-        averageAssessmentScore: avgAssessmentScore,
-      },
-      domainProgress,
-      attendanceRecords: formattedAttendance,
-      codingResults: formattedCodingChallenges,
-      assessmentResults: formattedAssessments,
-      activityTimeline,
+      ...data,
     });
   } catch (error: any) {
     request.log.error(error);
-    return reply.status(500).send({
+    const statusCode =
+      error.message === 'Student not found'
+        ? 404
+        : error.message === 'Invalid user ID format'
+        ? 400
+        : 500;
+    return reply.status(statusCode).send({
       success: false,
-      error: 'Failed to fetch student 360 profile',
-      details: error.message,
+      error: error.message || 'Failed to fetch student 360 profile',
+    });
+  }
+};
+
+/**
+ * Route: GET /api/admin/tracking/students/:userId/pdf
+ * Generates an executive, branded PDF Dossier for an individual student.
+ */
+export const generateStudentPdfReport = async (
+  request: FastifyRequest<{ Params: { userId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { userId } = request.params;
+    const data = await fetchStudent360DataInternal(userId);
+    const { buffer, filename } = await generateStudentReportPdf(data as any);
+
+    return reply
+      .header('Content-Type', 'application/pdf')
+      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+      .send(buffer);
+  } catch (error: any) {
+    request.log.error(error);
+    const statusCode =
+      error.message === 'Student not found'
+        ? 404
+        : error.message === 'Invalid user ID format'
+        ? 400
+        : 500;
+    return reply.status(statusCode).send({
+      success: false,
+      error: error.message || 'Failed to generate student PDF report',
     });
   }
 };

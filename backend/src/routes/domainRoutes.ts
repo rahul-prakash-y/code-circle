@@ -12,6 +12,7 @@ export async function domainRoutes(fastify: FastifyInstance) {
 
   // Public / Student endpoints (with optional token parsing to enrich progression stats)
   fastify.get('/', { preHandler: [optionalToken] }, domainController.getDomains as any);
+  fastify.get('/:id', { preHandler: [optionalToken] }, domainController.getDomainById as any);
   fastify.get('/:id/levels', { preHandler: [optionalToken] }, domainController.getDomainLevels as any);
 
   // Student registration endpoints

@@ -433,7 +433,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
         </div>
       }
       description="Configure lecture video, student study notes, linked MCQ assessment, and 5 quest questions."
-      dialogClassName="sm:max-w-2xl p-6"
+      dialogClassName="sm:max-w-3xl p-6"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-1">
         {/* Tab Navigation */}
@@ -651,7 +651,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
                       Level Coding Assessment Pool
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                      2 Random Questions • 1 Hour Limit
+                      2 Random Questions
                     </span>
                   </div>
                   <p className="text-[11px] text-label-secondary mt-1">
@@ -1049,8 +1049,11 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
     {bulkUploadOpen && (
       <CodingBulkUploadModal
         isOpen={bulkUploadOpen}
+        open={bulkUploadOpen}
         onClose={() => setBulkUploadOpen(false)}
+        initialDomainId={domainId}
         preselectedDomainId={domainId}
+        initialLevelId={levelToEdit?._id}
         preselectedLevelId={levelToEdit?._id}
         onSuccess={() => {
           fetchLevelPool();

@@ -1084,30 +1084,43 @@ export const bulkUploadCodingChallenges = async (
   if (query?.levelId) levelId = String(query.levelId).trim();
   if (query?.domainId) domainId = String(query.domainId).trim();
 
-  // Parse multipart stream
-  const parts = request.parts();
-  for await (const part of parts) {
-    if (part.type === 'file') {
-      filename = (part.filename || '').toLowerCase();
-      const chunks: Buffer[] = [];
-      for await (const chunk of part.file) {
-        chunks.push(chunk);
-      }
-      fileBuffer = Buffer.concat(chunks);
-    } else {
-      if (part.fieldname === 'levelId') {
-        const val = String(part.value || '').trim();
-        if (val) levelId = val;
-      }
-      if (part.fieldname === 'domainId') {
-        const val = String(part.value || '').trim();
-        if (val) domainId = val;
-      }
+  // Parse multipart file stream reliably
+  let data: any = null;
+  try {
+    data = await request.file();
+  } catch (err: any) {
+    console.error('Multipart upload error:', err);
+    throw ApiError.badRequest('Failed to parse uploaded Excel file: ' + (err.message || 'Invalid stream'));
+  }
+
+  if (!data) {
+    throw ApiError.badRequest('No Excel file uploaded');
+  }
+
+  filename = (data.filename || '').toLowerCase();
+  const chunks: Buffer[] = [];
+  for await (const chunk of data.file) {
+    chunks.push(chunk);
+  }
+  fileBuffer = Buffer.concat(chunks);
+
+  if (data.fields) {
+    if (!levelId && data.fields.levelId) {
+      const val = typeof data.fields.levelId === 'object' && 'value' in data.fields.levelId
+        ? (data.fields.levelId as any).value
+        : data.fields.levelId;
+      if (val) levelId = String(val).trim();
+    }
+    if (!domainId && data.fields.domainId) {
+      const val = typeof data.fields.domainId === 'object' && 'value' in data.fields.domainId
+        ? (data.fields.domainId as any).value
+        : data.fields.domainId;
+      if (val) domainId = String(val).trim();
     }
   }
 
-  if (!fileBuffer) {
-    throw ApiError.badRequest('No Excel file uploaded');
+  if (!fileBuffer || fileBuffer.length === 0) {
+    throw ApiError.badRequest('Uploaded Excel file is empty');
   }
 
   if (!filename.endsWith('.xlsx') && !filename.endsWith('.xls')) {
@@ -1116,9 +1129,18 @@ export const bulkUploadCodingChallenges = async (
 
   // Parse workbook
   const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-  const sheetName = workbook.SheetNames[0];
+  const sheetName =
+    workbook.SheetNames.find(
+      (s) =>
+        s.toLowerCase().includes('challenge') ||
+        s.toLowerCase().includes('problem') ||
+        s.toLowerCase().includes('question')
+    ) ||
+    workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct')) ||
+    workbook.SheetNames[0];
+
   if (!sheetName) {
-    throw ApiError.badRequest('The Excel workbook contains no sheets');
+    throw ApiError.badRequest('The Excel workbook contains no valid sheets');
   }
 
   const rawRows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
@@ -1367,6 +1389,53 @@ export const getLevelAssessmentSession = async (
     await session.save();
   }
 
+  // If existing session is still in progress but has fewer than 2 questions, heal/supplement it with a 2nd question
+  if (session && !session.isCompleted && session.assignedQuestions.length < 2) {
+    const existingIds = session.assignedQuestions.map((q: any) => q.toString());
+    const poolIds: string[] = [];
+    if (Array.isArray(level.codingChallengePool)) {
+      level.codingChallengePool.forEach((id: any) => id && poolIds.push(id.toString()));
+    }
+    if (level.codingChallengeId) {
+      poolIds.push(level.codingChallengeId.toString());
+    }
+    const explicitChallenges = await CodingChallenge.find({ levelId: level._id }).select('_id').lean();
+    explicitChallenges.forEach((c) => poolIds.push(c._id.toString()));
+
+    const candidateIds = Array.from(new Set(poolIds)).filter((id) => !existingIds.includes(id));
+    let secondId = candidateIds[0];
+
+    if (!secondId) {
+      const extraChallenge = await CodingChallenge.findOne({
+        _id: { $nin: existingIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        isPublished: true,
+      })
+        .select('_id')
+        .lean();
+      if (extraChallenge) {
+        secondId = extraChallenge._id.toString();
+      }
+    }
+
+    if (secondId) {
+      const secondObjId = new mongoose.Types.ObjectId(secondId);
+      session.assignedQuestions.push(secondObjId);
+      if (!session.submissions.some((s) => s.challengeId.toString() === secondId)) {
+        session.submissions.push({
+          challengeId: secondObjId,
+          language: 'python',
+          code: '',
+          status: 'unattempted',
+          score: 0,
+          passed: 0,
+          total: 0,
+          submittedAt: null,
+        } as any);
+      }
+      await session.save();
+    }
+  }
+
   const canStartNewSession =
     !session ||
     (retry === 'true' && (session.isCompleted === false || session.verdict === 'expired' || session.verdict === 'failed'));
@@ -1388,23 +1457,30 @@ export const getLevelAssessmentSession = async (
     explicitChallenges.forEach((c) => poolIds.push(c._id.toString()));
 
     const uniquePool = Array.from(new Set(poolIds));
+
+    // Ensure at least 2 questions in pool by supplementing from other available coding challenges
+    if (uniquePool.length < 2) {
+      const needed = 2 - uniquePool.length;
+      const supplemental = await CodingChallenge.find({
+        _id: { $nin: uniquePool.map((id) => new mongoose.Types.ObjectId(id)) },
+        isPublished: true,
+      })
+        .limit(needed)
+        .select('_id')
+        .lean();
+      supplemental.forEach((c) => uniquePool.push(c._id.toString()));
+    }
+
     if (uniquePool.length === 0) {
       throw ApiError.badRequest(
         'No coding questions have been uploaded for this level yet. Please ask your administrator to upload questions.'
       );
     }
 
-    // Assign 2 RANDOM questions (or 1 if only 1 exists)
-    let assignedIds: mongoose.Types.ObjectId[] = [];
-    if (uniquePool.length >= 2) {
-      const shuffled = [...uniquePool].sort(() => 0.5 - Math.random());
-      assignedIds = [
-        new mongoose.Types.ObjectId(shuffled[0]),
-        new mongoose.Types.ObjectId(shuffled[1]),
-      ];
-    } else {
-      assignedIds = [new mongoose.Types.ObjectId(uniquePool[0])];
-    }
+    // Assign 2 RANDOM questions
+    const shuffled = [...uniquePool].sort(() => 0.5 - Math.random());
+    const assignCount = Math.min(2, shuffled.length);
+    const assignedIds = shuffled.slice(0, assignCount).map((id) => new mongoose.Types.ObjectId(id));
 
     const durationMinutes = level.codingTimeLimitMinutes || 60; // 1 hour timing
     const startTime = new Date();
@@ -1506,9 +1582,47 @@ export const getLevelAssessmentSession = async (
     Math.floor((session.expiresAt.getTime() - Date.now()) / 1000)
   );
 
+  const questionStatuses = (session.submissions || []).map((s) => ({
+    questionId: s.challengeId.toString(),
+    status: s.status,
+    score: s.score,
+    passed: s.passed,
+    total: s.total,
+  }));
+
+  const allPassed =
+    session.submissions.length > 0 &&
+    session.submissions.every((s) => s.status === 'passed');
+
+  const sessionObj = {
+    _id: session._id.toString(),
+    sessionId: session._id.toString(),
+    student: session.student.toString(),
+    level: session.level.toString(),
+    assignedQuestions: populatedQuestions,
+    questionStatuses,
+    timeLimitMinutes: session.timeLimitMinutes,
+    startTime: session.startTime,
+    expiresAt: session.expiresAt,
+    remainingSeconds,
+    isCompleted: session.isCompleted,
+    verdict: session.verdict,
+    completedAt: session.completedAt,
+    allPassed,
+  };
+
+  const levelObj = {
+    _id: level._id.toString(),
+    title: level.title,
+    levelNumber: level.levelNumber,
+    domainId: level.domainId.toString(),
+  };
+
   return reply.send({
     success: true,
     data: {
+      session: sessionObj,
+      level: levelObj,
       sessionId: session._id.toString(),
       levelId: level._id.toString(),
       levelTitle: level.title,
@@ -1522,6 +1636,8 @@ export const getLevelAssessmentSession = async (
       verdict: session.verdict,
       completedAt: session.completedAt,
       questions: populatedQuestions,
+      allPassed,
+      questionStatuses,
     },
   });
 };

@@ -198,24 +198,62 @@ export const CodingAssessmentWorkspace: React.FC = () => {
       if (activeLevelId) {
         // Course Level Assessment mode (2 questions, 60 minutes)
         const res = await api.get(`/assessments/code/level/${activeLevelId}/session`);
-        const { session, level } = res.data.data;
+        const payload = res.data?.data || res.data || {};
+        const session = payload.session || payload;
+        const level = payload.level || {
+          _id: payload.levelId || activeLevelId,
+          title: payload.levelTitle || 'Level Coding Assessment',
+          levelNumber: payload.levelNumber || 1,
+          domainId: payload.domainId || queryDomainId,
+        };
+
         setLevelSession(session);
         setLevelMeta(level);
 
-        const assigned: any[] = session.assignedQuestions || [];
+        const assigned: any[] = payload.questions || session.assignedQuestions || [];
         if (assigned.length === 0) {
           throw new Error('No coding questions found in this level pool.');
         }
 
         const mapped: ChallengeData[] = assigned.map((q: any) => {
-          const starterMap = q.starterCode || {};
-          const allowedLangs = q.allowedLanguages?.length
+          const starterMap: Record<string, string> = {};
+          if (q.starterCode) {
+            if (q.starterCode instanceof Map) {
+              q.starterCode.forEach((val: string, key: string) => {
+                starterMap[key] = val;
+              });
+            } else if (typeof q.starterCode === 'object') {
+              Object.assign(starterMap, q.starterCode);
+            }
+          }
+
+          const allowedLangs = Array.isArray(q.allowedLanguages) && q.allowedLanguages.length
             ? q.allowedLanguages
             : ['python', 'c', 'cpp', 'java', 'javascript'];
+
+          let visibleTestCases: TestCaseSummary[] = [];
+          if (Array.isArray(q.visibleTestCases) && q.visibleTestCases.length > 0) {
+            visibleTestCases = q.visibleTestCases;
+          } else if (Array.isArray(q.testCases)) {
+            visibleTestCases = q.testCases
+              .filter((tc: any) => !tc.isHidden)
+              .map((tc: any, i: number) => ({
+                testCaseIndex: i + 1,
+                input: tc.input,
+                expectedOutput: tc.expectedOutput,
+              }));
+          }
+
+          const qId = q.id || q._id?.toString() || String(q);
+          const hasPassed = (session.questionStatuses || []).some(
+            (qs: any) =>
+              qs.questionId?.toString() === qId && qs.status === 'passed'
+          );
+
           return {
-            id: q._id?.toString() || q.id,
-            title: q.title,
-            description: q.description,
+            id: qId,
+            title: q.title || 'Coding Challenge',
+            description: q.description || '',
             inputFormat: q.inputFormat || '',
             outputFormat: q.outputFormat || '',
             constraints: q.constraints || '',
@@ -224,33 +262,27 @@ export const CodingAssessmentWorkspace: React.FC = () => {
             difficulty: q.difficulty || 'Medium',
             allowedLanguages: allowedLangs,
             starterCode: starterMap,
-            visibleTestCases: (q.testCases || [])
-              .filter((tc: any) => !tc.isHidden)
-              .map((tc: any, i: number) => ({
-                testCaseIndex: i + 1,
-                input: tc.input,
-                expectedOutput: tc.expectedOutput,
-              })),
-            timeLimitMinutes: 60,
-            hasSubmitted: session.questionStatuses?.some(
-              (qs: any) =>
-                qs.questionId?.toString() === (q._id?.toString() || q.id) &&
-                qs.status === 'passed'
-            ),
+            visibleTestCases,
+            timeLimitMinutes: session.timeLimitMinutes || 60,
+            hasSubmitted: hasPassed,
             isLocked: session.isCompleted || false,
           };
         });
 
         setLevelQuestions(mapped);
 
-        // Seed starter codes per question
+        // Seed starter codes per question & restore previous solution if available
         const initialCodeStore: Record<string, Record<string, string>> = {};
-        mapped.forEach((q) => {
+        mapped.forEach((q, idx) => {
           initialCodeStore[q.id] = {};
           q.allowedLanguages.forEach((lang) => {
             initialCodeStore[q.id][lang] =
               q.starterCode[lang] || `// Write your ${lang} code here\n`;
           });
+          const originalQ = assigned[idx];
+          if (originalQ?.submission?.code && originalQ.submission.language) {
+            initialCodeStore[q.id][originalQ.submission.language] = originalQ.submission.code;
+          }
         });
         setCodeStoreByQuestion(initialCodeStore);
 
@@ -266,19 +298,22 @@ export const CodingAssessmentWorkspace: React.FC = () => {
 
         // Statuses
         const statusMap: Record<string, any> = {};
-        (session.questionStatuses || []).forEach((qs: any) => {
+        const qStats = payload.questionStatuses || session.questionStatuses || [];
+        (qStats || []).forEach((qs: any) => {
           statusMap[qs.questionId?.toString()] = qs;
         });
         setQuestionStatuses(statusMap);
 
         // Timer (Session remainingSeconds or 3600)
-        if (typeof session.remainingSeconds === 'number') {
-          setRemainingSeconds(session.remainingSeconds);
-        } else {
-          setRemainingSeconds(60 * 60);
-        }
+        const remSecs =
+          typeof payload.remainingSeconds === 'number'
+            ? payload.remainingSeconds
+            : typeof session.remainingSeconds === 'number'
+            ? session.remainingSeconds
+            : 60 * 60;
+        setRemainingSeconds(remSecs);
 
-        if (session.isCompleted || session.allPassed) {
+        if (session.isCompleted || payload.isCompleted || payload.allPassed || session.allPassed) {
           setLevelCompletionData({
             allPassed: true,
             levelCompleted: true,
