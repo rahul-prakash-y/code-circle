@@ -19,6 +19,7 @@ import {
   Compass,
   UserCheck,
   Activity,
+  Flame,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -113,6 +114,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       label: 'Assessments',
       icon: Award,
       match: (loc) => loc.pathname === '/assessments',
+    },
+    {
+      to: '/contests',
+      label: 'Contests',
+      icon: Flame,
+      match: (loc) => loc.pathname.startsWith('/contests'),
     },
     {
       to: '/attendance',

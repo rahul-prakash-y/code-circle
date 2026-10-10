@@ -32,6 +32,9 @@ const BearerManagement = lazy(() => import('./pages/BearerManagement'));
 const StudentTrackingPage = lazy(() => import('./pages/StudentTrackingPage'));
 const VerifyCertificatePage = lazy(() => import('./pages/VerifyCertificatePage'));
 const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'));
+const ContestsPage = lazy(() => import('./pages/ContestsPage'));
+const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
+const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
 
 export const decodeJwtPayload = (token) => {
   if (!token) return null;
@@ -184,6 +187,16 @@ function App() {
             }
           />
 
+          {/* Fullscreen Contest Arena without App Shell */}
+          <Route
+            path="/contests/:id/arena"
+            element={
+              <ProtectedRoute>
+                <ContestArenaPage />
+              </ProtectedRoute>
+            }
+          />
+
 
           {/* Persistent App Shell Layout Route */}
           <Route element={<MainLayout />}>
@@ -266,6 +279,32 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AttendancePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Weekly Contests Routes */}
+            <Route
+              path="/contests"
+              element={
+                <ProtectedRoute>
+                  <ContestsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contests/:id"
+              element={
+                <ProtectedRoute>
+                  <ContestsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contests/:id/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <ContestLeaderboardPage />
                 </ProtectedRoute>
               }
             />
