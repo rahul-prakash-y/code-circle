@@ -135,6 +135,9 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     pointsAwarded: number;
   } | null>(null);
 
+  const [isSessionExpired, setIsSessionExpired] = useState<boolean>(false);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
+
   const [activeLanguage, setActiveLanguage] = useState<string>('python');
   const [codeByLanguage, setCodeByLanguage] = useState<Record<string, string>>({});
 
@@ -169,7 +172,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     manuallyLock,
   } = useVisibilityChange({
     maxWarnings: 3,
-    isActive: Boolean(challenge && !submissionVerdict && !challenge.isLocked),
+    isActive: Boolean(challenge && !submissionVerdict && !challenge.isLocked && !isSessionExpired),
     problemId: activeProblemId || activeLevelId || 'assessment',
     onLockTriggered: (events) => {
       handleAutoSubmitOnLock(events);
@@ -180,11 +183,12 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     antiCheatLocked ||
     (challenge && challenge.isLocked) ||
     (!activeLevelId && submissionVerdict && submissionVerdict.submitted) ||
-    (activeLevelId && (levelCompletionData?.allPassed || levelSession?.isCompleted))
+    (activeLevelId && (levelCompletionData?.allPassed || levelSession?.isCompleted)) ||
+    isSessionExpired
   );
 
   // Fetch challenge data
-  const fetchChallenge = useCallback(async () => {
+  const fetchChallenge = useCallback(async (isRetry = false) => {
     if (!activeProblemId && !activeLevelId) {
       setErrorChallenge('No problem or level identifier provided in URL route.');
       setLoadingChallenge(false);
@@ -197,7 +201,8 @@ export const CodingAssessmentWorkspace: React.FC = () => {
 
       if (activeLevelId) {
         // Course Level Assessment mode (2 questions, 60 minutes)
-        const res = await api.get(`/assessments/code/level/${activeLevelId}/session`);
+        const retryParam = isRetry ? '?retry=true' : '';
+        const res = await api.get(`/assessments/code/level/${activeLevelId}/session${retryParam}`);
         const payload = res.data?.data || res.data || {};
         const session = payload.session || payload;
         const level = payload.level || {
@@ -313,6 +318,14 @@ export const CodingAssessmentWorkspace: React.FC = () => {
             : 60 * 60;
         setRemainingSeconds(remSecs);
 
+        const isExp = Boolean(
+          payload.isExpired ||
+          session.isExpired ||
+          session.verdict === 'expired' ||
+          (!session.isCompleted && remSecs <= 0)
+        );
+        setIsSessionExpired(isExp);
+
         if (session.isCompleted || payload.isCompleted || payload.allPassed || session.allPassed) {
           setLevelCompletionData({
             allPassed: true,
@@ -375,16 +388,31 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     fetchChallenge();
   }, [fetchChallenge]);
 
+  // Retry / Start new attempt handler
+  const handleRetryAttempt = async () => {
+    try {
+      setIsRetrying(true);
+      await fetchChallenge(true);
+      setIsSessionExpired(false);
+      setSubmissionVerdict(null);
+      toast.success('Started new attempt with 2 fresh questions!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || err.message || 'Failed to start new attempt');
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   // Timer countdown
   useEffect(() => {
-    if (!challenge || isWorkspaceLocked) return;
+    if (!challenge || isWorkspaceLocked || isSessionExpired || remainingSeconds <= 0) return;
 
     const timer = setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          toast.error('Time limit reached! Submitting your assessment...');
-          handleFinalSubmit();
+          setIsSessionExpired(true);
+          toast.error('Time limit reached for this assessment attempt!');
           return 0;
         }
         return prev - 1;
@@ -392,7 +420,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [challenge, isWorkspaceLocked]);
+  }, [challenge, isWorkspaceLocked, isSessionExpired, remainingSeconds]);
 
   // 10-second Run button cooldown timer
   useEffect(() => {
@@ -559,16 +587,17 @@ export const CodingAssessmentWorkspace: React.FC = () => {
       toast.loading('Submitting code for official evaluation...', { id: 'submit-assessment' });
 
       if (activeLevelId) {
-        // Course Level Assessment Submission
         const res = await api.post(`/assessments/code/level/${activeLevelId}/submit`, {
+          problemId: challenge.id,
           questionId: challenge.id,
           language: activeLanguage,
+          code,
           sourceCode: code,
           integrityEvents: eventsToSend,
         });
 
-        const data = res.data;
-        const problemResult = data.problemResult;
+        const data = res.data?.data || res.data || {};
+        const problemResult = data.problemResult || {};
 
         setQuestionStatuses((prev) => ({
           ...prev,
@@ -654,6 +683,9 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Submission failed';
       toast.error(msg, { id: 'submit-assessment' });
+      if (err.response?.data?.isExpired || msg.toLowerCase().includes('expired')) {
+        setIsSessionExpired(true);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -752,6 +784,22 @@ export const CodingAssessmentWorkspace: React.FC = () => {
               <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold shrink-0">
                 <span>{`Level ${levelMeta?.levelNumber || 1}`}</span>
               </div>
+
+              {levelSession?.attemptNumber && (
+                <div
+                  className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border shrink-0 ${
+                    levelSession.attemptNumber === 1
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-400 border-amber-500/25'
+                  }`}
+                  title={`Attempt #${levelSession.attemptNumber} - Points Available: ${levelSession.pointsAvailable ?? 100} / ${levelSession.initialPoints ?? 100}`}
+                >
+                  <span>{`Attempt #${levelSession.attemptNumber}`}</span>
+                  <span className="text-[10px] font-mono opacity-80">
+                    ({levelSession.pointsAvailable ?? 100} pts)
+                  </span>
+                </div>
+              )}
 
               {/* 2 Problem Switcher Tabs */}
               <div className="flex items-center gap-1 p-0.5 rounded-xl bg-white/[0.06] border border-white/[0.08]">
@@ -1402,8 +1450,25 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                 </div>
                 <p className="text-[11px] text-emerald-300/90">
                   {submissionVerdict.unlockedNextLevel
-                    ? 'All requirements satisfied! The next level in this course has been unlocked.'
-                    : 'All requirements satisfied! Course progress updated.'}
+                    ? 'All requirements satisfied! Both questions passed. The next level has been unlocked.'
+                    : 'All requirements satisfied! Both questions passed.'}
+                </p>
+                {submissionVerdict.pointsAwarded !== undefined && (
+                  <p className="text-[11px] font-semibold text-emerald-300">
+                    +{submissionVerdict.pointsAwarded} points awarded (Attempt #{submissionVerdict.attemptNumber || levelSession?.attemptNumber || 1})
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Incomplete assessment guidance */}
+            {activeLevelId && !submissionVerdict.levelCompleted && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs space-y-1 text-center">
+                <div className="font-bold flex items-center justify-center gap-1.5 text-xs text-amber-400">
+                  ⚠️ Both Questions Required
+                </div>
+                <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                  You must pass both questions to complete this level and unlock the next level.
                 </p>
               </div>
             )}
@@ -1428,6 +1493,18 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                 </button>
               )}
 
+              {activeLevelId && !submissionVerdict.levelCompleted && (
+                <button
+                  onClick={handleRetryAttempt}
+                  disabled={isRetrying}
+                  className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 text-amber-400 border border-amber-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Abandon attempt and get 2 fresh random questions (-10% points penalty)"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>{isRetrying ? 'Loading...' : 'New Attempt'}</span>
+                </button>
+              )}
+
               {(submissionVerdict.levelCompleted || !activeLevelId) && (
                 submissionVerdict.domainId || queryDomainId ? (
                   <button
@@ -1445,6 +1522,84 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                   </button>
                 )
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Assessment Attempt Expired Modal ─────────────────── */}
+      {isSessionExpired && !levelCompletionData?.allPassed && !submissionVerdict?.levelCompleted && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-[#121214] border border-red-500/30 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 mx-auto flex items-center justify-center">
+              <Clock className="w-8 h-8 animate-pulse" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold tracking-tight text-white">
+                Attempt {levelSession?.attemptNumber || 1} Expired
+              </h2>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                The 60-minute time limit for this attempt has ended. You must solve both questions in an assessment session to complete this level and unlock the next level.
+              </p>
+            </div>
+
+            {/* Next Attempt Points Metric */}
+            <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] space-y-2.5 text-left text-xs">
+              <div className="flex justify-between items-center text-neutral-400">
+                <span>Completed Attempt:</span>
+                <span className="font-semibold text-neutral-200">Attempt #{levelSession?.attemptNumber || 1}</span>
+              </div>
+              <div className="flex justify-between items-center text-neutral-400">
+                <span>Next Attempt:</span>
+                <span className="font-semibold text-blue-400">
+                  Attempt #{(levelSession?.attemptNumber || 1) + 1}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-neutral-400">
+                <span>Points Available:</span>
+                <span className="font-bold text-amber-400 font-mono">
+                  {levelSession?.nextPointsAvailable !== undefined
+                    ? levelSession.nextPointsAvailable
+                    : Math.max(0, Math.round((levelSession?.initialPoints || 100) * (1 - (levelSession?.attemptNumber || 1) * 0.1)))} / {levelSession?.initialPoints || 100} pts
+                </span>
+              </div>
+              <div className="text-[11px] text-amber-400/80 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">
+                ⚠️ Each attempt deducts 10% of initial points. You will receive 2 fresh random questions from the level pool.
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  navigate(
+                    levelMeta?.domainId || queryDomainId
+                      ? `/courses/${levelMeta?.domainId || queryDomainId}`
+                      : '/courses'
+                  );
+                }}
+                className="flex-1 py-3 rounded-full text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] text-neutral-300 transition-all border border-white/[0.08]"
+              >
+                Back to Course
+              </button>
+
+              <button
+                onClick={handleRetryAttempt}
+                disabled={isRetrying}
+                className="flex-1 py-3 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isRetrying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Start Attempt #{(levelSession?.attemptNumber || 1) + 1}</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

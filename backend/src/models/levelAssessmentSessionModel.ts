@@ -17,6 +17,10 @@ export interface ILevelAssessmentSession extends Document {
   level: mongoose.Types.ObjectId;
   domain: mongoose.Types.ObjectId;
   assignedQuestions: mongoose.Types.ObjectId[];
+  attemptNumber: number;
+  initialPoints: number;
+  pointsAvailable: number;
+  pointsAwarded: number;
   timeLimitMinutes: number; // 60 minutes = 1 hour
   startTime: Date;
   expiresAt: Date;
@@ -99,6 +103,22 @@ const levelAssessmentSessionSchema = new Schema<ILevelAssessmentSession>(
         ref: 'CodingChallenge',
       },
     ],
+    attemptNumber: {
+      type: Number,
+      default: 1,
+    },
+    initialPoints: {
+      type: Number,
+      default: 100,
+    },
+    pointsAvailable: {
+      type: Number,
+      default: 100,
+    },
+    pointsAwarded: {
+      type: Number,
+      default: 0,
+    },
     timeLimitMinutes: {
       type: Number,
       default: 60, // 1 hour timing

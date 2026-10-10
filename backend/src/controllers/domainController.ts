@@ -7,6 +7,7 @@ import Assessment from '../models/assessmentModel';
 import DomainEnrollment from '../models/domainEnrollmentModel';
 import User from '../models/userModel';
 import CourseConfig from '../models/courseConfigModel';
+import CodingChallenge from '../models/codingChallengeModel';
 
 // Interface for submitting answers
 export interface SubmitQuestBody {
@@ -865,7 +866,9 @@ export const submitLevelQuest = async (
     let pointsAwarded = 0;
 
     if (passed) {
-      const hasCodingChallenge = Boolean(level.codingChallengeId);
+      const poolCount = Array.isArray(level.codingChallengePool) ? level.codingChallengePool.length : 0;
+      const explicitChallengesCount = await CodingChallenge.countDocuments({ levelId: level._id });
+      const hasCodingChallenge = Boolean(level.codingChallengeId) || poolCount > 0 || explicitChallengesCount > 0;
       requiresCodingAssessment = hasCodingChallenge;
 
       const updateOperations: any = {
@@ -874,11 +877,13 @@ export const submitLevelQuest = async (
         },
       };
 
-      if (hasCodingChallenge && level.codingChallengeId) {
-        // Coding assessment is mapped:
+      if (hasCodingChallenge) {
+        // Coding assessment is mapped (pool or individual):
         // Unlock coding assessment, but do NOT complete level or unlock next level yet!
-        updateOperations.$addToSet.unlockedCodingChallenges = level.codingChallengeId;
-        unlockedCodingChallengeId = level.codingChallengeId.toString();
+        if (level.codingChallengeId) {
+          updateOperations.$addToSet.unlockedCodingChallenges = level.codingChallengeId;
+          unlockedCodingChallengeId = level.codingChallengeId.toString();
+        }
         nextLevelId = null;
       } else {
         // No coding assessment mapped:

@@ -1436,11 +1436,27 @@ export const getLevelAssessmentSession = async (
     }
   }
 
+  // Count previous sessions for this student and level to compute attemptNumber
+  const previousSessionsCount = await LevelAssessmentSession.countDocuments({
+    student: userId,
+    level: level._id,
+  });
+
   const canStartNewSession =
     !session ||
     (retry === 'true' && (session.isCompleted === false || session.verdict === 'expired' || session.verdict === 'failed'));
 
   if (canStartNewSession) {
+    const attemptNumber = !session ? 1 : previousSessionsCount + 1;
+    const initialPoints =
+      typeof level.points === 'number' && level.points >= 0
+        ? level.points
+        : getDefaultPointsForLevel(level.levelNumber);
+
+    // Deduct 10% of initial points for each attempt after attempt 1
+    const deductionFraction = Math.min(1.0, (attemptNumber - 1) * 0.10);
+    const pointsAvailable = Math.max(0, Math.round(initialPoints * (1 - deductionFraction)));
+
     // Collect all available coding challenges in this level's question pool
     const poolIds: string[] = [];
     if (Array.isArray(level.codingChallengePool)) {
@@ -1477,10 +1493,26 @@ export const getLevelAssessmentSession = async (
       );
     }
 
-    // Assign 2 RANDOM questions
-    const shuffled = [...uniquePool].sort(() => 0.5 - Math.random());
-    const assignCount = Math.min(2, shuffled.length);
-    const assignedIds = shuffled.slice(0, assignCount).map((id) => new mongoose.Types.ObjectId(id));
+    // Assign 2 RANDOM questions using Fisher-Yates uniform shuffle
+    const poolCopy = [...uniquePool];
+    for (let i = poolCopy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [poolCopy[i], poolCopy[j]] = [poolCopy[j], poolCopy[i]];
+    }
+
+    // If there was a previous attempt, prioritize assigning different questions if pool has >= 3
+    const prevAssigned = session
+      ? (session.assignedQuestions || []).map((q: any) => q.toString())
+      : [];
+
+    let candidateQuestions = poolCopy.filter((id) => !prevAssigned.includes(id));
+    if (candidateQuestions.length < 2) {
+      const remainingNeeded = 2 - candidateQuestions.length;
+      const others = poolCopy.filter((id) => prevAssigned.includes(id));
+      candidateQuestions = [...candidateQuestions, ...others.slice(0, remainingNeeded)];
+    }
+
+    const assignedIds = candidateQuestions.slice(0, 2).map((id) => new mongoose.Types.ObjectId(id));
 
     const durationMinutes = level.codingTimeLimitMinutes || 60; // 1 hour timing
     const startTime = new Date();
@@ -1491,6 +1523,10 @@ export const getLevelAssessmentSession = async (
       level: level._id,
       domain: level.domainId,
       assignedQuestions: assignedIds,
+      attemptNumber,
+      initialPoints,
+      pointsAvailable,
+      pointsAwarded: 0,
       timeLimitMinutes: durationMinutes,
       startTime,
       expiresAt,
@@ -1594,6 +1630,23 @@ export const getLevelAssessmentSession = async (
     session.submissions.length > 0 &&
     session.submissions.every((s) => s.status === 'passed');
 
+  const defaultLevelPoints =
+    typeof level.points === 'number' && level.points >= 0
+      ? level.points
+      : getDefaultPointsForLevel(level.levelNumber);
+
+  const initialPoints = session.initialPoints || defaultLevelPoints;
+  const attemptNumber = session.attemptNumber || 1;
+  const pointsAvailable =
+    session.pointsAvailable !== undefined
+      ? session.pointsAvailable
+      : Math.max(0, Math.round(initialPoints * Math.max(0, 1 - (attemptNumber - 1) * 0.10)));
+
+  const isExpired = session.verdict === 'expired' || (!session.isCompleted && now > session.expiresAt.getTime());
+  const canRetry = !session.isCompleted;
+  const nextAttemptNumber = attemptNumber + 1;
+  const nextPointsAvailable = Math.max(0, Math.round(initialPoints * Math.max(0, 1 - (nextAttemptNumber - 1) * 0.10)));
+
   const sessionObj = {
     _id: session._id.toString(),
     sessionId: session._id.toString(),
@@ -1601,6 +1654,10 @@ export const getLevelAssessmentSession = async (
     level: session.level.toString(),
     assignedQuestions: populatedQuestions,
     questionStatuses,
+    attemptNumber,
+    initialPoints,
+    pointsAvailable,
+    pointsAwarded: session.pointsAwarded || 0,
     timeLimitMinutes: session.timeLimitMinutes,
     startTime: session.startTime,
     expiresAt: session.expiresAt,
@@ -1609,6 +1666,10 @@ export const getLevelAssessmentSession = async (
     verdict: session.verdict,
     completedAt: session.completedAt,
     allPassed,
+    isExpired,
+    canRetry,
+    nextAttemptNumber,
+    nextPointsAvailable,
   };
 
   const levelObj = {
@@ -1628,6 +1689,10 @@ export const getLevelAssessmentSession = async (
       levelTitle: level.title,
       levelNumber: level.levelNumber,
       domainId: level.domainId.toString(),
+      attemptNumber,
+      initialPoints,
+      pointsAvailable,
+      pointsAwarded: session.pointsAwarded || 0,
       timeLimitMinutes: session.timeLimitMinutes,
       startTime: session.startTime,
       expiresAt: session.expiresAt,
@@ -1638,6 +1703,10 @@ export const getLevelAssessmentSession = async (
       questions: populatedQuestions,
       allPassed,
       questionStatuses,
+      isExpired,
+      canRetry,
+      nextAttemptNumber,
+      nextPointsAvailable,
     },
   });
 };
@@ -1659,17 +1728,24 @@ export const submitLevelAssessmentCode = async (
 
   checkExecutionRateLimit(user.id);
 
-  const { problemId, language, code, integrityEvents } = request.body as {
+  const body = (request.body || {}) as {
     problemId?: string;
+    questionId?: string;
     language?: string;
     code?: string;
+    sourceCode?: string;
     integrityEvents?: any[];
   };
+
+  const problemId = body.problemId || body.questionId;
+  const code = body.code !== undefined ? body.code : body.sourceCode;
+  const language = body.language;
+  const integrityEvents = body.integrityEvents;
 
   if (!problemId || !mongoose.Types.ObjectId.isValid(problemId)) {
     throw ApiError.badRequest('Valid problemId is required');
   }
-  if (!code || typeof code !== 'string') {
+  if (typeof code !== 'string' || !code) {
     throw ApiError.badRequest('Source code must be provided');
   }
 
@@ -1698,7 +1774,14 @@ export const submitLevelAssessmentCode = async (
   if (Date.now() > session.expiresAt.getTime() + 15000) {
     session.verdict = 'expired';
     await session.save();
-    throw ApiError.badRequest('Time limit for this coding assessment has expired');
+    return reply.status(400).send({
+      success: false,
+      error: 'Time limit for this coding assessment has expired',
+      isExpired: true,
+      canRetry: true,
+      attemptNumber: session.attemptNumber || 1,
+      message: 'Time limit for this coding assessment has expired. You can start a new attempt with 2 fresh questions.',
+    });
   }
 
   const challenge = await CodingChallenge.findById(problemId);
@@ -1775,6 +1858,15 @@ export const submitLevelAssessmentCode = async (
   const score = total > 0 ? Math.round((passedCount / total) * 100) : 0;
   const submissionStatus = passedCount === total ? 'passed' : finalStatus;
 
+  const formattedIntegrityEvents = Array.isArray(integrityEvents)
+    ? integrityEvents.map((evt) => ({
+        type: evt.type || 'VISIBILITY_CHANGE',
+        timestamp: evt.timestamp ? new Date(evt.timestamp) : new Date(),
+        warningNumber: Number(evt.warningNumber) || 1,
+        details: evt.details || {},
+      }))
+    : [];
+
   // Save CodingSubmission
   const submission = new CodingSubmission({
     student: userId,
@@ -1787,6 +1879,7 @@ export const submitLevelAssessmentCode = async (
     status: submissionStatus,
     isLocked: true,
     results: detailedResults,
+    integrityEvents: formattedIntegrityEvents,
     submittedAt: new Date(),
   });
   await submission.save();
@@ -1813,9 +1906,9 @@ export const submitLevelAssessmentCode = async (
     session.submissions.push(subRecord);
   }
 
-  // Check if all assigned questions are passed
+  // Check if all assigned questions are passed (must have at least 2 questions)
   const allPassed =
-    session.assignedQuestions.length > 0 &&
+    session.assignedQuestions.length >= 2 &&
     session.assignedQuestions.every((qId) => {
       const sub = session.submissions.find(
         (s) => s.challengeId.toString() === qId.toString()
@@ -1828,13 +1921,14 @@ export const submitLevelAssessmentCode = async (
   let nextLevelId: string | null = null;
   let pointsAwarded = 0;
 
+  const levelDoc = await Level.findById(levelId);
+
   if (allPassed) {
     session.isCompleted = true;
     session.verdict = 'passed';
     session.completedAt = new Date();
     levelCompleted = true;
 
-    const levelDoc = await Level.findById(levelId);
     if (levelDoc) {
       // 1. Mark completed in student progress
       const existingProgress = await StudentProgress.findOne({ userId }).lean();
@@ -1843,10 +1937,16 @@ export const submitLevelAssessmentCode = async (
       );
 
       if (!existingCompleted.has(levelDoc._id.toString())) {
-        pointsAwarded =
+        const initialPoints =
           typeof levelDoc.points === 'number' && levelDoc.points >= 0
             ? levelDoc.points
             : getDefaultPointsForLevel(levelDoc.levelNumber);
+
+        const attemptNumber = session.attemptNumber || 1;
+        // Deduct 10% of initial points for each attempt after attempt 1
+        const deductionFraction = Math.min(1.0, (attemptNumber - 1) * 0.10);
+        pointsAwarded = Math.max(0, Math.round(initialPoints * (1 - deductionFraction)));
+        session.pointsAwarded = pointsAwarded;
 
         if (pointsAwarded > 0) {
           await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
@@ -1904,6 +2004,9 @@ export const submitLevelAssessmentCode = async (
     unlockedNextLevel,
     nextLevelId,
     pointsAwarded,
+    attemptNumber: session.attemptNumber || 1,
+    initialPoints: session.initialPoints || (levelDoc ? getDefaultPointsForLevel(levelDoc.levelNumber) : 100),
+    pointsAvailable: session.pointsAvailable !== undefined ? session.pointsAvailable : pointsAwarded,
   });
 };
 
