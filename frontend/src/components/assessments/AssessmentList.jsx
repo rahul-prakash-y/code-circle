@@ -90,44 +90,44 @@ export const AssessmentList = () => {
   return (
     <div className="space-y-6">
       {/* Top Header & Search / Filter Controls */}
-      <div className="glass p-6 sm:p-7 relative overflow-hidden rounded-3xl border border-border">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+      <div className="glass p-4 sm:p-7 relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 relative z-10">
           <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-400">
-                <Award size={22} />
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-400 shrink-0">
+                <Award size={20} className="sm:w-[22px] sm:h-[22px]" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-text-primary tracking-tight font-heading">
+                  <h2 className="text-lg sm:text-2xl font-black text-text-primary tracking-tight font-heading truncate">
                     MCQ Assessments
                   </h2>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                  <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest px-2 sm:px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 shrink-0">
                     Engine
                   </span>
                 </div>
-                <p className="text-xs text-text-muted mt-0.5">
+                <p className="text-[11px] sm:text-xs text-text-muted mt-0.5 truncate">
                   Evaluate conceptual comprehension, competitive logic, and track scores in real time
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
             {/* Search Input */}
-            <div className="flex items-center gap-2 px-3.5 py-2 bg-surface-elevated border border-border rounded-xl focus-within:border-purple-500/40 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
-              <Search size={15} className="text-text-muted" />
+            <div className="flex items-center gap-2 px-3 sm:px-3.5 py-2 bg-surface-elevated border border-border rounded-xl focus-within:border-purple-500/40 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all flex-1 sm:flex-initial">
+              <Search size={14} className="text-text-muted shrink-0" />
               <input
                 type="text"
                 placeholder="Search assessments..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-transparent border-none text-xs text-text-primary focus:outline-none placeholder-text-muted/70 w-36 sm:w-48"
+                className="bg-transparent border-none text-xs text-text-primary focus:outline-none placeholder-text-muted/70 w-full sm:w-48"
               />
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 p-1 bg-surface-elevated border border-border rounded-xl">
+            <div className="flex items-center gap-1 p-1 bg-surface-elevated border border-border rounded-xl shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
@@ -157,22 +157,23 @@ export const AssessmentList = () => {
             {isAdmin && (
               <button
                 onClick={handleOpenCreate}
-                className="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 cursor-pointer"
+                className="btn-primary py-2 px-3 sm:px-4 text-xs font-bold flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 cursor-pointer shrink-0"
               >
-                <Plus size={15} />
-                Create Assessment
+                <Plus size={14} />
+                <span className="hidden sm:inline">Create Assessment</span>
+                <span className="sm:hidden">Create</span>
               </button>
             )}
           </div>
         </div>
 
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-2 mt-5 pt-5 border-t border-border/60 overflow-x-auto custom-scrollbar">
+        <div className="flex items-center gap-1.5 sm:gap-2 mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-border/60 overflow-x-auto custom-scrollbar">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 selectedCategory === cat
                   ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-500/15'
                   : 'bg-surface-elevated text-text-muted hover:text-text-primary border border-border'
@@ -232,24 +233,24 @@ export const AssessmentList = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.25 } }}
                   transition={{ duration: 0.25 }}
-                  className="glass p-6 sm:p-7 flex flex-col justify-between group hover:border-purple-500/35 transition-all duration-300 relative overflow-hidden rounded-3xl"
+                  className="glass p-4 sm:p-7 flex flex-col justify-between group hover:border-purple-500/35 transition-all duration-300 relative overflow-hidden rounded-2xl sm:rounded-3xl"
                 >
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-start justify-between gap-2.5 sm:gap-3">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
                           {assessment.category}
                         </span>
 
                         {assessment.eventId && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent flex items-center gap-1">
+                          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent flex items-center gap-1">
                             <Calendar size={11} />
                             {assessment.eventId.title || 'Linked Event'}
                           </span>
                         )}
 
                         {!assessment.isPublished && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
                             Draft / Hidden
                           </span>
                         )}
@@ -257,13 +258,13 @@ export const AssessmentList = () => {
 
                       {hasTaken && (
                         <div
-                          className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                          className={`flex items-center gap-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full border shrink-0 ${
                             isPassed
                               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                               : 'bg-red-500/10 border-red-500/30 text-red-400'
                           }`}
                         >
-                          {isPassed ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                          {isPassed ? <CheckCircle2 size={11} /> : <AlertCircle size={11} />}
                           {isPassed ? `Passed: ${mySub.percentage}%` : `Score: ${mySub.percentage}%`}
                         </div>
                       )}
@@ -279,23 +280,23 @@ export const AssessmentList = () => {
                     </div>
 
                     {/* Meta Stats Row */}
-                    <div className="grid grid-cols-3 gap-3 py-3 border-y border-border/60 text-center">
-                      <div className="p-2 rounded-xl bg-surface-elevated/40">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Questions</p>
-                        <p className="text-sm font-bold text-text-primary mt-0.5">
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-3 py-2.5 sm:py-3 border-y border-border/60 text-center">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-surface-elevated/40">
+                        <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-text-muted">Questions</p>
+                        <p className="text-xs sm:text-sm font-bold text-text-primary mt-0.5">
                           {assessment.questionsCount || assessment.questions?.length || 0} MCQs
                         </p>
                       </div>
-                      <div className="p-2 rounded-xl bg-surface-elevated/40">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Time Limit</p>
-                        <p className="text-sm font-bold text-text-primary mt-0.5 flex items-center justify-center gap-1">
-                          <Clock size={12} className="text-purple-400" />
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-surface-elevated/40">
+                        <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-text-muted">Time Limit</p>
+                        <p className="text-xs sm:text-sm font-bold text-text-primary mt-0.5 flex items-center justify-center gap-1">
+                          <Clock size={11} className="text-purple-400 sm:w-3 sm:h-3" />
                           {assessment.timeLimitMinutes}m
                         </p>
                       </div>
-                      <div className="p-2 rounded-xl bg-surface-elevated/40">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-text-muted">Pass Cutoff</p>
-                        <p className="text-sm font-bold text-emerald-400 mt-0.5">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-surface-elevated/40">
+                        <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-text-muted">Pass Cutoff</p>
+                        <p className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5">
                           {assessment.passingScorePercentage}%
                         </p>
                       </div>
@@ -303,7 +304,7 @@ export const AssessmentList = () => {
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="mt-5 pt-2 flex items-center justify-between gap-3">
+                  <div className="mt-4 sm:mt-5 pt-2 flex items-center justify-between gap-2 sm:gap-3 flex-wrap">
                     <div className="flex items-center gap-1.5">
                       {isAdmin && (
                         <>
@@ -334,7 +335,7 @@ export const AssessmentList = () => {
 
                     <button
                       onClick={() => setSelectedAssessmentToTake(assessment)}
-                      className={`py-2 px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      className={`py-2 px-3.5 sm:px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                         hasTaken
                           ? 'bg-surface-elevated hover:bg-surface-elevated text-text-primary border border-border'
                           : 'bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/25'

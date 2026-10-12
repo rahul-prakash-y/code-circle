@@ -86,7 +86,7 @@ export const ContestsPage: React.FC = () => {
             <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
               <button
                 onClick={() => setViewMode('arena')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   viewMode === 'arena'
                     ? 'bg-primary text-white shadow-md shadow-primary/25'
                     : 'text-label-secondary hover:text-label-primary'
@@ -97,7 +97,7 @@ export const ContestsPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setViewMode('manage')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   viewMode === 'manage'
                     ? 'bg-primary text-white shadow-md shadow-primary/25'
                     : 'text-label-secondary hover:text-label-primary'

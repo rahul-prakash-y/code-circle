@@ -133,7 +133,7 @@ export const DiagnosticsPage: React.FC = () => {
           <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
             <button
               onClick={() => setActiveTab('health')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'health'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -144,7 +144,7 @@ export const DiagnosticsPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('database')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'database'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'

@@ -6,6 +6,7 @@ import useDomainStore from '../../store/useDomainStore';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import TakeAssessmentModal from '../assessments/TakeAssessmentModal';
+import MarkdownContent from '../common/MarkdownContent';
 import {
   Play,
   CheckCircle2,
@@ -155,12 +156,12 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
   return (
     <div className="space-y-6">
       {/* Media & Content Tabs */}
-      <div className="flex items-center justify-between pb-1">
+      <div className="flex items-center gap-2 justify-between overflow-auto pb-1">
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface border border-separator shadow-sm text-xs font-semibold">
           <button
             type="button"
             onClick={() => setActiveTab('video')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
+            className={`flex items-center whitespace-nowrap gap-1.5 px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
               activeTab === 'video'
                 ? 'bg-accent text-white shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
@@ -172,7 +173,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
           <button
             type="button"
             onClick={() => setActiveTab('notes')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
+            className={`flex items-center whitespace-nowrap gap-1.5 px-3.5 py-1.5 rounded-lg transition cursor-pointer ${
               activeTab === 'notes'
                 ? 'bg-accent text-white shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
@@ -190,7 +191,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
               <button
                 type="button"
                 onClick={onEditLevel}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface border border-separator text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer"
+                className="inline-flex items-center whitespace-nowrap gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface border border-separator text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer"
                 title="Edit Level"
               >
                 <Edit3 className="w-3.5 h-3.5" /> Edit Level
@@ -370,7 +371,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
                       href={mat.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent/10 text-accent hover:bg-accent/20 transition"
+                      className="inline-flex items-center whitespace-nowrap gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent/10 text-accent hover:bg-accent/20 transition"
                     >
                       <span>Open Link</span>
                       <ExternalLink className="w-3 h-3" />
@@ -379,14 +380,14 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
                 </div>
 
                 {mat.content && (
-                  <div className="text-xs text-label-secondary leading-relaxed">
+                  <div className="leading-relaxed">
                     {mat.type === 'code' ? (
                       <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 font-mono text-[12px] overflow-x-auto border border-slate-800">
                         <code>{mat.content}</code>
                       </pre>
                     ) : (
-                      <div className="whitespace-pre-line text-[13px] text-label-primary/90 bg-surface/50 p-3 rounded-xl border border-separator/40">
-                        {mat.content}
+                      <div className="text-[13px] text-label-primary/90 bg-surface/50 p-3.5 sm:p-4 rounded-xl border border-separator/40">
+                        <MarkdownContent content={mat.content} />
                       </div>
                     )}
                   </div>

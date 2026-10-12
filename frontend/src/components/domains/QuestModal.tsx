@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import ResponsiveModal from '../ui/ResponsiveModal';
 import useDomainStore from '../../store/useDomainStore';
+import toast from 'react-hot-toast';
 import {
   CheckCircle2,
   XCircle,
@@ -439,7 +440,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
             )}
 
             {/* Navigation & Submit Bar */}
-            <div className="pt-3 border-t border-separator flex items-center justify-between">
+            <div className="pt-3 pb-1 border-t border-separator flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={handlePrev}
@@ -450,7 +451,33 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
                 Previous
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="text-[11px] font-medium text-label-tertiary hidden xs:block">
+                {selectedAnswers.filter((a) => a !== -1).length}/{totalQuestions} Answered
+              </div>
+
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Secondary Quick Submit Button - Accessible on mobile and desktop */}
+                {currentQuestionIdx < totalQuestions - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!allAnswered) {
+                        toast.error(
+                          `Please answer all questions first (${totalQuestions - selectedAnswers.filter((a) => a !== -1).length} remaining)`
+                        );
+                      } else {
+                        handleSubmit();
+                      }
+                    }}
+                    disabled={submittingQuest}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition cursor-pointer"
+                    title="Submit quest now"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Submit</span>
+                  </button>
+                )}
+
                 {currentQuestionIdx < totalQuestions - 1 ? (
                   <button
                     type="button"
@@ -463,9 +490,21 @@ export const QuestModal: React.FC<QuestModalProps> = ({ isOpen, onClose }) => {
                 ) : (
                   <button
                     type="button"
-                    onClick={handleSubmit}
-                    disabled={!allAnswered || submittingQuest}
-                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-40 disabled:pointer-events-none active:scale-98 transition shadow cursor-pointer"
+                    onClick={() => {
+                      if (!allAnswered) {
+                        toast.error(
+                          `Please answer all questions first (${totalQuestions - selectedAnswers.filter((a) => a !== -1).length} remaining)`
+                        );
+                      } else {
+                        handleSubmit();
+                      }
+                    }}
+                    disabled={submittingQuest}
+                    className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-semibold transition shadow cursor-pointer ${
+                      allAnswered
+                        ? 'bg-accent text-white hover:bg-accent-hover shadow-accent/25 active:scale-98'
+                        : 'bg-accent/40 text-white/80 border border-accent/30'
+                    }`}
                   >
                     {submittingQuest ? (
                       <>

@@ -22,10 +22,13 @@ import {
   Info,
   Maximize2,
   Minimize2,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 import api from '../../lib/axios';
 import { useVisibilityChange, IntegrityEvent } from '../../hooks/useVisibilityChange';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 export interface TestCaseSummary {
   testCaseIndex: number;
@@ -103,6 +106,27 @@ const LANG_DISPLAY_NAMES: Record<string, string> = {
   javascript: 'JavaScript',
 };
 
+const ACCESSORY_KEYS = [
+  { label: 'Tab', value: '    ' },
+  { label: '{ }', value: '{}' },
+  { label: '( )', value: '()' },
+  { label: '[ ]', value: '[]' },
+  { label: ':', value: ':' },
+  { label: ';', value: ';' },
+  { label: '=', value: ' = ' },
+  { label: '==', value: ' == ' },
+  { label: '"', value: '"' },
+  { label: "'", value: "'" },
+  { label: '+', value: ' + ' },
+  { label: '-', value: ' - ' },
+  { label: '*', value: ' * ' },
+  { label: '/', value: ' / ' },
+  { label: '<', value: ' < ' },
+  { label: '>', value: ' > ' },
+  { label: '!', value: '!' },
+  { label: '_', value: '_' },
+];
+
 export const CodingAssessmentWorkspace: React.FC = () => {
   const { id, problemId: routeProblemId, levelId: routeLevelId } = useParams<{
     id?: string;
@@ -156,6 +180,39 @@ export const CodingAssessmentWorkspace: React.FC = () => {
   const [activeConsoleTab, setActiveConsoleTab] = useState<'terminal' | 'cases'>('cases');
   const [consoleOutput, setConsoleOutput] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Mobile Screen layout states & quick-coding actions
+  const isMobile = useMediaQuery('(max-width: 1023px)');
+  const [mobileTab, setMobileTab] = useState<'problem' | 'code' | 'testcases' | 'console'>('problem');
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const editorRef = useRef<any>(null);
+
+  const handleCopyText = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success('Copied to clipboard');
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleEditorMount = (editor: any) => {
+    editorRef.current = editor;
+  };
+
+  const insertAccessorySnippet = (snippet: string) => {
+    if (!editorRef.current) return;
+    const editor = editorRef.current;
+    const selection = editor.getSelection();
+    if (selection) {
+      editor.executeEdits('mobile-keyboard', [
+        {
+          range: selection,
+          text: snippet,
+          forceMoveMarkers: true,
+        },
+      ]);
+      editor.focus();
+    }
+  };
 
   // Timer state (Default 60 mins for level assessment, 45 mins standalone)
   const [remainingSeconds, setRemainingSeconds] = useState<number>(60 * 60);
@@ -554,21 +611,25 @@ export const CodingAssessmentWorkspace: React.FC = () => {
         toast.error('Compilation failed. Check terminal output.', { id: 'run-code' });
         setConsoleOutput(data.error || 'Compilation error occurred.');
         setActiveConsoleTab('terminal');
+        if (isMobile) setMobileTab('console');
       } else if (data.passed === data.total) {
         toast.success(`Passed all ${data.total} visible test cases!`, { id: 'run-code' });
         setConsoleOutput(`Success: All ${data.total} public test cases passed!`);
+        if (isMobile) setMobileTab('testcases');
       } else {
         toast(`Passed ${data.passed}/${data.total} visible test cases`, {
           icon: '⚠️',
           id: 'run-code',
         });
         setConsoleOutput(`Verdict: ${data.passed}/${data.total} passed.`);
+        if (isMobile) setMobileTab('testcases');
       }
     } catch (err: any) {
       const errMsg = err.response?.data?.error || err.message || 'Execution error';
       toast.error(errMsg, { id: 'run-code' });
       setConsoleOutput(`Execution Error: ${errMsg}`);
       setActiveConsoleTab('terminal');
+      if (isMobile) setMobileTab('console');
     } finally {
       setIsExecuting(false);
     }
@@ -755,8 +816,8 @@ export const CodingAssessmentWorkspace: React.FC = () => {
 
   return (
     <div className="h-screen w-full bg-[#000000] text-neutral-100 flex flex-col overflow-hidden font-sans select-none antialiased">
-      {/* ── Top Apple Spatial Control Bar ────────────────────────────── */}
-      <header className="h-14 border-b border-white/[0.08] bg-black/60 backdrop-blur-2xl flex items-center justify-between px-5 shrink-0 z-40">
+      {/* ── Top Apple Spatial Control Bar (Desktop >= 1024px) ───────── */}
+      <header className="hidden lg:flex h-14 border-b border-white/[0.08] bg-black/60 backdrop-blur-2xl items-center justify-between px-5 shrink-0 z-40">
         {/* Left: Back & Title or Problem Switcher */}
         <div className="flex items-center gap-3">
           <button
@@ -974,8 +1035,8 @@ export const CodingAssessmentWorkspace: React.FC = () => {
         </div>
       </header>
 
-      {/* ── Main Workspace Body (Resizable Split Layout) ─────────────── */}
-      <div className="flex-1 relative overflow-hidden">
+      {/* ── Main Workspace Body (Desktop >= 1024px) ────────────────── */}
+      <div className="hidden lg:flex flex-1 relative overflow-hidden">
         <PanelGroup direction="horizontal">
           {/* ════════ LEFT PANEL: Problem, Constraints & Test Cases ════════ */}
           <Panel defaultSize={42} minSize={25}>
@@ -1335,6 +1396,611 @@ export const CodingAssessmentWorkspace: React.FC = () => {
             </PanelGroup>
           </Panel>
         </PanelGroup>
+      </div>
+
+      {/* ── Mobile Screen UI (< 1024px) ────────────────────────────── */}
+      <div className="flex lg:hidden flex-col flex-1 h-full w-full overflow-hidden bg-[#000000]">
+        {/* Mobile Header Row 1: Back, Title, Timer, Anti-Cheat */}
+        <div className="px-3.5 py-2.5 bg-neutral-950/95 border-b border-white/[0.08] backdrop-blur-xl shrink-0 z-30">
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: Back & Title */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <button
+                onClick={() => {
+                  if (activeLevelId) {
+                    navigate(
+                      levelMeta?.domainId || queryDomainId
+                        ? `/courses/${levelMeta?.domainId || queryDomainId}`
+                        : '/courses'
+                    );
+                  } else {
+                    navigate('/assessments');
+                  }
+                }}
+                className="p-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-colors shrink-0 cursor-pointer"
+                title="Return"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-white tracking-tight truncate max-w-[150px] sm:max-w-[240px]">
+                    {challenge.title}
+                  </span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider shrink-0 ${
+                      challenge.difficulty === 'Easy'
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                        : challenge.difficulty === 'Hard'
+                        ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25'
+                        : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                    }`}
+                  >
+                    {challenge.difficulty}
+                  </span>
+                </div>
+                {activeLevelId && (
+                  <p className="text-[10px] text-neutral-400 font-mono truncate">
+                    Level {levelMeta?.levelNumber || 1} • Problem {activeQuestionIdx + 1} of {levelQuestions.length}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Timer & Anti-Cheat */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Timer Pill */}
+              <div
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-bold shrink-0 ${
+                  remainingSeconds < 300
+                    ? 'bg-red-500/15 text-red-400 border border-red-500/30 animate-pulse'
+                    : 'bg-white/[0.06] text-neutral-300 border border-white/[0.08]'
+                }`}
+              >
+                <Clock className="w-3 h-3 text-purple-400" />
+                <span>{formatTime(remainingSeconds)}</span>
+              </div>
+
+              {/* Anti-Cheat Warning Badge */}
+              <div
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium shrink-0 ${
+                  warnings === 0
+                    ? 'bg-white/[0.04] text-neutral-400 border border-white/[0.06]'
+                    : warnings === 1
+                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                    : 'bg-red-500/25 text-red-300 border border-red-500/50 animate-pulse'
+                }`}
+                title={`Anti-Cheat Warnings: ${warnings}/3`}
+              >
+                <ShieldAlert className="w-3 h-3" />
+                <span>{warnings}/3</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Level Assessment Multi-Problem Switcher Bar (Mobile) */}
+          {activeLevelId && levelQuestions.length > 1 && (
+            <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between gap-2 overflow-x-auto">
+              <div className="flex items-center gap-1.5 shrink-0">
+                {levelQuestions.map((q, idx) => {
+                  const isPassed = questionStatuses[q.id]?.status === 'passed';
+                  const isActive = activeQuestionIdx === idx;
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      onClick={() => handleSwitchQuestion(idx)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'bg-white/[0.04] text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      <span>Problem {idx + 1}</span>
+                      {isPassed ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {levelSession?.attemptNumber && (
+                <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0">
+                  Attempt #{levelSession.attemptNumber}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Segmented Tab Navigation Bar */}
+        <div className="px-2.5 py-1.5 bg-black/95 border-b border-white/[0.08] grid grid-cols-4 gap-1 shrink-0 z-20">
+          <button
+            type="button"
+            onClick={() => setMobileTab('problem')}
+            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              mobileTab === 'problem'
+                ? 'bg-white/[0.14] text-white shadow-xs'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Problem</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab('code')}
+            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              mobileTab === 'code'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <Code2 className="w-3.5 h-3.5" />
+            <span>Code</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab('testcases')}
+            className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              mobileTab === 'testcases'
+                ? 'bg-white/[0.14] text-white shadow-xs'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            {executionResults?.passed === executionResults?.total && executionResults?.total ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+            )}
+            <span>Tests</span>
+            {executionResults ? (
+              <span
+                className={`text-[9px] px-1 rounded font-mono font-bold ${
+                  executionResults.passed === executionResults.total
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'bg-rose-500/20 text-rose-400'
+                }`}
+              >
+                {executionResults.passed}/{executionResults.total}
+              </span>
+            ) : (
+              <span className="text-[10px] text-neutral-500 font-mono">
+                ({challenge.visibleTestCases.length})
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab('console')}
+            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              mobileTab === 'console'
+                ? 'bg-white/[0.14] text-white shadow-xs'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            <span>Console</span>
+            {executionResults?.compilationError && (
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Main Tab Content Area */}
+        <div className="flex-1 overflow-hidden relative flex flex-col bg-[#050505]">
+          {/* TAB 1: Problem Description */}
+          {mobileTab === 'problem' && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm text-neutral-300 leading-relaxed scrollbar-thin">
+              {/* Problem Title & Difficulty */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h1 className="text-base sm:text-lg font-bold tracking-tight text-white">
+                    {challenge.title}
+                  </h1>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider shrink-0 ${
+                      challenge.difficulty === 'Easy'
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                        : challenge.difficulty === 'Hard'
+                        ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25'
+                        : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                    }`}
+                  >
+                    {challenge.difficulty}
+                  </span>
+                </div>
+                <div className="text-xs text-neutral-300 whitespace-pre-wrap leading-relaxed">
+                  {challenge.description}
+                </div>
+              </div>
+
+              {/* Input Format */}
+              {challenge.inputFormat && (
+                <div className="space-y-1.5">
+                  <h3 className="text-xs font-semibold tracking-wider uppercase text-neutral-400">
+                    Input Format
+                  </h3>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-neutral-300 whitespace-pre-wrap">
+                    {challenge.inputFormat}
+                  </div>
+                </div>
+              )}
+
+              {/* Output Format */}
+              {challenge.outputFormat && (
+                <div className="space-y-1.5">
+                  <h3 className="text-xs font-semibold tracking-wider uppercase text-neutral-400">
+                    Output Format
+                  </h3>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-neutral-300 whitespace-pre-wrap">
+                    {challenge.outputFormat}
+                  </div>
+                </div>
+              )}
+
+              {/* Constraints */}
+              {challenge.constraints && (
+                <div className="space-y-1.5">
+                  <h3 className="text-xs font-semibold tracking-wider uppercase text-neutral-400">
+                    Constraints
+                  </h3>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-neutral-300 whitespace-pre-wrap">
+                    {challenge.constraints}
+                  </div>
+                </div>
+              )}
+
+              {/* Sample Example */}
+              {challenge.sampleInput && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold tracking-wider uppercase text-neutral-400">
+                    Sample Example
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-neutral-500">
+                        <span>Sample Input</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(challenge.sampleInput, 'sample-in')}
+                          className="flex items-center gap-1 text-[10px] text-neutral-400 hover:text-white cursor-pointer"
+                        >
+                          {copiedKey === 'sample-in' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedKey === 'sample-in' ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-xs font-mono text-neutral-300 overflow-x-auto">
+                        {challenge.sampleInput}
+                      </pre>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-neutral-500">
+                        <span>Sample Output</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(challenge.sampleOutput, 'sample-out')}
+                          className="flex items-center gap-1 text-[10px] text-neutral-400 hover:text-white cursor-pointer"
+                        >
+                          {copiedKey === 'sample-out' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedKey === 'sample-out' ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+                      <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-xs font-mono text-emerald-400 overflow-x-auto">
+                        {challenge.sampleOutput}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Button: Jump to Code */}
+              <div className="pt-2 pb-4">
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('code')}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 cursor-pointer"
+                >
+                  <Code2 className="w-4 h-4" />
+                  <span>Write Code in Editor →</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: Mobile Code Editor & Accessory Keyboard Bar */}
+          {mobileTab === 'code' && (
+            <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#050505] relative">
+              {/* File Title Bar */}
+              <div className="h-8 border-b border-white/[0.06] bg-black/40 px-3 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <Code2 className="w-3 h-3 text-neutral-400" />
+                  <span className="text-[11px] font-mono text-neutral-300">
+                    solution.{activeLanguage === 'python' ? 'py' : activeLanguage === 'javascript' ? 'js' : activeLanguage === 'java' ? 'java' : activeLanguage === 'cpp' ? 'cpp' : 'c'}
+                  </span>
+                </div>
+                {isWorkspaceLocked && (
+                  <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                    <Lock className="w-2.5 h-2.5" /> Locked
+                  </span>
+                )}
+              </div>
+
+              {/* Monaco Editor Container */}
+              <div className="flex-1 relative overflow-hidden">
+                <Editor
+                  height="100%"
+                  language={MONACO_LANG_MAP[activeLanguage] || 'python'}
+                  value={codeByLanguage[activeLanguage] || ''}
+                  theme="vs-dark"
+                  onMount={handleEditorMount}
+                  onChange={handleCodeChange}
+                  options={{
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 13,
+                    lineNumbers: 'on',
+                    lineNumbersMinChars: 3,
+                    roundedSelection: true,
+                    readOnly: isWorkspaceLocked || isExecuting || isSubmitting,
+                    domReadOnly: isWorkspaceLocked,
+                    bracketPairColorization: { enabled: true },
+                    automaticLayout: true,
+                    padding: { top: 10, bottom: 10 },
+                    fontFamily:
+                      "'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace",
+                    fontLigatures: true,
+                    cursorBlinking: 'smooth',
+                    renderLineHighlight: 'all',
+                    overviewRulerBorder: false,
+                    hideCursorInOverviewRuler: true,
+                  }}
+                />
+
+                {/* Locked Glass Overlay */}
+                {isWorkspaceLocked && (
+                  <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center z-30">
+                    <div className="w-10 h-10 rounded-2xl bg-neutral-800/80 border border-white/10 flex items-center justify-center mb-2">
+                      <Lock className="w-5 h-5 text-neutral-300" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-white">Editor Locked</h3>
+                    <p className="text-[11px] text-neutral-400 mt-1 max-w-xs">
+                      {submissionVerdict
+                        ? 'Assessment submitted and locked for grading.'
+                        : 'Assessment editor is disabled.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Quick Coding Accessory Keyboard Row */}
+              <div className="h-10 border-t border-white/[0.08] bg-neutral-950 px-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 z-20">
+                {ACCESSORY_KEYS.map((acc, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => insertAccessorySnippet(acc.value)}
+                    disabled={isWorkspaceLocked || isExecuting || isSubmitting}
+                    className="h-7 px-2.5 rounded-lg bg-white/[0.07] hover:bg-white/[0.14] active:bg-white/[0.22] text-xs font-mono font-medium text-neutral-200 border border-white/[0.08] transition-all shrink-0 cursor-pointer disabled:opacity-40"
+                  >
+                    {acc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Test Cases & Execution Results */}
+          {mobileTab === 'testcases' && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs font-mono">
+              {/* Test Case Tab Pills */}
+              <div className="flex items-center gap-1.5 border-b border-white/[0.08] pb-2 overflow-x-auto">
+                {challenge.visibleTestCases.map((tc, idx) => {
+                  const result = executionResults?.results?.[idx];
+                  return (
+                    <button
+                      key={tc.testCaseIndex}
+                      type="button"
+                      onClick={() => setSelectedTestCaseTab(idx)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer ${
+                        selectedTestCaseTab === idx
+                          ? 'bg-white/[0.14] text-white border border-white/[0.15]'
+                          : 'bg-white/[0.03] text-neutral-400 hover:text-white border border-transparent'
+                      }`}
+                    >
+                      {result ? (
+                        result.passed ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                        )
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-white/20" />
+                      )}
+                      <span>Case {idx + 1}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Test Case Content */}
+              {challenge.visibleTestCases[selectedTestCaseTab] && (
+                <div className="space-y-3">
+                  {/* Status Banner */}
+                  {executionResults?.results?.[selectedTestCaseTab] ? (
+                    <div
+                      className={`p-3 rounded-xl border flex items-center justify-between ${
+                        executionResults.results[selectedTestCaseTab].passed
+                          ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+                          : 'bg-rose-500/10 border-rose-500/25 text-rose-400'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 font-bold text-xs">
+                        {executionResults.results[selectedTestCaseTab].passed ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Passed</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-4 h-4" />
+                            <span>Wrong Answer</span>
+                          </>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-mono opacity-80">
+                        Case #{selectedTestCaseTab + 1}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-neutral-400 text-xs flex items-center justify-between">
+                      <span>Not executed yet</span>
+                      <button
+                        type="button"
+                        onClick={handleRunCode}
+                        disabled={isExecuting || isSubmitting || isWorkspaceLocked || runCooldown > 0}
+                        className="text-blue-400 font-bold hover:underline cursor-pointer"
+                      >
+                        Run code now →
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Input Card */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                      Input
+                    </span>
+                    <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-neutral-300 overflow-x-auto text-xs">
+                      {challenge.visibleTestCases[selectedTestCaseTab].input || '(empty)'}
+                    </pre>
+                  </div>
+
+                  {/* Output vs Expected */}
+                  <div className="space-y-2">
+                    {executionResults?.results?.[selectedTestCaseTab] && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                          Your Output (stdout)
+                        </span>
+                        <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-neutral-200 overflow-x-auto text-xs">
+                          {executionResults.results[selectedTestCaseTab].stdout || '(no output)'}
+                        </pre>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                        Expected Output
+                      </span>
+                      <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-emerald-400 overflow-x-auto text-xs">
+                        {challenge.visibleTestCases[selectedTestCaseTab].expectedOutput}
+                      </pre>
+                    </div>
+
+                    {executionResults?.results?.[selectedTestCaseTab]?.stderr && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-rose-400 tracking-wider">
+                          Standard Error (stderr)
+                        </span>
+                        <pre className="p-2.5 rounded-xl bg-rose-950/20 border border-rose-500/25 text-rose-300 overflow-x-auto text-xs">
+                          {executionResults.results[selectedTestCaseTab].stderr}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: Terminal Output */}
+          {mobileTab === 'console' && (
+            <div className="flex-1 overflow-y-auto p-4 bg-[#000000] font-mono text-xs text-neutral-300 scrollbar-thin">
+              <pre className="whitespace-pre-wrap leading-relaxed">
+                {consoleOutput || '$ Ready for code execution...'}
+              </pre>
+            </div>
+          )}
+        </div>
+
+        {/* ── Mobile Sticky Bottom Action Dock ─────────────────────── */}
+        <div className="px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.6rem)] bg-neutral-950/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center justify-between gap-2 shrink-0 z-30">
+          {/* Language Selector */}
+          <div className="relative shrink-0">
+            <select
+              value={activeLanguage}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              disabled={isWorkspaceLocked || isExecuting || isSubmitting}
+              className="appearance-none bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.12] rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-200 transition-all cursor-pointer focus:outline-none pr-6"
+            >
+              {challenge.allowedLanguages.map((lang) => (
+                <option key={lang} value={lang} className="bg-neutral-900 text-white">
+                  {LANG_DISPLAY_NAMES[lang] || lang.toUpperCase()}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-neutral-400">
+              ▼
+            </span>
+          </div>
+
+          {/* Reset Template */}
+          <button
+            type="button"
+            onClick={handleResetStarterCode}
+            disabled={isWorkspaceLocked || isExecuting || isSubmitting}
+            title="Reset code template"
+            className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-all border border-white/[0.08] shrink-0 cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+
+          {/* Run Code Button */}
+          <button
+            type="button"
+            onClick={handleRunCode}
+            disabled={isExecuting || isSubmitting || isWorkspaceLocked || runCooldown > 0}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] disabled:opacity-40 text-white transition-all border border-white/[0.1] cursor-pointer"
+          >
+            {isExecuting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-300" />
+            ) : runCooldown > 0 ? (
+              <Clock className="w-3.5 h-3.5 text-neutral-400" />
+            ) : (
+              <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+            )}
+            <span>
+              {isExecuting
+                ? 'Running...'
+                : runCooldown > 0
+                ? `Run (${runCooldown}s)`
+                : 'Run'}
+            </span>
+          </button>
+
+          {/* Submit Button */}
+          <button
+            type="button"
+            onClick={() => setShowSubmitModal(true)}
+            disabled={isExecuting || isSubmitting || isWorkspaceLocked}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 active:scale-98 disabled:opacity-40 text-white transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+          >
+            {isSubmitting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Send className="w-3.5 h-3.5" />
+            )}
+            <span>{isSubmitting ? 'Evaluating...' : 'Submit'}</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Submit Confirmation Modal ────────────────────────────────── */}

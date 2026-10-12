@@ -7,7 +7,7 @@ import {
   Trash2, KeyRound, Check, X, AlertTriangle,
   Loader2, UserPlus, Crown, Copy, RefreshCw,
   Edit, ChevronLeft, ChevronRight, CheckCircle2,
-  Sparkles, Mail, Lock, ArrowRight, Upload, FileSpreadsheet,
+  Sparkles, Mail, Lock, ArrowRight, Upload, FileSpreadsheet, Share2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { User, UserRole } from '../types/user';
@@ -287,6 +287,28 @@ const UserManagement: React.FC = () => {
   const copyToClipboard = (text: string, label = 'Copied!') => {
     navigator.clipboard.writeText(text);
     toast.success(label);
+  };
+
+  const handleShareResetLink = async (link: string, userName?: string) => {
+    if (!link) return;
+    const shareData = {
+      title: 'Code Circle - Password Reset Link',
+      text: userName ? `Password reset link for ${userName}:` : 'Password reset link:',
+      url: link,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        toast.success('Link shared successfully!');
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: Copy to clipboard
+    copyToClipboard(link, 'Reset link copied to clipboard!');
   };
 
   // ── Bulk Upload Handlers ──────────────────────────────────────────────────
@@ -1073,47 +1095,77 @@ const UserManagement: React.FC = () => {
           CENTERED MODAL: RESET LINK
       ════════════════════════════════════════════════════════ */}
       <CenteredModal open={showResetLinkModal && !!selectedUser && !!activeResetLink} onClose={() => setShowResetLinkModal(false)}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
               Credential Reset
             </p>
-            <h3 className="text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            <h3 className="text-lg sm:text-xl font-black mt-0.5 truncate" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Reset Link Ready
             </h3>
           </div>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}>
             <KeyRound size={18} strokeWidth={1.8} />
           </div>
         </div>
 
-        <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs sm:text-[13px] leading-relaxed break-words" style={{ color: 'var(--text-muted)' }}>
           Valid for 24 hours for <strong style={{ color: 'var(--text-primary)' }}>{selectedUser?.name}</strong>.
-          Share this link securely.
+          Share this link securely with the student.
         </p>
 
+        {/* Link input with quick copy and share icons */}
         <div
-          className="flex items-center gap-2 p-3 rounded-xl"
+          className="flex items-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 rounded-xl"
           style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)' }}
         >
           <input
-            readOnly value={activeResetLink || ''}
-            className="bg-transparent text-[12px] font-mono flex-1 outline-none truncate"
+            readOnly
+            value={activeResetLink || ''}
+            onClick={(e) => (e.target as HTMLInputElement).select()}
+            className="bg-transparent text-[11px] sm:text-[12px] font-mono flex-1 outline-none truncate select-all"
             style={{ color: 'var(--text-secondary)' }}
+            placeholder="Reset Link"
           />
           <button
             onClick={() => copyToClipboard(activeResetLink!, 'Reset link copied!')}
-            className="p-1.5 rounded-lg cursor-pointer transition-colors duration-150"
+            className="p-1.5 rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
             style={{ color: 'var(--accent)' }}
+            title="Copy reset link"
+            aria-label="Copy reset link"
           >
-            <Copy size={14} strokeWidth={2} />
+            <Copy size={15} strokeWidth={2} />
+          </button>
+          <button
+            onClick={() => handleShareResetLink(activeResetLink!, selectedUser?.name)}
+            className="p-1.5 rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+            style={{ color: 'var(--accent)' }}
+            title="Share reset link"
+            aria-label="Share reset link"
+          >
+            <Share2 size={15} strokeWidth={2} />
           </button>
         </div>
 
-        <div className="flex gap-3">
-          <button onClick={() => setShowResetLinkModal(false)} className="btn-secondary flex-1 py-2.5 text-sm">Close</button>
-          <button onClick={() => copyToClipboard(activeResetLink!, 'Copied!')} className="btn-primary flex-1 py-2.5 text-sm flex items-center justify-center gap-2">
+        {/* Action buttons - responsive layout for all mobile and desktop screens */}
+        <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
+          <button
+            onClick={() => setShowResetLinkModal(false)}
+            className="btn-secondary w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => copyToClipboard(activeResetLink!, 'Reset link copied!')}
+            className="btn-secondary w-full sm:flex-1 py-2.5 text-xs sm:text-sm flex items-center justify-center gap-2 font-semibold"
+          >
             <Copy size={14} strokeWidth={2} /> Copy Link
+          </button>
+          <button
+            onClick={() => handleShareResetLink(activeResetLink!, selectedUser?.name)}
+            className="btn-primary w-full sm:flex-1 py-2.5 text-xs sm:text-sm flex items-center justify-center gap-2 font-semibold shadow-sm"
+          >
+            <Share2 size={14} strokeWidth={2} /> Share Link
           </button>
         </div>
       </CenteredModal>
@@ -1122,16 +1174,16 @@ const UserManagement: React.FC = () => {
           CENTERED MODAL: FORCE RESET (SuperAdmin)
       ════════════════════════════════════════════════════════ */}
       <CenteredModal open={showForceResetModal && !!selectedUser} onClose={() => { setShowForceResetModal(false); setGeneratedTempPassword(null); }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#f59e0b' }}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest truncate" style={{ color: '#f59e0b' }}>
               Admin / SuperAdmin Action
             </p>
-            <h3 className="text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            <h3 className="text-lg sm:text-xl font-black mt-0.5 truncate" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Temporary Password Generation
             </h3>
           </div>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
             <KeyRound size={18} strokeWidth={1.8} />
           </div>
         </div>
@@ -1139,7 +1191,7 @@ const UserManagement: React.FC = () => {
         {!generatedTempPassword ? (
           <>
             <div
-              className="p-4 rounded-2xl text-[13px] leading-relaxed space-y-2"
+              className="p-3.5 sm:p-4 rounded-2xl text-xs sm:text-[13px] leading-relaxed space-y-2"
               style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', color: '#fbbf24' }}
             >
               <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -1152,12 +1204,12 @@ const UserManagement: React.FC = () => {
                 When the student signs in with this temporary password, they will be required to create their own personal password before accessing Code Circle.
               </p>
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowForceResetModal(false)} className="btn-secondary flex-1 py-2.5 text-sm">Cancel</button>
+            <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
+              <button onClick={() => setShowForceResetModal(false)} className="btn-secondary w-full sm:flex-1 py-2.5 text-xs sm:text-sm">Cancel</button>
               <button
                 onClick={executeForceReset}
                 disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors duration-150"
+                className="w-full sm:flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors duration-150"
                 style={{ background: '#f59e0b', color: '#000' }}
               >
                 {actionLoading ? <Loader2 size={15} className="animate-spin" /> : 'Generate Temp Password'}
@@ -1167,30 +1219,39 @@ const UserManagement: React.FC = () => {
         ) : (
           <div className="space-y-4">
             <div
-              className="p-4 rounded-2xl flex items-start gap-3"
+              className="p-3.5 sm:p-4 rounded-2xl flex items-start gap-3"
               style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
             >
               <CheckCircle2 size={16} strokeWidth={2} style={{ color: '#34d399', flexShrink: 0, marginTop: 2 }} />
-              <p className="text-[13px]" style={{ color: '#34d399' }}>Temporary password generated. Hand off to the student; they will be prompted to create their own personal password upon login:</p>
+              <p className="text-xs sm:text-[13px]" style={{ color: '#34d399' }}>Temporary password generated. Hand off to the student; they will be prompted to create their own personal password upon login:</p>
             </div>
             <div
-              className="flex items-center gap-3 p-4 rounded-xl"
+              className="flex items-center gap-2 sm:gap-3 p-3.5 sm:p-4 rounded-xl"
               style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}
             >
-              <code className="text-base font-mono font-bold flex-1 tracking-widest" style={{ color: '#fbbf24' }}>
+              <code className="text-sm sm:text-base font-mono font-bold flex-1 tracking-widest break-all" style={{ color: '#fbbf24' }}>
                 {generatedTempPassword}
               </code>
               <button
                 onClick={() => copyToClipboard(generatedTempPassword!, 'Temporary password copied!')}
-                className="p-1.5 rounded-lg cursor-pointer"
+                className="p-1.5 rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
                 style={{ color: '#f59e0b' }}
+                title="Copy temporary password"
               >
-                <Copy size={14} strokeWidth={2} />
+                <Copy size={15} strokeWidth={2} />
+              </button>
+              <button
+                onClick={() => handleShareResetLink(generatedTempPassword!, selectedUser?.name)}
+                className="p-1.5 rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
+                style={{ color: '#f59e0b' }}
+                title="Share temporary password"
+              >
+                <Share2 size={15} strokeWidth={2} />
               </button>
             </div>
             <button
               onClick={() => { setShowForceResetModal(false); setGeneratedTempPassword(null); setSelectedUser(null); }}
-              className="btn-primary w-full py-2.5 text-sm"
+              className="btn-primary w-full py-2.5 text-xs sm:text-sm font-semibold"
             >
               Done & Close
             </button>
