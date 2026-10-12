@@ -242,39 +242,39 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const isTimeCritical = timeLeftSeconds < 180 && timeLeftSeconds > 0; // Under 3 mins
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-lg overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-lg overflow-hidden">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-4xl h-full sm:h-auto sm:max-h-[92vh] glass border-0 sm:border border-border relative overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] flex flex-col rounded-none sm:rounded-3xl"
+        className="w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[92vh] glass border-0 sm:border border-border relative overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] flex flex-col rounded-none sm:rounded-3xl"
       >
         {/* Ambient Glow */}
         <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
 
         {/* Top Assessment Header */}
-        <div className="p-3.5 sm:p-5 md:p-6 border-b border-border flex items-center justify-between gap-2.5 sm:gap-4 relative z-10 flex-shrink-0 bg-white/[0.01]">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div className="p-3 sm:p-5 md:p-6 border-b border-border flex items-center justify-between gap-2 sm:gap-4 relative z-10 flex-shrink-0 bg-white/[0.01]">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
               <Award size={18} className="sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm sm:text-base md:text-lg font-black text-text-primary truncate">
+              <h2 className="text-xs sm:text-base md:text-lg font-black text-text-primary truncate">
                 {currentAssessment?.title || 'Loading Assessment...'}
               </h2>
               <p className="text-[10px] sm:text-[11px] text-text-muted truncate">
-                {currentResult ? 'Assessment Results & Breakdown' : `Question ${currentQuestionIndex + 1} of ${totalQuestions} • Passing Cutoff: ${currentAssessment?.passingScorePercentage}%`}
+                {currentResult ? 'Assessment Results & Breakdown' : `Question ${currentQuestionIndex + 1} of ${totalQuestions} • Cutoff: ${currentAssessment?.passingScorePercentage}%`}
               </p>
             </div>
           </div>
 
-          {/* Right Header Items: Proctoring Badge, Fullscreen, Timer & Close */}
+          {/* Right Header Items: Proctoring Badge, Fullscreen, Timer, Quick Submit & Close */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {!currentResult && (
               <>
                 {/* Anti-Cheat Proctoring Badge */}
                 <div
-                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold transition-all shrink-0 ${
+                  className={`hidden xs:flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold transition-all shrink-0 ${
                     tabSwitchCount === 0
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                       : tabSwitchCount === 1
@@ -309,7 +309,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
                 {/* Timer */}
                 <div
-                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border transition-all shrink-0 ${
+                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border transition-all shrink-0 ${
                     isTimeCritical
                       ? 'bg-red-500/15 border-red-500/40 text-red-400 animate-pulse'
                       : 'bg-surface-elevated border-border text-text-primary'
@@ -320,6 +320,20 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                     {formatTime(timeLeftSeconds)}
                   </span>
                 </div>
+
+                {/* Always-Visible Direct Submit Button (Essential for Mobile & Quick Finishing) */}
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(true)}
+                  className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-white shadow-[0_0_15px_rgba(16,185,129,0.35)] transition-all cursor-pointer shrink-0"
+                  title="Submit assessment now"
+                >
+                  <Send size={12} className="sm:w-[13px] sm:h-[13px]" />
+                  <span>Submit</span>
+                  <span className="hidden xs:inline-block text-[10px] bg-white/20 px-1 rounded font-mono">
+                    {answeredCount}/{totalQuestions}
+                  </span>
+                </button>
               </>
             )}
 
@@ -511,6 +525,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   </button>
                 );
               })}
+
+              {/* Direct Jump Submit Pill in Progress Bar */}
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(true)}
+                className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black transition-all flex items-center gap-1 shrink-0 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer ml-auto"
+                title="Finish and submit assessment"
+              >
+                <Send size={11} />
+                <span>Submit</span>
+              </button>
             </div>
 
             {/* Active Question Content */}
@@ -578,7 +603,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             </div>
 
             {/* Bottom Controls Bar */}
-            <div className="p-3 sm:p-4 md:p-6 border-t border-border flex items-center justify-between gap-2 sm:gap-3 bg-white/[0.01] flex-shrink-0">
+            <div className="p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] border-t border-border flex items-center justify-between gap-2 sm:gap-3 bg-white/[0.01] flex-shrink-0">
               <button
                 onClick={handlePrevious}
                 disabled={currentQuestionIndex === 0}
@@ -598,11 +623,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {/* Secondary Quick Submit Button - ALWAYS accessible across all questions */}
+                {currentQuestionIndex < totalQuestions - 1 && (
+                  <button
+                    onClick={() => setShowConfirmModal(true)}
+                    className="px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 flex items-center gap-1 transition-all cursor-pointer"
+                    title="Submit assessment now"
+                  >
+                    <Send size={12} />
+                    <span>Submit</span>
+                  </button>
+                )}
+
                 {currentQuestionIndex < totalQuestions - 1 ? (
                   <button
                     onClick={handleNext}
-                    className="btn-primary py-2 sm:py-2.5 px-3.5 sm:px-5 text-xs font-black flex items-center gap-1 sm:gap-1.5 cursor-pointer"
+                    className="btn-primary py-2 sm:py-2.5 px-3 sm:px-5 text-xs font-black flex items-center gap-1 sm:gap-1.5 cursor-pointer"
                   >
                     <span>Next</span> <ChevronRight size={15} />
                   </button>
@@ -629,7 +666,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-sm sm:max-w-md glass border border-border p-5 sm:p-7 space-y-4 sm:space-y-5 text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-2xl sm:rounded-3xl"
+                className="w-full max-w-sm sm:max-w-md glass border border-border p-5 sm:p-7 space-y-4 sm:space-y-5 text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-2xl sm:rounded-3xl max-h-[90dvh] overflow-y-auto"
               >
                 <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
                   <Send size={24} className="sm:w-[26px] sm:h-[26px]" />
