@@ -192,15 +192,17 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
             )}
             style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
           >
-            {(title || description) && (
+            {(title || description) ? (
               <DialogHeader className="mb-2">
-                {title && (
+                {title ? (
                   <DialogTitle
                     className="text-xl font-bold tracking-tight text-text-primary"
                     style={{ color: 'var(--text-primary)' }}
                   >
                     {title}
                   </DialogTitle>
+                ) : (
+                  <DialogTitle className="sr-only">Modal</DialogTitle>
                 )}
                 {description && (
                   <DialogDescription
@@ -211,6 +213,8 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                   </DialogDescription>
                 )}
               </DialogHeader>
+            ) : (
+              <DialogTitle className="sr-only">Modal Dialog</DialogTitle>
             )}
             <div
               className={cn(
@@ -246,15 +250,17 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
           )}
           style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
         >
-          {(title || description) && (
-            <DrawerHeader className="px-6 pt-2 pb-2 text-left shrink-0">
-              {title && (
+          {(title || description) ? (
+            <DrawerHeader className="px-5 sm:px-6 pt-2 pb-2 text-left shrink-0">
+              {title ? (
                 <DrawerTitle
                   className="text-xl font-bold tracking-tight text-text-primary"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {title}
                 </DrawerTitle>
+              ) : (
+                <DrawerTitle className="sr-only">Modal</DrawerTitle>
               )}
               {description && (
                 <DrawerDescription
@@ -265,10 +271,12 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                 </DrawerDescription>
               )}
             </DrawerHeader>
+          ) : (
+            <DrawerTitle className="sr-only">Modal Drawer</DrawerTitle>
           )}
           <div
             className={cn(
-              'flex-1 overflow-y-auto px-6 overscroll-contain space-y-4 max-h-[80vh]',
+              'flex-1 overflow-y-auto px-4 sm:px-6 overscroll-contain space-y-4 max-h-[85vh]',
               contentClassName
             )}
           >

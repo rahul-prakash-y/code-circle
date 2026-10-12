@@ -22,7 +22,7 @@ export const AnalyticsPage: React.FC = () => {
         <div className="flex items-center rounded-2xl border border-separator/80 bg-surface-secondary p-1">
           <button
             onClick={() => setActiveTab('onboarding')}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+            className={`flex items-center whitespace-nowrap gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
               activeTab === 'onboarding'
                 ? 'bg-surface text-label-primary shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
@@ -34,7 +34,7 @@ export const AnalyticsPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+            className={`flex items-center whitespace-nowrap gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
               activeTab === 'analytics'
                 ? 'bg-surface text-label-primary shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'

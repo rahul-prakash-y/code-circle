@@ -186,21 +186,21 @@ export const ContestArenaPage: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-background font-sans overflow-hidden">
       {/* 1. TOP ARENA APP BAR */}
-      <header className="h-14 border-b border-separator bg-surface px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-xs z-20">
-        <div className="flex items-center gap-3">
+      <header className="h-14 border-b border-separator bg-surface px-2.5 sm:px-6 flex items-center justify-between gap-2 shrink-0 shadow-xs z-20">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={() => {
               if (confirm('Leave arena? Your timer will continue running.')) navigate('/contests');
             }}
-            className="p-1.5 hover:bg-surface-raised rounded-xl text-label-secondary"
+            className="p-1.5 hover:bg-surface-raised rounded-xl text-label-secondary shrink-0 cursor-pointer"
           >
             <ArrowLeft size={16} />
           </button>
-          <div>
-            <h1 className="text-xs sm:text-sm font-extrabold text-label-primary tracking-tight truncate max-w-[200px] sm:max-w-md">
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-sm font-extrabold text-label-primary tracking-tight truncate max-w-[120px] sm:max-w-xs md:max-w-md">
               {activeContest.title}
             </h1>
-            <p className="text-[10px] text-label-tertiary font-mono uppercase tracking-wider">
+            <p className="text-[9px] sm:text-[10px] text-label-tertiary font-mono uppercase tracking-wider truncate">
               {activeContest.type} ARENA · {activeContest.totalPoints} PTS
             </p>
           </div>
@@ -208,10 +208,10 @@ export const ContestArenaPage: React.FC = () => {
 
         {/* Section Switcher (if Hybrid) */}
         {activeContest.type === 'HYBRID' && (
-          <div className="flex items-center gap-1 p-1 bg-surface-secondary border border-separator rounded-xl text-xs font-bold">
+          <div className="flex items-center gap-1 p-1 bg-surface-secondary border border-separator rounded-xl text-xs font-bold shrink-0">
             <button
               onClick={() => setSelectedSection('mcq')}
-              className={`px-3 py-1 rounded-lg transition-all ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
                 selectedSection === 'mcq'
                   ? 'bg-primary text-white shadow-xs'
                   : 'text-label-secondary hover:text-label-primary'
@@ -221,7 +221,7 @@ export const ContestArenaPage: React.FC = () => {
             </button>
             <button
               onClick={() => setSelectedSection('coding')}
-              className={`px-3 py-1 rounded-lg transition-all ${
+              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
                 selectedSection === 'coding'
                   ? 'bg-primary text-white shadow-xs'
                   : 'text-label-secondary hover:text-label-primary'
@@ -233,21 +233,22 @@ export const ContestArenaPage: React.FC = () => {
         )}
 
         {/* Countdown & Submit Button */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <div
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl border text-xs font-mono font-bold ${timerColor}`}
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs font-mono font-bold ${timerColor}`}
           >
-            <Clock size={13} />
+            <Clock size={12} className="sm:w-[13px] sm:h-[13px]" />
             <span>{formatTimer(secondsRemaining)}</span>
           </div>
 
           <button
             onClick={() => setIsSubmitModalOpen(true)}
             disabled={submitting}
-            className="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
+            className="px-2.5 sm:px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer"
           >
-            <Send size={13} />
-            <span>Submit Contest</span>
+            <Send size={12} className="sm:w-[13px] sm:h-[13px]" />
+            <span className="hidden sm:inline">Submit Contest</span>
+            <span className="sm:hidden">Submit</span>
           </button>
         </div>
       </header>
@@ -258,8 +259,8 @@ export const ContestArenaPage: React.FC = () => {
         {selectedSection === 'mcq' && currentMcq && (
           <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
             {/* Left Question Body */}
-            <div className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-6 max-w-3xl mx-auto w-full">
-              <div className="flex items-center justify-between border-b border-separator pb-4">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-10 space-y-4 sm:space-y-6 max-w-3xl mx-auto w-full">
+              <div className="flex items-center justify-between border-b border-separator pb-3 sm:pb-4">
                 <span className="text-xs font-mono font-bold text-primary">
                   Question {currentMcqIdx + 1} of {mcqs.length}
                 </span>
@@ -268,13 +269,13 @@ export const ContestArenaPage: React.FC = () => {
                 </span>
               </div>
 
-              <div className="space-y-4">
-                <h2 className="text-lg sm:text-xl font-bold text-label-primary leading-relaxed">
+              <div className="space-y-3 sm:space-y-4">
+                <h2 className="text-base sm:text-xl font-bold text-label-primary leading-relaxed break-words">
                   {currentMcq.question}
                 </h2>
 
                 {/* Options List */}
-                <div className="space-y-3 pt-4">
+                <div className="space-y-2.5 sm:space-y-3 pt-2 sm:pt-4">
                   {currentMcq.options.map((opt: string, optIdx: number) => {
                     const isSelected = mcqAnswers[currentMcq._id] === optIdx;
                     return (
@@ -286,7 +287,7 @@ export const ContestArenaPage: React.FC = () => {
                             [currentMcq._id]: optIdx,
                           })
                         }
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center gap-3.5 text-xs font-medium ${
+                        className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border cursor-pointer transition-all flex items-center gap-3 sm:gap-3.5 text-xs font-medium ${
                           isSelected
                             ? 'bg-primary/10 border-primary text-label-primary shadow-xs ring-1 ring-primary'
                             : 'bg-surface border-separator hover:border-primary/40 text-label-secondary'
@@ -301,7 +302,7 @@ export const ContestArenaPage: React.FC = () => {
                         >
                           {String.fromCharCode(65 + optIdx)}
                         </span>
-                        <span className="flex-1">{opt}</span>
+                        <span className="flex-1 break-words min-w-0">{opt}</span>
                       </div>
                     );
                   })}
@@ -309,11 +310,11 @@ export const ContestArenaPage: React.FC = () => {
               </div>
 
               {/* Prev / Next Buttons */}
-              <div className="flex items-center justify-between pt-6 border-t border-separator">
+              <div className="flex items-center justify-between pt-4 sm:pt-6 border-t border-separator">
                 <button
                   disabled={currentMcqIdx === 0}
                   onClick={() => setCurrentMcqIdx(currentMcqIdx - 1)}
-                  className="px-4 py-2 bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1"
+                  className="px-3 sm:px-4 py-2 bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <ChevronLeft size={14} />
                   <span>Previous</span>
@@ -321,7 +322,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   disabled={currentMcqIdx === mcqs.length - 1}
                   onClick={() => setCurrentMcqIdx(currentMcqIdx + 1)}
-                  className="px-4 py-2 bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1"
+                  className="px-3 sm:px-4 py-2 bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <span>Next</span>
                   <ChevronRight size={14} />
@@ -330,11 +331,11 @@ export const ContestArenaPage: React.FC = () => {
             </div>
 
             {/* Right Question Navigation Matrix */}
-            <div className="w-full sm:w-64 border-t sm:border-t-0 sm:border-l border-separator bg-surface p-6 space-y-4 shrink-0">
+            <div className="w-full sm:w-64 border-t sm:border-t-0 sm:border-l border-separator bg-surface p-3.5 sm:p-6 space-y-3 sm:space-y-4 shrink-0 max-h-48 sm:max-h-none overflow-y-auto sm:overflow-visible">
               <h3 className="text-xs font-bold text-label-secondary uppercase tracking-wider">
                 Question Matrix
               </h3>
-              <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-6 sm:grid-cols-4 gap-1.5 sm:gap-2">
                 {mcqs.map((q, idx) => {
                   const isAnswered = mcqAnswers[q._id] !== undefined;
                   const isCurrent = idx === currentMcqIdx;
@@ -342,7 +343,7 @@ export const ContestArenaPage: React.FC = () => {
                     <button
                       key={q._id}
                       onClick={() => setCurrentMcqIdx(idx)}
-                      className={`h-10 rounded-xl text-xs font-mono font-bold transition-all border ${
+                      className={`h-8 sm:h-10 rounded-lg sm:rounded-xl text-xs font-mono font-bold transition-all border cursor-pointer ${
                         isCurrent
                           ? 'ring-2 ring-primary border-primary text-primary bg-primary/10'
                           : isAnswered
@@ -356,13 +357,13 @@ export const ContestArenaPage: React.FC = () => {
                 })}
               </div>
 
-              <div className="pt-4 border-t border-separator space-y-1.5 text-[11px] text-label-tertiary">
+              <div className="pt-2 sm:pt-4 border-t border-separator space-y-1 sm:space-y-1.5 text-[10px] sm:text-[11px] text-label-tertiary">
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-md bg-emerald-500/20 border border-emerald-500/30" />
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-md bg-emerald-500/20 border border-emerald-500/30" />
                   <span>Answered ({Object.keys(mcqAnswers).length})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-md bg-surface-secondary border border-separator" />
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-md bg-surface-secondary border border-separator" />
                   <span>Unanswered ({mcqs.length - Object.keys(mcqAnswers).length})</span>
                 </div>
               </div>

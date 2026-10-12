@@ -19,29 +19,29 @@ export const AssessmentsPage: React.FC = () => {
         </div>
 
         {/* Apple Segmented Pill Switcher */}
-        <div className="flex items-center p-1 rounded-full bg-surface-secondary border border-separator/80 shrink-0 self-start md:self-auto shadow-sm">
+        <div className="flex items-center p-1 rounded-2xl sm:rounded-full bg-surface-secondary border border-separator/80 shrink-0 w-full sm:w-auto shadow-sm">
           <button
             onClick={() => setActiveTab('coding')}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 rounded-xl sm:rounded-full text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'coding'
                 ? 'bg-accent text-white shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
             }`}
           >
-            <Terminal className="w-3.5 h-3.5" />
-            <span>Live Coding Sandbox</span>
+            <Terminal className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Live Coding Sandbox</span>
           </button>
 
           <button
             onClick={() => setActiveTab('mcq')}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 rounded-xl sm:rounded-full text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'mcq'
                 ? 'bg-accent text-white shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
             }`}
           >
-            <Award className="w-3.5 h-3.5" />
-            <span>MCQ Quizzes</span>
+            <Award className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">MCQ Quizzes</span>
           </button>
         </div>
       </div>

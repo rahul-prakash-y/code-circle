@@ -242,39 +242,39 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const isTimeCritical = timeLeftSeconds < 180 && timeLeftSeconds > 0; // Under 3 mins
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-lg overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-lg overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-4xl my-auto glass border border-border relative overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] max-h-[92vh] flex flex-col"
+        className="w-full max-w-4xl h-full sm:h-auto sm:max-h-[92vh] glass border-0 sm:border border-border relative overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] flex flex-col rounded-none sm:rounded-3xl"
       >
         {/* Ambient Glow */}
         <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
 
         {/* Top Assessment Header */}
-        <div className="p-5 sm:p-6 border-b border-border flex items-center justify-between gap-4 relative z-10 flex-shrink-0 bg-white/[0.01]">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
-              <Award size={20} />
+        <div className="p-3.5 sm:p-5 md:p-6 border-b border-border flex items-center justify-between gap-2.5 sm:gap-4 relative z-10 flex-shrink-0 bg-white/[0.01]">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+              <Award size={18} className="sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-black text-text-primary line-clamp-1">
+              <h2 className="text-sm sm:text-base md:text-lg font-black text-text-primary truncate">
                 {currentAssessment?.title || 'Loading Assessment...'}
               </h2>
-              <p className="text-[11px] text-text-muted">
+              <p className="text-[10px] sm:text-[11px] text-text-muted truncate">
                 {currentResult ? 'Assessment Results & Breakdown' : `Question ${currentQuestionIndex + 1} of ${totalQuestions} • Passing Cutoff: ${currentAssessment?.passingScorePercentage}%`}
               </p>
             </div>
           </div>
 
           {/* Right Header Items: Proctoring Badge, Fullscreen, Timer & Close */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {!currentResult && (
               <>
                 {/* Anti-Cheat Proctoring Badge */}
                 <div
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold transition-all shrink-0 ${
                     tabSwitchCount === 0
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                       : tabSwitchCount === 1
@@ -283,9 +283,11 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   }`}
                   title="Anti-cheat proctoring active. Tab switches are strictly monitored."
                 >
-                  <ShieldAlert size={14} className={tabSwitchCount > 1 ? 'animate-bounce' : ''} />
+                  <ShieldAlert size={13} className={tabSwitchCount > 1 ? 'animate-bounce' : ''} />
                   <span>
-                    Tab Switches: {tabSwitchCount} / {maxStrikes}
+                    <span className="hidden sm:inline">Tab Switches: </span>
+                    <span className="sm:hidden">Switches: </span>
+                    {tabSwitchCount} / {maxStrikes}
                   </span>
                 </div>
 
@@ -299,7 +301,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       document.exitFullscreen?.().catch(() => {});
                     }
                   }}
-                  className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer hidden sm:flex"
+                  className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer hidden md:flex shrink-0"
                   title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
                   {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -307,14 +309,14 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
                 {/* Timer */}
                 <div
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border transition-all shrink-0 ${
                     isTimeCritical
                       ? 'bg-red-500/15 border-red-500/40 text-red-400 animate-pulse'
                       : 'bg-surface-elevated border-border text-text-primary'
                   }`}
                 >
-                  <Clock size={16} className={isTimeCritical ? 'text-red-400' : 'text-purple-400'} />
-                  <span className="font-mono text-sm font-black tabular-nums">
+                  <Clock size={14} className={isTimeCritical ? 'text-red-400' : 'text-purple-400'} />
+                  <span className="font-mono text-xs sm:text-sm font-black tabular-nums">
                     {formatTime(timeLeftSeconds)}
                   </span>
                 </div>
@@ -323,10 +325,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
             <button
               onClick={handleSafeClose}
-              className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer shrink-0"
               title="Close Test"
             >
-              <X size={18} />
+              <X size={16} className="sm:w-[18px] sm:h-[18px]" />
             </button>
           </div>
         </div>
@@ -343,26 +345,26 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           /* ========================================================================= */
           /* POST-SUBMISSION SCORE & REVIEW SCREEN */
           /* ========================================================================= */
-          <div className="overflow-y-auto custom-scrollbar flex-1 p-6 sm:p-8 space-y-8 relative z-10">
+          <div className="overflow-y-auto custom-scrollbar flex-1 p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 relative z-10">
             {/* Score Banner */}
             <div
-              className={`p-8 rounded-3xl border relative overflow-hidden text-center space-y-4 ${
+              className={`p-5 sm:p-8 rounded-2xl sm:rounded-3xl border relative overflow-hidden text-center space-y-3 sm:space-y-4 ${
                 currentResult.passed
                   ? 'bg-emerald-500/10 border-emerald-500/30'
                   : 'bg-red-500/10 border-red-500/30'
               }`}
             >
-              <div className="inline-flex p-4 rounded-3xl bg-surface-elevated border border-border mx-auto">
+              <div className="inline-flex p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-surface-elevated border border-border mx-auto">
                 {currentResult.passed ? (
-                  <Trophy size={40} className="text-emerald-400 animate-bounce" />
+                  <Trophy size={34} className="text-emerald-400 animate-bounce sm:w-10 sm:h-10" />
                 ) : (
-                  <AlertTriangle size={40} className="text-amber-400" />
+                  <AlertTriangle size={34} className="text-amber-400 sm:w-10 sm:h-10" />
                 )}
               </div>
 
               <div>
                 <span
-                  className={`text-[11px] font-black uppercase tracking-[0.25em] px-3.5 py-1 rounded-full border ${
+                  className={`text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] px-3 sm:px-3.5 py-1 rounded-full border ${
                     currentResult.passed
                       ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                       : 'bg-red-500/20 text-red-400 border-red-500/40'
@@ -370,17 +372,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 >
                   {currentResult.passed ? 'Assessment Passed' : 'Needs Practice'}
                 </span>
-                <h3 className="text-3xl sm:text-4xl font-black text-text-primary mt-3">
+                <h3 className="text-2xl sm:text-4xl font-black text-text-primary mt-2.5 sm:mt-3">
                   {currentResult.score} / {currentResult.totalPoints} Points ({currentResult.percentage}%)
                 </h3>
-                <p className="text-xs text-text-secondary max-w-md mx-auto mt-2">
+                <p className="text-xs text-text-secondary max-w-md mx-auto mt-2 leading-relaxed">
                   {currentResult.passed
                     ? `Outstanding! You achieved ${currentResult.percentage}%, exceeding the ${currentResult.passingScorePercentage}% requirement.`
                     : `You scored ${currentResult.percentage}%. The passing threshold is ${currentResult.passingScorePercentage}%. Review the explanations below and try again!`}
                 </p>
               </div>
 
-              <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold text-text-muted">
+              <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-2 text-[11px] sm:text-xs font-bold text-text-muted">
                 <span>⏱️ Time Spent: {formatTime(currentResult.timeSpentSeconds)}</span>
                 <span>📋 Total Questions: {currentResult.detailedResults.length}</span>
               </div>
@@ -389,17 +391,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             {/* Detailed Question Review Breakdown */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <HelpCircle size={18} className="text-purple-400" />
-                <h4 className="text-sm font-black uppercase tracking-wider text-text-primary">
+                <HelpCircle size={18} className="text-purple-400 shrink-0" />
+                <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-text-primary">
                   Answer Key & Comprehensive Explanations
                 </h4>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {currentResult.detailedResults.map((qResult, idx) => (
                   <div
                     key={idx}
-                    className={`p-5 rounded-2xl border space-y-3 transition-all ${
+                    className={`p-4 sm:p-5 rounded-2xl border space-y-3 transition-all ${
                       qResult.isCorrect
                         ? 'bg-emerald-500/[0.03] border-emerald-500/20'
                         : 'bg-red-500/[0.03] border-red-500/20'
@@ -427,7 +429,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       </span>
                     </div>
 
-                    <p className="text-sm font-bold text-text-primary leading-relaxed">
+                    <p className="text-xs sm:text-sm font-bold text-text-primary leading-relaxed break-words">
                       {qResult.questionText}
                     </p>
 
@@ -450,7 +452,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                     </div>
 
                     {qResult.explanation && (
-                      <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/15 text-xs text-purple-300 leading-relaxed">
+                      <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/15 text-xs text-purple-300 leading-relaxed break-words">
                         <span className="font-bold text-purple-400">Explanation: </span>
                         {qResult.explanation}
                       </div>
@@ -461,7 +463,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             </div>
 
             {/* Post-result Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-4 border-t border-border">
               <button
                 onClick={() => {
                   clearCurrentResult();
@@ -470,13 +472,13 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   setTimeLeftSeconds((currentAssessment.timeLimitMinutes || 30) * 60);
                   setStartTime(Date.now());
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated flex items-center gap-2 border border-border transition-all"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated flex items-center justify-center gap-2 border border-border transition-all cursor-pointer w-full sm:w-auto"
               >
                 <RotateCcw size={14} /> Retake Assessment
               </button>
               <button
                 onClick={onClose}
-                className="btn-primary py-2.5 px-6 text-xs font-black"
+                className="btn-primary py-2.5 px-6 text-xs font-black cursor-pointer w-full sm:w-auto text-center"
               >
                 Return to Dashboard
               </button>
@@ -488,7 +490,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           /* ========================================================================= */
           <div className="flex-1 flex flex-col overflow-hidden relative z-10">
             {/* Question Progress Bubbles Bar */}
-            <div className="px-6 py-4 bg-white/[0.02] border-b border-border flex items-center gap-2 overflow-x-auto custom-scrollbar flex-shrink-0">
+            <div className="px-3 sm:px-6 py-2.5 sm:py-4 bg-white/[0.02] border-b border-border flex items-center gap-1.5 sm:gap-2 overflow-x-auto custom-scrollbar flex-shrink-0">
               {questions.map((_, idx) => {
                 const isAnswered = answers[idx] !== undefined;
                 const isCurrent = idx === currentQuestionIndex;
@@ -497,7 +499,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   <button
                     key={idx}
                     onClick={() => setCurrentQuestionIndex(idx)}
-                    className={`w-8 h-8 rounded-xl text-xs font-black transition-all flex items-center justify-center flex-shrink-0 ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center flex-shrink-0 cursor-pointer ${
                       isCurrent
                         ? 'bg-purple-600 text-text-primary shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-105'
                         : isAnswered
@@ -512,26 +514,26 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             </div>
 
             {/* Active Question Content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 space-y-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
               {currentQ ? (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Question Header & Points */}
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-xs font-black uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full">
                       Question {currentQuestionIndex + 1} of {totalQuestions}
                     </span>
-                    <span className="text-xs font-bold text-text-muted">
+                    <span className="text-[11px] sm:text-xs font-bold text-text-muted">
                       Worth {currentQ.points || 1} Point{(currentQ.points || 1) > 1 ? 's' : ''}
                     </span>
                   </div>
 
                   {/* Question Prompt */}
-                  <h3 className="text-lg sm:text-xl font-black text-text-primary leading-relaxed">
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold sm:font-black text-text-primary leading-snug sm:leading-relaxed break-words">
                     {currentQ.questionText}
                   </h3>
 
                   {/* Multiple Choice Options */}
-                  <div className="space-y-3 pt-2">
+                  <div className="space-y-2.5 sm:space-y-3 pt-1 sm:pt-2">
                     {currentQ.options.map((optText, optIndex) => {
                       const isSelected = answers[currentQuestionIndex] === optIndex;
                       const optionLetter = String.fromCharCode(65 + optIndex);
@@ -539,17 +541,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       return (
                         <motion.button
                           key={optIndex}
-                          whileHover={{ scale: 1.01 }}
-                          whileTap={{ scale: 0.99 }}
+                          whileHover={{ scale: 1.005 }}
+                          whileTap={{ scale: 0.995 }}
                           onClick={() => handleSelectOption(optIndex)}
-                          className={`w-full p-4 sm:p-5 rounded-2xl text-left flex items-center gap-4 transition-all duration-200 cursor-pointer border ${
+                          className={`w-full p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl text-left flex items-center gap-3 sm:gap-4 transition-all duration-200 cursor-pointer border ${
                             isSelected
                               ? 'bg-purple-600/15 border-purple-500 text-text-primary shadow-[0_0_25px_rgba(168,85,247,0.25)]'
                               : 'bg-surface-elevated border-border text-text-secondary hover:bg-surface-elevated hover:border-border-hover'
                           }`}
                         >
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all flex-shrink-0 ${
+                            className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center text-xs font-black transition-all flex-shrink-0 ${
                               isSelected
                                 ? 'bg-purple-600 text-text-primary shadow-[0_0_12px_rgba(168,85,247,0.4)]'
                                 : 'bg-surface-elevated text-text-muted'
@@ -558,12 +560,12 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                             {optionLetter}
                           </div>
 
-                          <span className="text-xs sm:text-sm font-medium leading-relaxed flex-1">
+                          <span className="text-xs sm:text-sm font-medium leading-relaxed flex-1 break-words min-w-0">
                             {optText}
                           </span>
 
                           {isSelected && (
-                            <CheckCircle2 size={20} className="text-purple-400 flex-shrink-0" />
+                            <CheckCircle2 size={18} className="text-purple-400 flex-shrink-0" />
                           )}
                         </motion.button>
                       );
@@ -576,33 +578,42 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             </div>
 
             {/* Bottom Controls Bar */}
-            <div className="p-4 sm:p-6 border-t border-border flex items-center justify-between gap-3 bg-white/[0.01] flex-shrink-0">
+            <div className="p-3 sm:p-4 md:p-6 border-t border-border flex items-center justify-between gap-2 sm:gap-3 bg-white/[0.01] flex-shrink-0">
               <button
                 onClick={handlePrevious}
                 disabled={currentQuestionIndex === 0}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 transition-all"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 sm:gap-1.5 transition-all shrink-0 cursor-pointer"
               >
-                <ChevronLeft size={16} /> Previous
+                <ChevronLeft size={15} />
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
               </button>
 
-              <div className="text-xs font-bold text-text-muted">
-                <span className="text-purple-400 font-black">{answeredCount}</span> of {totalQuestions} answered
+              <div className="text-[11px] sm:text-xs font-bold text-text-muted text-center px-1 truncate">
+                <span className="hidden sm:inline">
+                  <span className="text-purple-400 font-black">{answeredCount}</span> of {totalQuestions} answered
+                </span>
+                <span className="sm:hidden">
+                  <span className="text-purple-400 font-black">{answeredCount}</span>/{totalQuestions} answered
+                </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {currentQuestionIndex < totalQuestions - 1 ? (
                   <button
                     onClick={handleNext}
-                    className="btn-primary py-2.5 px-5 text-xs font-black flex items-center gap-1.5"
+                    className="btn-primary py-2 sm:py-2.5 px-3.5 sm:px-5 text-xs font-black flex items-center gap-1 sm:gap-1.5 cursor-pointer"
                   >
-                    Next <ChevronRight size={16} />
+                    <span>Next</span> <ChevronRight size={15} />
                   </button>
                 ) : (
                   <button
                     onClick={() => setShowConfirmModal(true)}
-                    className="btn-primary py-2.5 px-6 text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-2"
+                    className="btn-primary py-2 sm:py-2.5 px-3.5 sm:px-6 text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Send size={15} /> Submit Assessment
+                    <Send size={13} />
+                    <span className="hidden sm:inline">Submit Assessment</span>
+                    <span className="sm:hidden">Submit</span>
                   </button>
                 )}
               </div>
@@ -613,18 +624,18 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         {/* Confirmation Submission Dialog */}
         <AnimatePresence>
           {showConfirmModal && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-md glass border border-border p-6 sm:p-7 space-y-5 text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
+                className="w-full max-w-sm sm:max-w-md glass border border-border p-5 sm:p-7 space-y-4 sm:space-y-5 text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-2xl sm:rounded-3xl"
               >
-                <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
-                  <Send size={26} />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
+                  <Send size={24} className="sm:w-[26px] sm:h-[26px]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-text-primary">Ready to submit?</h3>
+                  <h3 className="text-base sm:text-lg font-black text-text-primary">Ready to submit?</h3>
                   <p className="text-xs text-text-muted mt-1 leading-relaxed">
                     You have completed{' '}
                     <span className="text-text-primary font-bold">{answeredCount}</span> of{' '}
@@ -637,19 +648,19 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-center gap-3 pt-2">
+                <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2">
                   <button
                     onClick={() => setShowConfirmModal(false)}
-                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated transition-all"
+                    className="w-full sm:flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated transition-all cursor-pointer"
                   >
                     Back to Test
                   </button>
                   <button
                     onClick={executeSubmit}
                     disabled={submitting}
-                    className="btn-primary py-2.5 px-6 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 disabled:opacity-50"
+                    className="btn-primary w-full sm:flex-1 py-2.5 px-4 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 disabled:opacity-50 cursor-pointer text-center"
                   >
-                    {submitting ? 'Calculating Score...' : 'Yes, Submit Now'}
+                    {submitting ? 'Submitting...' : 'Yes, Submit Now'}
                   </button>
                 </div>
               </motion.div>
@@ -660,22 +671,22 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         {/* Anti-Cheat Tab Switch Warning Modal (Strikes 1 & 2) */}
         <AnimatePresence>
           {showTabWarning && !isLocked && !currentResult && (
-            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-xl">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="w-full max-w-md bg-surface border border-amber-500/40 rounded-3xl p-6 sm:p-8 text-center space-y-5 shadow-2xl relative overflow-hidden"
+                className="w-full max-w-sm sm:max-w-md bg-surface border border-amber-500/40 rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-center space-y-4 sm:space-y-5 shadow-2xl relative overflow-hidden"
               >
-                <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
-                  <ShieldAlert size={36} />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+                  <ShieldAlert size={32} className="sm:w-9 sm:h-9" />
                 </div>
 
                 <div className="space-y-2">
-                  <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <span className="px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
                     Security Warning: Strike {tabSwitchCount} of {maxStrikes}
                   </span>
-                  <h3 className="text-xl font-black text-text-primary tracking-tight font-heading mt-2">
+                  <h3 className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-heading mt-1.5 sm:mt-2">
                     Tab Switching Is Prohibited!
                   </h3>
                   <p className="text-xs text-text-secondary leading-relaxed">
@@ -687,7 +698,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   <p className="text-destructive font-bold flex items-center gap-1.5">
                     <AlertTriangle size={14} /> Strike {tabSwitchCount} Recorded
                   </p>
-                  <p className="text-text-muted text-[11px]">
+                  <p className="text-text-muted text-[11px] leading-relaxed">
                     If you switch tabs {maxStrikes - tabSwitchCount} more time{maxStrikes - tabSwitchCount > 1 ? 's' : ''}, your assessment will be <strong>automatically locked and submitted</strong> with current answers.
                   </p>
                 </div>
@@ -707,17 +718,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         {/* Anti-Cheat Max Violations Auto-Submit Modal (Strike 3) */}
         <AnimatePresence>
           {isLocked && (
-            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-4 bg-black/95 backdrop-blur-2xl">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md bg-surface border border-red-500/40 rounded-3xl p-8 text-center space-y-5 shadow-2xl"
+                className="w-full max-w-sm sm:max-w-md bg-surface border border-red-500/40 rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center space-y-4 sm:space-y-5 shadow-2xl"
               >
-                <div className="w-16 h-16 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-destructive mx-auto">
-                  <Lock size={36} />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-destructive mx-auto">
+                  <Lock size={32} className="sm:w-9 sm:h-9" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-text-primary tracking-tight font-heading">
+                  <h3 className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-heading">
                     Assessment Disqualified & Locked
                   </h3>
                   <p className="text-xs text-destructive font-bold uppercase tracking-wider mt-1">
@@ -739,26 +750,26 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         {/* Safe Exit Confirmation Modal */}
         <AnimatePresence>
           {showExitConfirm && (
-            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="w-full max-w-md glass border border-border p-6 rounded-3xl text-center space-y-4 shadow-2xl"
+                className="w-full max-w-sm sm:max-w-md glass border border-border p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-center space-y-4 shadow-2xl"
               >
-                <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-destructive flex items-center justify-center mx-auto">
-                  <AlertTriangle size={28} />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-destructive flex items-center justify-center mx-auto">
+                  <AlertTriangle size={26} className="sm:w-7 sm:h-7" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-text-primary">Exit Assessment?</h3>
+                  <h3 className="text-base sm:text-lg font-black text-text-primary">Exit Assessment?</h3>
                   <p className="text-xs text-text-muted mt-1 leading-relaxed">
                     Your test timer is running. If you leave now without submitting, your answers will not be saved.
                   </p>
                 </div>
-                <div className="flex items-center justify-center gap-3 pt-2">
+                <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2">
                   <button
                     onClick={() => setShowExitConfirm(false)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-text-primary bg-surface-elevated border border-border hover:bg-canvas transition-all"
+                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-bold text-text-primary bg-surface-elevated border border-border hover:bg-canvas transition-all cursor-pointer"
                   >
                     Continue Test
                   </button>
@@ -770,7 +781,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       }
                       onClose();
                     }}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-destructive hover:bg-red-600 transition-all cursor-pointer"
+                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-destructive hover:bg-red-600 transition-all cursor-pointer"
                   >
                     Exit Anyway
                   </button>

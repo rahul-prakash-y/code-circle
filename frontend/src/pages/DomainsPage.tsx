@@ -591,7 +591,7 @@ export const DomainsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterMode('all')}
-            className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+            className={`px-3 py-1 whitespace-nowrap rounded-lg transition cursor-pointer ${
               filterMode === 'all'
                 ? 'bg-accent text-white font-semibold'
                 : 'text-label-secondary hover:text-label-primary'
@@ -602,7 +602,7 @@ export const DomainsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterMode('in_progress')}
-            className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+            className={`px-3 py-1 whitespace-nowrap rounded-lg transition cursor-pointer ${
               filterMode === 'in_progress'
                 ? 'bg-accent text-white font-semibold'
                 : 'text-label-secondary hover:text-label-primary'
@@ -613,7 +613,7 @@ export const DomainsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterMode('completed')}
-            className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+            className={`px-3 py-1 whitespace-nowrap rounded-lg transition cursor-pointer ${
               filterMode === 'completed'
                 ? 'bg-accent text-white font-semibold'
                 : 'text-label-secondary hover:text-label-primary'
@@ -625,7 +625,7 @@ export const DomainsPage: React.FC = () => {
       </div>
 
       {/* Grid of Course Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 sm:gap-8">
         {filteredDomains.map((domain, index) => {
           const totalLvl = domain.totalLevels || 0;
           const completedLvl = domain.completedLevelsCount || 0;
