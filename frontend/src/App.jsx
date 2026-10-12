@@ -14,6 +14,7 @@ const SetupPassword = lazy(() => import('./pages/SetupPassword'));
 const StudentBearers = lazy(() => import('./pages/StudentBearers'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
+const DomainsPage = lazy(() => import('./pages/DomainsPage'));
 const AssessmentsPage = lazy(() => import('./pages/AssessmentsPage'));
 const AttendancePage = lazy(() => import('./pages/AttendancePage'));
 const CertificatesPage = lazy(() => import('./pages/CertificatesPage'));
@@ -23,28 +24,18 @@ const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const Profile = lazy(() => import('./pages/Profile'));
 const CodingWorkspace = lazy(() => import('./components/coding/CodingWorkspace'));
+const CodingAssessmentWorkspace = lazy(() => import('./components/coding/CodingAssessmentWorkspace'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 const TeamsManagement = lazy(() => import('./pages/TeamsManagement'));
 const BearerManagement = lazy(() => import('./pages/BearerManagement'));
-
-export const decodeJwtPayload = (token) => {
-  if (!token) return null;
-  try {
-    const base64Url = token.split('.')[1];
-    if (!base64Url) return null;
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-};
+const StudentTrackingPage = lazy(() => import('./pages/StudentTrackingPage'));
+const VerifyCertificatePage = lazy(() => import('./pages/VerifyCertificatePage'));
+const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'));
+const ContestsPage = lazy(() => import('./pages/ContestsPage'));
+const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
+const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
+import { decodeJwtPayload } from './lib/jwt';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading, token } = useAuthStore();
@@ -131,6 +122,10 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
+          {/* Public Certificate Verification Routes */}
+          <Route path="/verify/:code" element={<VerifyCertificatePage />} />
+          <Route path="/certificates/verify/:code" element={<VerifyCertificatePage />} />
+
           {/* Mandatory Initial Password Setup Route */}
           <Route
             path="/setup-password"
@@ -150,6 +145,41 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/assessments/code/:problemId"
+            element={
+              <ProtectedRoute>
+                <CodingAssessmentWorkspace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assessments/code/level/:levelId"
+            element={
+              <ProtectedRoute>
+                <CodingAssessmentWorkspace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assessment/code/:problemId"
+            element={
+              <ProtectedRoute>
+                <CodingAssessmentWorkspace />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fullscreen Contest Arena without App Shell */}
+          <Route
+            path="/contests/:id/arena"
+            element={
+              <ProtectedRoute>
+                <ContestArenaPage />
+              </ProtectedRoute>
+            }
+          />
+
 
           {/* Persistent App Shell Layout Route */}
           <Route element={<MainLayout />}>
@@ -185,6 +215,40 @@ function App() {
             />
 
             <Route
+              path="/courses"
+              element={
+                <ProtectedRoute>
+                  <DomainsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/courses/:domainId"
+              element={
+                <ProtectedRoute>
+                  <DomainsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/domains"
+              element={
+                <ProtectedRoute>
+                  <DomainsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/domains/:domainId"
+              element={
+                <ProtectedRoute>
+                  <DomainsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/assessments"
               element={
                 <ProtectedRoute>
@@ -198,6 +262,32 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AttendancePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Weekly Contests Routes */}
+            <Route
+              path="/contests"
+              element={
+                <ProtectedRoute>
+                  <ContestsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contests/:id"
+              element={
+                <ProtectedRoute>
+                  <ContestsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contests/:id/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <ContestLeaderboardPage />
                 </ProtectedRoute>
               }
             />
@@ -285,12 +375,40 @@ function App() {
               }
             />
 
+            {/* Student Tracking Module (SuperAdmin & Admin) */}
+            <Route
+              path="/tracking"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
+                  <StudentTrackingPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Admin Analytics Module */}
             <Route
               path="/analytics"
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
                   <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* SuperAdmin Diagnostics & Database Manager Module */}
+            <Route
+              path="/diagnostics"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                  <DiagnosticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/diagnostics"
+              element={
+                <ProtectedRoute allowedRoles={['SuperAdmin']}>
+                  <DiagnosticsPage />
                 </ProtectedRoute>
               }
             />

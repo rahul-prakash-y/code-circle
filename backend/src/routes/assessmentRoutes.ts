@@ -1,8 +1,12 @@
 import { FastifyInstance } from 'fastify';
 import assessmentController from '../controllers/assessmentController';
+import { codingAssessmentRoutes } from './codingAssessmentRoutes';
 import { verifyToken, isAdminOrFaculty, requireRole } from '../middleware/authMiddleware';
 
 export async function assessmentRoutes(fastify: FastifyInstance) {
+  // Mount live coding assessment sub-routes
+  fastify.register(codingAssessmentRoutes, { prefix: '/code' });
+
   // All assessment routes require authentication
   fastify.addHook('preHandler', verifyToken);
 

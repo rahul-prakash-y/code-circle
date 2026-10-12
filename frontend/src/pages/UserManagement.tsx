@@ -14,6 +14,7 @@ import { User, UserRole } from '../types/user';
 import { useDebounce } from '../hooks/useDebounce';
 import OnboardingStatsWidget from '../components/admin/OnboardingStatsWidget';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
+import StudentCourseAccessModal from '../components/domains/StudentCourseAccessModal';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
@@ -142,6 +143,7 @@ const UserManagement: React.FC = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showResetLinkModal, setShowResetLinkModal] = useState(false);
   const [showForceResetModal, setShowForceResetModal] = useState(false);
+  const [showCourseAccessModal, setShowCourseAccessModal] = useState(false);
 
   // Bulk delete state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -499,6 +501,16 @@ const UserManagement: React.FC = () => {
               <div className="w-px h-10 self-center" style={{ background: 'var(--border-color)' }} />
 
               <div className="flex gap-2">
+                {isSuperAdmin() && (
+                  <button
+                    onClick={() => setShowCourseAccessModal(true)}
+                    className="btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer text-amber-500 hover:bg-amber-500/10 border-amber-500/30"
+                    title="Manage selective student permissions for courses"
+                  >
+                    <Crown size={15} strokeWidth={2} />
+                    Course Access
+                  </button>
+                )}
                 <button
                   onClick={() => setShowOnboardingWidget((prev) => !prev)}
                   className={`btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer ${
@@ -771,7 +783,7 @@ const UserManagement: React.FC = () => {
 
                       {/* Department */}
                       <td className="py-5 px-5">
-                        <span className="text-[13px]" style={{ color: item.department ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+                        <span className="text-[13px] whitespace-nowrap" style={{ color: item.department ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
                           {item.department || <span className="italic text-[12px]">—</span>}
                         </span>
                       </td>
@@ -1571,6 +1583,14 @@ const UserManagement: React.FC = () => {
           )}
         </div>
       </SlideOver>
+
+      {/* SuperAdmin Student Course Access Modal */}
+      {showCourseAccessModal && (
+        <StudentCourseAccessModal
+          isOpen={showCourseAccessModal}
+          onClose={() => setShowCourseAccessModal(false)}
+        />
+      )}
     </div>
   );
 };

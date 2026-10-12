@@ -11,10 +11,15 @@ import {
 } from '../controllers/adminController';
 import { verifyToken, isAdmin } from '../middleware/authMiddleware';
 
+import { studentTrackingRoutes } from './studentTrackingRoutes';
+
 export async function adminRoutes(fastify: FastifyInstance) {
   // All admin routes are protected by verifyToken & isAdmin middleware
   fastify.addHook('preHandler', verifyToken);
   fastify.addHook('preHandler', isAdmin);
+
+  // Student Tracking System endpoints (/api/admin/tracking/students, /tracking/students/:userId, /tracking/export)
+  fastify.register(studentTrackingRoutes, { prefix: '/tracking' });
 
   // Student onboarding stats tracker endpoint
   fastify.get('/onboarding-stats', getOnboardingStats);

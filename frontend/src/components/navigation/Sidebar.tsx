@@ -16,6 +16,10 @@ import {
   Shield,
   BarChart3,
   ChevronLeft,
+  Compass,
+  UserCheck,
+  Activity,
+  Flame,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -100,10 +104,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       match: (loc) => loc.pathname === '/events',
     },
     {
+      to: '/courses',
+      label: 'Courses',
+      icon: Compass,
+      match: (loc) => loc.pathname.startsWith('/courses') || loc.pathname.startsWith('/domains'),
+    },
+    {
       to: '/assessments',
       label: 'Assessments',
       icon: Award,
       match: (loc) => loc.pathname === '/assessments',
+    },
+    {
+      to: '/contests',
+      label: 'Contests',
+      icon: Flame,
+      match: (loc) => loc.pathname.startsWith('/contests'),
     },
     {
       to: '/attendance',
@@ -163,6 +179,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
               loc.pathname === '/teams' ||
               loc.pathname === '/admin/bearers',
           },
+          {
+            to: '/diagnostics',
+            label: 'Diagnostics',
+            icon: Activity,
+            match: (loc: { pathname: string; search: string }) =>
+              loc.pathname === '/diagnostics' || loc.pathname === '/admin/diagnostics',
+          },
         ]
       : []),
     {
@@ -170,6 +193,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       label: 'Directory',
       icon: Shield,
       match: (loc) => loc.pathname === '/users' || loc.pathname === '/students',
+    },
+    {
+      to: '/tracking',
+      label: 'Student Tracking',
+      icon: UserCheck,
+      match: (loc) => loc.pathname === '/tracking',
     },
     {
       to: '/analytics',

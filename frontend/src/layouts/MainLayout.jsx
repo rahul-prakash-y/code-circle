@@ -10,6 +10,7 @@ import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
   Medal, Trophy, Ticket, MessageSquare,
   Newspaper, Users, Crown, Shield, BarChart3,
+  Compass, UserCheck,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -92,6 +93,7 @@ export const MainLayout = ({ children }) => {
   const mobileLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/events', label: 'Events', icon: Calendar },
+    { to: '/courses', label: 'Courses', icon: Compass },
     { to: '/assessments', label: 'Assessments', icon: Award },
     { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
     { to: '/certificates', label: 'Certificates', icon: Medal },
@@ -104,6 +106,7 @@ export const MainLayout = ({ children }) => {
     ...(isAdmin
       ? [
           { to: '/users', label: 'Directory', icon: Shield },
+          { to: '/tracking', label: 'Student Tracking', icon: UserCheck },
           { to: '/analytics', label: 'Analytics', icon: BarChart3 },
         ]
       : []),

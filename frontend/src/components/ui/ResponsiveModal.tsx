@@ -21,12 +21,16 @@ import {
   DrawerClose,
 } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 
 export interface ResponsiveModalProps {
   /** Controls open state of the modal or bottom sheet */
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   /** Callback fired when open state changes */
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
   /** Primary title header */
   title?: React.ReactNode;
   /** Optional secondary subtitle or description */
@@ -45,6 +49,8 @@ export interface ResponsiveModalProps {
   drawerClassName?: string;
   /** Custom class name applied to the scrollable internal container */
   contentClassName?: string;
+  /** Optional presentation variant on desktop: 'dialog' (default centered) or 'slideover' (drawer/slide-over from right) */
+  variant?: 'dialog' | 'slideover';
   /** Optional snap points for mobile drawer (e.g. [0.5, 1] or ['400px', '90vh']) */
   snapPoints?: (number | string)[];
   /** Active snap point value */
@@ -70,8 +76,10 @@ export const useResponsiveModal = () => React.useContext(ResponsiveModalContext)
  * Full dark mode support using CSS variables (`var(--surface)` / `var(--text-primary)`).
  */
 export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
-  open,
-  onOpenChange,
+  open: propOpen,
+  isOpen,
+  onOpenChange: propOnOpenChange,
+  onClose,
   title,
   description,
   children,
@@ -81,14 +89,97 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
   dialogClassName,
   drawerClassName,
   contentClassName,
+  variant = 'dialog',
   snapPoints,
   activeSnapPoint,
   setActiveSnapPoint,
   shouldScaleBackground = true,
 }) => {
+  const open = propOpen !== undefined ? propOpen : Boolean(isOpen);
+  const onOpenChange = (nextOpen: boolean) => {
+    if (propOnOpenChange) propOnOpenChange(nextOpen);
+    if (!nextOpen && onClose) onClose();
+  };
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
   if (isDesktop) {
+    if (variant === 'slideover') {
+      return (
+        <ResponsiveModalContext.Provider value={{ isDesktop: true }}>
+          {trigger && <div onClick={() => onOpenChange(true)}>{trigger}</div>}
+          <AnimatePresence>
+            {open && (
+              <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={() => onOpenChange(false)}
+                  className="fixed inset-0 bg-black/40 backdrop-blur-[4px]"
+                />
+                <motion.div
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ type: 'spring', damping: 32, stiffness: 350 }}
+                  className={cn(
+                    'relative z-50 h-full w-full max-w-2xl bg-surface text-text-primary shadow-2xl flex flex-col',
+                    dialogClassName,
+                    className
+                  )}
+                  style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
+                >
+                  {(title || description) && (
+                    <div className="flex items-center justify-between p-6 pb-4 border-b border-separator/40 shrink-0">
+                      <div>
+                        {title && (
+                          <h2
+                            className="text-xl font-bold tracking-tight text-text-primary"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            {title}
+                          </h2>
+                        )}
+                        {description && (
+                          <p
+                            className="text-sm text-text-muted mt-1"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            {description}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onOpenChange(false)}
+                        className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-text-muted hover:text-text-primary"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      'overflow-y-auto flex-1 p-6 pr-4',
+                      contentClassName
+                    )}
+                  >
+                    {children}
+                  </div>
+                  {footer && (
+                    <div className="p-6 pt-4 border-t border-separator/40 shrink-0">
+                      {footer}
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+        </ResponsiveModalContext.Provider>
+      );
+    }
+
     return (
       <ResponsiveModalContext.Provider value={{ isDesktop: true }}>
         <Dialog open={open} onOpenChange={onOpenChange}>

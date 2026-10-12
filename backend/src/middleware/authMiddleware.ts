@@ -47,6 +47,36 @@ export const verifyToken = async (request: FastifyRequest, reply: FastifyReply) 
   }
 };
 
+export const optionalToken = async (request: FastifyRequest, _reply: FastifyReply) => {
+  try {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return;
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+
+    const user = await User.findById(decoded.id);
+    if (!user || user.isBlocked) {
+      return;
+    }
+
+    request.user = {
+      id: user._id.toString(),
+      _id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      name: user.name,
+      rollNo: user.rollNo,
+      department: user.department || '',
+      sessionId: decoded.sessionId,
+    };
+  } catch (error) {
+    // Silently continue for optional auth
+  }
+};
+
 /**
  * Role-based access control middleware with hierarchy support:
  * SuperAdmin has universal clearance.
@@ -108,6 +138,7 @@ export const isAdminOrFaculty = requireRole('Admin', 'Faculty', 'Committee');
 
 export default {
   verifyToken,
+  optionalToken,
   requireRole,
   requireAdmin,
   isAdmin,
