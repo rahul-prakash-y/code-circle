@@ -11,6 +11,7 @@ import {
   Medal, Trophy, Ticket, MessageSquare,
   Newspaper, Users, Crown, Shield, BarChart3,
   Compass, UserCheck,
+  Flame,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -95,6 +96,7 @@ export const MainLayout = ({ children }) => {
     { to: '/events', label: 'Events', icon: Calendar },
     { to: '/courses', label: 'Courses', icon: Compass },
     { to: '/assessments', label: 'Assessments', icon: Award },
+    { to: '/contests', label: 'Contests', icon: Flame },
     { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
     { to: '/certificates', label: 'Certificates', icon: Medal },
     { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
