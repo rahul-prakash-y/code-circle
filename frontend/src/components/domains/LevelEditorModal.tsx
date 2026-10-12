@@ -892,7 +892,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
                     placeholder={
                       mat.type === 'code'
                         ? 'Paste code snippet here...'
-                        : 'Notes, key bullet points, or summary...'
+                        : 'Notes, key bullet points, or summary (Markdown supported: **bold**, - bullets, # headers)...'
                     }
                     className={`w-full px-3 py-1.5 rounded-lg bg-surface border border-separator text-xs text-label-primary resize-none ${
                       mat.type === 'code' ? 'font-mono' : ''
