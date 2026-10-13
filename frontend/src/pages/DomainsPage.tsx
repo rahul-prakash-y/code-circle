@@ -625,7 +625,7 @@ export const DomainsPage: React.FC = () => {
       </div>
 
       {/* Grid of Course Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 sm:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-6 sm:gap-8">
         {filteredDomains.map((domain, index) => {
           const totalLvl = domain.totalLevels || 0;
           const completedLvl = domain.completedLevelsCount || 0;

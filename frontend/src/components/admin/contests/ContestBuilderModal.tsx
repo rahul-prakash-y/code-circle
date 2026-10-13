@@ -14,9 +14,24 @@ import {
   Layers,
   Save,
   CheckCircle2,
+  Eye,
+  EyeOff,
+  Copy,
+  AlertCircle,
+  ShieldAlert,
+  ChevronDown,
+  ChevronUp,
+  FileCode,
+  Terminal,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import useContestStore, { Contest, MCQQuestion, CodingProblem } from '../../../store/useContestStore';
+import useContestStore, {
+  Contest,
+  MCQQuestion,
+  CodingProblem,
+  CodingProblemTestCase,
+} from '../../../store/useContestStore';
 
 interface ContestBuilderModalProps {
   isOpen: boolean;
@@ -29,9 +44,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
   onClose,
   editingContest,
 }) => {
-  const { createContest, updateContest } = useContestStore();
+  const { createContest, updateContest, fetchContestById } = useContestStore();
 
   const [activeTab, setActiveTab] = useState<'info' | 'mcq' | 'coding'>('info');
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Default start: now, end: 7 days from now
   const defaultStart = new Date().toISOString().slice(0, 16);
@@ -107,11 +123,51 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
       setEndTime(
         editingContest.endTime ? new Date(editingContest.endTime).toISOString().slice(0, 16) : defaultEnd
       );
-      if (editingContest.mcqQuestions?.length) {
-        setMcqQuestions(editingContest.mcqQuestions);
-      }
-      if (editingContest.codingProblems?.length) {
-        setCodingProblems(editingContest.codingProblems);
+
+      // If the contest overview list omitted questions, fetch full contest details to retrieve all coding problems & test cases
+      if ((!editingContest.codingProblems || !editingContest.mcqQuestions) && editingContest._id) {
+        setLoadingDetails(true);
+        fetchContestById(editingContest._id)
+          .then((full) => {
+            if (full) {
+              if (full.mcqQuestions?.length) {
+                setMcqQuestions(full.mcqQuestions);
+              }
+              if (full.codingProblems?.length) {
+                setCodingProblems(
+                  full.codingProblems.map((p) => ({
+                    ...p,
+                    testCases:
+                      p.testCases && p.testCases.length > 0
+                        ? p.testCases
+                        : [
+                            { input: p.sampleInput || '', expectedOutput: p.sampleOutput || '', isHidden: false },
+                            { input: '', expectedOutput: '', isHidden: true },
+                          ],
+                  }))
+                );
+              }
+            }
+          })
+          .finally(() => setLoadingDetails(false));
+      } else {
+        if (editingContest.mcqQuestions?.length) {
+          setMcqQuestions(editingContest.mcqQuestions);
+        }
+        if (editingContest.codingProblems?.length) {
+          setCodingProblems(
+            editingContest.codingProblems.map((p) => ({
+              ...p,
+              testCases:
+                p.testCases && p.testCases.length > 0
+                  ? p.testCases
+                  : [
+                      { input: p.sampleInput || '', expectedOutput: p.sampleOutput || '', isHidden: false },
+                      { input: '', expectedOutput: '', isHidden: true },
+                    ],
+            }))
+          );
+        }
       }
     } else {
       setTitle('Weekly Coding Battle #1');
@@ -125,8 +181,33 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
       setPointAllocationMode('AUTOMATIC');
       setStartTime(defaultStart);
       setEndTime(defaultEnd);
+      setMcqQuestions([
+        {
+          question: 'What is the time complexity of searching in a balanced Binary Search Tree?',
+          options: ['O(1)', 'O(n)', 'O(log n)', 'O(n log n)'],
+          correctOptionIndex: 2,
+          points: 10,
+          explanation: 'In a balanced BST, tree height is log2(n), giving O(log n) search operations.',
+        },
+      ]);
+      setCodingProblems([
+        {
+          title: 'Two Sum Variant',
+          description:
+            'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`. Output indices space-separated on a single line.',
+          difficulty: 'Easy',
+          points: 30,
+          allowedLanguages: ['python', 'javascript', 'cpp', 'java', 'c'],
+          sampleInput: '4\n2 7 11 15\n9',
+          sampleOutput: '0 1',
+          testCases: [
+            { input: '4\n2 7 11 15\n9', expectedOutput: '0 1', isHidden: false },
+            { input: '3\n3 2 4\n6', expectedOutput: '1 2', isHidden: true },
+          ],
+        },
+      ]);
     }
-  }, [editingContest, isOpen]);
+  }, [editingContest, isOpen, fetchContestById]);
 
   // Dynamic sum of question points
   const questionsPointSum =
@@ -159,15 +240,125 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         allowedLanguages: ['python', 'javascript', 'cpp', 'java', 'c'],
         sampleInput: '',
         sampleOutput: '',
-        testCases: [{ input: '', expectedOutput: '', isHidden: false }],
+        testCases: [
+          { input: '', expectedOutput: '', isHidden: false },
+          { input: '', expectedOutput: '', isHidden: true },
+        ],
       },
     ]);
+  };
+
+  // Test cases management handlers
+  const handleAddTestCase = (problemIdx: number, isHidden: boolean = false) => {
+    const updated = [...codingProblems];
+    const currentTestCases = updated[problemIdx].testCases || [];
+    updated[problemIdx].testCases = [
+      ...currentTestCases,
+      { input: '', expectedOutput: '', isHidden },
+    ];
+    setCodingProblems(updated);
+  };
+
+  const handleUpdateTestCase = (
+    problemIdx: number,
+    tcIdx: number,
+    field: 'input' | 'expectedOutput' | 'isHidden',
+    value: any
+  ) => {
+    const updated = [...codingProblems];
+    const currentTestCases = [...(updated[problemIdx].testCases || [])];
+    currentTestCases[tcIdx] = {
+      ...currentTestCases[tcIdx],
+      [field]: value,
+    };
+    updated[problemIdx].testCases = currentTestCases;
+    setCodingProblems(updated);
+  };
+
+  const handleToggleTestCaseHidden = (problemIdx: number, tcIdx: number) => {
+    const updated = [...codingProblems];
+    const currentTestCases = [...(updated[problemIdx].testCases || [])];
+    const currentStatus = Boolean(currentTestCases[tcIdx]?.isHidden);
+    currentTestCases[tcIdx] = {
+      ...currentTestCases[tcIdx],
+      isHidden: !currentStatus,
+    };
+    updated[problemIdx].testCases = currentTestCases;
+    setCodingProblems(updated);
+  };
+
+  const handleRemoveTestCase = (problemIdx: number, tcIdx: number) => {
+    const updated = [...codingProblems];
+    const currentTestCases = (updated[problemIdx].testCases || []).filter((_, idx) => idx !== tcIdx);
+    updated[problemIdx].testCases = currentTestCases;
+    setCodingProblems(updated);
+  };
+
+  const handleDuplicateTestCase = (problemIdx: number, tcIdx: number) => {
+    const updated = [...codingProblems];
+    const currentTestCases = [...(updated[problemIdx].testCases || [])];
+    const itemToClone = currentTestCases[tcIdx];
+    currentTestCases.splice(tcIdx + 1, 0, {
+      input: itemToClone.input || '',
+      expectedOutput: itemToClone.expectedOutput || '',
+      isHidden: itemToClone.isHidden ?? true,
+    });
+    updated[problemIdx].testCases = currentTestCases;
+    setCodingProblems(updated);
+    toast.success('Test case duplicated!');
+  };
+
+  const handleCopySampleToTestCase = (problemIdx: number, isHidden: boolean = false) => {
+    const prob = codingProblems[problemIdx];
+    if (!prob.sampleInput && !prob.sampleOutput) {
+      toast.error('Sample Input and Sample Output are empty. Fill them first!');
+      return;
+    }
+    const updated = [...codingProblems];
+    const currentTestCases = updated[problemIdx].testCases || [];
+    updated[problemIdx].testCases = [
+      ...currentTestCases,
+      {
+        input: prob.sampleInput || '',
+        expectedOutput: prob.sampleOutput || '',
+        isHidden,
+      },
+    ];
+    setCodingProblems(updated);
+    toast.success(`Added sample as a ${isHidden ? 'hidden' : 'public'} test case!`);
   };
 
   const handleSave = async () => {
     if (!title.trim()) {
       toast.error('Contest title is required');
       return;
+    }
+
+    // Validate Coding Problems test cases
+    if (type !== 'MCQ') {
+      for (let i = 0; i < codingProblems.length; i++) {
+        const p = codingProblems[i];
+        if (!p.title?.trim()) {
+          toast.error(`Problem #${i + 1} is missing a title.`);
+          return;
+        }
+
+        const tcs = p.testCases || [];
+        if (tcs.length === 0) {
+          toast.error(`Problem #${i + 1} ("${p.title}") must have at least one test case.`);
+          return;
+        }
+
+        for (let j = 0; j < tcs.length; j++) {
+          const tc = tcs[j];
+          if (!String(tc.expectedOutput ?? '').trim()) {
+            toast.error(
+              `Problem #${i + 1} ("${p.title}"): Test Case #${j + 1} is missing Expected Output.`
+            );
+            return;
+          }
+        }
+      }
     }
 
     const payload = {
@@ -181,7 +372,17 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
       startTime: new Date(startTime).toISOString(),
       endTime: new Date(endTime).toISOString(),
       mcqQuestions: type === 'CODING' ? [] : mcqQuestions,
-      codingProblems: type === 'MCQ' ? [] : codingProblems,
+      codingProblems:
+        type === 'MCQ'
+          ? []
+          : codingProblems.map((p) => ({
+              ...p,
+              testCases: (p.testCases || []).map((tc: any) => ({
+                input: String(tc.input ?? ''),
+                expectedOutput: String(tc.expectedOutput ?? ''),
+                isHidden: Boolean(tc.isHidden),
+              })),
+            })),
     };
 
     let ok = false;
@@ -195,37 +396,51 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-surface rounded-3xl border border-separator max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="bg-surface dark:bg-[#121214] rounded-3xl border border-separator dark:border-white/10 max-w-5xl w-full p-5 sm:p-7 space-y-5 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-separator pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-label-primary flex items-center gap-2">
-              <Award size={20} className="text-primary" />
-              <span>{editingContest ? 'Edit Weekly Contest' : 'Create Weekly Contest'}</span>
-            </h2>
-            <p className="text-xs text-label-tertiary mt-0.5">
-              Design timed coding challenges and MCQ quests for collegiate students.
-            </p>
+        <div className="flex items-center justify-between border-b border-separator dark:border-white/10 pb-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 flex items-center justify-center">
+              <Award size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-black text-label-primary dark:text-[#F5F5F7] tracking-tight font-heading">
+                  {editingContest ? 'Edit Weekly Contest' : 'Create Weekly Contest'}
+                </h2>
+                {loadingDetails && (
+                  <span className="flex items-center gap-1 text-[11px] text-blue-500 font-semibold">
+                    <Loader2 size={12} className="animate-spin" /> Loading specs...
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5">
+                Design timed coding challenges, hidden anti-cheat test cases, and technical MCQs.
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-surface-secondary rounded-xl text-label-secondary hover:text-label-primary transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-surface-secondary dark:hover:bg-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-2 p-1 bg-surface-secondary rounded-2xl border border-separator shrink-0">
+        <div className="flex items-center gap-2 p-1 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10 shrink-0">
           <button
             onClick={() => setActiveTab('info')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'info'
                 ? 'bg-primary text-white shadow-xs'
-                : 'text-label-secondary hover:text-label-primary'
+                : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
             }`}
           >
             1. Basic Settings
@@ -233,10 +448,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {type !== 'CODING' && (
             <button
               onClick={() => setActiveTab('mcq')}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'mcq'
                   ? 'bg-primary text-white shadow-xs'
-                  : 'text-label-secondary hover:text-label-primary'
+                  : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
               }`}
             >
               2. MCQ Questions ({mcqQuestions.length})
@@ -245,10 +460,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {type !== 'MCQ' && (
             <button
               onClick={() => setActiveTab('coding')}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'coding'
                   ? 'bg-primary text-white shadow-xs'
-                  : 'text-label-secondary hover:text-label-primary'
+                  : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
               }`}
             >
               3. Coding Challenges ({codingProblems.length})
@@ -257,38 +472,44 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         </div>
 
         {/* Tab Content (Scrollable) */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
           {/* TAB 1: BASIC INFO */}
           {activeTab === 'info' && (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-label-secondary">Contest Title</label>
+                <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                  Contest Title
+                </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Weekly Algorithm Arena #12"
-                  className="w-full px-4 py-2.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface font-medium"
+                  className="w-full px-4 py-2.5 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-primary font-medium"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-label-secondary">Description</label>
+                <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                  Description
+                </label>
                 <textarea
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface font-medium resize-none"
+                  className="w-full px-4 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-primary font-medium resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary">Contest Type</label>
+                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                    Contest Type
+                  </label>
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none cursor-pointer"
                   >
                     <option value="HYBRID">Hybrid (Coding + MCQ)</option>
                     <option value="CODING">Coding Challenges Only</option>
@@ -297,11 +518,13 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary">Difficulty</label>
+                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                    Difficulty
+                  </label>
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none cursor-pointer"
                   >
                     <option value="All Levels">All Levels</option>
                     <option value="Beginner">Beginner</option>
@@ -311,27 +534,29 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary">Duration (Minutes)</label>
+                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                    Duration (Minutes)
+                  </label>
                   <input
                     type="number"
                     value={durationMinutes}
                     onChange={(e) => setDurationMinutes(Number(e.target.value))}
                     min={5}
                     max={360}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Total Reward Points Controller */}
-              <div className="space-y-3 p-4 rounded-2xl bg-surface-secondary border border-separator">
+              <div className="space-y-3 p-4 rounded-2xl bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
+                    <label className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] flex items-center gap-1.5">
                       <Zap size={14} className="text-amber-500 fill-current" />
                       <span>Contest Reward Points (Total XP)</span>
                     </label>
-                    <p className="text-[11px] text-label-tertiary mt-0.5">
+                    <p className="text-[11px] text-label-secondary dark:text-[#86868B] mt-0.5">
                       Default is 100 points. Increase or decrease freely to match tournament stakes.
                     </p>
                   </div>
@@ -346,37 +571,35 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setTotalPoints(Math.max(10, totalPoints - 50))}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
                       title="Decrease by 50"
                     >
                       -50
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTotalPoints(Math.max(5, totalPoints - 10))}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      onClick={() => setTotalPoints(Math.max(10, totalPoints - 10))}
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
                       title="Decrease by 10"
                     >
                       -10
                     </button>
                   </div>
 
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      min={1}
-                      step={5}
-                      value={totalPoints}
-                      onChange={(e) => setTotalPoints(Math.max(1, parseInt(e.target.value) || 0))}
-                      className="w-full px-4 py-2 text-center text-base font-black text-primary font-mono bg-surface border border-separator rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    value={totalPoints}
+                    onChange={(e) => setTotalPoints(Math.max(1, Number(e.target.value)))}
+                    min={1}
+                    max={5000}
+                    className="flex-1 px-3 py-2 text-xs text-center font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-amber-500"
+                  />
 
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setTotalPoints(totalPoints + 10)}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
                       title="Increase by 10"
                     >
                       +10
@@ -384,137 +607,41 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setTotalPoints(totalPoints + 50)}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
                       title="Increase by 50"
                     >
                       +50
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setTotalPoints(totalPoints + 100)}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
-                      title="Increase by 100"
-                    >
-                      +100
-                    </button>
                   </div>
-                </div>
-
-                {/* Quick Presets & Questions Sum Sync */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-separator/60">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] text-label-tertiary mr-1 font-medium">Quick Presets:</span>
-                    {[25, 50, 100, 150, 200, 300, 500].map((pts) => (
-                      <button
-                        key={pts}
-                        type="button"
-                        onClick={() => setTotalPoints(pts)}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold transition-all ${
-                          totalPoints === pts
-                            ? 'bg-primary text-white shadow-xs'
-                            : 'bg-surface border border-separator text-label-secondary hover:text-label-primary'
-                        }`}
-                      >
-                        {pts} pts{pts === 100 ? ' (Default)' : ''}
-                      </button>
-                    ))}
-                  </div>
-
-                  {questionsPointSum > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setTotalPoints(questionsPointSum)}
-                      className="text-[10px] px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border border-indigo-500/20 font-bold transition-colors inline-flex items-center gap-1"
-                      title="Set contest total points to the exact sum of all MCQ and Coding questions"
-                    >
-                      <Sparkles size={11} />
-                      <span>Sync Questions ({questionsPointSum} pts)</span>
-                    </button>
-                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Start & End Times */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary">Start Window Time</label>
+                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
+                    <Clock size={13} className="text-primary" />
+                    <span>Contest Start Time</span>
+                  </label>
                   <input
                     type="datetime-local"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface font-medium"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none"
                   />
                 </div>
+
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary">End Window Time</label>
+                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
+                    <Clock size={13} className="text-primary" />
+                    <span>Contest End Time</span>
+                  </label>
                   <input
                     type="datetime-local"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:bg-surface font-medium"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none"
                   />
-                </div>
-              </div>
-
-              {/* Point Allocation Policy */}
-              <div className="space-y-1.5 p-4 rounded-2xl bg-surface-secondary border border-separator">
-                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
-                  <Award size={14} className="text-amber-500" />
-                  <span>Point Allocation Policy</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setPointAllocationMode('AUTOMATIC')}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      pointAllocationMode === 'AUTOMATIC'
-                        ? 'bg-surface border-primary shadow-xs ring-1 ring-primary'
-                        : 'bg-surface/50 border-separator hover:border-separator/80'
-                    }`}
-                  >
-                    <p className="text-xs font-bold text-label-primary flex items-center gap-1">
-                      <Sparkles size={12} className="text-amber-500" />
-                      <span>Automatic</span>
-                    </p>
-                    <p className="text-[10px] text-label-tertiary mt-1 leading-tight">
-                      System automatically awards earned points upon contest submit.
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPointAllocationMode('MANUAL')}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      pointAllocationMode === 'MANUAL'
-                        ? 'bg-surface border-primary shadow-xs ring-1 ring-primary'
-                        : 'bg-surface/50 border-separator hover:border-separator/80'
-                    }`}
-                  >
-                    <p className="text-xs font-bold text-label-primary flex items-center gap-1">
-                      <Layers size={12} className="text-indigo-500" />
-                      <span>Manual Review</span>
-                    </p>
-                    <p className="text-[10px] text-label-tertiary mt-1 leading-tight">
-                      Admin evaluates solutions and manually allocates points.
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPointAllocationMode('HYBRID')}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      pointAllocationMode === 'HYBRID'
-                        ? 'bg-surface border-primary shadow-xs ring-1 ring-primary'
-                        : 'bg-surface/50 border-separator hover:border-separator/80'
-                    }`}
-                  >
-                    <p className="text-xs font-bold text-label-primary flex items-center gap-1">
-                      <CheckCircle2 size={12} className="text-emerald-500" />
-                      <span>Hybrid</span>
-                    </p>
-                    <p className="text-[10px] text-label-tertiary mt-1 leading-tight">
-                      Auto-credits base score with full support for manual bonuses.
-                    </p>
-                  </button>
                 </div>
               </div>
             </div>
@@ -524,13 +651,13 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {activeTab === 'mcq' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-label-secondary uppercase tracking-wider">
+                <span className="text-xs font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider">
                   Multiple Choice Questions ({mcqQuestions.length})
                 </span>
                 <button
                   type="button"
                   onClick={handleAddMcq}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 cursor-pointer"
                 >
                   <Plus size={14} />
                   <span>Add Question</span>
@@ -540,14 +667,15 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               {mcqQuestions.map((q, qIdx) => (
                 <div
                   key={qIdx}
-                  className="p-5 bg-surface-secondary rounded-2xl border border-separator space-y-3 relative group"
+                  className="p-4 sm:p-5 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10 space-y-3 relative group"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-primary font-mono">Question #{qIdx + 1}</span>
                     <button
                       type="button"
                       onClick={() => setMcqQuestions(mcqQuestions.filter((_, idx) => idx !== qIdx))}
-                      className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors"
+                      className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      title="Delete Question"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -562,10 +690,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                       setMcqQuestions(updated);
                     }}
                     placeholder="Enter question statement..."
-                    className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-medium"
+                    className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] font-medium focus:outline-none"
                   />
 
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     {q.options.map((opt: string, optIdx: number) => (
                       <div key={optIdx} className="flex items-center gap-2">
                         <input
@@ -577,7 +705,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             updated[qIdx].correctOptionIndex = optIdx;
                             setMcqQuestions(updated);
                           }}
-                          className="accent-primary"
+                          className="accent-primary cursor-pointer"
                         />
                         <input
                           type="text"
@@ -588,7 +716,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setMcqQuestions(updated);
                           }}
                           placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                          className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary"
+                          className="w-full px-2.5 py-1.5 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-lg text-label-primary dark:text-[#F5F5F7] focus:outline-none"
                         />
                       </div>
                     ))}
@@ -596,7 +724,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
                   <div className="flex items-center gap-3 pt-1">
                     <div className="w-28">
-                      <label className="text-[10px] text-label-secondary font-medium">Points</label>
+                      <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-medium">Points</label>
                       <input
                         type="number"
                         value={q.points}
@@ -605,11 +733,11 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           updated[qIdx].points = Number(e.target.value);
                           setMcqQuestions(updated);
                         }}
-                        className="w-full px-2 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary"
+                        className="w-full px-2 py-1 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-lg text-label-primary dark:text-[#F5F5F7] focus:outline-none"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] text-label-secondary font-medium">Explanation (Revealed after contest)</label>
+                      <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-medium">Explanation</label>
                       <input
                         type="text"
                         value={q.explanation || ''}
@@ -619,7 +747,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           setMcqQuestions(updated);
                         }}
                         placeholder="Why is this option correct?"
-                        className="w-full px-2.5 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary"
+                        className="w-full px-2.5 py-1 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-lg text-label-primary dark:text-[#F5F5F7] focus:outline-none"
                       />
                     </div>
                   </div>
@@ -628,140 +756,394 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: CODING PROBLEMS BUILDER */}
+          {/* TAB 3: CODING PROBLEMS BUILDER WITH HIDDEN TEST CASES */}
           {activeTab === 'coding' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-label-secondary uppercase tracking-wider">
-                  Coding Challenges ({codingProblems.length})
-                </span>
+                <div>
+                  <span className="text-xs font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider block">
+                    Coding Challenges ({codingProblems.length})
+                  </span>
+                  <p className="text-[11px] text-label-secondary dark:text-[#86868B]">
+                    Configure problem statements, sample test cases, and hidden anti-cheat grading test cases.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={handleAddCoding}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 cursor-pointer"
                 >
                   <Plus size={14} />
-                  <span>Add Problem</span>
+                  <span>Add Challenge</span>
                 </button>
               </div>
 
-              {codingProblems.map((p, pIdx) => (
-                <div
-                  key={pIdx}
-                  className="p-5 bg-surface-secondary rounded-2xl border border-separator space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-primary font-mono">Problem #{pIdx + 1}</span>
-                    <button
-                      type="button"
-                      onClick={() => setCodingProblems(codingProblems.filter((_, idx) => idx !== pIdx))}
-                      className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
+              {codingProblems.map((p, pIdx) => {
+                const testCases = p.testCases || [];
+                const publicCount = testCases.filter((tc: any) => !tc.isHidden).length;
+                const hiddenCount = testCases.filter((tc: any) => tc.isHidden).length;
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2">
-                      <label className="text-[10px] text-label-secondary font-medium">Problem Title</label>
-                      <input
-                        type="text"
-                        value={p.title}
-                        onChange={(e) => {
-                          const updated = [...codingProblems];
-                          updated[pIdx].title = e.target.value;
-                          setCodingProblems(updated);
-                        }}
-                        className="w-full px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary font-medium"
-                      />
+                return (
+                  <div
+                    key={pIdx}
+                    className="p-5 sm:p-6 bg-surface-secondary dark:bg-[#18181A] rounded-3xl border border-separator dark:border-white/10 space-y-4 shadow-sm"
+                  >
+                    {/* Problem Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-separator dark:border-white/10">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold font-mono text-xs flex items-center justify-center border border-blue-500/20">
+                          #{pIdx + 1}
+                        </span>
+                        <span className="font-extrabold text-sm text-label-primary dark:text-[#F5F5F7]">
+                          {p.title || `Coding Challenge #${pIdx + 1}`}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCodingProblems(codingProblems.filter((_, idx) => idx !== pIdx))}
+                        className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        title="Delete Problem"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
-                    <div>
-                      <label className="text-[10px] text-label-secondary font-medium">Points</label>
-                      <input
-                        type="number"
-                        value={p.points}
-                        onChange={(e) => {
-                          const updated = [...codingProblems];
-                          updated[pIdx].points = Number(e.target.value);
-                          setCodingProblems(updated);
-                        }}
-                        className="w-full px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary"
-                      />
+
+                    {/* Problem Meta: Title, Difficulty, Points */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                          Problem Title *
+                        </label>
+                        <input
+                          type="text"
+                          value={p.title}
+                          onChange={(e) => {
+                            const updated = [...codingProblems];
+                            updated[pIdx].title = e.target.value;
+                            setCodingProblems(updated);
+                          }}
+                          placeholder="e.g. Invert Binary Tree / Subarray Max"
+                          className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] font-medium focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                          Difficulty
+                        </label>
+                        <select
+                          value={p.difficulty || 'Medium'}
+                          onChange={(e) => {
+                            const updated = [...codingProblems];
+                            updated[pIdx].difficulty = e.target.value;
+                            setCodingProblems(updated);
+                          }}
+                          className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] font-medium focus:outline-none cursor-pointer"
+                        >
+                          <option value="Easy">Easy</option>
+                          <option value="Medium">Medium</option>
+                          <option value="Hard">Hard</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                          Points
+                        </label>
+                        <input
+                          type="number"
+                          value={p.points}
+                          onChange={(e) => {
+                            const updated = [...codingProblems];
+                            updated[pIdx].points = Number(e.target.value);
+                            setCodingProblems(updated);
+                          }}
+                          className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] font-bold focus:outline-none"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="text-[10px] text-label-secondary font-medium">Problem Statement</label>
-                    <textarea
-                      rows={3}
-                      value={p.description}
-                      onChange={(e) => {
-                        const updated = [...codingProblems];
-                        updated[pIdx].description = e.target.value;
-                        setCodingProblems(updated);
-                      }}
-                      className="w-full px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl resize-none text-label-primary"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
+                    {/* Problem Statement */}
                     <div>
-                      <label className="text-[10px] text-label-secondary font-medium">Sample Input</label>
+                      <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                        Problem Statement (Markdown / Plain Text)
+                      </label>
                       <textarea
-                        rows={2}
-                        value={p.sampleInput || ''}
+                        rows={3}
+                        value={p.description}
                         onChange={(e) => {
                           const updated = [...codingProblems];
-                          updated[pIdx].sampleInput = e.target.value;
+                          updated[pIdx].description = e.target.value;
                           setCodingProblems(updated);
                         }}
-                        placeholder="e.g. 5\n1 2 3 4 5"
-                        className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface border border-separator rounded-xl resize-none text-label-primary"
+                        placeholder="Describe the problem, input constraints, and expected logic..."
+                        className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none leading-relaxed"
                       />
                     </div>
-                    <div>
-                      <label className="text-[10px] text-label-secondary font-medium">Sample Expected Output</label>
-                      <textarea
-                        rows={2}
-                        value={p.sampleOutput || ''}
-                        onChange={(e) => {
-                          const updated = [...codingProblems];
-                          updated[pIdx].sampleOutput = e.target.value;
-                          setCodingProblems(updated);
-                        }}
-                        placeholder="e.g. 15"
-                        className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface border border-separator rounded-xl resize-none text-label-primary"
-                      />
-                    </div>
-                  </div>
 
-                  {/* Test Cases Count */}
-                  <div className="text-[11px] text-label-tertiary">
-                    {p.testCases?.length || 1} test case(s) configured for automatic sandbox grading.
+                    {/* Sample Input & Output */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-surface/50 dark:bg-[#121214]/60 border border-separator dark:border-white/10">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider">
+                            Sample Input (Console Stdin)
+                          </label>
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={p.sampleInput || ''}
+                          onChange={(e) => {
+                            const updated = [...codingProblems];
+                            updated[pIdx].sampleInput = e.target.value;
+                            setCodingProblems(updated);
+                          }}
+                          placeholder="e.g. 4\n2 7 11 15\n9"
+                          className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface dark:bg-[#161617] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider">
+                            Sample Expected Output (Console Stdout)
+                          </label>
+                        </div>
+                        <textarea
+                          rows={2}
+                          value={p.sampleOutput || ''}
+                          onChange={(e) => {
+                            const updated = [...codingProblems];
+                            updated[pIdx].sampleOutput = e.target.value;
+                            setCodingProblems(updated);
+                          }}
+                          placeholder="e.g. 0 1"
+                          className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface dark:bg-[#161617] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* ============================================================= */}
+                    {/* TEST CASES SUITE MANAGER (VISIBLE & HIDDEN TEST CASES)        */}
+                    {/* ============================================================= */}
+                    <div className="pt-3 border-t border-separator dark:border-white/10 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-black text-label-primary dark:text-[#F5F5F7] flex items-center gap-1.5">
+                            <Terminal size={14} className="text-primary" />
+                            <span>Evaluation Test Cases Suite</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface dark:bg-[#202023] border border-separator dark:border-white/10 text-label-secondary dark:text-[#86868B]">
+                            {testCases.length} Total
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                            {publicCount} Public
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            {hiddenCount} Hidden (Anti-Cheat)
+                          </span>
+                        </div>
+
+                        {/* Quick Test Case Addition Toolbar */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {(p.sampleInput || p.sampleOutput) && (
+                            <button
+                              type="button"
+                              onClick={() => handleCopySampleToTestCase(pIdx, false)}
+                              className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1 cursor-pointer"
+                              title="Import sample input & output as public test case"
+                            >
+                              <Copy size={12} />
+                              <span>Import Sample</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleAddTestCase(pIdx, false)}
+                            className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/25 transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus size={12} />
+                            <Eye size={12} />
+                            <span>+ Public Case</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAddTestCase(pIdx, true)}
+                            className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/25 transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus size={12} />
+                            <EyeOff size={12} />
+                            <span>+ Hidden Case</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Informational Hint Card */}
+                      <div className="p-3 rounded-2xl bg-amber-500/[0.06] dark:bg-amber-500/[0.08] border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2.5 leading-relaxed">
+                        <ShieldAlert size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="font-bold text-amber-700 dark:text-amber-300">
+                            Hidden Test Cases Engine:
+                          </strong>{' '}
+                          Hidden test cases are evaluated strictly during final grading by the sandbox runner.
+                          Their inputs and expected outputs are concealed from students to prevent hardcoding
+                          and assess large edge cases. Public test cases run during live sandbox tests.
+                        </div>
+                      </div>
+
+                      {/* List of Test Cases */}
+                      <div className="space-y-3 pt-1">
+                        {testCases.length === 0 ? (
+                          <div className="p-6 text-center rounded-2xl border border-dashed border-separator dark:border-white/10 space-y-2">
+                            <Terminal size={22} className="text-label-tertiary mx-auto" />
+                            <p className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+                              No Test Cases Configured
+                            </p>
+                            <p className="text-[11px] text-label-secondary dark:text-[#86868B]">
+                              Click "+ Public Case" or "+ Hidden Case" above to add grading tests.
+                            </p>
+                          </div>
+                        ) : (
+                          testCases.map((tc: any, tcIdx: number) => {
+                            const isHidden = Boolean(tc.isHidden);
+
+                            return (
+                              <div
+                                key={tcIdx}
+                                className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                                  isHidden
+                                    ? 'bg-amber-500/[0.03] dark:bg-amber-500/[0.04] border-amber-500/25'
+                                    : 'bg-surface dark:bg-[#141416] border-separator dark:border-white/10'
+                                }`}
+                              >
+                                {/* Top Row: Index, Visibility Switch, Actions */}
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono font-black text-xs text-label-primary dark:text-[#F5F5F7]">
+                                      Test Case #{tcIdx + 1}
+                                    </span>
+
+                                    {/* Toggle Pill for Hidden vs Public */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleTestCaseHidden(pIdx, tcIdx)}
+                                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border ${
+                                        isHidden
+                                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25 shadow-sm'
+                                          : 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/25 shadow-sm'
+                                      }`}
+                                      title="Click to switch between Public and Hidden"
+                                    >
+                                      {isHidden ? (
+                                        <>
+                                          <EyeOff size={12} className="text-amber-600 dark:text-amber-400" />
+                                          <span>Hidden (Final Grading Only)</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Eye size={12} className="text-blue-600 dark:text-blue-400" />
+                                          <span>Public (Visible in Run Code)</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDuplicateTestCase(pIdx, tcIdx)}
+                                      className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface-secondary dark:hover:bg-white/10 transition-colors cursor-pointer"
+                                      title="Duplicate Test Case"
+                                    >
+                                      <Copy size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveTestCase(pIdx, tcIdx)}
+                                      className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                      title="Delete Test Case"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Inputs Grid: Stdin & Stdout */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                                      Standard Input (stdin)
+                                    </label>
+                                    <textarea
+                                      rows={2}
+                                      value={tc.input || ''}
+                                      onChange={(e) =>
+                                        handleUpdateTestCase(pIdx, tcIdx, 'input', e.target.value)
+                                      }
+                                      placeholder="Raw stdin input lines..."
+                                      className="w-full font-mono text-xs px-3 py-2 bg-surface dark:bg-[#1A1A1D] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-primary"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1 flex items-center justify-between">
+                                      <span>Expected Output (stdout) *</span>
+                                      <span className="text-[10px] text-primary lowercase font-medium">
+                                        exact match
+                                      </span>
+                                    </label>
+                                    <textarea
+                                      rows={2}
+                                      value={tc.expectedOutput || ''}
+                                      onChange={(e) =>
+                                        handleUpdateTestCase(pIdx, tcIdx, 'expectedOutput', e.target.value)
+                                      }
+                                      placeholder="Exact expected terminal output..."
+                                      className="w-full font-mono text-xs px-3 py-2 bg-surface dark:bg-[#1A1A1D] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-primary"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-separator">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
-          >
-            <Save size={15} />
-            <span>{editingContest ? 'Update Contest' : 'Publish Contest'}</span>
-          </button>
+        <div className="flex items-center justify-between pt-4 border-t border-separator dark:border-white/10 shrink-0">
+          <div className="text-xs text-label-secondary dark:text-[#86868B]">
+            Total Reward: <strong className="text-amber-500 font-mono font-bold">{totalPoints} XP</strong>
+            {questionsPointSum > 0 && (
+              <span className="ml-1 text-[11px] text-label-tertiary">
+                ({questionsPointSum} configured in challenges)
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Save size={15} />
+              <span>{editingContest ? 'Update Contest' : 'Publish Contest'}</span>
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>
