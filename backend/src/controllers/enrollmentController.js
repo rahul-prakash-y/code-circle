@@ -230,7 +230,68 @@ const deriveStudentYear = (user) => {
   return '3rd Year';
 };
 
+const formatEnrollmentsList = (enrollments) => {
+  return enrollments.map((e) => {
+    if (e.enrolledBy) {
+      e.enrolledBy.college = e.enrolledBy.college || 'BIT';
+      e.enrolledBy.year = deriveStudentYear(e.enrolledBy);
+    }
+    if (e.members && e.members.length > 0) {
+      e.members = e.members.map((m) => {
+        if (m) {
+          m.college = m.college || 'BIT';
+          m.year = deriveStudentYear(m);
+        }
+        return m;
+      });
+    }
+    return e;
+  });
+};
+
 const getEventEnrollments = async (request, reply) => {
+  try {
+    const { eventId } = request.params;
+    const { participantsOnly, status } = request.query || {};
+
+    const query = { event: eventId };
+    if (participantsOnly === 'true' || participantsOnly === true || status === 'participants' || status === 'attended' || status === 'present') {
+      query.attendanceStatus = true;
+    } else if (status === 'absent' || status === 'unmarked') {
+      query.attendanceStatus = false;
+    }
+
+    const enrollments = await Enrollment.find(query)
+      .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
+      .populate('members', 'name rollNo email profilePicUrl department year phone college role')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return reply.send(formatEnrollmentsList(enrollments));
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ error: 'Failed to fetch enrollments' });
+  }
+};
+
+const getEventParticipants = async (request, reply) => {
+  try {
+    const { eventId } = request.params;
+
+    const enrollments = await Enrollment.find({ event: eventId, attendanceStatus: true })
+      .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
+      .populate('members', 'name rollNo email profilePicUrl department year phone college role')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    return reply.send(formatEnrollmentsList(enrollments));
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ error: 'Failed to fetch event participants' });
+  }
+};
+
+const getEventRegistered = async (request, reply) => {
   try {
     const { eventId } = request.params;
 
@@ -240,27 +301,10 @@ const getEventEnrollments = async (request, reply) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const formatted = enrollments.map((e) => {
-      if (e.enrolledBy) {
-        e.enrolledBy.college = e.enrolledBy.college || 'BIT';
-        e.enrolledBy.year = deriveStudentYear(e.enrolledBy);
-      }
-      if (e.members && e.members.length > 0) {
-        e.members = e.members.map((m) => {
-          if (m) {
-            m.college = m.college || 'BIT';
-            m.year = deriveStudentYear(m);
-          }
-          return m;
-        });
-      }
-      return e;
-    });
-
-    return reply.send(formatted);
+    return reply.send(formatEnrollmentsList(enrollments));
   } catch (error) {
     request.log.error(error);
-    return reply.status(500).send({ error: 'Failed to fetch enrollments' });
+    return reply.status(500).send({ error: 'Failed to fetch registered students' });
   }
 };
 
@@ -369,6 +413,8 @@ const getMyCertificates = async (request, reply) => {
 module.exports = {
   enrollInEvent,
   getEventEnrollments,
+  getEventParticipants,
+  getEventRegistered,
   updateAttendance,
   generateCertificates,
   getMyCertificates

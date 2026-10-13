@@ -52,15 +52,49 @@ const useEnrollmentStore = create((set, get) => ({
     }
   },
 
-  fetchEventEnrollments: async (eventId) => {
+  fetchEventEnrollments: async (eventId, options = {}) => {
     set({ loading: true, error: null });
     try {
-      const response = await api.get(`/enrollments/event/${eventId}`);
+      const params = new URLSearchParams();
+      if (options.participantsOnly) params.append('participantsOnly', 'true');
+      if (options.status) params.append('status', options.status);
+      const queryStr = params.toString() ? `?${params.toString()}` : '';
+      const response = await api.get(`/enrollments/event/${eventId}${queryStr}`);
       set({ loading: false });
       return response.data;
     } catch (error) {
       set({ 
         error: error.response?.data?.error || 'Failed to fetch enrollments', 
+        loading: false 
+      });
+      throw error;
+    }
+  },
+
+  fetchEventParticipants: async (eventId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get(`/enrollments/event/${eventId}/participants`);
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.error || 'Failed to fetch event participants', 
+        loading: false 
+      });
+      throw error;
+    }
+  },
+
+  fetchEventRegistered: async (eventId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get(`/enrollments/event/${eventId}/registered`);
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.error || 'Failed to fetch registered students', 
         loading: false 
       });
       throw error;

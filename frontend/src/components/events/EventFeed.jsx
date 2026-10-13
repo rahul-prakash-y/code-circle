@@ -25,7 +25,8 @@ import {
   MapPin, 
   UserCheck, 
   ArrowUpRight,
-  Eye
+  Eye,
+  Award
 } from 'lucide-react';
 
 const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop'];
@@ -50,6 +51,7 @@ export const EventFeed = ({
   const [attendanceEvent, setAttendanceEvent] = useState(null);
   const [previewEvent, setPreviewEvent] = useState(null);
   const [participantsEvent, setParticipantsEvent] = useState(null);
+  const [participantsTab, setParticipantsTab] = useState('participants');
 
   useEffect(() => {
     fetchEvents({
@@ -374,16 +376,29 @@ export const EventFeed = ({
                           {isAdmin && (
                             <>
                               <button
-                                onClick={() => setParticipantsEvent(event)}
+                                onClick={() => {
+                                  setParticipantsTab('registered');
+                                  setParticipantsEvent(event);
+                                }}
                                 className="p-1.5 rounded-lg text-label-secondary hover:text-accent hover:bg-canvas transition-colors cursor-pointer"
-                                title="Participants Directory"
+                                title="Registered Students List"
                               >
                                 <Users size={15} />
                               </button>
                               <button
+                                onClick={() => {
+                                  setParticipantsTab('participants');
+                                  setParticipantsEvent(event);
+                                }}
+                                className="p-1.5 rounded-lg text-label-secondary hover:text-emerald-400 hover:bg-canvas transition-colors cursor-pointer"
+                                title="Event Participants List (Attended)"
+                              >
+                                <Award size={15} />
+                              </button>
+                              <button
                                 onClick={() => setAttendanceEvent(event)}
                                 className="p-1.5 rounded-lg text-label-secondary hover:text-accent hover:bg-canvas transition-colors cursor-pointer"
-                                title="Attendance Records"
+                                title="Attendance Sessions & Logs"
                               >
                                 <UserCheck size={15} />
                               </button>
@@ -439,16 +454,24 @@ export const EventFeed = ({
           isAdmin={isAdmin}
           onEnroll={(ev) => setEnrollEvent(ev)}
           onEdit={onEdit}
-          onViewParticipants={(ev) => setParticipantsEvent(ev)}
+          onViewParticipants={(ev, tab) => {
+            setParticipantsTab(tab || 'participants');
+            setParticipantsEvent(ev);
+          }}
+          onViewRegistered={(ev) => {
+            setParticipantsTab('registered');
+            setParticipantsEvent(ev);
+          }}
         />
       )}
 
-      {/* Event Participants Directory Modal for Admin */}
+      {/* Event Participants & Registered Students Directory Modal for Admin */}
       {participantsEvent && (
         <EventParticipantsModal
           isOpen={Boolean(participantsEvent)}
           onClose={() => setParticipantsEvent(null)}
           event={participantsEvent}
+          initialTab={participantsTab}
         />
       )}
 

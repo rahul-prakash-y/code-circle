@@ -149,15 +149,20 @@ export const getEvents = async (
     const eventIds = events.map((e) => e._id);
     const enrollments = await (Enrollment as any).find({ event: { $in: eventIds } });
     const countMap: Record<string, number> = {};
+    const participantCountMap: Record<string, number> = {};
     for (const enr of enrollments) {
       const evId = enr.event.toString();
       const count = 1 + (enr.members?.length || 0);
       countMap[evId] = (countMap[evId] || 0) + count;
+      if (enr.attendanceStatus) {
+        participantCountMap[evId] = (participantCountMap[evId] || 0) + count;
+      }
     }
 
     const eventsWithCounts = events.map((e) => {
       const obj: any = e.toObject ? e.toObject() : { ...e };
       obj.enrolledCount = countMap[e._id.toString()] || 0;
+      obj.participantsCount = participantCountMap[e._id.toString()] || 0;
       return obj;
     });
 
@@ -195,9 +200,16 @@ export const getEventById = async (
       (sum: number, enr: any) => sum + 1 + (enr.members?.length || 0),
       0
     );
+    const participantsCount = enrollments
+      .filter((enr: any) => enr.attendanceStatus)
+      .reduce(
+        (sum: number, enr: any) => sum + 1 + (enr.members?.length || 0),
+        0
+      );
 
     const obj: any = event.toObject ? event.toObject() : { ...event };
     obj.enrolledCount = enrolledCount;
+    obj.participantsCount = participantsCount;
 
     return reply.send(obj);
   } catch (error: any) {

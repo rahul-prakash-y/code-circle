@@ -21,6 +21,10 @@ import {
   Loader2,
   Award,
   Sliders,
+  Sparkles,
+  ClipboardList,
+  AlertCircle,
+  BadgeCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
@@ -112,8 +116,10 @@ export const EventParticipantsModal = ({
   isOpen,
   onClose,
   event,
+  initialTab = 'participants',
 }) => {
   const { fetchEventEnrollments, generateCertificates, loading } = useEnrollmentStore();
+  const [activeTab, setActiveTab] = useState(initialTab || 'participants');
   const [enrollments, setEnrollments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 350);
@@ -122,26 +128,15 @@ export const EventParticipantsModal = ({
   const [expandedTeams, setExpandedTeams] = useState(new Set());
   const [generatingCertificates, setGeneratingCertificates] = useState(false);
 
-  const handleGenerateCertificates = async () => {
-    if (!event?._id) return;
-    if (!event.certificateTemplateUrl) {
-      return toast.error('No certificate template uploaded for this event! Please upload a certificate template before generating certificates.');
+  // Sync activeTab whenever initialTab changes or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab || 'participants');
+      setSearchQuery('');
+      setFormatFilter('all');
+      setAttendanceFilter('all');
     }
-    if (stats.presentStudents === 0) {
-      return toast.error('No participants have been marked present yet. Validate attendance before generating certificates.');
-    }
-    setGeneratingCertificates(true);
-    try {
-      const res = await generateCertificates(event._id);
-      toast.success(res.message || 'Certificates generated successfully!');
-      const data = await fetchEventEnrollments(event._id);
-      setEnrollments(data || []);
-    } catch (err) {
-      toast.error(err.message || 'Failed to generate certificates');
-    } finally {
-      setGeneratingCertificates(false);
-    }
-  };
+  }, [isOpen, initialTab]);
 
   useEffect(() => {
     if (isOpen && event?._id) {
@@ -150,28 +145,39 @@ export const EventParticipantsModal = ({
           const data = await fetchEventEnrollments(event._id);
           setEnrollments(data || []);
         } catch {
-          toast.error('Failed to load participants');
+          toast.error('Failed to load event registrations');
         }
       };
       load();
     }
   }, [isOpen, event?._id, fetchEventEnrollments]);
 
-  // Compute metrics
+  // Compute metrics for both rosters
   const stats = useMemo(() => {
     let totalRegistrations = enrollments.length;
     let totalStudents = 0;
     let presentStudents = 0;
+    let presentRegistrations = 0;
     let duoCount = 0;
     let teamCount = 0;
     let soloCount = 0;
 
+    let presentSolo = 0;
+    let presentDuo = 0;
+    let presentTeam = 0;
+
     enrollments.forEach((e) => {
       const memberCount = (e.members?.length || 0) + 1;
       totalStudents += memberCount;
+
       if (e.attendanceStatus) {
         presentStudents += memberCount;
+        presentRegistrations += 1;
+        if (e.type === 'Duo') presentDuo++;
+        else if (e.type === 'Team') presentTeam++;
+        else presentSolo++;
       }
+
       if (e.type === 'Duo') duoCount++;
       else if (e.type === 'Team') teamCount++;
       else soloCount++;
@@ -181,16 +187,26 @@ export const EventParticipantsModal = ({
       totalRegistrations,
       totalStudents,
       presentStudents,
+      presentRegistrations,
       absentStudents: Math.max(0, totalStudents - presentStudents),
+      turnoutRate: totalStudents > 0 ? Math.round((presentStudents / totalStudents) * 100) : 0,
       duoCount,
       teamCount,
       soloCount,
+      presentSolo,
+      presentDuo,
+      presentTeam,
     };
   }, [enrollments]);
 
-  // Filter logic
-  const filteredEnrollments = useMemo(() => {
+  // Filter logic separating Participants (attended) and Registered (all)
+  const filteredList = useMemo(() => {
     return enrollments.filter((e) => {
+      // If we are on Participants tab, ONLY show students who marked attendance
+      if (activeTab === 'participants' && !e.attendanceStatus) {
+        return false;
+      }
+
       const q = debouncedSearch.toLowerCase().trim();
 
       // Check leader
@@ -220,14 +236,18 @@ export const EventParticipantsModal = ({
         (formatFilter === 'Duo' && e.type === 'Duo') ||
         (formatFilter === 'Team' && e.type === 'Team');
 
-      const matchesAttendance =
-        attendanceFilter === 'all' ||
-        (attendanceFilter === 'present' && e.attendanceStatus) ||
-        (attendanceFilter === 'absent' && !e.attendanceStatus);
+      // Attendance filter only applies when viewing Registered tab
+      let matchesAttendance = true;
+      if (activeTab === 'registered') {
+        matchesAttendance =
+          attendanceFilter === 'all' ||
+          (attendanceFilter === 'present' && e.attendanceStatus) ||
+          (attendanceFilter === 'absent' && !e.attendanceStatus);
+      }
 
       return matchesSearch && matchesFormat && matchesAttendance;
     });
-  }, [enrollments, debouncedSearch, formatFilter, attendanceFilter]);
+  }, [enrollments, activeTab, debouncedSearch, formatFilter, attendanceFilter]);
 
   const toggleExpand = (id) => {
     setExpandedTeams((prev) => {
@@ -238,9 +258,39 @@ export const EventParticipantsModal = ({
     });
   };
 
+  const handleGenerateCertificates = async () => {
+    if (!event?._id) return;
+    if (!event.certificateTemplateUrl) {
+      return toast.error('No certificate template uploaded for this event! Please upload a certificate template before generating certificates.');
+    }
+    if (stats.presentStudents === 0) {
+      return toast.error('No participants have marked attendance yet. Validate attendance before generating certificates.');
+    }
+    setGeneratingCertificates(true);
+    try {
+      const res = await generateCertificates(event._id);
+      toast.success(res.message || 'Certificates generated successfully for attended participants!');
+      const data = await fetchEventEnrollments(event._id);
+      setEnrollments(data || []);
+    } catch (err) {
+      toast.error(err.message || 'Failed to generate certificates');
+    } finally {
+      setGeneratingCertificates(false);
+    }
+  };
+
   const exportCSV = () => {
-    if (!enrollments.length) {
-      toast.error('No participants to export');
+    const listToExport =
+      activeTab === 'participants'
+        ? enrollments.filter((e) => e.attendanceStatus)
+        : enrollments;
+
+    if (!listToExport.length) {
+      toast.error(
+        activeTab === 'participants'
+          ? 'No verified participants to export'
+          : 'No registered students to export'
+      );
       return;
     }
 
@@ -249,6 +299,7 @@ export const EventParticipantsModal = ({
 
     const headers = [
       'Event Title',
+      'List Category',
       'Registration Type',
       'Team Name',
       'Member Role',
@@ -258,17 +309,18 @@ export const EventParticipantsModal = ({
       'Department',
       'Year',
       'College',
-      'Attendance Status',
+      'Attendance Verified',
       'Enrolled At',
       ...customHeaders,
     ];
 
     const rows = [];
 
-    enrollments.forEach((e) => {
+    listToExport.forEach((e) => {
       const enrolledAt = e.createdAt ? format(new Date(e.createdAt), 'yyyy-MM-dd HH:mm') : '';
-      const attendance = e.attendanceStatus ? 'Present' : 'Absent';
+      const attendance = e.attendanceStatus ? 'Present (Verified)' : 'Absent / Unmarked';
       const type = e.type || (e.members?.length ? 'Team' : 'Individual');
+      const categoryLabel = activeTab === 'participants' ? 'Event Participant (Attended)' : 'Registered Student';
 
       // Lead student
       const leadCollege = getStudentCollege(e.enrolledBy);
@@ -282,6 +334,7 @@ export const EventParticipantsModal = ({
 
       rows.push([
         `"${event.title.replace(/"/g, '""')}"`,
+        `"${categoryLabel}"`,
         `"${type}"`,
         `"${(e.teamName || 'N/A').replace(/"/g, '""')}"`,
         '"Leader / Creator"',
@@ -304,6 +357,7 @@ export const EventParticipantsModal = ({
 
           rows.push([
             `"${event.title.replace(/"/g, '""')}"`,
+            `"${categoryLabel}"`,
             `"${type}"`,
             `"${(e.teamName || 'N/A').replace(/"/g, '""')}"`,
             '"Member"',
@@ -329,14 +383,25 @@ export const EventParticipantsModal = ({
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     const safeTitle = event.title.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    link.setAttribute('download', `${safeTitle}_participants.csv`);
+    const filename =
+      activeTab === 'participants'
+        ? `${safeTitle}_event_participants_attended.csv`
+        : `${safeTitle}_registered_students_roster.csv`;
+
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Participants CSV exported successfully!');
+    toast.success(
+      activeTab === 'participants'
+        ? 'Event participants CSV exported successfully!'
+        : 'Registered students CSV exported successfully!'
+    );
   };
 
   if (!isOpen || !event) return null;
+
+  const isParticipantsTab = activeTab === 'participants';
 
   return (
     <AnimatePresence>
@@ -356,101 +421,245 @@ export const EventParticipantsModal = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 16 }}
           transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-5xl bg-surface border border-separator rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-5xl bg-surface border border-separator rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[92vh]"
           style={{ backgroundColor: 'var(--surface)', color: 'var(--label-primary)' }}
         >
           {/* Header */}
-          <div className="p-6 border-b border-separator bg-canvas/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-5 sm:p-6 border-b border-separator bg-canvas/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-accent-subtle text-accent flex items-center justify-center shrink-0">
-                <Users size={22} />
+              <div
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+                  isParticipantsTab
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-accent-subtle text-accent border border-accent/20'
+                }`}
+              >
+                {isParticipantsTab ? <UserCheck size={22} /> : <Users size={22} />}
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-xl font-extrabold text-label-primary tracking-tight font-heading">
-                    Event Participants Directory
+                    {isParticipantsTab ? 'Event Participants Directory' : 'Registered Students Directory'}
                   </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-separator text-label-secondary">
-                    {stats.totalStudents} Students
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      isParticipantsTab
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-separator text-label-secondary'
+                    }`}
+                  >
+                    {isParticipantsTab
+                      ? `${stats.presentStudents} Attended`
+                      : `${stats.totalStudents} Registered`}
                   </span>
                 </div>
                 <p className="text-xs text-label-secondary mt-0.5 line-clamp-1">
-                  Full registration records & roster for <strong className="text-label-primary">{event.title}</strong>
+                  {isParticipantsTab
+                    ? `Registered students who marked verified attendance for `
+                    : `Complete student & team registration roster for `}
+                  <strong className="text-label-primary">{event.title}</strong>
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {event.certificateTemplateUrl ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <Award size={13} /> Template Ready
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <Award size={13} /> Template Missing
-                </span>
-              )}
+              {isParticipantsTab && (
+                <>
+                  {event.certificateTemplateUrl ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <Award size={13} /> Template Ready
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <Award size={13} /> Template Missing
+                    </span>
+                  )}
 
-              <button
-                onClick={handleGenerateCertificates}
-                disabled={generatingCertificates}
-                className="btn-primary flex items-center gap-2 text-xs py-2 px-3.5 cursor-pointer disabled:opacity-50"
-                title="Generate Certificates for Attendees"
-              >
-                {generatingCertificates ? (
-                  <Loader2 size={15} className="animate-spin" />
-                ) : (
-                  <Award size={15} />
-                )}
-                <span>Generate Certificates</span>
-              </button>
+                  <button
+                    onClick={handleGenerateCertificates}
+                    disabled={generatingCertificates || stats.presentStudents === 0}
+                    className="btn-primary flex items-center gap-2 text-xs py-2 px-3.5 cursor-pointer disabled:opacity-50"
+                    title="Generate Certificates for Attended Participants"
+                  >
+                    {generatingCertificates ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Award size={15} />
+                    )}
+                    <span>Generate Certificates</span>
+                  </button>
+                </>
+              )}
 
               <button
                 onClick={exportCSV}
                 className="btn-secondary flex items-center gap-2 text-xs py-2 px-3.5 cursor-pointer"
-                title="Download CSV"
+                title={isParticipantsTab ? 'Download Participants CSV' : 'Download Registered Students CSV'}
               >
                 <Download size={15} />
-                <span>Export CSV</span>
+                <span>{isParticipantsTab ? 'Export Participants CSV' : 'Export Registered CSV'}</span>
               </button>
+
               <button
                 onClick={onClose}
                 className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors"
+                title="Close"
               >
                 <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-4 sm:p-6 border-b border-separator bg-canvas/30">
-            <div className="p-3.5 rounded-xl bg-canvas border border-separator">
-              <p className="text-[11px] uppercase font-semibold text-label-tertiary">Total Entries</p>
-              <p className="text-xl font-black text-label-primary mt-0.5">{stats.totalRegistrations}</p>
-              <p className="text-[11px] text-label-secondary mt-0.5">
-                {stats.soloCount} Solo • {stats.duoCount} Duo • {stats.teamCount} Squad
+          {/* Primary View Switcher: Two Separate Lists */}
+          <div className="px-5 sm:px-6 pt-4 pb-2 border-b border-separator/60 bg-canvas/40 flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2 p-1 bg-surface border border-separator rounded-2xl max-w-lg">
+              <button
+                onClick={() => setActiveTab('participants')}
+                className={`flex items-center justify-center gap-2 py-2 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isParticipantsTab
+                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                    : 'text-label-secondary hover:text-label-primary hover:bg-canvas'
+                }`}
+              >
+                <UserCheck size={15} />
+                <span>Event Participants</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                    isParticipantsTab
+                      ? 'bg-black/25 text-white'
+                      : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                  }`}
+                >
+                  {stats.presentStudents}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('registered')}
+                className={`flex items-center justify-center gap-2 py-2 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  !isParticipantsTab
+                    ? 'bg-accent text-accent-foreground shadow-md shadow-accent/25'
+                    : 'text-label-secondary hover:text-label-primary hover:bg-canvas'
+                }`}
+              >
+                <Users size={15} />
+                <span>Registered Students</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                    !isParticipantsTab
+                      ? 'bg-black/25 text-white'
+                      : 'bg-separator text-label-secondary'
+                  }`}
+                >
+                  {stats.totalStudents}
+                </span>
+              </button>
+            </div>
+
+            {/* Informational Banner Explaining Separation */}
+            <div
+              className={`p-3 rounded-2xl border text-xs flex items-center gap-3 transition-colors ${
+                isParticipantsTab
+                  ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
+                  : 'bg-accent/10 border-accent/25 text-accent-muted'
+              }`}
+            >
+              <div
+                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                  isParticipantsTab
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'bg-accent/20 text-accent'
+                }`}
+              >
+                {isParticipantsTab ? <BadgeCheck size={16} /> : <ClipboardList size={16} />}
+              </div>
+              <p className="leading-relaxed">
+                {isParticipantsTab ? (
+                  <>
+                    <strong className="font-bold text-emerald-200">Event Participants List:</strong> Displays
+                    registered students who have officially marked attendance via OTP or manual roll-call.
+                    Only attended participants receive points and certificates.
+                  </>
+                ) : (
+                  <>
+                    <strong className="font-bold text-accent">Registered Students List:</strong> Displays all
+                    students and teams who registered for this event. Those who mark attendance are automatically
+                    reflected in the <span className="underline font-semibold cursor-pointer" onClick={() => setActiveTab('participants')}>Event Participants</span> list.
+                  </>
+                )}
               </p>
             </div>
+          </div>
 
-            <div className="p-3.5 rounded-xl bg-canvas border border-separator">
-              <p className="text-[11px] uppercase font-semibold text-label-tertiary">Total Attendees</p>
-              <p className="text-xl font-black text-accent mt-0.5">{stats.totalStudents}</p>
-              <p className="text-[11px] text-label-secondary mt-0.5">Individual participants</p>
-            </div>
+          {/* Quick Metrics Bar Tailored to Active Tab */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-4 sm:p-5 border-b border-separator bg-canvas/20">
+            {isParticipantsTab ? (
+              <>
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary">Verified Participants</p>
+                  <p className="text-xl font-black text-emerald-400 mt-0.5">{stats.presentStudents}</p>
+                  <p className="text-[11px] text-label-secondary mt-0.5">Students with verified attendance</p>
+                </div>
 
-            <div className="p-3.5 rounded-xl bg-canvas border border-separator">
-              <p className="text-[11px] uppercase font-semibold text-label-tertiary">Present in Attendance</p>
-              <p className="text-xl font-black text-emerald-500 mt-0.5">{stats.presentStudents}</p>
-              <p className="text-[11px] text-label-secondary mt-0.5">
-                {stats.totalStudents ? Math.round((stats.presentStudents / stats.totalStudents) * 100) : 0}% Turnout
-              </p>
-            </div>
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary">Attendance Turnout</p>
+                  <p className="text-xl font-black text-label-primary mt-0.5">{stats.turnoutRate}%</p>
+                  <p className="text-[11px] text-label-secondary mt-0.5">
+                    {stats.presentStudents} of {stats.totalStudents} registered students
+                  </p>
+                </div>
 
-            <div className="p-3.5 rounded-xl bg-canvas border border-separator">
-              <p className="text-[11px] uppercase font-semibold text-label-tertiary">Absent / Unmarked</p>
-              <p className="text-xl font-black text-amber-500 mt-0.5">{stats.absentStudents}</p>
-              <p className="text-[11px] text-label-secondary mt-0.5">Awaiting verification</p>
-            </div>
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary">Participant Entries</p>
+                  <p className="text-xl font-black text-label-primary mt-0.5">{stats.presentRegistrations}</p>
+                  <p className="text-[11px] text-label-secondary mt-0.5">
+                    {stats.presentSolo} Solo • {stats.presentDuo} Duo • {stats.presentTeam} Squad
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary">Pending / Unmarked</p>
+                  <p className="text-xl font-black text-amber-500 mt-0.5">{stats.absentStudents}</p>
+                  <p className="text-[11px] text-label-secondary mt-0.5">Registered but not attended</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary">Total Registered</p>
+                  <p className="text-xl font-black text-accent mt-0.5">{stats.totalStudents}</p>
+                  <p className="text-[11px] text-label-secondary mt-0.5">Students across all registrations</p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary">Registration Entries</p>
+                  <p className="text-xl font-black text-label-primary mt-0.5">{stats.totalRegistrations}</p>
+                  <p className="text-[11px] text-label-secondary mt-0.5">
+                    {stats.soloCount} Solo • {stats.duoCount} Duo • {stats.teamCount} Squad
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary">Turnout Status</p>
+                  <p className="text-xl font-black text-emerald-400 mt-0.5">{stats.presentStudents}</p>
+                  <p className="text-[11px] text-label-secondary mt-0.5">
+                    {stats.turnoutRate}% marked attendance
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-canvas border border-separator">
+                  <p className="text-[11px] uppercase font-semibold text-label-tertiary">Event Capacity</p>
+                  <p className="text-xl font-black text-label-primary mt-0.5">
+                    {event.maxParticipants > 0 ? event.maxParticipants : 'Unlimited'}
+                  </p>
+                  <p className="text-[11px] text-label-secondary mt-0.5">
+                    {event.maxParticipants > 0
+                      ? `${Math.max(0, event.maxParticipants - stats.totalStudents)} spots remaining`
+                      : 'No cap enforced'}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Search & Filter Bar */}
@@ -465,25 +674,29 @@ export const EventParticipantsModal = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name, roll no, email, team..."
+                placeholder={
+                  isParticipantsTab
+                    ? 'Search participants name, roll no, team...'
+                    : 'Search registered students, roll no, team...'
+                }
                 className="input-field text-xs pl-9.5 py-2 w-full"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-label-tertiary hover:text-label-primary"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-label-tertiary hover:text-label-primary cursor-pointer"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
 
-            {/* Filter Pills */}
+            {/* Filter Dropdowns */}
             <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
               <select
                 value={formatFilter}
                 onChange={(e) => setFormatFilter(e.target.value)}
-                className="text-xs font-semibold py-1.5 px-3 rounded-xl bg-canvas border border-separator text-label-secondary focus:outline-none"
+                className="text-xs font-semibold py-1.5 px-3 rounded-xl bg-canvas border border-separator text-label-secondary focus:outline-none cursor-pointer"
               >
                 <option value="all">All Formats</option>
                 <option value="Individual">Solo</option>
@@ -491,39 +704,63 @@ export const EventParticipantsModal = ({
                 <option value="Team">Squad (Team)</option>
               </select>
 
-              <select
-                value={attendanceFilter}
-                onChange={(e) => setAttendanceFilter(e.target.value)}
-                className="text-xs font-semibold py-1.5 px-3 rounded-xl bg-canvas border border-separator text-label-secondary focus:outline-none"
-              >
-                <option value="all">All Attendance</option>
-                <option value="present">Present Only</option>
-                <option value="absent">Absent Only</option>
-              </select>
+              {!isParticipantsTab && (
+                <select
+                  value={attendanceFilter}
+                  onChange={(e) => setAttendanceFilter(e.target.value)}
+                  className="text-xs font-semibold py-1.5 px-3 rounded-xl bg-canvas border border-separator text-label-secondary focus:outline-none cursor-pointer"
+                >
+                  <option value="all">All Attendance</option>
+                  <option value="present">Attended (Present Only)</option>
+                  <option value="absent">Unmarked (Absent Only)</option>
+                </select>
+              )}
             </div>
           </div>
 
-          {/* Participants Table / List */}
+          {/* Cards List */}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-3">
             {loading ? (
               <div className="py-16 text-center space-y-3">
                 <Loader2 className="w-8 h-8 animate-spin text-accent mx-auto" />
-                <p className="text-xs text-label-secondary">Loading participant profiles...</p>
+                <p className="text-xs text-label-secondary">Loading roster profiles...</p>
               </div>
-            ) : filteredEnrollments.length === 0 ? (
+            ) : filteredList.length === 0 ? (
               <div className="py-16 text-center space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-canvas border border-separator flex items-center justify-center text-label-tertiary mx-auto">
-                  <Users size={22} />
+                  {isParticipantsTab ? <UserCheck size={22} /> : <Users size={22} />}
                 </div>
-                <p className="text-sm font-bold text-label-primary">No participants found</p>
-                <p className="text-xs text-label-secondary max-w-sm mx-auto">
-                  {searchQuery || formatFilter !== 'all' || attendanceFilter !== 'all'
-                    ? 'Try clearing your search filters to view registered participants.'
-                    : 'No participants have enrolled in this event yet.'}
+                <p className="text-sm font-bold text-label-primary">
+                  {isParticipantsTab ? 'No verified participants found' : 'No registered students found'}
                 </p>
+                <p className="text-xs text-label-secondary max-w-md mx-auto">
+                  {isParticipantsTab ? (
+                    stats.presentStudents === 0 ? (
+                      <>
+                        None of the {stats.totalStudents} registered students have marked attendance for this event yet.
+                        Students who check in via OTP or manual roll-call will appear here as verified participants.
+                      </>
+                    ) : (
+                      'No participants match your current search filters.'
+                    )
+                  ) : (
+                    stats.totalStudents === 0
+                      ? 'No students have registered for this event yet.'
+                      : 'No registered students match your current search filters.'
+                  )}
+                </p>
+                {isParticipantsTab && stats.presentStudents === 0 && stats.totalStudents > 0 && (
+                  <button
+                    onClick={() => setActiveTab('registered')}
+                    className="btn-secondary text-xs py-1.5 px-3.5 mx-auto mt-2 inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Users size={14} />
+                    <span>View Registered Students ({stats.totalStudents})</span>
+                  </button>
+                )}
               </div>
             ) : (
-              filteredEnrollments.map((e, idx) => {
+              filteredList.map((e, idx) => {
                 const isGroup = e.type === 'Team' || e.type === 'Duo';
                 const hasMembers = e.members && e.members.length > 0;
                 const isExpanded = expandedTeams.has(e._id);
@@ -538,7 +775,13 @@ export const EventParticipantsModal = ({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                         {/* Avatar */}
-                        <div className="w-10 h-10 rounded-xl bg-accent-subtle text-accent font-black text-sm flex items-center justify-center shrink-0">
+                        <div
+                          className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 ${
+                            isParticipantsTab || e.attendanceStatus
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-accent-subtle text-accent'
+                          }`}
+                        >
                           {e.enrolledBy?.name ? e.enrolledBy.name.charAt(0).toUpperCase() : '?'}
                         </div>
 
@@ -575,7 +818,9 @@ export const EventParticipantsModal = ({
 
                           {/* Detail Badges */}
                           <div className="flex items-center gap-2.5 text-xs text-label-secondary mt-1 flex-wrap font-medium">
-                            <span className="font-mono text-label-primary font-semibold">{e.enrolledBy?.rollNo || 'No Roll #'}</span>
+                            <span className="font-mono text-label-primary font-semibold">
+                              {e.enrolledBy?.rollNo || 'No Roll #'}
+                            </span>
                             <span>•</span>
                             <span className="px-2 py-0.5 rounded-md bg-accent/10 text-accent font-bold text-[11px] border border-accent/20 flex items-center gap-1">
                               <Building2 size={11} />
@@ -607,19 +852,19 @@ export const EventParticipantsModal = ({
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                             e.attendanceStatus
-                              ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/20'
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
                               : 'bg-separator text-label-tertiary'
                           }`}
                         >
                           {e.attendanceStatus ? (
                             <>
                               <CheckCircle2 size={13} />
-                              <span>Present</span>
+                              <span>{isParticipantsTab ? 'Verified Participant' : 'Attended'}</span>
                             </>
                           ) : (
                             <>
                               <XCircle size={13} />
-                              <span>Absent</span>
+                              <span>Awaiting Attendance</span>
                             </>
                           )}
                         </span>
@@ -629,23 +874,28 @@ export const EventParticipantsModal = ({
                             onClick={() => toggleExpand(e._id)}
                             className="p-1.5 rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1 text-xs px-2.5 cursor-pointer"
                           >
-                            <span>{e.members.length} Teammate{e.members.length > 1 ? 's' : ''}</span>
+                            <span>
+                              {e.members.length} Teammate{e.members.length > 1 ? 's' : ''}
+                            </span>
                             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {/* Custom Responses (if any) */}
+                    {/* Custom Questionnaire Responses (if any) */}
                     {e.customResponses && Object.keys(e.customResponses).length > 0 && (
                       <div className="pt-2.5 border-t border-separator/40 flex flex-wrap items-center gap-2">
                         <span className="text-[10px] uppercase font-bold text-label-tertiary flex items-center gap-1">
-                          <Sliders size={11} className="text-accent" /> Custom Responses:
+                          <Sliders size={11} className="text-accent" /> Questionnaire:
                         </span>
                         {Object.entries(e.customResponses).map(([key, val]) => {
-                          const matchedField = event.customFields?.find((cf) => cf.id === key || cf.label === key);
+                          const matchedField = event.customFields?.find(
+                            (cf) => cf.id === key || cf.label === key
+                          );
                           const displayKey = matchedField?.label || key;
-                          const displayVal = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val || 'N/A');
+                          const displayVal =
+                            typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val || 'N/A');
                           return (
                             <span
                               key={key}
@@ -734,14 +984,31 @@ export const EventParticipantsModal = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 sm:p-5 border-t border-separator bg-canvas/40 flex items-center justify-between text-xs text-label-secondary">
-            <span>Showing {filteredEnrollments.length} of {enrollments.length} total registrations</span>
-            <button
-              onClick={onClose}
-              className="btn-secondary text-xs py-1.5 px-4 cursor-pointer"
-            >
-              Close
-            </button>
+          <div className="p-4 sm:p-5 border-t border-separator bg-canvas/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary">
+            <div>
+              {isParticipantsTab ? (
+                <span>
+                  Showing <strong>{filteredList.length}</strong> of{' '}
+                  <strong>{stats.presentRegistrations}</strong> verified participant entries ({stats.presentStudents} students)
+                </span>
+              ) : (
+                <span>
+                  Showing <strong>{filteredList.length}</strong> of{' '}
+                  <strong>{stats.totalRegistrations}</strong> registered entries ({stats.totalStudents} students)
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab(isParticipantsTab ? 'registered' : 'participants')}
+                className="text-xs text-accent hover:underline cursor-pointer mr-2"
+              >
+                Switch to {isParticipantsTab ? 'Registered Students List' : 'Event Participants List'}
+              </button>
+              <button onClick={onClose} className="btn-secondary text-xs py-1.5 px-4 cursor-pointer">
+                Close
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>

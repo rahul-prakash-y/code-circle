@@ -27,6 +27,7 @@ export const EventDetailsModal = ({
   onEnroll,
   onEdit,
   onViewParticipants,
+  onViewRegistered,
 }) => {
   if (!isOpen || !event) return null;
 
@@ -254,6 +255,11 @@ export const EventDetailsModal = ({
                       {(event.enrolledCount || 0) >= event.maxParticipants && (
                         <span className="text-xs text-rose-500 font-semibold">(Full)</span>
                       )}
+                      {Boolean(event.participantsCount) && (
+                        <span className="text-xs text-emerald-400 font-semibold ml-1.5">
+                          • {event.participantsCount} Attended
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -395,18 +401,31 @@ export const EventDetailsModal = ({
               Close
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {isAdmin && (
                 <>
                   <button
                     onClick={() => {
                       onClose();
-                      if (onViewParticipants) onViewParticipants(event);
+                      if (onViewRegistered) onViewRegistered(event);
+                      else if (onViewParticipants) onViewParticipants(event, 'registered');
                     }}
-                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-accent"
+                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-label-primary hover:text-accent"
+                    title="View Full Registered Students Roster"
                   >
-                    <UserCheck size={15} />
-                    <span>Participants</span>
+                    <Users size={14} />
+                    <span>Registered ({event.enrolledCount || 0})</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      if (onViewParticipants) onViewParticipants(event, 'participants');
+                    }}
+                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-emerald-400 hover:text-emerald-300 border-emerald-500/20"
+                    title="View Verified Event Participants (Attended)"
+                  >
+                    <UserCheck size={14} />
+                    <span>Participants ({event.participantsCount || 0})</span>
                   </button>
                   <button
                     onClick={() => {

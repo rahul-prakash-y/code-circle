@@ -103,7 +103,29 @@ const getEvents = async (request, reply) => {
       .sort({ date: 1 })
       .populate('createdBy', 'name email profilePicUrl');
 
-    return reply.send(events);
+    const rawEnrollment = require('../models/enrollmentModel');
+    const Enrollment = rawEnrollment.default || rawEnrollment;
+    const eventIds = events.map((e) => e._id);
+    const enrollments = await Enrollment.find({ event: { $in: eventIds } });
+    const countMap = {};
+    const participantCountMap = {};
+    for (const enr of enrollments) {
+      const evId = enr.event.toString();
+      const count = 1 + (enr.members?.length || 0);
+      countMap[evId] = (countMap[evId] || 0) + count;
+      if (enr.attendanceStatus) {
+        participantCountMap[evId] = (participantCountMap[evId] || 0) + count;
+      }
+    }
+
+    const eventsWithCounts = events.map((e) => {
+      const obj = e.toObject ? e.toObject() : { ...e };
+      obj.enrolledCount = countMap[e._id.toString()] || 0;
+      obj.participantsCount = participantCountMap[e._id.toString()] || 0;
+      return obj;
+    });
+
+    return reply.send(eventsWithCounts);
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Failed to fetch events' });

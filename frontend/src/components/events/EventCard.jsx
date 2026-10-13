@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import EnrollmentModal from './EnrollmentModal';
 import EventDetailsModal from './EventDetailsModal';
@@ -15,6 +15,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [participantsInitialTab, setParticipantsInitialTab] = useState('participants');
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -147,16 +148,31 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
               </div>
             )}
 
-            {event.maxParticipants > 0 && (
+            {event.maxParticipants > 0 ? (
               <div className="flex items-center gap-2.5">
                 <Users size={14} strokeWidth={1.75} className="shrink-0 text-accent" />
                 <span className={event.enrolledCount >= event.maxParticipants ? 'text-rose-500 font-medium' : 'text-label-secondary'}>
                   {event.enrolledCount >= event.maxParticipants
                     ? `Capacity Full (${event.maxParticipants}/${event.maxParticipants})`
-                    : `${event.enrolledCount || 0} / ${event.maxParticipants} students registered`}
+                    : `${event.enrolledCount || 0} / ${event.maxParticipants} registered`}
                 </span>
+                {Boolean(event.participantsCount) && (
+                  <span className="text-emerald-400 font-medium text-xs">
+                    • {event.participantsCount} attended
+                  </span>
+                )}
               </div>
-            )}
+            ) : (Boolean(event.enrolledCount) || Boolean(event.participantsCount)) ? (
+              <div className="flex items-center gap-2.5 text-xs text-label-secondary">
+                <Users size={14} strokeWidth={1.75} className="shrink-0 text-accent" />
+                <span>{event.enrolledCount || 0} registered</span>
+                {Boolean(event.participantsCount) && (
+                  <span className="text-emerald-400 font-medium">
+                    • {event.participantsCount} attended
+                  </span>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -186,11 +202,31 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   <Eye size={15} strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => setIsParticipantsOpen(true)}
+                  onClick={() => {
+                    setParticipantsInitialTab('registered');
+                    setIsParticipantsOpen(true);
+                  }}
                   className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
-                  title="Participants Full Details"
+                  title="Registered Students List"
                 >
                   <Users size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => {
+                    setParticipantsInitialTab('participants');
+                    setIsParticipantsOpen(true);
+                  }}
+                  className="p-2 text-label-secondary hover:text-emerald-400 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Event Participants List (Attended)"
+                >
+                  <Award size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => setIsAttendanceOpen(true)}
+                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Attendance Sessions & Logs"
+                >
+                  <UserCheck size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => onEdit(event)}
@@ -198,13 +234,6 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   title="Edit Event"
                 >
                   <Edit2 size={15} strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setIsAttendanceOpen(true)}
-                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
-                  title="Attendance Records"
-                >
-                  <UserCheck size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => onDelete(event._id)}
@@ -268,15 +297,23 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
         isAdmin={isAdmin}
         onEnroll={() => setIsEnrollModalOpen(true)}
         onEdit={onEdit}
-        onViewParticipants={() => setIsParticipantsOpen(true)}
+        onViewParticipants={(ev, tab) => {
+          setParticipantsInitialTab(tab || 'participants');
+          setIsParticipantsOpen(true);
+        }}
+        onViewRegistered={() => {
+          setParticipantsInitialTab('registered');
+          setIsParticipantsOpen(true);
+        }}
       />
 
-      {/* Event Participants Full Details Modal for Admin */}
+      {/* Event Participants & Registered Students Modal for Admin */}
       {isAdmin && (
         <EventParticipantsModal
           isOpen={isParticipantsOpen}
           onClose={() => setIsParticipantsOpen(false)}
           event={event}
+          initialTab={participantsInitialTab}
         />
       )}
 

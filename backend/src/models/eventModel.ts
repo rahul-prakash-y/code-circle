@@ -18,6 +18,7 @@ export interface IEvent extends Document {
   maxParticipants: number;
   maxTeamSize?: number;
   enrolledCount?: number;
+  participantsCount?: number;
   registrationDeadline: Date;
   certificateTemplateUrl?: string;
   customFields?: ICustomField[];

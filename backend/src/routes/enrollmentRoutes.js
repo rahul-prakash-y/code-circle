@@ -9,6 +9,8 @@ async function enrollmentRoutes(fastify, options) {
 
   // Admin / Faculty privileged routes
   fastify.get('/event/:eventId', { preHandler: [isAdminOrFaculty] }, enrollmentController.getEventEnrollments);
+  fastify.get('/event/:eventId/participants', { preHandler: [isAdminOrFaculty] }, enrollmentController.getEventParticipants);
+  fastify.get('/event/:eventId/registered', { preHandler: [isAdminOrFaculty] }, enrollmentController.getEventRegistered);
   fastify.patch('/:eventId/attendance', { preHandler: [isAdminOrFaculty] }, enrollmentController.updateAttendance);
   fastify.post('/:eventId/generate-certificates', { preHandler: [isAdminOrFaculty] }, enrollmentController.generateCertificates);
 }
