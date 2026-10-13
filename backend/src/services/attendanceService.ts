@@ -4,6 +4,7 @@ import AttendanceSession, { IAttendanceSession } from '../models/attendanceSessi
 import AttendanceRecord, { IAttendanceRecord } from '../models/attendanceRecordModel';
 import Event from '../models/eventModel';
 import User from '../models/userModel';
+import PointTransaction from '../models/pointTransactionModel';
 import attendanceBuffer from './attendanceBuffer';
 const Enrollment = require('../models/enrollmentModel');
 
@@ -179,19 +180,50 @@ export class AttendanceService {
       pointsAwarded: pointsToAward,
     });
 
-    // Credit points to user profile for leaderboard
+    // Credit points to user profile for leaderboard and record transaction
     if (pointsToAward > 0) {
       await User.findByIdAndUpdate(userId, { $inc: { points: pointsToAward } });
+      try {
+        const hours = Array.isArray((session as any).classHours) && (session as any).classHours.length > 0
+          ? (session as any).classHours
+          : [1];
+        await PointTransaction.create({
+          user: userId,
+          amount: pointsToAward,
+          category: 'Attendance',
+          title: `Club Hour: ${session.sessionName || session.event?.title || 'Club Session'}`,
+          description: `Attended Period(s) ${hours.join(', ')} (${hours.length} hr${hours.length > 1 ? 's' : ''}) • Session OTP Verified`,
+          referenceId: record._id.toString(),
+          referenceModel: 'AttendanceRecord',
+          classHours: hours,
+          metadata: {
+            sessionId: session._id,
+            eventId: session.event?._id,
+            sessionName: session.sessionName,
+            eventTitle: session.event?.title,
+          },
+          timestamp: new Date(),
+        });
+      } catch (txErr) {
+        console.warn('[AttendanceService] Could not log PointTransaction:', txErr);
+      }
     }
 
-    // Synchronize attendanceStatus in Enrollment if enrolled
+    // Connect attendance to Enrollment permanently (auto-create if student wasn't pre-enrolled)
     try {
-      const enrollment = await Enrollment.findOne({
+      let enrollment = await Enrollment.findOne({
         event: session.event._id,
         $or: [{ enrolledBy: userId }, { members: userId }],
       });
 
-      if (enrollment && !enrollment.attendanceStatus) {
+      if (!enrollment) {
+        await Enrollment.create({
+          event: session.event._id,
+          enrolledBy: userId,
+          type: 'Individual',
+          attendanceStatus: true,
+        });
+      } else if (!enrollment.attendanceStatus) {
         enrollment.attendanceStatus = true;
         await enrollment.save();
       }
@@ -567,18 +599,49 @@ export class AttendanceService {
         });
         if (pointsToAward > 0) {
           await User.findByIdAndUpdate(u._id, { $inc: { points: pointsToAward } });
+          try {
+            const hours = Array.isArray((session as any).classHours) && (session as any).classHours.length > 0
+              ? (session as any).classHours
+              : [1];
+            await PointTransaction.create({
+              user: u._id,
+              amount: pointsToAward,
+              category: 'Attendance',
+              title: `Club Hour: ${session.sessionName || event.title || 'Club Session'}`,
+              description: `Attended Period(s) ${hours.join(', ')} (${hours.length} hr${hours.length > 1 ? 's' : ''}) • Marked by Admin`,
+              referenceId: session._id.toString(),
+              referenceModel: 'AttendanceRecord',
+              classHours: hours,
+              metadata: {
+                sessionId: session._id,
+                eventId: event._id,
+                sessionName: session.sessionName,
+                eventTitle: event.title,
+              },
+              timestamp: new Date(),
+            });
+          } catch (txErr) {
+            console.warn('[AttendanceService] Could not log manual PointTransaction:', txErr);
+          }
         }
         newlyMarked.push(u);
       }
 
-      // Synchronize attendanceStatus in Enrollment if enrolled
+      // Connect attendance to Enrollment permanently (auto-create if student wasn't pre-enrolled)
       try {
-        const enrollment = await Enrollment.findOne({
+        let enrollment = await Enrollment.findOne({
           event: event._id,
           $or: [{ enrolledBy: u._id }, { members: u._id }],
         });
 
-        if (enrollment && !enrollment.attendanceStatus) {
+        if (!enrollment) {
+          await Enrollment.create({
+            event: event._id,
+            enrolledBy: u._id,
+            type: 'Individual',
+            attendanceStatus: true,
+          });
+        } else if (!enrollment.attendanceStatus) {
           enrollment.attendanceStatus = true;
           await enrollment.save();
         }
@@ -628,9 +691,23 @@ export class AttendanceService {
 
     await AttendanceRecord.findByIdAndDelete(recordId);
 
-    // Deduct points awarded from user
+    // Deduct points awarded from user and record deduction transaction
     if (pointsToDeduct > 0 && userId) {
       await User.findByIdAndUpdate(userId, { $inc: { points: -pointsToDeduct } });
+      try {
+        await PointTransaction.create({
+          user: userId,
+          amount: -pointsToDeduct,
+          category: 'Attendance',
+          title: `Attendance Revoked: ${record.session?.sessionName || 'Club Session'}`,
+          description: `Attendance record removed by administrator`,
+          referenceId: recordId,
+          referenceModel: 'AttendanceRecord',
+          timestamp: new Date(),
+        });
+      } catch (txErr) {
+        console.warn('[AttendanceService] Could not log PointTransaction deduction:', txErr);
+      }
     }
 
     // Revert enrollment status if no remaining attendance records for this student in this event

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useOutlet, Link, Outlet } from 'react-router-dom';
 import Sidebar from '../components/navigation/Sidebar';
@@ -6,12 +6,14 @@ import Header from '../components/navigation/Header';
 import BottomNav from '../components/navigation/BottomNav';
 import BackgroundGradient from '../components/ui/BackgroundGradient';
 import PageTransitionWrapper from '../components/ui/PageTransitionWrapper';
+import { PageSkeleton } from '../components/ui/LoadingSkeleton';
+import { preloadRoute, preloadCommonRoutes } from '../lib/routePreload';
 import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
   Medal, Trophy, Ticket, MessageSquare,
   Newspaper, Users, Crown, Shield, BarChart3,
   Compass, UserCheck,
-  Flame,
+  Flame, Sparkles,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -31,6 +33,11 @@ export const MainLayout = ({ children }) => {
   const outlet = useOutlet();
   const { user } = useAuthStore();
   const { profile } = useProfileStore();
+
+  // Preload common routes during idle time so page changes are instantaneous
+  useEffect(() => {
+    preloadCommonRoutes();
+  }, []);
 
   // Scroll window to top on route change for native SPA feel
   useEffect(() => {
@@ -100,6 +107,7 @@ export const MainLayout = ({ children }) => {
     { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
     { to: '/certificates', label: 'Certificates', icon: Medal },
     { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    { to: '/points', label: 'My Points', icon: Sparkles },
     { to: '/passport', label: 'Registrations', icon: Ticket },
     { to: '/feedback', label: 'Feedback', icon: MessageSquare },
     { to: '/news', label: 'News', icon: Newspaper },
@@ -195,6 +203,8 @@ export const MainLayout = ({ children }) => {
                     <Link
                       key={item.to}
                       to={item.to}
+                      onMouseEnter={() => preloadRoute(item.to)}
+                      onTouchStart={() => preloadRoute(item.to)}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-3 rounded-xl text-[14px] transition-colors duration-150"
                       style={{

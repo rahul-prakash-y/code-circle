@@ -20,6 +20,7 @@ const AttendancePage = lazy(() => import('./pages/AttendancePage'));
 const CertificatesPage = lazy(() => import('./pages/CertificatesPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const PassportPage = lazy(() => import('./pages/PassportPage'));
+const PointsPage = lazy(() => import('./pages/PointsPage'));
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -309,6 +310,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/points"
+              element={
+                <ProtectedRoute>
+                  <PointsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/my-points" element={<Navigate to="/points" replace />} />
+            <Route path="/admin/points" element={<Navigate to="/points" replace />} />
 
             <Route
               path="/passport"

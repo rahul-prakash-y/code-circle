@@ -20,6 +20,7 @@ import {
   UserCheck,
   Activity,
   Flame,
+  Sparkles,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -140,6 +141,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       match: (loc) => loc.pathname === '/leaderboard',
     },
     {
+      to: '/points',
+      label: 'My Points',
+      icon: Sparkles,
+      match: (loc) => loc.pathname === '/points' || loc.pathname === '/my-points',
+    },
+    {
       to: '/passport',
       label: 'Registrations',
       icon: Ticket,
@@ -205,6 +212,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       label: 'Analytics',
       icon: BarChart3,
       match: (loc) => loc.pathname === '/analytics',
+    },
+    {
+      to: '/points',
+      label: 'Points Console',
+      icon: Sparkles,
+      match: (loc) => loc.pathname === '/points' || loc.pathname === '/admin/points',
     },
   ];
 

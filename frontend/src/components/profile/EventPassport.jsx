@@ -57,17 +57,37 @@ const PassportTimelineItem = ({ item, index }) => {
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg border 
                 ${isAttended ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-accent/10 border-accent/20 text-accent-muted'}`}>
-                {isAttended ? 'Attended' : 'Registered'}
+                {isAttended ? 'Verified Present' : 'Registered'}
               </span>
+
+              {item.clubHoursText && (
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center gap-1.5">
+                  <Clock size={12} />
+                  <span>Club Hours: {item.clubHoursText}</span>
+                </span>
+              )}
+
+              {item.pointsAwarded > 0 && (
+                <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  +{item.pointsAwarded} pts
+                </span>
+              )}
+
               <span className="text-text-muted font-bold uppercase tracking-widest text-[10px]">{formattedDate}</span>
             </div>
             
             <h3 className="text-2xl font-black text-text-primary group-hover:text-accent-muted transition-colors uppercase tracking-tight leading-none">
               {item.eventTitle || 'Untitled Event'}
             </h3>
+
+            {item.sessionName && (
+              <p className="text-xs text-text-muted font-medium">
+                Session: <span className="text-text-primary font-semibold">{item.sessionName}</span>
+              </p>
+            )}
             
             <div className="flex flex-wrap items-center gap-6 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">
               <div className="flex items-center gap-2">
@@ -161,8 +181,16 @@ const EventPassport = () => {
             Track your registered events, attendance validation, and participation certificates.
           </p>
         </div>
-        <div className="w-14 h-14 bg-accent/10 rounded-2xl border border-accent/20 text-accent-muted flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.1)]">
-          <Award size={28} strokeWidth={2.5} />
+        <div className="flex items-center gap-3">
+          <Link
+            to="/points"
+            className="btn-secondary py-2 px-4 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>View My Points</span>
+          </Link>
+          <div className="w-14 h-14 bg-accent/10 rounded-2xl border border-accent/20 text-accent-muted flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+            <Award size={28} strokeWidth={2.5} />
+          </div>
         </div>
       </div>
 

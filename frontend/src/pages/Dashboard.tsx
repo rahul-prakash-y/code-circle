@@ -371,6 +371,7 @@ export const Dashboard: React.FC = () => {
       certificates: '/certificates',
       leaderboard: '/leaderboard',
       passport: '/passport',
+      points: '/points',
       feedback: '/feedback',
       news: '/news',
       analytics: '/analytics',
@@ -416,10 +417,10 @@ export const Dashboard: React.FC = () => {
       delay: 0,
     },
     {
-      value: isAdmin ? (metrics?.activeEvents ?? 0) : 12,
-      label: isAdmin ? 'Active Events' : 'Leaderboard Rank',
-      sublabel: 'Live & scheduled',
-      icon: Calendar,
+      value: isAdmin ? (metrics?.activeEvents ?? 0) : (profile?.points ?? user?.points ?? 0),
+      label: isAdmin ? 'Active Events' : 'Club Points',
+      sublabel: isAdmin ? 'Live & scheduled' : 'Rank & merit points',
+      icon: isAdmin ? Calendar : Sparkles,
       delay: 0.05,
     },
     {

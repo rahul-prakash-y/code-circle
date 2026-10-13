@@ -88,51 +88,73 @@ const AttendanceHistory = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-separator text-[11px] font-medium text-text-muted bg-canvas">
-                <th className="px-6 py-3.5">Event & Session</th>
-                <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5 text-right">Date & Time</th>
+                <th className="px-5 py-3.5">Event & Session</th>
+                <th className="px-5 py-3.5">Club Hours</th>
+                <th className="px-5 py-3.5">Points</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5 text-right">Date & Time</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-separator">
-              {history.map((record) => (
-                <tr key={record._id} className="hover:bg-surface-elevated transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-surface-elevated border border-separator overflow-hidden shrink-0 flex items-center justify-center text-text-muted">
-                        {record.session?.event?.thumbnail ? (
-                          <img src={record.session.event.thumbnail} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <Calendar size={16} />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-text-primary truncate">
-                          {record.session?.event?.title || 'Event Session'}
+              {history.map((record) => {
+                const hours = record.classHours || record.session?.classHours || [];
+                const hoursText =
+                  hours.length > 0
+                    ? `Hours ${hours.join(', ')} (${hours.length} hr${hours.length > 1 ? 's' : ''})`
+                    : '1 Period';
+                const pts = record.pointsAwarded ?? record.session?.totalPoints ?? 50;
+
+                return (
+                  <tr key={record._id} className="hover:bg-surface-elevated transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-surface-elevated border border-separator overflow-hidden shrink-0 flex items-center justify-center text-text-muted">
+                          {record.session?.event?.thumbnail ? (
+                            <img src={record.session.event.thumbnail} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Calendar size={16} />
+                          )}
                         </div>
-                        <div className="text-[11px] text-text-muted truncate">
-                          {record.session?.sessionName || 'General Session'}
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-text-primary truncate">
+                            {record.session?.event?.title || record.event?.title || 'Event Session'}
+                          </div>
+                          <div className="text-[11px] text-text-muted truncate">
+                            {record.session?.sessionName || record.sessionName || 'General Session'}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
-                      Verified Present
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="text-xs font-medium text-text-primary">
-                      {record.timestamp ? format(new Date(record.timestamp), 'MMM dd, yyyy') : '—'}
-                    </div>
-                    <div className="text-[10px] text-text-muted font-mono">
-                      {record.timestamp ? format(new Date(record.timestamp), 'hh:mm a') : ''}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-1 font-mono font-bold text-xs px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        <Clock size={12} />
+                        <span>{hoursText}</span>
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        +{pts} pts
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
+                        Verified Present
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="text-xs font-medium text-text-primary">
+                        {record.timestamp ? format(new Date(record.timestamp), 'MMM dd, yyyy') : '—'}
+                      </div>
+                      <div className="text-[10px] text-text-muted font-mono">
+                        {record.timestamp ? format(new Date(record.timestamp), 'hh:mm a') : ''}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {history.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="3" className="px-6 py-14 text-center">
+                  <td colSpan="5" className="px-6 py-14 text-center">
                     <div className="max-w-xs mx-auto space-y-2">
                       <div className="w-10 h-10 bg-surface-elevated rounded-xl border border-separator flex items-center justify-center mx-auto text-text-muted">
                         <ShieldCheck size={20} />
