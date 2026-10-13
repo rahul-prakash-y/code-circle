@@ -79,6 +79,9 @@ interface AssessmentStoreState {
   submitAssessment: (id: string, answers: { questionIndex: number; selectedOption: number }[], timeSpentSeconds?: number) => Promise<{ success: boolean; result?: SubmissionResult; error?: string }>;
   fetchMySubmissions: () => Promise<void>;
   fetchAssessmentSubmissions: (assessmentId: string) => Promise<void>;
+  deleteSubmission: (assessmentId: string, submissionId: string) => Promise<{ success: boolean; error?: string }>;
+  allowStudentReappear: (assessmentId: string, studentId: string) => Promise<{ success: boolean; error?: string }>;
+  resetMySubmission: (assessmentId: string) => Promise<{ success: boolean; error?: string }>;
   setSelectedCategory: (category: string) => void;
   setSearchQuery: (query: string) => void;
   clearCurrentResult: () => void;
@@ -230,6 +233,54 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
     } catch (err: any) {
       set({ loading: false });
       console.error('Failed to fetch assessment submissions', err);
+    }
+  },
+
+  deleteSubmission: async (assessmentId: string, submissionId: string) => {
+    try {
+      await api.delete(`/assessments/${assessmentId}/submissions/${submissionId}`);
+      set((state) => ({
+        assessmentSubmissions: state.assessmentSubmissions.filter((s) => s._id !== submissionId),
+      }));
+      get().fetchAssessments();
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to delete submission retry',
+      };
+    }
+  },
+
+  allowStudentReappear: async (assessmentId: string, studentId: string) => {
+    try {
+      await api.post(`/assessments/${assessmentId}/reappear/${studentId}`);
+      set((state) => ({
+        assessmentSubmissions: state.assessmentSubmissions.filter(
+          (s) => (s.user?._id || s.user) !== studentId
+        ),
+      }));
+      get().fetchAssessments();
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to reset student assessment attempt',
+      };
+    }
+  },
+
+  resetMySubmission: async (assessmentId: string) => {
+    try {
+      await api.delete(`/assessments/${assessmentId}/my-submission`);
+      set({ currentResult: null });
+      await get().fetchAssessments();
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to reset assessment retry',
+      };
     }
   },
 }));

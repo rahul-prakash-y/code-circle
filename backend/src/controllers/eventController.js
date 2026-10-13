@@ -112,7 +112,9 @@ const getEvents = async (request, reply) => {
     for (const enr of enrollments) {
       const evId = enr.event.toString();
       const count = 1 + (enr.members?.length || 0);
-      countMap[evId] = (countMap[evId] || 0) + count;
+      if (!enr.isWalkIn) {
+        countMap[evId] = (countMap[evId] || 0) + count;
+      }
       if (enr.attendanceStatus) {
         participantCountMap[evId] = (participantCountMap[evId] || 0) + count;
       }

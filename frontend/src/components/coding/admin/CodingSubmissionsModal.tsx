@@ -13,6 +13,9 @@ import {
   Loader2,
   Copy,
   Check,
+  Trash2,
+  RotateCcw,
+  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
@@ -77,6 +80,37 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
   // Selected submission for code inspection
   const [inspectSubmission, setInspectSubmission] = useState<SubmissionItem | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
+
+  // Reappear / Delete Retry management action states
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'delete' | 'reappear';
+    subId?: string;
+    studentId?: string;
+    studentName?: string;
+  } | null>(null);
+  const [actionLoading, setActionLoading] = useState<boolean>(false);
+
+  const handleExecuteAction = async () => {
+    if (!confirmAction || !challengeId) return;
+    setActionLoading(true);
+
+    try {
+      if (confirmAction.type === 'delete') {
+        await api.delete(`/assessments/code/challenges/${challengeId}/submissions/${confirmAction.subId}`);
+        setSubmissions((prev) => prev.filter((s) => s._id !== confirmAction.subId));
+        toast.success(`Coding retry submission for ${confirmAction.studentName} deleted successfully.`);
+      } else if (confirmAction.type === 'reappear') {
+        await api.post(`/assessments/code/challenges/${challengeId}/reappear/${confirmAction.studentId}`);
+        setSubmissions((prev) => prev.filter((s) => (s.student?._id || s.student) !== confirmAction.studentId));
+        toast.success(`${confirmAction.studentName} can now reappear for this challenge.`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to process submission action');
+    } finally {
+      setActionLoading(false);
+      setConfirmAction(null);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || !challengeId) return;
@@ -320,13 +354,49 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
                       </td>
 
                       <td className="p-3.5 pr-4 text-right">
-                        <button
-                          onClick={() => setInspectSubmission(sub)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-surface-secondary hover:bg-surface-raised border border-separator text-label-primary transition-all shadow-sm"
-                        >
-                          <Code2 className="w-3.5 h-3.5 text-blue-500" />
-                          <span>View Code</span>
-                        </button>
+                        <div className="inline-flex items-center gap-1.5 justify-end">
+                          <button
+                            onClick={() => setInspectSubmission(sub)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold bg-surface-secondary hover:bg-surface-raised border border-separator text-label-primary transition-all shadow-sm cursor-pointer"
+                            title="Inspect submitted code"
+                          >
+                            <Code2 className="w-3.5 h-3.5 text-blue-500" />
+                            <span className="hidden sm:inline">View Code</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setConfirmAction({
+                                type: 'reappear',
+                                studentId: student._id || (typeof sub.student === 'string' ? sub.student : ''),
+                                studentName: student.name || 'Student',
+                                subId: sub._id,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 transition-all shadow-sm cursor-pointer"
+                            title="Reset attempts so this student can reappear cleanly"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span className="hidden md:inline">Allow Reappear</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setConfirmAction({
+                                type: 'delete',
+                                studentId: student._id || (typeof sub.student === 'string' ? sub.student : ''),
+                                studentName: student.name || 'Student',
+                                subId: sub._id,
+                              })
+                            }
+                            className="inline-flex items-center p-1.5 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all shadow-sm cursor-pointer"
+                            title="Delete this retry submission"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -381,6 +451,66 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
                 <span className="font-mono text-emerald-400">
                   Passed {inspectSubmission.passed} of {inspectSubmission.total} Cases
                 </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Confirmation Modal Overlay */}
+        {confirmAction && (
+          <div className="fixed inset-0 z-70 bg-black/85 backdrop-blur-md flex items-center justify-center p-6">
+            <div className="bg-neutral-950 border border-neutral-800 p-6 sm:p-7 rounded-3xl max-w-md w-full text-center space-y-4 shadow-2xl">
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto border ${
+                  confirmAction.type === 'delete'
+                    ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                    : 'bg-purple-500/15 border-purple-500/30 text-purple-400'
+                }`}
+              >
+                {confirmAction.type === 'delete' ? (
+                  <Trash2 size={24} />
+                ) : (
+                  <RotateCcw size={24} />
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-base font-extrabold text-white">
+                  {confirmAction.type === 'delete'
+                    ? 'Delete Coding Retry Submission?'
+                    : 'Allow Student to Reappear?'}
+                </h3>
+                <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">
+                  {confirmAction.type === 'delete'
+                    ? `Are you sure you want to delete this retry attempt for ${confirmAction.studentName}? This will permanently clear this record.`
+                    : `This will reset all coding challenge submission locks for ${confirmAction.studentName}, allowing them to reappear and solve this challenge again.`}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => setConfirmAction(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-300 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={handleExecuteAction}
+                  className={`px-5 py-2 rounded-xl text-xs font-black text-white flex items-center gap-2 cursor-pointer shadow-lg transition-all ${
+                    confirmAction.type === 'delete'
+                      ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-500/25'
+                      : 'bg-purple-600 hover:bg-purple-500 shadow-purple-500/25'
+                  }`}
+                >
+                  {actionLoading && <Loader2 size={13} className="animate-spin" />}
+                  <span>
+                    {confirmAction.type === 'delete' ? 'Yes, Delete Retry' : 'Yes, Allow Reappear'}
+                  </span>
+                </button>
               </div>
             </div>
           </div>

@@ -222,6 +222,7 @@ export class AttendanceService {
           enrolledBy: userId,
           type: 'Individual',
           attendanceStatus: true,
+          isWalkIn: true,
         });
       } else if (!enrollment.attendanceStatus) {
         enrollment.attendanceStatus = true;
@@ -640,6 +641,7 @@ export class AttendanceService {
             enrolledBy: u._id,
             type: 'Individual',
             attendanceStatus: true,
+            isWalkIn: true,
           });
         } else if (!enrollment.attendanceStatus) {
           enrollment.attendanceStatus = true;

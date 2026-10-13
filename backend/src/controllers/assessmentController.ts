@@ -566,6 +566,124 @@ export const getAssessmentSubmissions = async (
   }
 };
 
+export const deleteAssessmentSubmission = async (
+  request: FastifyRequest<{ Params: { id: string; submissionId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { id, submissionId } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(submissionId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid ID parameters' });
+    }
+
+    const submission = await AssessmentSubmission.findOne({
+      _id: submissionId,
+      assessment: id,
+    });
+
+    if (!submission) {
+      return reply.status(404).send({ success: false, error: 'Submission not found' });
+    }
+
+    const isAdmin =
+      user.role === 'Admin' ||
+      user.role === 'SuperAdmin' ||
+      user.role === 'Faculty' ||
+      user.role === 'Committee';
+
+    // If not admin, verify ownership
+    if (!isAdmin && submission.user.toString() !== user.id) {
+      return reply.status(403).send({ success: false, error: 'Permission denied to delete this retry' });
+    }
+
+    await AssessmentSubmission.findByIdAndDelete(submissionId);
+
+    return reply.send({
+      success: true,
+      message: 'Assessment retry submission deleted successfully',
+      deletedSubmissionId: submissionId,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to delete assessment submission',
+    });
+  }
+};
+
+export const allowStudentReappear = async (
+  request: FastifyRequest<{ Params: { id: string; studentId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id, studentId } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(studentId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid ID parameters' });
+    }
+
+    const assessment = await Assessment.findById(id);
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
+    // Delete all submissions for this student on this assessment so student can reappear
+    const deleteResult = await AssessmentSubmission.deleteMany({
+      assessment: id,
+      user: studentId,
+    });
+
+    return reply.send({
+      success: true,
+      message: 'Student attempt has been reset. The student is now permitted to reappear for this assessment.',
+      deletedCount: deleteResult.deletedCount,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to reset student assessment attempt',
+    });
+  }
+};
+
+export const resetMyAssessmentSubmission = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
+    }
+
+    // Delete student's own submissions for this assessment
+    const deleteResult = await AssessmentSubmission.deleteMany({
+      assessment: id,
+      user: user.id,
+    });
+
+    return reply.send({
+      success: true,
+      message: 'Assessment retry reset successfully. You can now reappear.',
+      deletedCount: deleteResult.deletedCount,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to reset assessment retry',
+    });
+  }
+};
+
 export default {
   getAssessments,
   getAssessmentById,
@@ -575,4 +693,7 @@ export default {
   submitAssessment,
   getMySubmissions,
   getAssessmentSubmissions,
+  deleteAssessmentSubmission,
+  allowStudentReappear,
+  resetMyAssessmentSubmission,
 };

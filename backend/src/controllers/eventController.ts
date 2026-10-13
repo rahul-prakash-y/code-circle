@@ -153,7 +153,9 @@ export const getEvents = async (
     for (const enr of enrollments) {
       const evId = enr.event.toString();
       const count = 1 + (enr.members?.length || 0);
-      countMap[evId] = (countMap[evId] || 0) + count;
+      if (!enr.isWalkIn) {
+        countMap[evId] = (countMap[evId] || 0) + count;
+      }
       if (enr.attendanceStatus) {
         participantCountMap[evId] = (participantCountMap[evId] || 0) + count;
       }
@@ -196,10 +198,12 @@ export const getEventById = async (
     }
 
     const enrollments = await (Enrollment as any).find({ event: event._id });
-    const enrolledCount = enrollments.reduce(
-      (sum: number, enr: any) => sum + 1 + (enr.members?.length || 0),
-      0
-    );
+    const enrolledCount = enrollments
+      .filter((enr: any) => !enr.isWalkIn)
+      .reduce(
+        (sum: number, enr: any) => sum + 1 + (enr.members?.length || 0),
+        0
+      );
     const participantsCount = enrollments
       .filter((enr: any) => enr.attendanceStatus)
       .reduce(

@@ -29,6 +29,10 @@ const enrollmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isWalkIn: {
+    type: Boolean,
+    default: false
+  },
   certificateUrl: {
     type: String,
     default: null
@@ -45,5 +49,6 @@ enrollmentSchema.index({ event: 1, members: 1 });
 enrollmentSchema.index({ enrolledBy: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ members: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ event: 1, attendanceStatus: 1 });
+enrollmentSchema.index({ event: 1, isWalkIn: 1 });
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema);

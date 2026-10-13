@@ -4,6 +4,10 @@ const rawEvent = require('../models/eventModel');
 const Event = rawEvent.default || rawEvent;
 const rawUser = require('../models/userModel');
 const User = rawUser.default || rawUser;
+const rawAttendanceSession = require('../models/attendanceSessionModel');
+const AttendanceSession = rawAttendanceSession.default || rawAttendanceSession;
+const rawAttendanceRecord = require('../models/attendanceRecordModel');
+const AttendanceRecord = rawAttendanceRecord.default || rawAttendanceRecord;
 const { generateCertificate } = require('../utils/pdfGenerator');
 
 const enrollInEvent = async (request, reply) => {
@@ -278,6 +282,43 @@ const getEventParticipants = async (request, reply) => {
   try {
     const { eventId } = request.params;
 
+    // Synchronize any students who marked attendance via AttendanceSession OTP / records for this event
+    try {
+      if (AttendanceSession && AttendanceRecord) {
+        const sessions = await AttendanceSession.find({ event: eventId }).select('_id').lean();
+        if (sessions.length > 0) {
+          const sessionIds = sessions.map((s) => s._id);
+          const records = await AttendanceRecord.find({ session: { $in: sessionIds } }).select('user').lean();
+          const userIds = [...new Set(records.map((r) => r.user.toString()))];
+
+          for (const uId of userIds) {
+            const existingEnrollment = await Enrollment.findOne({
+              event: eventId,
+              $or: [{ enrolledBy: uId }, { members: uId }],
+            });
+
+            if (!existingEnrollment) {
+              // Student marked attendance but was not pre-registered (walk-in attendee)
+              await Enrollment.create({
+                event: eventId,
+                enrolledBy: uId,
+                type: 'Individual',
+                attendanceStatus: true,
+                isWalkIn: true,
+              });
+            } else if (!existingEnrollment.attendanceStatus) {
+              existingEnrollment.attendanceStatus = true;
+              await existingEnrollment.save();
+            }
+          }
+        }
+      }
+    } catch (syncErr) {
+      request.log.warn(`[getEventParticipants] AttendanceRecord sync notice: ${syncErr.message}`);
+    }
+
+    // STRICT: Participants list contains ONLY students who marked attendance (including walk-ins)
+    // Registered students who didn't mark attendance (attendanceStatus === false) are strictly excluded!
     const enrollments = await Enrollment.find({ event: eventId, attendanceStatus: true })
       .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
       .populate('members', 'name rollNo email profilePicUrl department year phone college role')
@@ -295,7 +336,8 @@ const getEventRegistered = async (request, reply) => {
   try {
     const { eventId } = request.params;
 
-    const enrollments = await Enrollment.find({ event: eventId })
+    // STRICT: Registered students list contains only pre-registered students (excludes walk-in attendance)
+    const enrollments = await Enrollment.find({ event: eventId, isWalkIn: { $ne: true } })
       .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
       .populate('members', 'name rollNo email profilePicUrl department year phone college role')
       .sort({ createdAt: -1 })

@@ -7,6 +7,7 @@ export interface IEnrollment extends Document {
   teamName?: string;
   members: mongoose.Types.ObjectId[];
   attendanceStatus: boolean;
+  isWalkIn?: boolean;
   certificateUrl?: string | null;
   customResponses?: Record<string, any>;
   createdAt?: Date;
@@ -49,6 +50,10 @@ const enrollmentSchema = new Schema<IEnrollment>(
       type: Boolean,
       default: false,
     },
+    isWalkIn: {
+      type: Boolean,
+      default: false,
+    },
     certificateUrl: {
       type: String,
       default: null,
@@ -67,6 +72,7 @@ enrollmentSchema.index({ event: 1, members: 1 });
 enrollmentSchema.index({ enrolledBy: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ members: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ event: 1, attendanceStatus: 1 });
+enrollmentSchema.index({ event: 1, isWalkIn: 1 });
 
 export const Enrollment: Model<IEnrollment> =
   mongoose.models.Enrollment || mongoose.model<IEnrollment>('Enrollment', enrollmentSchema);

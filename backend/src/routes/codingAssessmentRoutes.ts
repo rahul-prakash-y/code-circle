@@ -154,6 +154,27 @@ export async function codingAssessmentRoutes(fastify: FastifyInstance) {
     { preHandler: [isAdminOrFaculty] },
     codingAssessmentController.getCodingChallengeSubmissions as any
   );
+
+  fastify.delete(
+    '/challenges/:id/submissions/:submissionId',
+    codingAssessmentController.deleteCodingSubmission as any
+  );
+
+  fastify.post(
+    '/challenges/:id/reappear/:studentId',
+    { preHandler: [isAdminOrFaculty] },
+    codingAssessmentController.allowStudentCodingReappear as any
+  );
+
+  fastify.delete(
+    '/challenges/:id/my-submission',
+    codingAssessmentController.resetMyCodingSubmission as any
+  );
+
+  fastify.post(
+    '/challenges/:id/reappear',
+    codingAssessmentController.resetMyCodingSubmission as any
+  );
 }
 
 

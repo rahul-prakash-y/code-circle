@@ -37,6 +37,7 @@ export const AssessmentList = () => {
     setSelectedCategory,
     searchQuery,
     setSearchQuery,
+    resetMySubmission,
   } = useAssessmentStore();
 
   const { user } = useAuthStore();
@@ -55,6 +56,7 @@ export const AssessmentList = () => {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [submissionsAssessmentId, setSubmissionsAssessmentId] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
+  const [resettingId, setResettingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState(searchQuery || '');
   const debouncedSearch = useDebounce(searchTerm, 400);
 
@@ -85,6 +87,24 @@ export const AssessmentList = () => {
   const handleOpenEdit = (assessment) => {
     setAssessmentToEdit(assessment);
     setIsEditorOpen(true);
+  };
+
+  const handleResetAndReappear = async (assessment) => {
+    if (!assessment?._id) return;
+    setResettingId(assessment._id);
+    try {
+      const res = await resetMySubmission(assessment._id);
+      if (res.success) {
+        toast.success('Previous attempt reset! Reappearing for assessment...');
+        setSelectedAssessmentToTake(assessment);
+      } else {
+        toast.error(res.error || 'Failed to reset retry attempt');
+      }
+    } catch (err) {
+      toast.error('Failed to reset assessment retry');
+    } finally {
+      setResettingId(null);
+    }
   };
 
   return (
@@ -333,26 +353,41 @@ export const AssessmentList = () => {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => setSelectedAssessmentToTake(assessment)}
-                      className={`py-2 px-3.5 sm:px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                        hasTaken
-                          ? 'bg-surface-elevated hover:bg-surface-elevated text-text-primary border border-border'
-                          : 'bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/25'
-                      }`}
-                    >
-                      {hasTaken ? (
-                        <>
-                          <RotateCcw size={13} />
-                          Retake
-                        </>
-                      ) : (
-                        <>
-                          <Play size={13} />
-                          Take Challenge
-                        </>
+                    <div className="flex items-center gap-2">
+                      {hasTaken && (
+                        <button
+                          type="button"
+                          disabled={resettingId === assessment._id}
+                          onClick={() => handleResetAndReappear(assessment)}
+                          className="py-2 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25"
+                          title="Delete previous retry and reappear fresh"
+                        >
+                          <RotateCcw size={12} className={resettingId === assessment._id ? 'animate-spin' : ''} />
+                          Reappear
+                        </button>
                       )}
-                    </button>
+
+                      <button
+                        onClick={() => setSelectedAssessmentToTake(assessment)}
+                        className={`py-2 px-3.5 sm:px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          hasTaken
+                            ? 'bg-surface-elevated hover:bg-surface-elevated text-text-primary border border-border'
+                            : 'bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/25'
+                        }`}
+                      >
+                        {hasTaken ? (
+                          <>
+                            <RotateCcw size={13} />
+                            Retake
+                          </>
+                        ) : (
+                          <>
+                            <Play size={13} />
+                            Take Challenge
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -454,6 +489,19 @@ export const AssessmentList = () => {
                                   <Trash2 size={14} />
                                 </button>
                               </>
+                            )}
+
+                            {hasTaken && (
+                              <button
+                                type="button"
+                                disabled={resettingId === assessment._id}
+                                onClick={() => handleResetAndReappear(assessment)}
+                                className="py-1.5 px-2.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25 cursor-pointer flex items-center gap-1 transition-all"
+                                title="Delete previous retry and reappear fresh"
+                              >
+                                <RotateCcw size={11} className={resettingId === assessment._id ? 'animate-spin' : ''} />
+                                Reappear
+                              </button>
                             )}
 
                             <button

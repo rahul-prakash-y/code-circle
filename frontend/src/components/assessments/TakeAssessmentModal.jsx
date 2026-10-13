@@ -27,6 +27,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const {
     fetchAssessmentById,
     submitAssessment,
+    resetMySubmission,
     currentAssessment,
     currentResult,
     clearCurrentResult,
@@ -34,6 +35,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   } = useAssessmentStore();
 
   const [loading, setLoading] = useState(true);
+  const [reappearing, setReappearing] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { [qIndex]: selectedOptionIndex }
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(0);
@@ -478,6 +480,36 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
             {/* Post-result Actions */}
             <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-4 border-t border-border">
+              <button
+                type="button"
+                disabled={reappearing}
+                onClick={async () => {
+                  setReappearing(true);
+                  try {
+                    const res = await resetMySubmission(assessmentId);
+                    if (res.success) {
+                      toast.success('Previous attempt deleted. Reappearing fresh!');
+                      clearCurrentResult();
+                      setAnswers({});
+                      setCurrentQuestionIndex(0);
+                      setTimeLeftSeconds((currentAssessment?.timeLimitMinutes || 30) * 60);
+                      setStartTime(Date.now());
+                    } else {
+                      toast.error(res.error || 'Failed to delete retry attempt');
+                    }
+                  } catch (e) {
+                    toast.error('Could not reset retry attempt');
+                  } finally {
+                    setReappearing(false);
+                  }
+                }}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 flex items-center justify-center gap-2 border border-amber-500/25 transition-all cursor-pointer w-full sm:w-auto"
+                title="Delete this attempt and reappear fresh"
+              >
+                {reappearing ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                <span>Delete Retry & Reappear Fresh</span>
+              </button>
+
               <button
                 onClick={() => {
                   clearCurrentResult();

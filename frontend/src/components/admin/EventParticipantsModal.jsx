@@ -301,6 +301,7 @@ export const EventParticipantsModal = ({
       'Event Title',
       'List Category',
       'Registration Type',
+      'Attendee Classification',
       'Team Name',
       'Member Role',
       'Student Name',
@@ -321,6 +322,7 @@ export const EventParticipantsModal = ({
       const attendance = e.attendanceStatus ? 'Present (Verified)' : 'Absent / Unmarked';
       const type = e.type || (e.members?.length ? 'Team' : 'Individual');
       const categoryLabel = activeTab === 'participants' ? 'Event Participant (Attended)' : 'Registered Student';
+      const classification = e.isWalkIn ? 'Walk-in Attendance' : 'Pre-registered';
 
       // Lead student
       const leadCollege = getStudentCollege(e.enrolledBy);
@@ -336,6 +338,7 @@ export const EventParticipantsModal = ({
         `"${event.title.replace(/"/g, '""')}"`,
         `"${categoryLabel}"`,
         `"${type}"`,
+        `"${classification}"`,
         `"${(e.teamName || 'N/A').replace(/"/g, '""')}"`,
         '"Leader / Creator"',
         `"${(e.enrolledBy?.name || 'N/A').replace(/"/g, '""')}"`,
@@ -359,6 +362,7 @@ export const EventParticipantsModal = ({
             `"${event.title.replace(/"/g, '""')}"`,
             `"${categoryLabel}"`,
             `"${type}"`,
+            `"${classification}"`,
             `"${(e.teamName || 'N/A').replace(/"/g, '""')}"`,
             '"Member"',
             `"${(m?.name || 'N/A').replace(/"/g, '""')}"`,
@@ -848,7 +852,19 @@ export const EventParticipantsModal = ({
                       </div>
 
                       {/* Right Status Badges & Expansion Toggle */}
-                      <div className="flex items-center gap-3 self-end sm:self-auto">
+                      <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto flex-wrap">
+                        {isParticipantsTab && (
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              e.isWalkIn
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/25'
+                                : 'bg-blue-500/10 text-blue-400 border-blue-500/25'
+                            }`}
+                          >
+                            {e.isWalkIn ? 'Walk-in Attendance' : 'Pre-registered'}
+                          </span>
+                        )}
+
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                             e.attendanceStatus

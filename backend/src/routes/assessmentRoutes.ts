@@ -15,8 +15,10 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
   fastify.get('/my-submissions', assessmentController.getMySubmissions as any);
   fastify.get('/:id', assessmentController.getAssessmentById as any);
   fastify.post('/:id/submit', assessmentController.submitAssessment as any);
+  fastify.delete('/:id/my-submission', assessmentController.resetMyAssessmentSubmission as any);
+  fastify.post('/:id/reappear', assessmentController.resetMyAssessmentSubmission as any);
 
-  // Administrative CRUD & Evaluation management
+  // Administrative CRUD, Evaluation & Submission management
   fastify.post('/', { preHandler: [isAdminOrFaculty] }, assessmentController.createAssessment as any);
   fastify.put('/:id', { preHandler: [isAdminOrFaculty] }, assessmentController.updateAssessment as any);
   fastify.delete(
@@ -28,6 +30,15 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
     '/:id/submissions',
     { preHandler: [isAdminOrFaculty] },
     assessmentController.getAssessmentSubmissions as any
+  );
+  fastify.delete(
+    '/:id/submissions/:submissionId',
+    assessmentController.deleteAssessmentSubmission as any
+  );
+  fastify.post(
+    '/:id/reappear/:studentId',
+    { preHandler: [isAdminOrFaculty] },
+    assessmentController.allowStudentReappear as any
   );
 }
 

@@ -928,6 +928,110 @@ export const getCodingChallengeSubmissions = async (
 };
 
 /**
+ * DELETE /api/assessments/code/challenges/:id/submissions/:submissionId
+ * Delete a specific coding challenge submission attempt/retry.
+ */
+export const deleteCodingSubmission = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const user = request.user;
+  if (!user) {
+    throw ApiError.unauthorized('Unauthorized');
+  }
+
+  const { id, submissionId } = request.params as { id: string; submissionId: string };
+
+  if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(submissionId)) {
+    throw ApiError.badRequest('Invalid challenge or submission ID');
+  }
+
+  const submission = await CodingSubmission.findOne({
+    _id: submissionId,
+    challenge: id,
+  });
+
+  if (!submission) {
+    throw ApiError.notFound('Coding submission not found');
+  }
+
+  const isAdmin =
+    user.role === 'Admin' ||
+    user.role === 'SuperAdmin' ||
+    user.role === 'Faculty' ||
+    user.role === 'Committee';
+
+  if (!isAdmin && submission.student.toString() !== user.id) {
+    throw ApiError.forbidden('Permission denied to delete this retry');
+  }
+
+  await CodingSubmission.findByIdAndDelete(submissionId);
+
+  return reply.send({
+    success: true,
+    message: 'Coding submission retry deleted successfully',
+    deletedSubmissionId: submissionId,
+  });
+};
+
+/**
+ * POST /api/assessments/code/challenges/:id/reappear/:studentId (Admin / Faculty)
+ * Clear all submissions for student on this challenge so they can reappear cleanly.
+ */
+export const allowStudentCodingReappear = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { id, studentId } = request.params as { id: string; studentId: string };
+
+  if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(studentId)) {
+    throw ApiError.badRequest('Invalid challenge or student ID');
+  }
+
+  const deleteResult = await CodingSubmission.deleteMany({
+    challenge: id,
+    student: studentId,
+  });
+
+  return reply.send({
+    success: true,
+    message: 'Student coding retry attempts cleared. Student may now reappear.',
+    deletedCount: deleteResult.deletedCount,
+  });
+};
+
+/**
+ * DELETE /api/assessments/code/challenges/:id/my-submission (Student)
+ * Delete current student's retry submission so they can reappear and re-attempt.
+ */
+export const resetMyCodingSubmission = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const user = request.user;
+  if (!user) {
+    throw ApiError.unauthorized('Unauthorized');
+  }
+
+  const { id } = request.params as { id: string };
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw ApiError.badRequest('Invalid challenge ID');
+  }
+
+  const deleteResult = await CodingSubmission.deleteMany({
+    challenge: id,
+    student: user.id,
+  });
+
+  return reply.send({
+    success: true,
+    message: 'Coding challenge retry reset successfully. You can now reappear.',
+    deletedCount: deleteResult.deletedCount,
+  });
+};
+
+/**
  * Generate binary buffer for sample Excel template with 2 sheets:
  * 1) Coding Questions (3 working sample problems)
  * 2) Instructions
@@ -2126,6 +2230,9 @@ export default {
   updateCodingChallenge,
   deleteCodingChallenge,
   getCodingChallengeSubmissions,
+  deleteCodingSubmission,
+  allowStudentCodingReappear,
+  resetMyCodingSubmission,
   downloadSampleTemplate,
   bulkUploadCodingChallenges,
   getLevelAssessmentSession,
