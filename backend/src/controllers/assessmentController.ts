@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
+import * as XLSX from 'xlsx';
 import Assessment, { IAssessment, IAssessmentQuestion } from '../models/assessmentModel';
 import AssessmentSubmission from '../models/assessmentSubmissionModel';
 
@@ -684,6 +685,426 @@ export const resetMyAssessmentSubmission = async (
   }
 };
 
+/**
+ * GET /api/assessments/admin/template
+ * Download sample Excel template for MCQ questions bulk upload.
+ */
+export const downloadSampleTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
+  const wb = XLSX.utils.book_new();
+
+  const sampleData = [
+    {
+      AssessmentTitle: 'Data Structures & Algorithms MCQ Exam',
+      Category: 'Algorithms',
+      TimeLimitMinutes: 30,
+      PassingScorePercentage: 60,
+      QuestionText: 'What is the average time complexity of searching in a Hash Table?',
+      OptionA: 'O(1)',
+      OptionB: 'O(n)',
+      OptionC: 'O(log n)',
+      OptionD: 'O(n^2)',
+      CorrectOption: 'A',
+      Points: 1,
+      Explanation: 'Average lookup time in a hash table with good hash distribution is constant O(1).',
+    },
+    {
+      AssessmentTitle: 'Data Structures & Algorithms MCQ Exam',
+      Category: 'Algorithms',
+      TimeLimitMinutes: 30,
+      PassingScorePercentage: 60,
+      QuestionText: 'Which data structure operates on a Last In, First Out (LIFO) basis?',
+      OptionA: 'Queue',
+      OptionB: 'Stack',
+      OptionC: 'Binary Tree',
+      OptionD: 'Linked List',
+      CorrectOption: 'B',
+      Points: 1,
+      Explanation: 'A Stack operates strictly using LIFO (Last-In First-Out) operations.',
+    },
+    {
+      AssessmentTitle: 'Data Structures & Algorithms MCQ Exam',
+      Category: 'Algorithms',
+      TimeLimitMinutes: 30,
+      PassingScorePercentage: 60,
+      QuestionText: 'What is the worst-case time complexity of QuickSort?',
+      OptionA: 'O(n log n)',
+      OptionB: 'O(n)',
+      OptionC: 'O(n^2)',
+      OptionD: 'O(log n)',
+      CorrectOption: 'C',
+      Points: 1,
+      Explanation: 'When pivot selection is unbalanced, QuickSort can degrade to O(n^2).',
+    },
+    {
+      AssessmentTitle: 'Modern Web Development & React Architecture',
+      Category: 'Web Development',
+      TimeLimitMinutes: 25,
+      PassingScorePercentage: 70,
+      QuestionText: 'Which React hook is used to perform side effects in functional components?',
+      OptionA: 'useState',
+      OptionB: 'useEffect',
+      OptionC: 'useContext',
+      OptionD: 'useMemo',
+      CorrectOption: 'B',
+      Points: 1,
+      Explanation: 'useEffect manages lifecycle side-effects such as subscriptions, network requests, and timers.',
+    },
+    {
+      AssessmentTitle: 'Modern Web Development & React Architecture',
+      Category: 'Web Development',
+      TimeLimitMinutes: 25,
+      PassingScorePercentage: 70,
+      QuestionText: 'What does the acronym DOM represent in browser engineering?',
+      OptionA: 'Document Object Model',
+      OptionB: 'Direct Oriented Module',
+      OptionC: 'Data Operation Mode',
+      OptionD: 'Display Object Management',
+      CorrectOption: 'A',
+      Points: 1,
+      Explanation: 'DOM stands for Document Object Model, representing the living document tree structure in browser memory.',
+    },
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(sampleData);
+  XLSX.utils.book_append_sheet(wb, ws, 'MCQ Assessments');
+
+  const instructions = [
+    {
+      Column: 'AssessmentTitle',
+      Required: 'YES (when creating new)',
+      Description: 'Name of the assessment. Rows sharing the same AssessmentTitle are automatically grouped into the same assessment!',
+    },
+    {
+      Column: 'Category',
+      Required: 'NO',
+      Description: 'Technical, Web Development, Algorithms, System Design, or General (defaults to Technical)',
+    },
+    {
+      Column: 'TimeLimitMinutes',
+      Required: 'NO',
+      Description: 'Duration limit in minutes (e.g. 30)',
+    },
+    {
+      Column: 'PassingScorePercentage',
+      Required: 'NO',
+      Description: 'Passing threshold score percentage (e.g. 60)',
+    },
+    {
+      Column: 'QuestionText',
+      Required: 'YES',
+      Description: 'The full question prompt or problem statement',
+    },
+    {
+      Column: 'OptionA',
+      Required: 'YES',
+      Description: 'Choice A text',
+    },
+    {
+      Column: 'OptionB',
+      Required: 'YES',
+      Description: 'Choice B text',
+    },
+    {
+      Column: 'OptionC',
+      Required: 'NO',
+      Description: 'Choice C text (optional)',
+    },
+    {
+      Column: 'OptionD',
+      Required: 'NO',
+      Description: 'Choice D text (optional)',
+    },
+    {
+      Column: 'CorrectOption',
+      Required: 'YES',
+      Description: 'Correct answer. Enter A, B, C, or D (or 1, 2, 3, 4, or the exact option text)',
+    },
+    {
+      Column: 'Points',
+      Required: 'NO',
+      Description: 'Points awarded for answering correctly (defaults to 1)',
+    },
+    {
+      Column: 'Explanation',
+      Required: 'NO',
+      Description: 'Explanation revealed to students during result review',
+    },
+  ];
+
+  const wsInstr = XLSX.utils.json_to_sheet(instructions);
+  XLSX.utils.book_append_sheet(wb, wsInstr, 'Instructions');
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  return reply
+    .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .header('Content-Disposition', 'attachment; filename="mcq_assessment_sample_template.xlsx"')
+    .send(buffer);
+};
+
+/**
+ * POST /api/assessments/admin/bulk-upload
+ * Bulk upload MCQ questions from an Excel sheet (.xlsx / .xls).
+ * Supports:
+ * - Appending to an existing assessment (if targetAssessmentId is specified)
+ * - Creating new assessments grouped by AssessmentTitle in the sheet
+ */
+export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const query = request.query as any;
+    let targetAssessmentId: string | null = query?.assessmentId ? String(query.assessmentId).trim() : null;
+
+    let data: any = null;
+    try {
+      data = await request.file();
+    } catch (err: any) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Failed to read upload file stream: ' + (err.message || 'Stream error'),
+      });
+    }
+
+    if (!data) {
+      return reply.status(400).send({ success: false, error: 'No Excel file uploaded' });
+    }
+
+    const filename = (data.filename || '').toLowerCase();
+    if (!filename.endsWith('.xlsx') && !filename.endsWith('.xls')) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Only .xlsx and .xls files are supported',
+      });
+    }
+
+    if (data.fields?.assessmentId) {
+      const val =
+        typeof data.fields.assessmentId === 'object' && 'value' in data.fields.assessmentId
+          ? (data.fields.assessmentId as any).value
+          : data.fields.assessmentId;
+      if (val && String(val).trim()) targetAssessmentId = String(val).trim();
+    }
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of data.file) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    if (buffer.length === 0) {
+      return reply.status(400).send({ success: false, error: 'Uploaded Excel file is empty' });
+    }
+
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheetName =
+      workbook.SheetNames.find(
+        (s) =>
+          s.toLowerCase().includes('mcq') ||
+          s.toLowerCase().includes('assessment') ||
+          s.toLowerCase().includes('question')
+      ) ||
+      workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct')) ||
+      workbook.SheetNames[0];
+
+    if (!sheetName) {
+      return reply.status(400).send({ success: false, error: 'Excel file has no valid sheets' });
+    }
+
+    const rawRows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+    if (!rawRows.length) {
+      return reply.status(400).send({ success: false, error: 'The uploaded Excel sheet contains no data rows' });
+    }
+
+    // Helper to find value from row case-insensitively
+    const getVal = (row: any, ...keys: string[]): string => {
+      const rowKeys = Object.keys(row);
+      for (const k of keys) {
+        const target = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const matchedKey = rowKeys.find(
+          (rk) => rk.toLowerCase().replace(/[^a-z0-9]/g, '') === target
+        );
+        if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) {
+          return String(row[matchedKey]).trim();
+        }
+      }
+      return '';
+    };
+
+    const errors: string[] = [];
+    const parsedQuestions: Array<{
+      assessmentTitle: string;
+      category: string;
+      timeLimitMinutes: number;
+      passingScorePercentage: number;
+      question: IAssessmentQuestion;
+      rowNumber: number;
+    }> = [];
+
+    rawRows.forEach((row, idx) => {
+      const rowNumber = idx + 2; // header is row 1
+      const questionText = getVal(row, 'QuestionText', 'Question', 'QuestionPrompt', 'Prompt');
+      if (!questionText) {
+        // Skip totally empty rows
+        const hasAnyData = Object.values(row).some((v) => String(v).trim().length > 0);
+        if (hasAnyData) {
+          errors.push(`Row #${rowNumber}: Missing question text`);
+        }
+        return;
+      }
+
+      // Collect options
+      const optA = getVal(row, 'OptionA', 'Option1', 'A');
+      const optB = getVal(row, 'OptionB', 'Option2', 'B');
+      const optC = getVal(row, 'OptionC', 'Option3', 'C');
+      const optD = getVal(row, 'OptionD', 'Option4', 'D');
+
+      const options = [optA, optB, optC, optD].filter((opt) => opt.length > 0);
+      if (options.length < 2) {
+        errors.push(
+          `Row #${rowNumber} ("${questionText.slice(0, 30)}..."): At least 2 options (OptionA and OptionB) are required`
+        );
+        return;
+      }
+
+      // Parse Correct Option
+      const rawCorrect = getVal(row, 'CorrectOption', 'CorrectAnswer', 'Answer', 'Correct');
+      if (!rawCorrect) {
+        errors.push(`Row #${rowNumber}: Missing CorrectOption (expected A, B, C, or D)`);
+        return;
+      }
+
+      let correctIndex = -1;
+      const upper = rawCorrect.toUpperCase();
+      if (upper === 'A' || upper === 'OPTION A' || upper === 'OPTION 1' || upper === '1') {
+        correctIndex = 0;
+      } else if (upper === 'B' || upper === 'OPTION B' || upper === 'OPTION 2' || upper === '2') {
+        correctIndex = 1;
+      } else if (upper === 'C' || upper === 'OPTION C' || upper === 'OPTION 3' || upper === '3') {
+        correctIndex = 2;
+      } else if (upper === 'D' || upper === 'OPTION D' || upper === 'OPTION 4' || upper === '4') {
+        correctIndex = 3;
+      } else if (upper === '0') {
+        correctIndex = 0;
+      } else {
+        // Match exact text of one of the options
+        const matchIdx = options.findIndex((o) => o.toLowerCase() === rawCorrect.toLowerCase());
+        if (matchIdx !== -1) {
+          correctIndex = matchIdx;
+        }
+      }
+
+      if (correctIndex === -1 || correctIndex >= options.length) {
+        errors.push(
+          `Row #${rowNumber}: Invalid CorrectOption "${rawCorrect}". Must be A, B, C, or D (or 1, 2, 3, 4) corresponding to an available option`
+        );
+        return;
+      }
+
+      const pointsVal = Number(getVal(row, 'Points', 'Score', 'Point')) || 1;
+      const explanation = getVal(row, 'Explanation', 'Reason', 'Notes');
+      const assessmentTitle =
+        getVal(row, 'AssessmentTitle', 'Title', 'Assessment') || 'Bulk Imported Assessment';
+      const category = getVal(row, 'Category', 'Domain') || 'Technical';
+      const timeLimitMinutes = Number(getVal(row, 'TimeLimitMinutes', 'TimeLimit', 'Duration')) || 30;
+      const passingScorePercentage =
+        Number(getVal(row, 'PassingScorePercentage', 'PassingScore', 'PassScore')) || 60;
+
+      parsedQuestions.push({
+        assessmentTitle,
+        category,
+        timeLimitMinutes: Math.max(1, timeLimitMinutes),
+        passingScorePercentage: Math.min(100, Math.max(1, passingScorePercentage)),
+        question: {
+          questionText,
+          options,
+          correctOptionIndex: correctIndex,
+          explanation,
+          points: Math.max(1, pointsVal),
+        },
+        rowNumber,
+      });
+    });
+
+    if (parsedQuestions.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error:
+          errors.length > 0 ? errors.slice(0, 5).join(' | ') : 'No valid MCQ questions found in Excel file',
+        errors,
+      });
+    }
+
+    let assessmentsCreated = 0;
+    let assessmentsUpdated = 0;
+
+    // Mode 1: Append to specific existing assessment
+    if (targetAssessmentId && mongoose.Types.ObjectId.isValid(targetAssessmentId)) {
+      const existing = await Assessment.findById(targetAssessmentId);
+      if (!existing) {
+        return reply.status(404).send({ success: false, error: 'Target assessment not found' });
+      }
+
+      existing.questions.push(...parsedQuestions.map((pq) => pq.question));
+      await existing.save();
+      assessmentsUpdated++;
+
+      return reply.send({
+        success: true,
+        message: `Successfully appended ${parsedQuestions.length} MCQ questions to "${existing.title}"`,
+        count: parsedQuestions.length,
+        assessmentsCreated: 0,
+        assessmentsUpdated: 1,
+        errors: errors.length ? errors : undefined,
+      });
+    }
+
+    // Mode 2: Group by AssessmentTitle and create assessments
+    const groups = new Map<string, typeof parsedQuestions>();
+    parsedQuestions.forEach((pq) => {
+      const titleKey = pq.assessmentTitle;
+      if (!groups.has(titleKey)) {
+        groups.set(titleKey, []);
+      }
+      groups.get(titleKey)!.push(pq);
+    });
+
+    for (const [title, groupItems] of groups.entries()) {
+      const first = groupItems[0];
+      const newAssessment = new Assessment({
+        title,
+        description: `Imported via bulk upload on ${new Date().toLocaleDateString()}`,
+        category: first.category || 'Technical',
+        timeLimitMinutes: first.timeLimitMinutes || 30,
+        passingScorePercentage: first.passingScorePercentage || 60,
+        questions: groupItems.map((gi) => gi.question),
+        isPublished: true,
+        createdBy: user.id,
+      });
+
+      await newAssessment.save();
+      assessmentsCreated++;
+    }
+
+    return reply.send({
+      success: true,
+      message: `Successfully created ${assessmentsCreated} assessment(s) with ${parsedQuestions.length} total questions!`,
+      count: parsedQuestions.length,
+      assessmentsCreated,
+      assessmentsUpdated,
+      errors: errors.length ? errors : undefined,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to bulk upload assessments',
+    });
+  }
+};
+
 export default {
   getAssessments,
   getAssessmentById,
@@ -696,4 +1117,6 @@ export default {
   deleteAssessmentSubmission,
   allowStudentReappear,
   resetMyAssessmentSubmission,
+  downloadSampleTemplate,
+  bulkUploadMCQAssessments,
 };

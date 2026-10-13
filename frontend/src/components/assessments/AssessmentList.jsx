@@ -15,6 +15,12 @@ import {
   RotateCcw,
   LayoutGrid,
   List,
+  FileSpreadsheet,
+  Sparkles,
+  Layers,
+  HelpCircle,
+  X,
+  Zap,
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import useAuthStore from '../../store/useAuthStore';
@@ -23,6 +29,7 @@ import toast from 'react-hot-toast';
 import TakeAssessmentModal from './TakeAssessmentModal';
 import AssessmentEditorModal from './AssessmentEditorModal';
 import AssessmentSubmissionsModal from './AssessmentSubmissionsModal';
+import McqBulkUploadModal from './McqBulkUploadModal';
 import { useDebounce } from '../../hooks/useDebounce';
 
 const categories = ['All', 'Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
@@ -54,6 +61,7 @@ export const AssessmentList = () => {
   const [selectedAssessmentToTake, setSelectedAssessmentToTake] = useState(null);
   const [assessmentToEdit, setAssessmentToEdit] = useState(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [submissionsAssessmentId, setSubmissionsAssessmentId] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [resettingId, setResettingId] = useState(null);
@@ -107,101 +115,226 @@ export const AssessmentList = () => {
     }
   };
 
+  const totalQuestions = assessments.reduce(
+    (acc, a) => acc + (a.questionsCount || a.questions?.length || 0),
+    0
+  );
+  const avgDuration = assessments.length
+    ? Math.round(
+        assessments.reduce((acc, a) => acc + (a.timeLimitMinutes || 30), 0) /
+          assessments.length
+      )
+    : 30;
+  const myCompletedCount = assessments.filter((a) => Boolean(a.mySubmission)).length;
+
+  const getCategoryCount = (cat) => {
+    if (cat === 'All') return assessments.length;
+    return assessments.filter((a) => a.category === cat).length;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Top Header & Search / Filter Controls */}
-      <div className="glass p-4 sm:p-7 relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 relative z-10">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-400 shrink-0">
-                <Award size={20} className="sm:w-[22px] sm:h-[22px]" />
+      {/* ── FLAGSHIP SHOWCASE HERO BANNER ───────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 md:p-9 border transition-all duration-300 bg-gradient-to-br from-white via-purple-50/40 to-indigo-50/50 dark:from-[#110e20] dark:via-[#0c0e1e] dark:to-[#080911] border-purple-200/70 dark:border-white/[0.08] shadow-[0_12px_40px_-10px_rgba(99,102,241,0.08)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)]">
+        {/* Ambient Glow Orbs & Subtle Micro-Grid */}
+        <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-gradient-to-br from-purple-500/25 via-indigo-500/15 to-transparent blur-3xl opacity-75 dark:opacity-40" />
+        <div className="pointer-events-none absolute -bottom-24 -left-20 w-80 h-80 rounded-full bg-gradient-to-tr from-fuchsia-500/15 via-blue-500/10 to-transparent blur-3xl opacity-60 dark:opacity-30" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(rgba(120,119,198,0.12)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:24px_24px]" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8">
+          {/* Left Column: Heading & Editorial */}
+          <div className="max-w-2xl space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-300 shadow-xs backdrop-blur-md">
+              <Sparkles size={12} className="text-amber-500" />
+              <span>Adaptive Evaluation Engine</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white font-heading leading-tight">
+              Conceptual Mastery &{' '}
+              <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-500 dark:from-purple-400 dark:via-indigo-300 dark:to-cyan-300 bg-clip-text text-transparent">
+                MCQ Assessments
+              </span>
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl">
+              Evaluate competitive logic, master core architecture, and benchmark technical comprehension with timed challenges, automated scoring, and real-time retakes.
+            </p>
+          </div>
+
+          {/* Right Column: Live Stat Cards Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 sm:gap-3.5 shrink-0 w-full lg:w-auto">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-purple-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                <Award size={18} />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg sm:text-2xl font-black text-text-primary tracking-tight font-heading truncate">
-                    MCQ Assessments
-                  </h2>
-                  <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest px-2 sm:px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 shrink-0">
-                    Engine
-                  </span>
-                </div>
-                <p className="text-[11px] sm:text-xs text-text-muted mt-0.5 truncate">
-                  Evaluate conceptual comprehension, competitive logic, and track scores in real time
+                <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                  {loading ? '—' : assessments.length}
+                </p>
+                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Assessments
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-indigo-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                <HelpCircle size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                  {loading ? '—' : `${totalQuestions}+`}
+                </p>
+                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Total Questions
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-blue-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                <Layers size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                  {categories.length - 1}
+                </p>
+                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Tracks
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-emerald-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <CheckCircle2 size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                  {myCompletedCount}
+                </p>
+                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Completed
                 </p>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-            {/* Search Input */}
-            <div className="flex items-center gap-2 px-3 sm:px-3.5 py-2 bg-surface-elevated border border-border rounded-xl focus-within:border-purple-500/40 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all flex-1 sm:flex-initial">
-              <Search size={14} className="text-text-muted shrink-0" />
+      {/* ── SEARCH, ACTION CONTROLS & CATEGORY TRACKS BAR ────────────── */}
+      <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-surface-raised border border-border shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4">
+          {/* Apple-style Search Input with clear button */}
+          <div className="relative flex-1 max-w-md">
+            <div className="flex items-center gap-2.5 px-3.5 sm:px-4 py-2 bg-surface-secondary border border-border hover:border-purple-500/40 focus-within:border-purple-500/50 focus-within:ring-2 focus-within:ring-purple-500/15 rounded-xl sm:rounded-2xl transition-all shadow-inner">
+              <Search size={15} className="text-text-muted shrink-0" />
               <input
                 type="text"
-                placeholder="Search assessments..."
+                placeholder="Search assessments by title, track, or keywords..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-transparent border-none text-xs text-text-primary focus:outline-none placeholder-text-muted/70 w-full sm:w-48"
+                className="bg-transparent border-none text-xs text-text-primary focus:outline-none placeholder-text-muted/70 w-full"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-text-muted hover:text-text-primary transition-all cursor-pointer"
+                  title="Clear search"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
+          </div>
 
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 p-1 bg-surface-elevated border border-border rounded-xl shrink-0">
+          {/* Action Buttons & View Mode Controls */}
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            {/* View Mode Toggle Pill */}
+            <div className="flex items-center gap-1 p-1 bg-surface-secondary border border-border rounded-xl shrink-0 shadow-xs">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'grid'
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-purple-600 text-white shadow-sm'
                     : 'text-text-muted hover:text-text-primary'
                 }`}
                 title="Grid View"
                 aria-label="Grid View"
               >
-                <LayoutGrid size={15} />
+                <LayoutGrid size={14} />
+                <span className="hidden sm:inline">Grid</span>
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'table'
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-purple-600 text-white shadow-sm'
                     : 'text-text-muted hover:text-text-primary'
                 }`}
                 title="Table View"
                 aria-label="Table View"
               >
-                <List size={15} />
+                <List size={14} />
+                <span className="hidden sm:inline">Table</span>
               </button>
             </div>
 
             {isAdmin && (
-              <button
-                onClick={handleOpenCreate}
-                className="btn-primary py-2 px-3 sm:px-4 text-xs font-bold flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 cursor-pointer shrink-0"
-              >
-                <Plus size={14} />
-                <span className="hidden sm:inline">Create Assessment</span>
-                <span className="sm:hidden">Create</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsBulkUploadOpen(true)}
+                  className="py-2 px-3.5 sm:px-4 text-xs font-bold flex items-center gap-2 rounded-xl sm:rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 transition-all cursor-pointer shadow-xs shrink-0 active:scale-95"
+                  title="Bulk Upload MCQ Assessments from Excel"
+                >
+                  <FileSpreadsheet size={15} className="text-emerald-500 shrink-0" />
+                  <span className="hidden sm:inline">Bulk Upload (Excel)</span>
+                  <span className="sm:hidden">Bulk</span>
+                </button>
+
+                <button
+                  onClick={handleOpenCreate}
+                  className="py-2 px-4 sm:px-5 text-xs font-bold flex items-center gap-2 rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:brightness-110 text-white shadow-md shadow-purple-500/25 transition-all cursor-pointer shrink-0 active:scale-95"
+                >
+                  <Plus size={15} strokeWidth={2.5} />
+                  <span className="hidden sm:inline">Create Assessment</span>
+                  <span className="sm:hidden">Create</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Category Filter Pills */}
-        <div className="flex items-center gap-1.5 sm:gap-2 mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-border/60 overflow-x-auto custom-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                selectedCategory === cat
-                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-500/15'
-                  : 'bg-surface-elevated text-text-muted hover:text-text-primary border border-border'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        {/* Category Filter Pills with counts */}
+        <div className="flex items-center gap-1.5 sm:gap-2 pt-3 border-t border-border overflow-x-auto custom-scrollbar">
+          {categories.map((cat) => {
+            const count = getCategoryCount(cat);
+            const isSelected = selectedCategory === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 sm:px-3.5 py-1.5 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-500/20'
+                    : 'bg-surface-secondary text-text-muted hover:text-text-primary hover:bg-surface border border-border'
+                }`}
+              >
+                <span>{cat}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    isSelected
+                      ? 'bg-white/20 text-white'
+                      : 'bg-black/5 dark:bg-white/10 text-text-muted'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -544,6 +677,14 @@ export const AssessmentList = () => {
           assessmentId={submissionsAssessmentId}
           isOpen={Boolean(submissionsAssessmentId)}
           onClose={() => setSubmissionsAssessmentId(null)}
+        />
+      )}
+
+      {isBulkUploadOpen && (
+        <McqBulkUploadModal
+          isOpen={isBulkUploadOpen}
+          onClose={() => setIsBulkUploadOpen(false)}
+          onSuccess={() => fetchAssessments()}
         />
       )}
     </div>

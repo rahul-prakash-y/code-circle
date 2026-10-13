@@ -10,6 +10,18 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
   // All assessment routes require authentication
   fastify.addHook('preHandler', verifyToken);
 
+  // Admin Excel Template & Bulk Upload Endpoints (Registered before /:id)
+  fastify.get(
+    '/admin/template',
+    { preHandler: [isAdminOrFaculty] },
+    assessmentController.downloadSampleTemplate as any
+  );
+  fastify.post(
+    '/admin/bulk-upload',
+    { preHandler: [isAdminOrFaculty] },
+    assessmentController.bulkUploadMCQAssessments as any
+  );
+
   // Student and Public assessment endpoints
   fastify.get('/', assessmentController.getAssessments as any);
   fastify.get('/my-submissions', assessmentController.getMySubmissions as any);

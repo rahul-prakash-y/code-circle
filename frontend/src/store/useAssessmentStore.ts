@@ -82,6 +82,16 @@ interface AssessmentStoreState {
   deleteSubmission: (assessmentId: string, submissionId: string) => Promise<{ success: boolean; error?: string }>;
   allowStudentReappear: (assessmentId: string, studentId: string) => Promise<{ success: boolean; error?: string }>;
   resetMySubmission: (assessmentId: string) => Promise<{ success: boolean; error?: string }>;
+  downloadSampleTemplate: () => Promise<void>;
+  bulkUploadAssessments: (file: File, assessmentId?: string) => Promise<{
+    success: boolean;
+    count?: number;
+    assessmentsCreated?: number;
+    assessmentsUpdated?: number;
+    message?: string;
+    errors?: string[];
+    error?: string;
+  }>;
   setSelectedCategory: (category: string) => void;
   setSearchQuery: (query: string) => void;
   clearCurrentResult: () => void;
@@ -280,6 +290,60 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
       return {
         success: false,
         error: err.response?.data?.error || 'Failed to reset assessment retry',
+      };
+    }
+  },
+
+  downloadSampleTemplate: async () => {
+    try {
+      const res = await api.get('/assessments/admin/template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'mcq_assessment_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('MCQ assessment template downloaded!');
+    } catch (err: any) {
+      toast.error('Failed to download Excel template');
+    }
+  },
+
+  bulkUploadAssessments: async (file: File, assessmentId?: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (assessmentId) {
+        formData.append('assessmentId', assessmentId);
+      }
+
+      const queryParams = new URLSearchParams();
+      if (assessmentId) queryParams.set('assessmentId', assessmentId);
+      const url = `/assessments/admin/bulk-upload${
+        queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
+
+      const res = await api.post(url, formData);
+      await get().fetchAssessments();
+      return {
+        success: true,
+        count: res.data.count,
+        assessmentsCreated: res.data.assessmentsCreated,
+        assessmentsUpdated: res.data.assessmentsUpdated,
+        message: res.data.message,
+        errors: res.data.errors,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Bulk upload failed',
+        errors: err.response?.data?.errors,
       };
     }
   },

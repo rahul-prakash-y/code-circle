@@ -12,16 +12,18 @@ import {
   Save,
   Layers,
   ChevronDown,
+  FileSpreadsheet,
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import useEventStore from '../../store/useEventStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../ui/ResponsiveModal';
+import McqBulkUploadModal from './McqBulkUploadModal';
 
 const categories = ['Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
 
 const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
-  const { createAssessment, updateAssessment, submitting } = useAssessmentStore();
+  const { createAssessment, updateAssessment, submitting, fetchAssessments } = useAssessmentStore();
   const { events, fetchEvents } = useEventStore();
 
   const [title, setTitle] = useState('');
@@ -31,6 +33,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(30);
   const [passingScorePercentage, setPassingScorePercentage] = useState(60);
   const [isPublished, setIsPublished] = useState(true);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   // Dynamic Questions Array
   const [questions, setQuestions] = useState([
@@ -404,13 +407,23 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                 <Layers size={18} className="text-purple-400" />
                 <h3 className="text-base font-black text-text-primary">Dynamic MCQ Questions ({questions.length})</h3>
               </div>
-              <button
-                type="button"
-                onClick={handleAddQuestion}
-                className="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all"
-              >
-                <Plus size={14} /> Add Question
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkUploadOpen(true)}
+                  className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                  title="Import or append questions from Excel sheet"
+                >
+                  <FileSpreadsheet size={14} /> Bulk Import (Excel)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddQuestion}
+                  className="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer"
+                >
+                  <Plus size={14} /> Add Question
+                </button>
+              </div>
             </div>
 
             {/* Questions List */}
@@ -589,6 +602,20 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
             </button>
           </div>
         </form>
+
+        {/* Excel Bulk Upload Modal */}
+        {isBulkUploadOpen && (
+          <McqBulkUploadModal
+            isOpen={isBulkUploadOpen}
+            onClose={() => setIsBulkUploadOpen(false)}
+            targetAssessmentId={assessmentToEdit?._id}
+            targetAssessmentTitle={assessmentToEdit?.title}
+            onSuccess={() => {
+              fetchAssessments();
+              onClose();
+            }}
+          />
+        )}
     </ResponsiveModal>
   );
 };
