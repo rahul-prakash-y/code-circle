@@ -30,6 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
+import { preloadRoute } from '../../lib/routePreload';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -226,7 +227,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
     const Icon = item.icon;
 
     const inner = (
-      <Link to={item.to} className="block w-full outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-xl">
+      <Link
+        to={item.to}
+        onMouseEnter={() => preloadRoute(item.to)}
+        onFocus={() => preloadRoute(item.to)}
+        className="block w-full outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-xl"
+      >
         <div className="relative">
           {/* Floating active pill — Apple-style, no borders */}
           {isActive && (

@@ -258,11 +258,15 @@ export const MainLayout = ({ children }) => {
           pb-24 ensures content clears the fixed BottomNav on mobile (56px nav + safe area)
         */}
         <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-7 pb-28 md:pb-8">
-          <AnimatePresence mode="wait">
-            <PageTransitionWrapper key={location.pathname}>
-              {children || outlet || <Outlet />}
-            </PageTransitionWrapper>
-          </AnimatePresence>
+          <Suspense fallback={<PageSkeleton />}>
+            <AnimatePresence mode="wait" initial={false}>
+              <PageTransitionWrapper key={location.pathname}>
+                <Suspense fallback={<PageSkeleton />}>
+                  {children || outlet || <Outlet />}
+                </Suspense>
+              </PageTransitionWrapper>
+            </AnimatePresence>
+          </Suspense>
         </main>
       </motion.div>
 
