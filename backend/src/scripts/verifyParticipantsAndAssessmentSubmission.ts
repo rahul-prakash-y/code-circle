@@ -134,16 +134,15 @@ async function verifyFeatures() {
       },
       { headers: { Authorization: `Bearer ${adminToken}` } }
     );
-    const otp = sessionRes.data.data.otp;
-    const sessionId = sessionRes.data.data._id;
+    const otp = sessionRes.data.otp || sessionRes.data.data?.otp;
+    const sessionId = sessionRes.data._id || sessionRes.data.data?._id;
     assert(!!otp, `Attendance session created with OTP: ${otp}`);
 
     // Student B verifies OTP to mark attendance
     const otpRes = await axios.post(
-      `${API_BASE}/attendance/verify-otp`,
+      `${API_BASE}/attendance/mark`,
       {
         otp,
-        sessionId,
       },
       { headers: { Authorization: `Bearer ${studentBToken}` } }
     );
