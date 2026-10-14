@@ -144,6 +144,14 @@ export const start = async (): Promise<void> => {
       console.warn('[Server] Level challenge sync skipped:', syncErr);
     }
 
+    // Sync passing MCQ assessment submissions for missing points
+    try {
+      const { syncAssessmentPoints } = await import('./scripts/syncAssessmentPoints');
+      await syncAssessmentPoints();
+    } catch (assSyncErr) {
+      console.warn('[Server] Assessment points sync skipped:', assSyncErr);
+    }
+
     const port = Number(process.env.PORT) || 5000;
     const host = '0.0.0.0';
 

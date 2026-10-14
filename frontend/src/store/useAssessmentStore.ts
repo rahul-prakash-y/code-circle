@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import api from '../lib/axios';
+import toast from 'react-hot-toast';
+import useAuthStore from './useAuthStore';
+import usePointsStore from './usePointsStore';
 
 export interface AssessmentQuestion {
   _id?: string;
@@ -32,6 +35,7 @@ export interface Assessment {
     totalPoints: number;
     percentage: number;
     passed: boolean;
+    pointsAwarded?: number;
     timeSpentSeconds: number;
     createdAt: string;
   } | null;
@@ -43,6 +47,7 @@ export interface DetailedQuestionResult {
   selectedOption: number;
   correctOptionIndex: number;
   isCorrect: boolean;
+  points?: number;
   explanation?: string;
 }
 
@@ -55,6 +60,7 @@ export interface SubmissionResult {
   percentage: number;
   passed: boolean;
   pointsAwarded?: number;
+  userTotalPoints?: number;
   customPoints?: number;
   passingScorePercentage: number;
   timeSpentSeconds: number;
@@ -219,6 +225,28 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
       set({ currentResult: result, submitting: false });
       // Refresh list to update score status
       get().fetchAssessments();
+
+      // Immediately update authStore user points so Navbar, Dashboard, and Profile update seamlessly
+      if (result && typeof result.pointsAwarded === 'number' && result.pointsAwarded > 0) {
+        try {
+          const authStore = useAuthStore.getState();
+          if (authStore.user) {
+            const nextPoints =
+              typeof result.userTotalPoints === 'number'
+                ? result.userTotalPoints
+                : (authStore.user.points || 0) + result.pointsAwarded;
+            authStore.setUser({
+              ...authStore.user,
+              points: nextPoints,
+            });
+          }
+          // Refresh points hub data if store active
+          usePointsStore.getState().fetchMyPoints?.();
+        } catch (syncErr) {
+          console.warn('Could not sync user points in store:', syncErr);
+        }
+      }
+
       return { success: true, result };
     } catch (err: any) {
       set({ submitting: false });

@@ -10,6 +10,9 @@ import '../models/contestModel';
 import StudentProgress from '../models/studentProgressModel';
 import '../models/levelModel';
 
+import AssessmentSubmission from '../models/assessmentSubmissionModel';
+import '../models/assessmentModel';
+
 // Calculate tier based on points
 export const calculateTier = (points: number = 0) => {
   if (points >= 2500) {
@@ -31,7 +34,7 @@ export const calculateTier = (points: number = 0) => {
 
 /**
  * Helper to gather comprehensive point activities for a student
- * Combines explicit PointTransactions and fallback sources (AttendanceRecords, ContestSubmissions, StudentProgress)
+ * Combines explicit PointTransactions and fallback sources (AttendanceRecords, ContestSubmissions, StudentProgress, AssessmentSubmissions)
  */
 export const gatherStudentPointsAudit = async (userId: mongoose.Types.ObjectId | string) => {
   const userObjId = new mongoose.Types.ObjectId(userId);
@@ -81,6 +84,17 @@ export const gatherStudentPointsAudit = async (userId: mongoose.Types.ObjectId |
     }
   } catch (err) {
     console.warn('[PointsController] Could not fetch student progress:', err);
+  }
+
+  // 5. Fetch Assessment Submissions (MCQ Assessments)
+  let assessmentSubmissions: any[] = [];
+  try {
+    assessmentSubmissions = await AssessmentSubmission.find({ user: userObjId, passed: true })
+      .populate('assessment', 'title category customPoints passingScorePercentage')
+      .sort({ createdAt: -1 })
+      .lean();
+  } catch (err) {
+    console.warn('[PointsController] Could not fetch assessment submissions:', err);
   }
 
   // Build unified transaction list
@@ -163,11 +177,44 @@ export const gatherStudentPointsAudit = async (userId: mongoose.Types.ObjectId |
     }
   }
 
+  // Backfill assessment submissions if not explicitly in PointTransaction
+  let assessmentPointsSum = 0;
+  let assessmentPassedCount = 0;
+  for (const sub of assessmentSubmissions) {
+    const assessment = sub.assessment as any;
+    const pts =
+      sub.pointsAwarded && sub.pointsAwarded > 0
+        ? sub.pointsAwarded
+        : typeof assessment?.customPoints === 'number' && assessment.customPoints > 0
+        ? assessment.customPoints
+        : 50;
+
+    assessmentPointsSum += pts;
+    assessmentPassedCount += 1;
+
+    const refKey = assessment?._id ? assessment._id.toString() : sub._id.toString();
+    if (!transactionMap.has(refKey) && !transactionMap.has(sub._id.toString())) {
+      const title = assessment?.title || 'MCQ Assessment';
+      unifiedList.push({
+        id: `assessment-${sub._id}`,
+        title: `MCQ Assessment: ${title}`,
+        description: `Passed with score ${sub.score}/${sub.totalPoints} (${sub.percentage}%)`,
+        category: 'Assessment' as PointCategory,
+        amount: pts,
+        classHours: [],
+        classHoursText: '',
+        timestamp: sub.createdAt,
+        source: 'assessment_submission',
+      });
+    }
+  }
+
   // Compute breakdown totals from transactions if available
   let txAttendance = 0;
   let txCoding = 0;
   let txContest = 0;
   let txCourse = 0;
+  let txAssessment = 0;
   let txBonus = 0;
 
   for (const item of unifiedList) {
@@ -176,11 +223,12 @@ export const gatherStudentPointsAudit = async (userId: mongoose.Types.ObjectId |
     else if (item.category === 'Coding') txCoding += amt;
     else if (item.category === 'Contest') txContest += amt;
     else if (item.category === 'Course') txCourse += amt;
+    else if (item.category === 'Assessment') txAssessment += amt;
     else if (item.category === 'Bonus' || item.category === 'Adjustment') txBonus += amt;
   }
 
   // If there's an unexplained gap between totalPoints and aggregated transactions, add a balancing entry
-  const recordedSum = txAttendance + txCoding + txContest + txCourse + txBonus;
+  const recordedSum = txAttendance + txCoding + txContest + txCourse + txAssessment + txBonus;
   if (totalPoints > recordedSum) {
     const diff = totalPoints - recordedSum;
     unifiedList.unshift({
@@ -243,6 +291,10 @@ export const gatherStudentPointsAudit = async (userId: mongoose.Types.ObjectId |
       courses: {
         points: txCourse,
         completedQuests: completedQuestsCount,
+      },
+      assessment: {
+        points: Math.max(assessmentPointsSum, txAssessment),
+        completedCount: assessmentPassedCount,
       },
       bonus: {
         points: txBonus,

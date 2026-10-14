@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
+import * as XLSX from 'xlsx';
 import Contest, { IContest } from '../models/contestModel';
 import ContestSubmission from '../models/contestSubmissionModel';
 import User from '../models/userModel';
@@ -839,3 +840,590 @@ export const getContestSubmissionsForAdmin = async (req: FastifyRequest, reply: 
     return reply.status(500).send({ success: false, error: 'Failed to fetch contest submissions' });
   }
 };
+
+// 14. Admin: Download Sample Excel Template for Contest MCQ Questions
+export const downloadContestMcqTemplate = async (_req: FastifyRequest, reply: FastifyReply) => {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Sample MCQ Questions
+  const sampleData = [
+    {
+      'Question': 'What is the time complexity of searching in a balanced Binary Search Tree?',
+      'OptionA': 'O(1)',
+      'OptionB': 'O(n)',
+      'OptionC': 'O(log n)',
+      'OptionD': 'O(n log n)',
+      'CorrectOption': 'C',
+      'Points': 10,
+      'Explanation': 'In a balanced BST, tree height is log2(n), giving O(log n) search operations.',
+    },
+    {
+      'Question': 'Which data structure follows the First-In-First-Out (FIFO) principle?',
+      'OptionA': 'Stack',
+      'OptionB': 'Queue',
+      'OptionC': 'Priority Queue',
+      'OptionD': 'Binary Heap',
+      'CorrectOption': 'B',
+      'Points': 10,
+      'Explanation': 'Queues process elements strictly in FIFO order.',
+    },
+    {
+      'Question': 'What is the space complexity of an iterative binary search algorithm?',
+      'OptionA': 'O(1)',
+      'OptionB': 'O(log n)',
+      'OptionC': 'O(n)',
+      'OptionD': 'O(n^2)',
+      'CorrectOption': 'A',
+      'Points': 10,
+      'Explanation': 'Iterative binary search uses constant additional memory.',
+    },
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(sampleData);
+  XLSX.utils.book_append_sheet(wb, ws, 'MCQ Questions');
+
+  // Sheet 2: Instructions
+  const instructions = [
+    { 'Column': 'Question', 'Required': 'YES', 'Description': 'The full text of the multiple choice question statement.' },
+    { 'Column': 'OptionA', 'Required': 'YES', 'Description': 'Choice A text.' },
+    { 'Column': 'OptionB', 'Required': 'YES', 'Description': 'Choice B text.' },
+    { 'Column': 'OptionC', 'Required': 'NO', 'Description': 'Choice C text (optional if only 2 choices).' },
+    { 'Column': 'OptionD', 'Required': 'NO', 'Description': 'Choice D text (optional).' },
+    { 'Column': 'CorrectOption', 'Required': 'YES', 'Description': 'Correct answer key: A, B, C, D (or 1, 2, 3, 4, or exact option text).' },
+    { 'Column': 'Points', 'Required': 'NO', 'Description': 'Points awarded for answering correctly (default: 10).' },
+    { 'Column': 'Explanation', 'Required': 'NO', 'Description': 'Explanation shown to students in review after submission.' },
+  ];
+  const wsInstr = XLSX.utils.json_to_sheet(instructions);
+  XLSX.utils.book_append_sheet(wb, wsInstr, 'Instructions');
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  return reply
+    .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .header('Content-Disposition', 'attachment; filename="contest_mcq_sample_template.xlsx"')
+    .send(buffer);
+};
+
+// 15. Admin: Download Sample Excel Template for Contest Coding Challenges
+export const downloadContestCodingTemplate = async (_req: FastifyRequest, reply: FastifyReply) => {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Sample Coding Challenges
+  const sampleData = [
+    {
+      'Title': 'Two Sum Variant',
+      'Description': 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. Output indices space-separated on a single line.',
+      'Difficulty': 'Easy',
+      'Points': 30,
+      'AllowedLanguages': 'python, javascript, cpp, java, c',
+      'InputFormat': 'First line contains integer N. Second line contains N integers. Third line contains target integer.',
+      'OutputFormat': 'Output two space-separated 0-based indices.',
+      'Constraints': '2 <= nums.length <= 10^4, -10^9 <= nums[i] <= 10^9',
+      'SampleInput': '4\n2 7 11 15\n9',
+      'SampleOutput': '0 1',
+      'StarterCode_Python': '# Write your Python code here\n',
+      'StarterCode_JavaScript': '// Write your JavaScript code here\n',
+      'StarterCode_Cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    return 0;\n}\n',
+      'StarterCode_Java': 'import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n    }\n}\n',
+      'StarterCode_C': '#include <stdio.h>\n\nint main() {\n    return 0;\n}\n',
+      'TestCase1_Input': '4\n2 7 11 15\n9',
+      'TestCase1_ExpectedOutput': '0 1',
+      'TestCase1_IsHidden': 'FALSE',
+      'TestCase2_Input': '3\n3 2 4\n6',
+      'TestCase2_ExpectedOutput': '1 2',
+      'TestCase2_IsHidden': 'FALSE',
+      'TestCase3_Input': '2\n3 3\n6',
+      'TestCase3_ExpectedOutput': '0 1',
+      'TestCase3_IsHidden': 'TRUE',
+    },
+    {
+      'Title': 'Valid Palindrome',
+      'Description': 'Determine if a given string is a palindrome considering only alphanumeric characters and ignoring cases. Output "true" or "false".',
+      'Difficulty': 'Medium',
+      'Points': 40,
+      'AllowedLanguages': 'python, javascript, cpp, java, c',
+      'InputFormat': 'A single line containing string S.',
+      'OutputFormat': 'Output "true" if palindrome, else "false".',
+      'Constraints': '1 <= S.length <= 2 * 10^5',
+      'SampleInput': 'A man, a plan, a canal: Panama',
+      'SampleOutput': 'true',
+      'StarterCode_Python': '# Write your Python code here\n',
+      'StarterCode_JavaScript': '// Write your JavaScript code here\n',
+      'TestCase1_Input': 'A man, a plan, a canal: Panama',
+      'TestCase1_ExpectedOutput': 'true',
+      'TestCase1_IsHidden': 'FALSE',
+      'TestCase2_Input': 'race a car',
+      'TestCase2_ExpectedOutput': 'false',
+      'TestCase2_IsHidden': 'TRUE',
+    },
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(sampleData);
+  XLSX.utils.book_append_sheet(wb, ws, 'Coding Challenges');
+
+  // Sheet 2: Instructions
+  const instructions = [
+    { 'Column': 'Title', 'Required': 'YES', 'Description': 'Problem headline/title.' },
+    { 'Column': 'Description', 'Required': 'YES', 'Description': 'Full problem statement, objective and explanation.' },
+    { 'Column': 'Difficulty', 'Required': 'NO', 'Description': 'Easy, Medium, or Hard (defaults to Medium).' },
+    { 'Column': 'Points', 'Required': 'NO', 'Description': 'Points awarded for completing this challenge (defaults to 30).' },
+    { 'Column': 'AllowedLanguages', 'Required': 'NO', 'Description': 'Comma-separated: python, javascript, cpp, java, c.' },
+    { 'Column': 'InputFormat', 'Required': 'NO', 'Description': 'Input structure specification.' },
+    { 'Column': 'OutputFormat', 'Required': 'NO', 'Description': 'Output structure specification.' },
+    { 'Column': 'Constraints', 'Required': 'NO', 'Description': 'Time, space, and value bounds.' },
+    { 'Column': 'SampleInput', 'Required': 'NO', 'Description': 'Example public input.' },
+    { 'Column': 'SampleOutput', 'Required': 'NO', 'Description': 'Example public output.' },
+    { 'Column': 'StarterCode_<Lang>', 'Required': 'NO', 'Description': 'Starter boilerplate for Python, JavaScript, Cpp, Java, C.' },
+    { 'Column': 'TestCase{N}_Input', 'Required': 'YES (>= 1)', 'Description': 'Input data for test case N.' },
+    { 'Column': 'TestCase{N}_ExpectedOutput', 'Required': 'YES (>= 1)', 'Description': 'Expected stdout for test case N.' },
+    { 'Column': 'TestCase{N}_IsHidden', 'Required': 'NO', 'Description': 'TRUE for hidden anti-cheat grading test case, FALSE for public.' },
+  ];
+  const wsInstr = XLSX.utils.json_to_sheet(instructions);
+  XLSX.utils.book_append_sheet(wb, wsInstr, 'Instructions');
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  return reply
+    .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .header('Content-Disposition', 'attachment; filename="contest_coding_sample_template.xlsx"')
+    .send(buffer);
+};
+
+// 16. Admin: Parse Uploaded Contest MCQ Questions (Excel or JSON)
+export const parseContestMcqUpload = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    let fileBuffer: Buffer | null = null;
+    let filename = '';
+
+    // Check multipart file
+    let fileData: any = null;
+    try {
+      fileData = await req.file();
+    } catch (err: any) {
+      // Ignore if not multipart
+    }
+
+    if (fileData) {
+      filename = (fileData.filename || '').toLowerCase();
+      const chunks: Buffer[] = [];
+      for await (const chunk of fileData.file) {
+        chunks.push(chunk);
+      }
+      fileBuffer = Buffer.concat(chunks);
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
+      // Check if sent in request body as JSON array
+      const body = req.body as any;
+      if (Array.isArray(body?.questions)) {
+        return reply.send({
+          success: true,
+          count: body.questions.length,
+          data: body.questions,
+          errors: [],
+        });
+      }
+      return reply.status(400).send({ success: false, error: 'No Excel or JSON file uploaded' });
+    }
+
+    const errors: string[] = [];
+    const parsedQuestions: any[] = [];
+
+    if (filename.endsWith('.json')) {
+      try {
+        const jsonContent = JSON.parse(fileBuffer.toString('utf-8'));
+        const list = Array.isArray(jsonContent) ? jsonContent : jsonContent.questions || [];
+        for (let i = 0; i < list.length; i++) {
+          const item = list[i];
+          if (!item.question || !Array.isArray(item.options) || item.options.length < 2) {
+            errors.push(`Question #${i + 1} is missing valid question statement or at least 2 options.`);
+            continue;
+          }
+          parsedQuestions.push({
+            question: String(item.question).trim(),
+            options: item.options.map((o: any) => String(o).trim()),
+            correctOptionIndex: typeof item.correctOptionIndex === 'number' ? item.correctOptionIndex : 0,
+            points: Number(item.points) > 0 ? Number(item.points) : 10,
+            explanation: String(item.explanation || '').trim(),
+          });
+        }
+      } catch (jsonErr: any) {
+        return reply.status(400).send({ success: false, error: 'Invalid JSON file format: ' + jsonErr.message });
+      }
+    } else {
+      // Parse with XLSX
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const sheetName =
+        workbook.SheetNames.find(
+          (s) =>
+            s.toLowerCase().includes('mcq') ||
+            s.toLowerCase().includes('question') ||
+            s.toLowerCase().includes('contest')
+        ) ||
+        workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct')) ||
+        workbook.SheetNames[0];
+
+      if (!sheetName) {
+        return reply.status(400).send({ success: false, error: 'Workbook contains no valid worksheets' });
+      }
+
+      const rows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+      if (!rows.length) {
+        return reply.status(400).send({ success: false, error: 'The uploaded sheet contains no question rows' });
+      }
+
+      const getRowValue = (row: any, ...keys: string[]) => {
+        for (const k of keys) {
+          const direct = row[k];
+          if (direct !== undefined && direct !== null && String(direct).trim() !== '') {
+            return String(direct).trim();
+          }
+          const lowerKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          for (const rowKey of Object.keys(row)) {
+            if (rowKey.toLowerCase().replace(/[^a-z0-9]/g, '') === lowerKey) {
+              const val = row[rowKey];
+              if (val !== undefined && val !== null && String(val).trim() !== '') {
+                return String(val).trim();
+              }
+            }
+          }
+        }
+        return '';
+      };
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNum = i + 2;
+
+        const question = getRowValue(row, 'Question', 'QuestionText', 'Statement', 'Title');
+        if (!question) {
+          // Skip completely empty spacer rows
+          const hasAny = Object.values(row).some((v) => String(v).trim());
+          if (hasAny) {
+            errors.push(`Row #${rowNum}: Question statement is missing.`);
+          }
+          continue;
+        }
+
+        const optA = getRowValue(row, 'OptionA', 'Option1', 'ChoiceA', 'A');
+        const optB = getRowValue(row, 'OptionB', 'Option2', 'ChoiceB', 'B');
+        const optC = getRowValue(row, 'OptionC', 'Option3', 'ChoiceC', 'C');
+        const optD = getRowValue(row, 'OptionD', 'Option4', 'ChoiceD', 'D');
+
+        const rawOptions = [optA, optB, optC, optD].filter((opt) => opt !== '');
+        if (rawOptions.length < 2) {
+          errors.push(`Row #${rowNum} ("${question.slice(0, 30)}..."): Must have at least 2 valid options.`);
+          continue;
+        }
+
+        const rawCorrect = getRowValue(row, 'CorrectOption', 'CorrectAnswer', 'Answer', 'Key');
+        let correctOptionIndex = 0;
+        const normalized = rawCorrect.toUpperCase();
+
+        if (normalized === 'A' || normalized === '1' || normalized === '0') {
+          correctOptionIndex = 0;
+        } else if (normalized === 'B' || normalized === '2') {
+          correctOptionIndex = 1;
+        } else if (normalized === 'C' || normalized === '3') {
+          correctOptionIndex = 2;
+        } else if (normalized === 'D' || normalized === '4') {
+          correctOptionIndex = 3;
+        } else {
+          // Direct text match
+          const foundIdx = rawOptions.findIndex((o) => o.toLowerCase() === rawCorrect.toLowerCase());
+          if (foundIdx >= 0) {
+            correctOptionIndex = foundIdx;
+          } else {
+            const numVal = parseInt(rawCorrect, 10);
+            if (!isNaN(numVal) && numVal >= 1 && numVal <= rawOptions.length) {
+              correctOptionIndex = numVal - 1;
+            } else if (!isNaN(numVal) && numVal >= 0 && numVal < rawOptions.length) {
+              correctOptionIndex = numVal;
+            }
+          }
+        }
+
+        if (correctOptionIndex < 0 || correctOptionIndex >= rawOptions.length) {
+          correctOptionIndex = 0;
+        }
+
+        const points = Math.max(1, parseInt(getRowValue(row, 'Points', 'Score', 'Marks'), 10) || 10);
+        const explanation = getRowValue(row, 'Explanation', 'Reason', 'Description');
+
+        parsedQuestions.push({
+          question,
+          options: rawOptions,
+          correctOptionIndex,
+          points,
+          explanation,
+        });
+      }
+    }
+
+    if (parsedQuestions.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error: 'No valid MCQ questions could be parsed from the file.',
+        errors,
+      });
+    }
+
+    return reply.send({
+      success: true,
+      count: parsedQuestions.length,
+      data: parsedQuestions,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to parse MCQ file: ' + error.message });
+  }
+};
+
+// 17. Admin: Parse Uploaded Contest Coding Challenges (Excel or JSON)
+export const parseContestCodingUpload = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    let fileBuffer: Buffer | null = null;
+    let filename = '';
+
+    let fileData: any = null;
+    try {
+      fileData = await req.file();
+    } catch (err: any) {
+      // Ignore if not multipart
+    }
+
+    if (fileData) {
+      filename = (fileData.filename || '').toLowerCase();
+      const chunks: Buffer[] = [];
+      for await (const chunk of fileData.file) {
+        chunks.push(chunk);
+      }
+      fileBuffer = Buffer.concat(chunks);
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
+      const body = req.body as any;
+      if (Array.isArray(body?.problems)) {
+        return reply.send({
+          success: true,
+          count: body.problems.length,
+          data: body.problems,
+          errors: [],
+        });
+      }
+      return reply.status(400).send({ success: false, error: 'No Excel or JSON file uploaded' });
+    }
+
+    const errors: string[] = [];
+    const parsedProblems: any[] = [];
+
+    const defaultStarterCode = {
+      python: '# Write your code here\n',
+      javascript: '// Write your code here\n',
+      cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    return 0;\n}\n',
+      java: 'import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        // Write your code here\n    }\n}\n',
+      c: '#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}\n',
+    };
+
+    if (filename.endsWith('.json')) {
+      try {
+        const jsonContent = JSON.parse(fileBuffer.toString('utf-8'));
+        const list = Array.isArray(jsonContent) ? jsonContent : jsonContent.problems || [];
+        for (let i = 0; i < list.length; i++) {
+          const item = list[i];
+          if (!item.title || !item.description) {
+            errors.push(`Problem #${i + 1} is missing title or description.`);
+            continue;
+          }
+          const testCases = Array.isArray(item.testCases) ? item.testCases : [];
+          if (testCases.length === 0 && (item.sampleInput || item.sampleOutput)) {
+            testCases.push({ input: item.sampleInput || '', expectedOutput: item.sampleOutput || '', isHidden: false });
+          }
+          parsedProblems.push({
+            title: String(item.title).trim(),
+            description: String(item.description).trim(),
+            difficulty: ['Easy', 'Medium', 'Hard'].includes(item.difficulty) ? item.difficulty : 'Medium',
+            points: Number(item.points) > 0 ? Number(item.points) : 30,
+            allowedLanguages: Array.isArray(item.allowedLanguages) && item.allowedLanguages.length > 0
+              ? item.allowedLanguages
+              : ['python', 'javascript', 'cpp', 'java', 'c'],
+            starterCode: item.starterCode || defaultStarterCode,
+            inputFormat: String(item.inputFormat || '').trim(),
+            outputFormat: String(item.outputFormat || '').trim(),
+            constraints: String(item.constraints || '').trim(),
+            sampleInput: String(item.sampleInput || '').trim(),
+            sampleOutput: String(item.sampleOutput || '').trim(),
+            testCases: testCases.map((tc: any) => ({
+              input: String(tc.input ?? ''),
+              expectedOutput: String(tc.expectedOutput ?? ''),
+              isHidden: Boolean(tc.isHidden),
+            })),
+          });
+        }
+      } catch (jsonErr: any) {
+        return reply.status(400).send({ success: false, error: 'Invalid JSON file: ' + jsonErr.message });
+      }
+    } else {
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const sheetName =
+        workbook.SheetNames.find(
+          (s) =>
+            s.toLowerCase().includes('coding') ||
+            s.toLowerCase().includes('problem') ||
+            s.toLowerCase().includes('challenge')
+        ) ||
+        workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct')) ||
+        workbook.SheetNames[0];
+
+      if (!sheetName) {
+        return reply.status(400).send({ success: false, error: 'Workbook contains no valid worksheets' });
+      }
+
+      const rows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+      if (!rows.length) {
+        return reply.status(400).send({ success: false, error: 'The uploaded sheet contains no problem rows' });
+      }
+
+      const getRowValue = (row: any, ...keys: string[]) => {
+        for (const k of keys) {
+          const direct = row[k];
+          if (direct !== undefined && direct !== null && String(direct).trim() !== '') {
+            return String(direct).trim();
+          }
+          const lowerKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          for (const rowKey of Object.keys(row)) {
+            if (rowKey.toLowerCase().replace(/[^a-z0-9]/g, '') === lowerKey) {
+              const val = row[rowKey];
+              if (val !== undefined && val !== null && String(val).trim() !== '') {
+                return String(val).trim();
+              }
+            }
+          }
+        }
+        return '';
+      };
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNum = i + 2;
+
+        const title = getRowValue(row, 'Title', 'ProblemTitle', 'Name');
+        const description = getRowValue(row, 'Description', 'Statement', 'ProblemDescription');
+
+        if (!title && !description) {
+          continue; // Empty spacer row
+        }
+
+        if (!title) {
+          errors.push(`Row #${rowNum}: Problem title is required.`);
+          continue;
+        }
+
+        if (!description) {
+          errors.push(`Row #${rowNum} ("${title}"): Problem description is required.`);
+          continue;
+        }
+
+        const rawDiff = getRowValue(row, 'Difficulty', 'Level');
+        let difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium';
+        if (rawDiff.toLowerCase().includes('easy')) difficulty = 'Easy';
+        else if (rawDiff.toLowerCase().includes('hard')) difficulty = 'Hard';
+
+        const points = Math.max(1, parseInt(getRowValue(row, 'Points', 'CustomPoints', 'Score'), 10) || 30);
+
+        const rawLangs = getRowValue(row, 'AllowedLanguages', 'Languages');
+        const allowedLanguages = rawLangs
+          ? rawLangs
+              .toLowerCase()
+              .split(/[,|\s]+/)
+              .map((l) => l.trim())
+              .filter(Boolean)
+          : ['python', 'javascript', 'cpp', 'java', 'c'];
+
+        const inputFormat = getRowValue(row, 'InputFormat', 'Input Format');
+        const outputFormat = getRowValue(row, 'OutputFormat', 'Output Format');
+        const constraints = getRowValue(row, 'Constraints');
+        const sampleInput = getRowValue(row, 'SampleInput', 'Sample Input');
+        const sampleOutput = getRowValue(row, 'SampleOutput', 'Sample Output');
+
+        const starterCode = {
+          python: getRowValue(row, 'StarterCode_Python', 'StarterCode_python') || defaultStarterCode.python,
+          javascript: getRowValue(row, 'StarterCode_JavaScript', 'StarterCode_javascript') || defaultStarterCode.javascript,
+          cpp: getRowValue(row, 'StarterCode_Cpp', 'StarterCode_cpp') || defaultStarterCode.cpp,
+          java: getRowValue(row, 'StarterCode_Java', 'StarterCode_java') || defaultStarterCode.java,
+          c: getRowValue(row, 'StarterCode_C', 'StarterCode_c') || defaultStarterCode.c,
+        };
+
+        // Extract test cases up to 20
+        const testCases: any[] = [];
+        for (let tcIdx = 1; tcIdx <= 20; tcIdx++) {
+          const input = getRowValue(row, `TestCase${tcIdx}_Input`, `TC${tcIdx}_Input`);
+          const expectedOutput = getRowValue(row, `TestCase${tcIdx}_ExpectedOutput`, `TC${tcIdx}_ExpectedOutput`, `TestCase${tcIdx}_Output`);
+          const rawHidden = getRowValue(row, `TestCase${tcIdx}_IsHidden`, `TC${tcIdx}_IsHidden`, `TestCase${tcIdx}_Hidden`);
+
+          if (expectedOutput) {
+            testCases.push({
+              input,
+              expectedOutput,
+              isHidden: rawHidden.toUpperCase() === 'TRUE' || rawHidden === '1',
+            });
+          }
+        }
+
+        // Fallback: If no explicit test cases column, check if SampleInput/SampleOutput provided
+        if (testCases.length === 0) {
+          if (sampleInput || sampleOutput) {
+            testCases.push({
+              input: sampleInput || '',
+              expectedOutput: sampleOutput || '',
+              isHidden: false,
+            });
+            testCases.push({
+              input: sampleInput || '',
+              expectedOutput: sampleOutput || '',
+              isHidden: true,
+            });
+          } else {
+            errors.push(`Row #${rowNum} ("${title}"): No test cases or sample output found. At least 1 test case with Expected Output is required.`);
+            continue;
+          }
+        }
+
+        parsedProblems.push({
+          title,
+          description,
+          difficulty,
+          points,
+          allowedLanguages,
+          starterCode,
+          inputFormat,
+          outputFormat,
+          constraints,
+          sampleInput,
+          sampleOutput,
+          testCases,
+        });
+      }
+    }
+
+    if (parsedProblems.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error: 'No valid coding challenges could be parsed from the file.',
+        errors,
+      });
+    }
+
+    return reply.send({
+      success: true,
+      count: parsedProblems.length,
+      data: parsedProblems,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to parse coding file: ' + error.message });
+  }
+};
+

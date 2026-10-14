@@ -98,7 +98,11 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       if (forcedByViolation) {
         toast.error('Assessment automatically submitted due to tab-switching violations.', { duration: 5000 });
       } else {
-        toast.success(res.result?.passed ? 'Congratulations! You passed!' : 'Assessment completed!');
+        const ptsMsg =
+          res.result?.pointsAwarded && res.result.pointsAwarded > 0
+            ? ` (+${res.result.pointsAwarded} points awarded!)`
+            : '';
+        toast.success(res.result?.passed ? `Congratulations! You passed!${ptsMsg}` : 'Assessment completed!');
       }
     } else {
       toast.error(res.error || 'Failed to submit assessment');
@@ -388,8 +392,18 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 >
                   {currentResult.passed ? 'Assessment Passed' : 'Needs Practice'}
                 </span>
+
+                {currentResult.pointsAwarded && currentResult.pointsAwarded > 0 ? (
+                  <div className="mt-3 flex items-center justify-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border border-amber-500/40 text-amber-300 font-black text-xs sm:text-sm shadow-md animate-pulse">
+                      <Award size={18} className="text-amber-400" />
+                      <span>+{currentResult.pointsAwarded} Club Points Awarded & Credited!</span>
+                    </div>
+                  </div>
+                ) : null}
+
                 <h3 className="text-2xl sm:text-4xl font-black text-text-primary mt-2.5 sm:mt-3">
-                  {currentResult.score} / {currentResult.totalPoints} Points ({currentResult.percentage}%)
+                  {currentResult.score} / {currentResult.totalPoints} Score ({currentResult.percentage}%)
                 </h3>
                 <p className="text-xs text-text-secondary max-w-md mx-auto mt-2 leading-relaxed">
                   {currentResult.passed
@@ -441,7 +455,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                             : 'bg-red-500/10 text-red-400'
                         }`}
                       >
-                        {qResult.isCorrect ? 'Correct (+1)' : 'Incorrect (0)'}
+                        {qResult.isCorrect ? `Correct (+${qResult.points || 1})` : 'Incorrect (0)'}
                       </span>
                     </div>
 

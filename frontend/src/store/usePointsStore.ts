@@ -5,7 +5,7 @@ export interface PointTransactionItem {
   id: string;
   title: string;
   description?: string;
-  category: 'Attendance' | 'Coding' | 'Course' | 'Contest' | 'Bonus' | 'Adjustment';
+  category: 'Attendance' | 'Coding' | 'Course' | 'Contest' | 'Bonus' | 'Adjustment' | 'Assessment';
   amount: number;
   classHours?: number[];
   classHoursText?: string;
@@ -31,6 +31,10 @@ export interface PointsSummary {
   courses: {
     points: number;
     completedQuests: number;
+  };
+  assessment?: {
+    points: number;
+    completedCount: number;
   };
   bonus: {
     points: number;

@@ -325,8 +325,8 @@ export const PointsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 4 Pillars Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Pillars Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* 1. Attendance & Club Hours */}
             <div className="surface rounded-[20px] p-5 border border-separator shadow-card hover:border-accent/40 transition-all group">
               <div className="flex items-center justify-between mb-3">
@@ -393,7 +393,29 @@ export const PointsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 4. Courses & Bonuses */}
+            {/* 4. MCQ Assessments */}
+            <div className="surface rounded-[20px] p-5 border border-separator shadow-card hover:border-accent/40 transition-all group">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <Award size={18} />
+                </div>
+                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                  +{myPointsData?.summary?.assessment?.points ?? 0} pts
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-label-primary group-hover:text-accent transition-colors">
+                MCQ Assessments
+              </h3>
+              <p className="text-xs text-label-secondary mt-1">
+                {myPointsData?.summary?.assessment?.completedCount ?? 0} Quizzes Passed
+              </p>
+              <div className="mt-3 pt-3 border-t border-separator text-[11px] text-label-secondary flex justify-between">
+                <span>Knowledge checks</span>
+                <span className="font-semibold text-label-primary">Evaluations</span>
+              </div>
+            </div>
+
+            {/* 5. Courses & Bonuses */}
             <div className="surface rounded-[20px] p-5 border border-separator shadow-card hover:border-accent/40 transition-all group">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -441,7 +463,7 @@ export const PointsPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-1 bg-surface-secondary p-1 rounded-xl border border-separator overflow-x-auto">
-                  {['all', 'attendance', 'coding', 'contest', 'course', 'bonus'].map((cat) => (
+                  {['all', 'attendance', 'coding', 'contest', 'course', 'assessment', 'bonus'].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setCategoryFilter(cat)}
@@ -451,7 +473,13 @@ export const PointsPage: React.FC = () => {
                           : 'text-label-secondary hover:text-label-primary'
                       }`}
                     >
-                      {cat === 'all' ? 'All' : cat === 'attendance' ? 'Club Hours' : cat}
+                      {cat === 'all'
+                        ? 'All'
+                        : cat === 'attendance'
+                        ? 'Club Hours'
+                        : cat === 'assessment'
+                        ? 'MCQ Assessments'
+                        : cat}
                     </button>
                   ))}
                 </div>
@@ -476,6 +504,8 @@ export const PointsPage: React.FC = () => {
                           ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
                           : tx.category === 'Course'
                           ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                          : tx.category === 'Assessment'
+                          ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400'
                           : 'bg-accent/10 border-accent/20 text-accent'
                       }`}
                     >
@@ -487,6 +517,8 @@ export const PointsPage: React.FC = () => {
                         <Flame size={18} />
                       ) : tx.category === 'Course' ? (
                         <BookOpen size={18} />
+                      ) : tx.category === 'Assessment' ? (
+                        <Award size={18} />
                       ) : (
                         <Sparkles size={18} />
                       )}
@@ -496,7 +528,11 @@ export const PointsPage: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2">
                         <h4 className="text-xs sm:text-sm font-bold text-label-primary truncate">{tx.title}</h4>
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-separator bg-surface-secondary text-label-secondary">
-                          {tx.category === 'Attendance' ? 'Club Hour' : tx.category}
+                          {tx.category === 'Attendance'
+                            ? 'Club Hour'
+                            : tx.category === 'Assessment'
+                            ? 'MCQ Assessment'
+                            : tx.category}
                         </span>
                         {tx.classHoursText && (
                           <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">

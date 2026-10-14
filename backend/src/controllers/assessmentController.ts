@@ -116,6 +116,7 @@ export const getAssessments = async (request: FastifyRequest, reply: FastifyRepl
               totalPoints: mySub.totalPoints,
               percentage: mySub.percentage,
               passed: mySub.passed,
+              pointsAwarded: mySub.pointsAwarded || 0,
               timeSpentSeconds: mySub.timeSpentSeconds,
               createdAt: mySub.createdAt,
             }
@@ -479,6 +480,7 @@ export const submitAssessment = async (
         selectedOption,
         correctOptionIndex: q.correctOptionIndex,
         isCorrect,
+        points: qPoints,
         explanation: q.explanation || '',
       });
     }
@@ -486,37 +488,28 @@ export const submitAssessment = async (
     const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 1000) / 10 : 0;
     const passed = percentage >= assessment.passingScorePercentage;
 
-    // Save submission record
-    const submission = await AssessmentSubmission.create({
-      assessment: assessment._id,
-      user: new mongoose.Types.ObjectId(user.id),
-      answers: Array.from(answerMap.entries()).map(([questionIndex, selectedOption]) => ({
-        questionIndex,
-        selectedOption,
-      })),
-      score: earnedPoints,
-      totalPoints,
-      percentage,
-      passed,
-      timeSpentSeconds: Math.max(0, Number(timeSpentSeconds) || 0),
-      detailedResults,
-    });
+    const customPts =
+      typeof assessment.customPoints === 'number' && assessment.customPoints > 0
+        ? assessment.customPoints
+        : 50;
 
     let pointsAwarded = 0;
     if (passed) {
-      // Prevent duplicate awards: check if user previously had a passing submission
-      const priorPassing = await AssessmentSubmission.findOne({
-        assessment: assessment._id,
+      // Check if user previously had points awarded for this assessment
+      // Either via an explicit PointTransaction or a prior submission with pointsAwarded > 0
+      const priorTx = await PointTransaction.findOne({
         user: new mongoose.Types.ObjectId(user.id),
-        passed: true,
-        _id: { $ne: submission._id },
+        category: 'Assessment',
+        referenceId: assessment._id.toString(),
       });
 
-      if (!priorPassing) {
-        const customPts =
-          typeof assessment.customPoints === 'number' && assessment.customPoints >= 0
-            ? assessment.customPoints
-            : 50;
+      const priorPassingAward = await AssessmentSubmission.findOne({
+        assessment: assessment._id,
+        user: new mongoose.Types.ObjectId(user.id),
+        pointsAwarded: { $gt: 0 },
+      });
+
+      if (!priorTx && !priorPassingAward) {
         pointsAwarded = customPts;
 
         if (pointsAwarded > 0) {
@@ -539,6 +532,26 @@ export const submitAssessment = async (
       }
     }
 
+    // Save submission record with pointsAwarded
+    const submission = await AssessmentSubmission.create({
+      assessment: assessment._id,
+      user: new mongoose.Types.ObjectId(user.id),
+      answers: Array.from(answerMap.entries()).map(([questionIndex, selectedOption]) => ({
+        questionIndex,
+        selectedOption,
+      })),
+      score: earnedPoints,
+      totalPoints,
+      percentage,
+      passed,
+      pointsAwarded,
+      timeSpentSeconds: Math.max(0, Number(timeSpentSeconds) || 0),
+      detailedResults,
+    });
+
+    const updatedUser = await User.findById(user.id).select('points');
+    const userTotalPoints = updatedUser?.points ?? 0;
+
     return reply.status(201).send({
       success: true,
       message: passed
@@ -555,6 +568,7 @@ export const submitAssessment = async (
         percentage,
         passed,
         pointsAwarded,
+        userTotalPoints,
         customPoints: assessment.customPoints ?? 50,
         passingScorePercentage: assessment.passingScorePercentage,
         timeSpentSeconds: submission.timeSpentSeconds,
