@@ -6,6 +6,7 @@ import useDomainStore from '../../store/useDomainStore';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import TakeAssessmentModal from '../assessments/TakeAssessmentModal';
+import LevelSubmissionsModal from './LevelSubmissionsModal';
 import MarkdownContent from '../common/MarkdownContent';
 import {
   Play,
@@ -58,6 +59,7 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
+  const [isSubmissionsModalOpen, setIsSubmissionsModalOpen] = useState(false);
 
   // Normalize multi-video list
   const videoList = useMemo(() => {
@@ -187,6 +189,14 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
         {/* Admin Quick Action Controls */}
         {isAdmin && (
           <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsSubmissionsModalOpen(true)}
+              className="inline-flex items-center whitespace-nowrap gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-accent/10 border border-accent/25 text-accent hover:bg-accent hover:text-white transition cursor-pointer shadow-xs"
+              title="View Student Submissions for this Level"
+            >
+              <Code2 className="w-3.5 h-3.5" /> Submissions
+            </button>
             {onEditLevel && (
               <button
                 type="button"
@@ -663,6 +673,15 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
           assessmentId={assessmentId}
           isOpen={isAssessmentModalOpen}
           onClose={() => setIsAssessmentModalOpen(false)}
+        />
+      )}
+
+      {/* Admin Level Submissions Inspector Modal */}
+      {isSubmissionsModalOpen && (
+        <LevelSubmissionsModal
+          isOpen={isSubmissionsModalOpen}
+          level={level}
+          onClose={() => setIsSubmissionsModalOpen(false)}
         />
       )}
     </div>

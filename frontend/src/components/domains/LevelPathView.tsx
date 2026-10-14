@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ILevel } from '../../types/domain';
 import useDomainStore from '../../store/useDomainStore';
+import useAuthStore from '../../store/useAuthStore';
+import useProfileStore from '../../store/useProfileStore';
+import LevelSubmissionsModal from './LevelSubmissionsModal';
 import toast from 'react-hot-toast';
 import {
   CheckCircle2,
@@ -28,9 +31,22 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
   onSelectLevel,
 }) => {
   const { currentDomain } = useDomainStore();
+  const { user } = useAuthStore();
+  const { profile } = useProfileStore();
+
+  const isAdmin =
+    profile?.role === 'Admin' ||
+    profile?.role === 'SuperAdmin' ||
+    profile?.role === 'Faculty' ||
+    profile?.role === 'Committee' ||
+    user?.role === 'Admin' ||
+    user?.role === 'SuperAdmin';
+
+  const [selectedLevelForSubmissions, setSelectedLevelForSubmissions] = useState<ILevel | null>(null);
 
   return (
-    <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-3 sm:before:left-4 before:top-4 before:bottom-4 before:w-[2px] before:bg-separator">
+    <>
+      <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-3 sm:before:left-4 before:top-4 before:bottom-4 before:w-[2px] before:bg-separator">
       {levels.map((lvl, index) => {
         const isCompleted = Boolean(lvl.isCompleted);
         const isUnlocked = Boolean(lvl.isUnlocked);
@@ -201,7 +217,22 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
                   </div>
                 </div>
 
-                <div className="shrink-0 pt-1">
+                <div className="shrink-0 flex items-center gap-2 pt-1">
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedLevelForSubmissions(lvl);
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-accent/10 border border-accent/25 text-accent hover:bg-accent hover:text-white transition shadow-2xs cursor-pointer flex items-center gap-1"
+                      title="View student submissions"
+                    >
+                      <Code2 className="w-3 h-3" />
+                      <span>Submissions</span>
+                    </button>
+                  )}
+
                   {isUnlocked ? (
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
@@ -224,6 +255,15 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
         );
       })}
     </div>
+
+    {selectedLevelForSubmissions && (
+      <LevelSubmissionsModal
+        isOpen={Boolean(selectedLevelForSubmissions)}
+        level={selectedLevelForSubmissions}
+        onClose={() => setSelectedLevelForSubmissions(null)}
+      />
+    )}
+  </>
   );
 };
 

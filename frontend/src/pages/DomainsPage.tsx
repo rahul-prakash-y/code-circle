@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import useDomainStore from '../store/useDomainStore';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
+import useCertificateStore from '../store/useCertificateStore';
 import { IDomain, ILevel } from '../types/domain';
 import LevelPathView from '../components/domains/LevelPathView';
 import VideoQuestView from '../components/domains/VideoQuestView';
@@ -104,6 +105,23 @@ export const DomainsPage: React.FC = () => {
   const [bulkUploadTargetDomain, setBulkUploadTargetDomain] = useState<{ id?: string; name?: string } | null>(null);
   const [selectedDomainForStudents, setSelectedDomainForStudents] = useState<IDomain | null>(null);
   const [registeringDomainId, setRegisteringDomainId] = useState<string | null>(null);
+  const [claimingCert, setClaimingCert] = useState(false);
+  const { claimCourseCertificate } = useCertificateStore();
+
+  const isAllLevelsCompleted = levels.length > 0 && levels.every((lvl) => Boolean(lvl.isCompleted));
+
+  const handleClaimCourseCertificate = async () => {
+    if (!currentDomain?._id) return;
+    setClaimingCert(true);
+    try {
+      const res = await claimCourseCertificate(currentDomain._id);
+      if (res.success) {
+        navigate('/certificates');
+      }
+    } finally {
+      setClaimingCert(false);
+    }
+  };
 
   // Initial fetch of all domains and access config
   useEffect(() => {
@@ -285,10 +303,56 @@ export const DomainsPage: React.FC = () => {
                 >
                   <Edit3 className="w-3.5 h-3.5" /> Edit Course
                 </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/certificates')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-accent/10 border border-accent/25 text-accent hover:bg-accent hover:text-white transition shadow-2xs cursor-pointer"
+                  title="Issue Course Completion Certificates"
+                >
+                  <Award className="w-3.5 h-3.5" /> Issue Certificates
+                </button>
               </div>
             )}
           </div>
         </div>
+
+        {/* Course Completed Certificate Banner for Eligible Students */}
+        {isAllLevelsCompleted && !isAdmin && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-primary/15 to-emerald-500/15 border border-amber-500/30 text-label-primary flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md shadow-amber-500/5 animate-in fade-in">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-extrabold text-label-primary">
+                    Course Completed! 🎉
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                    Certified
+                  </span>
+                </div>
+                <p className="text-xs text-label-secondary mt-0.5 max-w-xl">
+                  You have mastered all {levels.length} levels in {currentDomain.name}! Your institutional certificate backed by Code Circle and BIT faculty is ready.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleClaimCourseCertificate}
+              disabled={claimingCert}
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-primary text-white hover:brightness-110 active:scale-98 transition shadow-md shadow-primary/25 cursor-pointer disabled:opacity-50"
+            >
+              {claimingCert ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 text-amber-200" />
+              )}
+              <span>Claim & View Certificate</span>
+            </button>
+          </div>
+        )}
 
         {/* Course Registration Hero Banner for Unregistered Students */}
         {!isAdmin && !currentDomain.isEnrolled && (

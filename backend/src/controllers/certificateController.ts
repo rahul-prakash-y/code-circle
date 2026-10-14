@@ -9,6 +9,9 @@ import {
 import User from '../models/userModel';
 import Event from '../models/eventModel';
 import Domain from '../models/domainModel';
+import DomainEnrollment from '../models/domainEnrollmentModel';
+import Level from '../models/levelModel';
+import StudentProgress from '../models/studentProgressModel';
 import {
   buildCertificatePdfBuffer,
   uploadCertificateToCloudinary,
@@ -119,11 +122,15 @@ export const previewCertificateTemplate = async (req: FastifyRequest, reply: Fas
       description: body.description,
       issuerOrganization: body.signatoryOrganization || 'CODE CIRCLE · BANNARI AMMAN INSTITUTE OF TECHNOLOGY',
       signatoryName: body.signatoryName || 'Dr. S. K. Ramesh',
-      signatoryTitle: body.signatoryTitle || 'Faculty Advisor & Head of Coding Club',
+      signatoryTitle: body.signatoryTitle || 'Faculty Coordinator & Club In-charge',
+      secondarySignatoryName: body.secondarySignatoryName || 'Dr. P. Balasubramanie',
+      secondarySignatoryTitle: body.secondarySignatoryTitle || 'Faculty Advisor & Head of Dept, CSE',
+      tertiarySignatoryName: body.tertiarySignatoryName || 'Dr. C. Palanisamy',
+      tertiarySignatoryTitle: body.tertiarySignatoryTitle || 'Principal & Club Patron',
       certificateId: 'PREVIEW-SAMPLE-2026',
       verificationCode: 'SAMPLE99',
       issueDate: new Date(),
-      theme: body.theme || 'modern-blue',
+      theme: body.theme || 'royal-sapphire',
       orientation: body.orientation || 'landscape',
       bgImageUrl: body.bgImageUrl,
     });
@@ -137,7 +144,7 @@ export const previewCertificateTemplate = async (req: FastifyRequest, reply: Fas
   }
 };
 
-// 6. Bulk / Single Issue Certificates
+// 6. Bulk / Single Issue Certificates (Supports Events, Courses, and User Batches)
 export const issueCertificates = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const {
@@ -148,6 +155,7 @@ export const issueCertificates = async (req: FastifyRequest, reply: FastifyReply
       customTitle,
       customDescription,
       issueDate = new Date(),
+      completedOnly = false,
     } = req.body as any;
 
     if (!templateId) {
@@ -178,16 +186,18 @@ export const issueCertificates = async (req: FastifyRequest, reply: FastifyReply
       }
 
       const ids = Array.from(userSet).filter(Boolean);
-      recipientUsers = await User.find({ _id: { $in: ids } }).select('name email rollNo studentId');
+      recipientUsers = await User.find({ _id: { $in: ids } }).select('name email rollNo studentId department');
     } else if (targetType === 'USERS' && Array.isArray(userIds) && userIds.length > 0) {
-      recipientUsers = await User.find({ _id: { $in: userIds } }).select('name email rollNo studentId');
+      recipientUsers = await User.find({ _id: { $in: userIds } }).select('name email rollNo studentId department');
     } else if (targetType === 'COURSE' && targetId) {
-      const DomainEnrollment = mongoose.models.DomainEnrollment;
-      if (DomainEnrollment) {
-        const enrolls = await DomainEnrollment.find({ domainId: targetId });
-        const ids = enrolls.map((e: any) => e.userId?.toString()).filter(Boolean);
-        recipientUsers = await User.find({ _id: { $in: ids } }).select('name email rollNo studentId');
+      // Find course enrolled students (all or completed only)
+      const domainFilter: any = { domainId: targetId };
+      if (completedOnly) {
+        domainFilter.status = 'completed';
       }
+      const enrolls = await DomainEnrollment.find(domainFilter);
+      const ids = enrolls.map((e: any) => e.userId?.toString()).filter(Boolean);
+      recipientUsers = await User.find({ _id: { $in: ids } }).select('name email rollNo studentId department');
     }
 
     if (recipientUsers.length === 0) {
@@ -217,12 +227,14 @@ export const issueCertificates = async (req: FastifyRequest, reply: FastifyReply
         title: customTitle || template.title,
         subtitle: template.subtitle,
         description: customDescription || template.description,
-        type: template.type,
+        type: targetType === 'COURSE' ? 'COURSE' : template.type,
         issuerOrganization: template.signatoryOrganization,
         signatoryName: template.signatoryName,
         signatoryTitle: template.signatoryTitle,
         secondarySignatoryName: template.secondarySignatoryName,
         secondarySignatoryTitle: template.secondarySignatoryTitle,
+        tertiarySignatoryName: template.tertiarySignatoryName,
+        tertiarySignatoryTitle: template.tertiarySignatoryTitle,
         issueDate: now,
         status: 'ACTIVE',
         associatedEventId: template.associatedEventId || (targetType === 'EVENT' ? targetId : null),
@@ -427,10 +439,12 @@ export const downloadCertificatePdf = async (req: FastifyRequest, reply: Fastify
       signatoryTitle: cert.signatoryTitle,
       secondarySignatoryName: cert.secondarySignatoryName,
       secondarySignatoryTitle: cert.secondarySignatoryTitle,
+      tertiarySignatoryName: cert.tertiarySignatoryName,
+      tertiarySignatoryTitle: cert.tertiarySignatoryTitle,
       certificateId: cert.certificateId,
       verificationCode: cert.verificationCode,
       issueDate: cert.issueDate,
-      theme: template?.theme || 'modern-blue',
+      theme: template?.theme || 'royal-sapphire',
       orientation: template?.orientation || 'landscape',
       bgImageUrl: template?.bgImageUrl,
     });
@@ -442,5 +456,141 @@ export const downloadCertificatePdf = async (req: FastifyRequest, reply: Fastify
   } catch (error: any) {
     req.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to download certificate' });
+  }
+};
+
+// 12. Claim Course Certificate (Student endpoint upon completing a domain/course)
+export const claimCourseCertificate = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const userId = getUserId(req);
+    const { domainId } = req.params as { domainId: string };
+
+    if (!mongoose.isValidObjectId(domainId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid course/domain ID' });
+    }
+
+    const domain = await Domain.findById(domainId);
+    if (!domain) {
+      return reply.status(404).send({ success: false, error: 'Course not found' });
+    }
+
+    // Check if certificate already issued to this user for this domain
+    const existingCert = await IssuedCertificate.findOne({
+      recipientUser: userId,
+      associatedDomainId: domainId,
+      status: 'ACTIVE',
+    });
+
+    if (existingCert) {
+      return reply.send({
+        success: true,
+        message: 'Course completion certificate already issued.',
+        data: existingCert,
+      });
+    }
+
+    // Check student progress for this domain
+    const totalLevels = await Level.countDocuments({ domainId });
+    const progress = await StudentProgress.findOne({ userId });
+    const domainLevels = await Level.find({ domainId }).select('_id');
+    const levelIds = domainLevels.map((l) => l._id.toString());
+
+    const completedLevelIds = (progress?.completedLevels || []).map((l: any) => l.toString());
+    const isDomainCompleted =
+      totalLevels > 0 && levelIds.every((lid) => completedLevelIds.includes(lid));
+
+    // Also check DomainEnrollment status
+    const enrollment = await DomainEnrollment.findOne({ userId, domainId });
+    const isEnrolledCompleted = enrollment?.status === 'completed';
+
+    if (!isDomainCompleted && !isEnrolledCompleted) {
+      return reply.status(400).send({
+        success: false,
+        error: 'You must complete all levels in this course before claiming the certificate.',
+      });
+    }
+
+    // Mark enrollment as completed if not yet
+    if (enrollment && enrollment.status !== 'completed') {
+      enrollment.status = 'completed';
+      enrollment.completedAt = new Date();
+      await enrollment.save();
+    }
+
+    // Find suitable template for this course or generic COURSE template
+    let template = await CertificateTemplate.findOne({
+      associatedDomainId: domainId,
+      isActive: true,
+    });
+
+    if (!template) {
+      template = await CertificateTemplate.findOne({
+        type: 'COURSE',
+        isActive: true,
+      });
+    }
+
+    if (!template) {
+      template = await CertificateTemplate.findOne({ isActive: true });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return reply.status(404).send({ success: false, error: 'User not found' });
+    }
+
+    const now = new Date();
+    const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const certificateId = `CC-CERT-${now.getFullYear()}-${randomHex}`;
+    const verificationCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    const certTitle = template?.title || `${domain.name} - Certificate of Mastery`;
+    const certDesc =
+      template?.description ||
+      `In recognition of technical excellence and successful completion of all curriculum benchmarks for ${domain.name}.`;
+
+    const newCert = await IssuedCertificate.create({
+      certificateId,
+      verificationCode,
+      templateId: template?._id ? (template._id as any) : undefined,
+      recipientUser: user._id,
+      recipientName: user.name || 'Student',
+      recipientEmail: user.email || '',
+      recipientRollNo: user.rollNo || (user as any).studentId || '',
+      title: certTitle,
+      subtitle: template?.subtitle || 'Course Completion & Technical Certification',
+      description: certDesc,
+      type: 'COURSE',
+      issuerOrganization:
+        template?.signatoryOrganization || 'Code Circle · Bannari Amman Institute of Technology',
+      signatoryName: template?.signatoryName || 'Dr. S. K. Ramesh',
+      signatoryTitle: template?.signatoryTitle || 'Faculty Coordinator & Club In-charge',
+      secondarySignatoryName: template?.secondarySignatoryName || 'Dr. P. Balasubramanie',
+      secondarySignatoryTitle:
+        template?.secondarySignatoryTitle || 'Faculty Advisor & Head of Dept, CSE',
+      tertiarySignatoryName: template?.tertiarySignatoryName || 'Dr. C. Palanisamy',
+      tertiarySignatoryTitle: template?.tertiarySignatoryTitle || 'Principal & Club Patron',
+      issueDate: now,
+      status: 'ACTIVE',
+      associatedDomainId: domainId,
+    });
+
+    if (template) {
+      await CertificateTemplate.findByIdAndUpdate(template._id, {
+        $inc: { issuedCount: 1 },
+      });
+    }
+
+    return reply.status(201).send({
+      success: true,
+      message: 'Congratulations! Your Course Completion Certificate has been issued.',
+      data: newCert,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to claim course certificate',
+    });
   }
 };

@@ -29,11 +29,13 @@ import useDomainStore from '../../../store/useDomainStore';
 import useUserStore from '../../../store/useUserStore';
 
 const THEMES = [
-  { id: 'modern-blue', label: 'Modern Blue', primary: '#38bdf8', bg: '#0b1120', text: '#f8fafc' },
-  { id: 'executive-gold', label: 'Executive Gold', primary: '#fbbf24', bg: '#18181b', text: '#fffbeb' },
-  { id: 'cyber-dark', label: 'Cyber Dark', primary: '#34d399', bg: '#050505', text: '#ffffff' },
-  { id: 'emerald-minimal', label: 'Emerald Minimal', primary: '#047857', bg: '#ffffff', text: '#0f172a' },
-  { id: 'ruby-elegance', label: 'Ruby Elegance', primary: '#fb7185', bg: '#1c1917', text: '#fff1f2' },
+  { id: 'royal-sapphire', label: 'Royal Sapphire Gold', primary: '#38bdf8', secondary: '#f59e0b', bg: '#050b1b', text: '#ffffff' },
+  { id: 'executive-gold', label: 'Executive Imperial Gold', primary: '#facc15', secondary: '#eab308', bg: '#111113', text: '#fffbeb' },
+  { id: 'cyber-emerald', label: 'Cyber Neon Emerald', primary: '#10b981', secondary: '#34d399', bg: '#020c08', text: '#ffffff' },
+  { id: 'luxury-amethyst', label: 'Luxury Amethyst Violet', primary: '#c084fc', secondary: '#ec4899', bg: '#0c061a', text: '#faf5ff' },
+  { id: 'ruby-elegance', label: 'Ruby Velvet Elegance', primary: '#fb7185', secondary: '#f43f5e', bg: '#17050a', text: '#fff1f2' },
+  { id: 'classic-ivory', label: 'Classic Pearl Ivory', primary: '#1e3a8a', secondary: '#d97706', bg: '#f8fafc', text: '#0f172a' },
+  { id: 'modern-blue', label: 'Modern Electric Blue', primary: '#38bdf8', secondary: '#818cf8', bg: '#0b1120', text: '#f8fafc' },
 ] as const;
 
 export const CertificateStudio: React.FC = () => {
@@ -66,10 +68,19 @@ export const CertificateStudio: React.FC = () => {
   const [description, setDescription] = useState(
     'For exceptional technical competence, sustained dedication, and active participation in advanced club initiatives.'
   );
-  const [theme, setTheme] = useState<'modern-blue' | 'executive-gold' | 'cyber-dark' | 'emerald-minimal' | 'ruby-elegance'>('modern-blue');
+  const [theme, setTheme] = useState<
+    'modern-blue' | 'executive-gold' | 'cyber-dark' | 'emerald-minimal' | 'ruby-elegance' | 'royal-sapphire' | 'cyber-emerald' | 'luxury-amethyst' | 'classic-ivory'
+  >('royal-sapphire');
+  
+  // Three Faculty Members
   const [signatoryName, setSignatoryName] = useState('Dr. S. K. Ramesh');
-  const [signatoryTitle, setSignatoryTitle] = useState('Faculty Coordinator & Club Advisor');
+  const [signatoryTitle, setSignatoryTitle] = useState('Faculty Coordinator & Club In-charge');
+  const [secondarySignatoryName, setSecondarySignatoryName] = useState('Dr. P. Balasubramanie');
+  const [secondarySignatoryTitle, setSecondarySignatoryTitle] = useState('Faculty Advisor & Head of Dept, CSE');
+  const [tertiarySignatoryName, setTertiarySignatoryName] = useState('Dr. C. Palanisamy');
+  const [tertiarySignatoryTitle, setTertiarySignatoryTitle] = useState('Principal & Club Patron');
   const [signatoryOrganization, setSignatoryOrganization] = useState('Code Circle · Bannari Amman Institute of Technology');
+  
   const [sampleRecipientName, setSampleRecipientName] = useState('Alex Rivera');
   const [sampleRollNo, setSampleRollNo] = useState('7376222CB101');
   const [associatedEventId, setAssociatedEventId] = useState('');
@@ -79,6 +90,7 @@ export const CertificateStudio: React.FC = () => {
   const [issueTemplateId, setIssueTemplateId] = useState('');
   const [targetType, setTargetType] = useState<'EVENT' | 'COURSE' | 'USERS'>('EVENT');
   const [targetId, setTargetId] = useState('');
+  const [completedOnly, setCompletedOnly] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [userSearch, setUserSearch] = useState('');
 
@@ -99,9 +111,13 @@ export const CertificateStudio: React.FC = () => {
     setTitle(tmpl.title);
     setSubtitle(tmpl.subtitle || 'Proudly Presented To');
     setDescription(tmpl.description || '');
-    setTheme(tmpl.theme || 'modern-blue');
+    setTheme(tmpl.theme || 'royal-sapphire');
     setSignatoryName(tmpl.signatoryName || 'Dr. S. K. Ramesh');
-    setSignatoryTitle(tmpl.signatoryTitle || 'Faculty Coordinator & Club Advisor');
+    setSignatoryTitle(tmpl.signatoryTitle || 'Faculty Coordinator & Club In-charge');
+    setSecondarySignatoryName(tmpl.secondarySignatoryName || 'Dr. P. Balasubramanie');
+    setSecondarySignatoryTitle(tmpl.secondarySignatoryTitle || 'Faculty Advisor & Head of Dept, CSE');
+    setTertiarySignatoryName(tmpl.tertiarySignatoryName || 'Dr. C. Palanisamy');
+    setTertiarySignatoryTitle(tmpl.tertiarySignatoryTitle || 'Principal & Club Patron');
     setSignatoryOrganization(tmpl.signatoryOrganization || 'Code Circle · Bannari Amman Institute of Technology');
     setAssociatedEventId(tmpl.associatedEventId?._id || tmpl.associatedEventId || '');
     setAssociatedDomainId(tmpl.associatedDomainId?._id || tmpl.associatedDomainId || '');
@@ -114,9 +130,13 @@ export const CertificateStudio: React.FC = () => {
     setDescription(
       'For exceptional technical competence, sustained dedication, and active participation in advanced club initiatives.'
     );
-    setTheme('modern-blue');
+    setTheme('royal-sapphire');
     setSignatoryName('Dr. S. K. Ramesh');
-    setSignatoryTitle('Faculty Coordinator & Club Advisor');
+    setSignatoryTitle('Faculty Coordinator & Club In-charge');
+    setSecondarySignatoryName('Dr. P. Balasubramanie');
+    setSecondarySignatoryTitle('Faculty Advisor & Head of Dept, CSE');
+    setTertiarySignatoryName('Dr. C. Palanisamy');
+    setTertiarySignatoryTitle('Principal & Club Patron');
     setSignatoryOrganization('Code Circle · Bannari Amman Institute of Technology');
     setAssociatedEventId('');
     setAssociatedDomainId('');
@@ -135,6 +155,10 @@ export const CertificateStudio: React.FC = () => {
       theme,
       signatoryName,
       signatoryTitle,
+      secondarySignatoryName,
+      secondarySignatoryTitle,
+      tertiarySignatoryName,
+      tertiarySignatoryTitle,
       signatoryOrganization,
       associatedEventId: associatedEventId || null,
       associatedDomainId: associatedDomainId || null,
@@ -169,6 +193,7 @@ export const CertificateStudio: React.FC = () => {
       targetType,
       targetId: targetId || undefined,
       userIds: targetType === 'USERS' ? selectedUserIds : undefined,
+      completedOnly: targetType === 'COURSE' ? completedOnly : undefined,
     });
 
     if (res.success) {
@@ -336,25 +361,85 @@ export const CertificateStudio: React.FC = () => {
                 </div>
               </div>
 
-              {/* Signatory Configuration */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-label-secondary">Signatory Name</label>
-                  <input
-                    type="text"
-                    value={signatoryName}
-                    onChange={(e) => setSignatoryName(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
-                  />
+              {/* Three Faculty Members Configuration */}
+              <div className="space-y-3 pt-2 border-t border-separator/60">
+                <div className="flex items-center gap-2">
+                  <Award size={15} className="text-primary" />
+                  <span className="text-xs font-bold text-label-secondary uppercase tracking-wider">
+                    Signatory Faculty Members (3 Required)
+                  </span>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-label-secondary">Signatory Title</label>
-                  <input
-                    type="text"
-                    value={signatoryTitle}
-                    onChange={(e) => setSignatoryTitle(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
-                  />
+
+                {/* Faculty 1: Coordinator */}
+                <div className="bg-surface-raised p-3 rounded-xl border border-separator/80 space-y-2">
+                  <div className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center justify-between">
+                    <span>1. Faculty Coordinator</span>
+                    <span className="text-label-tertiary font-normal">Coordinator</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={signatoryName}
+                      onChange={(e) => setSignatoryName(e.target.value)}
+                      placeholder="Name (e.g. Dr. S. K. Ramesh)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
+                    />
+                    <input
+                      type="text"
+                      value={signatoryTitle}
+                      onChange={(e) => setSignatoryTitle(e.target.value)}
+                      placeholder="Title (e.g. Faculty Coordinator & Club In-charge)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* Faculty 2: Advisor & HoD */}
+                <div className="bg-surface-raised p-3 rounded-xl border border-separator/80 space-y-2">
+                  <div className="text-[10px] font-bold text-secondary uppercase tracking-wider flex items-center justify-between">
+                    <span>2. Faculty Advisor & Head of Dept</span>
+                    <span className="text-label-tertiary font-normal">Advisor / HoD</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={secondarySignatoryName}
+                      onChange={(e) => setSecondarySignatoryName(e.target.value)}
+                      placeholder="Name (e.g. Dr. P. Balasubramanie)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
+                    />
+                    <input
+                      type="text"
+                      value={secondarySignatoryTitle}
+                      onChange={(e) => setSecondarySignatoryTitle(e.target.value)}
+                      placeholder="Title (e.g. Faculty Advisor & Head of Dept, CSE)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* Faculty 3: Principal & Patron */}
+                <div className="bg-surface-raised p-3 rounded-xl border border-separator/80 space-y-2">
+                  <div className="text-[10px] font-bold text-amber-500 uppercase tracking-wider flex items-center justify-between">
+                    <span>3. Principal & Club Patron</span>
+                    <span className="text-label-tertiary font-normal">Patron</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={tertiarySignatoryName}
+                      onChange={(e) => setTertiarySignatoryName(e.target.value)}
+                      placeholder="Name (e.g. Dr. C. Palanisamy)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
+                    />
+                    <input
+                      type="text"
+                      value={tertiarySignatoryTitle}
+                      onChange={(e) => setTertiarySignatoryTitle(e.target.value)}
+                      placeholder="Title (e.g. Principal & Club Patron)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -433,68 +518,88 @@ export const CertificateStudio: React.FC = () => {
                 style={{ background: currentTheme.primary }}
               />
 
-              {/* Header */}
-              <div className="text-center relative z-10 pt-2">
+              {/* Header with Club Logo */}
+              <div className="text-center relative z-10 pt-1">
+                <img
+                  src="/codecirclelogo.jpeg"
+                  alt="Code Circle Logo"
+                  className="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 rounded-full border-2 border-white/20 shadow-md object-cover bg-white/10"
+                />
                 <p
-                  className="text-[9px] sm:text-[11px] font-bold tracking-[0.25em] uppercase"
+                  className="text-[9px] sm:text-[10px] font-bold tracking-[0.22em] uppercase"
                   style={{ color: currentTheme.primary }}
                 >
                   {signatoryOrganization}
                 </p>
-                <h2 className="text-lg sm:text-2xl font-black tracking-tight mt-1 uppercase">
+                <h2 className="text-base sm:text-xl font-black tracking-tight mt-0.5 uppercase">
                   {title || 'Certificate Title'}
                 </h2>
-                <p className="text-[10px] sm:text-xs opacity-70 tracking-widest uppercase mt-0.5">
+                <p className="text-[9px] sm:text-[11px] opacity-70 tracking-widest uppercase mt-0.5">
                   {subtitle}
                 </p>
                 <div
-                  className="w-16 h-0.5 mx-auto my-2 rounded-full"
-                  style={{ backgroundColor: currentTheme.primary }}
+                  className="w-16 h-0.5 mx-auto my-1.5 rounded-full"
+                  style={{ backgroundColor: currentTheme.secondary || currentTheme.primary }}
                 />
               </div>
 
               {/* Recipient Spotlight */}
-              <div className="text-center my-auto relative z-10 py-2">
+              <div className="text-center my-auto relative z-10 py-1">
                 <h1
-                  className="text-2xl sm:text-4xl font-extrabold tracking-tight uppercase"
+                  className="text-xl sm:text-3xl font-extrabold tracking-tight uppercase"
                   style={{ color: currentTheme.primary }}
                 >
                   {sampleRecipientName}
                 </h1>
                 {sampleRollNo && (
-                  <p className="text-[10px] sm:text-xs font-mono opacity-60 mt-0.5">
+                  <p className="text-[9px] sm:text-[11px] font-mono opacity-60 mt-0.5">
                     Roll No: {sampleRollNo}
                   </p>
                 )}
-                <p className="text-[10px] sm:text-xs opacity-75 max-w-md mx-auto mt-2 leading-relaxed px-4 line-clamp-3">
+                <p className="text-[9px] sm:text-[11px] opacity-75 max-w-md mx-auto mt-1.5 leading-relaxed px-4 line-clamp-2">
                   {description}
                 </p>
               </div>
 
-              {/* Footer Meta & Signatures */}
-              <div className="flex items-end justify-between relative z-10 pt-2 border-t border-white/10">
-                {/* Official Seal */}
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 flex flex-col items-center justify-center shrink-0 shadow-md"
-                    style={{ borderColor: currentTheme.primary }}
-                  >
-                    <ShieldCheck size={16} style={{ color: currentTheme.primary }} />
-                    <span className="text-[6px] font-black tracking-tighter uppercase mt-0.5">
-                      Verified
-                    </span>
+              {/* Footer: Official Seal & Three Faculty Signatories */}
+              <div className="space-y-2 relative z-10 pt-2 border-t border-white/10">
+                {/* Mid Verification Strip */}
+                <div className="flex items-center justify-between px-2 text-[7px] sm:text-[9px] font-mono opacity-60">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck size={13} style={{ color: currentTheme.primary }} />
+                    <span className="font-bold tracking-wider uppercase">Verified Institutional Credential</span>
                   </div>
-                  <div className="hidden sm:block text-[8px] font-mono opacity-60 leading-tight">
-                    <p>ID: CC-CERT-SAMPLE</p>
-                    <p>DATE: {new Date().toLocaleDateString()}</p>
-                  </div>
+                  <div>ID: CC-CERT-SAMPLE · DATE: {new Date().toLocaleDateString()}</div>
                 </div>
 
-                {/* Signatory Signature Block */}
-                <div className="text-right">
-                  <div className="w-28 sm:w-36 h-0.5 bg-white/30 ml-auto mb-1" />
-                  <p className="text-[10px] sm:text-xs font-bold">{signatoryName}</p>
-                  <p className="text-[8px] sm:text-[9px] opacity-70">{signatoryTitle}</p>
+                {/* Three Faculty Signatures Side by Side */}
+                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/5 text-center">
+                  <div>
+                    <div className="w-16 sm:w-24 h-0.5 bg-white/30 mx-auto mb-1" />
+                    <p className="text-[8px] sm:text-[10px] font-bold text-white truncate">{signatoryName || 'Dr. S. K. Ramesh'}</p>
+                    <p className="text-[7px] sm:text-[8px] opacity-80 truncate" style={{ color: currentTheme.primary }}>
+                      {signatoryTitle || 'Faculty Coordinator'}
+                    </p>
+                    <p className="text-[6px] sm:text-[7px] opacity-50 truncate">Coordinator · CSE</p>
+                  </div>
+
+                  <div>
+                    <div className="w-16 sm:w-24 h-0.5 bg-white/30 mx-auto mb-1" />
+                    <p className="text-[8px] sm:text-[10px] font-bold text-white truncate">{secondarySignatoryName || 'Dr. P. Balasubramanie'}</p>
+                    <p className="text-[7px] sm:text-[8px] opacity-80 truncate" style={{ color: currentTheme.primary }}>
+                      {secondarySignatoryTitle || 'Faculty Advisor & HoD'}
+                    </p>
+                    <p className="text-[6px] sm:text-[7px] opacity-50 truncate">Head of Dept · CSE</p>
+                  </div>
+
+                  <div>
+                    <div className="w-16 sm:w-24 h-0.5 bg-white/30 mx-auto mb-1" />
+                    <p className="text-[8px] sm:text-[10px] font-bold text-white truncate">{tertiarySignatoryName || 'Dr. C. Palanisamy'}</p>
+                    <p className="text-[7px] sm:text-[8px] opacity-80 truncate" style={{ color: currentTheme.primary }}>
+                      {tertiarySignatoryTitle || 'Principal & Patron'}
+                    </p>
+                    <p className="text-[6px] sm:text-[7px] opacity-50 truncate">Principal · BIT</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -600,20 +705,41 @@ export const CertificateStudio: React.FC = () => {
             )}
 
             {targetType === 'COURSE' && (
-              <div className="space-y-1.5 animate-in fade-in">
-                <label className="text-xs font-medium text-label-secondary">Choose Domain Course</label>
-                <select
-                  value={targetId}
-                  onChange={(e) => setTargetId(e.target.value)}
-                  className="w-full px-4 py-2.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
-                >
-                  <option value="">-- Select Domain Course --</option>
-                  {domains.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-3 animate-in fade-in">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-label-secondary">Choose Domain Course</label>
+                  <select
+                    value={targetId}
+                    onChange={(e) => setTargetId(e.target.value)}
+                    className="w-full px-4 py-2.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary font-medium"
+                  >
+                    <option value="">-- Select Domain Course --</option>
+                    {domains.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name} ({d.levelsCount || d.levels?.length || 0} levels)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Course Completion Condition */}
+                <div className="flex items-center justify-between p-3 bg-surface-raised border border-separator/80 rounded-xl">
+                  <div>
+                    <p className="text-xs font-bold text-label-primary">Target Completed Students Only</p>
+                    <p className="text-[10px] text-label-tertiary">
+                      Only issue certificates to students whose course status is marked as 'completed'
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={completedOnly}
+                      onChange={(e) => setCompletedOnly(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-separator peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
               </div>
             )}
 

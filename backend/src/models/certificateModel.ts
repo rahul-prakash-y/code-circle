@@ -1,7 +1,16 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export type CertificateType = 'EVENT' | 'COURSE' | 'ASSESSMENT' | 'CUSTOM' | 'HACKATHON';
-export type CertificateTheme = 'modern-blue' | 'executive-gold' | 'cyber-dark' | 'emerald-minimal' | 'ruby-elegance';
+export type CertificateTheme =
+  | 'modern-blue'
+  | 'executive-gold'
+  | 'cyber-dark'
+  | 'emerald-minimal'
+  | 'ruby-elegance'
+  | 'royal-sapphire'
+  | 'cyber-emerald'
+  | 'luxury-amethyst'
+  | 'classic-ivory';
 export type CertificateOrientation = 'landscape' | 'portrait';
 export type CertificateStatus = 'ACTIVE' | 'REVOKED';
 
@@ -20,6 +29,8 @@ export interface ICertificateTemplate extends Document {
   signatoryOrganization: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  tertiarySignatoryName?: string;
+  tertiarySignatoryTitle?: string;
   primaryColor: string;
   accentColor: string;
   associatedEventId?: mongoose.Types.ObjectId;
@@ -48,6 +59,8 @@ export interface IIssuedCertificate extends Document {
   signatoryTitle: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  tertiarySignatoryName?: string;
+  tertiarySignatoryTitle?: string;
   issueDate: Date;
   status: CertificateStatus;
   revocationReason?: string;
@@ -84,8 +97,18 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     theme: {
       type: String,
-      enum: ['modern-blue', 'executive-gold', 'cyber-dark', 'emerald-minimal', 'ruby-elegance'],
-      default: 'modern-blue',
+      enum: [
+        'modern-blue',
+        'executive-gold',
+        'cyber-dark',
+        'emerald-minimal',
+        'ruby-elegance',
+        'royal-sapphire',
+        'cyber-emerald',
+        'luxury-amethyst',
+        'classic-ivory',
+      ],
+      default: 'royal-sapphire',
     },
     orientation: {
       type: String,
@@ -111,7 +134,7 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     signatoryTitle: {
       type: String,
-      default: 'Faculty Coordinator & Club Advisor',
+      default: 'Faculty Coordinator & Club In-charge',
       trim: true,
     },
     signatoryOrganization: {
@@ -121,12 +144,22 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     secondarySignatoryName: {
       type: String,
-      default: 'President, Code Circle',
+      default: 'Dr. P. Balasubramanie',
       trim: true,
     },
     secondarySignatoryTitle: {
       type: String,
-      default: 'Technical Club Executive Board',
+      default: 'Faculty Advisor & Head of Department, CSE',
+      trim: true,
+    },
+    tertiarySignatoryName: {
+      type: String,
+      default: 'Dr. C. Palanisamy',
+      trim: true,
+    },
+    tertiarySignatoryTitle: {
+      type: String,
+      default: 'Principal & Club Patron',
       trim: true,
     },
     primaryColor: {
@@ -246,6 +279,14 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
       default: '',
     },
     secondarySignatoryTitle: {
+      type: String,
+      default: '',
+    },
+    tertiarySignatoryName: {
+      type: String,
+      default: '',
+    },
+    tertiarySignatoryTitle: {
       type: String,
       default: '',
     },

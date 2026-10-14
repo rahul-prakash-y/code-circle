@@ -10,6 +10,8 @@ import User from '../models/userModel';
 import CourseConfig from '../models/courseConfigModel';
 import CodingChallenge from '../models/codingChallengeModel';
 import PointTransaction from '../models/pointTransactionModel';
+import LevelAssessmentSession from '../models/levelAssessmentSessionModel';
+import CodingSubmission from '../models/codingSubmissionModel';
 
 // Interface for submitting answers
 export interface SubmitQuestBody {
@@ -2573,6 +2575,241 @@ export const bulkUploadCoursesAndLevels = async (request: FastifyRequest, reply:
   }
 };
 
+/**
+ * Get all student submissions for a specific course level (Admin/Faculty).
+ * Consolidates LevelAssessmentSession records, CodingSubmissions, and Quest completions.
+ */
+export const getLevelSubmissions = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id: levelId } = request.params as { id: string };
+
+    if (!mongoose.Types.ObjectId.isValid(levelId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid level ID' });
+    }
+
+    const level = await Level.findById(levelId)
+      .populate('domainId', 'name description')
+      .populate('codingChallengeId', 'title slug difficulty marks');
+
+    if (!level) {
+      return reply.status(404).send({ success: false, error: 'Level not found' });
+    }
+
+    // 1. Fetch all LevelAssessmentSessions for this level
+    const sessions = await LevelAssessmentSession.find({ level: levelId })
+      .populate('student', 'name email rollNo department avatar studentId')
+      .populate('submissions.challengeId', 'title slug difficulty marks')
+      .populate('submissions.submissionId')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    // 2. Fetch students who completed quest or level from StudentProgress
+    const progressRecords = await StudentProgress.find({
+      $or: [{ completedLevels: levelId }, { completedQuests: levelId }],
+    })
+      .populate('userId', 'name email rollNo department avatar studentId')
+      .lean();
+
+    // 3. Fetch direct CodingSubmissions if challenge exists
+    let directSubmissions: any[] = [];
+    if (level.codingChallengeId) {
+      const challengeId = (level.codingChallengeId as any)._id || level.codingChallengeId;
+      directSubmissions = await CodingSubmission.find({ challenge: challengeId })
+        .populate('student', 'name email rollNo department avatar studentId')
+        .sort({ createdAt: -1 })
+        .lean();
+    }
+
+    // Consolidate submissions by student
+    const studentMap = new Map<string, any>();
+
+    // Process sessions
+    for (const s of sessions) {
+      const student = s.student as any;
+      if (!student || !student._id) continue;
+      const sId = student._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: student._id,
+            name: student.name || 'Anonymous Student',
+            email: student.email,
+            rollNo: student.rollNo || student.studentId || '',
+            department: student.department || '',
+            avatar: student.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: false,
+          sessions: [],
+          submissions: [],
+          bestScore: 0,
+          verdict: s.verdict || 'unattempted',
+          totalAttempts: 0,
+          lastActivityAt: s.updatedAt || s.createdAt,
+        });
+      }
+
+      const rec = studentMap.get(sId)!;
+      rec.totalAttempts += 1;
+      rec.sessions.push({
+        _id: s._id,
+        attemptNumber: s.attemptNumber,
+        isCompleted: s.isCompleted,
+        verdict: s.verdict,
+        score: s.pointsAwarded || 0,
+        startTime: s.startTime,
+        completedAt: s.completedAt,
+        submissions: s.submissions || [],
+      });
+
+      if (s.pointsAwarded && s.pointsAwarded > rec.bestScore) {
+        rec.bestScore = s.pointsAwarded;
+      }
+      if (s.verdict === 'passed') {
+        rec.verdict = 'passed';
+      } else if (rec.verdict !== 'passed' && s.verdict) {
+        rec.verdict = s.verdict;
+      }
+
+      // Collect code submissions
+      if (Array.isArray(s.submissions)) {
+        for (const sub of s.submissions) {
+          rec.submissions.push({
+            challengeTitle: (sub.challengeId as any)?.title || 'Coding Challenge',
+            language: sub.language,
+            code: sub.code,
+            status: sub.status,
+            score: sub.score,
+            passed: sub.passed,
+            total: sub.total,
+            submittedAt: sub.submittedAt,
+            details: sub.submissionId || null,
+          });
+        }
+      }
+    }
+
+    // Process direct submissions
+    for (const d of directSubmissions) {
+      const student = d.student as any;
+      if (!student || !student._id) continue;
+      const sId = student._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: student._id,
+            name: student.name || 'Anonymous Student',
+            email: student.email,
+            rollNo: student.rollNo || student.studentId || '',
+            department: student.department || '',
+            avatar: student.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: false,
+          sessions: [],
+          submissions: [],
+          bestScore: 0,
+          verdict: d.status === 'passed' ? 'passed' : 'failed',
+          totalAttempts: 1,
+          lastActivityAt: d.createdAt,
+        });
+      }
+
+      const rec = studentMap.get(sId)!;
+      const exists = rec.submissions.some((sub: any) => sub.details?._id?.toString() === d._id.toString());
+      if (!exists) {
+        rec.submissions.push({
+          challengeTitle: (level.codingChallengeId as any)?.title || 'Coding Challenge',
+          language: d.language,
+          code: d.code,
+          status: d.status,
+          score: d.score,
+          passed: d.testCasesPassed,
+          total: d.totalTestCases,
+          submittedAt: d.createdAt,
+          details: {
+            executionTime: d.executionTime,
+            memory: d.memory,
+            error: d.error,
+            testCasesPassed: d.testCasesPassed,
+            totalTestCases: d.totalTestCases,
+          },
+        });
+        if (d.status === 'passed') rec.verdict = 'passed';
+        if (d.score > rec.bestScore) rec.bestScore = d.score;
+      }
+    }
+
+    // Process progress records for quest and level completion flags
+    for (const prog of progressRecords) {
+      const user = prog.userId as any;
+      if (!user || !user._id) continue;
+      const sId = user._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: user._id,
+            name: user.name || 'Anonymous Student',
+            email: user.email,
+            rollNo: user.rollNo || user.studentId || '',
+            department: user.department || '',
+            avatar: user.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: false,
+          sessions: [],
+          submissions: [],
+          bestScore: 0,
+          verdict: 'unattempted',
+          totalAttempts: 0,
+          lastActivityAt: prog.updatedAt || prog.createdAt,
+        });
+      }
+
+      const rec = studentMap.get(sId)!;
+      const completedLevels = (prog.completedLevels || []).map((l: any) => l.toString());
+      const completedQuests = (prog.completedQuests || []).map((q: any) => q.toString());
+
+      if (completedLevels.includes(levelId)) {
+        rec.levelCompleted = true;
+        rec.verdict = 'passed';
+      }
+      if (completedQuests.includes(levelId)) {
+        rec.questCompleted = true;
+      }
+    }
+
+    const students = Array.from(studentMap.values()).sort((a, b) => {
+      if (a.verdict === 'passed' && b.verdict !== 'passed') return -1;
+      if (b.verdict === 'passed' && a.verdict !== 'passed') return 1;
+      return new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime();
+    });
+
+    return reply.send({
+      success: true,
+      level: {
+        _id: level._id,
+        levelNumber: level.levelNumber,
+        title: level.title,
+        domain: level.domainId,
+        codingChallenge: level.codingChallengeId,
+      },
+      totalStudents: students.length,
+      passedCount: students.filter((s) => s.verdict === 'passed' || s.levelCompleted).length,
+      students,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to fetch level submissions: ' + (error.message || 'Server error'),
+    });
+  }
+};
+
 export default {
   getDomains,
   getDomainById,
@@ -2586,6 +2823,7 @@ export default {
   getLevelById,
   updateLevel,
   deleteLevel,
+  getLevelSubmissions,
   registerForDomain,
   getEnrolledStudents,
   getCourseAccessConfig,

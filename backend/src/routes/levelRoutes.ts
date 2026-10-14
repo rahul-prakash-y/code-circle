@@ -24,6 +24,13 @@ export async function levelRoutes(fastify: FastifyInstance) {
     domainController.updateLevel as any
   );
 
+  // Administrative level submissions inspector
+  fastify.get(
+    '/:id/submissions',
+    { preHandler: [verifyToken, isAdminOrFaculty] },
+    domainController.getLevelSubmissions as any
+  );
+
   fastify.delete(
     '/:id',
     { preHandler: [verifyToken, isAdminOrFaculty] },
