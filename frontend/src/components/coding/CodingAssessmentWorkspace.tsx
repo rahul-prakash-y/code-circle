@@ -29,6 +29,7 @@ import {
 import api from '../../lib/axios';
 import { useVisibilityChange, IntegrityEvent } from '../../hooks/useVisibilityChange';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import useAuthStore from '../../store/useAuthStore';
 
 export interface TestCaseSummary {
   testCaseIndex: number;
@@ -84,6 +85,8 @@ export interface SubmissionResponseData {
   total: number;
   status: 'passed' | 'failed' | 'compilation_error' | 'runtime_error' | 'timeout';
   levelCompleted?: boolean;
+  pointsAwarded?: number;
+  customPoints?: number;
   unlockedNextLevel?: boolean;
   nextLevelId?: string | null;
   domainId?: string | null;
@@ -679,10 +682,17 @@ export const CodingAssessmentWorkspace: React.FC = () => {
             pointsAwarded: data.pointsAwarded,
           });
           manuallyLock();
-          toast.success('🎉 Both questions solved! Level completed successfully!', {
-            id: 'submit-assessment',
-            duration: 7000,
-          });
+          toast.success(
+            data.pointsAwarded && data.pointsAwarded > 0
+              ? `🎉 Level completed! +${data.pointsAwarded} points awarded!`
+              : '🎉 Level completed successfully!',
+            {
+              id: 'submit-assessment',
+              duration: 7000,
+            }
+          );
+          // Refresh auth/points in state
+          useAuthStore.getState().checkAuth?.();
         } else if (problemResult.status === 'passed') {
           const otherIdx = activeQuestionIdx === 0 ? 1 : 0;
           const otherTitle = levelQuestions[otherIdx]?.title || 'Question 2';
@@ -711,6 +721,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           unlockedNextLevel: data.unlockedNextLevel,
           nextLevelId: data.nextLevelId,
           domainId: levelMeta?.domainId || queryDomainId,
+          pointsAwarded: data.pointsAwarded,
         });
       } else {
         // Standalone Assessment Submission
@@ -726,10 +737,20 @@ export const CodingAssessmentWorkspace: React.FC = () => {
         manuallyLock();
 
         if (verdict.status === 'passed') {
-          toast.success(`Submission Accepted! Score: ${verdict.score}%`, {
-            id: 'submit-assessment',
-            duration: 6000,
-          });
+          const ptsEarned = verdict.pointsAwarded ?? 0;
+          if (ptsEarned > 0) {
+            toast.success(`🎉 Submission Accepted! +${ptsEarned} points awarded!`, {
+              id: 'submit-assessment',
+              duration: 7000,
+            });
+          } else {
+            toast.success(`Submission Accepted! Score: ${verdict.score}%`, {
+              id: 'submit-assessment',
+              duration: 6000,
+            });
+          }
+          // Refresh user profile/points in state
+          useAuthStore.getState().checkAuth?.();
         } else {
           toast(
             `Assessment Submitted. Score: ${verdict.score}% (${verdict.passed}/${verdict.total} passed)`,
