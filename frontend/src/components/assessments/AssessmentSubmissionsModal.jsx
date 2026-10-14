@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import usePointsStore from '../../store/usePointsStore';
+import TutorialButton from '../common/TutorialButton';
 import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 
@@ -162,12 +163,15 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <TutorialButton tutorialId="assessment-submissions" variant="icon" />
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Filter Bar */}

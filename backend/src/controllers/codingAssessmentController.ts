@@ -552,7 +552,12 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
       { upsert: true }
     );
 
-    // 2. Find any domain levels where this challenge is mapped
+    // 2. Fetch existing student progress
+    const existingProgress = await StudentProgress.findOne({
+      userId: new mongoose.Types.ObjectId(user.id),
+    }).lean();
+
+    // 3. Find any domain levels where this challenge is mapped
     const linkedLevels = await Level.find({ codingChallengeId: challenge._id }).lean();
     if (linkedLevels.length > 0) {
       levelCompleted = true;
@@ -562,11 +567,8 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
         .map((lvl) => lvl.assessmentId);
 
       // Check which levels are newly completed to award points
-      const existingProgress = await StudentProgress.findOne({
-        userId: new mongoose.Types.ObjectId(user.id),
-      }).lean();
       const existingCompleted = new Set(
-        (existingProgress?.completedLevels || []).map((id) => id.toString())
+        (existingProgress?.completedLevels || []).map((id: any) => id.toString())
       );
 
       for (const lvl of linkedLevels) {
@@ -645,6 +647,35 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
         }
         await domainEnrollment.save();
       }
+    } else {
+      // Standalone coding challenge / assessment: check if newly completed to award custom points
+      const existingChallenges = new Set(
+        (existingProgress?.completedCodingChallenges || []).map((id: any) => id.toString())
+      );
+      if (!existingChallenges.has(challenge._id.toString())) {
+        const pts =
+          typeof challenge.customPoints === 'number' && challenge.customPoints >= 0
+            ? challenge.customPoints
+            : 50;
+        pointsAwarded = pts;
+        if (pointsAwarded > 0) {
+          await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
+          try {
+            await PointTransaction.create({
+              user: new mongoose.Types.ObjectId(user.id),
+              amount: pointsAwarded,
+              category: 'Coding',
+              title: `Completed Coding Assessment: ${challenge.title}`,
+              description: `Passed all test cases for coding assessment "${challenge.title}"`,
+              referenceId: challenge._id.toString(),
+              referenceModel: 'CodingChallenge',
+              timestamp: new Date(),
+            });
+          } catch (txErr) {
+            console.warn('[CodingAssessmentController] Could not log PointTransaction:', txErr);
+          }
+        }
+      }
     }
   }
 
@@ -657,6 +688,7 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
     status: submissionStatus,
     levelCompleted,
     pointsAwarded,
+    customPoints: challenge.customPoints !== undefined ? challenge.customPoints : 50,
     unlockedNextLevel,
     nextLevelId,
     domainId,
@@ -767,6 +799,7 @@ export const listAdminCodingChallenges = async (request: FastifyRequest, reply: 
       difficulty: c.difficulty,
       allowedLanguages: c.allowedLanguages,
       timeLimitMinutes: c.timeLimitMinutes,
+      customPoints: c.customPoints !== undefined ? c.customPoints : 50,
       isPublished: c.isPublished,
       singleSubmissionOnly: c.singleSubmissionOnly,
       testCasesCount: c.testCases.length,
@@ -835,6 +868,7 @@ export const createCodingChallenge = async (request: FastifyRequest, reply: Fast
 
   const challenge = new CodingChallenge({
     ...body,
+    customPoints: body.customPoints !== undefined ? Math.max(0, Number(body.customPoints)) : 50,
     createdBy: user?.id ? new mongoose.Types.ObjectId(user.id) : null,
   });
 
@@ -873,6 +907,7 @@ export const updateCodingChallenge = async (request: FastifyRequest, reply: Fast
   if (body.difficulty) challenge.difficulty = body.difficulty;
   if (body.allowedLanguages) challenge.allowedLanguages = body.allowedLanguages;
   if (body.timeLimitMinutes) challenge.timeLimitMinutes = body.timeLimitMinutes;
+  if (body.customPoints !== undefined) challenge.customPoints = Math.max(0, Number(body.customPoints));
   if (body.singleSubmissionOnly !== undefined) challenge.singleSubmissionOnly = body.singleSubmissionOnly;
   if (body.isPublished !== undefined) challenge.isPublished = body.isPublished;
 
@@ -1062,6 +1097,7 @@ export const generateSampleExcelTemplate = (): Buffer => {
       'Description': 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. Each input has exactly one solution.',
       'Difficulty': 'Easy',
       'TimeLimitMinutes': 60,
+      'CustomPoints': 50,
       'AllowedLanguages': 'c, cpp, python, java, javascript',
       'InputFormat': 'First line contains N. Second line contains N integers. Third line contains target integer.',
       'OutputFormat': 'Output the two 0-based indices separated by a space.',
@@ -1091,6 +1127,7 @@ export const generateSampleExcelTemplate = (): Buffer => {
       'Description': 'Determine if a given string s is a palindrome after converting all letters to lowercase and removing all non-alphanumeric characters.',
       'Difficulty': 'Easy',
       'TimeLimitMinutes': 60,
+      'CustomPoints': 50,
       'AllowedLanguages': 'c, cpp, python, java, javascript',
       'InputFormat': 'A single line containing the string s.',
       'OutputFormat': 'Print "true" if palindrome, otherwise "false".',
@@ -1120,6 +1157,7 @@ export const generateSampleExcelTemplate = (): Buffer => {
       'Description': 'Find the subarray within an array of integers with the largest sum and output that sum (Kadane Algorithm).',
       'Difficulty': 'Medium',
       'TimeLimitMinutes': 60,
+      'CustomPoints': 75,
       'AllowedLanguages': 'c, cpp, python, java, javascript',
       'InputFormat': 'First line contains integer N. Second line contains N integers.',
       'OutputFormat': 'Output a single integer representing the maximum subarray sum.',
@@ -1155,6 +1193,7 @@ export const generateSampleExcelTemplate = (): Buffer => {
     { 'Column': 'Description', 'Required': 'YES', 'Description': 'Full problem description and requirements' },
     { 'Column': 'Difficulty', 'Required': 'NO', 'Description': 'Easy, Medium, or Hard (defaults to Medium)' },
     { 'Column': 'TimeLimitMinutes', 'Required': 'NO', 'Description': 'Time limit in minutes (default: 60)' },
+    { 'Column': 'CustomPoints', 'Required': 'NO', 'Description': 'Custom reward points awarded to student upon passing (default: 50)' },
     { 'Column': 'AllowedLanguages', 'Required': 'NO', 'Description': 'Comma-separated: c, cpp, python, java, javascript' },
     { 'Column': 'InputFormat', 'Required': 'NO', 'Description': 'Input format description' },
     { 'Column': 'OutputFormat', 'Required': 'NO', 'Description': 'Expected output specification' },
@@ -1309,6 +1348,15 @@ export const bulkUploadCodingChallenges = async (
     // Time Limit
     const timeLimitMinutes = Number(normalizedRow['timelimitminutes']) || (targetLevel ? 60 : 45);
 
+    // Custom completion points
+    const customPoints =
+      Number(
+        normalizedRow['custompoints'] ||
+        normalizedRow['pointreward'] ||
+        normalizedRow['pointsreward'] ||
+        normalizedRow['points']
+      ) || 50;
+
     // Allowed Languages
     let allowedLanguages: SupportedLanguage[] = ['c', 'cpp', 'python', 'java', 'javascript'];
     const langsRaw = String(normalizedRow['allowedlanguages'] || '').toLowerCase();
@@ -1404,6 +1452,7 @@ export const bulkUploadCodingChallenges = async (
       starterCode: starterCodeMap,
       testCases,
       timeLimitMinutes,
+      customPoints: Math.max(0, customPoints),
       singleSubmissionOnly: true,
       isPublished: true,
       createdBy: user?.id ? new mongoose.Types.ObjectId(user.id) : null,

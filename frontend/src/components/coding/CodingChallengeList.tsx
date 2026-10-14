@@ -41,6 +41,7 @@ interface CodingChallengeItem {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   allowedLanguages: string[];
   timeLimitMinutes: number;
+  customPoints?: number;
   isPublished?: boolean;
   createdAt: string;
   submission?: StudentSubmissionInfo | null;
@@ -216,7 +217,7 @@ export const CodingChallengeList: React.FC = () => {
                 <div className="space-y-4">
                   {/* Top Badges */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           challenge.difficulty === 'Easy'
@@ -227,6 +228,12 @@ export const CodingChallengeList: React.FC = () => {
                         }`}
                       >
                         {challenge.difficulty}
+                      </span>
+
+                      {/* Custom points reward badge */}
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide bg-amber-500/10 text-amber-500 border border-amber-500/25 flex items-center gap-1">
+                        <Sparkles size={10} className="text-amber-400" />
+                        <span>+{challenge.customPoints ?? 50} pts</span>
                       </span>
 
                       {/* Admin status tag */}

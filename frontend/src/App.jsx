@@ -36,6 +36,7 @@ const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'));
 const ContestsPage = lazy(() => import('./pages/ContestsPage'));
 const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
+import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -116,6 +117,7 @@ function App() {
           },
         }}
       />
+      <TutorialModal />
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
           {/* Public Auth Routes */}

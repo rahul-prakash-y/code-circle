@@ -25,6 +25,7 @@ import useProfileStore from '../../store/useProfileStore';
 import useNotificationStore, { NotificationItem } from '../../store/useNotificationStore';
 import CreateNotificationModal from '../notifications/CreateNotificationModal';
 import ThemeToggle from '../ui/ThemeToggle';
+import TutorialButton from '../common/TutorialButton';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import {
   DropdownMenu,
@@ -346,7 +347,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <TutorialButton variant="header" />
         <ThemeToggle />
 
         {/* Notifications */}

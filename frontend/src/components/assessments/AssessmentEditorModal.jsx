@@ -19,6 +19,7 @@ import useEventStore from '../../store/useEventStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../ui/ResponsiveModal';
 import McqBulkUploadModal from './McqBulkUploadModal';
+import TutorialButton from '../common/TutorialButton';
 
 const categories = ['Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
 
@@ -274,18 +275,21 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
         if (!open) onClose();
       }}
       title={
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
-            <Award size={20} />
+        <div className="flex items-center justify-between w-full pr-6 gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+              <Award size={20} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-text-primary tracking-tight leading-tight">
+                {assessmentToEdit ? 'Edit MCQ Assessment' : 'Create New MCQ Assessment'}
+              </h2>
+              <p className="text-xs text-text-muted font-normal mt-0.5">
+                Design custom multiple choice challenges with dynamic questions and automated scoring
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-black text-text-primary tracking-tight leading-tight">
-              {assessmentToEdit ? 'Edit MCQ Assessment' : 'Create New MCQ Assessment'}
-            </h2>
-            <p className="text-xs text-text-muted font-normal mt-0.5">
-              Design custom multiple choice challenges with dynamic questions and automated scoring
-            </p>
-          </div>
+          <TutorialButton tutorialId="assessment-editor" variant="icon" />
         </div>
       }
       dialogClassName="sm:max-w-4xl"

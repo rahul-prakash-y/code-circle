@@ -18,6 +18,7 @@ import {
   Plus,
 } from 'lucide-react';
 import useAssessmentStore, { Assessment } from '../../store/useAssessmentStore';
+import TutorialButton from '../common/TutorialButton';
 
 interface McqBulkUploadModalProps {
   isOpen?: boolean;
@@ -183,18 +184,21 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
         if (!open) onClose();
       }}
       title={
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0">
-            <FileSpreadsheet size={20} />
+        <div className="flex items-center justify-between w-full pr-6 gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0">
+              <FileSpreadsheet size={20} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-label-primary dark:text-[#F5F5F7] tracking-tight font-heading">
+                Bulk Upload MCQ Assessments
+              </h3>
+              <p className="text-xs text-label-secondary dark:text-[#86868B] font-normal">
+                Import hundreds of multiple-choice questions via Excel spreadsheet (.xlsx / .xls)
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-label-primary dark:text-[#F5F5F7] tracking-tight font-heading">
-              Bulk Upload MCQ Assessments
-            </h3>
-            <p className="text-xs text-label-secondary dark:text-[#86868B] font-normal">
-              Import hundreds of multiple-choice questions via Excel spreadsheet (.xlsx / .xls)
-            </p>
-          </div>
+          <TutorialButton tutorialId="mcq-bulk-upload" variant="icon" />
         </div>
       }
       className="max-w-2xl"

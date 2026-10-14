@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
+import TutorialButton from '../../common/TutorialButton';
 
 const AVAILABLE_LANGUAGES = [
   { id: 'c', label: 'C' },
@@ -99,6 +100,7 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(45);
+  const [customPoints, setCustomPoints] = useState(50);
   const [allowedLanguages, setAllowedLanguages] = useState<string[]>([
     'python',
     'javascript',
@@ -142,6 +144,7 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
           setDescription(c.description || '');
           setDifficulty(c.difficulty || 'Medium');
           setTimeLimitMinutes(c.timeLimitMinutes || 45);
+          setCustomPoints(c.customPoints !== undefined ? c.customPoints : 50);
           setAllowedLanguages(c.allowedLanguages || ['python']);
           setInputFormat(c.inputFormat || '');
           setOutputFormat(c.outputFormat || '');
@@ -179,6 +182,7 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
       setDescription('');
       setDifficulty('Medium');
       setTimeLimitMinutes(45);
+      setCustomPoints(50);
       setAllowedLanguages(['python', 'javascript', 'cpp', 'c', 'java']);
       setStarterCode({ ...DEFAULT_STARTER_CODES });
       setInputFormat('');
@@ -254,6 +258,7 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
       description,
       difficulty,
       timeLimitMinutes,
+      customPoints: Math.max(0, customPoints),
       allowedLanguages,
       starterCode,
       inputFormat,
@@ -305,12 +310,15 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <TutorialButton tutorialId="coding-challenge-editor" variant="icon" />
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -377,7 +385,7 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-label-secondary font-semibold mb-1">
                       Difficulty Level
@@ -405,6 +413,46 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
                       onChange={(e) => setTimeLimitMinutes(Number(e.target.value))}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-label-primary text-xs focus:outline-none"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-label-secondary font-semibold mb-1">
+                      Custom Points Reward *
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={5000}
+                      value={customPoints}
+                      onChange={(e) => setCustomPoints(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-label-primary font-mono text-xs focus:outline-none"
+                      placeholder="e.g. 50"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Presets for Custom Points */}
+                <div className="p-3 rounded-2xl bg-surface-secondary/70 border border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold text-label-primary">Quick Point Presets</p>
+                    <p className="text-[10px] text-label-secondary">Points awarded to student upon successfully passing all test cases</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[25, 50, 75, 100, 150].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setCustomPoints(preset)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-all cursor-pointer border ${
+                          customPoints === preset
+                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-sm'
+                            : 'bg-surface text-label-secondary border-separator hover:text-label-primary'
+                        }`}
+                      >
+                        +{preset}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

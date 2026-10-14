@@ -7,6 +7,7 @@ import useProfileStore from '../store/useProfileStore';
 import useEventStore from '../store/useEventStore';
 import EventFeed from '../components/events/EventFeed';
 import EventModal from '../components/events/EventModal';
+import TutorialButton from '../components/common/TutorialButton';
 
 export const EventsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -57,16 +58,19 @@ export const EventsPage: React.FC = () => {
           </p>
         </div>
 
-        {isAdmin && (
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleCreateEvent}
-            className="btn-primary flex items-center gap-2 text-[13px] self-start sm:self-auto cursor-pointer"
-          >
-            <Plus size={15} strokeWidth={2} />
-            <span>Create Event</span>
-          </motion.button>
-        )}
+        <div className="flex items-center gap-3">
+          <TutorialButton tutorialId="events" label="Events Guide" />
+          {isAdmin && (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={handleCreateEvent}
+              className="btn-primary flex items-center gap-2 text-[13px] self-start sm:self-auto cursor-pointer"
+            >
+              <Plus size={15} strokeWidth={2} />
+              <span>Create Event</span>
+            </motion.button>
+          )}
+        </div>
       </div>
 
       {/* Main Events Feed */}

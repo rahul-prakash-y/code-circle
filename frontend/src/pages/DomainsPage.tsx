@@ -14,6 +14,7 @@ import RegisteredStudentsModal from '../components/domains/RegisteredStudentsMod
 import StudentCourseAccessModal from '../components/domains/StudentCourseAccessModal';
 import CoursesComingSoonView from '../components/domains/CoursesComingSoonView';
 import CourseBulkUploadModal from '../components/domains/CourseBulkUploadModal';
+import TutorialButton from '../components/common/TutorialButton';
 import {
   Compass,
   ArrowRight,
@@ -544,6 +545,8 @@ export const DomainsPage: React.FC = () => {
               </button>
             </>
           )}
+
+          <TutorialButton tutorialId="courses" label="Course Guide" />
 
           <div className="px-4 py-2 rounded-2xl bg-surface border border-separator/60 shadow-sm flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">

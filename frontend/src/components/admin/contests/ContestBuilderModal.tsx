@@ -32,6 +32,7 @@ import useContestStore, {
   CodingProblem,
   CodingProblemTestCase,
 } from '../../../store/useContestStore';
+import TutorialButton from '../../common/TutorialButton';
 
 interface ContestBuilderModalProps {
   isOpen: boolean;
@@ -425,12 +426,15 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-surface-secondary dark:hover:bg-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <TutorialButton tutorialId="contests" variant="icon" />
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-surface-secondary dark:hover:bg-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Tab Switcher */}

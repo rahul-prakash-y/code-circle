@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import useContestStore, { Contest } from '../../../store/useContestStore';
 import AllocatePointsModal from './AllocatePointsModal';
+import TutorialButton from '../../common/TutorialButton';
 
 interface ContestSubmissionsModalProps {
   isOpen: boolean;
@@ -126,12 +127,15 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-2">
+              <TutorialButton tutorialId="contests" variant="icon" />
+              <button
+                onClick={onClose}
+                className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Action Toolbar */}

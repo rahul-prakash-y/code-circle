@@ -30,6 +30,7 @@ export interface ICodingChallenge extends Document {
   starterCode: Map<string, string>;
   testCases: ITestCase[];
   timeLimitMinutes?: number;
+  customPoints?: number;
   singleSubmissionOnly?: boolean;
   isPublished?: boolean;
   isCourseChallenge?: boolean;
@@ -134,6 +135,11 @@ const codingChallengeSchema = new Schema<ICodingChallenge>(
       type: Number,
       default: 45,
       min: [1, 'Time limit must be at least 1 minute'],
+    },
+    customPoints: {
+      type: Number,
+      default: 50,
+      min: [0, 'Points cannot be negative'],
     },
     singleSubmissionOnly: {
       type: Boolean,

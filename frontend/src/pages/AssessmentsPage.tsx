@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import AssessmentList from '../components/assessments/AssessmentList';
 import CodingChallengeList from '../components/coding/CodingChallengeList';
 import { Terminal, Award } from 'lucide-react';
+import TutorialButton from '../components/common/TutorialButton';
 
 export const AssessmentsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'coding' | 'mcq'>('coding');
@@ -11,7 +12,10 @@ export const AssessmentsPage: React.FC = () => {
       {/* Page Header */}
       <div className="pb-2 border-b border-separator flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <p className="meta-editorial mb-1 text-label-secondary">Academic & Skills</p>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="meta-editorial text-label-secondary">Academic & Skills</p>
+            <TutorialButton tutorialId={activeTab === 'coding' ? 'coding' : 'assessments'} label={activeTab === 'coding' ? 'Coding Guide' : 'MCQ Guide'} />
+          </div>
           <h1 className="display-headline text-label-primary">Assessments</h1>
           <p className="text-[14px] text-label-secondary mt-1">
             Algorithmic problem tracks, timed coding tests, and technical evaluations.
