@@ -13,12 +13,20 @@ import {
   allocateContestPoints,
   bulkAllocateContestPoints,
   getContestSubmissionsForAdmin,
+  getSingleContestSubmissionForAdmin,
+  getMyContestSubmission,
   downloadContestMcqTemplate,
   downloadContestCodingTemplate,
   parseContestMcqUpload,
   parseContestCodingUpload,
 } from '../controllers/contestController';
-import { verifyToken, isAdmin, optionalToken, checkFeatureNotRestricted } from '../middleware/authMiddleware';
+import {
+  verifyToken,
+  isAdmin,
+  isAdminOrFaculty,
+  optionalToken,
+  checkFeatureNotRestricted,
+} from '../middleware/authMiddleware';
 
 export async function contestRoutes(fastify: FastifyInstance) {
   // Public/Student routes with optional or verified token
@@ -29,18 +37,25 @@ export async function contestRoutes(fastify: FastifyInstance) {
   // Authenticated Student Contest Session (gated against contest restriction)
   fastify.register(async (studentGroup) => {
     studentGroup.addHook('preHandler', verifyToken);
-    studentGroup.addHook('preHandler', checkFeatureNotRestricted('contests'));
 
-    studentGroup.post('/:id/start', startContestSession);
-    studentGroup.post('/:id/run-code', runContestCode);
-    studentGroup.post('/:id/submit-code', submitContestProblemCode);
-    studentGroup.post('/:id/submit', submitContest);
+    // Submission review endpoint does not require taking a contest, just login
+    studentGroup.get('/:id/my-submission', getMyContestSubmission);
+
+    // Active arena session routes gated against restrictedFeatures
+    studentGroup.register(async (arenaGroup) => {
+      arenaGroup.addHook('preHandler', checkFeatureNotRestricted('contests'));
+
+      arenaGroup.post('/:id/start', startContestSession);
+      arenaGroup.post('/:id/run-code', runContestCode);
+      arenaGroup.post('/:id/submit-code', submitContestProblemCode);
+      arenaGroup.post('/:id/submit', submitContest);
+    });
   });
 
   // Admin / Faculty Contest Creation, Management & Manual Point Allocation
   fastify.register(async (adminGroup) => {
     adminGroup.addHook('preHandler', verifyToken);
-    adminGroup.addHook('preHandler', isAdmin);
+    adminGroup.addHook('preHandler', isAdminOrFaculty);
 
     adminGroup.get('/admin/mcq-template', downloadContestMcqTemplate);
     adminGroup.get('/admin/coding-template', downloadContestCodingTemplate);
@@ -53,6 +68,7 @@ export async function contestRoutes(fastify: FastifyInstance) {
 
     // Manual Point Allocation & Submissions Review
     adminGroup.get('/:id/submissions', getContestSubmissionsForAdmin);
+    adminGroup.get('/:id/submissions/:submissionId', getSingleContestSubmissionForAdmin);
     adminGroup.post('/:id/submissions/:submissionId/allocate-points', allocateContestPoints);
     adminGroup.post('/:id/allocate-bulk', bulkAllocateContestPoints);
   });

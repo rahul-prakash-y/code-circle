@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import useContestStore, { Contest } from '../../../store/useContestStore';
 import AllocatePointsModal from './AllocatePointsModal';
+import ContestSubmissionDetailModal from './ContestSubmissionDetailModal';
 import TutorialButton from '../../common/TutorialButton';
 
 interface ContestSubmissionsModalProps {
@@ -37,7 +38,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState<'ALL' | 'ALLOCATED' | 'PENDING'>('ALL');
   const [selectedSubmissionForPoints, setSelectedSubmissionForPoints] = useState<any | null>(null);
-  const [viewingCodeProblem, setViewingCodeProblem] = useState<any | null>(null);
+  const [selectedSubmissionForDetails, setSelectedSubmissionForDetails] = useState<any | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const loadData = async () => {
@@ -255,11 +256,16 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                               {Math.floor((s.timeTakenSeconds || 0) / 60)}m {((s.timeTakenSeconds || 0) % 60)}s
                             </p>
                           </td>
-
                           <td className="py-3 px-4 text-center">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-surface-secondary border border-separator text-label-secondary">
-                              {mcqCorrect}/{mcqTotal} correct
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSubmissionForDetails(s)}
+                              className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-surface-secondary hover:bg-primary/10 border border-separator hover:border-primary/30 text-label-secondary hover:text-primary transition-all inline-flex items-center gap-1 cursor-pointer"
+                              title="Click to view MCQ answers"
+                            >
+                              <HelpCircle size={11} />
+                              <span>{mcqCorrect}/{mcqTotal} correct</span>
+                            </button>
                           </td>
 
                           <td className="py-3 px-4 text-center">
@@ -268,10 +274,11 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                             ) : (
                               <button
                                 type="button"
-                                onClick={() => setViewingCodeProblem(s)}
-                                className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border border-indigo-500/20 transition-colors inline-flex items-center gap-1"
+                                onClick={() => setSelectedSubmissionForDetails(s)}
+                                className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all inline-flex items-center gap-1 cursor-pointer"
+                                title="Click to view code solutions"
                               >
-                                <Code2 size={12} />
+                                <Code2 size={11} />
                                 <span>{codingCount} codes</span>
                               </button>
                             )}
@@ -300,22 +307,33 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                           </td>
 
                           <td className="py-3 px-4 text-right">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSelectedSubmissionForPoints({
-                                  submissionId: s._id,
-                                  user: s.userId,
-                                  totalScore: s.totalScore,
-                                  awardedClubPoints: s.awardedClubPoints || 0,
-                                  manualPointsReason: s.manualPointsReason,
-                                })
-                              }
-                              className="px-3 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
-                            >
-                              <Zap size={12} className="fill-current" />
-                              <span>Allocate Points</span>
-                            </button>
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedSubmissionForDetails(s)}
+                                className="px-2.5 py-1.5 bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                                title="Inspect Complete Submission (MCQs + Code)"
+                              >
+                                <FileCode2 size={12} className="text-primary" />
+                                <span className="hidden sm:inline">Inspect</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedSubmissionForPoints({
+                                    submissionId: s._id,
+                                    user: s.userId,
+                                    totalScore: s.totalScore,
+                                    awardedClubPoints: s.awardedClubPoints || 0,
+                                    manualPointsReason: s.manualPointsReason,
+                                  })
+                                }
+                                className="px-2.5 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Zap size={12} className="fill-current" />
+                                <span className="hidden sm:inline">Points</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -333,7 +351,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
             </span>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-surface border border-separator rounded-xl font-bold text-label-primary hover:bg-surface-secondary transition-colors"
+              className="px-4 py-2 bg-surface border border-separator rounded-xl font-bold text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -341,43 +359,25 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
         </motion.div>
       </div>
 
-      {/* Code Viewer Modal */}
-      {viewingCodeProblem && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="bg-surface border border-separator rounded-3xl max-w-3xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between border-b border-separator pb-4">
-              <div>
-                <h4 className="text-sm font-bold text-label-primary">
-                  Submitted Code • {viewingCodeProblem.userId?.name}
-                </h4>
-                <p className="text-xs text-label-tertiary">Inspection of participant solution</p>
-              </div>
-              <button
-                onClick={() => setViewingCodeProblem(null)}
-                className="p-1.5 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-4">
-              {viewingCodeProblem.codingSubmissions?.map((cs: any, idx: number) => (
-                <div key={idx} className="border border-separator rounded-2xl p-4 bg-surface-secondary space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-label-primary font-mono uppercase">{cs.language} Solution</span>
-                    <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-                      {cs.passedTestCases}/{cs.totalTestCases} Tests Passed (+{cs.pointsEarned} pts)
-                    </span>
-                  </div>
-                  <pre className="p-3 bg-zinc-950 text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto border border-zinc-800">
-                    {cs.code || '// No code submitted'}
-                  </pre>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Comprehensive Student Submission Review Modal (MCQ + Coding) */}
+      <ContestSubmissionDetailModal
+        isOpen={Boolean(selectedSubmissionForDetails)}
+        onClose={() => setSelectedSubmissionForDetails(null)}
+        submission={selectedSubmissionForDetails}
+        contestTitle={contest.title}
+        contestType={contest.type}
+        isAdminView={true}
+        onAllocatePoints={(sub) => {
+          setSelectedSubmissionForDetails(null);
+          setSelectedSubmissionForPoints({
+            submissionId: sub._id,
+            user: sub.userId,
+            totalScore: sub.totalScore,
+            awardedClubPoints: sub.awardedClubPoints || 0,
+            manualPointsReason: sub.manualPointsReason,
+          });
+        }}
+      />
 
       {/* Allocate Points Modal */}
       <AllocatePointsModal

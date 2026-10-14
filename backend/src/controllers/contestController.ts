@@ -31,6 +31,69 @@ function normalizeOutput(output: string): string {
     .trim();
 }
 
+/**
+ * Enriches a contest submission with question prompts, options, correct answers,
+ * and coding problem details so students and administrators can review full solutions.
+ */
+export function enrichSubmissionWithContestDetails(submission: any, contest: any) {
+  if (!submission) return null;
+
+  const mcqQuestions = contest?.mcqQuestions || [];
+  const codingProblems = contest?.codingProblems || [];
+
+  const mcqDetails = (submission.mcqAnswers || []).map((ans: any) => {
+    const q = mcqQuestions.find(
+      (item: any) => item._id?.toString() === ans.questionId?.toString()
+    );
+    const selectedIdx = typeof ans.selectedOption === 'number' ? ans.selectedOption : -1;
+    const correctIdx = typeof q?.correctOptionIndex === 'number' ? q.correctOptionIndex : -1;
+    return {
+      questionId: ans.questionId,
+      questionText: q?.question || 'Question prompt not found',
+      options: q?.options || [],
+      correctOptionIndex: correctIdx,
+      selectedOption: selectedIdx,
+      selectedOptionText:
+        selectedIdx >= 0 && q?.options?.[selectedIdx]
+          ? q.options[selectedIdx]
+          : selectedIdx >= 0
+          ? `Option ${selectedIdx}`
+          : 'Not answered',
+      correctOptionText: correctIdx >= 0 && q?.options?.[correctIdx] ? q.options[correctIdx] : '',
+      isCorrect: ans.isCorrect ?? (selectedIdx >= 0 && selectedIdx === correctIdx),
+      pointsEarned: ans.pointsEarned ?? 0,
+      maxPoints: q?.points || 10,
+      explanation: q?.explanation || '',
+    };
+  });
+
+  const codingDetails = (submission.codingSubmissions || []).map((cs: any) => {
+    const prob = codingProblems.find(
+      (item: any) => item._id?.toString() === cs.problemId?.toString()
+    );
+    return {
+      problemId: cs.problemId,
+      problemTitle: prob?.title || 'Coding Problem',
+      problemDifficulty: prob?.difficulty || 'Medium',
+      problemDescription: prob?.description || '',
+      maxPoints: prob?.points || 30,
+      code: cs.code || '',
+      language: cs.language || 'python',
+      passedTestCases: cs.passedTestCases || 0,
+      totalTestCases: cs.totalTestCases || 0,
+      status: cs.status || 'PENDING',
+      pointsEarned: cs.pointsEarned || 0,
+      submittedAt: cs.submittedAt,
+    };
+  });
+
+  return {
+    ...submission,
+    mcqAnswers: mcqDetails,
+    codingSubmissions: codingDetails,
+  };
+}
+
 // 1. Get All Contests (Split by Status)
 export const getContests = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
@@ -60,7 +123,7 @@ export const getContests = async (req: FastifyRequest, reply: FastifyReply) => {
             contestId: c._id,
             userId,
           })
-            .select('status totalScore startedAt submittedAt expiresAt')
+            .select('status totalScore startedAt submittedAt expiresAt timeTakenSeconds awardedClubPoints pointsAwarded')
             .lean();
         }
 
@@ -117,6 +180,9 @@ export const getContestById = async (req: FastifyRequest, reply: FastifyReply) =
         contestId: contest._id,
         userId,
       }).lean();
+      if (mySubmission) {
+        mySubmission = enrichSubmissionWithContestDetails(mySubmission, contest);
+      }
     }
 
     // If student and contest not ended, redact correctOptionIndex and hidden test cases
@@ -823,21 +889,111 @@ export const getContestSubmissionsForAdmin = async (req: FastifyRequest, reply: 
       .populate('manualAllocatedBy', 'name email')
       .lean();
 
+    const enrichedSubmissions = submissions.map((s: any) =>
+      enrichSubmissionWithContestDetails(s, contest)
+    );
+
     return reply.send({
       success: true,
       contest: {
         _id: contest._id,
         title: contest.title,
         type: contest.type,
+        difficulty: contest.difficulty,
         totalPoints: contest.totalPoints,
         pointAllocationMode: contest.pointAllocationMode || 'AUTOMATIC',
+        mcqCount: contest.mcqQuestions?.length || 0,
+        codingCount: contest.codingProblems?.length || 0,
       },
-      count: submissions.length,
-      data: submissions,
+      count: enrichedSubmissions.length,
+      data: enrichedSubmissions,
     });
   } catch (error: any) {
     req.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to fetch contest submissions' });
+  }
+};
+
+// 13b. Admin: Get Single Student Contest Submission with Detailed Review
+export const getSingleContestSubmissionForAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id, submissionId } = req.params as { id: string; submissionId: string };
+
+    const contest = await Contest.findById(id).lean();
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findById(submissionId)
+      .populate('userId', 'name rollNo email profilePicUrl avatar department points')
+      .populate('manualAllocatedBy', 'name email')
+      .lean();
+
+    if (!submission) {
+      return reply.status(404).send({ success: false, error: 'Contest submission not found' });
+    }
+
+    const enriched = enrichSubmissionWithContestDetails(submission, contest);
+
+    return reply.send({
+      success: true,
+      contest: {
+        _id: contest._id,
+        title: contest.title,
+        type: contest.type,
+        difficulty: contest.difficulty,
+        totalPoints: contest.totalPoints,
+        durationMinutes: contest.durationMinutes,
+      },
+      data: enriched,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to fetch contest submission details' });
+  }
+};
+
+// 13c. Student: Get My Contest Submission with MCQ & Coding Breakdown
+export const getMyContestSubmission = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const userId = getUserId(req);
+
+    const contest = await Contest.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(id) ? id : null }, { slug: id.toLowerCase() }],
+    }).lean();
+
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findOne({ contestId: contest._id, userId })
+      .populate('userId', 'name rollNo email profilePicUrl avatar department points')
+      .populate('manualAllocatedBy', 'name email')
+      .lean();
+
+    if (!submission) {
+      return reply.status(404).send({ success: false, error: 'No submission found for this contest' });
+    }
+
+    const enriched = enrichSubmissionWithContestDetails(submission, contest);
+
+    return reply.send({
+      success: true,
+      contest: {
+        _id: contest._id,
+        title: contest.title,
+        type: contest.type,
+        difficulty: contest.difficulty,
+        totalPoints: contest.totalPoints,
+        durationMinutes: contest.durationMinutes,
+        status: contest.status,
+      },
+      data: enriched,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to fetch your contest submission' });
   }
 };
 

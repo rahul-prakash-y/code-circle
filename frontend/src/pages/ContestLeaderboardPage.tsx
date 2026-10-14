@@ -14,19 +14,34 @@ import {
   Sparkles,
   Sliders,
   RefreshCw,
+  FileCode2,
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
-import useContestStore, { LeaderboardEntry } from '../store/useContestStore';
+import useContestStore, { LeaderboardEntry, Contest } from '../store/useContestStore';
 import AllocatePointsModal from '../components/admin/contests/AllocatePointsModal';
+import ContestSubmissionsModal from '../components/admin/contests/ContestSubmissionsModal';
+import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
 
 export const ContestLeaderboardPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const { profile } = useProfileStore();
-  const { leaderboard, loading, fetchLeaderboard, bulkAllocatePoints } = useContestStore();
+  const {
+    leaderboard,
+    loading,
+    fetchLeaderboard,
+    bulkAllocatePoints,
+    fetchSingleSubmissionForAdmin,
+    fetchMyContestSubmission,
+    fetchContestById,
+    activeContest,
+  } = useContestStore();
   const [search, setSearch] = useState('');
   const [selectedEntryForPoints, setSelectedEntryForPoints] = useState<LeaderboardEntry | null>(null);
+  const [selectedSubmissionForDetails, setSelectedSubmissionForDetails] = useState<any | null>(null);
+  const [isSubmissionsRosterOpen, setIsSubmissionsRosterOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const isPrivileged =
@@ -40,8 +55,36 @@ export const ContestLeaderboardPage: React.FC = () => {
     profile?.role === 'Faculty';
 
   useEffect(() => {
-    if (id) fetchLeaderboard(id);
+    if (id) {
+      fetchLeaderboard(id);
+      fetchContestById(id);
+    }
   }, [id]);
+
+  const currentUserId = user?._id || user?.id || (user as any)?.userId;
+  const myLeaderboardEntry = leaderboard.find(
+    (entry) =>
+      Boolean(currentUserId) &&
+      (entry.user?._id === currentUserId || (entry.user as any)?.id === currentUserId)
+  );
+
+  const handleInspectSubmission = async (entry: LeaderboardEntry) => {
+    if (!id || !entry.submissionId) return;
+    const isMe =
+      Boolean(currentUserId) &&
+      (entry.user?._id === currentUserId || (entry.user as any)?.id === currentUserId);
+
+    const res =
+      isPrivileged && !isMe
+        ? await fetchSingleSubmissionForAdmin(id, entry.submissionId)
+        : await fetchMyContestSubmission(id);
+
+    if (res.success && res.data) {
+      setSelectedSubmissionForDetails(res.data);
+    } else {
+      toast.error(res.error || 'Failed to load submission details');
+    }
+  };
 
   const filtered = leaderboard.filter(
     (entry) =>
@@ -64,17 +107,41 @@ export const ContestLeaderboardPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between border-b border-separator pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-separator pb-4">
         <Link
           to="/contests"
-          className="flex items-center gap-2 text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors"
+          className="flex items-center gap-2 text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
         >
           <ArrowLeft size={14} />
           <span>Back to Weekly Battles</span>
         </Link>
-        <span className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold">
-          Official Tournament Rankings
-        </span>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {myLeaderboardEntry && (
+            <button
+              type="button"
+              onClick={() => handleInspectSubmission(myLeaderboardEntry)}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="View your submitted MCQ answers and code solution"
+            >
+              <FileCode2 size={13} />
+              <span>My Submission ({myLeaderboardEntry.totalScore} pts)</span>
+            </button>
+          )}
+          {isPrivileged && (
+            <button
+              type="button"
+              onClick={() => setIsSubmissionsRosterOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Open full student submissions roster & point allocations"
+            >
+              <Sliders size={13} />
+              <span>Submissions Ledger</span>
+            </button>
+          )}
+          <span className="text-[11px] font-mono uppercase tracking-widest text-primary font-bold">
+            Official Tournament Rankings
+          </span>
+        </div>
       </div>
 
       {/* Header */}
@@ -242,74 +309,105 @@ export const ContestLeaderboardPage: React.FC = () => {
                 <th className="py-3 px-4 text-center">Total Score</th>
                 <th className="py-3 px-4">Time Taken</th>
                 <th className="py-3 px-4 text-center">Awarded Club XP</th>
-                {isPrivileged && <th className="py-3 px-4 text-right">Admin Action</th>}
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-separator text-label-primary font-medium">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={isPrivileged ? 8 : 7} className="py-12 text-center text-label-tertiary">
+                  <td colSpan={8} className="py-12 text-center text-label-tertiary">
                     No submissions recorded yet for this contest.
                   </td>
                 </tr>
               ) : (
-                filtered.map((entry) => (
-                  <tr key={entry.submissionId} className="hover:bg-surface-secondary/70 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold">
-                      {entry.rank === 1 ? (
-                        <span className="text-amber-500 font-black">🥇 #1</span>
-                      ) : entry.rank === 2 ? (
-                        <span className="text-slate-400 font-black">🥈 #2</span>
-                      ) : entry.rank === 3 ? (
-                        <span className="text-amber-700 font-black">🥉 #3</span>
-                      ) : (
-                        `#${entry.rank}`
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <p className="font-bold text-label-primary">{entry.user?.name || 'Anonymous'}</p>
-                      <p className="text-[10px] text-label-tertiary font-mono">
-                        {entry.user?.rollNo || entry.user?.email}
-                      </p>
-                    </td>
-                    <td className="py-3 px-4 text-center font-mono text-label-secondary">{entry.mcqScore}</td>
-                    <td className="py-3 px-4 text-center font-mono text-label-secondary">{entry.codingScore}</td>
-                    <td className="py-3 px-4 text-center font-mono font-black text-primary text-sm">
-                      {entry.totalScore}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-label-tertiary text-[11px]">
-                      {formatSeconds(entry.timeTakenSeconds)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="inline-flex flex-col items-center">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                          +{entry.awardedClubPoints} XP
-                        </span>
-                        {entry.manualPointsAdjustment ? (
-                          <span
-                            title={entry.manualPointsReason || 'Manual adjustment'}
-                            className="text-[9px] font-bold text-amber-500 mt-0.5"
-                          >
-                            ⚡ {entry.manualPointsAdjustment > 0 ? `+${entry.manualPointsAdjustment}` : entry.manualPointsAdjustment} manual
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-                    {isPrivileged && (
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedEntryForPoints(entry)}
-                          className="px-2.5 py-1 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[11px] font-bold transition-all inline-flex items-center gap-1 shadow-xs"
-                          title="Manually allocate or adjust points"
-                        >
-                          <Zap size={11} className="fill-current" />
-                          <span>Allocate</span>
-                        </button>
+                filtered.map((entry) => {
+                  const isMe =
+                    Boolean(currentUserId) &&
+                    (entry.user?._id === currentUserId || (entry.user as any)?.id === currentUserId);
+
+                  return (
+                    <tr key={entry.submissionId} className="hover:bg-surface-secondary/70 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold">
+                        {entry.rank === 1 ? (
+                          <span className="text-amber-500 font-black">🥇 #1</span>
+                        ) : entry.rank === 2 ? (
+                          <span className="text-slate-400 font-black">🥈 #2</span>
+                        ) : entry.rank === 3 ? (
+                          <span className="text-amber-700 font-black">🥉 #3</span>
+                        ) : (
+                          `#${entry.rank}`
+                        )}
                       </td>
-                    )}
-                  </tr>
-                ))
+                      <td className="py-3 px-4">
+                        <p className="font-bold text-label-primary flex items-center gap-1.5">
+                          <span>{entry.user?.name || 'Anonymous'}</span>
+                          {isMe && (
+                            <span className="px-1.5 py-0.2 rounded-md text-[9px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                              YOU
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[10px] text-label-tertiary font-mono">
+                          {entry.user?.rollNo || entry.user?.email}
+                        </p>
+                      </td>
+                      <td className="py-3 px-4 text-center font-mono text-label-secondary">{entry.mcqScore}</td>
+                      <td className="py-3 px-4 text-center font-mono text-label-secondary">{entry.codingScore}</td>
+                      <td className="py-3 px-4 text-center font-mono font-black text-primary text-sm">
+                        {entry.totalScore}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-label-tertiary text-[11px]">
+                        {formatSeconds(entry.timeTakenSeconds)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="inline-flex flex-col items-center">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                            +{entry.awardedClubPoints} XP
+                          </span>
+                          {entry.manualPointsAdjustment ? (
+                            <span
+                              title={entry.manualPointsReason || 'Manual adjustment'}
+                              className="text-[9px] font-bold text-amber-500 mt-0.5"
+                            >
+                              ⚡ {entry.manualPointsAdjustment > 0 ? `+${entry.manualPointsAdjustment}` : entry.manualPointsAdjustment} manual
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          {(isPrivileged || isMe) && (
+                            <button
+                              type="button"
+                              onClick={() => handleInspectSubmission(entry)}
+                              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer ${
+                                isMe
+                                  ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                  : 'bg-surface-secondary hover:bg-surface border border-separator text-label-secondary hover:text-label-primary'
+                              }`}
+                              title={isMe ? 'View your submission' : 'Inspect student submission (MCQs + Code)'}
+                            >
+                              <FileCode2 size={11} className={isMe ? 'text-emerald-500' : 'text-primary'} />
+                              <span>{isMe ? 'My Work' : 'Inspect'}</span>
+                            </button>
+                          )}
+
+                          {isPrivileged && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedEntryForPoints(entry)}
+                              className="px-2.5 py-1 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[11px] font-bold transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                              title="Manually allocate or adjust points"
+                            >
+                              <Zap size={11} className="fill-current" />
+                              <span className="hidden sm:inline">Allocate</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -326,6 +424,35 @@ export const ContestLeaderboardPage: React.FC = () => {
           onSuccess={() => fetchLeaderboard(id)}
         />
       )}
+
+      {/* Full Submissions Roster Modal (Admin) */}
+      {id && (
+        <ContestSubmissionsModal
+          isOpen={isSubmissionsRosterOpen}
+          onClose={() => setIsSubmissionsRosterOpen(false)}
+          contest={activeContest || ({ _id: id, title: 'Weekly Contest' } as any)}
+        />
+      )}
+
+      {/* Detailed Student Submission Review (MCQ + Code) */}
+      <ContestSubmissionDetailModal
+        isOpen={Boolean(selectedSubmissionForDetails)}
+        onClose={() => setSelectedSubmissionForDetails(null)}
+        submission={selectedSubmissionForDetails}
+        contestTitle={activeContest?.title || 'Weekly Contest'}
+        contestType={activeContest?.type}
+        isAdminView={isPrivileged}
+        onAllocatePoints={(sub) => {
+          setSelectedSubmissionForDetails(null);
+          setSelectedEntryForPoints({
+            submissionId: sub._id,
+            user: sub.userId,
+            totalScore: sub.totalScore,
+            awardedClubPoints: sub.awardedClubPoints || 0,
+            manualPointsReason: sub.manualPointsReason,
+          } as any);
+        }}
+      />
     </div>
   );
 };

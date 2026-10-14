@@ -20,12 +20,14 @@ import {
   Users,
   CheckCircle2,
   Sliders,
+  FileCode2,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import useContestStore, { Contest } from '../store/useContestStore';
 import ContestBuilderModal from '../components/admin/contests/ContestBuilderModal';
 import ContestSubmissionsModal from '../components/admin/contests/ContestSubmissionsModal';
+import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
 import {
   formatISTDateTime,
   formatISTTime,
@@ -39,7 +41,8 @@ export const ContestsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { profile } = useProfileStore();
-  const { contests, loading, fetchContests, deleteContest } = useContestStore();
+  const { contests, loading, fetchContests, deleteContest, fetchMyContestSubmission } =
+    useContestStore();
 
   const isPrivileged =
     user?.role === 'Admin' ||
@@ -55,6 +58,24 @@ export const ContestsPage: React.FC = () => {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [selectedContestForSubmissions, setSelectedContestForSubmissions] = useState<Contest | null>(null);
+  const [activeStudentSubmission, setActiveStudentSubmission] = useState<{
+    contest: Contest;
+    submission: any;
+  } | null>(null);
+
+  const handleOpenMySubmission = async (contest: Contest) => {
+    // If submission already enriched with mcqAnswers or codingSubmissions
+    if (contest.mySubmission?.mcqAnswers?.length || contest.mySubmission?.codingSubmissions?.length) {
+      setActiveStudentSubmission({ contest, submission: contest.mySubmission });
+      return;
+    }
+    const res = await fetchMyContestSubmission(contest._id);
+    if (res.success && res.data) {
+      setActiveStudentSubmission({ contest, submission: res.data });
+    } else {
+      toast.error(res.error || 'Failed to load your contest submission');
+    }
+  };
 
   useEffect(() => {
     fetchContests();
@@ -196,28 +217,55 @@ export const ContestsPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="pt-6 mt-6 border-t border-separator/60 flex items-center justify-between relative z-10">
-                      <button
-                        onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                        className="text-xs font-bold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1"
-                      >
-                        <Trophy size={14} className="text-amber-500" />
-                        <span>Leaderboard</span>
-                      </button>
+                    <div className="pt-6 mt-6 border-t border-separator/60 flex flex-wrap items-center justify-between gap-3 relative z-10">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
+                          className="text-xs font-bold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trophy size={14} className="text-amber-500" />
+                          <span>Leaderboard</span>
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          if (user?.isRestricted && user?.restrictedFeatures?.includes('contests')) {
-                            toast.error('You are restricted from entering contests. Please contact an admin to unblock your account.');
-                            return;
-                          }
-                          navigate(`/contests/${c._id}/arena`);
-                        }}
-                        className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-                      >
-                        <Play size={14} className="fill-current" />
-                        <span>{c.mySubmission ? 'Resume Contest' : 'Enter Arena'}</span>
-                      </button>
+                        {isPrivileged && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedContestForSubmissions(c)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                            title="Submissions & Point Allocation"
+                          >
+                            <Sliders size={13} />
+                            <span>Submissions</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {c.mySubmission?.status === 'SUBMITTED' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenMySubmission(c)}
+                          className="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                          title="View your submitted MCQ choices and code solutions"
+                        >
+                          <FileCode2 size={14} />
+                          <span>My Submission ({c.mySubmission.totalScore} pts)</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (user?.isRestricted && user?.restrictedFeatures?.includes('contests')) {
+                              toast.error('You are restricted from entering contests. Please contact an admin to unblock your account.');
+                              return;
+                            }
+                            navigate(`/contests/${c._id}/arena`);
+                          }}
+                          className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          <Play size={14} className="fill-current" />
+                          <span>{c.mySubmission ? 'Resume Contest' : 'Enter Arena'}</span>
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 ))}
@@ -299,17 +347,42 @@ export const ContestsPage: React.FC = () => {
                     <p className="text-xs text-label-tertiary line-clamp-2 leading-relaxed">{c.description}</p>
                   </div>
 
-                  <div className="pt-3 border-t border-separator flex items-center justify-between">
+                  <div className="pt-3 border-t border-separator flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs text-label-secondary font-medium">
                       {c.participantsCount} Participants
                     </span>
-                    <button
-                      onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                      className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-                    >
-                      <Trophy size={13} />
-                      <span>View Results</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {c.mySubmission && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenMySubmission(c)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          title="View your submitted MCQ choices and code solutions"
+                        >
+                          <FileCode2 size={13} />
+                          <span>My Submission</span>
+                        </button>
+                      )}
+                      {isPrivileged && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedContestForSubmissions(c)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          title="Submissions & Point Allocation"
+                        >
+                          <Sliders size={13} />
+                          <span>Submissions</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
+                        className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trophy size={13} />
+                        <span>Rankings</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -437,6 +510,16 @@ export const ContestsPage: React.FC = () => {
         isOpen={Boolean(selectedContestForSubmissions)}
         onClose={() => setSelectedContestForSubmissions(null)}
         contest={selectedContestForSubmissions}
+      />
+
+      {/* Student Personal Submission Review Modal */}
+      <ContestSubmissionDetailModal
+        isOpen={Boolean(activeStudentSubmission)}
+        onClose={() => setActiveStudentSubmission(null)}
+        submission={activeStudentSubmission?.submission}
+        contestTitle={activeStudentSubmission?.contest?.title}
+        contestType={activeStudentSubmission?.contest?.type}
+        isAdminView={false}
       />
     </div>
   );

@@ -160,6 +160,13 @@ interface ContestState {
   fetchContestSubmissions: (
     contestId: string
   ) => Promise<{ success: boolean; data?: any[]; contest?: any; error?: string }>;
+  fetchMyContestSubmission: (
+    contestId: string
+  ) => Promise<{ success: boolean; data?: any; contest?: any; error?: string }>;
+  fetchSingleSubmissionForAdmin: (
+    contestId: string,
+    submissionId: string
+  ) => Promise<{ success: boolean; data?: any; contest?: any; error?: string }>;
   downloadContestMcqTemplate: () => Promise<void>;
   downloadContestCodingTemplate: () => Promise<void>;
   parseContestMcqUpload: (file: File) => Promise<{ success: boolean; data?: MCQQuestion[]; count?: number; error?: string; errors?: string[] }>;
@@ -360,6 +367,30 @@ export const useContestStore = create<ContestState>((set, get) => ({
       return { success: true, data: res.data.data, contest: res.data.contest };
     } catch (err: any) {
       return { success: false, error: err.response?.data?.error || 'Failed to load submissions' };
+    }
+  },
+
+  fetchMyContestSubmission: async (contestId) => {
+    try {
+      const res = await api.get(`/contests/${contestId}/my-submission`);
+      return { success: true, data: res.data.data, contest: res.data.contest };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to load your contest submission',
+      };
+    }
+  },
+
+  fetchSingleSubmissionForAdmin: async (contestId, submissionId) => {
+    try {
+      const res = await api.get(`/contests/${contestId}/submissions/${submissionId}`);
+      return { success: true, data: res.data.data, contest: res.data.contest };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to load submission details',
+      };
     }
   },
 

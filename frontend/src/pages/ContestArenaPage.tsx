@@ -20,6 +20,7 @@ import {
   Zap,
   ShieldAlert,
   Lock,
+  FileCode2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useContestStore, {
@@ -29,6 +30,7 @@ import useContestStore, {
   CodingProblem,
 } from '../store/useContestStore';
 import { useVisibilityChange } from '../hooks/useVisibilityChange';
+import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
 
 export const ContestArenaPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,10 +46,13 @@ export const ContestArenaPage: React.FC = () => {
     runCode,
     submitProblemCode,
     submitContest,
+    fetchMyContestSubmission,
   } = useContestStore();
 
   const [sessionStarted, setSessionStarted] = useState(false);
   const [selectedSection, setSelectedSection] = useState<'mcq' | 'coding'>('mcq');
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailedSubmission, setDetailedSubmission] = useState<any | null>(null);
   const [currentMcqIdx, setCurrentMcqIdx] = useState(0);
   const [currentCodingIdx, setCurrentCodingIdx] = useState(0);
 
@@ -74,6 +79,17 @@ export const ContestArenaPage: React.FC = () => {
     const init = async () => {
       const c = await fetchContestById(id);
       if (c) {
+        // If student already finalized this contest, show results dialog immediately
+        if (c.mySubmission?.status === 'SUBMITTED') {
+          setSubmissionCompleteData({
+            totalScore: c.mySubmission.totalScore,
+            awardedClubPoints: c.mySubmission.awardedClubPoints,
+            submission: c.mySubmission,
+          });
+          setDetailedSubmission(c.mySubmission);
+          return;
+        }
+
         if (c.type === 'CODING') setSelectedSection('coding');
         else setSelectedSection('mcq');
 
@@ -141,6 +157,10 @@ export const ContestArenaPage: React.FC = () => {
     const result = await submitContest(activeContest._id, formattedAnswers);
     if (result) {
       setSubmissionCompleteData(result);
+      const enrichedRes = await fetchMyContestSubmission(activeContest._id);
+      if (enrichedRes.success && enrichedRes.data) {
+        setDetailedSubmission(enrichedRes.data);
+      }
       setIsSubmitModalOpen(false);
     }
   };
@@ -641,24 +661,53 @@ export const ContestArenaPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 pt-2">
+              <div className="space-y-2 pt-2">
                 <button
-                  onClick={() => navigate('/contests')}
-                  className="flex-1 py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors"
+                  type="button"
+                  onClick={async () => {
+                    if (!detailedSubmission && activeContest) {
+                      const res = await fetchMyContestSubmission(activeContest._id);
+                      if (res.success && res.data) {
+                        setDetailedSubmission(res.data);
+                      }
+                    }
+                    setIsDetailModalOpen(true);
+                  }}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  All Battles
+                  <FileCode2 size={14} />
+                  <span>Review MCQ & Code Solutions</span>
                 </button>
-                <button
-                  onClick={() => navigate(`/contests/${activeContest._id}/leaderboard`)}
-                  className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
-                >
-                  View Rankings
-                </button>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => navigate('/contests')}
+                    className="flex-1 py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors cursor-pointer"
+                  >
+                    All Battles
+                  </button>
+                  <button
+                    onClick={() => navigate(`/contests/${activeContest._id}/leaderboard`)}
+                    className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                  >
+                    View Rankings
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Detailed Student Submission Modal in Arena */}
+      <ContestSubmissionDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        submission={detailedSubmission || submissionCompleteData?.submission || activeContest?.mySubmission}
+        contestTitle={activeContest?.title}
+        contestType={activeContest?.type}
+        isAdminView={false}
+      />
 
       {/* Proctored Lock Overlay on 3 Warnings Reached */}
       {antiCheatLocked && (
