@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import * as XLSX from 'xlsx';
 import Assessment, { IAssessment, IAssessmentQuestion } from '../models/assessmentModel';
 import AssessmentSubmission from '../models/assessmentSubmissionModel';
+import User from '../models/userModel';
+import PointTransaction from '../models/pointTransactionModel';
 
 export interface CreateAssessmentBody {
   title: string;
@@ -11,6 +13,7 @@ export interface CreateAssessmentBody {
   eventId?: string | null;
   timeLimitMinutes?: number;
   passingScorePercentage?: number;
+  customPoints?: number;
   questions: {
     questionText: string;
     options: string[];
@@ -225,6 +228,7 @@ export const createAssessment = async (
       eventId = null,
       timeLimitMinutes = 30,
       passingScorePercentage = 60,
+      customPoints = 50,
       questions = [],
       isPublished = true,
     } = request.body;
@@ -267,6 +271,11 @@ export const createAssessment = async (
       }
     }
 
+    const parsedCustomPoints =
+      typeof customPoints === 'number' && !isNaN(customPoints) && customPoints >= 0
+        ? customPoints
+        : 50;
+
     const assessment = await Assessment.create({
       title: title.trim(),
       description: description.trim(),
@@ -274,6 +283,7 @@ export const createAssessment = async (
       eventId: eventId && mongoose.Types.ObjectId.isValid(eventId) ? new mongoose.Types.ObjectId(eventId) : null,
       timeLimitMinutes: Number(timeLimitMinutes) || 30,
       passingScorePercentage: Number(passingScorePercentage) || 60,
+      customPoints: parsedCustomPoints,
       questions: questions.map((q) => ({
         questionText: q.questionText.trim(),
         options: q.options.map((opt) => opt.trim()),
@@ -365,6 +375,9 @@ export const updateAssessment = async (
     }
     if (updates.passingScorePercentage !== undefined) {
       assessment.passingScorePercentage = Number(updates.passingScorePercentage);
+    }
+    if (updates.customPoints !== undefined) {
+      assessment.customPoints = Math.max(0, Number(updates.customPoints) || 0);
     }
     if (updates.isPublished !== undefined) {
       assessment.isPublished = Boolean(updates.isPublished);
@@ -489,10 +502,49 @@ export const submitAssessment = async (
       detailedResults,
     });
 
+    let pointsAwarded = 0;
+    if (passed) {
+      // Prevent duplicate awards: check if user previously had a passing submission
+      const priorPassing = await AssessmentSubmission.findOne({
+        assessment: assessment._id,
+        user: new mongoose.Types.ObjectId(user.id),
+        passed: true,
+        _id: { $ne: submission._id },
+      });
+
+      if (!priorPassing) {
+        const customPts =
+          typeof assessment.customPoints === 'number' && assessment.customPoints >= 0
+            ? assessment.customPoints
+            : 50;
+        pointsAwarded = customPts;
+
+        if (pointsAwarded > 0) {
+          await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
+          try {
+            await PointTransaction.create({
+              user: new mongoose.Types.ObjectId(user.id),
+              amount: pointsAwarded,
+              category: 'Assessment',
+              title: `Assessment Completed: ${assessment.title}`,
+              description: `Passed with score ${earnedPoints}/${totalPoints} (${percentage}%)`,
+              referenceId: assessment._id.toString(),
+              referenceModel: 'Assessment',
+              timestamp: new Date(),
+            });
+          } catch (txErr) {
+            console.warn('[AssessmentController] Could not record PointTransaction:', txErr);
+          }
+        }
+      }
+    }
+
     return reply.status(201).send({
       success: true,
       message: passed
-        ? 'Congratulations! You passed the assessment.'
+        ? (pointsAwarded > 0
+            ? `Congratulations! You passed the assessment and earned ${pointsAwarded} points!`
+            : 'Congratulations! You passed the assessment.')
         : 'Assessment completed. Keep practicing to improve your score!',
       data: {
         submissionId: submission._id,
@@ -502,6 +554,8 @@ export const submitAssessment = async (
         totalPoints,
         percentage,
         passed,
+        pointsAwarded,
+        customPoints: assessment.customPoints ?? 50,
         passingScorePercentage: assessment.passingScorePercentage,
         timeSpentSeconds: submission.timeSpentSeconds,
         detailedResults,
@@ -698,6 +752,7 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
       Category: 'Algorithms',
       TimeLimitMinutes: 30,
       PassingScorePercentage: 60,
+      CustomPoints: 50,
       QuestionText: 'What is the average time complexity of searching in a Hash Table?',
       OptionA: 'O(1)',
       OptionB: 'O(n)',
@@ -712,6 +767,7 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
       Category: 'Algorithms',
       TimeLimitMinutes: 30,
       PassingScorePercentage: 60,
+      CustomPoints: 50,
       QuestionText: 'Which data structure operates on a Last In, First Out (LIFO) basis?',
       OptionA: 'Queue',
       OptionB: 'Stack',
@@ -726,6 +782,7 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
       Category: 'Algorithms',
       TimeLimitMinutes: 30,
       PassingScorePercentage: 60,
+      CustomPoints: 50,
       QuestionText: 'What is the worst-case time complexity of QuickSort?',
       OptionA: 'O(n log n)',
       OptionB: 'O(n)',
@@ -740,6 +797,7 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
       Category: 'Web Development',
       TimeLimitMinutes: 25,
       PassingScorePercentage: 70,
+      CustomPoints: 75,
       QuestionText: 'Which React hook is used to perform side effects in functional components?',
       OptionA: 'useState',
       OptionB: 'useEffect',
@@ -754,6 +812,7 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
       Category: 'Web Development',
       TimeLimitMinutes: 25,
       PassingScorePercentage: 70,
+      CustomPoints: 75,
       QuestionText: 'What does the acronym DOM represent in browser engineering?',
       OptionA: 'Document Object Model',
       OptionB: 'Direct Oriented Module',
@@ -788,6 +847,11 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
       Column: 'PassingScorePercentage',
       Required: 'NO',
       Description: 'Passing threshold score percentage (e.g. 60)',
+    },
+    {
+      Column: 'CustomPoints',
+      Required: 'NO',
+      Description: 'Points awarded directly to student upon passing this assessment (defaults to 50)',
     },
     {
       Column: 'QuestionText',
@@ -940,6 +1004,7 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
       category: string;
       timeLimitMinutes: number;
       passingScorePercentage: number;
+      customPoints: number;
       question: IAssessmentQuestion;
       rowNumber: number;
     }> = [];
@@ -1012,12 +1077,15 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
       const timeLimitMinutes = Number(getVal(row, 'TimeLimitMinutes', 'TimeLimit', 'Duration')) || 30;
       const passingScorePercentage =
         Number(getVal(row, 'PassingScorePercentage', 'PassingScore', 'PassScore')) || 60;
+      const customPointsVal =
+        Number(getVal(row, 'CustomPoints', 'PointsReward', 'AssessmentPoints', 'AwardPoints', 'PassingPoints')) || 50;
 
       parsedQuestions.push({
         assessmentTitle,
         category,
         timeLimitMinutes: Math.max(1, timeLimitMinutes),
         passingScorePercentage: Math.min(100, Math.max(1, passingScorePercentage)),
+        customPoints: Math.max(0, customPointsVal),
         question: {
           questionText,
           options,
@@ -1080,6 +1148,7 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
         category: first.category || 'Technical',
         timeLimitMinutes: first.timeLimitMinutes || 30,
         passingScorePercentage: first.passingScorePercentage || 60,
+        customPoints: first.customPoints ?? 50,
         questions: groupItems.map((gi) => gi.question),
         isPublished: true,
         createdBy: user.id,

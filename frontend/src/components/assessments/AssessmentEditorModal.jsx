@@ -32,6 +32,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
   const [eventId, setEventId] = useState('');
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(30);
   const [passingScorePercentage, setPassingScorePercentage] = useState(60);
+  const [customPoints, setCustomPoints] = useState(50);
   const [isPublished, setIsPublished] = useState(true);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
@@ -60,6 +61,11 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
       );
       setTimeLimitMinutes(assessmentToEdit.timeLimitMinutes || 30);
       setPassingScorePercentage(assessmentToEdit.passingScorePercentage || 60);
+      setCustomPoints(
+        typeof assessmentToEdit.customPoints === 'number' && assessmentToEdit.customPoints >= 0
+          ? assessmentToEdit.customPoints
+          : 50
+      );
       setIsPublished(assessmentToEdit.isPublished ?? true);
 
       if (assessmentToEdit.questions && assessmentToEdit.questions.length > 0) {
@@ -81,6 +87,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
       setEventId('');
       setTimeLimitMinutes(30);
       setPassingScorePercentage(60);
+      setCustomPoints(50);
       setIsPublished(true);
       setQuestions([
         {
@@ -230,6 +237,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
       eventId: eventId || null,
       timeLimitMinutes: Number(timeLimitMinutes) || 30,
       passingScorePercentage: Number(passingScorePercentage) || 60,
+      customPoints: Math.max(0, Number(customPoints) || 50),
       isPublished,
       questions: questions.map((q) => ({
         questionText: q.questionText.trim(),
@@ -383,6 +391,53 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                 className="w-full px-4 py-3 bg-surface-elevated border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all"
                 required
               />
+            </div>
+
+            {/* Custom Points Reward */}
+            <div className="space-y-2 md:col-span-2 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+                  <Award size={15} className="text-amber-500" />
+                  Custom Points Awarded on Passing *
+                </label>
+                <span className="text-[11px] font-medium text-text-muted">
+                  Credited to student's club points profile upon passing
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <div className="relative w-36">
+                  <input
+                    type="number"
+                    min="0"
+                    max="1000"
+                    value={customPoints}
+                    onChange={(e) => setCustomPoints(Math.max(0, Number(e.target.value)))}
+                    className="w-full px-3.5 py-2 bg-surface-elevated border border-amber-500/30 rounded-xl text-text-primary text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                    required
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-500">
+                    PTS
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[25, 50, 75, 100, 150].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setCustomPoints(preset)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        customPoints === preset
+                          ? 'bg-amber-500 text-black shadow-xs font-black'
+                          : 'bg-white/5 border border-border text-text-secondary hover:text-text-primary hover:bg-white/10'
+                      }`}
+                    >
+                      {preset} pts
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Status Toggle */}

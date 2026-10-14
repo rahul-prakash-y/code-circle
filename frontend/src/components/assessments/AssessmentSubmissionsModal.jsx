@@ -17,10 +17,11 @@ import {
   Sparkles,
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
+import usePointsStore from '../../store/usePointsStore';
 import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 
-const AssessmentSubmissionsModal = ({ assessmentId, isOpen, onClose }) => {
+const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose }) => {
   const {
     assessmentSubmissions,
     fetchAssessmentSubmissions,
@@ -29,15 +30,25 @@ const AssessmentSubmissionsModal = ({ assessmentId, isOpen, onClose }) => {
     loading,
   } = useAssessmentStore();
 
+  const { awardBonusPoints } = usePointsStore();
+
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
   const [confirmAction, setConfirmAction] = useState(null); // { type: 'delete' | 'reappear', subId, studentId, studentName }
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Award custom points dialog state
+  const [awardPointsTarget, setAwardPointsTarget] = useState(null); // { studentId, studentName, score, totalPoints, percentage }
+  const [awardAmount, setAwardAmount] = useState(50);
+  const [awardTitle, setAwardTitle] = useState('');
+  const [awardDesc, setAwardDesc] = useState('');
+  const [awardingLoading, setAwardingLoading] = useState(false);
+
   useEffect(() => {
     if (isOpen && assessmentId) {
       fetchAssessmentSubmissions(assessmentId);
       setConfirmAction(null);
+      setAwardPointsTarget(null);
     }
   }, [isOpen, assessmentId, fetchAssessmentSubmissions]);
 
@@ -87,6 +98,44 @@ const AssessmentSubmissionsModal = ({ assessmentId, isOpen, onClose }) => {
     } finally {
       setActionLoading(false);
       setConfirmAction(null);
+    }
+  };
+
+  const handleAwardCustomPoints = async (e) => {
+    e?.preventDefault();
+    if (!awardPointsTarget || !awardPointsTarget.studentId) return;
+    const num = parseInt(awardAmount, 10);
+    if (isNaN(num) || num <= 0) {
+      toast.error('Please enter a valid positive points amount');
+      return;
+    }
+    if (!awardTitle.trim()) {
+      toast.error('Please enter a reason or title');
+      return;
+    }
+
+    setAwardingLoading(true);
+    try {
+      const ok = await awardBonusPoints({
+        studentId: awardPointsTarget.studentId,
+        amount: num,
+        category: 'Assessment',
+        title: awardTitle.trim(),
+        description:
+          awardDesc.trim() ||
+          `Custom points awarded for ${assessment?.title || 'assessment'} performance (${awardPointsTarget.score}/${awardPointsTarget.totalPoints} pts, ${awardPointsTarget.percentage}%).`,
+      });
+
+      if (ok) {
+        toast.success(`Successfully awarded ${num} points to ${awardPointsTarget.studentName}!`);
+        setAwardPointsTarget(null);
+      } else {
+        toast.error('Failed to award points');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Error awarding points');
+    } finally {
+      setAwardingLoading(false);
     }
   };
 
@@ -211,6 +260,29 @@ const AssessmentSubmissionsModal = ({ assessmentId, isOpen, onClose }) => {
                       <div className="flex items-center gap-1.5 ml-2 border-l border-border/80 pl-3">
                         <button
                           type="button"
+                          onClick={() => {
+                            setAwardPointsTarget({
+                              studentId,
+                              studentName,
+                              score: sub.score,
+                              totalPoints: sub.totalPoints,
+                              percentage: sub.percentage,
+                            });
+                            setAwardAmount(assessment?.customPoints || 50);
+                            setAwardTitle(`Assessment: ${assessment?.title || 'Performance Award'}`);
+                            setAwardDesc(
+                              `Custom points awarded for ${sub.score}/${sub.totalPoints} pts (${sub.percentage}%).`
+                            );
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/25 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                          title="Award custom points directly to this student"
+                        >
+                          <Sparkles size={12} className="text-amber-400" />
+                          <span className="hidden xs:inline">Award Points</span>
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() =>
                             setConfirmAction({
                               type: 'reappear',
@@ -317,6 +389,140 @@ const AssessmentSubmissionsModal = ({ assessmentId, isOpen, onClose }) => {
                     </span>
                   </button>
                 </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Award Custom Points Modal Overlay */}
+        <AnimatePresence>
+          {awardPointsTarget && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+            >
+              <motion.div
+                initial={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.92, opacity: 0 }}
+                className="glass p-6 sm:p-7 rounded-3xl border border-border max-w-md w-full space-y-4 shadow-2xl relative"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-text-primary">
+                        Award Custom Points
+                      </h3>
+                      <p className="text-[11px] text-text-muted">
+                        Target:{' '}
+                        <span className="text-text-primary font-bold">
+                          {awardPointsTarget.studentName}
+                        </span>{' '}
+                        ({awardPointsTarget.score}/{awardPointsTarget.totalPoints} pts)
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAwardPointsTarget(null)}
+                    className="p-1.5 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAwardCustomPoints} className="space-y-4 pt-1">
+                  {/* Preset Buttons */}
+                  <div>
+                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
+                      Select Preset or Enter Custom Points
+                    </label>
+                    <div className="grid grid-cols-5 gap-1.5 mb-2.5">
+                      {[25, 50, 75, 100, 150].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setAwardAmount(preset)}
+                          className={`py-1.5 px-1 rounded-xl text-xs font-black transition-all cursor-pointer border text-center ${
+                            awardAmount === preset
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                              : 'bg-surface-elevated text-text-muted hover:text-text-primary border-border'
+                          }`}
+                        >
+                          +{preset}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-surface-elevated border border-border rounded-xl focus-within:border-amber-500/50">
+                      <span className="text-xs font-bold text-amber-400">Points:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="5000"
+                        value={awardAmount}
+                        onChange={(e) =>
+                          setAwardAmount(Math.max(1, parseInt(e.target.value, 10) || 0))
+                        }
+                        className="bg-transparent border-none text-sm text-text-primary font-mono font-bold focus:outline-none w-full"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Title / Reason */}
+                  <div>
+                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
+                      Reason / Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={awardTitle}
+                      onChange={(e) => setAwardTitle(e.target.value)}
+                      placeholder="e.g. Assessment Performance Reward"
+                      className="w-full px-3 py-2 bg-surface-elevated border border-border rounded-xl text-xs text-text-primary placeholder-slate-600 focus:outline-none focus:border-amber-500/50"
+                      required
+                    />
+                  </div>
+
+                  {/* Optional Note */}
+                  <div>
+                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider block mb-1.5">
+                      Ledger Note (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={awardDesc}
+                      onChange={(e) => setAwardDesc(e.target.value)}
+                      placeholder="Remarks, score detail, or feedback..."
+                      className="w-full px-3 py-2 bg-surface-elevated border border-border rounded-xl text-xs text-text-primary placeholder-slate-600 focus:outline-none focus:border-amber-500/50 resize-none"
+                    />
+                  </div>
+
+                  {/* Submit / Cancel */}
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      disabled={awardingLoading}
+                      onClick={() => setAwardPointsTarget(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-text-secondary bg-surface-elevated hover:bg-surface-elevated border border-border cursor-pointer transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={awardingLoading}
+                      className="px-5 py-2 rounded-xl text-xs font-black text-black bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      {awardingLoading && <Loader2 size={13} className="animate-spin text-black" />}
+                      <span>Award {awardAmount} Points</span>
+                    </button>
+                  </div>
+                </form>
               </motion.div>
             </motion.div>
           )}

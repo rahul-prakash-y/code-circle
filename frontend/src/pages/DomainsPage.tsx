@@ -13,6 +13,7 @@ import LevelEditorModal from '../components/domains/LevelEditorModal';
 import RegisteredStudentsModal from '../components/domains/RegisteredStudentsModal';
 import StudentCourseAccessModal from '../components/domains/StudentCourseAccessModal';
 import CoursesComingSoonView from '../components/domains/CoursesComingSoonView';
+import CourseBulkUploadModal from '../components/domains/CourseBulkUploadModal';
 import {
   Compass,
   ArrowRight,
@@ -43,6 +44,7 @@ import {
   EyeOff,
   Globe,
   UserCheck,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const DomainsPage: React.FC = () => {
@@ -96,6 +98,8 @@ export const DomainsPage: React.FC = () => {
   const [levelToEdit, setLevelToEdit] = useState<ILevel | null>(null);
   const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [bulkUploadTargetDomain, setBulkUploadTargetDomain] = useState<{ id?: string; name?: string } | null>(null);
   const [selectedDomainForStudents, setSelectedDomainForStudents] = useState<IDomain | null>(null);
   const [registeringDomainId, setRegisteringDomainId] = useState<string | null>(null);
 
@@ -246,6 +250,18 @@ export const DomainsPage: React.FC = () => {
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Course Approved
                     </>
                   )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBulkUploadTargetDomain({ id: currentDomain._id, name: currentDomain.name });
+                    setIsBulkUploadOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition cursor-pointer"
+                  title="Bulk Upload Levels from Excel"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Bulk Upload Levels</span>
                 </button>
                 <button
                   type="button"
@@ -415,6 +431,21 @@ export const DomainsPage: React.FC = () => {
             onClose={() => setIsAccessModalOpen(false)}
           />
         )}
+        {isBulkUploadOpen && (
+          <CourseBulkUploadModal
+            isOpen={isBulkUploadOpen}
+            targetDomainId={bulkUploadTargetDomain?.id}
+            targetDomainName={bulkUploadTargetDomain?.name}
+            onClose={() => {
+              setIsBulkUploadOpen(false);
+              setBulkUploadTargetDomain(null);
+            }}
+            onSuccess={() => {
+              fetchDomains();
+              if (domainId) fetchDomainLevels(domainId);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -486,17 +517,32 @@ export const DomainsPage: React.FC = () => {
           )}
 
           {isAdmin && (
-            <button
-              type="button"
-              onClick={() => {
-                setDomainToEdit(null);
-                setIsDomainModalOpen(true);
-              }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Create Course
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkUploadTargetDomain(null);
+                  setIsBulkUploadOpen(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-98 transition shadow-xs cursor-pointer"
+                title="Bulk Upload Courses & Levels from Excel"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                <span>Bulk Upload (Excel)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setDomainToEdit(null);
+                  setIsDomainModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Create Course
+              </button>
+            </>
           )}
 
           <div className="px-4 py-2 rounded-2xl bg-surface border border-separator/60 shadow-sm flex items-center gap-3">
@@ -860,6 +906,23 @@ export const DomainsPage: React.FC = () => {
         <StudentCourseAccessModal
           isOpen={isAccessModalOpen}
           onClose={() => setIsAccessModalOpen(false)}
+        />
+      )}
+
+      {/* Admin Bulk Upload Modal */}
+      {isBulkUploadOpen && (
+        <CourseBulkUploadModal
+          isOpen={isBulkUploadOpen}
+          targetDomainId={bulkUploadTargetDomain?.id}
+          targetDomainName={bulkUploadTargetDomain?.name}
+          onClose={() => {
+            setIsBulkUploadOpen(false);
+            setBulkUploadTargetDomain(null);
+          }}
+          onSuccess={() => {
+            fetchDomains();
+            if (domainId) fetchDomainLevels(domainId);
+          }}
         />
       )}
     </div>

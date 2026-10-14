@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
-export type PointCategory = 'Attendance' | 'Coding' | 'Course' | 'Contest' | 'Bonus' | 'Adjustment';
+export type PointCategory = 'Attendance' | 'Coding' | 'Course' | 'Contest' | 'Bonus' | 'Adjustment' | 'Assessment';
 
 export interface IPointTransaction extends Document {
   user: mongoose.Types.ObjectId;
@@ -33,7 +33,7 @@ const pointTransactionSchema = new Schema<IPointTransaction>(
     },
     category: {
       type: String,
-      enum: ['Attendance', 'Coding', 'Course', 'Contest', 'Bonus', 'Adjustment'],
+      enum: ['Attendance', 'Coding', 'Course', 'Contest', 'Bonus', 'Adjustment', 'Assessment'],
       default: 'Attendance',
       index: true,
     },

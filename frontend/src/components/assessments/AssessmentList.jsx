@@ -395,6 +395,11 @@ export const AssessmentList = () => {
                           {assessment.category}
                         </span>
 
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-500 flex items-center gap-1">
+                          <Award size={11} className="text-amber-500" />
+                          <span>+{assessment.customPoints ?? 50} pts</span>
+                        </span>
+
                         {assessment.eventId && (
                           <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent flex items-center gap-1">
                             <Calendar size={11} />
@@ -573,11 +578,16 @@ export const AssessmentList = () => {
                           </div>
                         </td>
 
-                        {/* Category */}
+                        {/* Category & Points */}
                         <td className="px-6 py-4">
-                          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                            {assessment.category}
-                          </span>
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                              {assessment.category}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-500">
+                              <Award size={10} /> +{assessment.customPoints ?? 50} pts
+                            </span>
+                          </div>
                         </td>
 
                         {/* Questions & Cutoff */}
@@ -675,6 +685,7 @@ export const AssessmentList = () => {
       {submissionsAssessmentId && (
         <AssessmentSubmissionsModal
           assessmentId={submissionsAssessmentId}
+          assessment={assessments.find((a) => a._id === submissionsAssessmentId)}
           isOpen={Boolean(submissionsAssessmentId)}
           onClose={() => setSubmissionsAssessmentId(null)}
         />

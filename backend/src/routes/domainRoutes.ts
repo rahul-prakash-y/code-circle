@@ -10,6 +10,10 @@ export async function domainRoutes(fastify: FastifyInstance) {
   fastify.post('/config/allow-student', { preHandler: [verifyToken, isSuperAdmin] }, domainController.setStudentCourseAccess as any);
   fastify.post('/config/batch-allow', { preHandler: [verifyToken, isSuperAdmin] }, domainController.batchSetCourseAccess as any);
 
+  // Admin Excel Template & Bulk Upload Endpoints (Registered before /:id)
+  fastify.get('/admin/template', { preHandler: [verifyToken, isAdminOrFaculty] }, domainController.downloadCourseLevelsTemplate as any);
+  fastify.post('/admin/bulk-upload', { preHandler: [verifyToken, isAdminOrFaculty] }, domainController.bulkUploadCoursesAndLevels as any);
+
   // Public / Student endpoints (with optional token parsing to enrich progression stats)
   fastify.get('/', { preHandler: [optionalToken] }, domainController.getDomains as any);
   fastify.get('/:id', { preHandler: [optionalToken] }, domainController.getDomainById as any);

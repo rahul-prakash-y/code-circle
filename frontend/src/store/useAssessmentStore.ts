@@ -21,6 +21,7 @@ export interface Assessment {
   questions: AssessmentQuestion[];
   questionsCount?: number;
   totalPoints?: number;
+  customPoints?: number;
   isPublished: boolean;
   createdBy?: any;
   createdAt: string;
@@ -53,6 +54,8 @@ export interface SubmissionResult {
   totalPoints: number;
   percentage: number;
   passed: boolean;
+  pointsAwarded?: number;
+  customPoints?: number;
   passingScorePercentage: number;
   timeSpentSeconds: number;
   detailedResults: DetailedQuestionResult[];

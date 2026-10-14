@@ -66,6 +66,17 @@ interface DomainState {
   createLevel: (domainId: string, payload: Partial<ILevel>) => Promise<boolean>;
   updateLevel: (id: string, payload: Partial<ILevel>) => Promise<boolean>;
   deleteLevel: (id: string) => Promise<boolean>;
+  downloadSampleTemplate: () => Promise<void>;
+  bulkUploadCoursesAndLevels: (file: File, domainId?: string) => Promise<{
+    success: boolean;
+    coursesCreated?: number;
+    coursesUpdated?: number;
+    levelsCreated?: number;
+    levelsUpdated?: number;
+    message?: string;
+    errors?: string[];
+    error?: string;
+  }>;
 }
 
 export const useDomainStore = create<DomainState>((set, get) => ({
@@ -524,6 +535,64 @@ export const useDomainStore = create<DomainState>((set, get) => ({
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to batch update student access');
       return false;
+    }
+  },
+
+  downloadSampleTemplate: async () => {
+    try {
+      const res = await api.get('/courses/admin/template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'course_levels_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Course & levels sample template downloaded!');
+    } catch (err: any) {
+      toast.error('Failed to download course Excel template');
+    }
+  },
+
+  bulkUploadCoursesAndLevels: async (file: File, domainId?: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (domainId) {
+        formData.append('domainId', domainId);
+      }
+
+      const queryParams = new URLSearchParams();
+      if (domainId) queryParams.set('domainId', domainId);
+      const url = `/courses/admin/bulk-upload${
+        queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
+
+      const res = await api.post(url, formData);
+      await get().fetchDomains();
+      if (domainId) {
+        await get().fetchDomainLevels(domainId);
+      }
+      return {
+        success: true,
+        coursesCreated: res.data.coursesCreated,
+        coursesUpdated: res.data.coursesUpdated,
+        levelsCreated: res.data.levelsCreated,
+        levelsUpdated: res.data.levelsUpdated,
+        message: res.data.message,
+        errors: res.data.errors,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Bulk upload failed',
+        errors: err.response?.data?.errors,
+      };
     }
   },
 }));

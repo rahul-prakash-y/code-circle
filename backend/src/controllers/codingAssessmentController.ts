@@ -14,6 +14,7 @@ import DomainEnrollment from '../models/domainEnrollmentModel';
 import rceService from '../services/rceService';
 import { ApiError } from '../utils/ApiError';
 import * as XLSX from 'xlsx';
+import PointTransaction from '../models/pointTransactionModel';
 
 // Maximum public test cases to execute on Run Code
 const MAX_PUBLIC_TESTCASES_PER_REQUEST = 10;
@@ -580,6 +581,21 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
 
       if (pointsAwarded > 0) {
         await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
+        try {
+          const firstLinked = linkedLevels[0];
+          await PointTransaction.create({
+            user: new mongoose.Types.ObjectId(user.id),
+            amount: pointsAwarded,
+            category: 'Coding',
+            title: `Completed Coding Assessment: ${firstLinked ? firstLinked.title : 'Level Challenge'}`,
+            description: `Passed all test cases for Level ${firstLinked ? firstLinked.levelNumber : ''} coding assessment`,
+            referenceId: firstLinked ? firstLinked._id.toString() : undefined,
+            referenceModel: 'Level',
+            timestamp: new Date(),
+          });
+        } catch (txErr) {
+          console.warn('[CodingAssessmentController] Could not log PointTransaction:', txErr);
+        }
       }
 
       const updateOp: any = {
