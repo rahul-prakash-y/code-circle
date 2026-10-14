@@ -21,6 +21,7 @@ import usePointsStore from '../../store/usePointsStore';
 import TutorialButton from '../common/TutorialButton';
 import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
+import { formatISTDateTime } from '../../lib/dateUtils';
 
 const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose }) => {
   const {
@@ -228,12 +229,7 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
                           {student.rollNo || 'NO ROLL'} • {student.department || 'Student'}
                         </p>
                         <p className="text-[10px] text-text-muted mt-0.5">
-                          Submitted: {new Date(sub.createdAt).toLocaleString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          Submitted: {formatISTDateTime(sub.createdAt, { showYear: false })}
                         </p>
                       </div>
                     </div>

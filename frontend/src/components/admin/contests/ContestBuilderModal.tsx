@@ -33,6 +33,11 @@ import useContestStore, {
   CodingProblem,
   CodingProblemTestCase,
 } from '../../../store/useContestStore';
+import {
+  formatDateToISTInput,
+  parseISTInputToISO,
+  formatISTDateTime,
+} from '../../../lib/dateUtils';
 import TutorialButton from '../../common/TutorialButton';
 import ContestMcqBulkUploadModal from './ContestMcqBulkUploadModal';
 import ContestCodingBulkUploadModal from './ContestCodingBulkUploadModal';
@@ -55,9 +60,9 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
   const [showMcqBulkModal, setShowMcqBulkModal] = useState(false);
   const [showCodingBulkModal, setShowCodingBulkModal] = useState(false);
 
-  // Default start: now, end: 7 days from now
-  const defaultStart = new Date().toISOString().slice(0, 16);
-  const defaultEnd = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 16);
+  // Default start: now, end: 7 days from now in Indian Standard Time (IST)
+  const defaultStart = formatDateToISTInput(new Date());
+  const defaultEnd = formatDateToISTInput(new Date(Date.now() + 7 * 24 * 3600 * 1000));
 
   // Form State
   const [title, setTitle] = useState(editingContest?.title || 'Weekly Coding Battle #1');
@@ -74,10 +79,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
   );
 
   const [startTime, setStartTime] = useState(
-    editingContest?.startTime ? new Date(editingContest.startTime).toISOString().slice(0, 16) : defaultStart
+    editingContest?.startTime ? formatDateToISTInput(editingContest.startTime) : defaultStart
   );
   const [endTime, setEndTime] = useState(
-    editingContest?.endTime ? new Date(editingContest.endTime).toISOString().slice(0, 16) : defaultEnd
+    editingContest?.endTime ? formatDateToISTInput(editingContest.endTime) : defaultEnd
   );
 
   // MCQ Questions
@@ -124,10 +129,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
       setTotalPoints(editingContest.totalPoints || 100);
       setPointAllocationMode(editingContest.pointAllocationMode || 'AUTOMATIC');
       setStartTime(
-        editingContest.startTime ? new Date(editingContest.startTime).toISOString().slice(0, 16) : defaultStart
+        editingContest.startTime ? formatDateToISTInput(editingContest.startTime) : defaultStart
       );
       setEndTime(
-        editingContest.endTime ? new Date(editingContest.endTime).toISOString().slice(0, 16) : defaultEnd
+        editingContest.endTime ? formatDateToISTInput(editingContest.endTime) : defaultEnd
       );
 
       // If the contest overview list omitted questions, fetch full contest details to retrieve all coding problems & test cases
@@ -391,8 +396,8 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
       durationMinutes: Number(durationMinutes),
       totalPoints: Math.max(1, Number(totalPoints) || 100),
       pointAllocationMode,
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString(),
+      startTime: parseISTInputToISO(startTime),
+      endTime: parseISTInputToISO(endTime),
       mcqQuestions: type === 'CODING' ? [] : mcqQuestions,
       codingProblems:
         type === 'MCQ'
@@ -641,32 +646,48 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 </div>
               </div>
 
-              {/* Start & End Times */}
+              {/* Start & End Times (Indian Standard Time - IST) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
-                    <Clock size={13} className="text-primary" />
-                    <span>Contest Start Time</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
+                      <Clock size={13} className="text-primary" />
+                      <span>Contest Start Time</span>
+                    </label>
+                    <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                      IST (UTC+5:30)
+                    </span>
+                  </div>
                   <input
                     type="datetime-local"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none"
                   />
+                  <p className="text-[10px] text-label-tertiary">
+                    {startTime ? `Starts: ${formatISTDateTime(parseISTInputToISO(startTime))}` : 'Select start date & time'}
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
-                    <Clock size={13} className="text-primary" />
-                    <span>Contest End Time</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
+                      <Clock size={13} className="text-primary" />
+                      <span>Contest End Time</span>
+                    </label>
+                    <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                      IST (UTC+5:30)
+                    </span>
+                  </div>
                   <input
                     type="datetime-local"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none"
                   />
+                  <p className="text-[10px] text-label-tertiary">
+                    {endTime ? `Ends: ${formatISTDateTime(parseISTInputToISO(endTime))}` : 'Select end date & time'}
+                  </p>
                 </div>
               </div>
             </div>

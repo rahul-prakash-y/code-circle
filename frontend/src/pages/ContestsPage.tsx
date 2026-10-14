@@ -26,6 +26,12 @@ import useProfileStore from '../store/useProfileStore';
 import useContestStore, { Contest } from '../store/useContestStore';
 import ContestBuilderModal from '../components/admin/contests/ContestBuilderModal';
 import ContestSubmissionsModal from '../components/admin/contests/ContestSubmissionsModal';
+import {
+  formatISTDateTime,
+  formatISTTime,
+  formatISTRange,
+  formatRemainingTime,
+} from '../lib/dateUtils';
 
 export const ContestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -55,13 +61,6 @@ export const ContestsPage: React.FC = () => {
   const liveContests = contests.filter((c) => c.status === 'LIVE');
   const upcomingContests = contests.filter((c) => c.status === 'UPCOMING');
   const pastContests = contests.filter((c) => c.status === 'ENDED');
-
-  const formatRemainingTime = (targetIso: string) => {
-    const diff = Math.max(0, new Date(targetIso).getTime() - Date.now());
-    const h = Math.floor(diff / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    return `${h}h ${m}m left`;
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
@@ -158,9 +157,12 @@ export const ContestsPage: React.FC = () => {
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           <span>LIVE ARENA</span>
                         </span>
-                        <span className="text-xs font-mono font-bold text-label-secondary flex items-center gap-1">
+                        <span
+                          className="text-xs font-mono font-bold text-label-secondary flex items-center gap-1"
+                          title={`Scheduled contest closing time: ${formatISTDateTime(c.endTime)}`}
+                        >
                           <Clock size={13} className="text-primary" />
-                          <span>{formatRemainingTime(c.endTime)}</span>
+                          <span>{formatRemainingTime(c.endTime)} • Closes {formatISTTime(c.endTime)}</span>
                         </span>
                       </div>
 
@@ -232,8 +234,11 @@ export const ContestsPage: React.FC = () => {
                       <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                         {c.type}
                       </span>
-                      <span className="text-label-secondary font-semibold">
-                        Starts {new Date(c.startTime).toLocaleDateString()}
+                      <span
+                        className="text-label-secondary font-semibold"
+                        title={`Contest opens: ${formatISTDateTime(c.startTime)}`}
+                      >
+                        Starts {formatISTDateTime(c.startTime, { showYear: false })}
                       </span>
                     </div>
 
@@ -272,8 +277,11 @@ export const ContestsPage: React.FC = () => {
                       <span className="uppercase font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
                         {c.difficulty}
                       </span>
-                      <span className="text-label-secondary">
-                        Ended {new Date(c.endTime).toLocaleDateString()}
+                      <span
+                        className="text-label-secondary"
+                        title={`Contest concluded: ${formatISTDateTime(c.endTime)}`}
+                      >
+                        Ended {formatISTDateTime(c.endTime, { showYear: false })}
                       </span>
                     </div>
                     <h4 className="text-base font-bold text-label-primary tracking-tight">{c.title}</h4>
@@ -344,7 +352,7 @@ export const ContestsPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-[11px] text-label-secondary font-mono">
-                        {new Date(c.startTime).toLocaleDateString()} - {new Date(c.endTime).toLocaleDateString()}
+                        {formatISTRange(c.startTime, c.endTime)}
                       </td>
                       <td className="py-3 px-4 font-mono">{c.durationMinutes}m</td>
                       <td className="py-3 px-4 font-bold font-mono text-amber-500">{c.totalPoints} pts</td>

@@ -9,6 +9,7 @@ import {
 import useEventStore from '../../store/useEventStore';
 import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
+import { formatDateToISTDateInput } from '../../lib/dateUtils';
 
 const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop'];
 const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];
@@ -324,10 +325,10 @@ export const EventModal = ({
   useEffect(() => {
     if (eventToEdit) {
       const effectiveDate = eventToEdit.startDate
-        ? eventToEdit.startDate.split('T')[0]
-        : (eventToEdit.date ? eventToEdit.date.split('T')[0] : '');
+        ? formatDateToISTDateInput(eventToEdit.startDate)
+        : (eventToEdit.date ? formatDateToISTDateInput(eventToEdit.date) : '');
       const effectiveEndDate = eventToEdit.endDate
-        ? eventToEdit.endDate.split('T')[0]
+        ? formatDateToISTDateInput(eventToEdit.endDate)
         : effectiveDate;
 
       setFormData({
@@ -344,7 +345,7 @@ export const EventModal = ({
         maxParticipants: eventToEdit.maxParticipants !== undefined ? eventToEdit.maxParticipants : 0,
         maxTeamSize: eventToEdit.maxTeamSize || 4,
         registrationDeadline: eventToEdit.registrationDeadline
-          ? eventToEdit.registrationDeadline.split('T')[0]
+          ? formatDateToISTDateInput(eventToEdit.registrationDeadline)
           : effectiveDate,
         certificateTemplateUrl: eventToEdit.certificateTemplateUrl || '',
         customFields: Array.isArray(eventToEdit.customFields)

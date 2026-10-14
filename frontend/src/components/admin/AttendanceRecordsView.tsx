@@ -30,6 +30,7 @@ import useUserStore from '../../store/useUserStore';
 import GenerateOtpModal from './GenerateOtpModal';
 import ManualAttendanceModal from './ManualAttendanceModal';
 import { format } from 'date-fns';
+import { formatISTDateTime } from '../../lib/dateUtils';
 import toast from 'react-hot-toast';
 import { getStudentCollege, getStudentYear } from './EventParticipantsModal';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -284,7 +285,7 @@ const AttendanceRecordsView: React.FC = () => {
 
         recordsToExport.forEach((r: any) => {
           const formattedDate = r.timestamp
-            ? format(new Date(r.timestamp), 'yyyy-MM-dd hh:mm:ss a')
+            ? formatISTDateTime(r.timestamp, { showSeconds: true })
             : '';
           const row = [
             currentEventTitle,
@@ -325,7 +326,7 @@ const AttendanceRecordsView: React.FC = () => {
 
         recordsToExport.forEach((r: any) => {
           const formattedDate = r.timestamp
-            ? format(new Date(r.timestamp), 'yyyy-MM-dd hh:mm:ss a')
+            ? formatISTDateTime(r.timestamp, { showSeconds: true })
             : '';
           const row = [
             currentStudentName,
@@ -668,7 +669,7 @@ const AttendanceRecordsView: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
-                          {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
+                          {r.timestamp ? formatISTDateTime(r.timestamp) : '—'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-2 justify-end">
@@ -946,7 +947,7 @@ const AttendanceRecordsView: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
-                          {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
+                          {r.timestamp ? formatISTDateTime(r.timestamp) : '—'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-2 justify-end">

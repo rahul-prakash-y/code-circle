@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
+import { formatISTDateTime } from '../../../lib/dateUtils';
 
 interface StudentInfo {
   _id: string;
@@ -344,13 +345,8 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
                         )}
                       </td>
 
-                      <td className="p-3.5 text-label-secondary text-[11px]">
-                        {new Date(sub.submittedAt).toLocaleString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                      <td className="p-3.5 text-label-secondary text-[11px] font-mono">
+                        {formatISTDateTime(sub.submittedAt, { showYear: false })}
                       </td>
 
                       <td className="p-3.5 pr-4 text-right">
@@ -446,7 +442,7 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
               {/* Test Cases Results Detail */}
               <div className="shrink-0 pt-2 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
                 <span>
-                  Submitted on {new Date(inspectSubmission.submittedAt).toLocaleString()}
+                  Submitted on {formatISTDateTime(inspectSubmission.submittedAt)}
                 </span>
                 <span className="font-mono text-emerald-400">
                   Passed {inspectSubmission.passed} of {inspectSubmission.total} Cases

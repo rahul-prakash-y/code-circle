@@ -27,6 +27,7 @@ import toast from 'react-hot-toast';
 import api from '@/lib/axios';
 import { useGitHubStats, normalizeGitHubHandle } from '@/hooks/useGitHubStats';
 import { useLeetCodeStats } from '@/hooks/useLeetCodeStats';
+import { formatISTDate, formatISTTime } from '@/lib/dateUtils';
 
 const normalizeLeetCodeUsername = (raw?: string | null): string => {
   if (!raw) return '';
@@ -566,15 +567,8 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
           <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-3 sm:before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-neutral-200 dark:before:bg-neutral-800">
             {activityTimeline.map((item, idx) => {
               const colors = getNodeColor(item.semanticColor);
-              const dateStr = new Date(item.timestamp).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              });
-              const timeStr = new Date(item.timestamp).toLocaleTimeString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-              });
+              const dateStr = formatISTDate(item.timestamp);
+              const timeStr = formatISTTime(item.timestamp);
 
               return (
                 <div key={item.id || idx} className="relative group">

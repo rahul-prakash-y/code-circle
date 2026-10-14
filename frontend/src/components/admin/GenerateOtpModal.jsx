@@ -18,6 +18,7 @@ import {
 import useEventStore from '../../store/useEventStore';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { formatISTDate } from '../../lib/dateUtils';
 
 const COLLEGE_HOURS = [1, 2, 3, 4, 5, 6, 7];
 
@@ -191,7 +192,7 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                 >
                   {events.map((ev) => (
                     <option key={ev._id} value={ev._id} className="bg-surface-elevated text-text-primary">
-                      {ev.title} ({ev.startDate ? new Date(ev.startDate).toLocaleDateString() : new Date(ev.date).toLocaleDateString()}) • {ev.hourlyPoints || 50} pts/hr
+                      {ev.title} ({formatISTDate(ev.startDate || ev.date)}) • {ev.hourlyPoints || 50} pts/hr
                     </option>
                   ))}
                 </select>

@@ -26,6 +26,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatISTDateTime } from '../lib/dateUtils';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -546,7 +547,7 @@ export const PointsPage: React.FC = () => {
                       )}
 
                       <p className="text-[10px] text-label-secondary font-mono mt-1">
-                        {tx.timestamp ? format(new Date(tx.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
+                        {tx.timestamp ? formatISTDateTime(tx.timestamp) : '—'}
                       </p>
                     </div>
                   </div>
@@ -941,7 +942,7 @@ export const PointsPage: React.FC = () => {
                                 <p className="text-[11px] text-label-secondary mt-0.5">{tx.description}</p>
                               )}
                               <p className="text-[10px] text-label-secondary font-mono mt-0.5">
-                                {tx.timestamp ? format(new Date(tx.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
+                                {tx.timestamp ? formatISTDateTime(tx.timestamp) : '—'}
                               </p>
                             </div>
 
