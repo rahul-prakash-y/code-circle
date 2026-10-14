@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Edit3,
   Sliders,
+  HelpCircle,
 } from 'lucide-react';
 import useContestStore, { Contest } from '../../../store/useContestStore';
 import AllocatePointsModal from './AllocatePointsModal';
