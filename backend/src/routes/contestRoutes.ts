@@ -21,12 +21,6 @@ import {
 import { verifyToken, isAdmin, optionalToken } from '../middleware/authMiddleware';
 
 export async function contestRoutes(fastify: FastifyInstance) {
-  // Admin Template & Parse Endpoints (Placed before parameterized single segment /:id)
-  fastify.get('/admin/mcq-template', { preHandler: [verifyToken, isAdmin] }, downloadContestMcqTemplate);
-  fastify.get('/admin/coding-template', { preHandler: [verifyToken, isAdmin] }, downloadContestCodingTemplate);
-  fastify.post('/admin/parse-mcq-upload', { preHandler: [verifyToken, isAdmin] }, parseContestMcqUpload);
-  fastify.post('/admin/parse-coding-upload', { preHandler: [verifyToken, isAdmin] }, parseContestCodingUpload);
-
   // Public/Student routes with optional or verified token
   fastify.get('/', { preHandler: [optionalToken] }, getContests);
   fastify.get('/:id', { preHandler: [optionalToken] }, getContestById);

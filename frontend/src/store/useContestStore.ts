@@ -160,6 +160,10 @@ interface ContestState {
   fetchContestSubmissions: (
     contestId: string
   ) => Promise<{ success: boolean; data?: any[]; contest?: any; error?: string }>;
+  downloadContestMcqTemplate: () => Promise<void>;
+  downloadContestCodingTemplate: () => Promise<void>;
+  parseContestMcqUpload: (file: File) => Promise<{ success: boolean; data?: MCQQuestion[]; count?: number; error?: string; errors?: string[] }>;
+  parseContestCodingUpload: (file: File) => Promise<{ success: boolean; data?: CodingProblem[]; count?: number; error?: string; errors?: string[] }>;
 }
 
 export const useContestStore = create<ContestState>((set, get) => ({
@@ -358,6 +362,89 @@ export const useContestStore = create<ContestState>((set, get) => ({
       return { success: false, error: err.response?.data?.error || 'Failed to load submissions' };
     }
   },
+
+  downloadContestMcqTemplate: async () => {
+    try {
+      const res = await api.get('/contests/admin/mcq-template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'contest_mcq_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Contest MCQ sample template downloaded!');
+    } catch (err: any) {
+      toast.error('Failed to download MCQ template');
+    }
+  },
+
+  downloadContestCodingTemplate: async () => {
+    try {
+      const res = await api.get('/contests/admin/coding-template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'contest_coding_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Contest Coding sample template downloaded!');
+    } catch (err: any) {
+      toast.error('Failed to download Coding template');
+    }
+  },
+
+  parseContestMcqUpload: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/contests/admin/parse-mcq-upload', formData);
+      return {
+        success: true,
+        count: res.data.count,
+        data: res.data.data,
+        errors: res.data.errors,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || err.message || 'Failed to parse MCQ file',
+        errors: err.response?.data?.errors,
+      };
+    }
+  },
+
+  parseContestCodingUpload: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/contests/admin/parse-coding-upload', formData);
+      return {
+        success: true,
+        count: res.data.count,
+        data: res.data.data,
+        errors: res.data.errors,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || err.message || 'Failed to parse Coding file',
+        errors: err.response?.data?.errors,
+      };
+    }
+  },
 }));
 
 export default useContestStore;
+

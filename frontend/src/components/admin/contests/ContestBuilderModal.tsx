@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileCode,
+  FileSpreadsheet,
   Terminal,
   Loader2,
 } from 'lucide-react';
@@ -33,6 +34,8 @@ import useContestStore, {
   CodingProblemTestCase,
 } from '../../../store/useContestStore';
 import TutorialButton from '../../common/TutorialButton';
+import ContestMcqBulkUploadModal from './ContestMcqBulkUploadModal';
+import ContestCodingBulkUploadModal from './ContestCodingBulkUploadModal';
 
 interface ContestBuilderModalProps {
   isOpen: boolean;
@@ -49,6 +52,8 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
   const [activeTab, setActiveTab] = useState<'info' | 'mcq' | 'coding'>('info');
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showMcqBulkModal, setShowMcqBulkModal] = useState(false);
+  const [showCodingBulkModal, setShowCodingBulkModal] = useState(false);
 
   // Default start: now, end: 7 days from now
   const defaultStart = new Date().toISOString().slice(0, 16);
@@ -247,6 +252,22 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         ],
       },
     ]);
+  };
+
+  const handleImportMcqQuestions = (newQuestions: MCQQuestion[], mode: 'append' | 'replace') => {
+    if (mode === 'replace') {
+      setMcqQuestions(newQuestions);
+    } else {
+      setMcqQuestions((prev) => [...prev, ...newQuestions]);
+    }
+  };
+
+  const handleImportCodingProblems = (newProblems: CodingProblem[], mode: 'append' | 'replace') => {
+    if (mode === 'replace') {
+      setCodingProblems(newProblems);
+    } else {
+      setCodingProblems((prev) => [...prev, ...newProblems]);
+    }
   };
 
   // Test cases management handlers
@@ -654,21 +675,70 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {/* TAB 2: MCQ BUILDER */}
           {activeTab === 'mcq' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider">
-                  Multiple Choice Questions ({mcqQuestions.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={handleAddMcq}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 cursor-pointer"
-                >
-                  <Plus size={14} />
-                  <span>Add Question</span>
-                </button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div>
+                  <span className="text-xs font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider block">
+                    Multiple Choice Questions ({mcqQuestions.length})
+                  </span>
+                  <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
+                    Configure conceptual technical questions, answer keys, and point values.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowMcqBulkModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    title="Bulk upload questions via Excel or JSON"
+                  >
+                    <FileSpreadsheet size={14} />
+                    <span>Bulk Upload MCQs</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddMcq}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>Add Question</span>
+                  </button>
+                </div>
               </div>
 
-              {mcqQuestions.map((q, qIdx) => (
+              {mcqQuestions.length === 0 ? (
+                <div className="p-8 text-center bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-dashed border-separator dark:border-white/10 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+                    <FileSpreadsheet size={22} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-label-primary dark:text-[#F5F5F7]">
+                      No MCQ Questions Configured
+                    </h4>
+                    <p className="text-xs text-label-secondary dark:text-[#86868B] max-w-sm mx-auto mt-0.5">
+                      Add multiple-choice questions one-by-one or import dozens at once from an Excel template.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowMcqBulkModal(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                      <FileSpreadsheet size={14} />
+                      <span>Bulk Upload from Excel</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddMcq}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-surface dark:bg-[#121214] hover:bg-surface-secondary border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>Add Manually</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                mcqQuestions.map((q, qIdx) => (
                 <div
                   key={qIdx}
                   className="p-4 sm:p-5 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10 space-y-3 relative group"
@@ -756,14 +826,15 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
+            )}
             </div>
           )}
 
           {/* TAB 3: CODING PROBLEMS BUILDER WITH HIDDEN TEST CASES */}
           {activeTab === 'coding' && (
             <div className="space-y-5">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
                   <span className="text-xs font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider block">
                     Coding Challenges ({codingProblems.length})
@@ -772,17 +843,61 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     Configure problem statements, sample test cases, and hidden anti-cheat grading test cases.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleAddCoding}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 cursor-pointer"
-                >
-                  <Plus size={14} />
-                  <span>Add Challenge</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCodingBulkModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    title="Bulk upload coding challenges via Excel or JSON"
+                  >
+                    <FileSpreadsheet size={14} />
+                    <span>Bulk Upload Challenges</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddCoding}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>Add Challenge</span>
+                  </button>
+                </div>
               </div>
 
-              {codingProblems.map((p, pIdx) => {
+              {codingProblems.length === 0 ? (
+                <div className="p-8 text-center bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-dashed border-separator dark:border-white/10 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                    <FileCode size={22} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-label-primary dark:text-[#F5F5F7]">
+                      No Coding Challenges Configured
+                    </h4>
+                    <p className="text-xs text-label-secondary dark:text-[#86868B] max-w-sm mx-auto mt-0.5">
+                      Design problems with hidden test cases or upload complete challenges via our Excel template.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowCodingBulkModal(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                      <FileSpreadsheet size={14} />
+                      <span>Bulk Upload from Excel</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddCoding}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-surface dark:bg-[#121214] hover:bg-surface-secondary border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>Add Manually</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                codingProblems.map((p, pIdx) => {
                 const testCases = p.testCases || [];
                 const publicCount = testCases.filter((tc: any) => !tc.isHidden).length;
                 const hiddenCount = testCases.filter((tc: any) => tc.isHidden).length;
@@ -1115,7 +1230,8 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     </div>
                   </div>
                 );
-              })}
+              })
+            )}
             </div>
           )}
         </div>
@@ -1150,8 +1266,23 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           </div>
         </div>
       </motion.div>
+
+      {/* Bulk Upload Modals */}
+      <ContestMcqBulkUploadModal
+        isOpen={showMcqBulkModal}
+        onClose={() => setShowMcqBulkModal(false)}
+        onImport={handleImportMcqQuestions}
+        currentQuestionsCount={mcqQuestions.length}
+      />
+      <ContestCodingBulkUploadModal
+        isOpen={showCodingBulkModal}
+        onClose={() => setShowCodingBulkModal(false)}
+        onImport={handleImportCodingProblems}
+        currentProblemsCount={codingProblems.length}
+      />
     </div>
   );
 };
 
 export default ContestBuilderModal;
+

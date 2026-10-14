@@ -77,7 +77,6 @@ teamSchema.pre('save', function () {
 });
 
 // Indexes for fast lookup
-teamSchema.index({ name: 1 });
 teamSchema.index({ status: 1 });
 teamSchema.index({ members: 1 });
 teamSchema.index({ event: 1 });
