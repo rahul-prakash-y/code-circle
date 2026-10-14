@@ -60,6 +60,8 @@ export const getUsers = async (request: FastifyRequest, reply: FastifyReply) => 
       filter.isBlocked = false;
     } else if (status === 'blocked') {
       filter.isBlocked = true;
+    } else if (status === 'restricted') {
+      filter.isRestricted = true;
     }
 
     const [total, rawUsers] = await Promise.all([
@@ -719,6 +721,152 @@ export const bulkDeleteUsers = async (request: FastifyRequest, reply: FastifyRep
   }
 };
 
+/**
+ * POST /api/users/integrity-violation
+ * Student reports tab switch warnings / integrity events.
+ * If warningCount >= 3, automatically restricts the student from assessments and contests.
+ */
+export const reportIntegrityViolation = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Authentication required' });
+    }
+
+    const { context, details, warningCount } = (request.body || {}) as {
+      context?: string; // 'assessment' | 'contest'
+      details?: string;
+      warningCount?: number;
+    };
+
+    const count = Number(warningCount) || 1;
+
+    if (count >= 3) {
+      const reason =
+        details ||
+        `Exceeded 3 tab switch warnings in ${context || 'assessment/contest'} session. Workspace locked.`;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        user.id,
+        {
+          $set: {
+            isRestricted: true,
+            restrictionReason: reason,
+            restrictedAt: new Date(),
+            restrictedFeatures: ['assessments', 'contests'],
+          },
+        },
+        { new: true }
+      ).select('-password -resetPasswordToken -resetPasswordExpires');
+
+      return reply.send({
+        success: true,
+        restricted: true,
+        warningCount: count,
+        message:
+          'Account restricted due to exceeding 3 tab switch warnings. An administrator must unblock your account before you can attend assessments or contests.',
+        user: updatedUser,
+      });
+    }
+
+    return reply.send({
+      success: true,
+      restricted: false,
+      warningCount: count,
+      message: 'Integrity event recorded',
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to process integrity event' });
+  }
+};
+
+/**
+ * POST /api/users/:id/unblock-restrictions
+ * Admin / Faculty removes restrictions from student account.
+ */
+export const unblockUserRestrictions = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id } = request.params as { id: string };
+    const callerId = request.user?.id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid user ID' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          isRestricted: false,
+          restrictionReason: '',
+          restrictedFeatures: [],
+          unblockedAt: new Date(),
+          unblockedBy: callerId ? new mongoose.Types.ObjectId(callerId) : null,
+        },
+      },
+      { new: true }
+    ).select('-password -resetPasswordToken -resetPasswordExpires');
+
+    if (!user) {
+      return reply.status(404).send({ success: false, error: 'User not found' });
+    }
+
+    return reply.send({
+      success: true,
+      message: `Restrictions removed for ${user.name} (${user.rollNo}). The student can now attend assessments, contests, and courses.`,
+      user,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to unblock user restrictions' });
+  }
+};
+
+/**
+ * POST /api/users/:id/restrict
+ * Admin / Faculty manually sets restrictions on a student.
+ */
+export const restrictUserManually = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id } = request.params as { id: string };
+    const { reason, features } = (request.body || {}) as {
+      reason?: string;
+      features?: ('assessments' | 'contests' | 'courses')[];
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid user ID' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          isRestricted: true,
+          restrictionReason: reason || 'Restricted by administrator',
+          restrictedFeatures: Array.isArray(features) && features.length > 0 ? features : ['assessments', 'contests'],
+          restrictedAt: new Date(),
+        },
+      },
+      { new: true }
+    ).select('-password -resetPasswordToken -resetPasswordExpires');
+
+    if (!user) {
+      return reply.status(404).send({ success: false, error: 'User not found' });
+    }
+
+    return reply.send({
+      success: true,
+      message: `Student ${user.name} (${user.rollNo}) has been restricted.`,
+      user,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to restrict user' });
+  }
+};
+
 export default {
   getUsers,
   createUser,
@@ -729,4 +877,7 @@ export default {
   forceResetPassword,
   bulkCreateUsers,
   bulkDeleteUsers,
+  reportIntegrityViolation,
+  unblockUserRestrictions,
+  restrictUserManually,
 };

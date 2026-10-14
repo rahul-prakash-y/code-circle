@@ -20,6 +20,9 @@ export interface UserPayload {
   sessionId?: string;
   phone?: string;
   phoneNumber?: string;
+  isRestricted?: boolean;
+  restrictionReason?: string;
+  restrictedFeatures?: string[];
 }
 
 export interface UserResponse {
@@ -42,6 +45,9 @@ export interface UserResponse {
   socialLinks: ISocialLinks;
   profilePicUrl?: string;
   isBlocked: boolean;
+  isRestricted?: boolean;
+  restrictionReason?: string;
+  restrictedFeatures?: string[];
   activeSessionId?: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;

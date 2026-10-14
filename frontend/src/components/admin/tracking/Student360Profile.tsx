@@ -22,6 +22,8 @@ import {
   Clock,
   FileText,
   Download,
+  ShieldAlert,
+  Unlock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/axios';
@@ -171,6 +173,42 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
     }
   };
 
+  const [isUnblocking, setIsUnblocking] = useState<boolean>(false);
+
+  const handleUnblockRestrictions = async () => {
+    if (!data?.student) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to lift all restrictions for ${data.student.name} (${data.student.rollNo})? They will immediately regain access to assessments, contests, and courses.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsUnblocking(true);
+      const res = await api.post(`/users/${userId}/unblock-restrictions`);
+      toast.success(res.data?.message || 'Restrictions removed successfully!');
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              student: {
+                ...prev.student,
+                isRestricted: false,
+                restrictionReason: '',
+                restrictedFeatures: [],
+              },
+            }
+          : prev
+      );
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to unblock restrictions');
+    } finally {
+      setIsUnblocking(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4 text-center">
@@ -282,6 +320,13 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                   Pending Claim
                 </span>
               )}
+
+              {student.isRestricted && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  Restricted
+                </span>
+              )}
             </div>
 
             {/* Macro-Typography Student Name */}
@@ -295,13 +340,29 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
               <span>{student.email}</span>
             </div>
 
-            {/* Action Bar: Download Student Dossier PDF */}
-            <div className="pt-2">
+            {/* Active Restrictions Alert Banner if Restricted */}
+            {student.isRestricted && (
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-300 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-rose-200">
+                  <ShieldAlert className="w-4 h-4 text-rose-400" />
+                  <span>Academic Restrictions Active</span>
+                </div>
+                <p className="text-neutral-300 leading-relaxed">
+                  {student.restrictionReason || 'Restricted from attending assessments, contests, or courses.'}
+                </p>
+                <p className="text-[11px] text-rose-300/80">
+                  Restricted Features: <strong className="text-white">{student.restrictedFeatures?.join(', ') || 'assessments, contests'}</strong>
+                </p>
+              </div>
+            )}
+
+            {/* Action Bar: PDF & Unblock Buttons */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={isExportingPdf}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-60 disabled:pointer-events-none cursor-pointer"
               >
                 {isExportingPdf ? (
                   <>
@@ -315,6 +376,27 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                   </>
                 )}
               </button>
+
+              {student.isRestricted && (
+                <button
+                  type="button"
+                  onClick={handleUnblockRestrictions}
+                  disabled={isUnblocking}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+                >
+                  {isUnblocking ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Unblocking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-4 h-4 text-white" />
+                      <span>Unblock Student Restrictions</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 

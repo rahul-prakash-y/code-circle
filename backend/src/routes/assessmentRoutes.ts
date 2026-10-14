@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import assessmentController from '../controllers/assessmentController';
 import { codingAssessmentRoutes } from './codingAssessmentRoutes';
-import { verifyToken, isAdminOrFaculty, requireRole } from '../middleware/authMiddleware';
+import { verifyToken, isAdminOrFaculty, requireRole, checkFeatureNotRestricted } from '../middleware/authMiddleware';
 
 export async function assessmentRoutes(fastify: FastifyInstance) {
   // Mount live coding assessment sub-routes
@@ -22,13 +22,13 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
     assessmentController.bulkUploadMCQAssessments as any
   );
 
-  // Student and Public assessment endpoints
+  // Student assessment endpoints (gated against restriction)
   fastify.get('/', assessmentController.getAssessments as any);
   fastify.get('/my-submissions', assessmentController.getMySubmissions as any);
-  fastify.get('/:id', assessmentController.getAssessmentById as any);
-  fastify.post('/:id/submit', assessmentController.submitAssessment as any);
+  fastify.get('/:id', { preHandler: [checkFeatureNotRestricted('assessments')] }, assessmentController.getAssessmentById as any);
+  fastify.post('/:id/submit', { preHandler: [checkFeatureNotRestricted('assessments')] }, assessmentController.submitAssessment as any);
   fastify.delete('/:id/my-submission', assessmentController.resetMyAssessmentSubmission as any);
-  fastify.post('/:id/reappear', assessmentController.resetMyAssessmentSubmission as any);
+  fastify.post('/:id/reappear', { preHandler: [checkFeatureNotRestricted('assessments')] }, assessmentController.resetMyAssessmentSubmission as any);
 
   // Administrative CRUD, Evaluation & Submission management
   fastify.post('/', { preHandler: [isAdminOrFaculty] }, assessmentController.createAssessment as any);

@@ -1273,10 +1273,12 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                           <Lock className="w-6 h-6 text-neutral-300" />
                         </div>
                         <h3 className="text-base font-semibold text-white tracking-tight mb-1">
-                          Assessment Locked
+                          {antiCheatLocked ? 'Account Restricted & Workspace Locked' : 'Assessment Locked'}
                         </h3>
                         <p className="text-xs text-neutral-400 max-w-sm leading-relaxed mb-4">
-                          {submissionVerdict
+                          {antiCheatLocked
+                            ? 'You reached 3 tab switch warnings. Your account is restricted from attending assessments and contests until an administrator unblocks your restrictions.'
+                            : submissionVerdict
                             ? 'Your official assessment code has been submitted and locked for grading.'
                             : 'Assessment editor is disabled. Your submission is finalized.'}
                         </p>
@@ -1791,9 +1793,13 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                     <div className="w-10 h-10 rounded-2xl bg-neutral-800/80 border border-white/10 flex items-center justify-center mb-2">
                       <Lock className="w-5 h-5 text-neutral-300" />
                     </div>
-                    <h3 className="text-sm font-semibold text-white">Editor Locked</h3>
+                    <h3 className="text-sm font-semibold text-white">
+                      {antiCheatLocked ? 'Account Restricted' : 'Editor Locked'}
+                    </h3>
                     <p className="text-[11px] text-neutral-400 mt-1 max-w-xs">
-                      {submissionVerdict
+                      {antiCheatLocked
+                        ? '3 tab switches reached. Restricted until unblocked by an admin.'
+                        : submissionVerdict
                         ? 'Assessment submitted and locked for grading.'
                         : 'Assessment editor is disabled.'}
                     </p>

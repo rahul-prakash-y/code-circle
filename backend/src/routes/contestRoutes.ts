@@ -18,7 +18,7 @@ import {
   parseContestMcqUpload,
   parseContestCodingUpload,
 } from '../controllers/contestController';
-import { verifyToken, isAdmin, optionalToken } from '../middleware/authMiddleware';
+import { verifyToken, isAdmin, optionalToken, checkFeatureNotRestricted } from '../middleware/authMiddleware';
 
 export async function contestRoutes(fastify: FastifyInstance) {
   // Public/Student routes with optional or verified token
@@ -26,9 +26,10 @@ export async function contestRoutes(fastify: FastifyInstance) {
   fastify.get('/:id', { preHandler: [optionalToken] }, getContestById);
   fastify.get('/:id/leaderboard', { preHandler: [optionalToken] }, getContestLeaderboard);
 
-  // Authenticated Student Contest Session
+  // Authenticated Student Contest Session (gated against contest restriction)
   fastify.register(async (studentGroup) => {
     studentGroup.addHook('preHandler', verifyToken);
+    studentGroup.addHook('preHandler', checkFeatureNotRestricted('contests'));
 
     studentGroup.post('/:id/start', startContestSession);
     studentGroup.post('/:id/run-code', runContestCode);

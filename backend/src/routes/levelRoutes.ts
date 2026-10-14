@@ -1,12 +1,12 @@
 import { FastifyInstance } from 'fastify';
 import domainController from '../controllers/domainController';
-import { verifyToken, isAdminOrFaculty, optionalToken } from '../middleware/authMiddleware';
+import { verifyToken, isAdminOrFaculty, optionalToken, checkFeatureNotRestricted } from '../middleware/authMiddleware';
 
 export async function levelRoutes(fastify: FastifyInstance) {
-  // Quest evaluation requires verified student authentication
+  // Quest evaluation requires verified student authentication (gated against courses restriction)
   fastify.post(
     '/:id/submit-quest',
-    { preHandler: [verifyToken] },
+    { preHandler: [verifyToken, checkFeatureNotRestricted('courses')] },
     domainController.submitLevelQuest as any
   );
 

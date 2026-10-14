@@ -18,6 +18,7 @@ import {
   Loader2,
   CheckCircle2,
   FileText,
+  ShieldAlert,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/axios';
@@ -39,6 +40,9 @@ export interface StudentSummary {
   profilePicUrl?: string;
   isOnboarded: boolean;
   isBlocked: boolean;
+  isRestricted?: boolean;
+  restrictionReason?: string;
+  restrictedFeatures?: string[];
   totalEventsAttended: number;
   questsCompleted: number;
   levelsCompleted: number;
@@ -373,8 +377,13 @@ export const StudentTrackingTable: React.FC = () => {
                             {student.name.charAt(0)}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-neutral-900 dark:text-white truncate group-hover:text-blue-500 transition-colors">
-                              {student.name}
+                            <div className="font-semibold text-neutral-900 dark:text-white truncate group-hover:text-blue-500 transition-colors flex items-center gap-1.5">
+                              <span className="truncate">{student.name}</span>
+                              {student.isRestricted && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30 shrink-0">
+                                  Restricted
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs font-mono text-neutral-400 dark:text-neutral-500 truncate">
                               {student.rollNo}

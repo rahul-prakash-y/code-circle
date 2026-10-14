@@ -732,9 +732,24 @@ export const recordIntegrityEvent = async (request: FastifyRequest, reply: Fasti
     'Assessment integrity event logged'
   );
 
+  let restricted = false;
+  if (warningNumber && Number(warningNumber) >= 3) {
+    await User.findByIdAndUpdate(user.id, {
+      isRestricted: true,
+      restrictionReason: 'Exceeded 3 tab switch warnings in an assessment session. Workspace locked.',
+      restrictedAt: new Date(),
+      restrictedFeatures: ['assessments', 'contests'],
+    });
+    restricted = true;
+  }
+
   return reply.send({
     success: true,
     logged: true,
+    restricted,
+    message: restricted
+      ? 'Account restricted from assessments and contests due to reaching 3 tab switch warnings. An administrator must unblock your account.'
+      : 'Integrity event logged',
   });
 };
 

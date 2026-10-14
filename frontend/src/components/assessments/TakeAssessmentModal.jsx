@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
+import api from '../../lib/axios';
 
 const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const {
@@ -120,10 +121,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
     setTabSwitchCount((prev) => {
       const nextCount = prev + 1;
+
+      // Report to server to enforce restriction if nextCount >= maxStrikes
+      api
+        .post('/users/integrity-violation', {
+          context: 'assessment',
+          details: `Tab switch detected (${nextCount}/${maxStrikes}) in MCQ assessment "${currentAssessment?.title || 'Assessment'}".`,
+          warningCount: nextCount,
+        })
+        .catch((err) => console.warn('[IntegrityAudit]', err));
+
       if (nextCount >= maxStrikes) {
         setIsLocked(true);
         setShowTabWarning(false);
-        toast.error('Maximum tab switch violations reached! Test locked and auto-submitting...', { duration: 4000 });
+        toast.error(
+          'Maximum 3 tab switches reached! You are now BLOCKED from attending assessments and contests until unblocked by an admin.',
+          { duration: 8000 }
+        );
         setTimeout(() => {
           executeSubmit(true);
         }, 1200);

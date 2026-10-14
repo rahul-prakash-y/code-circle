@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import domainController from '../controllers/domainController';
-import { optionalToken, verifyToken, isAdminOrFaculty, isSuperAdmin } from '../middleware/authMiddleware';
+import { optionalToken, verifyToken, isAdminOrFaculty, isSuperAdmin, checkFeatureNotRestricted } from '../middleware/authMiddleware';
 
 export async function domainRoutes(fastify: FastifyInstance) {
   // Course Access & Visibility Configuration (SuperAdmin control)
@@ -19,9 +19,9 @@ export async function domainRoutes(fastify: FastifyInstance) {
   fastify.get('/:id', { preHandler: [optionalToken] }, domainController.getDomainById as any);
   fastify.get('/:id/levels', { preHandler: [optionalToken] }, domainController.getDomainLevels as any);
 
-  // Student registration endpoints
-  fastify.post('/:id/register', { preHandler: [verifyToken] }, domainController.registerForDomain as any);
-  fastify.post('/:id/enroll', { preHandler: [verifyToken] }, domainController.registerForDomain as any);
+  // Student registration endpoints (gated against courses restriction)
+  fastify.post('/:id/register', { preHandler: [verifyToken, checkFeatureNotRestricted('courses')] }, domainController.registerForDomain as any);
+  fastify.post('/:id/enroll', { preHandler: [verifyToken, checkFeatureNotRestricted('courses')] }, domainController.registerForDomain as any);
 
   // Administrative endpoints
   fastify.get('/:id/students', { preHandler: [verifyToken, isAdminOrFaculty] }, domainController.getEnrolledStudents as any);

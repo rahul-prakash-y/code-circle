@@ -32,6 +32,8 @@ import {
   formatISTRange,
   formatRemainingTime,
 } from '../lib/dateUtils';
+import RestrictionBanner from '../components/common/RestrictionBanner';
+import { toast } from 'react-hot-toast';
 
 export const ContestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -64,6 +66,9 @@ export const ContestsPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+      {/* Account Restriction Notice */}
+      <RestrictionBanner feature="contests" />
+
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-6">
         <div>
@@ -201,8 +206,14 @@ export const ContestsPage: React.FC = () => {
                       </button>
 
                       <button
-                        onClick={() => navigate(`/contests/${c._id}/arena`)}
-                        className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+                        onClick={() => {
+                          if (user?.isRestricted && user?.restrictedFeatures?.includes('contests')) {
+                            toast.error('You are restricted from entering contests. Please contact an admin to unblock your account.');
+                            return;
+                          }
+                          navigate(`/contests/${c._id}/arena`);
+                        }}
+                        className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
                       >
                         <Play size={14} className="fill-current" />
                         <span>{c.mySubmission ? 'Resume Contest' : 'Enter Arena'}</span>

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import codingAssessmentController from '../controllers/codingAssessmentController';
-import { verifyToken, isAdminOrFaculty } from '../middleware/authMiddleware';
+import { verifyToken, isAdminOrFaculty, checkFeatureNotRestricted } from '../middleware/authMiddleware';
 
 const executeBodySchema = {
   type: 'object',
@@ -50,8 +50,16 @@ export async function codingAssessmentRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', verifyToken);
 
   // ── Course Level Assessment Endpoints (1-hour, 2 random questions) ──
-  fastify.get('/level/:levelId/session', codingAssessmentController.getLevelAssessmentSession as any);
-  fastify.post('/level/:levelId/submit', codingAssessmentController.submitLevelAssessmentCode as any);
+  fastify.get(
+    '/level/:levelId/session',
+    { preHandler: [checkFeatureNotRestricted('assessments')] },
+    codingAssessmentController.getLevelAssessmentSession as any
+  );
+  fastify.post(
+    '/level/:levelId/submit',
+    { preHandler: [checkFeatureNotRestricted('assessments')] },
+    codingAssessmentController.submitLevelAssessmentCode as any
+  );
 
   // ── Admin Excel Template & Bulk Upload Endpoints ────────────────
   fastify.get(
@@ -78,14 +86,23 @@ export async function codingAssessmentRoutes(fastify: FastifyInstance) {
   // List available standalone coding challenges (assessment tab)
   fastify.get('/challenges', codingAssessmentController.listCodingChallenges as any);
 
-  // Fetch challenge workspace data (Visible test cases only)
-  fastify.get('/:problemId', codingAssessmentController.getCodingChallenge as any);
-  fastify.get('/challenge/:problemId', codingAssessmentController.getCodingChallenge as any);
+  // Fetch challenge workspace data (Visible test cases only, gated against restriction)
+  fastify.get(
+    '/:problemId',
+    { preHandler: [checkFeatureNotRestricted('assessments')] },
+    codingAssessmentController.getCodingChallenge as any
+  );
+  fastify.get(
+    '/challenge/:problemId',
+    { preHandler: [checkFeatureNotRestricted('assessments')] },
+    codingAssessmentController.getCodingChallenge as any
+  );
 
   // Run code against public visible test cases
   fastify.post(
     '/execute',
     {
+      preHandler: [checkFeatureNotRestricted('assessments')],
       schema: {
         body: executeBodySchema,
       },
@@ -97,6 +114,7 @@ export async function codingAssessmentRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/submit',
     {
+      preHandler: [checkFeatureNotRestricted('assessments')],
       schema: {
         body: submitBodySchema,
       },

@@ -18,6 +18,8 @@ import {
   RefreshCw,
   Sparkles,
   Zap,
+  ShieldAlert,
+  Lock,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useContestStore, {
@@ -26,6 +28,7 @@ import useContestStore, {
   MCQQuestion,
   CodingProblem,
 } from '../store/useContestStore';
+import { useVisibilityChange } from '../hooks/useVisibilityChange';
 
 export const ContestArenaPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -142,6 +145,21 @@ export const ContestArenaPage: React.FC = () => {
     }
   };
 
+  // Proctored Anti-Cheat: 3 tab switch warnings lock workspace and block account
+  const { warnings, isLocked: antiCheatLocked } = useVisibilityChange({
+    maxWarnings: 3,
+    isActive: Boolean(sessionStarted && !submissionCompleteData && secondsRemaining > 0),
+    problemId: id,
+    context: 'contest',
+    onLockTriggered: () => {
+      toast.error(
+        'Maximum 3 tab switches reached! You have been BLOCKED from attending contests and assessments. Submitting contest now...',
+        { duration: 8000 }
+      );
+      handleFinalSubmit();
+    },
+  });
+
   const formatTimer = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -234,6 +252,13 @@ export const ContestArenaPage: React.FC = () => {
 
         {/* Countdown & Submit Button */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {warnings > 0 && (
+            <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
+              <AlertTriangle size={12} className="sm:w-[13px] sm:h-[13px]" />
+              <span>Warnings: {warnings}/3</span>
+            </div>
+          )}
+
           <div
             className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs font-mono font-bold ${timerColor}`}
           >
@@ -243,8 +268,8 @@ export const ContestArenaPage: React.FC = () => {
 
           <button
             onClick={() => setIsSubmitModalOpen(true)}
-            disabled={submitting}
-            className="px-2.5 sm:px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer"
+            disabled={submitting || antiCheatLocked}
+            className="px-2.5 sm:px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer disabled:opacity-50"
           >
             <Send size={12} className="sm:w-[13px] sm:h-[13px]" />
             <span className="hidden sm:inline">Submit Contest</span>
@@ -634,6 +659,28 @@ export const ContestArenaPage: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Proctored Lock Overlay on 3 Warnings Reached */}
+      {antiCheatLocked && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#18181B] border border-red-500/30 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl shadow-red-500/10">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Contest Blocked & Workspace Locked</h2>
+            <p className="text-sm text-neutral-300 leading-relaxed mb-6">
+              You exceeded 3 tab switch warnings during this contest session. Your submission has been finalized and your account is now{' '}
+              <span className="text-red-400 font-semibold">restricted from attending any assessments or contests</span> until an administrator unblocks your restrictions.
+            </p>
+            <button
+              onClick={() => navigate('/contests')}
+              className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-red-500/20 cursor-pointer"
+            >
+              Exit to Contests
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

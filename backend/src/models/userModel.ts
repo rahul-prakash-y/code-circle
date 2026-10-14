@@ -9,6 +9,12 @@ export interface IUser extends Document {
   role: UserRole;
   password: string;
   isBlocked: boolean;
+  isRestricted?: boolean;
+  restrictionReason?: string;
+  restrictedFeatures?: ('assessments' | 'contests' | 'courses')[];
+  restrictedAt?: Date | null;
+  unblockedAt?: Date | null;
+  unblockedBy?: mongoose.Types.ObjectId | null;
   hasChangedDefaultPassword: boolean;
   isOnboarded?: boolean;
   mustChangePassword: boolean;
@@ -47,6 +53,16 @@ const userSchema = new Schema<IUser>(
     },
     password: { type: String, required: true },
     isBlocked: { type: Boolean, default: false, index: true },
+    isRestricted: { type: Boolean, default: false, index: true },
+    restrictionReason: { type: String, default: '', trim: true },
+    restrictedFeatures: {
+      type: [String],
+      enum: ['assessments', 'contests', 'courses'],
+      default: [],
+    },
+    restrictedAt: { type: Date, default: null },
+    unblockedAt: { type: Date, default: null },
+    unblockedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     hasChangedDefaultPassword: { type: Boolean, default: false, index: true },
     isOnboarded: { type: Boolean, default: false, index: true },
     mustChangePassword: { type: Boolean, default: false },

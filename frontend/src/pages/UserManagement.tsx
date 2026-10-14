@@ -7,9 +7,10 @@ import {
   Trash2, KeyRound, Check, X, AlertTriangle,
   Loader2, UserPlus, Crown, Copy, RefreshCw,
   Edit, ChevronLeft, ChevronRight, CheckCircle2,
-  Sparkles, Mail, Lock, ArrowRight, Upload, FileSpreadsheet, Share2,
+  Sparkles, Mail, Lock, Unlock, ArrowRight, Upload, FileSpreadsheet, Share2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '../lib/axios';
 import { User, UserRole } from '../types/user';
 import { useDebounce } from '../hooks/useDebounce';
 import OnboardingStatsWidget from '../components/admin/OnboardingStatsWidget';
@@ -812,21 +813,33 @@ const UserManagement: React.FC = () => {
 
                       {/* Status */}
                       <td className="py-5 px-5">
-                        {item.isBlocked ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-                            style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
-                          >
-                            <ShieldAlert size={11} strokeWidth={2.5} /> Blocked
-                          </span>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-                            style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399', border: '1px solid rgba(52,211,153,0.2)' }}
-                          >
-                            <CheckCircle2 size={11} strokeWidth={2.5} /> Active
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {item.isBlocked ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                              style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
+                            >
+                              <ShieldAlert size={11} strokeWidth={2.5} /> Blocked
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                              style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399', border: '1px solid rgba(52,211,153,0.2)' }}
+                            >
+                              <CheckCircle2 size={11} strokeWidth={2.5} /> Active
+                            </span>
+                          )}
+
+                          {item.isRestricted && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                              style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                              title={`Restricted: ${item.restrictionReason || 'Academic restriction active'}`}
+                            >
+                              <Lock size={11} strokeWidth={2.5} /> Restricted
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
@@ -895,6 +908,31 @@ const UserManagement: React.FC = () => {
                                   title="Generate temporary password"
                                 >
                                   <Sparkles size={15} strokeWidth={1.8} />
+                                </button>
+                              )}
+
+                              {/* Unblock Restrictions */}
+                              {item.isRestricted && (
+                                <button
+                                  onClick={async () => {
+                                    if (
+                                      window.confirm(
+                                        `Lift all restrictions for ${item.name} (${item.rollNo})? They will immediately regain access to assessments, contests, and courses.`
+                                      )
+                                    ) {
+                                      try {
+                                        await api.post(`/users/${item._id || item.id}/unblock-restrictions`);
+                                        toast.success(`Restrictions removed for ${item.name}`);
+                                        fetchUsers();
+                                      } catch (err: any) {
+                                        toast.error(err.response?.data?.error || 'Failed to unblock restrictions');
+                                      }
+                                    }
+                                  }}
+                                  className="p-2 rounded-xl cursor-pointer transition-colors duration-150 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                  title="Lift academic restrictions (assessments, contests, courses)"
+                                >
+                                  <Unlock size={15} strokeWidth={2} />
                                 </button>
                               )}
 

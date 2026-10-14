@@ -3,12 +3,16 @@ import AssessmentList from '../components/assessments/AssessmentList';
 import CodingChallengeList from '../components/coding/CodingChallengeList';
 import { Terminal, Award } from 'lucide-react';
 import TutorialButton from '../components/common/TutorialButton';
+import RestrictionBanner from '../components/common/RestrictionBanner';
 
 export const AssessmentsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'coding' | 'mcq'>('coding');
 
   return (
     <div className="space-y-8">
+      {/* Account Restriction Notice */}
+      <RestrictionBanner feature="assessments" />
+
       {/* Page Header */}
       <div className="pb-2 border-b border-separator flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

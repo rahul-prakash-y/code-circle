@@ -15,6 +15,7 @@ import StudentCourseAccessModal from '../components/domains/StudentCourseAccessM
 import CoursesComingSoonView from '../components/domains/CoursesComingSoonView';
 import CourseBulkUploadModal from '../components/domains/CourseBulkUploadModal';
 import TutorialButton from '../components/common/TutorialButton';
+import RestrictionBanner from '../components/common/RestrictionBanner';
 import {
   Compass,
   ArrowRight,
@@ -454,6 +455,9 @@ export const DomainsPage: React.FC = () => {
   // --- GRID VIEW: Apple Spatial UI ---
   return (
     <div className="space-y-8 mx-auto pb-16">
+      {/* Account Restriction Notice */}
+      <RestrictionBanner feature="courses" />
+
       {/* Editorial Header */}
       <div className="pb-4 border-b border-separator flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>

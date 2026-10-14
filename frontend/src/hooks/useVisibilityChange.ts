@@ -13,6 +13,7 @@ interface UseVisibilityChangeOptions {
   maxWarnings?: number;
   isActive?: boolean;
   problemId?: string;
+  context?: 'assessment' | 'contest';
   onLockTriggered?: (events: IntegrityEvent[]) => void;
 }
 
@@ -20,6 +21,7 @@ export const useVisibilityChange = ({
   maxWarnings = 3,
   isActive = true,
   problemId,
+  context = 'assessment',
   onLockTriggered,
 }: UseVisibilityChangeOptions = {}) => {
   const [warnings, setWarnings] = useState<number>(0);
@@ -31,21 +33,29 @@ export const useVisibilityChange = ({
   onLockRef.current = onLockTriggered;
 
   const logIntegrityEvent = useCallback(
-    async (warningNum: number, currentEvents: IntegrityEvent[]) => {
-      if (!problemId) return;
+    async (warningNum: number, _currentEvents: IntegrityEvent[]) => {
       try {
-        await api.post('/assessments/code/integrity-event', {
-          problemId,
-          type: 'VISIBILITY_CHANGE',
-          warningNumber: warningNum,
-          timestamp: new Date().toISOString(),
+        if (problemId) {
+          await api.post('/assessments/code/integrity-event', {
+            problemId,
+            type: 'VISIBILITY_CHANGE',
+            warningNumber: warningNum,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        // Call universal integrity violation route to enforce restriction when warnings >= 3
+        await api.post('/users/integrity-violation', {
+          context: context || 'assessment',
+          details: `Tab switch detected (${warningNum}/${maxWarnings}) in ${context} session.`,
+          warningCount: warningNum,
         });
       } catch (err) {
         // Deterrent log failures shouldn't interrupt student workflow
         console.warn('[IntegrityAudit] Failed to send audit event:', err);
       }
     },
-    [problemId]
+    [problemId, context, maxWarnings]
   );
 
   const handleVisibilityChange = useCallback(() => {
@@ -70,10 +80,10 @@ export const useVisibilityChange = ({
         // Dispatched deterrent notification
         if (next === 1) {
           toast(
-            `Warning 1/${maxWarnings}: Assessment window changed. Please return to the assessment.`,
+            `Warning 1/${maxWarnings}: Window switch detected. Tab switching is strictly prohibited!`,
             {
               icon: '⚠️',
-              duration: 4500,
+              duration: 5000,
               style: {
                 background: '#1C1C1E',
                 color: '#FF9F0A',
@@ -83,10 +93,10 @@ export const useVisibilityChange = ({
           );
         } else if (next === 2) {
           toast(
-            `Warning 2/${maxWarnings}: Leaving the assessment window again will submit your assessment.`,
+            `Warning 2/${maxWarnings}: Final warning! 1 more tab switch will BLOCK your account from all assessments & contests.`,
             {
               icon: '🚨',
-              duration: 5000,
+              duration: 6000,
               style: {
                 background: '#1C1C1E',
                 color: '#FF453A',
@@ -97,9 +107,9 @@ export const useVisibilityChange = ({
         } else if (next >= maxWarnings) {
           setIsLocked(true);
           toast.error(
-            `Warning ${maxWarnings}/${maxWarnings}: Final warning exceeded. Submitting and locking workspace.`,
+            `Warning 3/3 reached: You have been BLOCKED from attending assessments and contests. An admin must unblock your account.`,
             {
-              duration: 6000,
+              duration: 8000,
             }
           );
           if (onLockRef.current) {
@@ -107,7 +117,7 @@ export const useVisibilityChange = ({
           }
         }
 
-        // Fire-and-forget server audit log
+        // Fire server audit log and restriction enforcement
         logIntegrityEvent(next, updatedEvents);
 
         return next;
