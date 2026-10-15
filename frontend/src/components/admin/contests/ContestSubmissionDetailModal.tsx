@@ -18,6 +18,8 @@ import {
   ShieldCheck,
   FileCode2,
   Sliders,
+  UserCheck,
+  Trash2,
 } from 'lucide-react';
 import { formatISTDateTime } from '../../../lib/dateUtils';
 
@@ -28,6 +30,8 @@ interface ContestSubmissionDetailModalProps {
   contestTitle?: string;
   contestType?: string;
   onAllocatePoints?: (submission: any) => void;
+  onApproveReentry?: (submission: any) => void;
+  onDeleteSubmission?: (submission: any) => void;
   isAdminView?: boolean;
 }
 
@@ -38,6 +42,8 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
   contestTitle,
   contestType,
   onAllocatePoints,
+  onApproveReentry,
+  onDeleteSubmission,
   isAdminView = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'mcq' | 'coding' | 'summary'>('mcq');
@@ -123,6 +129,27 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {isAdminView && onApproveReentry && (
+                <button
+                  type="button"
+                  onClick={() => onApproveReentry(submission)}
+                  className="px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500/20 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Approve or grant re-entry"
+                >
+                  <UserCheck size={13} />
+                  <span className="hidden sm:inline">Allow Re-entry</span>
+                </button>
+              )}
+              {isAdminView && onDeleteSubmission && (
+                <button
+                  type="button"
+                  onClick={() => onDeleteSubmission(submission)}
+                  className="p-1.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 rounded-xl transition-all flex items-center justify-center cursor-pointer"
+                  title="Delete Student Entry from Contest"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
               {isAdminView && onAllocatePoints && (
                 <button
                   type="button"
@@ -141,6 +168,27 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
               </button>
             </div>
           </div>
+
+          {/* Re-entry Request Banner if Pending */}
+          {submission.reentryStatus === 'PENDING' && (
+            <div className="px-4 sm:px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold min-w-0">
+                <AlertTriangle size={14} className="shrink-0 animate-bounce" />
+                <span className="truncate">
+                  Student submitted Re-entry Appeal: "{submission.reentryReason || 'No details provided'}"
+                </span>
+              </div>
+              {isAdminView && onApproveReentry && (
+                <button
+                  type="button"
+                  onClick={() => onApproveReentry(submission)}
+                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shrink-0 transition-colors cursor-pointer shadow-xs"
+                >
+                  Approve Re-entry
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Quick Stats Bar */}
           <div className="px-4 sm:px-6 py-2.5 bg-surface border-b border-separator/80 flex flex-wrap items-center justify-between gap-3 text-xs">

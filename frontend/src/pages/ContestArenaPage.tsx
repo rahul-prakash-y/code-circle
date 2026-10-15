@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Lock,
   FileCode2,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useContestStore, {
@@ -31,6 +32,7 @@ import useContestStore, {
 } from '../store/useContestStore';
 import { useVisibilityChange } from '../hooks/useVisibilityChange';
 import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
+import RequestReentryModal from '../components/contests/RequestReentryModal';
 
 export const ContestArenaPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,6 +54,7 @@ export const ContestArenaPage: React.FC = () => {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [selectedSection, setSelectedSection] = useState<'mcq' | 'coding'>('mcq');
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isReentryModalOpen, setIsReentryModalOpen] = useState(false);
   const [detailedSubmission, setDetailedSubmission] = useState<any | null>(null);
   const [currentMcqIdx, setCurrentMcqIdx] = useState(0);
   const [currentCodingIdx, setCurrentCodingIdx] = useState(0);
@@ -693,6 +696,15 @@ export const ContestArenaPage: React.FC = () => {
                     View Rankings
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsReentryModalOpen(true)}
+                  className="w-full py-2 bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-primary text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <RotateCcw size={13} />
+                  <span>Appeal / Request Contest Re-entry</span>
+                </button>
               </div>
             </motion.div>
           </div>
@@ -721,15 +733,37 @@ export const ContestArenaPage: React.FC = () => {
               You exceeded 3 tab switch warnings during this contest session. Your submission has been finalized and your account is now{' '}
               <span className="text-red-400 font-semibold">restricted from attending any assessments or contests</span> until an administrator unblocks your restrictions.
             </p>
-            <button
-              onClick={() => navigate('/contests')}
-              className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-red-500/20 cursor-pointer"
-            >
-              Exit to Contests
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsReentryModalOpen(true)}
+                className="flex-1 py-3 px-4 bg-surface hover:bg-surface-raised border border-separator text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <RotateCcw size={14} className="text-amber-400" />
+                <span>Appeal & Re-entry</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/contests')}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-xs rounded-xl transition-all shadow-lg shadow-red-500/20 cursor-pointer"
+              >
+                Exit to Contests
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Student Contest Re-entry Request Modal */}
+      <RequestReentryModal
+        isOpen={isReentryModalOpen}
+        onClose={() => setIsReentryModalOpen(false)}
+        contestId={activeContest?._id || ''}
+        contestTitle={activeContest?.title || ''}
+        onSuccess={() => {
+          toast.success('Your re-entry appeal has been submitted for administrator review.');
+        }}
+      />
     </div>
   );
 };

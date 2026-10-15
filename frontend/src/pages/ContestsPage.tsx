@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Sliders,
   FileCode2,
+  RotateCcw,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -28,6 +29,7 @@ import useContestStore, { Contest } from '../store/useContestStore';
 import ContestBuilderModal from '../components/admin/contests/ContestBuilderModal';
 import ContestSubmissionsModal from '../components/admin/contests/ContestSubmissionsModal';
 import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
+import RequestReentryModal from '../components/contests/RequestReentryModal';
 import {
   formatISTDateTime,
   formatISTTime,
@@ -58,6 +60,7 @@ export const ContestsPage: React.FC = () => {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [selectedContestForSubmissions, setSelectedContestForSubmissions] = useState<Contest | null>(null);
+  const [selectedContestForReentry, setSelectedContestForReentry] = useState<Contest | null>(null);
   const [activeStudentSubmission, setActiveStudentSubmission] = useState<{
     contest: Contest;
     submission: any;
@@ -241,21 +244,43 @@ export const ContestsPage: React.FC = () => {
                       </div>
 
                       {c.mySubmission?.status === 'SUBMITTED' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenMySubmission(c)}
-                          className="px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-                          title="View your submitted MCQ choices and code solutions"
-                        >
-                          <FileCode2 size={14} />
-                          <span>My Submission ({c.mySubmission.totalScore} pts)</span>
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenMySubmission(c)}
+                            className="px-4 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                            title="View your submitted MCQ choices and code solutions"
+                          >
+                            <FileCode2 size={14} />
+                            <span>My Submission ({c.mySubmission.totalScore} pts)</span>
+                          </button>
+                          {c.mySubmission?.reentryStatus === 'PENDING' ? (
+                            <span
+                              className="px-3 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                              title="Your re-entry request is awaiting administrator approval"
+                            >
+                              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                              <span>Re-entry Pending</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedContestForReentry(c)}
+                              className="px-3 py-2.5 bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                              title="Request administrator approval to re-enter this contest"
+                            >
+                              <RotateCcw size={13} />
+                              <span className="hidden sm:inline">Request Re-entry</span>
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <button
                           type="button"
                           onClick={() => {
                             if (user?.isRestricted && user?.restrictedFeatures?.includes('contests')) {
-                              toast.error('You are restricted from entering contests. Please contact an admin to unblock your account.');
+                              toast.error('You are restricted from entering contests. You can request re-entry/appeal from administrators.');
+                              setSelectedContestForReentry(c);
                               return;
                             }
                             navigate(`/contests/${c._id}/arena`);
@@ -520,6 +545,15 @@ export const ContestsPage: React.FC = () => {
         contestTitle={activeStudentSubmission?.contest?.title}
         contestType={activeStudentSubmission?.contest?.type}
         isAdminView={false}
+      />
+
+      {/* Student Contest Re-entry Request Modal */}
+      <RequestReentryModal
+        isOpen={Boolean(selectedContestForReentry)}
+        onClose={() => setSelectedContestForReentry(null)}
+        contestId={selectedContestForReentry?._id || ''}
+        contestTitle={selectedContestForReentry?.title || ''}
+        onSuccess={() => fetchContests()}
       />
     </div>
   );

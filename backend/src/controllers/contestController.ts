@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import Contest, { IContest } from '../models/contestModel';
 import ContestSubmission from '../models/contestSubmissionModel';
 import User from '../models/userModel';
+import Notification from '../models/notificationModel';
 import rceService from '../services/rceService';
 
 interface AuthUser {
@@ -247,11 +248,6 @@ export const startContestSession = async (req: FastifyRequest, reply: FastifyRep
       return reply.status(404).send({ success: false, error: 'Contest not found' });
     }
 
-    const now = new Date();
-    if (now > new Date(contest.endTime)) {
-      return reply.status(400).send({ success: false, error: 'This contest has already ended.' });
-    }
-
     // Existing session check
     let submission = await ContestSubmission.findOne({ contestId: contest._id, userId });
     if (submission) {
@@ -263,6 +259,11 @@ export const startContestSession = async (req: FastifyRequest, reply: FastifyRep
         });
       }
       return reply.send({ success: true, message: 'Resuming active session', submission });
+    }
+
+    const now = new Date();
+    if (now > new Date(contest.endTime)) {
+      return reply.status(400).send({ success: false, error: 'This contest has already ended.' });
     }
 
     // Initialize session with strict duration
@@ -887,6 +888,7 @@ export const getContestSubmissionsForAdmin = async (req: FastifyRequest, reply: 
       .sort({ totalScore: -1, timeTakenSeconds: 1 })
       .populate('userId', 'name rollNo email profilePicUrl avatar department points')
       .populate('manualAllocatedBy', 'name email')
+      .populate('reentryApprovedBy', 'name email')
       .lean();
 
     const enrichedSubmissions = submissions.map((s: any) =>
@@ -927,6 +929,7 @@ export const getSingleContestSubmissionForAdmin = async (req: FastifyRequest, re
     const submission = await ContestSubmission.findById(submissionId)
       .populate('userId', 'name rollNo email profilePicUrl avatar department points')
       .populate('manualAllocatedBy', 'name email')
+      .populate('reentryApprovedBy', 'name email')
       .lean();
 
     if (!submission) {
@@ -1582,4 +1585,249 @@ export const parseContestCodingUpload = async (req: FastifyRequest, reply: Fasti
     return reply.status(500).send({ success: false, error: 'Failed to parse coding file: ' + error.message });
   }
 };
+
+// 18. Student: Request Re-entry to Contest
+export const requestContestReentry = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const userId = getUserId(req);
+    const { reason = '' } = (req.body || {}) as { reason?: string };
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findOne({ contestId: contest._id, userId });
+    if (!submission) {
+      return reply.status(400).send({
+        success: false,
+        error: 'No active or past contest session found to request re-entry for.',
+      });
+    }
+
+    if (submission.reentryStatus === 'PENDING') {
+      return reply.status(400).send({
+        success: false,
+        error: 'A re-entry request is already pending review by an administrator.',
+        submission,
+      });
+    }
+
+    submission.reentryRequested = true;
+    submission.reentryReason = reason.trim() || 'Student requested re-entry to contest';
+    submission.reentryStatus = 'PENDING';
+    submission.reentryRequestedAt = new Date();
+
+    await submission.save();
+
+    return reply.send({
+      success: true,
+      message: 'Re-entry request submitted successfully. An administrator will review your request.',
+      submission,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to request contest re-entry' });
+  }
+};
+
+// 19. Admin: Approve Contest Re-entry
+export const approveContestReentry = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id, submissionId } = req.params as { id: string; submissionId: string };
+    const adminUserId = getUserId(req);
+    const { durationMinutes, note = '' } = (req.body || {}) as {
+      durationMinutes?: number;
+      note?: string;
+    };
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findById(submissionId);
+    if (!submission || submission.contestId.toString() !== contest._id.toString()) {
+      return reply.status(404).send({ success: false, error: 'Contest submission not found' });
+    }
+
+    // Revert awarded points if points were already credited to prevent double allocation
+    if (submission.pointsAwarded && (submission.awardedClubPoints || 0) > 0) {
+      const pointsToDeduct = submission.awardedClubPoints;
+      await User.findByIdAndUpdate(submission.userId, { $inc: { points: -pointsToDeduct } });
+      submission.pointsAwarded = false;
+      submission.awardedClubPoints = 0;
+      submission.manualPointsAdjustment = (submission.manualPointsAdjustment || 0) - pointsToDeduct;
+    }
+
+    // Determine additional duration
+    const additionalMins =
+      typeof durationMinutes === 'number' && durationMinutes > 0
+        ? durationMinutes
+        : contest.durationMinutes || 60;
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + additionalMins * 60000);
+
+    submission.status = 'IN_PROGRESS';
+    submission.submittedAt = null as any;
+    submission.expiresAt = expiresAt;
+    submission.reentryRequested = false;
+    submission.reentryStatus = 'APPROVED';
+    submission.reentryApprovedAt = now;
+    if (adminUserId && mongoose.isValidObjectId(adminUserId)) {
+      submission.reentryApprovedBy = new mongoose.Types.ObjectId(adminUserId);
+    }
+    submission.reentryReviewNote = note.trim() || 'Admin approved re-entry';
+    submission.reentryCount = (submission.reentryCount || 0) + 1;
+
+    await submission.save();
+
+    // Check student account and remove 'contests' restriction if restricted
+    const studentUser = await User.findById(submission.userId);
+    if (studentUser) {
+      if (studentUser.restrictedFeatures && studentUser.restrictedFeatures.includes('contests')) {
+        const remainingFeatures = studentUser.restrictedFeatures.filter((f: string) => f !== 'contests');
+        studentUser.restrictedFeatures = remainingFeatures as any;
+        if (remainingFeatures.length === 0) {
+          studentUser.isRestricted = false;
+          studentUser.restrictionReason = '';
+        }
+        await studentUser.save();
+      }
+    }
+
+    // Notify student
+    try {
+      if (adminUserId && mongoose.isValidObjectId(adminUserId)) {
+        await Notification.create({
+          title: 'Contest Re-entry Approved! 🚀',
+          message: `Your re-entry for contest "${contest.title}" has been approved! You have ${additionalMins} minutes to complete your session.`,
+          type: 'success',
+          targetRole: 'Student',
+          link: `/contests/${contest._id}/arena`,
+          createdBy: new mongoose.Types.ObjectId(adminUserId),
+        });
+      }
+    } catch (notifErr) {
+      req.log.warn(notifErr, 'Failed to create notification for contest re-entry approval');
+    }
+
+    return reply.send({
+      success: true,
+      message: `Re-entry approved! Student granted ${additionalMins} minutes to resume contest.`,
+      submission,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to approve contest re-entry' });
+  }
+};
+
+// 20. Admin: Reject Contest Re-entry
+export const rejectContestReentry = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id, submissionId } = req.params as { id: string; submissionId: string };
+    const adminUserId = getUserId(req);
+    const { note = '' } = (req.body || {}) as { note?: string };
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findById(submissionId);
+    if (!submission || submission.contestId.toString() !== contest._id.toString()) {
+      return reply.status(404).send({ success: false, error: 'Contest submission not found' });
+    }
+
+    submission.reentryRequested = false;
+    submission.reentryStatus = 'REJECTED';
+    submission.reentryReviewNote = note.trim() || 'Re-entry request declined by administrator';
+    submission.reentryApprovedAt = new Date();
+    if (adminUserId && mongoose.isValidObjectId(adminUserId)) {
+      submission.reentryApprovedBy = new mongoose.Types.ObjectId(adminUserId);
+    }
+
+    await submission.save();
+
+    try {
+      if (adminUserId && mongoose.isValidObjectId(adminUserId)) {
+        await Notification.create({
+          title: 'Contest Re-entry Declined',
+          message: `Your re-entry request for contest "${contest.title}" was declined. Note: ${submission.reentryReviewNote}`,
+          type: 'warning',
+          targetRole: 'Student',
+          link: `/contests/${contest._id}`,
+          createdBy: new mongoose.Types.ObjectId(adminUserId),
+        });
+      }
+    } catch (notifErr) {
+      req.log.warn(notifErr, 'Failed to create notification for contest re-entry decline');
+    }
+
+    return reply.send({
+      success: true,
+      message: 'Re-entry request has been rejected.',
+      submission,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to reject contest re-entry' });
+  }
+};
+
+// 21. Admin: Delete Student Contest Submission / Participation Entry
+export const deleteContestSubmission = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id, submissionId } = req.params as { id: string; submissionId: string };
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findById(submissionId);
+    if (!submission || submission.contestId.toString() !== contest._id.toString()) {
+      return reply.status(404).send({ success: false, error: 'Contest submission not found' });
+    }
+
+    // Revert awarded points if any
+    if (submission.pointsAwarded && (submission.awardedClubPoints || 0) > 0) {
+      await User.findByIdAndUpdate(submission.userId, {
+        $inc: { points: -submission.awardedClubPoints },
+      });
+    }
+
+    // Remove contest restriction if student was restricted from contests
+    const studentUser = await User.findById(submission.userId);
+    if (studentUser && studentUser.restrictedFeatures && studentUser.restrictedFeatures.includes('contests')) {
+      const remainingFeatures = studentUser.restrictedFeatures.filter((f: string) => f !== 'contests');
+      studentUser.restrictedFeatures = remainingFeatures as any;
+      if (remainingFeatures.length === 0) {
+        studentUser.isRestricted = false;
+        studentUser.restrictionReason = '';
+      }
+      await studentUser.save();
+    }
+
+    // Decrement contest participants count
+    if ((contest.participantsCount || 0) > 0) {
+      await Contest.findByIdAndUpdate(contest._id, { $inc: { participantsCount: -1 } });
+    }
+
+    // Delete submission
+    await ContestSubmission.findByIdAndDelete(submissionId);
+
+    return reply.send({
+      success: true,
+      message: 'Student contest submission successfully deleted and entry removed.',
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to delete contest submission' });
+  }
+};
+
 

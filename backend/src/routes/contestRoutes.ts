@@ -19,6 +19,10 @@ import {
   downloadContestCodingTemplate,
   parseContestMcqUpload,
   parseContestCodingUpload,
+  requestContestReentry,
+  approveContestReentry,
+  rejectContestReentry,
+  deleteContestSubmission,
 } from '../controllers/contestController';
 import {
   verifyToken,
@@ -38,8 +42,9 @@ export async function contestRoutes(fastify: FastifyInstance) {
   fastify.register(async (studentGroup) => {
     studentGroup.addHook('preHandler', verifyToken);
 
-    // Submission review endpoint does not require taking a contest, just login
+    // Submission review & re-entry request endpoints do not require active arena access
     studentGroup.get('/:id/my-submission', getMyContestSubmission);
+    studentGroup.post('/:id/request-reentry', requestContestReentry);
 
     // Active arena session routes gated against restrictedFeatures
     studentGroup.register(async (arenaGroup) => {
@@ -71,6 +76,11 @@ export async function contestRoutes(fastify: FastifyInstance) {
     adminGroup.get('/:id/submissions/:submissionId', getSingleContestSubmissionForAdmin);
     adminGroup.post('/:id/submissions/:submissionId/allocate-points', allocateContestPoints);
     adminGroup.post('/:id/allocate-bulk', bulkAllocateContestPoints);
+
+    // Student Re-entry Approval, Rejection & Entry Deletion
+    adminGroup.delete('/:id/submissions/:submissionId', deleteContestSubmission);
+    adminGroup.post('/:id/submissions/:submissionId/approve-reentry', approveContestReentry);
+    adminGroup.post('/:id/submissions/:submissionId/reject-reentry', rejectContestReentry);
   });
 }
 

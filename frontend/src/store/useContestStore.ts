@@ -87,6 +87,14 @@ export interface ContestSession {
   timeTakenSeconds: number;
   pointsAwarded?: boolean;
   awardedClubPoints?: number;
+  reentryRequested?: boolean;
+  reentryReason?: string;
+  reentryStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  reentryRequestedAt?: string | null;
+  reentryApprovedAt?: string | null;
+  reentryApprovedBy?: any;
+  reentryReviewNote?: string;
+  reentryCount?: number;
 }
 
 export interface LeaderboardEntry {
@@ -167,6 +175,24 @@ interface ContestState {
     contestId: string,
     submissionId: string
   ) => Promise<{ success: boolean; data?: any; contest?: any; error?: string }>;
+  requestReentry: (
+    contestId: string,
+    reason: string
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
+  approveReentry: (
+    contestId: string,
+    submissionId: string,
+    data?: { durationMinutes?: number; note?: string }
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
+  rejectReentry: (
+    contestId: string,
+    submissionId: string,
+    note?: string
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
+  deleteSubmission: (
+    contestId: string,
+    submissionId: string
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
   downloadContestMcqTemplate: () => Promise<void>;
   downloadContestCodingTemplate: () => Promise<void>;
   parseContestMcqUpload: (file: File) => Promise<{ success: boolean; data?: MCQQuestion[]; count?: number; error?: string; errors?: string[] }>;
@@ -473,6 +499,60 @@ export const useContestStore = create<ContestState>((set, get) => ({
         error: err.response?.data?.error || err.message || 'Failed to parse Coding file',
         errors: err.response?.data?.errors,
       };
+    }
+  },
+
+  requestReentry: async (contestId, reason) => {
+    try {
+      const res = await api.post(`/contests/${contestId}/request-reentry`, { reason });
+      toast.success(res.data.message || 'Re-entry request submitted successfully!');
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to submit re-entry request';
+      toast.error(msg);
+      return { success: false, error: msg };
+    }
+  },
+
+  approveReentry: async (contestId, submissionId, data) => {
+    try {
+      const res = await api.post(
+        `/contests/${contestId}/submissions/${submissionId}/approve-reentry`,
+        data || {}
+      );
+      toast.success(res.data.message || 'Contest re-entry approved!');
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to approve re-entry';
+      toast.error(msg);
+      return { success: false, error: msg };
+    }
+  },
+
+  rejectReentry: async (contestId, submissionId, note) => {
+    try {
+      const res = await api.post(
+        `/contests/${contestId}/submissions/${submissionId}/reject-reentry`,
+        { note }
+      );
+      toast.success(res.data.message || 'Re-entry request declined');
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to decline re-entry';
+      toast.error(msg);
+      return { success: false, error: msg };
+    }
+  },
+
+  deleteSubmission: async (contestId, submissionId) => {
+    try {
+      const res = await api.delete(`/contests/${contestId}/submissions/${submissionId}`);
+      toast.success(res.data.message || 'Student contest entry deleted successfully');
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to delete student entry';
+      toast.error(msg);
+      return { success: false, error: msg };
     }
   },
 }));

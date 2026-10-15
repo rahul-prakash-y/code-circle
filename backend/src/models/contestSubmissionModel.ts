@@ -38,6 +38,14 @@ export interface IContestSubmission extends Document {
   manualPointsReason?: string;
   manualAllocatedBy?: mongoose.Types.ObjectId;
   manualAllocatedAt?: Date;
+  reentryRequested?: boolean;
+  reentryReason?: string;
+  reentryStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  reentryRequestedAt?: Date;
+  reentryApprovedAt?: Date;
+  reentryApprovedBy?: mongoose.Types.ObjectId;
+  reentryReviewNote?: string;
+  reentryCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,6 +102,19 @@ const contestSubmissionSchema = new Schema<IContestSubmission>(
     manualPointsReason: { type: String, default: '' },
     manualAllocatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     manualAllocatedAt: { type: Date, default: null },
+    reentryRequested: { type: Boolean, default: false, index: true },
+    reentryReason: { type: String, default: '', trim: true },
+    reentryStatus: {
+      type: String,
+      enum: ['NONE', 'PENDING', 'APPROVED', 'REJECTED'],
+      default: 'NONE',
+      index: true,
+    },
+    reentryRequestedAt: { type: Date, default: null },
+    reentryApprovedAt: { type: Date, default: null },
+    reentryApprovedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    reentryReviewNote: { type: String, default: '', trim: true },
+    reentryCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
