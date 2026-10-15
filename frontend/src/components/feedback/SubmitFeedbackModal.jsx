@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   MessageSquarePlus,
   Star,
   ShieldCheck,
   Calendar,
-  Layers,
   Send,
   Sparkles,
+  Check,
 } from 'lucide-react';
 import useFeedbackStore from '../../store/useFeedbackStore';
 import useEventStore from '../../store/useEventStore';
@@ -23,7 +23,15 @@ const categories = [
   'Suggestions',
 ];
 
-const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) => {
+const RATING_LABELS = {
+  1: { title: 'Needs Improvement', desc: 'Major issues encountered' },
+  2: { title: 'Below Expectations', desc: 'Several areas to polish' },
+  3: { title: 'Good / Average', desc: 'Met standard expectations' },
+  4: { title: 'Very Good', desc: 'Impressive and well executed' },
+  5: { title: 'Exceptional', desc: 'Outstanding in every aspect' },
+};
+
+export const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) => {
   const { submitFeedback, submitting } = useFeedbackStore();
   const { events, fetchEvents } = useEventStore();
 
@@ -77,37 +85,48 @@ const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) => {
     }
   };
 
+  const activeRating = hoverRating || rating;
+  const ratingMeta = RATING_LABELS[activeRating] || RATING_LABELS[5];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/40 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="w-full max-w-xl my-auto glass border border-border p-6 sm:p-8 relative overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] flex flex-col"
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+        className="w-full max-w-xl my-auto bg-surface border border-separator rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl flex flex-col"
       >
-        {/* Glow ambient background */}
-        <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+        {/* Decorative soft ambient top glow */}
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
         {/* Modal Header */}
-        <div className="flex justify-between items-center pb-5 border-b border-border relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent-muted">
-              <MessageSquarePlus size={20} />
+        <div className="flex justify-between items-start pb-5 border-b border-separator relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
+              <MessageSquarePlus size={22} />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-text-primary tracking-tight">
-                Submit Student Feedback
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
+                  Student Voice
+                </span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-label-primary tracking-tight">
+                Submit Feedback
               </h2>
-              <p className="text-xs text-text-muted">
-                Share your perspective to help shape club workshops, contests, and culture
+              <p className="text-xs text-label-secondary mt-0.5">
+                Your candid opinion directly guides club leadership and event quality
               </p>
             </div>
           </div>
+
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border"
+            className="p-2 rounded-xl bg-surface-raised hover:bg-surface-secondary text-label-secondary hover:text-label-primary transition-all border border-separator cursor-pointer"
+            title="Close"
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
 
@@ -115,49 +134,52 @@ const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) => {
         <form onSubmit={handleSubmit} className="py-5 space-y-5 relative z-10">
           {/* Target Type Selector Pills */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
+            <label className="text-xs font-bold uppercase tracking-wider text-label-secondary">
               Feedback Context
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5 p-1 bg-surface-secondary border border-separator rounded-2xl">
               <button
                 type="button"
                 onClick={() => setType('ClubGeneral')}
-                className={`py-3 px-4 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 border ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   type === 'ClubGeneral'
-                    ? 'bg-accent/20 text-accent-muted border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.2)]'
-                    : 'bg-surface-elevated text-text-muted hover:text-text-primary border-border'
+                    ? 'bg-surface text-primary shadow-xs border border-separator'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
-                <Sparkles size={15} /> Club in General
+                <Sparkles size={14} className={type === 'ClubGeneral' ? 'text-primary' : ''} />
+                <span>Club in General</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setType('Event')}
-                className={`py-3 px-4 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 border ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   type === 'Event'
-                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/40 shadow-[0_0_20px_rgba(168,85,247,0.2)]'
-                    : 'bg-surface-elevated text-text-muted hover:text-text-primary border-border'
+                    ? 'bg-surface text-primary shadow-xs border border-separator'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
-                <Calendar size={15} /> Specific Event
+                <Calendar size={14} className={type === 'Event' ? 'text-primary' : ''} />
+                <span>Specific Event</span>
               </button>
             </div>
           </div>
 
           {/* Event Dropdown (if type === 'Event') */}
           {type === 'Event' && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                Select Event *
+            <div className="space-y-1.5 animate-in fade-in duration-200">
+              <label className="text-xs font-bold uppercase tracking-wider text-label-secondary flex items-center justify-between">
+                <span>Select Event *</span>
+                <span className="text-[11px] font-normal text-label-tertiary">Required</span>
               </label>
               <select
                 value={eventId}
                 onChange={(e) => setEventId(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0d121f] border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+                className="w-full px-4 py-2.5 bg-surface-raised border border-separator rounded-xl text-label-primary text-xs sm:text-sm font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
                 required
               >
-                <option value="">Choose an event...</option>
+                <option value="">-- Choose an event --</option>
                 {events?.map((ev) => (
                   <option key={ev._id} value={ev._id}>
                     {ev.title} ({new Date(ev.date).toLocaleDateString()})
@@ -169,100 +191,126 @@ const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) => {
 
           {/* Star Rating Interactive Selector */}
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center justify-between">
-              <span>Overall Rating</span>
-              <span className="text-amber-400 font-black">{rating} of 5 Stars</span>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-label-secondary">
+                Overall Experience Rating
+              </label>
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 font-mono">
+                {activeRating} / 5 Stars
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-surface-secondary border border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 justify-center sm:justify-start">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const filled = star <= activeRating;
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      className="p-1 rounded-xl transition-all duration-150 transform hover:scale-120 active:scale-95 cursor-pointer"
+                      title={`${star} Star${star > 1 ? 's' : ''}`}
+                    >
+                      <Star
+                        size={28}
+                        className={
+                          filled
+                            ? 'text-amber-400 fill-amber-400 filter drop-shadow-[0_2px_8px_rgba(251,191,36,0.4)]'
+                            : 'text-separator-opaque hover:text-amber-300'
+                        }
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="text-center sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-separator">
+                <p className="text-xs font-bold text-label-primary">{ratingMeta.title}</p>
+                <p className="text-[11px] text-label-tertiary">{ratingMeta.desc}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Tag Selector */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-label-secondary">
+              Category Tag
             </label>
-            <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-white/[0.02] border border-border justify-center sm:justify-start">
-              {[1, 2, 3, 4, 5].map((star) => {
-                const filled = star <= (hoverRating || rating);
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map((cat) => {
+                const isSelected = category === cat;
                 return (
                   <button
-                    key={star}
+                    key={cat}
                     type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    className="p-1.5 rounded-xl hover:scale-125 transition-transform duration-200"
+                    onClick={() => setCategory(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-primary text-white shadow-xs border border-primary'
+                        : 'bg-surface-raised text-label-secondary hover:text-label-primary border border-separator hover:border-separator-focus'
+                    }`}
                   >
-                    <Star
-                      size={26}
-                      className={
-                        filled
-                          ? 'text-amber-400 fill-amber-400 filter drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
-                          : 'text-text-muted'
-                      }
-                    />
+                    {isSelected && <Check size={12} className="stroke-[3]" />}
+                    <span>{cat}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Category Tag Selector */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
-              Category Tag
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setCategory(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    category === cat
-                      ? 'bg-white/20 text-text-primary border border-white/30'
-                      : 'bg-surface-elevated text-text-muted hover:text-text-primary border border-border'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Text Comments Area */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
-              Detailed Text Feedback *
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-label-secondary">
+                Detailed Thoughts & Suggestions *
+              </label>
+              <span className="text-[10px] text-label-tertiary font-mono">
+                {comment.trim().length} chars (min 3)
+              </span>
+            </div>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="What worked well? What could be improved? Be as candid and detailed as possible..."
+              placeholder="What went exceptionally well? What could our team improve next time? Be as honest and constructive as possible..."
               rows={4}
-              className="w-full px-4 py-3 bg-surface-elevated border border-border rounded-2xl text-text-primary text-sm focus:outline-none focus:border-accent/50 transition-all placeholder-slate-600 resize-none font-sans"
+              className="w-full px-4 py-3 bg-surface-raised border border-separator rounded-2xl text-label-primary text-xs sm:text-sm font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-label-tertiary resize-none leading-relaxed"
               required
             />
           </div>
 
           {/* Student Privacy Assurance Callout */}
-          <div className="p-3.5 rounded-2xl bg-blue-500/5 border border-blue-500/15 flex items-start gap-3">
-            <ShieldCheck size={18} className="text-accent-muted flex-shrink-0 mt-0.5" />
-            <p className="text-[11px] text-text-secondary leading-relaxed">
-              <strong className="text-accent-muted font-bold">Privacy Guaranteed: </strong>
-              Standard club administrators see this feedback labeled as{' '}
-              <span className="text-text-primary font-mono bg-surface-elevated px-1 py-0.5 rounded">Anonymous User</span>.
-            </p>
+          <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/15 flex items-start gap-3">
+            <ShieldCheck size={18} className="text-primary shrink-0 mt-0.5" />
+            <div className="text-xs leading-relaxed text-label-secondary">
+              <strong className="text-label-primary font-semibold">Anonymous by Default: </strong>
+              To promote authentic and fearless feedback, standard administrators see your review signed as{' '}
+              <span className="font-mono text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded">
+                Anonymous Student
+              </span>
+              .
+            </div>
           </div>
 
           {/* Modal Actions */}
-          <div className="pt-3 flex items-center justify-end gap-3">
+          <div className="pt-2 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated transition-all"
+              disabled={submitting}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-label-secondary hover:text-label-primary bg-surface-raised hover:bg-surface-secondary border border-separator transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="btn-primary py-2.5 px-6 text-xs font-black flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 shadow-[0_0_20px_rgba(59,130,246,0.3)] disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary hover:bg-primary-hover shadow-md shadow-primary/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <Send size={15} />
-              {submitting ? 'Submitting...' : 'Submit Feedback'}
+              <Send size={14} />
+              <span>{submitting ? 'Submitting...' : 'Submit Feedback'}</span>
             </button>
           </div>
         </form>
@@ -272,3 +320,4 @@ const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) => {
 };
 
 export default SubmitFeedbackModal;
+

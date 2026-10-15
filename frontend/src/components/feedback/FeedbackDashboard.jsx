@@ -3,18 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
   Star,
-  Shield,
-  ShieldAlert,
   ShieldCheck,
   Lock,
-  User,
   Calendar,
-  Filter,
   Trash2,
   Sparkles,
   Plus,
   RefreshCw,
   Search,
+  X,
+  Filter,
 } from 'lucide-react';
 import useFeedbackStore from '../../store/useFeedbackStore';
 import useAuthStore from '../../store/useAuthStore';
@@ -44,7 +42,7 @@ const FeedbackDashboard = () => {
 
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 350);
+  const debouncedSearch = useDebounce(search, 300);
 
   const effectiveRole = profile?.role || user?.role || 'Student';
   const isSuperAdminRole = effectiveRole?.toLowerCase() === 'superadmin';
@@ -60,7 +58,7 @@ const FeedbackDashboard = () => {
     if (window.confirm('Are you sure you want to remove this feedback entry?')) {
       const res = await deleteFeedback(id);
       if (res.success) {
-        toast.success('Feedback entry removed');
+        toast.success('Feedback entry removed successfully');
       } else {
         toast.error(res.error || 'Failed to delete feedback');
       }
@@ -71,35 +69,37 @@ const FeedbackDashboard = () => {
     return feedbacks.filter((fb) => {
       const q = debouncedSearch.toLowerCase().trim();
       if (!q) return true;
-      const authorName = isSuperAdmin ? (fb.user?.name || '') : 'anonymous user';
+      const authorName = isSuperAdmin ? (fb.user?.name || '') : 'anonymous';
       const authorRoll = isSuperAdmin ? (fb.user?.rollNo || '') : '';
       const commentText = fb.comment || '';
       const cat = fb.category || '';
+      const eventTitle = fb.event?.title || '';
       return (
         authorName.toLowerCase().includes(q) ||
         authorRoll.toLowerCase().includes(q) ||
         commentText.toLowerCase().includes(q) ||
-        cat.toLowerCase().includes(q)
+        cat.toLowerCase().includes(q) ||
+        eventTitle.toLowerCase().includes(q)
       );
     });
   }, [feedbacks, debouncedSearch, isSuperAdmin]);
 
   return (
     <div className="space-y-6">
-      {/* Role-Based Clearance Banner */}
+      {/* Role-Based Clearance & Privacy Banner */}
       <div
-        className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
+        className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-xs ${
           isSuperAdmin
-            ? 'bg-purple-500/10 border-purple-500/30'
-            : 'bg-accent/10 border-accent/30'
+            ? 'bg-purple-50/80 dark:bg-purple-950/20 border-purple-200/80 dark:border-purple-800/40'
+            : 'bg-primary/5 dark:bg-primary/10 border-primary/20'
         }`}
       >
         <div className="flex items-center gap-3.5">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
               isSuperAdmin
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
-                : 'bg-accent/20 text-accent-muted border border-blue-500/40'
+                ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25'
+                : 'bg-primary/15 text-primary border border-primary/25'
             }`}
           >
             {isSuperAdmin ? <ShieldCheck size={20} /> : <Lock size={20} />}
@@ -107,20 +107,24 @@ const FeedbackDashboard = () => {
           <div>
             <div className="flex items-center gap-2">
               <span
-                className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
                   isSuperAdmin
-                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
-                    : 'bg-accent/20 text-blue-300 border-blue-500/40'
+                    ? 'bg-purple-500/15 text-purple-800 dark:text-purple-300 border-purple-500/30'
+                    : 'bg-primary/15 text-primary border-primary/30'
                 }`}
               >
-                {isSuperAdmin ? 'SuperAdmin Clearance' : isAdmin ? 'Standard Admin Privacy Mode' : 'Community Feedback'}
+                {isSuperAdmin
+                  ? 'SuperAdmin Clearance'
+                  : isAdmin
+                  ? 'Administrative Review Mode'
+                  : 'Community Safe Mode'}
               </span>
             </div>
-            <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+            <p className="text-xs text-label-secondary mt-1 leading-relaxed max-w-2xl">
               {privacyNotice ||
                 (isSuperAdmin
-                  ? 'SuperAdmin identity unmasking enabled: Full student profile references are populated for moderation.'
-                  : 'Community view: Feedback identities are displayed as anonymous user.')}
+                  ? 'SuperAdmin identity unmasking enabled: Full student profile references are populated for moderation and audit.'
+                  : 'Community privacy active: Student author identities remain shielded as anonymous.')}
             </p>
           </div>
         </div>
@@ -131,117 +135,224 @@ const FeedbackDashboard = () => {
             fetchFeedbackStats();
           }}
           disabled={loading}
-          className="px-3.5 py-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-xs font-bold text-text-secondary hover:text-text-primary transition-all flex items-center gap-1.5 self-start sm:self-center border border-border"
+          className="px-3.5 py-2 rounded-xl bg-surface hover:bg-surface-secondary text-xs font-semibold text-label-primary hover:text-primary transition-all flex items-center gap-2 self-start sm:self-center border border-separator shadow-xs cursor-pointer disabled:opacity-50"
+          title="Reload latest reviews and metrics"
         >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          Refresh
+          <RefreshCw size={13} className={loading ? 'animate-spin text-primary' : 'text-label-tertiary'} />
+          <span>Refresh</span>
         </button>
       </div>
 
       {/* Metrics Summary Row */}
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="glass p-5 space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-              Total Feedbacks
-            </p>
-            <p className="text-2xl font-black text-text-primary">{stats.totalFeedbacks}</p>
-          </div>
-
-          <div className="glass p-5 space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-              Average Rating
-            </p>
-            <p className="text-2xl font-black text-amber-400 flex items-center gap-1.5">
-              <Star size={20} className="fill-amber-400 text-amber-400" />
-              {stats.averageRating} / 5
-            </p>
-          </div>
-
-          <div className="glass p-5 space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-              Event Reviews
-            </p>
-            <p className="text-2xl font-black text-purple-400">{stats.eventFeedbacks}</p>
-          </div>
-
-          <div className="glass p-5 space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-              General Feedback
-            </p>
-            <p className="text-2xl font-black text-accent-muted">{stats.clubGeneralFeedbacks}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Control Bar: Filters & Submit Button */}
-      <div className="glass p-6 sm:p-7 relative overflow-hidden space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-accent/10 border border-accent/20 text-accent-muted">
-              <MessageSquare size={20} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          {/* 1. Total Feedbacks */}
+          <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
+                Total Feedbacks
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
+                <MessageSquare size={16} />
+              </div>
             </div>
             <div>
-              <h3 className="text-lg font-black text-text-primary">Student Feedback & Reviews</h3>
-              <p className="text-xs text-text-muted">
-                Continuous insights gathered across club workshops, contests, and general operations
+              <p className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+                {stats.totalFeedbacks}
+              </p>
+              <p className="text-[11px] font-medium text-label-secondary mt-0.5">
+                All-time community entries
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          {/* 2. Average Rating */}
+          <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
+                Average Rating
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-xs">
+                <Star size={16} className="fill-amber-400 text-amber-400" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+                  {stats.averageRating}
+                </span>
+                <span className="text-xs font-semibold text-label-tertiary">/ 5.0</span>
+              </div>
+              <div className="flex items-center gap-1 mt-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    size={11}
+                    className={
+                      s <= Math.round(stats.averageRating)
+                        ? 'fill-amber-400 text-amber-400'
+                        : 'text-separator fill-separator'
+                    }
+                  />
+                ))}
+                <span className="text-[10px] font-semibold text-label-secondary ml-1">Overall</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Event Reviews */}
+          <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
+                Event Reviews
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-purple-500/10 dark:bg-purple-500/15 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-xs">
+                <Calendar size={16} />
+              </div>
+            </div>
+            <div>
+              <p className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+                {stats.eventFeedbacks}
+              </p>
+              <p className="text-[11px] font-medium text-label-secondary mt-0.5">
+                Workshops & hackathons
+              </p>
+            </div>
+          </div>
+
+          {/* 4. Club General */}
+          <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
+                Club General
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs">
+                <Sparkles size={16} />
+              </div>
+            </div>
+            <div>
+              <p className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+                {stats.clubGeneralFeedbacks}
+              </p>
+              <p className="text-[11px] font-medium text-label-secondary mt-0.5">
+                Platform & suggestions
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Control Bar: Search, Filters & Action Button */}
+      <div className="bg-surface border border-separator rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs shrink-0">
+              <MessageSquare size={18} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-label-primary">
+                Student Feedback & Reviews
+              </h3>
+              <p className="text-xs text-label-secondary">
+                Continuous insights gathered across club workshops, contests, and operations
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Search Input */}
-            <div className="flex items-center gap-2 px-3.5 py-2 bg-surface-elevated border border-border rounded-xl focus-within:border-blue-500/40 transition-all">
-              <Search size={14} className="text-text-muted" />
+            <div className="relative flex items-center w-full sm:w-56">
+              <Search size={14} className="absolute left-3 text-label-tertiary pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search feedback..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-transparent border-none text-xs text-text-primary focus:outline-none placeholder-slate-600 w-36 sm:w-44"
+                className="w-full pl-8.5 pr-8 py-2 bg-surface-secondary border border-separator rounded-xl text-xs text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-medium"
               />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 text-label-tertiary hover:text-label-primary p-0.5 rounded cursor-pointer"
+                  title="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
 
+            {/* Submit Feedback CTA */}
             <button
               onClick={() => setIsSubmitModalOpen(true)}
-              className="btn-primary py-2.5 px-5 text-xs font-black flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-primary hover:bg-primary-hover shadow-md shadow-primary/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer shrink-0"
             >
-              <Plus size={16} /> Submit Feedback
+              <Plus size={15} />
+              <span>Submit Feedback</span>
             </button>
           </div>
         </div>
 
-        {/* Filter Badges Row */}
-        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Context:</span>
-          {['All', 'ClubGeneral', 'Event'].map((type) => (
-            <button
-              key={type}
-              onClick={() => setTypeFilter(type)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                typeFilter === type
-                  ? 'bg-accent/20 text-blue-300 border border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.2)]'
-                  : 'bg-surface-elevated text-text-muted hover:text-text-primary border border-border'
-              }`}
-            >
-              {type === 'All' ? 'All Contexts' : type === 'ClubGeneral' ? 'Club General' : 'Event Specific'}
-            </button>
-          ))}
+        {/* Filters Row: Context Pills & Star Filters */}
+        <div className="pt-4 border-t border-separator flex flex-wrap items-center justify-between gap-3">
+          {/* Context Filter Tabs */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary mr-1">
+              Context:
+            </span>
+            <div className="inline-flex p-1 bg-surface-secondary border border-separator rounded-xl gap-1">
+              {[
+                { id: 'All', label: 'All Contexts' },
+                { id: 'ClubGeneral', label: 'Club General' },
+                { id: 'Event', label: 'Event Specific' },
+              ].map(({ id, label }) => {
+                const isActive = typeFilter === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setTypeFilter(id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-surface text-primary shadow-xs border border-separator font-bold'
+                        : 'text-label-secondary hover:text-label-primary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-          <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted ml-2">Rating:</span>
-          {[null, 5, 4, 3, 2, 1].map((r) => (
-            <button
-              key={r === null ? 'all' : r}
-              onClick={() => setRatingFilter(r)}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
-                ratingFilter === r
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-                  : 'bg-surface-elevated text-text-muted hover:text-text-primary border border-border'
-              }`}
-            >
-              {r === null ? 'All' : `${r}★`}
-            </button>
-          ))}
+          {/* Rating Star Filter Pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary flex items-center gap-1 mr-1">
+              <Filter size={12} />
+              <span>Rating:</span>
+            </span>
+            {[null, 5, 4, 3, 2, 1].map((r) => {
+              const isActive = ratingFilter === r;
+              return (
+                <button
+                  key={r === null ? 'all' : r}
+                  onClick={() => setRatingFilter(r)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                    isActive
+                      ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-bold shadow-xs'
+                      : 'bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary border border-separator'
+                  }`}
+                >
+                  {r === null ? (
+                    'All'
+                  ) : (
+                    <>
+                      <span>{r}</span>
+                      <Star size={11} className="fill-amber-400 text-amber-400" />
+                    </>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -249,37 +360,51 @@ const FeedbackDashboard = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="glass p-6 animate-pulse space-y-4">
-              <div className="h-5 bg-surface-elevated rounded-lg w-1/3" />
-              <div className="h-12 bg-surface-elevated rounded-xl w-full" />
-              <div className="h-6 bg-surface-elevated rounded-lg w-1/2" />
+            <div
+              key={i}
+              className="bg-surface border border-separator rounded-2xl p-6 shadow-xs animate-pulse space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-4 bg-surface-secondary rounded-lg w-1/4" />
+                <div className="h-4 bg-surface-secondary rounded-lg w-1/5" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3.5 bg-surface-secondary rounded-md w-full" />
+                <div className="h-3.5 bg-surface-secondary rounded-md w-4/5" />
+              </div>
+              <div className="pt-3 border-t border-separator flex items-center justify-between">
+                <div className="h-8 w-8 bg-surface-secondary rounded-xl" />
+                <div className="h-3 bg-surface-secondary rounded-md w-24" />
+              </div>
             </div>
           ))}
         </div>
       ) : filteredFeedbacks.length === 0 ? (
-        <div className="glass p-12 text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 text-accent-muted flex items-center justify-center mx-auto">
-            <MessageSquare size={28} />
+        <div className="bg-surface border border-separator rounded-3xl p-12 text-center space-y-4 shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto shadow-xs">
+            <MessageSquare size={26} />
           </div>
-          <h3 className="text-lg font-black text-text-primary">No Feedback Entries Found</h3>
-          <p className="text-xs text-text-muted max-w-sm mx-auto">
-            No student feedback matches the selected filters. Be the first to submit a review!
-          </p>
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-label-primary">No Feedback Entries Found</h3>
+            <p className="text-xs text-label-secondary max-w-sm mx-auto leading-relaxed">
+              No student feedback matches the active search or filters. Be the first to share your thoughts!
+            </p>
+          </div>
           <button
             onClick={() => setIsSubmitModalOpen(true)}
-            className="btn-primary py-2 px-5 text-xs font-black inline-flex items-center gap-2 mt-2"
+            className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-primary hover:bg-primary-hover shadow-md shadow-primary/25 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer mt-1"
           >
-            <Plus size={15} /> Submit Feedback
+            <Plus size={15} />
+            <span>Submit Feedback</span>
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <AnimatePresence>
             {filteredFeedbacks.map((fb) => {
-              // SuperAdmin sees user's real name; Admin views as Anonymous User
               const isAnon = !isSuperAdmin;
-              const student = isSuperAdmin ? (fb.user || {}) : { name: 'Anonymous User' };
-              const displayName = isSuperAdmin ? (student.name || 'User') : 'Anonymous User';
+              const student = isSuperAdmin ? fb.user || {} : { name: 'Anonymous Student' };
+              const displayName = isSuperAdmin ? student.name || 'User' : 'Anonymous Student';
 
               return (
                 <motion.div
@@ -288,99 +413,131 @@ const FeedbackDashboard = () => {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  className="glass p-6 flex flex-col justify-between group hover:border-accent/30 transition-all duration-300 space-y-4"
+                  className="bg-surface border border-separator hover:border-primary/40 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4 relative group"
                 >
-                  {/* Top Header: Stars, Context & Tag */}
-                  <div className="space-y-3">
+                  {/* Top Header: Stars, Rating Pill, Context & Category */}
+                  <div className="space-y-3.5">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            size={16}
-                            className={
-                              s <= fb.rating
-                                ? 'text-amber-400 fill-amber-400'
-                                : 'text-text-muted'
-                            }
-                          />
-                        ))}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* 5-Star Visual */}
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              size={15}
+                              className={
+                                s <= fb.rating
+                                  ? 'text-amber-400 fill-amber-400'
+                                  : 'text-separator fill-separator'
+                              }
+                            />
+                          ))}
+                        </div>
+
+                        {/* Rating Pill */}
+                        <span className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-xs font-bold px-2 py-0.5 rounded-md font-mono">
+                          {fb.rating}.0
+                        </span>
+
+                        {/* Category Tag if available */}
+                        {fb.category && (
+                          <span className="bg-surface-secondary text-label-secondary border border-separator text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                            {fb.category}
+                          </span>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      {/* Context Badge & Admin Delete Button */}
+                      <div className="flex items-center gap-2 shrink-0">
                         <span
-                          className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
                             fb.type === 'Event'
-                              ? 'bg-purple-500/10 border-purple-500/20 text-purple-400'
-                              : 'bg-accent/10 border-accent/20 text-accent-muted'
+                              ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20'
+                              : 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20'
                           }`}
                         >
-                          {fb.type === 'Event' ? 'Event Feedback' : 'Club General'}
+                          {fb.type === 'Event' ? 'Event Review' : 'Club General'}
                         </span>
 
                         {isAdmin && (
                           <button
                             onClick={() => handleDelete(fb._id)}
-                            className="p-1 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                            title="Delete Feedback"
+                            className="p-1.5 rounded-lg text-label-tertiary hover:text-red-600 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer"
+                            title="Delete this feedback entry"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {/* Event Tag if Event Feedback */}
+                    {/* Event Banner Strip (if event-specific) */}
                     {fb.event && (
-                      <div className="flex items-center gap-2 text-xs font-bold text-text-secondary bg-surface-elevated p-2 rounded-xl border border-border">
-                        <Calendar size={13} className="text-purple-400" />
-                        <span className="line-clamp-1">{fb.event.title}</span>
+                      <div className="flex items-center justify-between gap-2 text-xs bg-surface-secondary px-3 py-2 rounded-xl border border-separator">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Calendar size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
+                          <span className="font-semibold text-label-primary truncate">
+                            {fb.event.title}
+                          </span>
+                        </div>
+                        {fb.event.date && (
+                          <span className="text-[10px] text-label-tertiary font-mono shrink-0">
+                            {new Date(fb.event.date).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {/* Feedback Comment */}
-                    <p className="text-sm text-text-primary font-medium leading-relaxed">
-                      "{fb.comment}"
-                    </p>
+                    {/* Feedback Comment Body */}
+                    <div className="relative pl-3.5 border-l-2 border-primary/25 py-0.5">
+                      <p className="text-sm font-normal text-label-primary leading-relaxed whitespace-pre-wrap">
+                        "{fb.comment}"
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Attribution Footer with Anonymity vs SuperAdmin Disclosure */}
-                  <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
-                    {/* User Attribution Card */}
-                    <div className="flex items-center gap-3">
+                  {/* Attribution Footer: Identity vs Anonymity */}
+                  <div className="pt-3.5 border-t border-separator flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       {isAnon ? (
-                        /* Masked Anonymous Display for Standard Admins */
-                        <div className="w-8 h-8 rounded-xl bg-surface-elevated border border-border flex items-center justify-center text-text-muted">
+                        <div className="w-8 h-8 rounded-xl bg-surface-secondary border border-separator flex items-center justify-center text-label-tertiary shadow-xs shrink-0">
                           <Lock size={14} />
                         </div>
                       ) : (
-                        /* Unmasked Display for SuperAdmin */
-                        <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center font-black text-purple-300 text-xs">
-                          {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+                        <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center font-bold text-purple-700 dark:text-purple-300 text-xs shadow-xs shrink-0">
+                          {displayName.charAt(0).toUpperCase()}
                         </div>
                       )}
 
-                      <div>
-                        <p className="text-xs font-black text-text-primary flex items-center gap-2">
-                          {displayName}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-label-primary truncate max-w-[140px] sm:max-w-[200px]">
+                            {displayName}
+                          </span>
                           {isAnon ? (
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.2 rounded-full bg-surface-elevated text-text-muted border border-border">
-                              Anonymous User
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-secondary text-label-tertiary border border-separator shrink-0">
+                              Anonymous
                             </span>
                           ) : (
-                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 shrink-0">
                               Attributed
                             </span>
                           )}
-                        </p>
-                        <p className="text-[10px] text-text-muted font-mono">
-                          {isAnon ? 'ANONYMOUS USER' : `${student.rollNo || ''} • ${student.department || student.email || ''}`}
+                        </div>
+                        <p className="text-[10px] text-label-tertiary font-mono truncate">
+                          {isAnon
+                            ? 'Student Community Member'
+                            : [student.rollNo, student.department, student.email].filter(Boolean).join(' • ')}
                         </p>
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-bold text-text-muted">
-                      {new Date(fb.createdAt).toLocaleDateString()}
+                    <span className="text-[11px] font-medium text-label-tertiary shrink-0">
+                      {new Date(fb.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
                     </span>
                   </div>
                 </motion.div>
