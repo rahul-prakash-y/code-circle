@@ -23,9 +23,18 @@ import {
   Layers,
   Clock,
   Terminal,
+  User,
+  Copy,
+  Check,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useDiagnosticsStore, { CollectionStat } from '../store/useDiagnosticsStore';
+import { UserBadge } from '../components/admin/diagnostics/UserBadge';
+import { RecordFormModal } from '../components/admin/diagnostics/RecordFormModal';
+import { DeleteConfirmModal } from '../components/admin/diagnostics/DeleteConfirmModal';
+import { ViewDocModal } from '../components/admin/diagnostics/ViewDocModal';
 
 export const DiagnosticsPage: React.FC = () => {
   const {
@@ -36,6 +45,8 @@ export const DiagnosticsPage: React.FC = () => {
     selectedCollection,
     collectionDocs,
     collectionPagination,
+    userMap,
+    schemaFields,
     loadingHealth,
     loadingDb,
     loadingDocs,
@@ -47,18 +58,21 @@ export const DiagnosticsPage: React.FC = () => {
     createDocument,
     updateDocument,
     deleteDocument,
+    batchDeleteDocuments,
   } = useDiagnosticsStore();
 
   const [activeTab, setActiveTab] = useState<'health' | 'database'>('health');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [docSearch, setDocSearch] = useState('');
 
-  // Modals
+  // Modals & Selection state
   const [viewDoc, setViewDoc] = useState<any | null>(null);
   const [editDoc, setEditDoc] = useState<any | null>(null);
-  const [editDocJson, setEditDocJson] = useState('');
+  const [deleteDoc, setDeleteDoc] = useState<any | null>(null);
   const [isNewDocModalOpen, setIsNewDocModalOpen] = useState(false);
-  const [newDocJson, setNewDocJson] = useState('{\n  \n}');
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHealth();
@@ -75,32 +89,126 @@ export const DiagnosticsPage: React.FC = () => {
   }, [autoRefresh, activeTab]);
 
   const handleSelectCollection = (colName: string) => {
+    setSelectedRowIds([]);
     fetchCollectionDocuments(colName, 1, 20);
   };
 
-  const handleSaveEditDoc = async () => {
-    if (!selectedCollection || !editDoc) return;
-    try {
-      const parsed = JSON.parse(editDocJson);
-      const ok = await updateDocument(selectedCollection, editDoc._id, parsed);
-      if (ok) setEditDoc(null);
-    } catch (err: any) {
-      toast.error('Invalid JSON format: ' + err.message);
+  const handleCopyId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const handleSaveEditDoc = async (payload: any) => {
+    if (!selectedCollection || !editDoc) return false;
+    const ok = await updateDocument(selectedCollection, editDoc._id, payload);
+    if (ok) setEditDoc(null);
+    return ok;
+  };
+
+  const handleSaveNewDoc = async (payload: any) => {
+    if (!selectedCollection) return false;
+    const ok = await createDocument(selectedCollection, payload);
+    if (ok) setIsNewDocModalOpen(false);
+    return ok;
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedCollection || !deleteDoc) return;
+    await deleteDocument(selectedCollection, deleteDoc._id);
+    setDeleteDoc(null);
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedRowIds.length === collectionDocs.length) {
+      setSelectedRowIds([]);
+    } else {
+      setSelectedRowIds(collectionDocs.map((d: any) => d._id));
     }
   };
 
-  const handleSaveNewDoc = async () => {
-    if (!selectedCollection) return;
-    try {
-      const parsed = JSON.parse(newDocJson);
-      const ok = await createDocument(selectedCollection, parsed);
-      if (ok) {
-        setIsNewDocModalOpen(false);
-        setNewDocJson('{\n  \n}');
-      }
-    } catch (err: any) {
-      toast.error('Invalid JSON format: ' + err.message);
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedRowIds((prev) =>
+      prev.includes(id) ? prev.filter((rId) => rId !== id) : [...prev, id]
+    );
+  };
+
+  const handleBatchDelete = async () => {
+    if (!selectedCollection || selectedRowIds.length === 0) return;
+    if (
+      confirm(
+        `Permanently delete ${selectedRowIds.length} selected record(s) from '${selectedCollection}'?`
+      )
+    ) {
+      setBatchDeleting(true);
+      const ok = await batchDeleteDocuments(selectedCollection, selectedRowIds);
+      setBatchDeleting(false);
+      if (ok) setSelectedRowIds([]);
     }
+  };
+
+  const getDocAssociatedUserId = (doc: any, collection: string): string | null => {
+    if (collection === 'users') return doc._id;
+    const userKeys = [
+      'userId',
+      'user',
+      'studentId',
+      'student',
+      'createdBy',
+      'updatedBy',
+      'author',
+      'instructor',
+      'unblockedBy',
+      'memberId',
+    ];
+    for (const k of userKeys) {
+      if (doc[k]) {
+        if (typeof doc[k] === 'object' && doc[k]._id) return String(doc[k]._id);
+        return String(doc[k]);
+      }
+    }
+    return null;
+  };
+
+  const renderKeyPreview = (doc: any, collection: string) => {
+    if (collection === 'users') {
+      return (
+        <div className="flex items-center gap-1.5 text-xs text-label-secondary">
+          <span className="font-semibold">{doc.department || 'General'}</span>
+          {doc.year && <span>· Year {doc.year}</span>}
+          {doc.college && <span className="text-label-tertiary">({doc.college})</span>}
+        </div>
+      );
+    }
+    const previewText =
+      doc.title ||
+      doc.name ||
+      doc.code ||
+      doc.eventName ||
+      doc.sessionId ||
+      doc.subject ||
+      doc.type ||
+      doc.reason;
+    if (previewText) {
+      return (
+        <span className="font-semibold text-xs text-label-primary truncate max-w-xs block">
+          {previewText}
+        </span>
+      );
+    }
+
+    let snippet = JSON.stringify(doc);
+    Object.entries(userMap).forEach(([uid, uObj]) => {
+      if (snippet.includes(uid)) {
+        snippet = snippet.replaceAll(`"${uid}"`, `"${uObj.name}"`);
+      }
+    });
+    return (
+      <span className="font-mono text-[11px] text-label-tertiary truncate max-w-xs block">
+        {snippet.slice(0, 80)}
+      </span>
+    );
   };
 
   const formatUptime = (seconds: number) => {
@@ -427,72 +535,272 @@ export const DiagnosticsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Selected records bulk actions bar */}
+              {selectedRowIds.length > 0 && (
+                <div className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-2xl animate-in fade-in duration-200">
+                  <span className="text-xs font-bold text-primary">
+                    {selectedRowIds.length} document(s) selected
+                  </span>
+                  <button
+                    onClick={handleBatchDelete}
+                    disabled={batchDeleting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-destructive text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all disabled:opacity-50"
+                  >
+                    <Trash2 size={13} className={batchDeleting ? 'animate-spin' : ''} />
+                    <span>{batchDeleting ? 'Deleting...' : 'Delete Selected'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Table of Records */}
               <div className="overflow-x-auto border border-separator rounded-2xl">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-3 px-4">_id</th>
-                      <th className="py-3 px-4">Key Preview</th>
-                      <th className="py-3 px-4">Created At</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
+                    {selectedCollection === 'users' ? (
+                      <tr>
+                        <th className="py-3 px-3 w-10 text-center">
+                          <button
+                            type="button"
+                            onClick={handleToggleSelectAll}
+                            className="text-label-tertiary hover:text-label-primary"
+                          >
+                            {selectedRowIds.length === collectionDocs.length &&
+                            collectionDocs.length > 0 ? (
+                              <CheckSquare size={15} className="text-primary" />
+                            ) : (
+                              <Square size={15} />
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-3 px-4">User Name & Account</th>
+                        <th className="py-3 px-4">Role & Status</th>
+                        <th className="py-3 px-4">_id</th>
+                        <th className="py-3 px-4">Created At</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    ) : (
+                      <tr>
+                        <th className="py-3 px-3 w-10 text-center">
+                          <button
+                            type="button"
+                            onClick={handleToggleSelectAll}
+                            className="text-label-tertiary hover:text-label-primary"
+                          >
+                            {selectedRowIds.length === collectionDocs.length &&
+                            collectionDocs.length > 0 ? (
+                              <CheckSquare size={15} className="text-primary" />
+                            ) : (
+                              <Square size={15} />
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-3 px-4">_id</th>
+                        <th className="py-3 px-4">User Name</th>
+                        <th className="py-3 px-4">Record Details</th>
+                        <th className="py-3 px-4">Created At</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    )}
                   </thead>
                   <tbody className="divide-y divide-separator text-label-primary font-medium">
                     {loadingDocs ? (
                       <tr>
-                        <td colSpan={4} className="py-12 text-center text-label-tertiary animate-pulse">
+                        <td colSpan={6} className="py-12 text-center text-label-tertiary animate-pulse">
                           Fetching documents from {selectedCollection}...
                         </td>
                       </tr>
                     ) : collectionDocs.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-12 text-center text-label-tertiary">
+                        <td colSpan={6} className="py-12 text-center text-label-tertiary">
                           No documents found in this collection.
                         </td>
                       </tr>
+                    ) : selectedCollection === 'users' ? (
+                      collectionDocs.map((doc: any) => {
+                        const isSelected = selectedRowIds.includes(doc._id);
+                        return (
+                          <tr
+                            key={doc._id}
+                            className={`hover:bg-surface-secondary/70 transition-colors ${
+                              isSelected ? 'bg-primary/5' : ''
+                            }`}
+                          >
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSelectRow(doc._id)}
+                                className="text-label-tertiary hover:text-label-primary"
+                              >
+                                {isSelected ? (
+                                  <CheckSquare size={15} className="text-primary" />
+                                ) : (
+                                  <Square size={15} />
+                                )}
+                              </button>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                                  {doc.name ? doc.name.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-bold text-xs text-label-primary truncate">
+                                    {doc.name || 'Unnamed User'}
+                                  </span>
+                                  <div className="flex items-center gap-1.5 text-[11px] text-label-tertiary font-mono">
+                                    {doc.rollNo && <span>{doc.rollNo}</span>}
+                                    {doc.rollNo && doc.email && <span>·</span>}
+                                    <span className="truncate">{doc.email}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                  {doc.role || 'Student'}
+                                </span>
+                                {doc.isBlocked && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20">
+                                    Blocked
+                                  </span>
+                                )}
+                                {doc.isRestricted && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                    Restricted
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-primary font-bold text-[11px]">
+                                  {doc._id.slice(0, 10)}...
+                                </span>
+                                <button
+                                  onClick={(e) => handleCopyId(doc._id, e)}
+                                  className="text-label-tertiary hover:text-label-primary p-1"
+                                  title="Copy ObjectId"
+                                >
+                                  {copiedId === doc._id ? (
+                                    <Check size={12} className="text-emerald-500" />
+                                  ) : (
+                                    <Copy size={12} />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
+                              {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-right space-x-1.5">
+                              <button
+                                onClick={() => setViewDoc(doc)}
+                                className="p-1.5 hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors"
+                                title="Inspect Document"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                onClick={() => setEditDoc(doc)}
+                                className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+                                title="Edit Form"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteDoc(doc)}
+                                className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
+                                title="Delete Record"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
-                      collectionDocs.map((doc: any) => (
-                        <tr key={doc._id} className="hover:bg-surface-secondary/70 transition-colors">
-                          <td className="py-3 px-4 font-mono text-primary font-bold">{doc._id}</td>
-                          <td className="py-3 px-4 max-w-md truncate font-mono text-[11px] text-label-secondary">
-                            {doc.title || doc.name || doc.email || doc.username || JSON.stringify(doc).slice(0, 80)}
-                          </td>
-                          <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
-                            {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}
-                          </td>
-                          <td className="py-3 px-4 text-right space-x-1.5">
-                            <button
-                              onClick={() => setViewDoc(doc)}
-                              className="p-1.5 hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors"
-                              title="Inspect JSON"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditDoc(doc);
-                                setEditDocJson(JSON.stringify(doc, null, 2));
-                              }}
-                              className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
-                              title="Edit Document"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Delete document ${doc._id}?`)) {
-                                  deleteDocument(selectedCollection, doc._id);
-                                }
-                              }}
-                              className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      collectionDocs.map((doc: any) => {
+                        const isSelected = selectedRowIds.includes(doc._id);
+                        const associatedUserId = getDocAssociatedUserId(doc, selectedCollection);
+
+                        return (
+                          <tr
+                            key={doc._id}
+                            className={`hover:bg-surface-secondary/70 transition-colors ${
+                              isSelected ? 'bg-primary/5' : ''
+                            }`}
+                          >
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSelectRow(doc._id)}
+                                className="text-label-tertiary hover:text-label-primary"
+                              >
+                                {isSelected ? (
+                                  <CheckSquare size={15} className="text-primary" />
+                                ) : (
+                                  <Square size={15} />
+                                )}
+                              </button>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-primary font-bold text-[11px]">
+                                  {doc._id.slice(0, 10)}...
+                                </span>
+                                <button
+                                  onClick={(e) => handleCopyId(doc._id, e)}
+                                  className="text-label-tertiary hover:text-label-primary p-1"
+                                  title="Copy ObjectId"
+                                >
+                                  {copiedId === doc._id ? (
+                                    <Check size={12} className="text-emerald-500" />
+                                  ) : (
+                                    <Copy size={12} />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              {associatedUserId ? (
+                                <UserBadge userId={associatedUserId} userMap={userMap} />
+                              ) : (
+                                <span className="text-label-tertiary text-xs italic">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 max-w-sm">
+                              {renderKeyPreview(doc, selectedCollection)}
+                            </td>
+                            <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
+                              {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-right space-x-1.5">
+                              <button
+                                onClick={() => setViewDoc(doc)}
+                                className="p-1.5 hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors"
+                                title="Inspect Document"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                onClick={() => setEditDoc(doc)}
+                                className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+                                title="Edit Form"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteDoc(doc)}
+                                className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
+                                title="Delete Record"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -547,136 +855,54 @@ export const DiagnosticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* View Document Modal */}
-      <AnimatePresence>
-        {viewDoc && (
-          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-2xl border border-separator max-w-2xl w-full p-6 space-y-4 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              <div className="flex items-center justify-between border-b border-separator pb-3">
-                <h3 className="text-sm font-bold text-label-primary font-mono">
-                  Inspect Document: {viewDoc._id}
-                </h3>
-                <button
-                  onClick={() => setViewDoc(null)}
-                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <pre className="flex-1 overflow-auto bg-surface-secondary dark:bg-zinc-950 p-4 rounded-xl text-xs font-mono text-label-primary dark:text-emerald-400 border border-separator">
-                {JSON.stringify(viewDoc, null, 2)}
-              </pre>
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={() => setViewDoc(null)}
-                  className="px-4 py-2 bg-surface-secondary text-label-primary text-xs font-bold rounded-xl border border-separator hover:bg-surface transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* View Document Modal (Details Form & Raw JSON) */}
+      <ViewDocModal
+        isOpen={Boolean(viewDoc)}
+        collectionName={selectedCollection || ''}
+        doc={viewDoc}
+        userMap={userMap}
+        onClose={() => setViewDoc(null)}
+        onEdit={() => {
+          setEditDoc(viewDoc);
+          setViewDoc(null);
+        }}
+      />
 
-      {/* Edit Document Modal */}
-      <AnimatePresence>
-        {editDoc && (
-          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-2xl border border-separator max-w-2xl w-full p-6 space-y-4 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              <div className="flex items-center justify-between border-b border-separator pb-3">
-                <h3 className="text-sm font-bold text-label-primary font-mono">
-                  Edit Document ({editDoc._id})
-                </h3>
-                <button
-                  onClick={() => setEditDoc(null)}
-                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <textarea
-                rows={14}
-                value={editDocJson}
-                onChange={(e) => setEditDocJson(e.target.value)}
-                className="w-full flex-1 font-mono text-xs p-4 bg-surface-secondary dark:bg-zinc-950 border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
-              />
-              <div className="flex justify-end gap-2 pt-2 border-t border-separator">
-                <button
-                  onClick={() => setEditDoc(null)}
-                  className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveEditDoc}
-                  className="px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Edit Document Modal (Form Component) */}
+      <RecordFormModal
+        isOpen={Boolean(editDoc)}
+        mode="edit"
+        collectionName={selectedCollection || ''}
+        initialData={editDoc}
+        schemaFields={schemaFields}
+        userMap={userMap}
+        onClose={() => setEditDoc(null)}
+        onSave={handleSaveEditDoc}
+      />
 
-      {/* Insert Document Modal */}
-      <AnimatePresence>
-        {isNewDocModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-2xl border border-separator max-w-2xl w-full p-6 space-y-4 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              <div className="flex items-center justify-between border-b border-separator pb-3">
-                <h3 className="text-sm font-bold text-label-primary font-mono">
-                  Insert Document into '{selectedCollection}'
-                </h3>
-                <button
-                  onClick={() => setIsNewDocModalOpen(false)}
-                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <textarea
-                rows={12}
-                value={newDocJson}
-                onChange={(e) => setNewDocJson(e.target.value)}
-                className="w-full flex-1 font-mono text-xs p-4 bg-surface-secondary dark:bg-zinc-950 border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
-              />
-              <div className="flex justify-end gap-2 pt-2 border-t border-separator">
-                <button
-                  onClick={() => setIsNewDocModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveNewDoc}
-                  className="px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all"
-                >
-                  Insert Document
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Insert Document Modal (Form Component) */}
+      <RecordFormModal
+        isOpen={isNewDocModalOpen}
+        mode="create"
+        collectionName={selectedCollection || ''}
+        schemaFields={schemaFields}
+        userMap={userMap}
+        onClose={() => setIsNewDocModalOpen(false)}
+        onSave={handleSaveNewDoc}
+      />
+
+      {/* Delete Record Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(deleteDoc)}
+        collectionName={selectedCollection || ''}
+        doc={deleteDoc}
+        userMap={userMap}
+        onClose={() => setDeleteDoc(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 };
 
 export default DiagnosticsPage;
+

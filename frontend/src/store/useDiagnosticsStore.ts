@@ -43,6 +43,21 @@ export interface CollectionStat {
   modelName: string | null;
 }
 
+export interface UserLookupItem {
+  _id: string;
+  name: string;
+  email: string;
+  rollNo?: string;
+  role?: string;
+}
+
+export interface SchemaFieldMeta {
+  path: string;
+  instance: string;
+  required: boolean;
+  defaultValue?: any;
+}
+
 interface DiagnosticsState {
   healthData: SystemHealthData | null;
   databaseStats: CollectionStat[];
@@ -50,6 +65,8 @@ interface DiagnosticsState {
   totalDocuments: number;
   selectedCollection: string | null;
   collectionDocs: any[];
+  userMap: Record<string, UserLookupItem>;
+  schemaFields: SchemaFieldMeta[];
   collectionPagination: {
     page: number;
     limit: number;
@@ -65,6 +82,7 @@ interface DiagnosticsState {
   syncCache: () => Promise<void>;
   fetchDatabaseStats: () => Promise<void>;
   fetchCollectionDocuments: (collection: string, page?: number, limit?: number, search?: string) => Promise<void>;
+  lookupUsers: (search: string) => Promise<UserLookupItem[]>;
   createDocument: (collection: string, data: any) => Promise<boolean>;
   updateDocument: (collection: string, id: string, data: any) => Promise<boolean>;
   deleteDocument: (collection: string, id: string) => Promise<boolean>;
@@ -78,6 +96,8 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
   totalDocuments: 0,
   selectedCollection: null,
   collectionDocs: [],
+  userMap: {},
+  schemaFields: [],
   collectionPagination: {
     page: 1,
     limit: 20,
@@ -135,6 +155,8 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
       });
       set({
         collectionDocs: res.data.documents || [],
+        userMap: res.data.userMap || {},
+        schemaFields: res.data.schemaFields || [],
         collectionPagination: {
           page: res.data.page || page,
           limit: res.data.limit || limit,
@@ -146,6 +168,17 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
     } catch (err: any) {
       toast.error(err.response?.data?.error || `Failed to fetch documents from ${collection}`);
       set({ loadingDocs: false });
+    }
+  },
+
+  lookupUsers: async (search: string) => {
+    try {
+      const res = await api.get('/admin/diagnostics/users/lookup', {
+        params: { search, limit: 15 },
+      });
+      return res.data.users || [];
+    } catch (err) {
+      return [];
     }
   },
 

@@ -176,7 +176,70 @@ export const getDatabaseStats = async (req: FastifyRequest, reply: FastifyReply)
   }
 };
 
-// 4. Get Documents from Collection (Explorer)
+// Helper to normalize payload types based on Mongoose schema or standard fields
+const normalizePayloadTypes = (collection: string, data: any) => {
+  if (!data || typeof data !== 'object') return data;
+  const normalized: any = Array.isArray(data) ? [...data] : { ...data };
+
+  // Check if matching model exists
+  const matchingModelName = Object.keys(mongoose.models).find(
+    (m) => mongoose.models[m].collection.name === collection
+  );
+  const schema = matchingModelName ? mongoose.models[matchingModelName].schema : null;
+
+  for (const [key, val] of Object.entries(normalized)) {
+    if (val === null || val === undefined) continue;
+
+    const schemaType = schema?.path(key);
+    const instance = (schemaType as any)?.instance;
+
+    // Convert ObjectId fields
+    if (
+      instance === 'ObjectID' ||
+      (!instance &&
+        (key === 'userId' ||
+          key === 'user' ||
+          key === 'studentId' ||
+          key === 'student' ||
+          key === 'createdBy' ||
+          key === 'updatedBy' ||
+          key === 'author' ||
+          key === 'instructor' ||
+          key === 'unblockedBy') &&
+        typeof val === 'string' &&
+        mongoose.isValidObjectId(val))
+    ) {
+      try {
+        normalized[key] = new mongoose.Types.ObjectId(val as string);
+      } catch {}
+    } else if (
+      instance === 'Date' ||
+      (!instance &&
+        (key.endsWith('At') || key.endsWith('Date') || key === 'dob' || key === 'dateOfBirth') &&
+        typeof val === 'string' &&
+        !isNaN(Date.parse(val)))
+    ) {
+      normalized[key] = new Date(val as string);
+    } else if (
+      instance === 'Number' &&
+      typeof val === 'string' &&
+      !isNaN(Number(val)) &&
+      val.trim() !== ''
+    ) {
+      normalized[key] = Number(val);
+    } else if (
+      instance === 'Boolean' &&
+      typeof val === 'string' &&
+      (val === 'true' || val === 'false')
+    ) {
+      normalized[key] = val === 'true';
+    }
+  }
+
+  return normalized;
+};
+
+// 4. Get Documents from Collection (Explorer) with User Resolution & Schema
 export const getCollectionDocuments = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const { collection } = req.params as { collection: string };
@@ -212,6 +275,90 @@ export const getCollectionDocuments = async (req: FastifyRequest, reply: Fastify
       col.countDocuments(query),
     ]);
 
+    // Extract unique user ObjectIds from documents
+    const userIdsToFetch = new Set<string>();
+    const userRefKeyRegex = /(user|student|createdby|updatedby|author|instructor|unblockedby|member|mentor|reviewer|participant)/i;
+
+    for (const doc of docs) {
+      if (collection === 'users') {
+        if (doc._id) userIdsToFetch.add(doc._id.toString());
+      } else {
+        for (const [key, val] of Object.entries(doc)) {
+          if (!val) continue;
+          if (userRefKeyRegex.test(key)) {
+            if (mongoose.isValidObjectId(val)) {
+              userIdsToFetch.add(val.toString());
+            } else if (typeof val === 'object' && (val as any)._bsontype === 'ObjectID') {
+              userIdsToFetch.add(val.toString());
+            } else if (typeof val === 'string' && mongoose.isValidObjectId(val)) {
+              userIdsToFetch.add(val);
+            }
+          } else if (Array.isArray(val) && userRefKeyRegex.test(key)) {
+            for (const item of val) {
+              if (item && (mongoose.isValidObjectId(item) || (typeof item === 'string' && mongoose.isValidObjectId(item)))) {
+                userIdsToFetch.add(item.toString());
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const userMap: Record<string, { _id: string; name: string; email: string; rollNo?: string; role?: string }> = {};
+
+    if (collection === 'users') {
+      for (const doc of docs) {
+        if (doc._id) {
+          userMap[doc._id.toString()] = {
+            _id: doc._id.toString(),
+            name: doc.name || 'Unnamed User',
+            email: doc.email || '',
+            rollNo: doc.rollNo || '',
+            role: doc.role || 'Student',
+          };
+        }
+      }
+    } else if (userIdsToFetch.size > 0) {
+      const userObjectIds = Array.from(userIdsToFetch)
+        .filter((id) => mongoose.isValidObjectId(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+
+      if (userObjectIds.length > 0) {
+        const users = await mongoose.connection.db
+          .collection('users')
+          .find({ _id: { $in: userObjectIds } }, { projection: { name: 1, email: 1, rollNo: 1, role: 1 } })
+          .toArray();
+
+        for (const u of users) {
+          userMap[u._id.toString()] = {
+            _id: u._id.toString(),
+            name: u.name || 'Unnamed User',
+            email: u.email || '',
+            rollNo: u.rollNo || '',
+            role: u.role || 'Student',
+          };
+        }
+      }
+    }
+
+    // Extract schema field information if Mongoose model exists
+    const matchingModelName = Object.keys(mongoose.models).find(
+      (m) => mongoose.models[m].collection.name === collection
+    );
+    const schemaFields: Array<{ path: string; instance: string; required: boolean; defaultValue?: any }> = [];
+    if (matchingModelName && mongoose.models[matchingModelName]) {
+      const schema = mongoose.models[matchingModelName].schema;
+      schema.eachPath((pathname: string, schematype: any) => {
+        if (pathname === '__v' || pathname === '_id') return;
+        schemaFields.push({
+          path: pathname,
+          instance: (schematype as any).instance || 'String',
+          required: Boolean((schematype as any).isRequired),
+          defaultValue: (schematype as any).defaultValue,
+        });
+      });
+    }
+
     return reply.send({
       success: true,
       collection,
@@ -220,6 +367,8 @@ export const getCollectionDocuments = async (req: FastifyRequest, reply: Fastify
       page: Number(page),
       limit: Number(limit),
       pages: Math.ceil(total / Number(limit)),
+      userMap,
+      schemaFields,
     });
   } catch (error: any) {
     req.log.error(error);
@@ -237,11 +386,13 @@ export const createCollectionDocument = async (req: FastifyRequest, reply: Fasti
       return reply.status(503).send({ success: false, error: 'Database not ready' });
     }
 
+    const normalizedData = normalizePayloadTypes(collection, docData);
+
     // Assign createdAt/updatedAt if not provided
     const payload = {
-      ...docData,
-      createdAt: docData.createdAt || new Date(),
-      updatedAt: docData.updatedAt || new Date(),
+      ...normalizedData,
+      createdAt: normalizedData.createdAt || new Date(),
+      updatedAt: normalizedData.updatedAt || new Date(),
     };
 
     const result = await mongoose.connection.db.collection(collection).insertOne(payload);
@@ -262,7 +413,8 @@ export const updateCollectionDocument = async (req: FastifyRequest, reply: Fasti
       return reply.status(503).send({ success: false, error: 'Database not ready' });
     }
 
-    const updatePayload = { ...docData };
+    const normalizedData = normalizePayloadTypes(collection, docData);
+    const updatePayload = { ...normalizedData };
     delete updatePayload._id;
     updatePayload.updatedAt = new Date();
 
@@ -331,5 +483,57 @@ export const batchDeleteDocuments = async (req: FastifyRequest, reply: FastifyRe
   } catch (error: any) {
     req.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to batch delete documents' });
+  }
+};
+
+// 9. Lookup Users (for User Selector Autocomplete)
+export const lookupUsers = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { search = '', limit = 15 } = req.query as any;
+
+    if (!mongoose.connection.db) {
+      return reply.status(503).send({ success: false, error: 'Database not ready' });
+    }
+
+    let query: any = {};
+    if (search && search.trim()) {
+      const term = search.trim();
+      if (mongoose.isValidObjectId(term)) {
+        query = {
+          $or: [
+            { _id: new mongoose.Types.ObjectId(term) },
+            { rollNo: { $regex: term, $options: 'i' } },
+          ],
+        };
+      } else {
+        query = {
+          $or: [
+            { name: { $regex: term, $options: 'i' } },
+            { email: { $regex: term, $options: 'i' } },
+            { rollNo: { $regex: term, $options: 'i' } },
+          ],
+        };
+      }
+    }
+
+    const users = await mongoose.connection.db
+      .collection('users')
+      .find(query, { projection: { name: 1, email: 1, rollNo: 1, role: 1 } })
+      .limit(Number(limit) || 15)
+      .toArray();
+
+    return reply.send({
+      success: true,
+      users: users.map((u) => ({
+        _id: u._id.toString(),
+        name: u.name || 'Unnamed User',
+        email: u.email || '',
+        rollNo: u.rollNo || '',
+        role: u.role || 'Student',
+      })),
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to lookup users' });
   }
 };
