@@ -2,15 +2,28 @@ import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export type CertificateType = 'EVENT' | 'COURSE' | 'ASSESSMENT' | 'CUSTOM' | 'HACKATHON';
 export type CertificateTheme =
+  | 'classic-ivory'
+  | 'imperial-gold'
+  | 'royal-sapphire'
+  | 'emerald-merit'
+  | 'ruby-excellence'
+  | 'amethyst-prestige'
+  | 'monochrome-executive'
+  | 'ocean-azure'
+  | 'crimson-collegiate'
+  | 'nordic-frost'
+  | 'champagne-vintage'
+  | 'sunset-topaz'
+  | 'rose-elegance'
+  | 'corporate-steel'
+  | 'botanical-sage'
   | 'modern-blue'
   | 'executive-gold'
   | 'cyber-dark'
   | 'emerald-minimal'
   | 'ruby-elegance'
-  | 'royal-sapphire'
   | 'cyber-emerald'
-  | 'luxury-amethyst'
-  | 'classic-ivory';
+  | 'luxury-amethyst';
 export type CertificateOrientation = 'landscape' | 'portrait';
 export type CertificateStatus = 'ACTIVE' | 'REVOKED';
 
@@ -98,17 +111,30 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     theme: {
       type: String,
       enum: [
+        'classic-ivory',
+        'imperial-gold',
+        'royal-sapphire',
+        'emerald-merit',
+        'ruby-excellence',
+        'amethyst-prestige',
+        'monochrome-executive',
+        'ocean-azure',
+        'crimson-collegiate',
+        'nordic-frost',
+        'champagne-vintage',
+        'sunset-topaz',
+        'rose-elegance',
+        'corporate-steel',
+        'botanical-sage',
         'modern-blue',
         'executive-gold',
         'cyber-dark',
         'emerald-minimal',
         'ruby-elegance',
-        'royal-sapphire',
         'cyber-emerald',
         'luxury-amethyst',
-        'classic-ivory',
       ],
-      default: 'royal-sapphire',
+      default: 'classic-ivory',
     },
     orientation: {
       type: String,
@@ -134,7 +160,7 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     signatoryTitle: {
       type: String,
-      default: 'Faculty Coordinator & Club In-charge',
+      default: 'Faculty Coordinator',
       trim: true,
     },
     signatoryOrganization: {
@@ -149,7 +175,7 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     secondarySignatoryTitle: {
       type: String,
-      default: 'Faculty Advisor & Head of Department, CSE',
+      default: 'Faculty Coordinator',
       trim: true,
     },
     tertiarySignatoryName: {
@@ -159,7 +185,7 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     tertiarySignatoryTitle: {
       type: String,
-      default: 'Principal & Club Patron',
+      default: 'Faculty Coordinator',
       trim: true,
     },
     primaryColor: {
@@ -272,7 +298,7 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
     },
     signatoryTitle: {
       type: String,
-      default: 'Code Circle Executive Committee',
+      default: 'Faculty Coordinator',
     },
     secondarySignatoryName: {
       type: String,
@@ -280,7 +306,7 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
     },
     secondarySignatoryTitle: {
       type: String,
-      default: '',
+      default: 'Faculty Coordinator',
     },
     tertiarySignatoryName: {
       type: String,
@@ -288,7 +314,7 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
     },
     tertiarySignatoryTitle: {
       type: String,
-      default: '',
+      default: 'Faculty Coordinator',
     },
     issueDate: {
       type: Date,

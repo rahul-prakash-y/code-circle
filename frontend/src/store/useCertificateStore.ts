@@ -9,15 +9,29 @@ export interface CertificateTemplate {
   description: string;
   type: 'EVENT' | 'COURSE' | 'ASSESSMENT' | 'CUSTOM' | 'HACKATHON';
   theme:
+    | 'classic-ivory'
+    | 'imperial-gold'
+    | 'royal-sapphire'
+    | 'emerald-merit'
+    | 'ruby-excellence'
+    | 'amethyst-prestige'
+    | 'monochrome-executive'
+    | 'ocean-azure'
+    | 'crimson-collegiate'
+    | 'nordic-frost'
+    | 'champagne-vintage'
+    | 'sunset-topaz'
+    | 'rose-elegance'
+    | 'corporate-steel'
+    | 'botanical-sage'
     | 'modern-blue'
     | 'executive-gold'
     | 'cyber-dark'
     | 'emerald-minimal'
     | 'ruby-elegance'
-    | 'royal-sapphire'
     | 'cyber-emerald'
     | 'luxury-amethyst'
-    | 'classic-ivory';
+    | string;
   orientation: 'landscape' | 'portrait';
   bgImageUrl?: string;
   badgeUrl?: string;

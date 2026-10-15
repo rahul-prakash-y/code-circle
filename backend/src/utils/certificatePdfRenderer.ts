@@ -23,15 +23,29 @@ export interface CertificateRenderOptions {
   verificationCode: string;
   issueDate?: Date | string;
   theme?:
+    | 'classic-ivory'
+    | 'imperial-gold'
+    | 'royal-sapphire'
+    | 'emerald-merit'
+    | 'ruby-excellence'
+    | 'amethyst-prestige'
+    | 'monochrome-executive'
+    | 'ocean-azure'
+    | 'crimson-collegiate'
+    | 'nordic-frost'
+    | 'champagne-vintage'
+    | 'sunset-topaz'
+    | 'rose-elegance'
+    | 'corporate-steel'
+    | 'botanical-sage'
     | 'modern-blue'
     | 'executive-gold'
     | 'cyber-dark'
     | 'emerald-minimal'
     | 'ruby-elegance'
-    | 'royal-sapphire'
     | 'cyber-emerald'
     | 'luxury-amethyst'
-    | 'classic-ivory';
+    | string;
   orientation?: 'landscape' | 'portrait';
   bgImageUrl?: string;
   primaryColor?: string;
@@ -49,83 +63,7 @@ const THEME_PALETTES: Record<string, {
   textMuted: string;
   seal: string;
 }> = {
-  'royal-sapphire': {
-    bg: '#050B1B',
-    card: '#0A122B',
-    border: '#1E3A8A',
-    primary: '#38BDF8',
-    secondary: '#F59E0B',
-    accent: '#60A5FA',
-    textMain: '#FFFFFF',
-    textMuted: '#94A3B8',
-    seal: '#0284C7',
-  },
-  'modern-blue': {
-    bg: '#070E22',
-    card: '#0E1A3C',
-    border: '#2563EB',
-    primary: '#38BDF8',
-    secondary: '#FBBF24',
-    accent: '#60A5FA',
-    textMain: '#FFFFFF',
-    textMuted: '#94A3B8',
-    seal: '#0284C7',
-  },
-  'executive-gold': {
-    bg: '#111113',
-    card: '#18181B',
-    border: '#CA8A04',
-    primary: '#FACC15',
-    secondary: '#EAB308',
-    accent: '#FDE68A',
-    textMain: '#FFFBEB',
-    textMuted: '#D4D4D8',
-    seal: '#B45309',
-  },
-  'cyber-emerald': {
-    bg: '#020C08',
-    card: '#051E14',
-    border: '#059669',
-    primary: '#10B981',
-    secondary: '#34D399',
-    accent: '#6EE7B7',
-    textMain: '#FFFFFF',
-    textMuted: '#A7F3D0',
-    seal: '#047857',
-  },
-  'cyber-dark': {
-    bg: '#030712',
-    card: '#081120',
-    border: '#10B981',
-    primary: '#34D399',
-    secondary: '#065F46',
-    accent: '#6EE7B7',
-    textMain: '#FFFFFF',
-    textMuted: '#9CA3AF',
-    seal: '#059669',
-  },
-  'luxury-amethyst': {
-    bg: '#0C061A',
-    card: '#170D30',
-    border: '#7C3AED',
-    primary: '#C084FC',
-    secondary: '#EC4899',
-    accent: '#E879F9',
-    textMain: '#FAF5FF',
-    textMuted: '#DDD6FE',
-    seal: '#9333EA',
-  },
-  'ruby-elegance': {
-    bg: '#17050A',
-    card: '#290A14',
-    border: '#E11D48',
-    primary: '#FB7185',
-    secondary: '#F43F5E',
-    accent: '#FDA4AF',
-    textMain: '#FFF1F2',
-    textMuted: '#FECDD3',
-    seal: '#BE123C',
-  },
+  // 15 Clean, Print-Ready Light Themes
   'classic-ivory': {
     bg: '#F8FAFC',
     card: '#FFFFFF',
@@ -137,15 +75,237 @@ const THEME_PALETTES: Record<string, {
     textMuted: '#475569',
     seal: '#B45309',
   },
+  'imperial-gold': {
+    bg: '#FEFCE8',
+    card: '#FFFFFF',
+    border: '#CA8A04',
+    primary: '#B45309',
+    secondary: '#D97706',
+    accent: '#CA8A04',
+    textMain: '#1C1917',
+    textMuted: '#78716C',
+    seal: '#92400E',
+  },
+  'royal-sapphire': {
+    bg: '#F0F9FF',
+    card: '#FFFFFF',
+    border: '#0284C7',
+    primary: '#0284C7',
+    secondary: '#0369A1',
+    accent: '#38BDF8',
+    textMain: '#0C4A6E',
+    textMuted: '#475569',
+    seal: '#0284C7',
+  },
+  'emerald-merit': {
+    bg: '#F0FDF4',
+    card: '#FFFFFF',
+    border: '#059669',
+    primary: '#059669',
+    secondary: '#047857',
+    accent: '#10B981',
+    textMain: '#064E3B',
+    textMuted: '#4B5563',
+    seal: '#059669',
+  },
+  'ruby-excellence': {
+    bg: '#FFF1F2',
+    card: '#FFFFFF',
+    border: '#E11D48',
+    primary: '#E11D48',
+    secondary: '#BE123C',
+    accent: '#FB7185',
+    textMain: '#881337',
+    textMuted: '#6B7280',
+    seal: '#BE123C',
+  },
+  'amethyst-prestige': {
+    bg: '#FAF5FF',
+    card: '#FFFFFF',
+    border: '#7C3AED',
+    primary: '#7C3AED',
+    secondary: '#6D28D9',
+    accent: '#C084FC',
+    textMain: '#4C1D95',
+    textMuted: '#6B7280',
+    seal: '#7C3AED',
+  },
+  'monochrome-executive': {
+    bg: '#F8FAFC',
+    card: '#FFFFFF',
+    border: '#334155',
+    primary: '#0F172A',
+    secondary: '#334155',
+    accent: '#64748B',
+    textMain: '#020617',
+    textMuted: '#64748B',
+    seal: '#1E293B',
+  },
+  'ocean-azure': {
+    bg: '#F0FDFA',
+    card: '#FFFFFF',
+    border: '#0D9488',
+    primary: '#0D9488',
+    secondary: '#0F766E',
+    accent: '#14B8A6',
+    textMain: '#134E4A',
+    textMuted: '#52525B',
+    seal: '#0F766E',
+  },
+  'crimson-collegiate': {
+    bg: '#FEF2F2',
+    card: '#FFFFFF',
+    border: '#991B1B',
+    primary: '#991B1B',
+    secondary: '#B91C1C',
+    accent: '#D97706',
+    textMain: '#450A0A',
+    textMuted: '#57534E',
+    seal: '#991B1B',
+  },
+  'nordic-frost': {
+    bg: '#F8FAFC',
+    card: '#FFFFFF',
+    border: '#0284C7',
+    primary: '#0284C7',
+    secondary: '#2563EB',
+    accent: '#38BDF8',
+    textMain: '#0F172A',
+    textMuted: '#64748B',
+    seal: '#0284C7',
+  },
+  'champagne-vintage': {
+    bg: '#FAF8F5',
+    card: '#FFFFFF',
+    border: '#854D0E',
+    primary: '#854D0E',
+    secondary: '#A16207',
+    accent: '#CA8A04',
+    textMain: '#292524',
+    textMuted: '#78716C',
+    seal: '#854D0E',
+  },
+  'sunset-topaz': {
+    bg: '#FFF7ED',
+    card: '#FFFFFF',
+    border: '#EA580C',
+    primary: '#EA580C',
+    secondary: '#C2410C',
+    accent: '#F97316',
+    textMain: '#431407',
+    textMuted: '#78716C',
+    seal: '#C2410C',
+  },
+  'rose-elegance': {
+    bg: '#FDF2F8',
+    card: '#FFFFFF',
+    border: '#DB2777',
+    primary: '#DB2777',
+    secondary: '#BE185D',
+    accent: '#F472B6',
+    textMain: '#500724',
+    textMuted: '#71717A',
+    seal: '#BE185D',
+  },
+  'corporate-steel': {
+    bg: '#F1F5F9',
+    card: '#FFFFFF',
+    border: '#334155',
+    primary: '#334155',
+    secondary: '#1E3A8A',
+    accent: '#2563EB',
+    textMain: '#0F172A',
+    textMuted: '#475569',
+    seal: '#334155',
+  },
+  'botanical-sage': {
+    bg: '#F6F8F6',
+    card: '#FFFFFF',
+    border: '#15803D',
+    primary: '#15803D',
+    secondary: '#166534',
+    accent: '#22C55E',
+    textMain: '#14532D',
+    textMuted: '#52525B',
+    seal: '#15803D',
+  },
+
+  // Legacy mappings for backward compatibility
+  'modern-blue': {
+    bg: '#F8FAFC',
+    card: '#FFFFFF',
+    border: '#1E40AF',
+    primary: '#1E3A8A',
+    secondary: '#D97706',
+    accent: '#3B82F6',
+    textMain: '#0F172A',
+    textMuted: '#475569',
+    seal: '#B45309',
+  },
+  'executive-gold': {
+    bg: '#FEFCE8',
+    card: '#FFFFFF',
+    border: '#CA8A04',
+    primary: '#B45309',
+    secondary: '#D97706',
+    accent: '#CA8A04',
+    textMain: '#1C1917',
+    textMuted: '#78716C',
+    seal: '#92400E',
+  },
+  'cyber-emerald': {
+    bg: '#F0FDF4',
+    card: '#FFFFFF',
+    border: '#059669',
+    primary: '#059669',
+    secondary: '#047857',
+    accent: '#10B981',
+    textMain: '#064E3B',
+    textMuted: '#4B5563',
+    seal: '#059669',
+  },
+  'cyber-dark': {
+    bg: '#F8FAFC',
+    card: '#FFFFFF',
+    border: '#334155',
+    primary: '#0F172A',
+    secondary: '#334155',
+    accent: '#64748B',
+    textMain: '#020617',
+    textMuted: '#64748B',
+    seal: '#1E293B',
+  },
+  'luxury-amethyst': {
+    bg: '#FAF5FF',
+    card: '#FFFFFF',
+    border: '#7C3AED',
+    primary: '#7C3AED',
+    secondary: '#6D28D9',
+    accent: '#C084FC',
+    textMain: '#4C1D95',
+    textMuted: '#6B7280',
+    seal: '#7C3AED',
+  },
+  'ruby-elegance': {
+    bg: '#FFF1F2',
+    card: '#FFFFFF',
+    border: '#E11D48',
+    primary: '#E11D48',
+    secondary: '#BE123C',
+    accent: '#FB7185',
+    textMain: '#881337',
+    textMuted: '#6B7280',
+    seal: '#BE123C',
+  },
   'emerald-minimal': {
     bg: '#F0FDF4',
     card: '#FFFFFF',
     border: '#059669',
-    primary: '#047857',
-    secondary: '#0D9488',
+    primary: '#059669',
+    secondary: '#047857',
     accent: '#10B981',
     textMain: '#064E3B',
-    textMuted: '#374151',
+    textMuted: '#4B5563',
     seal: '#059669',
   },
 };
@@ -173,7 +333,7 @@ export const buildCertificatePdfBuffer = async (
 
       const width = doc.page.width;
       const height = doc.page.height;
-      const themeKey = options.theme && THEME_PALETTES[options.theme] ? options.theme : 'royal-sapphire';
+      const themeKey = options.theme && THEME_PALETTES[options.theme] ? options.theme : 'classic-ivory';
       const palette = THEME_PALETTES[themeKey];
 
       // Custom background image support
@@ -359,7 +519,7 @@ export const buildCertificatePdfBuffer = async (
         .text(`Certificate ID: ${options.certificateId}`, 135, height - 127, { align: 'left', width: 220 })
         .text(`Verification Code: ${options.verificationCode}`, 135, height - 114, { align: 'left', width: 220 });
 
-      // --- THREE FACULTY MEMBERS SIGNATURES (Spaced across bottom) ---
+      // --- THREE FACULTY MEMBERS SIGNATURES (All Faculty Coordinators) ---
       const sigY = height - 72;
       const colWidth = 205;
 
@@ -378,7 +538,7 @@ export const buildCertificatePdfBuffer = async (
         .font('Helvetica')
         .fontSize(7.5)
         .fillColor(palette.primary)
-        .text(options.signatoryTitle || 'Faculty Coordinator & Club In-charge', sig1X, sigY + 17, {
+        .text(options.signatoryTitle || 'Faculty Coordinator', sig1X, sigY + 17, {
           align: 'center',
           width: colWidth,
         });
@@ -386,12 +546,12 @@ export const buildCertificatePdfBuffer = async (
         .font('Helvetica')
         .fontSize(6.5)
         .fillColor(palette.textMuted)
-        .text('Department of CSE · BIT', sig1X, sigY + 27, {
+        .text('Faculty Coordinator · Department of CSE', sig1X, sigY + 27, {
           align: 'center',
           width: colWidth,
         });
 
-      // Faculty 2: Faculty Advisor & Head of Department
+      // Faculty 2: Faculty Coordinator
       const sig2X = (width - colWidth) / 2;
       doc.rect(sig2X, sigY, colWidth, 1).fillColor(palette.border).fill();
       doc
@@ -406,7 +566,7 @@ export const buildCertificatePdfBuffer = async (
         .font('Helvetica')
         .fontSize(7.5)
         .fillColor(palette.primary)
-        .text(options.secondarySignatoryTitle || 'Faculty Advisor & Head of Dept, CSE', sig2X, sigY + 17, {
+        .text(options.secondarySignatoryTitle || 'Faculty Coordinator', sig2X, sigY + 17, {
           align: 'center',
           width: colWidth,
         });
@@ -414,12 +574,12 @@ export const buildCertificatePdfBuffer = async (
         .font('Helvetica')
         .fontSize(6.5)
         .fillColor(palette.textMuted)
-        .text('Bannari Amman Institute of Technology', sig2X, sigY + 27, {
+        .text('Faculty Coordinator · Department of IT', sig2X, sigY + 27, {
           align: 'center',
           width: colWidth,
         });
 
-      // Faculty 3: Principal & Club Patron
+      // Faculty 3: Faculty Coordinator
       const sig3X = width - 55 - colWidth;
       doc.rect(sig3X, sigY, colWidth, 1).fillColor(palette.border).fill();
       doc
@@ -434,7 +594,7 @@ export const buildCertificatePdfBuffer = async (
         .font('Helvetica')
         .fontSize(7.5)
         .fillColor(palette.primary)
-        .text(options.tertiarySignatoryTitle || 'Principal & Club Patron', sig3X, sigY + 17, {
+        .text(options.tertiarySignatoryTitle || 'Faculty Coordinator', sig3X, sigY + 17, {
           align: 'center',
           width: colWidth,
         });
@@ -442,7 +602,7 @@ export const buildCertificatePdfBuffer = async (
         .font('Helvetica')
         .fontSize(6.5)
         .fillColor(palette.textMuted)
-        .text('Bannari Amman Institute of Technology', sig3X, sigY + 27, {
+        .text('Faculty Coordinator · Bannari Amman Institute of Tech', sig3X, sigY + 27, {
           align: 'center',
           width: colWidth,
         });
