@@ -560,8 +560,16 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
       userId: new mongoose.Types.ObjectId(user.id),
     }).lean();
 
-    // 3. Find any domain levels where this challenge is mapped
-    const linkedLevels = await Level.find({ codingChallengeId: challenge._id }).lean();
+    // 3. Find any domain levels where this challenge is mapped (via codingChallengeId, codingChallengePool, or levelId)
+    const linkedLevels = await Level.find({
+      $or: [
+        { codingChallengeId: challenge._id },
+        { codingChallengePool: challenge._id },
+        ...(challenge.levelId && mongoose.Types.ObjectId.isValid(challenge.levelId)
+          ? [{ _id: new mongoose.Types.ObjectId(challenge.levelId) }]
+          : []),
+      ],
+    }).lean();
     if (linkedLevels.length > 0) {
       levelCompleted = true;
       const linkedLevelIds = linkedLevels.map((lvl) => lvl._id);
@@ -1711,6 +1719,18 @@ export const getLevelAssessmentSession = async (
     const startTime = new Date();
     const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
 
+    const priorPassedSubmissions = await CodingSubmission.find({
+      student: userId,
+      challenge: { $in: assignedIds },
+      status: 'passed',
+    }).sort({ submittedAt: -1 }).lean();
+    const priorPassedMap = new Map<string, any>();
+    priorPassedSubmissions.forEach((s) => {
+      if (!priorPassedMap.has(s.challenge.toString())) {
+        priorPassedMap.set(s.challenge.toString(), s);
+      }
+    });
+
     session = new LevelAssessmentSession({
       student: userId,
       level: level._id,
@@ -1725,16 +1745,20 @@ export const getLevelAssessmentSession = async (
       expiresAt,
       isCompleted: false,
       verdict: 'in_progress',
-      submissions: assignedIds.map((id) => ({
-        challengeId: id,
-        language: 'python',
-        code: '',
-        status: 'unattempted',
-        score: 0,
-        passed: 0,
-        total: 0,
-        submittedAt: null,
-      })),
+      submissions: assignedIds.map((id) => {
+        const prior = priorPassedMap.get(id.toString());
+        return {
+          challengeId: id,
+          submissionId: prior?._id || null,
+          language: prior?.language || 'python',
+          code: prior?.code || '',
+          status: prior ? 'passed' : 'unattempted',
+          score: prior ? prior.score : 0,
+          passed: prior ? prior.passed : 0,
+          total: prior ? prior.total : 0,
+          submittedAt: prior?.submittedAt || null,
+        };
+      }),
     });
 
     await session.save();
@@ -2099,14 +2123,33 @@ export const submitLevelAssessmentCode = async (
     session.submissions.push(subRecord);
   }
 
-  // Check if all assigned questions are passed
+  // Immediately persist passed challenge to student's completedCodingChallenges
+  if (submissionStatus === 'passed') {
+    await StudentProgress.findOneAndUpdate(
+      { userId },
+      { $addToSet: { completedCodingChallenges: challenge._id } },
+      { upsert: true }
+    );
+  }
+
+  // Check if all assigned questions are passed (including any passed in earlier sessions/attempts)
+  const priorPassedSubs = await CodingSubmission.find({
+    student: userId,
+    challenge: { $in: session.assignedQuestions },
+    status: 'passed',
+  }).select('challenge').lean();
+  const passedChallengeSet = new Set<string>([
+    ...priorPassedSubs.map((c) => c.challenge.toString()),
+    ...(submissionStatus === 'passed' ? [challenge._id.toString()] : []),
+  ]);
+
   const allPassed =
     session.assignedQuestions.length > 0 &&
     session.assignedQuestions.every((qId) => {
       const sub = session.submissions.find(
         (s) => s.challengeId.toString() === qId.toString()
       );
-      return sub && sub.status === 'passed';
+      return (sub && sub.status === 'passed') || passedChallengeSet.has(qId.toString());
     });
 
   let levelCompleted = false;

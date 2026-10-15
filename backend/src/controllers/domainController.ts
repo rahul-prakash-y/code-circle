@@ -604,6 +604,40 @@ export const getDomainLevels = async (
         progress.unlockedCodingChallenges?.forEach((cId) => unlockedCodingChallengesSet.add(cId.toString()));
         progress.completedCodingChallenges?.forEach((cId) => completedCodingChallengesSet.add(cId.toString()));
       }
+
+      // Check passed level assessment sessions for auto-healing
+      const passedSessions = await LevelAssessmentSession.find({
+        student: userId,
+        level: { $in: levels.map((lvl) => lvl._id) },
+        $or: [{ isCompleted: true }, { verdict: 'passed' }],
+      }).select('level').lean();
+
+      passedSessions.forEach((s) => {
+        if (s.level) completedLevelsSet.add(s.level.toString());
+      });
+
+      // Also check if any level coding challenges were passed via CodingSubmission
+      const allLevelPoolIds = levels.flatMap((lvl) => {
+        const pool = Array.isArray(lvl.codingChallengePool) ? lvl.codingChallengePool : [];
+        const poolIds = pool.map((p: any) => (p?._id ? p._id.toString() : p?.toString())).filter(Boolean);
+        const single = (lvl.codingChallengeId as any)?._id
+          ? (lvl.codingChallengeId as any)._id.toString()
+          : lvl.codingChallengeId
+          ? lvl.codingChallengeId.toString()
+          : null;
+        return [...poolIds, ...(single ? [single] : [])];
+      });
+
+      if (allLevelPoolIds.length > 0) {
+        const passedSubs = await CodingSubmission.find({
+          student: userId,
+          challenge: { $in: allLevelPoolIds.map((id) => new mongoose.Types.ObjectId(id)) },
+          status: 'passed',
+        }).select('challenge').lean();
+        passedSubs.forEach((sub) => {
+          completedCodingChallengesSet.add(sub.challenge.toString());
+        });
+      }
     }
 
     const isDomainApproved = !domain.isLocked || unlockedDomainsSet.has(domain._id.toString());
@@ -611,25 +645,36 @@ export const getDomainLevels = async (
 
     // Map levels: each level unlocks strictly on completion of previous level, IF student is registered (or admin)
     const mappedLevels = levels.map((lvl, index) => {
-      const isCompleted = completedLevelsSet.has(lvl._id.toString());
-      const previousLevel = index > 0 ? levels[index - 1] : null;
-      const previousLevelDone = index === 0 || (previousLevel ? completedLevelsSet.has(previousLevel._id.toString()) : false);
-      const requiresRegistration = !isAdmin && !isEnrolled;
-      const isUnlocked = isAdmin || (isEnrolled && !isDomainLockedForStudent && previousLevelDone);
-      const requiresPreviousLevel = index > 0 ? (previousLevel?.levelNumber || (lvl.levelNumber - 1)) : null;
-
-      const isQuestCompleted = completedQuestsSet.has(lvl._id.toString()) || isCompleted;
       const codingChallenge = lvl.codingChallengeId as any;
       const codingChallengeIdStr = codingChallenge?._id
         ? codingChallenge._id.toString()
         : codingChallenge
         ? codingChallenge.toString()
         : null;
-      const poolLength = Array.isArray(lvl.codingChallengePool) ? lvl.codingChallengePool.length : 0;
-      const hasCodingAssessment = Boolean(codingChallengeIdStr || poolLength > 0);
+      const pool = Array.isArray(lvl.codingChallengePool) ? lvl.codingChallengePool : [];
+      const poolIds = pool.map((p: any) => (p?._id ? p._id.toString() : p?.toString())).filter(Boolean);
+      const hasCodingAssessment = Boolean(codingChallengeIdStr || poolIds.length > 0);
+
       const isCodingChallengeCompleted = hasCodingAssessment
-        ? isCompleted || Boolean(codingChallengeIdStr && completedCodingChallengesSet.has(codingChallengeIdStr))
+        ? completedLevelsSet.has(lvl._id.toString()) ||
+          Boolean(codingChallengeIdStr && completedCodingChallengesSet.has(codingChallengeIdStr)) ||
+          poolIds.some((pid: string) => completedCodingChallengesSet.has(pid))
         : false;
+
+      const isQuestCompleted = completedQuestsSet.has(lvl._id.toString()) || completedLevelsSet.has(lvl._id.toString());
+
+      // Auto-heal / sync: if quest is completed AND (coding challenge is passed OR no coding challenge required), the level is completed!
+      if (isQuestCompleted && (isCodingChallengeCompleted || !hasCodingAssessment)) {
+        completedLevelsSet.add(lvl._id.toString());
+      }
+      const isCompleted = completedLevelsSet.has(lvl._id.toString());
+
+      const previousLevel = index > 0 ? levels[index - 1] : null;
+      const previousLevelDone = index === 0 || (previousLevel ? completedLevelsSet.has(previousLevel._id.toString()) : false);
+      const requiresRegistration = !isAdmin && !isEnrolled;
+      const isUnlocked = isAdmin || (isEnrolled && !isDomainLockedForStudent && previousLevelDone);
+      const requiresPreviousLevel = index > 0 ? (previousLevel?.levelNumber || (lvl.levelNumber - 1)) : null;
+
       // The coding assessment is opened only if the MCQ quest is completed (70% threshold):
       const isCodingChallengeUnlocked =
         isAdmin || (isQuestCompleted && hasCodingAssessment);
@@ -710,6 +755,38 @@ export const getDomainLevels = async (
     });
 
     const enrolledStudentsCount = await DomainEnrollment.countDocuments({ domainId });
+
+    // Background auto-heal in database if newly completed levels or coding challenges were found
+    if (userId && !isAdmin) {
+      const newlyCompleted = Array.from(completedLevelsSet).map((id) => new mongoose.Types.ObjectId(id));
+      const newlyPassedChallenges = Array.from(completedCodingChallengesSet).map((id) => new mongoose.Types.ObjectId(id));
+      if (newlyCompleted.length > 0 || newlyPassedChallenges.length > 0) {
+        StudentProgress.updateOne(
+          { userId },
+          {
+            $addToSet: {
+              ...(newlyCompleted.length > 0 ? { completedLevels: { $each: newlyCompleted } } : {}),
+              ...(newlyPassedChallenges.length > 0 ? { completedCodingChallenges: { $each: newlyPassedChallenges } } : {}),
+            },
+          },
+          { upsert: true }
+        ).catch((err) => console.warn('[DomainController] Auto-healing progress error:', err));
+
+        if (newlyCompleted.length > 0) {
+          const isAllCompleted = levels.length > 0 && levels.every((lvl) => completedLevelsSet.has(lvl._id.toString()));
+          DomainEnrollment.updateOne(
+            { userId, domainId },
+            {
+              $set: {
+                status: isAllCompleted ? 'completed' : 'in_progress',
+                updatedAt: new Date(),
+                ...(isAllCompleted ? { completedAt: new Date() } : {}),
+              },
+            }
+          ).catch((err) => console.warn('[DomainController] Auto-healing enrollment error:', err));
+        }
+      }
+    }
 
     return reply.status(200).send({
       success: true,
@@ -1521,6 +1598,25 @@ export const getEnrolledStudents = async (
         doc.userId.toString(),
         (doc.completedLevels || []).map((id) => id.toString())
       );
+    });
+
+    // Also check any passed level assessment sessions for these students and domain levels
+    const passedSessions = await LevelAssessmentSession.find({
+      student: { $in: userIds },
+      level: { $in: Array.from(levelIdStrings).map((id) => new mongoose.Types.ObjectId(id)) },
+      $or: [{ isCompleted: true }, { verdict: 'passed' }],
+    }).select('student level').lean();
+
+    passedSessions.forEach((s) => {
+      if (s.student && s.level) {
+        const studentIdStr = s.student.toString();
+        const levelIdStr = s.level.toString();
+        const currentList = progressMap.get(studentIdStr) || [];
+        if (!currentList.includes(levelIdStr)) {
+          currentList.push(levelIdStr);
+          progressMap.set(studentIdStr, currentList);
+        }
+      }
     });
 
     let enrolledStudents = enrollments

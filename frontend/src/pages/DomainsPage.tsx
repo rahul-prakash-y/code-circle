@@ -210,7 +210,12 @@ export const DomainsPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
             <span className="px-3 py-1 rounded-full text-xs font-medium bg-surface-secondary border border-separator/80 text-label-secondary">
-              {levels.filter((l) => l.isCompleted).length} of {levels.length} Quests Mastered
+              {levels.filter((l) => l.isCompleted).length} of {levels.length} Levels Completed
+              {levels.some((l) => l.isQuestCompleted && !l.isCompleted) && (
+                <span className="ml-1 text-accent font-semibold">
+                  ({levels.filter((l) => l.isQuestCompleted).length} Quests Passed)
+                </span>
+              )}
             </span>
 
             {/* Registration status badge or action */}
