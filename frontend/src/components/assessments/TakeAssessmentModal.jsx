@@ -15,6 +15,7 @@ import {
   Trophy,
   HelpCircle,
   ShieldAlert,
+  ShieldCheck,
   Maximize2,
   Minimize2,
   Lock,
@@ -23,6 +24,7 @@ import {
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
+import { isMobileScreenOrDevice } from '../../lib/deviceUtils';
 
 const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const {
@@ -50,10 +52,26 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const [showTabWarning, setShowTabWarning] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMobileMode, setIsMobileMode] = useState(() => isMobileScreenOrDevice());
+  const wasInterruptedRef = useRef(false);
   const maxStrikes = 3;
 
   // Timer ref to cancel interval safely
   const timerRef = useRef(null);
+
+  // Monitor screen size changes for mobile protection
+  useEffect(() => {
+    const handleDeviceCheck = () => {
+      setIsMobileMode(isMobileScreenOrDevice());
+    };
+    handleDeviceCheck();
+    window.addEventListener('resize', handleDeviceCheck);
+    window.addEventListener('orientationchange', handleDeviceCheck);
+    return () => {
+      window.removeEventListener('resize', handleDeviceCheck);
+      window.removeEventListener('orientationchange', handleDeviceCheck);
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen && assessmentId) {
@@ -119,6 +137,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const handleTabSwitchViolation = useCallback(() => {
     if (!isOpen || !currentAssessment || currentResult || loading || isLocked) return;
 
+    // Mobile screen protection: Phone calls, WhatsApp calls, and system overlays
+    // trigger blur / visibility change on mobile. Exempt from tab-switch penalty.
+    if (isMobileScreenOrDevice()) return;
+
     setTabSwitchCount((prev) => {
       const nextCount = prev + 1;
 
@@ -153,12 +175,31 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     if (!isOpen || !currentAssessment || currentResult || loading || isLocked) return;
 
     const onVisibilityChange = () => {
+      if (isMobileScreenOrDevice()) {
+        if (document.visibilityState === 'visible' && wasInterruptedRef.current) {
+          wasInterruptedRef.current = false;
+          toast('Incoming call / interruption detected. Protected mode: Warning count unchanged.', {
+            id: 'mobile-call-protection-toast',
+            duration: 3500,
+            style: {
+              background: '#1C1C1E',
+              color: '#34D399',
+              border: '1px solid rgba(52, 211, 153, 0.3)',
+            },
+          });
+        } else if (document.visibilityState === 'hidden') {
+          wasInterruptedRef.current = true;
+        }
+        return;
+      }
+
       if (document.visibilityState === 'hidden') {
         handleTabSwitchViolation();
       }
     };
 
     const onWindowBlur = () => {
+      if (isMobileScreenOrDevice()) return;
       handleTabSwitchViolation();
     };
 
@@ -295,20 +336,35 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 {/* Anti-Cheat Proctoring Badge */}
                 <div
                   className={`hidden xs:flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold transition-all shrink-0 ${
-                    tabSwitchCount === 0
+                    isMobileMode
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : tabSwitchCount === 0
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                       : tabSwitchCount === 1
                       ? 'bg-amber-500/10 text-amber-400 border-amber-500/25'
                       : 'bg-red-500/15 text-red-400 border-red-500/40 animate-pulse'
                   }`}
-                  title="Anti-cheat proctoring active. Tab switches are strictly monitored."
+                  title={
+                    isMobileMode
+                      ? 'Mobile Call Protection Active: Phone calls and incoming interruptions will not increase warnings'
+                      : 'Anti-cheat proctoring active. Tab switches are strictly monitored.'
+                  }
                 >
-                  <ShieldAlert size={13} className={tabSwitchCount > 1 ? 'animate-bounce' : ''} />
-                  <span>
-                    <span className="hidden sm:inline">Tab Switches: </span>
-                    <span className="sm:hidden">Switches: </span>
-                    {tabSwitchCount} / {maxStrikes}
-                  </span>
+                  {isMobileMode ? (
+                    <>
+                      <ShieldCheck size={13} className="text-emerald-400" />
+                      <span>Call Protected</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert size={13} className={tabSwitchCount > 1 ? 'animate-bounce' : ''} />
+                      <span>
+                        <span className="hidden sm:inline">Tab Switches: </span>
+                        <span className="sm:hidden">Switches: </span>
+                        {tabSwitchCount} / {maxStrikes}
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 {/* Fullscreen Toggle */}

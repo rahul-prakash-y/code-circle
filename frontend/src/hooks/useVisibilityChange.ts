@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import api from '../lib/axios';
+import { isMobileScreenOrDevice } from '../lib/deviceUtils';
 
 export interface IntegrityEvent {
   type: string;
@@ -9,11 +10,12 @@ export interface IntegrityEvent {
   details?: Record<string, any>;
 }
 
-interface UseVisibilityChangeOptions {
+export interface UseVisibilityChangeOptions {
   maxWarnings?: number;
   isActive?: boolean;
   problemId?: string;
   context?: 'assessment' | 'contest';
+  exemptMobile?: boolean; // Default true: protects mobile phones and screens from phone-call tab switch warnings
   onLockTriggered?: (events: IntegrityEvent[]) => void;
 }
 
@@ -22,15 +24,32 @@ export const useVisibilityChange = ({
   isActive = true,
   problemId,
   context = 'assessment',
+  exemptMobile = true,
   onLockTriggered,
 }: UseVisibilityChangeOptions = {}) => {
   const [warnings, setWarnings] = useState<number>(0);
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [integrityEvents, setIntegrityEvents] = useState<IntegrityEvent[]>([]);
+  const [isMobileProtected, setIsMobileProtected] = useState<boolean>(() => isMobileScreenOrDevice());
+  const wasInterruptedRef = useRef<boolean>(false);
 
   // Keep ref to latest onLockTriggered to prevent stale closures in event listeners
   const onLockRef = useRef(onLockTriggered);
   onLockRef.current = onLockTriggered;
+
+  // Dynamically update mobile protection on resize or orientation change
+  useEffect(() => {
+    const handleDeviceCheck = () => {
+      setIsMobileProtected(isMobileScreenOrDevice());
+    };
+    handleDeviceCheck();
+    window.addEventListener('resize', handleDeviceCheck);
+    window.addEventListener('orientationchange', handleDeviceCheck);
+    return () => {
+      window.removeEventListener('resize', handleDeviceCheck);
+      window.removeEventListener('orientationchange', handleDeviceCheck);
+    };
+  }, []);
 
   const logIntegrityEvent = useCallback(
     async (warningNum: number, _currentEvents: IntegrityEvent[]) => {
@@ -61,7 +80,16 @@ export const useVisibilityChange = ({
   const handleVisibilityChange = useCallback(() => {
     if (!isActive || isLocked) return;
 
+    const isMobileMode = exemptMobile && (isMobileProtected || isMobileScreenOrDevice());
+
     if (document.hidden) {
+      if (isMobileMode) {
+        // Mobile screen protection: Incoming phone calls, WhatsApp calls, and system overlays
+        // cause the browser window to be backgrounded. Do NOT increment warnings or lock workspace!
+        wasInterruptedRef.current = true;
+        return;
+      }
+
       setWarnings((prev) => {
         const next = prev + 1;
         const newEvent: IntegrityEvent = {
@@ -122,8 +150,25 @@ export const useVisibilityChange = ({
 
         return next;
       });
+    } else {
+      // Document returned to active/visible state
+      if (isMobileMode && wasInterruptedRef.current) {
+        wasInterruptedRef.current = false;
+        toast(
+          'Incoming call / interruption detected. Protected mode: Warning count unchanged.',
+          {
+            id: 'mobile-call-protection-toast',
+            duration: 3500,
+            style: {
+              background: '#1C1C1E',
+              color: '#34D399',
+              border: '1px solid rgba(52, 211, 153, 0.3)',
+            },
+          }
+        );
+      }
     }
-  }, [isActive, isLocked, maxWarnings, integrityEvents, logIntegrityEvent]);
+  }, [isActive, isLocked, exemptMobile, isMobileProtected, maxWarnings, integrityEvents, logIntegrityEvent]);
 
   useEffect(() => {
     if (!isActive || isLocked) return;
@@ -148,9 +193,11 @@ export const useVisibilityChange = ({
     warnings,
     isLocked,
     integrityEvents,
+    isMobileProtected,
     resetWarnings,
     manuallyLock,
   };
 };
 
 export default useVisibilityChange;
+

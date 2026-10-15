@@ -19,6 +19,7 @@ import {
   Sparkles,
   Zap,
   ShieldAlert,
+  ShieldCheck,
   Lock,
   FileCode2,
   RotateCcw,
@@ -169,7 +170,7 @@ export const ContestArenaPage: React.FC = () => {
   };
 
   // Proctored Anti-Cheat: 3 tab switch warnings lock workspace and block account
-  const { warnings, isLocked: antiCheatLocked } = useVisibilityChange({
+  const { warnings, isLocked: antiCheatLocked, isMobileProtected } = useVisibilityChange({
     maxWarnings: 3,
     isActive: Boolean(sessionStarted && !submissionCompleteData && secondsRemaining > 0),
     problemId: id,
@@ -275,12 +276,20 @@ export const ContestArenaPage: React.FC = () => {
 
         {/* Countdown & Submit Button */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          {warnings > 0 && (
+          {isMobileProtected ? (
+            <div
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+              title="Mobile Call Protection Active: Phone calls and incoming interruptions will not increase warnings"
+            >
+              <ShieldCheck size={12} className="sm:w-[13px] sm:h-[13px]" />
+              <span className="hidden xs:inline">Call Protected</span>
+            </div>
+          ) : warnings > 0 ? (
             <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
               <AlertTriangle size={12} className="sm:w-[13px] sm:h-[13px]" />
               <span>Warnings: {warnings}/3</span>
             </div>
-          )}
+          ) : null}
 
           <div
             className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs font-mono font-bold ${timerColor}`}
