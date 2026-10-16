@@ -4,7 +4,24 @@ import User from '../models/userModel';
 import PasswordResetRequest from '../models/passwordResetRequestModel';
 import emailService from '../services/emailService';
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const getClientUrl = (request?: FastifyRequest): string => {
+  const envUrl = process.env.CLIENT_URL;
+  if (envUrl && !envUrl.includes('localhost')) {
+    return envUrl.replace(/\/$/, '');
+  }
+  const origin = request?.headers?.origin as string;
+  if (origin && !origin.includes('localhost')) {
+    return origin.replace(/\/$/, '');
+  }
+  const referer = request?.headers?.referer as string;
+  if (referer && !referer.includes('localhost')) {
+    try {
+      const parsed = new URL(referer);
+      return parsed.origin;
+    } catch {}
+  }
+  return (envUrl || 'http://localhost:5173').replace(/\/$/, '');
+};
 
 /**
  * Public User Endpoint:
@@ -307,7 +324,7 @@ export const approveResetRequest = async (request: FastifyRequest, reply: Fastif
     user.resetPasswordExpires = expires;
     await user.save();
 
-    const resetLink = `${CLIENT_URL}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
+    const resetLink = `${getClientUrl(request)}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
 
     // Dispatch password reset email
     const emailResult = await emailService.sendPasswordResetEmail({
@@ -396,7 +413,7 @@ export const approveAllResetRequests = async (request: FastifyRequest, reply: Fa
         user.resetPasswordExpires = expires;
         await user.save();
 
-        const resetLink = `${CLIENT_URL}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
+        const resetLink = `${getClientUrl(request)}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
 
         const emailResult = await emailService.sendPasswordResetEmail({
           to: user.email,
@@ -496,7 +513,7 @@ export const resendResetEmail = async (request: FastifyRequest, reply: FastifyRe
       resetReq.resetTokenExpires = expires;
     }
 
-    const resetLink = `${CLIENT_URL}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
+    const resetLink = `${getClientUrl(request)}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
 
     const emailResult = await emailService.sendPasswordResetEmail({
       to: user.email,

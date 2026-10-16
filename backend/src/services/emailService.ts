@@ -23,24 +23,41 @@ class EmailService {
     const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
     const user = process.env.SMTP_USER || process.env.EMAIL_USER;
     const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
-    const port = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT) || 587;
+    const port = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT) || (host?.includes('gmail') ? 465 : 587);
+    const isGmail = Boolean(host?.includes('gmail') || user?.includes('@gmail.com'));
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
-    if (host && user && pass) {
+    if (user && pass && (host || isGmail)) {
       if (!this.transporter) {
         try {
-          this.transporter = nodemailer.createTransport({
-            host,
-            port,
-            secure,
-            auth: {
-              user,
-              pass,
-            },
-            tls: {
-              rejectUnauthorized: false,
-            },
-          });
+          if (isGmail) {
+            this.transporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: {
+                user,
+                pass,
+              },
+              connectionTimeout: 15000,
+              greetingTimeout: 15000,
+              socketTimeout: 20000,
+            });
+          } else {
+            this.transporter = nodemailer.createTransport({
+              host,
+              port,
+              secure,
+              auth: {
+                user,
+                pass,
+              },
+              tls: {
+                rejectUnauthorized: false,
+              },
+              connectionTimeout: 15000,
+              greetingTimeout: 15000,
+              socketTimeout: 20000,
+            });
+          }
           this.isConfigured = true;
         } catch (err: any) {
           console.error('[EmailService] Failed to initialize nodemailer transporter:', err.message);
