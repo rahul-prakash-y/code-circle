@@ -711,8 +711,8 @@ export const PointsPage: React.FC = () => {
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full min-w-[720px] text-left">
                 <thead>
                   <tr className="border-b border-separator text-[11px] font-medium text-label-secondary bg-surface-secondary/40">
                     <th className="px-5 py-3.5">Student Profile</th>

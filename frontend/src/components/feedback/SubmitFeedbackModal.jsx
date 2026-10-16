@@ -42,15 +42,20 @@ export const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) 
   const [category, setCategory] = useState('General');
   const [comment, setComment] = useState('');
 
+  const [prevDefaultEventId, setPrevDefaultEventId] = useState(defaultEventId);
+  if (defaultEventId !== prevDefaultEventId) {
+    setPrevDefaultEventId(defaultEventId);
+    if (defaultEventId) {
+      setType('Event');
+      setEventId(defaultEventId);
+    }
+  }
+
   useEffect(() => {
     if (isOpen) {
       fetchEvents();
-      if (defaultEventId) {
-        setType('Event');
-        setEventId(defaultEventId);
-      }
     }
-  }, [isOpen, defaultEventId, fetchEvents]);
+  }, [isOpen, fetchEvents]);
 
   if (!isOpen) return null;
 

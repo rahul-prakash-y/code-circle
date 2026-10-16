@@ -24,7 +24,7 @@ import useEventStore from '../../store/useEventStore';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { getStudentCollege, getStudentYear } from './EventParticipantsModal';
+import { getStudentCollege, getStudentYear } from '../../utils/studentUtils';
 import { useDebounce } from '../../hooks/useDebounce';
 
 interface ManualAttendanceModalProps {

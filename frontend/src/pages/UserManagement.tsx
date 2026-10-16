@@ -519,11 +519,11 @@ const UserManagement: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-4 overflow-auto">
+            <div className="flex flex-wrap items-center gap-4">
               <HeroMetric value={pagination.total} label="Total Members" />
-              <div className="w-px h-10 self-center" style={{ background: 'var(--border-color)' }} />
+              <div className="w-px h-10 self-center hidden sm:block" style={{ background: 'var(--border-color)' }} />
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {isSuperAdmin() && (
                   <button
                     onClick={() => setShowCourseAccessModal(true)}
@@ -671,8 +671,8 @@ const UserManagement: React.FC = () => {
       </motion.div>
 
       {/* ── Table ── */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="w-full min-w-[720px] text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
             <tr>
               <th

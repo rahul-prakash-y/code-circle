@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyRound, Award, Calendar, Download, ArrowUpRight, Bell } from 'lucide-react';
+import { KeyRound, Award, Calendar, Download, ArrowUpRight, Bell, Plus } from 'lucide-react';
 import GenerateOtpModal from './GenerateOtpModal';
 import AssessmentManagerModal from './AssessmentManagerModal';
 import DownloadReportsModal from './DownloadReportsModal';
@@ -62,7 +62,7 @@ export const QuickActions = ({
     <>
       <div className="surface p-6 sm:p-7">
         {/* Section Header */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div>
             <h3 className="text-base sm:text-lg font-bold text-label-primary tracking-tight font-heading">
               Quick Actions
@@ -71,6 +71,15 @@ export const QuickActions = ({
               Administrative shortcuts and event management tools
             </p>
           </div>
+          {onOpenCreateEvent && (
+            <button
+              onClick={onOpenCreateEvent}
+              className="btn-primary text-xs px-3.5 py-1.5 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>Create Event</span>
+            </button>
+          )}
         </div>
 
         {/* Action Cards */}

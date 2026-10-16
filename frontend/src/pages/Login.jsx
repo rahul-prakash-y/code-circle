@@ -4,7 +4,7 @@ import useAuthStore from '../store/useAuthStore';
 import AuthLayout from '../layouts/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { User, Lock, Loader2, Mail, KeyRound, X, CheckCircle2, Copy, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck } from 'lucide-react';
 
 const Login = () => {
   const [identifier, setIdentifier] = useState(''); // email or rollNo
@@ -13,20 +13,8 @@ const Login = () => {
   
   // Forgot Password modal state
   const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [resetResult, setResetResult] = useState(null);
 
-  // Change Password modal state (first-time login)
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [changePasswordLoading, setChangePasswordLoading] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loginCredentials, setLoginCredentials] = useState({ identifier: '', password: '' });
-
-  const { login, forgotPassword, changePassword } = useAuthStore();
+  const { login } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -47,55 +35,6 @@ const Login = () => {
       toast.error(result.error);
     }
     setLoading(false);
-  };
-
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    
-    if (newPassword.length < 6) {
-      return toast.error('Password must be at least 6 characters');
-    }
-    
-    if (newPassword !== confirmNewPassword) {
-      return toast.error('Passwords do not match');
-    }
-
-    if (newPassword === loginCredentials.password) {
-      return toast.error('New password must be different from the temporary password');
-    }
-    
-    setChangePasswordLoading(true);
-    
-    const result = await changePassword(loginCredentials.password, newPassword);
-    
-    if (result.success) {
-      toast.success('Password updated successfully! Welcome to the circle!');
-      setShowChangePasswordModal(false);
-      navigate('/dashboard');
-    } else {
-      toast.error(result.error || 'Failed to change password');
-    }
-    setChangePasswordLoading(false);
-  };
-
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    if (!forgotEmail) return toast.error('Please enter your email address');
-
-    setForgotLoading(true);
-    const result = await forgotPassword(forgotEmail);
-    if (result.success) {
-      setResetResult(result);
-      toast.success('Reset link request processed!');
-    } else {
-      toast.error(result.error);
-    }
-    setForgotLoading(false);
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Reset link copied to clipboard!');
   };
 
   return (
@@ -151,11 +90,7 @@ const Login = () => {
             <label className="input-label">Password</label>
             <button 
               type="button" 
-              onClick={() => {
-                setShowForgotModal(true);
-                setResetResult(null);
-                setForgotEmail('');
-              }} 
+              onClick={() => setShowForgotModal(true)} 
               className="text-[11px] uppercase tracking-wider text-accent font-semibold hover:text-accent-muted transition-colors duration-300 mb-2 cursor-pointer"
             >
               Forgot?
@@ -202,113 +137,7 @@ const Login = () => {
         </motion.p>
       </motion.form>
 
-      {/* Change Password Modal (First-Time Login) */}
-      <AnimatePresence>
-        {showChangePasswordModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md glass-elevated p-8 rounded-2xl z-10"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-accent/10 rounded-xl border border-accent/20 text-accent">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-text-primary font-heading">Set Your Password</h3>
-                    <p className="text-xs text-text-muted font-medium">Create a personal password to secure your account</p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-5">
-                <p className="text-xs text-amber-400 leading-relaxed flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
-                  You're using a temporary password provided by an administrator. For security, please create your own personal password to continue.
-                </p>
-              </div>
-
-              <form onSubmit={handleChangePassword} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="input-label">New Password</label>
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
-                    <input
-                      type={showNewPassword ? 'text' : 'password'}
-                      placeholder="Minimum 6 characters"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="input-field pl-12 pr-12"
-                      required
-                      minLength={6}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                    >
-                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="input-label">Confirm New Password</label>
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Re-enter your new password"
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      className="input-field pl-12 pr-12"
-                      required
-                      minLength={6}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {confirmNewPassword && newPassword !== confirmNewPassword && (
-                    <p className="text-xs text-red-400 mt-1">Passwords do not match</p>
-                  )}
-                  {confirmNewPassword && newPassword === confirmNewPassword && newPassword.length >= 6 && (
-                    <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Passwords match
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={changePasswordLoading || newPassword.length < 6 || newPassword !== confirmNewPassword}
-                  className="btn-primary w-full flex items-center justify-center gap-2 cursor-pointer py-3.5 text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {changePasswordLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                    <>
-                      <ShieldCheck className="w-5 h-5" />
-                      Set Password & Continue
-                    </>
-                  )}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Contact Admin / Forgot Password Modal */}
       <AnimatePresence>

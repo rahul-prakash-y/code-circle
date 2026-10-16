@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   User as UserIcon, 
   Mail, 
@@ -55,7 +55,7 @@ const formatDob = (dobStr) => {
 
 const Profile = () => {
   const { profile, updateProfile, profileLoading } = useProfileStore();
-  const { user, logout, changePassword } = useAuthStore();
+  const { logout, changePassword } = useAuthStore();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -111,51 +111,37 @@ const Profile = () => {
     }
   };
 
-  const [formData, setFormData] = useState({
-    name: '',
-    department: '',
-    rollNo: '',
-    phone: '',
-    dob: '',
-    gender: '',
-    year: '',
-    college: '',
-    bio: '',
+  const createInitialFormData = (p) => ({
+    name: p?.name || '',
+    department: p?.department || '',
+    rollNo: p?.rollNo || '',
+    phone: p?.phone || p?.phoneNumber || '',
+    dob: (p?.dob || p?.dateOfBirth) ? String(p?.dob || p?.dateOfBirth).substring(0, 10) : '',
+    gender: p?.gender || '',
+    year: p?.year || '',
+    college: p?.college || 'BIT',
+    bio: p?.bio || '',
     socialLinks: {
-      github: '',
-      linkedin: '',
-      leetcode: '',
-      hackerrank: '',
-      instagram: '',
+      github: p?.socialLinks?.github || '',
+      linkedin: p?.socialLinks?.linkedin || '',
+      leetcode: p?.socialLinks?.leetcode || '',
+      hackerrank: p?.socialLinks?.hackerrank || '',
+      instagram: p?.socialLinks?.instagram || '',
     },
-    skills: []
+    skills: p?.skills || []
   });
+
+  const [formData, setFormData] = useState(() => createInitialFormData(profile));
+  const [prevProfile, setPrevProfile] = useState(profile);
   const [skillInput, setSkillInput] = useState('');
 
-  // Synchronize local form state only when profile from store changes
-  useEffect(() => {
+  // Synchronize local form state during render when profile from store changes
+  if (profile !== prevProfile) {
+    setPrevProfile(profile);
     if (profile) {
-      setFormData({
-        name: profile.name || '',
-        department: profile.department || '',
-        rollNo: profile.rollNo || '',
-        phone: profile.phone || profile.phoneNumber || '',
-        dob: (profile.dob || profile.dateOfBirth) ? String(profile.dob || profile.dateOfBirth).substring(0, 10) : '',
-        gender: profile.gender || '',
-        year: profile.year || '',
-        college: profile.college || 'BIT',
-        bio: profile.bio || '',
-        socialLinks: {
-          github: profile.socialLinks?.github || '',
-          linkedin: profile.socialLinks?.linkedin || '',
-          leetcode: profile.socialLinks?.leetcode || '',
-          hackerrank: profile.socialLinks?.hackerrank || '',
-          instagram: profile.socialLinks?.instagram || '',
-        },
-        skills: profile.skills || []
-      });
+      setFormData(createInitialFormData(profile));
     }
-  }, [profile]);
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;

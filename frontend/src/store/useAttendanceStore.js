@@ -44,7 +44,7 @@ const useAttendanceStore = create((set) => ({
       const response = await api.get(`/attendance/sessions/${sessionId}/attendance`);
       set({ sessionAttendance: response.data, loading: false });
       return response.data;
-    } catch (error) {
+    } catch {
       set({ loading: false });
       toast.error('Failed to fetch student list');
       return [];

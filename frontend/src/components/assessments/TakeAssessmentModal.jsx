@@ -45,7 +45,6 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const [startTime, setStartTime] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [reviewMode, setReviewMode] = useState(false);
 
   // Anti-cheat proctoring state
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
@@ -76,7 +75,6 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen && assessmentId) {
       clearCurrentResult();
-      setReviewMode(false);
       setAnswers({});
       setCurrentQuestionIndex(0);
       setTabSwitchCount(0);
@@ -581,7 +579,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                     } else {
                       toast.error(res.error || 'Failed to delete retry attempt');
                     }
-                  } catch (e) {
+                  } catch {
                     toast.error('Could not reset retry attempt');
                   } finally {
                     setReappearing(false);

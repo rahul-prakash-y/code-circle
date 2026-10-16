@@ -32,7 +32,7 @@ import ManualAttendanceModal from './ManualAttendanceModal';
 import { format } from 'date-fns';
 import { formatISTDateTime } from '../../lib/dateUtils';
 import toast from 'react-hot-toast';
-import { getStudentCollege, getStudentYear } from './EventParticipantsModal';
+import { getStudentCollege, getStudentYear } from '../../utils/studentUtils';
 import { useDebounce } from '../../hooks/useDebounce';
 
 const AttendanceRecordsView: React.FC = () => {

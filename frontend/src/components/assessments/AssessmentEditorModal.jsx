@@ -48,11 +48,10 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
     },
   ]);
 
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+  const [prevAssessmentToEdit, setPrevAssessmentToEdit] = useState(assessmentToEdit);
 
-  useEffect(() => {
+  if (assessmentToEdit !== prevAssessmentToEdit) {
+    setPrevAssessmentToEdit(assessmentToEdit);
     if (assessmentToEdit) {
       setTitle(assessmentToEdit.title || '');
       setDescription(assessmentToEdit.description || '');
@@ -100,7 +99,11 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
         },
       ]);
     }
-  }, [assessmentToEdit, isOpen]);
+  }
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   if (!isOpen) return null;
 

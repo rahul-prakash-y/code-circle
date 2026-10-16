@@ -38,7 +38,7 @@ const BearerManager = () => {
       });
       setFormData({ ...formData, profilePicUrl: response.data.url });
       toast.success('Image uploaded successfully!');
-    } catch (error) {
+    } catch {
       toast.error('Image upload failed');
     } finally {
       setUploading(false);

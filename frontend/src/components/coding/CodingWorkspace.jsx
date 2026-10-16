@@ -17,7 +17,6 @@ const CodingWorkspace = () => {
   const { currentProblem, fetchProblemById, submitCode, isLoading, submissionResult } = useCodingStore();
   const [code, setCode] = useState('// Write your code here...');
   const [languageId, setLanguageId] = useState(63); // Default JavaScript
-  const [showConsole, setShowConsole] = useState(true);
   const [cooldown, setCooldown] = useState(0);
 
   const isMobile = useMediaQuery('(max-width: 1023px)');
@@ -44,7 +43,6 @@ const CodingWorkspace = () => {
     try {
       setCooldown(10); // Enforce 10s cooldown on run
       await submitCode(id, code, languageId);
-      setShowConsole(true);
       if (isMobile) setMobileTab('console');
     } catch (err) {
       console.error('Submission failed', err);

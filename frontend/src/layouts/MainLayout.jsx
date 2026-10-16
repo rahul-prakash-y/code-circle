@@ -13,7 +13,7 @@ import {
   Medal, Trophy, Ticket, MessageSquare,
   Newspaper, Users, Crown, Shield, BarChart3,
   Compass, UserCheck,
-  Flame, Sparkles, KeyRound,
+  Flame, Sparkles, KeyRound, Activity,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -112,7 +112,12 @@ export const MainLayout = ({ children }) => {
     { to: '/feedback', label: 'Feedback', icon: MessageSquare },
     { to: '/news', label: 'News', icon: Newspaper },
     { to: '/bearers', label: 'Student Bearers', icon: Crown },
-    ...(isSuperAdmin ? [{ to: '/bearers/manage', label: 'Manage Bearers', icon: Crown }] : []),
+    ...(isSuperAdmin
+      ? [
+          { to: '/bearers/manage', label: 'Manage Bearers', icon: Crown },
+          { to: '/diagnostics', label: 'Diagnostics', icon: Activity },
+        ]
+      : []),
     ...(isAdmin
       ? [
           { to: '/users', label: 'Directory', icon: Shield },

@@ -10,9 +10,9 @@ const useEventStore = create((set) => ({
 
   fetchEvents: async (filters = '') => {
     set({ loading: true, error: null });
+    let statusVal = '';
     try {
       let url = '/events';
-      let statusVal = '';
       if (typeof filters === 'string') {
         statusVal = filters;
         if (filters) url += `?status=${filters}`;
@@ -39,7 +39,7 @@ const useEventStore = create((set) => ({
           loading: false 
         });
       }
-    } catch (error) {
+    } catch {
       // Fallback Mock Events
       const mockEvents = [
         {

@@ -61,7 +61,7 @@ export const EventFeed = ({
       search: searchQuery || undefined,
     });
     fetchMyEnrollments();
-  }, [activeTab, selectedType, selectedFormat, fetchEvents, fetchMyEnrollments]);
+  }, [activeTab, selectedType, selectedFormat, searchQuery, fetchEvents, fetchMyEnrollments]);
 
   const isEventLive = (e) => {
     if (!e) return false;

@@ -108,7 +108,7 @@ export const AssessmentList = () => {
       } else {
         toast.error(res.error || 'Failed to reset retry attempt');
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to reset assessment retry');
     } finally {
       setResettingId(null);
@@ -119,12 +119,6 @@ export const AssessmentList = () => {
     (acc, a) => acc + (a.questionsCount || a.questions?.length || 0),
     0
   );
-  const avgDuration = assessments.length
-    ? Math.round(
-        assessments.reduce((acc, a) => acc + (a.timeLimitMinutes || 30), 0) /
-          assessments.length
-      )
-    : 30;
   const myCompletedCount = assessments.filter((a) => Boolean(a.mySubmission)).length;
 
   const getCategoryCount = (cat) => {

@@ -495,7 +495,7 @@ export const EventModal = ({
         date: effectiveStartDate,
         startDate: effectiveStartDate,
         endDate: effectiveEndDate,
-        hourlyPoints: Math.max(0, Number(formData.hourlyPoints) !== undefined && !isNaN(Number(formData.hourlyPoints)) ? Number(formData.hourlyPoints) : 50),
+        hourlyPoints: Math.max(0, !isNaN(Number(formData.hourlyPoints)) ? Number(formData.hourlyPoints) : 50),
         maxParticipants: Math.max(0, Number(formData.maxParticipants) || 0),
         maxTeamSize: formData.format === 'Duo' ? 2 : (Number(formData.maxTeamSize) || 4),
         registrationDeadline: formData.registrationDeadline || effectiveStartDate,

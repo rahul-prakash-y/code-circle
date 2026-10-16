@@ -95,7 +95,7 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
           toast.error(res.error || 'Failed to allow student to reappear');
         }
       }
-    } catch (err) {
+    } catch {
       toast.error('An unexpected error occurred while processing action.');
     } finally {
       setActionLoading(false);

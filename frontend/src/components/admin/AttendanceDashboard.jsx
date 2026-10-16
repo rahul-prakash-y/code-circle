@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   X,
   CheckCircle2,
@@ -58,7 +58,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
 
   // Selected OTP session
   const [selectedSession, setSelectedSession] = useState(null);
-  const [copiedOtp, setCopiedOtp] = useState(false);
+  const [copiedOtp, setCopiedOtp] = useState(null);
 
   // Load enrollments or sessions on open
   useEffect(() => {
@@ -81,12 +81,17 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
     }
   }, [isOpen, event?._id, activeTab, fetchEventEnrollments, fetchEventSessions]);
 
+  const handleViewSession = useCallback(async (session) => {
+    setSelectedSession(session);
+    await fetchSessionAttendance(session._id);
+  }, [fetchSessionAttendance]);
+
   // Auto-select latest session if available
   useEffect(() => {
     if (activeTab === 'sessions' && sessions?.length > 0 && !selectedSession) {
       handleViewSession(sessions[0]);
     }
-  }, [activeTab, sessions, selectedSession]);
+  }, [activeTab, sessions, selectedSession, handleViewSession]);
 
   // Filtered manual registry
   const filteredEnrollments = useMemo(() => {
@@ -145,10 +150,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
     }
   };
 
-  const handleViewSession = async (session) => {
-    setSelectedSession(session);
-    await fetchSessionAttendance(session._id);
-  };
+
 
   const toggleManualAttendance = (id) => {
     setSelectedEnrollmentIds((prev) => {
@@ -189,9 +191,9 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
   const handleCopyOtp = (otp) => {
     if (!otp) return;
     navigator.clipboard.writeText(String(otp));
-    setCopiedOtp(true);
+    setCopiedOtp(String(otp));
     toast.success(`OTP ${otp} copied to clipboard!`);
-    setTimeout(() => setCopiedOtp(false), 2000);
+    setTimeout(() => setCopiedOtp(null), 2000);
   };
 
   const exportSessionCSV = () => {
@@ -273,8 +275,8 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
         </div>
 
         {/* Segmented Tab Switcher */}
-        <div className="px-5 sm:px-6 py-2.5 border-b border-separator dark:border-white/10 bg-canvas/30 dark:bg-white/[0.01] flex items-center justify-between gap-3 shrink-0">
-          <div className="flex p-1 bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-2xl">
+        <div className="px-4 sm:px-6 py-2.5 border-b border-separator dark:border-white/10 bg-canvas/30 dark:bg-white/[0.01] flex items-center justify-between gap-3 shrink-0 overflow-x-auto custom-scrollbar">
+          <div className="flex p-1 bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-2xl shrink-0">
             <button
               onClick={() => setActiveTab('manual')}
               className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -602,7 +604,11 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                               className="p-1 rounded-lg hover:bg-canvas dark:hover:bg-white/10 text-label-tertiary hover:text-label-primary transition-colors cursor-pointer"
                               title="Copy OTP"
                             >
-                              <Copy size={13} />
+                              {copiedOtp === String(s.otp) ? (
+                                <Check size={13} className="text-emerald-500" />
+                              ) : (
+                                <Copy size={13} />
+                              )}
                             </button>
                           </div>
                         </div>
@@ -823,6 +829,19 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                         );
                       })}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
+                      Hourly Points per Session
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={hourlyPoints}
+                      onChange={(e) => setHourlyPoints(Number(e.target.value) || 0)}
+                      className="w-full text-xs py-2 px-3.5 rounded-xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-blue-500 font-medium"
+                    />
                   </div>
 
                   <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-separator dark:border-white/10">

@@ -27,7 +27,6 @@ import { TableSkeleton } from '../ui/LoadingSkeleton';
 const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
   const isFirst = rank === 1;
   const isSecond = rank === 2;
-  const isThird = rank === 3;
 
   const points = user.totalPoints ?? user.points ?? 0;
   const problems = user.problemsSolved ?? 0;

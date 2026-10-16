@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Award, Code2, CheckCircle2, ChevronRight, BookOpen, Layers, Plus } from 'lucide-react';
+import { X, Award, Code2, CheckCircle2, ChevronRight, BookOpen, Layers, Plus, Loader2 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
   const [problems, setProblems] = useState([]);
@@ -125,7 +124,13 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
 
         {/* Assessment Tiers List */}
         <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar relative z-10 pr-1">
-          {assessmentTiers.map((tier, idx) => (
+          {loading ? (
+            <div className="py-12 text-center text-xs text-text-muted flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+              <span>Loading assessment tracks...</span>
+            </div>
+          ) : (
+            assessmentTiers.map((tier, idx) => (
             <div
               key={idx}
               className="p-4 rounded-2xl bg-surface-elevated border border-border hover:border-white/15 transition-all flex items-center justify-between group"
@@ -172,7 +177,8 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
                 )}
               </div>
             </div>
-          ))}
+          )))
+        }
         </div>
 
         {/* Footer Actions */}
