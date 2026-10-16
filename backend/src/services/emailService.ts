@@ -37,9 +37,9 @@ class EmailService {
                 user,
                 pass,
               },
-              connectionTimeout: 15000,
-              greetingTimeout: 15000,
-              socketTimeout: 20000,
+              connectionTimeout: 4000,
+              greetingTimeout: 4000,
+              socketTimeout: 5000,
             });
           } else {
             this.transporter = nodemailer.createTransport({
@@ -53,9 +53,9 @@ class EmailService {
               tls: {
                 rejectUnauthorized: false,
               },
-              connectionTimeout: 15000,
-              greetingTimeout: 15000,
-              socketTimeout: 20000,
+              connectionTimeout: 4000,
+              greetingTimeout: 4000,
+              socketTimeout: 5000,
             });
           }
           this.isConfigured = true;
@@ -75,11 +75,19 @@ class EmailService {
 
   public getStatus() {
     this.getTransporter();
-    const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
+    const hasResend = Boolean(process.env.RESEND_API_KEY);
+    const hasBrevo = Boolean(process.env.BREVO_API_KEY);
+    const host = hasResend
+      ? 'Resend HTTP API (Port 443)'
+      : hasBrevo
+      ? 'Brevo HTTP API (Port 443)'
+      : process.env.SMTP_HOST || process.env.EMAIL_HOST || 'Not set';
     const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+
     return {
-      configured: Boolean(this.isConfigured && this.transporter),
-      host: host || 'Not set',
+      configured: Boolean(hasResend || hasBrevo || (this.isConfigured && this.transporter)),
+      provider: hasResend ? 'resend' : hasBrevo ? 'brevo' : 'smtp',
+      host,
       user: user ? `${user.substring(0, 3)}***@${user.split('@')[1] || 'domain'}` : 'Not set',
       sender: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'Code Circle <codecircle@bitsathy.ac.in>',
     };
@@ -212,7 +220,86 @@ If you did not request this reset, please contact your administrator.
 — Code Circle BIT
     `.trim();
 
-    // If transporter is configured, attempt actual SMTP dispatch
+    // Priority 1: Resend HTTP API (HTTPS Port 443 — Unblocked on Render Free Tier)
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const axios = (await import('axios')).default;
+        const res = await axios.post(
+          'https://api.resend.com/emails',
+          {
+            from: process.env.RESEND_FROM || process.env.EMAIL_FROM || 'Code Circle <onboarding@resend.dev>',
+            to: [to],
+            subject: '🔐 Code Circle — Password Reset Approved',
+            html: htmlContent,
+            text: textContent,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 6000,
+          }
+        );
+
+        console.log(`[EmailService: Resend] Password reset email sent to ${to}. ID: ${res.data?.id}`);
+        return {
+          success: true,
+          messageId: res.data?.id,
+          simulated: false,
+        };
+      } catch (httpErr: any) {
+        console.error('[EmailService: Resend] API error sending to', to, httpErr.response?.data || httpErr.message);
+        return {
+          success: false,
+          error: `Resend API Error: ${httpErr.response?.data?.message || httpErr.message}`,
+          simulated: false,
+        };
+      }
+    }
+
+    // Priority 2: Brevo HTTP API (HTTPS Port 443 — Unblocked on Render Free Tier)
+    if (process.env.BREVO_API_KEY) {
+      try {
+        const axios = (await import('axios')).default;
+        const res = await axios.post(
+          'https://api.brevo.com/v3/smtp/email',
+          {
+            sender: {
+              name: 'Code Circle BIT',
+              email: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'rahulraiman03@gmail.com',
+            },
+            to: [{ email: to, name }],
+            subject: '🔐 Code Circle — Password Reset Approved',
+            htmlContent,
+            textContent,
+          },
+          {
+            headers: {
+              'api-key': process.env.BREVO_API_KEY,
+              'Content-Type': 'application/json',
+            },
+            timeout: 6000,
+          }
+        );
+
+        console.log(`[EmailService: Brevo] Password reset email sent to ${to}. MessageId: ${res.data?.messageId}`);
+        return {
+          success: true,
+          messageId: res.data?.messageId,
+          simulated: false,
+        };
+      } catch (httpErr: any) {
+        console.error('[EmailService: Brevo] API error sending to', to, httpErr.response?.data || httpErr.message);
+        return {
+          success: false,
+          error: `Brevo API Error: ${httpErr.response?.data?.message || httpErr.message}`,
+          simulated: false,
+        };
+      }
+    }
+
+    // Priority 3: Standard SMTP (Nodemailer) — Ideal for localhost or VPS
     const transporter = this.getTransporter();
     if (transporter) {
       try {
@@ -232,23 +319,31 @@ If you did not request this reset, please contact your administrator.
         };
       } catch (err: any) {
         console.error(`[EmailService] SMTP error sending email to ${to}:`, err.message);
+        const isTimeout =
+          err.message?.toLowerCase().includes('timeout') ||
+          err.code === 'ETIMEDOUT' ||
+          err.code === 'ESOCKET';
+
+        const errorDesc = isTimeout
+          ? `Connection timeout: Render Free Tier blocks outbound SMTP ports 465/587. To send emails on Render, add RESEND_API_KEY in Render Environment Variables, or copy the direct reset link.`
+          : `SMTP Send Error: ${err.message}`;
+
         return {
           success: false,
-          error: `SMTP Send Error: ${err.message}`,
+          error: errorDesc,
           simulated: false,
         };
       }
     }
 
-    // If SMTP is not configured in .env, record simulated dispatch or report missing config
-    // We check if SIMULATE_EMAIL is enabled or if no SMTP exists
+    // If neither HTTP API nor SMTP is configured in .env
     console.warn(
-      `[EmailService: Not Configured] SMTP credentials are not configured in backend .env. Reset Link for ${to} (${name}): ${resetLink}`
+      `[EmailService: Not Configured] Email service credentials are not configured in backend environment. Reset Link for ${to} (${name}): ${resetLink}`
     );
 
     return {
       success: false,
-      error: 'SMTP server credentials not configured in backend .env (SMTP_HOST, SMTP_USER, SMTP_PASS)',
+      error: 'Email service credentials not configured in backend .env (Add RESEND_API_KEY or SMTP_USER/SMTP_PASS)',
       simulated: true,
     };
   }

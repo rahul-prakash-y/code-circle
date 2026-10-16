@@ -106,13 +106,13 @@ if (fs.existsSync(frontendDistPath)) {
 // Server Initialization
 export const start = async (): Promise<void> => {
   try {
-    await connectDB();
-
     const port = Number(process.env.PORT) || 5000;
     const host = '0.0.0.0';
 
     await server.listen({ port, host });
     console.log(`[Server] Fastify server listening on http://${host}:${port}`);
+
+    await connectDB();
 
     // Asynchronous background migrations & sync (non-blocking)
     (async () => {
