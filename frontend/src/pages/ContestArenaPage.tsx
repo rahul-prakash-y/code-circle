@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock,
   Send,
   Play,
   CheckCircle2,
+  XCircle,
   AlertTriangle,
   Code2,
   HelpCircle,
@@ -23,6 +25,10 @@ import {
   Lock,
   FileCode2,
   RotateCcw,
+  FileText,
+  Copy,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useContestStore, {
@@ -32,8 +38,80 @@ import useContestStore, {
   CodingProblem,
 } from '../store/useContestStore';
 import { useVisibilityChange } from '../hooks/useVisibilityChange';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
 import RequestReentryModal from '../components/contests/RequestReentryModal';
+
+const MONACO_LANG_MAP: Record<string, string> = {
+  python: 'python',
+  javascript: 'javascript',
+  cpp: 'cpp',
+  java: 'java',
+  c: 'c',
+};
+
+const LANG_DISPLAY_NAMES: Record<string, string> = {
+  python: 'Python 3',
+  javascript: 'JavaScript (Node.js)',
+  cpp: 'C++ (GCC)',
+  java: 'Java (OpenJDK)',
+  c: 'C (GCC)',
+};
+
+const ACCESSORY_KEYS = [
+  { label: 'Tab', value: '    ' },
+  { label: '{ }', value: '{}' },
+  { label: '( )', value: '()' },
+  { label: '[ ]', value: '[]' },
+  { label: ':', value: ':' },
+  { label: ';', value: ';' },
+  { label: '=', value: ' = ' },
+  { label: '==', value: ' == ' },
+  { label: '"', value: '"' },
+  { label: "'", value: "'" },
+  { label: '+', value: ' + ' },
+  { label: '-', value: ' - ' },
+  { label: '*', value: ' * ' },
+  { label: '/', value: ' / ' },
+  { label: '<', value: ' < ' },
+  { label: '>', value: ' > ' },
+  { label: '!', value: '!' },
+  { label: '_', value: '_' },
+];
+
+const getDefaultStarterCode = (lang: string): string => {
+  switch (lang) {
+    case 'python':
+      return '# Write your Python solution here\n';
+    case 'javascript':
+      return '// Write your JavaScript solution here\n';
+    case 'cpp':
+      return '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your C++ solution here\n    return 0;\n}\n';
+    case 'java':
+      return 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        // Write your Java solution here\n    }\n}\n';
+    case 'c':
+      return '#include <stdio.h>\n\nint main() {\n    // Write your C solution here\n    return 0;\n}\n';
+    default:
+      return `// Solution in ${lang}\n`;
+  }
+};
+
+const getFileExtension = (lang: string): string => {
+  switch (lang) {
+    case 'python':
+      return 'py';
+    case 'javascript':
+      return 'js';
+    case 'cpp':
+      return 'cpp';
+    case 'java':
+      return 'java';
+    case 'c':
+      return 'c';
+    default:
+      return 'txt';
+  }
+};
 
 export const ContestArenaPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -62,16 +140,30 @@ export const ContestArenaPage: React.FC = () => {
 
   // Student Answers State
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, number>>({});
-  const [codingCodes, setCodingCodes] = useState<Record<string, string>>({});
+  const [codeStore, setCodeStore] = useState<Record<string, Record<string, string>>>({});
   const [selectedLanguage, setSelectedLanguage] = useState<string>('python');
 
   // Terminal & Run Output
-  const [consoleOutput, setConsoleOutput] = useState<{
-    stdout?: string;
-    stderr?: string;
-    isPassed?: boolean;
-    timeMs?: number;
-  } | null>(null);
+  const [consoleOutput, setConsoleOutput] = useState<string | null>(null);
+  const [executionResult, setExecutionResult] = useState<any | null>(null);
+  const [activeConsoleTab, setActiveConsoleTab] = useState<'cases' | 'terminal'>('cases');
+  const [selectedTestCaseIdx, setSelectedTestCaseIdx] = useState<number>(0);
+
+  // Left Panel Sub-tab on Desktop: 'problem' | 'testcases'
+  const [activeLeftTab, setActiveLeftTab] = useState<'problem' | 'testcases'>('problem');
+
+  // Mobile navigation tabs (< 1024px): 'problem' | 'code' | 'testcases' | 'console'
+  const [mobileTab, setMobileTab] = useState<'problem' | 'code' | 'testcases' | 'console'>('problem');
+
+  // Run cooldown in seconds
+  const [runCooldown, setRunCooldown] = useState<number>(0);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Editor instance ref for accessory keys
+  const editorRef = useRef<any>(null);
+
+  // Responsive Breakpoint check
+  const isMobile = useMediaQuery('(max-width: 1023px)');
 
   // Time remaining countdown in seconds
   const [secondsRemaining, setSecondsRemaining] = useState<number>(3600);
@@ -109,16 +201,36 @@ export const ContestArenaPage: React.FC = () => {
           });
           setMcqAnswers(savedAnswers);
 
-          // Populate starter code
-          const starterMap: Record<string, string> = {};
+          // Populate starter codes per problem and language
+          const initialStore: Record<string, Record<string, string>> = {};
+          const supportedLangs = ['python', 'javascript', 'cpp', 'java', 'c'];
+
           (c.codingProblems || []).forEach((p) => {
-            const starter =
-              (p.starterCode as any)?.get?.('python') ||
-              (p.starterCode as any)?.python ||
-              '# Write your solution here\n';
-            starterMap[p._id] = starter;
+            initialStore[p._id] = {};
+            const allowed = p.allowedLanguages && p.allowedLanguages.length > 0
+              ? p.allowedLanguages
+              : supportedLangs;
+
+            allowed.forEach((lang) => {
+              const starter =
+                (p.starterCode as any)?.[lang] ||
+                (p.starterCode as any)?.get?.(lang) ||
+                getDefaultStarterCode(lang);
+              initialStore[p._id][lang] = starter;
+            });
           });
-          setCodingCodes(starterMap);
+
+          // Restore saved coding submissions if any
+          (sess.codingSubmissions || []).forEach((cs: any) => {
+            const pId = cs.problemId?.toString();
+            if (pId && cs.code) {
+              if (!initialStore[pId]) initialStore[pId] = {};
+              const lang = cs.language || 'python';
+              initialStore[pId][lang] = cs.code;
+            }
+          });
+
+          setCodeStore(initialStore);
 
           // Calculate initial remaining seconds
           const diff = Math.max(0, Math.floor((new Date(sess.expiresAt).getTime() - Date.now()) / 1000));
@@ -144,6 +256,15 @@ export const ContestArenaPage: React.FC = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, [sessionStarted, secondsRemaining]);
+
+  // Run cooldown timer
+  useEffect(() => {
+    if (runCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setRunCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [runCooldown]);
 
   const handleAutoSubmit = async () => {
     toast('Contest time elapsed! Submitting automatically...', { icon: '⏳' });
@@ -190,6 +311,32 @@ export const ContestArenaPage: React.FC = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const handleEditorMount = (editor: any) => {
+    editorRef.current = editor;
+  };
+
+  const insertAccessorySnippet = (snippet: string) => {
+    if (!editorRef.current) return;
+    const editor = editorRef.current;
+    const selection = editor.getSelection();
+    if (selection) {
+      editor.executeEdits('mobile-keyboard', [
+        {
+          range: selection,
+          text: snippet,
+          forceMoveMarkers: true,
+        },
+      ]);
+      editor.focus();
+    }
+  };
+
+  const handleCopyText = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   if (loading && !activeContest) {
     return (
       <div className="h-screen flex items-center justify-center bg-background text-label-tertiary">
@@ -205,7 +352,7 @@ export const ContestArenaPage: React.FC = () => {
         <p className="text-sm font-bold text-label-secondary">Contest not found or closed.</p>
         <button
           onClick={() => navigate('/contests')}
-          className="mt-4 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl"
+          className="mt-4 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl cursor-pointer"
         >
           Return to Contests
         </button>
@@ -218,6 +365,127 @@ export const ContestArenaPage: React.FC = () => {
   const currentMcq = mcqs[currentMcqIdx];
   const currentCoding = codings[currentCodingIdx];
 
+  const currentCode =
+    (currentCoding && codeStore[currentCoding._id]?.[selectedLanguage]) ??
+    (currentCoding
+      ? (currentCoding.starterCode as any)?.[selectedLanguage] ||
+        (currentCoding.starterCode as any)?.get?.(selectedLanguage) ||
+        getDefaultStarterCode(selectedLanguage)
+      : '');
+
+  const handleCodeChange = (val?: string) => {
+    if (!currentCoding || antiCheatLocked || submitting) return;
+    const newCode = val ?? '';
+    setCodeStore((prev) => ({
+      ...prev,
+      [currentCoding._id]: {
+        ...(prev[currentCoding._id] || {}),
+        [selectedLanguage]: newCode,
+      },
+    }));
+  };
+
+  const handleResetStarterCode = () => {
+    if (!currentCoding || antiCheatLocked || executing || submitting) return;
+    const starter =
+      (currentCoding.starterCode as any)?.[selectedLanguage] ||
+      (currentCoding.starterCode as any)?.get?.(selectedLanguage) ||
+      getDefaultStarterCode(selectedLanguage);
+    handleCodeChange(starter);
+    toast.success(`Reset code to ${LANG_DISPLAY_NAMES[selectedLanguage] || selectedLanguage} template`);
+  };
+
+  const handleLanguageChange = (lang: string) => {
+    if (antiCheatLocked || executing || submitting) return;
+    setSelectedLanguage(lang);
+    if (currentCoding) {
+      if (!codeStore[currentCoding._id]?.[lang]) {
+        const starter =
+          (currentCoding.starterCode as any)?.[lang] ||
+          (currentCoding.starterCode as any)?.get?.(lang) ||
+          getDefaultStarterCode(lang);
+        setCodeStore((prev) => ({
+          ...prev,
+          [currentCoding._id]: {
+            ...(prev[currentCoding._id] || {}),
+            [lang]: starter,
+          },
+        }));
+      }
+    }
+  };
+
+  const handleSwitchCodingProblem = (idx: number) => {
+    if (idx === currentCodingIdx || idx < 0 || idx >= codings.length) return;
+    setCurrentCodingIdx(idx);
+    setExecutionResult(null);
+    setSelectedTestCaseIdx(0);
+  };
+
+  const handleRunCode = async () => {
+    if (!activeContest || !currentCoding || executing || submitting || antiCheatLocked || runCooldown > 0) return;
+    if (!currentCode.trim()) {
+      toast.error('Source code cannot be empty');
+      return;
+    }
+    setRunCooldown(8);
+    setActiveConsoleTab('cases');
+    if (isMobile) setMobileTab('testcases');
+
+    const res = await runCode(activeContest._id, currentCoding._id, currentCode, selectedLanguage);
+    if (res) {
+      setExecutionResult({
+        source: 'run',
+        isPassed: res.isSamplePassed,
+        stdout: res.stdout || '',
+        stderr: res.stderr || '',
+        timeMs: res.executionTimeMs || 0,
+        expectedOutput: res.expectedOutput || currentCoding.sampleOutput || '',
+        input: currentCoding.sampleInput || '',
+      });
+      setConsoleOutput(
+        res.stderr
+          ? `Stderr:\n${res.stderr}\n\nStdout:\n${res.stdout || '(no stdout)'}`
+          : res.stdout || '$ Program executed successfully with no stdout output.'
+      );
+      if (res.isSamplePassed) {
+        toast.success('Sample test case passed!');
+      } else if (res.stderr) {
+        toast.error('Runtime error or compilation error');
+        if (isMobile) setMobileTab('console');
+      } else {
+        toast.error('Sample output mismatch');
+      }
+    }
+  };
+
+  const handleSubmitProblemCode = async () => {
+    if (!activeContest || !currentCoding || executing || submitting || antiCheatLocked) return;
+    if (!currentCode.trim()) {
+      toast.error('Source code cannot be empty');
+      return;
+    }
+    setActiveConsoleTab('cases');
+    if (isMobile) setMobileTab('testcases');
+
+    const res = await submitProblemCode(activeContest._id, currentCoding._id, currentCode, selectedLanguage);
+    if (res) {
+      setExecutionResult({
+        source: 'submit',
+        problemId: res.problemId,
+        passedCount: res.passedCount,
+        totalTests: res.totalTests,
+        pointsEarned: res.pointsEarned,
+        maxPoints: res.maxPoints,
+        status: res.status,
+        testCaseResults: res.testCaseResults || [],
+      });
+      setConsoleOutput(
+        `Evaluation complete: ${res.passedCount}/${res.totalTests} test cases passed (+${res.pointsEarned} pts)\nStatus: ${res.status}`
+      );
+    }
+  };
+
   const timerColor =
     secondsRemaining < 300
       ? 'text-rose-500 bg-rose-500/10 border-rose-500/20 animate-pulse'
@@ -225,16 +493,26 @@ export const ContestArenaPage: React.FC = () => {
       ? 'text-amber-500 bg-amber-500/10 border-amber-500/20'
       : 'text-primary bg-primary/10 border-primary/20';
 
+  // Visible public test cases for problem
+  const publicTestCases = (currentCoding?.testCases || []).filter((tc) => !tc.isHidden);
+  const displayTestCases =
+    publicTestCases.length > 0
+      ? publicTestCases
+      : currentCoding?.sampleInput
+      ? [{ input: currentCoding.sampleInput, expectedOutput: currentCoding.sampleOutput || '', isHidden: false }]
+      : [];
+
   return (
-    <div className="h-screen flex flex-col bg-background font-sans overflow-hidden">
+    <div className="h-screen w-full flex flex-col bg-background font-sans overflow-hidden select-none antialiased">
       {/* 1. TOP ARENA APP BAR */}
-      <header className="h-14 border-b border-separator bg-surface px-2.5 sm:px-6 flex items-center justify-between gap-2 shrink-0 shadow-xs z-20">
+      <header className="h-14 border-b border-separator bg-surface px-3 sm:px-6 flex items-center justify-between gap-2 shrink-0 shadow-xs z-30">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={() => {
               if (confirm('Leave arena? Your timer will continue running.')) navigate('/contests');
             }}
             className="p-1.5 hover:bg-surface-raised rounded-xl text-label-secondary shrink-0 cursor-pointer"
+            title="Return to Contests"
           >
             <ArrowLeft size={16} />
           </button>
@@ -274,7 +552,45 @@ export const ContestArenaPage: React.FC = () => {
           </div>
         )}
 
-        {/* Countdown & Submit Button */}
+        {/* Problem Switcher in Top Bar (Desktop >= 1024px, when Coding section active & >1 problem) */}
+        {selectedSection === 'coding' && codings.length > 1 && (
+          <div className="hidden lg:flex items-center gap-1 p-0.5 rounded-xl bg-surface-secondary border border-separator">
+            {codings.map((p, idx) => {
+              const submission = (activeSession?.codingSubmissions || []).find(
+                (cs) => cs.problemId?.toString() === p._id.toString()
+              );
+              const isPassed =
+                submission?.status === 'ACCEPTED' ||
+                (submission?.passedTestCases === submission?.totalTestCases && (submission?.totalTestCases || 0) > 0);
+              const isActive = currentCodingIdx === idx;
+              return (
+                <button
+                  key={p._id}
+                  type="button"
+                  onClick={() => handleSwitchCodingProblem(idx)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-label-secondary hover:text-label-primary'
+                  }`}
+                >
+                  <span>{`Problem ${idx + 1}`}</span>
+                  {isPassed ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : submission ? (
+                    <span className="text-[10px] text-amber-500 font-mono">
+                      ({submission.pointsEarned}p)
+                    </span>
+                  ) : (
+                    <span className="w-1.5 h-1.5 rounded-full bg-separator" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Countdown, Anti-cheat & Final Submit Button */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {isMobileProtected ? (
             <div
@@ -312,7 +628,7 @@ export const ContestArenaPage: React.FC = () => {
 
       {/* 2. ARENA CONTENT BODY */}
       <div className="flex-1 flex overflow-hidden">
-        {/* --- SECTION A: MCQ ARENA --- */}
+        {/* ════════ SECTION A: MCQ ARENA ════════ */}
         {selectedSection === 'mcq' && currentMcq && (
           <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
             {/* Left Question Body */}
@@ -428,171 +744,1038 @@ export const ContestArenaPage: React.FC = () => {
           </div>
         )}
 
-        {/* --- SECTION B: CODING ARENA --- */}
+        {/* ════════ SECTION B: CODING ARENA (MATCHES NORMAL ASSESSMENT LAYOUT) ════════ */}
         {selectedSection === 'coding' && currentCoding && (
-          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            {/* Left: Problem Details */}
-            <div className="w-full lg:w-1/2 border-r border-separator overflow-y-auto p-6 space-y-6">
-              {/* Problem tabs if multiple problems */}
-              {codings.length > 1 && (
-                <div className="flex items-center gap-2 pb-2 border-b border-separator">
-                  {codings.map((p, idx) => (
+          <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
+            {/* ── DESKTOP CODING WORKSPACE (>= 1024px) ── */}
+            <div className="hidden lg:flex flex-1 h-full w-full overflow-hidden">
+              <PanelGroup direction="horizontal" className="h-full w-full overflow-hidden">
+                {/* 1. LEFT PANEL: Problem, Constraints, Examples & Public Test Cases */}
+                <Panel defaultSize={42} minSize={25} className="flex flex-col bg-surface border-r border-separator overflow-hidden">
+                  {/* Left Tabs Bar */}
+                  <div className="h-10 border-b border-separator flex items-center px-4 gap-2 shrink-0 bg-surface">
                     <button
-                      key={p._id}
-                      onClick={() => setCurrentCodingIdx(idx)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        currentCodingIdx === idx
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary'
+                      type="button"
+                      onClick={() => setActiveLeftTab('problem')}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                        activeLeftTab === 'problem'
+                          ? 'bg-primary/10 text-primary border border-primary/20'
+                          : 'text-label-secondary hover:text-label-primary'
                       }`}
                     >
-                      Problem {idx + 1}
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Problem</span>
                     </button>
-                  ))}
-                </div>
-              )}
-
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                    {currentCoding.difficulty}
-                  </span>
-                  <span className="text-xs font-mono font-bold text-amber-500">
-                    +{currentCoding.points} Points
-                  </span>
-                </div>
-                <h2 className="text-xl font-extrabold text-label-primary tracking-tight">
-                  {currentCoding.title}
-                </h2>
-              </div>
-
-              <div className="text-xs text-label-secondary leading-relaxed whitespace-pre-line">
-                {currentCoding.description}
-              </div>
-
-              {/* Sample Test Case Preview */}
-              {currentCoding.sampleInput && (
-                <div className="space-y-3 pt-2">
-                  <div>
-                    <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
-                      Sample Input
-                    </span>
-                    <pre className="mt-1 p-3 bg-surface-secondary rounded-xl font-mono text-xs text-label-primary border border-separator">
-                      {currentCoding.sampleInput}
-                    </pre>
+                    <button
+                      type="button"
+                      onClick={() => setActiveLeftTab('testcases')}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                        activeLeftTab === 'testcases'
+                          ? 'bg-primary/10 text-primary border border-primary/20'
+                          : 'text-label-secondary hover:text-label-primary'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Test Cases ({displayTestCases.length})</span>
+                    </button>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
-                      Sample Output
-                    </span>
-                    <pre className="mt-1 p-3 bg-surface-secondary rounded-xl font-mono text-xs text-label-primary border border-separator">
-                      {currentCoding.sampleOutput}
-                    </pre>
+
+                  {/* Left Tab Content Body */}
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-label-secondary leading-relaxed scrollbar-thin">
+                    {activeLeftTab === 'problem' ? (
+                      <>
+                        {/* Title, Difficulty & Points */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                currentCoding.difficulty === 'Easy'
+                                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                  : currentCoding.difficulty === 'Hard'
+                                  ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                  : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                              }`}
+                            >
+                              {currentCoding.difficulty}
+                            </span>
+                            <span className="text-xs font-mono font-bold text-amber-500">
+                              +{currentCoding.points} Points
+                            </span>
+                          </div>
+                          <h2 className="text-xl font-extrabold text-label-primary tracking-tight">
+                            {currentCoding.title}
+                          </h2>
+                        </div>
+
+                        {/* Problem Description */}
+                        <div className="text-xs text-label-secondary leading-relaxed whitespace-pre-line">
+                          {currentCoding.description}
+                        </div>
+
+                        {/* Input Format */}
+                        {currentCoding.inputFormat && (
+                          <div className="space-y-1.5">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-label-tertiary">
+                              Input Format
+                            </h3>
+                            <div className="p-3 rounded-xl bg-surface-secondary border border-separator font-mono text-xs text-label-primary whitespace-pre-wrap">
+                              {currentCoding.inputFormat}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Output Format */}
+                        {currentCoding.outputFormat && (
+                          <div className="space-y-1.5">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-label-tertiary">
+                              Output Format
+                            </h3>
+                            <div className="p-3 rounded-xl bg-surface-secondary border border-separator font-mono text-xs text-label-primary whitespace-pre-wrap">
+                              {currentCoding.outputFormat}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Constraints */}
+                        {currentCoding.constraints && (
+                          <div className="space-y-1.5">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-label-tertiary">
+                              Constraints
+                            </h3>
+                            <div className="p-3 rounded-xl bg-surface-secondary border border-separator font-mono text-xs text-label-primary whitespace-pre-wrap">
+                              {currentCoding.constraints}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Sample Example */}
+                        {currentCoding.sampleInput && (
+                          <div className="space-y-3 pt-2">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-label-tertiary">
+                              Sample Example
+                            </h3>
+                            <div className="space-y-2">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-[11px] text-label-tertiary">
+                                  <span>Sample Input</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyText(currentCoding.sampleInput || '', 'sample-in')}
+                                    className="flex items-center gap-1 text-[10px] text-label-secondary hover:text-label-primary cursor-pointer"
+                                  >
+                                    {copiedKey === 'sample-in' ? (
+                                      <Check className="w-3 h-3 text-emerald-500" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                    <span>{copiedKey === 'sample-in' ? 'Copied' : 'Copy'}</span>
+                                  </button>
+                                </div>
+                                <pre className="p-3 bg-surface-secondary rounded-xl font-mono text-xs text-label-primary border border-separator overflow-x-auto">
+                                  {currentCoding.sampleInput}
+                                </pre>
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-[11px] text-label-tertiary">
+                                  <span>Sample Output</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyText(currentCoding.sampleOutput || '', 'sample-out')}
+                                    className="flex items-center gap-1 text-[10px] text-label-secondary hover:text-label-primary cursor-pointer"
+                                  >
+                                    {copiedKey === 'sample-out' ? (
+                                      <Check className="w-3 h-3 text-emerald-500" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                    <span>{copiedKey === 'sample-out' ? 'Copied' : 'Copy'}</span>
+                                  </button>
+                                </div>
+                                <pre className="p-3 bg-surface-secondary rounded-xl font-mono text-xs text-emerald-500 dark:text-emerald-400 border border-separator overflow-x-auto">
+                                  {currentCoding.sampleOutput}
+                                </pre>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Public Test Cases Tab */
+                      <div className="space-y-4">
+                        <p className="text-xs text-label-tertiary">
+                          These visible test cases are validated during execution. Final grading includes additional hidden test cases.
+                        </p>
+                        <div className="space-y-3">
+                          {displayTestCases.map((tc, idx) => (
+                            <div
+                              key={idx}
+                              className="p-4 rounded-2xl bg-surface-secondary border border-separator space-y-2.5"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-label-primary font-mono">
+                                  Test Case #{idx + 1}
+                                </span>
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-label-tertiary bg-surface px-2 py-0.5 rounded-full border border-separator">
+                                  Public
+                                </span>
+                              </div>
+                              <div className="space-y-2 font-mono text-xs">
+                                <div>
+                                  <span className="text-[10px] text-label-tertiary uppercase">Input:</span>
+                                  <pre className="mt-1 p-2 bg-surface rounded-lg border border-separator text-label-primary overflow-x-auto">
+                                    {tc.input || '(empty)'}
+                                  </pre>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-label-tertiary uppercase">Expected Output:</span>
+                                  <pre className="mt-1 p-2 bg-surface rounded-lg border border-separator text-emerald-500 dark:text-emerald-400 overflow-x-auto">
+                                    {tc.expectedOutput}
+                                  </pre>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                </Panel>
+
+                {/* Resizable Divider Between Problem & Editor */}
+                <PanelResizeHandle className="w-1.5 bg-black hover:bg-primary/50 transition-colors relative group cursor-col-resize">
+                  <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[1px] bg-white/[0.08] group-hover:bg-primary" />
+                </PanelResizeHandle>
+
+                {/* 2. RIGHT PANEL: Resizable Monaco Editor & OLED Terminal */}
+                <Panel defaultSize={58} minSize={30} className="flex flex-col overflow-hidden bg-[#050505]">
+                  <PanelGroup direction="vertical" className="h-full w-full overflow-hidden">
+                    {/* Monaco Code Editor Sub-Panel */}
+                    <Panel defaultSize={65} minSize={30} className="flex flex-col bg-[#050505] relative overflow-hidden">
+                      {/* Editor Sub-Header Toolbar */}
+                      <div className="h-10 border-b border-white/[0.08] bg-black/60 px-4 flex items-center justify-between shrink-0 text-xs">
+                        {/* Filename & Problem Indicator */}
+                        <div className="flex items-center gap-2">
+                          <Code2 className="w-3.5 h-3.5 text-neutral-400" />
+                          <span className="text-xs font-mono text-neutral-300">
+                            solution.{getFileExtension(selectedLanguage)}
+                          </span>
+                          {antiCheatLocked && (
+                            <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                              <Lock className="w-2.5 h-2.5" /> Locked
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Actions: Language, Reset, Run, Submit */}
+                        <div className="flex items-center gap-2">
+                          {/* Language Selector */}
+                          <div className="relative">
+                            <select
+                              value={selectedLanguage}
+                              onChange={(e) => handleLanguageChange(e.target.value)}
+                              disabled={antiCheatLocked || executing || submitting}
+                              className="appearance-none bg-white/[0.06] hover:bg-white/[0.1] disabled:opacity-50 border border-white/[0.12] rounded-xl px-3 py-1 text-xs font-medium text-neutral-200 transition-all cursor-pointer focus:outline-none pr-6"
+                            >
+                              <option value="python" className="bg-neutral-900 text-white">Python 3</option>
+                              <option value="javascript" className="bg-neutral-900 text-white">JavaScript</option>
+                              <option value="cpp" className="bg-neutral-900 text-white">C++ (GCC)</option>
+                              <option value="java" className="bg-neutral-900 text-white">Java</option>
+                              <option value="c" className="bg-neutral-900 text-white">C (GCC)</option>
+                            </select>
+                            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-neutral-400">
+                              ▼
+                            </span>
+                          </div>
+
+                          {/* Reset Template */}
+                          <button
+                            type="button"
+                            onClick={handleResetStarterCode}
+                            disabled={antiCheatLocked || executing || submitting}
+                            title="Reset code template"
+                            className="p-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-all border border-white/[0.08] cursor-pointer disabled:opacity-40"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Run Code */}
+                          <button
+                            type="button"
+                            onClick={handleRunCode}
+                            disabled={executing || submitting || antiCheatLocked || runCooldown > 0}
+                            title={runCooldown > 0 ? `Cooldown (${runCooldown}s)` : 'Run Code against sample'}
+                            className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] disabled:opacity-40 text-neutral-200 transition-all border border-white/[0.1] cursor-pointer"
+                          >
+                            {executing ? (
+                              <Loader2 className="w-3 h-3 animate-spin text-neutral-300" />
+                            ) : runCooldown > 0 ? (
+                              <Clock className="w-3 h-3 text-neutral-400" />
+                            ) : (
+                              <Play className="w-3 h-3 fill-current text-emerald-400" />
+                            )}
+                            <span>
+                              {executing ? 'Running...' : runCooldown > 0 ? `Run (${runCooldown}s)` : 'Run'}
+                            </span>
+                          </button>
+
+                          {/* Submit Problem Code */}
+                          <button
+                            type="button"
+                            onClick={handleSubmitProblemCode}
+                            disabled={executing || submitting || antiCheatLocked}
+                            className="flex items-center gap-1.5 px-3.5 py-1 rounded-xl text-xs font-bold bg-primary hover:brightness-110 active:scale-95 disabled:opacity-40 text-white transition-all shadow-xs cursor-pointer"
+                          >
+                            {executing ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Send className="w-3 h-3" />
+                            )}
+                            <span>Submit</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Monaco Code Editor Container (100% Height Guaranteed) */}
+                      <div className="flex-1 relative overflow-hidden min-h-0">
+                        <Editor
+                          height="100%"
+                          theme="vs-dark"
+                          language={MONACO_LANG_MAP[selectedLanguage] || 'python'}
+                          value={currentCode}
+                          onMount={handleEditorMount}
+                          onChange={handleCodeChange}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 13,
+                            fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Monaco, Consolas, monospace",
+                            fontLigatures: true,
+                            automaticLayout: true,
+                            scrollBeyondLastLine: false,
+                            lineNumbers: 'on',
+                            lineNumbersMinChars: 3,
+                            roundedSelection: true,
+                            readOnly: antiCheatLocked || executing || submitting,
+                            domReadOnly: antiCheatLocked,
+                            bracketPairColorization: { enabled: true },
+                            padding: { top: 12, bottom: 12 },
+                            cursorBlinking: 'smooth',
+                            renderLineHighlight: 'all',
+                            overviewRulerBorder: false,
+                            hideCursorInOverviewRuler: true,
+                          }}
+                        />
+
+                        {/* Locked Spatial Glass Overlay */}
+                        {antiCheatLocked && (
+                          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30">
+                            <div className="w-12 h-12 rounded-2xl bg-neutral-800 border border-white/10 flex items-center justify-center mb-3">
+                              <Lock className="w-6 h-6 text-neutral-300" />
+                            </div>
+                            <h3 className="text-sm font-bold text-white mb-1">
+                              Contest Blocked & Workspace Locked
+                            </h3>
+                            <p className="text-xs text-neutral-400 max-w-sm">
+                              Maximum tab switches reached. Editor is locked and contest has been submitted.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </Panel>
+
+                    {/* Vertical Resizable Divider */}
+                    <PanelResizeHandle className="h-1.5 bg-black hover:bg-primary/50 transition-colors relative group cursor-row-resize">
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-white/[0.08] group-hover:bg-primary" />
+                    </PanelResizeHandle>
+
+                    {/* OLED Execution Output Terminal Sub-Panel */}
+                    <Panel defaultSize={35} minSize={15} className="flex flex-col bg-[#000000] text-neutral-200 overflow-hidden border-t border-white/[0.08]">
+                      {/* Terminal Header Tabs */}
+                      <div className="h-9 border-b border-white/[0.08] bg-black/80 px-4 flex items-center justify-between shrink-0 text-xs">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setActiveConsoleTab('cases')}
+                            className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                              activeConsoleTab === 'cases'
+                                ? 'bg-white/[0.14] text-white'
+                                : 'text-neutral-400 hover:text-neutral-200'
+                            }`}
+                          >
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>Test Results</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveConsoleTab('terminal')}
+                            className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                              activeConsoleTab === 'terminal'
+                                ? 'bg-white/[0.14] text-white'
+                                : 'text-neutral-400 hover:text-neutral-200'
+                            }`}
+                          >
+                            <Terminal className="w-3 h-3 text-neutral-400" />
+                            <span>Console Output</span>
+                          </button>
+                        </div>
+
+                        {executionResult && (
+                          <span className="text-[11px] font-mono text-neutral-400">
+                            {executionResult.source === 'submit'
+                              ? `${executionResult.passedCount} / ${executionResult.totalTests} Passed`
+                              : `${executionResult.timeMs || 0} ms`}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Terminal Body */}
+                      <div className="flex-1 overflow-y-auto p-4 bg-[#000000] font-mono text-xs scrollbar-thin">
+                        {activeConsoleTab === 'cases' ? (
+                          executionResult ? (
+                            executionResult.source === 'run' ? (
+                              /* Run Code Result (Sample Test Case) */
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between p-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02]">
+                                  <div className="flex items-center gap-2">
+                                    {executionResult.isPassed ? (
+                                      <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                                        <CheckCircle2 size={14} /> ✓ Sample Output Matched
+                                      </span>
+                                    ) : (
+                                      <span className="text-rose-400 font-bold flex items-center gap-1.5">
+                                        <XCircle size={14} /> Output Mismatch
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-neutral-400">
+                                    Execution: {executionResult.timeMs || 0} ms
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
+                                      Your Output (stdout):
+                                    </div>
+                                    <pre className="p-2.5 rounded-xl bg-neutral-950 border border-white/[0.08] text-neutral-200 overflow-x-auto min-h-[44px]">
+                                      {executionResult.stdout || '(no output)'}
+                                    </pre>
+                                  </div>
+
+                                  <div>
+                                    <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
+                                      Expected Output:
+                                    </div>
+                                    <pre className="p-2.5 rounded-xl bg-neutral-950 border border-white/[0.08] text-emerald-400 overflow-x-auto min-h-[44px]">
+                                      {executionResult.expectedOutput || '(none)'}
+                                    </pre>
+                                  </div>
+                                </div>
+
+                                {executionResult.stderr && (
+                                  <div>
+                                    <div className="text-[10px] text-rose-400 uppercase tracking-wider mb-1">
+                                      Stderr:
+                                    </div>
+                                    <pre className="p-2.5 rounded-xl bg-rose-950/20 border border-rose-500/25 text-rose-300 overflow-x-auto">
+                                      {executionResult.stderr}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              /* Problem Submission Result (All Test Cases) */
+                              <div className="space-y-4">
+                                <div
+                                  className={`p-3 rounded-xl border flex items-center justify-between ${
+                                    executionResult.status === 'ACCEPTED'
+                                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                      : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 font-bold text-xs">
+                                    {executionResult.status === 'ACCEPTED' ? (
+                                      <CheckCircle2 size={16} />
+                                    ) : (
+                                      <XCircle size={16} />
+                                    )}
+                                    <span>
+                                      {executionResult.status === 'ACCEPTED'
+                                        ? `Accepted! All ${executionResult.passedCount}/${executionResult.totalTests} passed (+${executionResult.pointsEarned} pts)`
+                                        : `Passed ${executionResult.passedCount}/${executionResult.totalTests} test cases (+${executionResult.pointsEarned} pts)`}
+                                    </span>
+                                  </div>
+                                  <span className="text-[11px] font-mono opacity-80 uppercase">
+                                    {executionResult.status}
+                                  </span>
+                                </div>
+
+                                {/* Test Case Tab Pills */}
+                                <div className="flex items-center gap-1.5 border-b border-white/[0.08] pb-2 overflow-x-auto">
+                                  {executionResult.testCaseResults.map((tc: any, i: number) => (
+                                    <button
+                                      key={i}
+                                      type="button"
+                                      onClick={() => setSelectedTestCaseIdx(i)}
+                                      className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                                        selectedTestCaseIdx === i
+                                          ? 'bg-white/[0.14] text-white border border-white/[0.15]'
+                                          : 'bg-white/[0.03] text-neutral-400 hover:text-white border border-transparent'
+                                      }`}
+                                    >
+                                      {tc.passed ? (
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                      ) : (
+                                        <XCircle className="w-3 h-3 text-rose-400" />
+                                      )}
+                                      <span>Case {i + 1}</span>
+                                      {tc.isHidden && (
+                                        <span className="text-[9px] opacity-60">(Hidden)</span>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+
+                                {/* Selected Test Case Breakdown */}
+                                {executionResult.testCaseResults[selectedTestCaseIdx] && (
+                                  <div className="space-y-3">
+                                    {executionResult.testCaseResults[selectedTestCaseIdx].isHidden ? (
+                                      <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-neutral-400 text-xs">
+                                        Hidden test case evaluated. Output details are suppressed to preserve contest integrity.
+                                      </div>
+                                    ) : (
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                          <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
+                                            Your Output:
+                                          </div>
+                                          <pre className="p-2.5 rounded-xl bg-neutral-950 border border-white/[0.08] text-neutral-200 overflow-x-auto min-h-[44px]">
+                                            {executionResult.testCaseResults[selectedTestCaseIdx].actualOutput || '(no output)'}
+                                          </pre>
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] text-neutral-500 uppercase tracking-wider mb-1">
+                                            Expected Output:
+                                          </div>
+                                          <pre className="p-2.5 rounded-xl bg-neutral-950 border border-white/[0.08] text-emerald-400 overflow-x-auto min-h-[44px]">
+                                            {executionResult.testCaseResults[selectedTestCaseIdx].expectedOutput || '(none)'}
+                                          </pre>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {executionResult.testCaseResults[selectedTestCaseIdx].error && (
+                                      <div>
+                                        <div className="text-[10px] text-rose-400 uppercase tracking-wider mb-1">
+                                          Stderr / Exception:
+                                        </div>
+                                        <pre className="p-2.5 rounded-xl bg-rose-950/20 border border-rose-500/25 text-rose-300 overflow-x-auto">
+                                          {executionResult.testCaseResults[selectedTestCaseIdx].error}
+                                        </pre>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          ) : (
+                            <div className="h-full flex items-center justify-center text-neutral-500 text-xs py-8">
+                              Press "Run" to test against sample test case or "Submit" to evaluate all problem test cases.
+                            </div>
+                          )
+                        ) : (
+                          /* Console / Raw Terminal Output */
+                          <pre className="text-neutral-300 whitespace-pre-wrap leading-relaxed">
+                            {consoleOutput || '$ Ready for code execution...'}
+                          </pre>
+                        )}
+                      </div>
+                    </Panel>
+                  </PanelGroup>
+                </Panel>
+              </PanelGroup>
             </div>
 
-            {/* Right: Monaco Code Editor & Execution Panel */}
-            <div className="w-full lg:w-1/2 flex flex-col bg-[#1e1e1e] overflow-hidden">
-              {/* Language Toolbar */}
-              <div className="h-10 bg-[#252526] px-4 flex items-center justify-between border-b border-[#333] shrink-0 text-xs">
-                <div className="flex items-center gap-2">
-                  <Code2 size={14} className="text-primary" />
-                  <select
-                    value={selectedLanguage}
-                    onChange={(e) => setSelectedLanguage(e.target.value)}
-                    className="bg-[#1e1e1e] text-slate-200 text-xs px-2 py-1 rounded-md border border-[#444] focus:outline-none"
-                  >
-                    <option value="python">Python 3</option>
-                    <option value="javascript">JavaScript (Node.js)</option>
-                    <option value="cpp">C++ (GCC)</option>
-                    <option value="java">Java (OpenJDK)</option>
-                    <option value="c">C (GCC)</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={async () => {
-                      if (!activeContest || !currentCoding) return;
-                      const code = codingCodes[currentCoding._id] || '';
-                      const res = await runCode(
-                        activeContest._id,
-                        currentCoding._id,
-                        code,
-                        selectedLanguage
-                      );
-                      if (res) setConsoleOutput(res);
-                    }}
-                    disabled={executing}
-                    className="px-3 py-1 bg-[#333] hover:bg-[#444] text-slate-200 rounded-md transition-colors flex items-center gap-1.5 font-bold"
-                  >
-                    <Play size={12} className={executing ? 'animate-spin' : ''} />
-                    <span>Run</span>
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!activeContest || !currentCoding) return;
-                      const code = codingCodes[currentCoding._id] || '';
-                      await submitProblemCode(
-                        activeContest._id,
-                        currentCoding._id,
-                        code,
-                        selectedLanguage
-                      );
-                    }}
-                    disabled={executing}
-                    className="px-3 py-1 bg-primary text-white rounded-md hover:brightness-110 transition-all font-bold"
-                  >
-                    <span>Submit</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Editor */}
-              <div className="flex-1 overflow-hidden">
-                <Editor
-                  theme="vs-dark"
-                  language={selectedLanguage}
-                  value={codingCodes[currentCoding._id] || ''}
-                  onChange={(val) =>
-                    setCodingCodes({
-                      ...codingCodes,
-                      [currentCoding._id]: val || '',
-                    })
-                  }
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                    fontFamily: 'JetBrains Mono, monospace',
-                    automaticLayout: true,
-                    scrollBeyondLastLine: false,
-                  }}
-                />
-              </div>
-
-              {/* Console Output Drawer */}
-              {consoleOutput && (
-                <div className="h-40 bg-[#181818] border-t border-[#333] p-3 text-xs font-mono overflow-y-auto space-y-1">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-[#282828]">
-                    <span>Execution Output ({consoleOutput.timeMs || 0} ms)</span>
-                    <span
-                      className={
-                        consoleOutput.isPassed ? 'text-emerald-400 font-bold' : 'text-rose-400'
-                      }
-                    >
-                      {consoleOutput.isPassed ? '✓ Sample Output Matched' : 'Output Mismatch'}
-                    </span>
-                  </div>
-                  {consoleOutput.stdout && (
-                    <pre className="text-slate-200 whitespace-pre-wrap">{consoleOutput.stdout}</pre>
-                  )}
-                  {consoleOutput.stderr && (
-                    <pre className="text-rose-400 whitespace-pre-wrap">{consoleOutput.stderr}</pre>
-                  )}
+            {/* ── MOBILE CODING WORKSPACE (< 1024px) ── */}
+            <div className="flex lg:hidden flex-col flex-1 h-full w-full overflow-hidden bg-[#000000]">
+              {/* Multi-Problem Switcher Bar on Mobile (if >1 problem) */}
+              {codings.length > 1 && (
+                <div className="px-3 py-2 bg-neutral-950 border-b border-white/[0.08] flex items-center gap-1.5 overflow-x-auto shrink-0 z-20">
+                  {codings.map((p, idx) => {
+                    const submission = (activeSession?.codingSubmissions || []).find(
+                      (cs) => cs.problemId?.toString() === p._id.toString()
+                    );
+                    const isPassed =
+                      submission?.status === 'ACCEPTED' ||
+                      (submission?.passedTestCases === submission?.totalTestCases && (submission?.totalTestCases || 0) > 0);
+                    const isActive = currentCodingIdx === idx;
+                    return (
+                      <button
+                        key={p._id}
+                        type="button"
+                        onClick={() => handleSwitchCodingProblem(idx)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                          isActive
+                            ? 'bg-primary text-white shadow-xs'
+                            : 'bg-white/[0.04] text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        <span>{`Problem ${idx + 1}`}</span>
+                        {isPassed ? (
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        ) : submission ? (
+                          <span className="text-[10px] text-amber-400 font-mono">
+                            ({submission.pointsEarned}p)
+                          </span>
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
+
+              {/* Segmented Mobile Tab Navigation Bar */}
+              <div className="px-2.5 py-1.5 bg-black/95 border-b border-white/[0.08] grid grid-cols-4 gap-1 shrink-0 z-20">
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('problem')}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    mobileTab === 'problem'
+                      ? 'bg-white/[0.14] text-white shadow-xs'
+                      : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Problem</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('code')}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    mobileTab === 'code'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  <Code2 className="w-3.5 h-3.5" />
+                  <span>Code</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('testcases')}
+                  className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    mobileTab === 'testcases'
+                      ? 'bg-white/[0.14] text-white shadow-xs'
+                      : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  {executionResult?.isPassed || executionResult?.status === 'ACCEPTED' ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  )}
+                  <span>Tests</span>
+                  {executionResult?.source === 'submit' && (
+                    <span className="text-[9px] px-1 rounded font-mono font-bold bg-white/10">
+                      {executionResult.passedCount}/{executionResult.totalTests}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('console')}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    mobileTab === 'console'
+                      ? 'bg-white/[0.14] text-white shadow-xs'
+                      : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                >
+                  <Terminal className="w-3.5 h-3.5" />
+                  <span>Console</span>
+                </button>
+              </div>
+
+              {/* Mobile Tab Views */}
+              <div className="flex-1 flex flex-col overflow-hidden relative">
+                {/* TAB 1: Mobile Problem Description */}
+                {mobileTab === 'problem' && (
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs text-neutral-300 leading-relaxed">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                          {currentCoding.difficulty}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-amber-500">
+                          +{currentCoding.points} Points
+                        </span>
+                      </div>
+                      <h2 className="text-base font-bold text-white tracking-tight">
+                        {currentCoding.title}
+                      </h2>
+                    </div>
+
+                    <div className="whitespace-pre-line leading-relaxed text-neutral-300">
+                      {currentCoding.description}
+                    </div>
+
+                    {currentCoding.constraints && (
+                      <div className="space-y-1.5">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                          Constraints
+                        </h3>
+                        <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] font-mono text-xs whitespace-pre-wrap text-neutral-200">
+                          {currentCoding.constraints}
+                        </div>
+                      </div>
+                    )}
+
+                    {currentCoding.sampleInput && (
+                      <div className="space-y-2">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                          Sample Example
+                        </h3>
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-neutral-500 font-medium">Sample Input</span>
+                          <pre className="p-2.5 rounded-xl bg-neutral-950 border border-white/[0.08] font-mono text-xs text-neutral-200 overflow-x-auto">
+                            {currentCoding.sampleInput}
+                          </pre>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-neutral-500 font-medium">Sample Output</span>
+                          <pre className="p-2.5 rounded-xl bg-neutral-950 border border-white/[0.08] font-mono text-xs text-emerald-400 overflow-x-auto">
+                            {currentCoding.sampleOutput}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-2 pb-4">
+                      <button
+                        type="button"
+                        onClick={() => setMobileTab('code')}
+                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-primary text-white flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                      >
+                        <Code2 className="w-4 h-4" />
+                        <span>Write Code in Editor →</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: Mobile Code Editor & Accessory Keyboard Row (100% Height Guaranteed) */}
+                {mobileTab === 'code' && (
+                  <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#050505] relative">
+                    {/* Filename Bar */}
+                    <div className="h-8 border-b border-white/[0.06] bg-black/40 px-3 flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <Code2 className="w-3 h-3 text-neutral-400" />
+                        <span className="text-[11px] font-mono text-neutral-300">
+                          solution.{getFileExtension(selectedLanguage)}
+                        </span>
+                      </div>
+                      {antiCheatLocked && (
+                        <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                          <Lock className="w-2.5 h-2.5" /> Locked
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Monaco Editor Container */}
+                    <div className="flex-1 relative overflow-hidden min-h-0">
+                      <Editor
+                        height="100%"
+                        language={MONACO_LANG_MAP[selectedLanguage] || 'python'}
+                        value={currentCode}
+                        theme="vs-dark"
+                        onMount={handleEditorMount}
+                        onChange={handleCodeChange}
+                        options={{
+                          minimap: { enabled: false },
+                          scrollBeyondLastLine: false,
+                          fontSize: 13,
+                          lineNumbers: 'on',
+                          lineNumbersMinChars: 3,
+                          roundedSelection: true,
+                          readOnly: antiCheatLocked || executing || submitting,
+                          domReadOnly: antiCheatLocked,
+                          bracketPairColorization: { enabled: true },
+                          automaticLayout: true,
+                          padding: { top: 10, bottom: 10 },
+                          fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Monaco, Consolas, monospace",
+                          fontLigatures: true,
+                          cursorBlinking: 'smooth',
+                          renderLineHighlight: 'all',
+                          overviewRulerBorder: false,
+                          hideCursorInOverviewRuler: true,
+                        }}
+                      />
+
+                      {/* Locked Spatial Glass Overlay */}
+                      {antiCheatLocked && (
+                        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center z-30">
+                          <div className="w-10 h-10 rounded-2xl bg-neutral-800/80 border border-white/10 flex items-center justify-center mb-2">
+                            <Lock className="w-5 h-5 text-neutral-300" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-white">Contest Blocked</h3>
+                          <p className="text-[11px] text-neutral-400 mt-1 max-w-xs">
+                            Maximum warnings reached. Contest editor disabled.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Mobile Quick Coding Accessory Keyboard Row */}
+                    <div className="h-10 border-t border-white/[0.08] bg-neutral-950 px-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 z-20">
+                      {ACCESSORY_KEYS.map((acc, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => insertAccessorySnippet(acc.value)}
+                          disabled={antiCheatLocked || executing || submitting}
+                          className="h-7 px-2.5 rounded-lg bg-white/[0.07] hover:bg-white/[0.14] active:bg-white/[0.22] text-xs font-mono font-medium text-neutral-200 border border-white/[0.08] transition-all shrink-0 cursor-pointer disabled:opacity-40"
+                        >
+                          {acc.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 3: Mobile Test Cases & Execution Results */}
+                {mobileTab === 'testcases' && (
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs font-mono text-neutral-200">
+                    {executionResult ? (
+                      executionResult.source === 'run' ? (
+                        <div className="space-y-3">
+                          <div
+                            className={`p-3 rounded-xl border flex items-center justify-between ${
+                              executionResult.isPassed
+                                ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+                                : 'bg-rose-500/10 border-rose-500/25 text-rose-400'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 font-bold text-xs">
+                              {executionResult.isPassed ? (
+                                <>
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  <span>Sample Passed</span>
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-4 h-4" />
+                                  <span>Output Mismatch</span>
+                                </>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-mono opacity-80">
+                              {executionResult.timeMs || 0} ms
+                            </span>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                              Your Output:
+                            </span>
+                            <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-neutral-200 overflow-x-auto text-xs">
+                              {executionResult.stdout || '(no output)'}
+                            </pre>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                              Expected Output:
+                            </span>
+                            <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-emerald-400 overflow-x-auto text-xs">
+                              {executionResult.expectedOutput}
+                            </pre>
+                          </div>
+
+                          {executionResult.stderr && (
+                            <div className="space-y-1">
+                              <span className="text-[10px] uppercase font-bold text-rose-400 tracking-wider">
+                                Error:
+                              </span>
+                              <pre className="p-2.5 rounded-xl bg-rose-950/20 border border-rose-500/25 text-rose-300 overflow-x-auto text-xs">
+                                {executionResult.stderr}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* Submit Problem Results on Mobile */
+                        <div className="space-y-3">
+                          <div
+                            className={`p-3 rounded-xl border flex items-center justify-between ${
+                              executionResult.status === 'ACCEPTED'
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 font-bold text-xs">
+                              {executionResult.status === 'ACCEPTED' ? (
+                                <CheckCircle2 size={16} />
+                              ) : (
+                                <XCircle size={16} />
+                              )}
+                              <span>
+                                {executionResult.passedCount}/{executionResult.totalTests} Passed (+{executionResult.pointsEarned} pts)
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono opacity-80 uppercase">
+                              {executionResult.status}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                            {executionResult.testCaseResults.map((tc: any, i: number) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => setSelectedTestCaseIdx(i)}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
+                                  selectedTestCaseIdx === i
+                                    ? 'bg-white/[0.14] text-white border border-white/[0.15]'
+                                    : 'bg-white/[0.03] text-neutral-400 hover:text-white border border-transparent'
+                                }`}
+                              >
+                                {tc.passed ? (
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                ) : (
+                                  <XCircle className="w-3 h-3 text-rose-400" />
+                                )}
+                                <span>Case {i + 1}</span>
+                              </button>
+                            ))}
+                          </div>
+
+                          {executionResult.testCaseResults[selectedTestCaseIdx] && (
+                            <div className="space-y-2">
+                              {executionResult.testCaseResults[selectedTestCaseIdx].isHidden ? (
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-neutral-400 text-xs">
+                                  Hidden test case evaluated. Output details are suppressed.
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                                      Your Output:
+                                    </span>
+                                    <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-neutral-200 overflow-x-auto text-xs">
+                                      {executionResult.testCaseResults[selectedTestCaseIdx].actualOutput || '(no output)'}
+                                    </pre>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                                      Expected Output:
+                                    </span>
+                                    <pre className="p-2.5 rounded-xl bg-black border border-white/[0.08] text-emerald-400 overflow-x-auto text-xs">
+                                      {executionResult.testCaseResults[selectedTestCaseIdx].expectedOutput || '(none)'}
+                                    </pre>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-neutral-400 text-xs text-center space-y-2">
+                        <p>No executions yet for this problem.</p>
+                        <button
+                          type="button"
+                          onClick={handleRunCode}
+                          disabled={executing || submitting || antiCheatLocked || runCooldown > 0}
+                          className="text-primary font-bold hover:underline cursor-pointer"
+                        >
+                          Run sample code now →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 4: Mobile Terminal Console Output */}
+                {mobileTab === 'console' && (
+                  <div className="flex-1 overflow-y-auto p-4 bg-[#000000] font-mono text-xs text-neutral-300 scrollbar-thin">
+                    <pre className="whitespace-pre-wrap leading-relaxed">
+                      {consoleOutput || '$ Ready for code execution...'}
+                    </pre>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Sticky Bottom Action Dock */}
+              <div className="px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.6rem)] bg-neutral-950/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center justify-between gap-2 shrink-0 z-30">
+                {/* Language Selector */}
+                <div className="relative shrink-0">
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    disabled={antiCheatLocked || executing || submitting}
+                    className="appearance-none bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.12] rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-200 transition-all cursor-pointer focus:outline-none pr-6"
+                  >
+                    <option value="python" className="bg-neutral-900 text-white">Python 3</option>
+                    <option value="javascript" className="bg-neutral-900 text-white">JS</option>
+                    <option value="cpp" className="bg-neutral-900 text-white">C++</option>
+                    <option value="java" className="bg-neutral-900 text-white">Java</option>
+                    <option value="c" className="bg-neutral-900 text-white">C</option>
+                  </select>
+                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-neutral-400">
+                    ▼
+                  </span>
+                </div>
+
+                {/* Reset Template */}
+                <button
+                  type="button"
+                  onClick={handleResetStarterCode}
+                  disabled={antiCheatLocked || executing || submitting}
+                  title="Reset code template"
+                  className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-all border border-white/[0.08] shrink-0 cursor-pointer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+
+                {/* Run Code */}
+                <button
+                  type="button"
+                  onClick={handleRunCode}
+                  disabled={executing || submitting || antiCheatLocked || runCooldown > 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] disabled:opacity-40 text-white transition-all border border-white/[0.1] cursor-pointer"
+                >
+                  {executing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-300" />
+                  ) : runCooldown > 0 ? (
+                    <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                  )}
+                  <span>
+                    {executing ? 'Running...' : runCooldown > 0 ? `Run (${runCooldown}s)` : 'Run'}
+                  </span>
+                </button>
+
+                {/* Submit Problem Code */}
+                <button
+                  type="button"
+                  onClick={handleSubmitProblemCode}
+                  disabled={executing || submitting || antiCheatLocked}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-bold bg-primary hover:brightness-110 active:scale-98 disabled:opacity-40 text-white transition-all shadow-xs cursor-pointer"
+                >
+                  {executing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                  <span>{executing ? 'Evaluating...' : 'Submit'}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -613,19 +1796,38 @@ export const ContestArenaPage: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-label-primary">Finalize Contest Submission?</h3>
               <p className="text-xs text-label-tertiary leading-relaxed">
-                You have answered {Object.keys(mcqAnswers).length} of {mcqs.length} MCQs. Once submitted, your score will be computed and permanent club points will be added to your profile!
+                {activeContest.type === 'HYBRID' ? (
+                  <>
+                    You answered {Object.keys(mcqAnswers).length} of {mcqs.length} MCQs and submitted {
+                      (activeSession?.codingSubmissions || []).filter((s) => s.passedTestCases > 0 || s.pointsEarned > 0).length
+                    } of {codings.length} coding problems.
+                  </>
+                ) : activeContest.type === 'CODING' ? (
+                  <>
+                    You submitted {
+                      (activeSession?.codingSubmissions || []).filter((s) => s.passedTestCases > 0 || s.pointsEarned > 0).length
+                    } of {codings.length} coding problems.
+                  </>
+                ) : (
+                  <>
+                    You answered {Object.keys(mcqAnswers).length} of {mcqs.length} MCQs.
+                  </>
+                )}
+                {' '}Once submitted, your final score will be recorded and rankings finalized!
               </p>
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={() => setIsSubmitModalOpen(false)}
-                  className="py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors"
+                  className="py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors cursor-pointer"
                 >
                   Back to Arena
                 </button>
                 <button
+                  type="button"
                   onClick={handleFinalSubmit}
                   disabled={submitting}
-                  className="py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all"
+                  className="py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer"
                 >
                   Confirm & Submit
                 </button>

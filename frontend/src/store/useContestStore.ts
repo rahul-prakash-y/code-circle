@@ -280,6 +280,34 @@ export const useContestStore = create<ContestState>((set, get) => ({
       });
       set({ executing: false });
       const data = res.data.data;
+      if (get().activeSession) {
+        const sess = get().activeSession!;
+        const updatedSubs = [...(sess.codingSubmissions || [])];
+        const idx = updatedSubs.findIndex(
+          (cs) => cs.problemId?.toString() === problemId.toString()
+        );
+        const newRecord = {
+          problemId,
+          code,
+          language,
+          passedTestCases: data.passedCount,
+          totalTestCases: data.totalTests,
+          status: data.status,
+          pointsEarned: data.pointsEarned,
+          submittedAt: new Date().toISOString(),
+        };
+        if (idx >= 0) {
+          updatedSubs[idx] = newRecord;
+        } else {
+          updatedSubs.push(newRecord);
+        }
+        set({
+          activeSession: {
+            ...sess,
+            codingSubmissions: updatedSubs,
+          },
+        });
+      }
       if (data.status === 'ACCEPTED') {
         toast.success(`Accepted! All ${data.passedCount}/${data.totalTests} test cases passed! +${data.pointsEarned} pts`);
       } else {
