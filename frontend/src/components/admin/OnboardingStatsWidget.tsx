@@ -22,6 +22,7 @@ import {
   UserX,
   X,
   SlidersHorizontal,
+  Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
@@ -66,6 +67,12 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
   const [selectedReminderTarget, setSelectedReminderTarget] = useState<User | 'all_pending' | null>(null);
   const [customMessage, setCustomMessage] = useState<string>('');
   const [sendingReminder, setSendingReminder] = useState<boolean>(false);
+
+  // Deletion modal & multi-selection states (Pending Initial Login)
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [selectedDeleteTarget, setSelectedDeleteTarget] = useState<User | 'all_pending' | 'selected' | null>(null);
+  const [deletingStudent, setDeletingStudent] = useState<boolean>(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
   // ── Fetch Data from GET /api/admin/onboarding-stats ───────────────────────
   const fetchStats = async (isManualRefresh = false) => {
@@ -268,6 +275,95 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
     }
   };
 
+  // ── Pending Student Deletion & Multi-Selection Handlers ───────────────────
+  const pendingStudentsList = useMemo(() => {
+    return filteredStudents.filter((s) => Boolean(s.mustChangePassword));
+  }, [filteredStudents]);
+
+  const toggleSelectAllPending = () => {
+    if (selectedStudentIds.length === pendingStudentsList.length && pendingStudentsList.length > 0) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(pendingStudentsList.map((s) => s._id));
+    }
+  };
+
+  const toggleSelectStudent = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedStudentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleOpenDeleteModal = (target: User | 'all_pending' | 'selected', e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedDeleteTarget(target);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteTarget) return;
+    setDeletingStudent(true);
+
+    try {
+      if (selectedDeleteTarget === 'all_pending') {
+        const res = await api.post('/admin/onboarding/bulk-delete', {
+          allPending: true,
+          department: selectedDept !== 'all' ? selectedDept : undefined,
+        });
+
+        const deletedCount = res.data?.deletedCount ?? (stats?.notOnboarded ?? 0);
+        toast.success(res.data?.message || `Successfully deleted ${deletedCount} pending student accounts!`);
+
+        setSelectedStudentIds([]);
+        setShowDeleteModal(false);
+        await fetchStats();
+      } else if (selectedDeleteTarget === 'selected') {
+        const res = await api.post('/admin/onboarding/bulk-delete', {
+          studentIds: selectedStudentIds,
+        });
+
+        const deletedCount = res.data?.deletedCount ?? selectedStudentIds.length;
+        toast.success(res.data?.message || `Successfully deleted ${deletedCount} selected student accounts!`);
+
+        setSelectedStudentIds([]);
+        setShowDeleteModal(false);
+        await fetchStats();
+      } else {
+        // Individual student deletion
+        const res = await api.delete(`/admin/students/${selectedDeleteTarget._id}`);
+        toast.success(res.data?.message || `Student ${selectedDeleteTarget.name} deleted successfully!`);
+
+        // Optimistically update list and stats
+        setStudents((prev) => prev.filter((s) => s._id !== selectedDeleteTarget._id));
+        setSelectedStudentIds((prev) => prev.filter((id) => id !== selectedDeleteTarget._id));
+        setStats((prev) => {
+          if (!prev) return prev;
+          const total = Math.max(0, prev.total - 1);
+          const notOnboarded = Math.max(0, prev.notOnboarded - 1);
+          const onboarded = prev.onboarded;
+          const rate = total > 0 ? Number(((onboarded / total) * 100).toFixed(1)) : 0;
+          return {
+            ...prev,
+            total,
+            notOnboarded,
+            completionRate: rate,
+            breakdown: [
+              { ...prev.breakdown[0], percentage: rate },
+              { ...prev.breakdown[1], count: notOnboarded, percentage: Number((100 - rate).toFixed(1)) },
+            ],
+          };
+        });
+
+        setShowDeleteModal(false);
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to delete student account(s)');
+    } finally {
+      setDeletingStudent(false);
+    }
+  };
+
   // ── Donut Chart Geometry (Custom Interactive SVG) ─────────────────────────
   const chartSize = 190;
   const strokeWidth = 22;
@@ -320,11 +416,28 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleOpenReminderModal('all_pending')}
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-500/15 px-3.5 py-2 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500/15 px-3.5 py-2 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300 cursor-pointer"
               >
                 <Mail size={14} className="text-amber-500" />
                 <span>Remind All Pending</span>
                 <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-bold text-amber-800 dark:text-amber-200">
+                  {stats.notOnboarded}
+                </span>
+              </motion.button>
+            )}
+
+            {/* Quick Bulk Action: Delete All Pending */}
+            {stats && stats.notOnboarded > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleOpenDeleteModal('all_pending')}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-500/15 px-3.5 py-2 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-500/25 dark:text-rose-300 cursor-pointer"
+                title="Permanently delete all pending initial login student accounts"
+              >
+                <Trash2 size={14} className="text-rose-500" />
+                <span>Delete All Pending</span>
+                <span className="rounded-full bg-rose-500/20 px-1.5 py-0.2 text-[10px] font-bold text-rose-800 dark:text-rose-200">
                   {stats.notOnboarded}
                 </span>
               </motion.button>
@@ -753,15 +866,27 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               </p>
             </div>
 
-            {/* Quick reminder for current filtered pending list */}
+            {/* Quick actions for current filtered pending list */}
             {statusFilter === 'not_onboarded' && filteredStudents.length > 0 && (
-              <button
-                onClick={() => handleOpenReminderModal('all_pending')}
-                className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-accent/20 transition-all hover:bg-accent-hover hover:shadow-lg"
-              >
-                <Send size={13} />
-                <span>Send Reminder to All ({filteredStudents.length})</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenReminderModal('all_pending')}
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-accent/20 transition-all hover:bg-accent-hover hover:shadow-lg cursor-pointer"
+                >
+                  <Send size={13} />
+                  <span>Send Reminder to All ({filteredStudents.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenDeleteModal('all_pending')}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-rose-600/20 transition-all hover:shadow-lg cursor-pointer"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete All Pending ({filteredStudents.length})</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -874,13 +999,68 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             </div>
           </div>
 
+          {/* Batch Selection Action Bar for Pending Students */}
+          {selectedStudentIds.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-2xl text-xs shadow-sm"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl bg-rose-500/20 p-1.5 text-rose-500">
+                  <Trash2 size={15} />
+                </div>
+                <div>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">
+                    {selectedStudentIds.length}
+                  </span>{' '}
+                  <span className="text-label-secondary">
+                    pending student(s) selected for deletion
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenDeleteModal('selected')}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete Selected ({selectedStudentIds.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentIds([])}
+                  className="rounded-xl border border-separator bg-surface px-3 py-1.5 text-xs font-medium text-label-secondary hover:text-label-primary cursor-pointer transition-colors"
+                >
+                  Deselect
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Table Container */}
           <div className="overflow-hidden rounded-2xl border border-separator/80 bg-surface shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-separator bg-surface-secondary/70 text-[11px] font-bold uppercase tracking-wider text-label-secondary">
-                    <th className="py-3.5 pl-6 pr-3">Student</th>
+                    <th className="py-3.5 pl-5 pr-2 w-10">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedStudentIds.length > 0 &&
+                          pendingStudentsList.length > 0 &&
+                          selectedStudentIds.length === pendingStudentsList.length
+                        }
+                        onChange={toggleSelectAllPending}
+                        disabled={pendingStudentsList.length === 0}
+                        className="rounded border-separator text-accent focus:ring-accent cursor-pointer disabled:opacity-40"
+                        title="Select all pending initial login students"
+                      />
+                    </th>
+                    <th className="py-3.5 pl-2 pr-3">Student</th>
                     <th className="px-3 py-3.5">Roll No</th>
                     <th className="px-3 py-3.5">Department</th>
                     <th className="px-3 py-3.5">Onboarding Status</th>
@@ -893,7 +1073,10 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     // Loading skeleton rows
                     Array.from({ length: 4 }).map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td className="py-4 pl-6 pr-3">
+                        <td className="py-4 pl-5 pr-2 w-10">
+                          <div className="h-4 w-4 rounded bg-separator" />
+                        </td>
+                        <td className="py-4 pl-2 pr-3">
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full bg-separator" />
                             <div className="space-y-1.5">
@@ -922,7 +1105,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   ) : paginatedStudents.length === 0 ? (
                     // Empty state
                     <tr>
-                      <td colSpan={6} className="py-12 text-center">
+                      <td colSpan={7} className="py-12 text-center">
                         <div className="mx-auto flex max-w-sm flex-col items-center justify-center space-y-3">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-secondary text-label-tertiary">
                             {statusFilter === 'not_onboarded' ? (
@@ -970,8 +1153,26 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                           onClick={() => onStudentSelect && onStudentSelect(student)}
                           className="group transition-colors hover:bg-surface-secondary/80"
                         >
+                          {/* Checkbox column */}
+                          <td
+                            className="py-3.5 pl-5 pr-2 w-10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {isPending ? (
+                              <input
+                                type="checkbox"
+                                checked={selectedStudentIds.includes(student._id)}
+                                onChange={(e) => toggleSelectStudent(student._id, e as any)}
+                                className="rounded border-separator text-rose-600 focus:ring-rose-500 cursor-pointer"
+                                title={`Select ${student.name} for deletion`}
+                              />
+                            ) : (
+                              <span className="inline-block w-4 h-4" />
+                            )}
+                          </td>
+
                           {/* Student Details */}
-                          <td className="py-3.5 pl-6 pr-3">
+                          <td className="py-3.5 pl-2 pr-3">
                             <div className="flex items-center gap-3">
                               <div
                                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ${
@@ -1048,6 +1249,21 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                           {/* Actions */}
                           <td className="py-3.5 pl-3 pr-6 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* Delete Pending Student Button */}
+                              {isPending && (
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={(e) => handleOpenDeleteModal(student, e)}
+                                  disabled={actionLoadingId === student._id || deletingStudent}
+                                  title={`Delete ${student.name} (Pending Initial Login)`}
+                                  className="inline-flex items-center gap-1 rounded-xl bg-rose-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 transition-colors hover:bg-rose-500/25 dark:text-rose-300 cursor-pointer disabled:opacity-50"
+                                >
+                                  <Trash2 size={12} />
+                                  <span>Delete</span>
+                                </motion.button>
+                              )}
+
                               {/* Send Reminder Button */}
                               {isPending && (
                                 <motion.button
@@ -1241,6 +1457,150 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     <>
                       <Send size={14} />
                       <span>Send Reminder</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── DELETE CONFIRMATION MODAL ────────────────────────────────────── */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !deletingStudent && setShowDeleteModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Dialog */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              className="relative w-full max-w-lg rounded-3xl border border-rose-500/30 bg-surface p-6 shadow-2xl sm:p-8"
+            >
+              <div className="flex items-center justify-between border-b border-separator/60 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="rounded-xl bg-rose-500/15 p-2 text-rose-500">
+                    <Trash2 size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-label-primary">
+                      {selectedDeleteTarget === 'all_pending'
+                        ? 'Delete All Pending Students'
+                        : selectedDeleteTarget === 'selected'
+                        ? `Delete ${selectedStudentIds.length} Selected Student(s)`
+                        : `Delete Student: ${selectedDeleteTarget?.name}`}
+                    </h3>
+                    <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">
+                      Permanent Account Deletion (Pending Initial Login)
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  disabled={deletingStudent}
+                  onClick={() => setShowDeleteModal(false)}
+                  className="rounded-lg p-1 text-label-tertiary hover:bg-surface-secondary hover:text-label-primary disabled:opacity-40"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {selectedDeleteTarget === 'all_pending' ? (
+                  <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-label-primary space-y-2">
+                    <p className="font-semibold text-rose-700 dark:text-rose-300">
+                      ⚠️ You are about to delete all pending initial login students
+                      {selectedDept !== 'all' ? ` in department "${selectedDept}"` : ''}.
+                    </p>
+                    <p className="text-label-secondary">
+                      This will permanently remove{' '}
+                      <span className="font-bold text-rose-600 dark:text-rose-400">
+                        {pendingStudentsList.length}
+                      </span>{' '}
+                      student account(s) that have never logged in, along with their credentials and any associated password reset requests.
+                    </p>
+                  </div>
+                ) : selectedDeleteTarget === 'selected' ? (
+                  <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-label-primary space-y-2">
+                    <p className="font-semibold text-rose-700 dark:text-rose-300">
+                      ⚠️ You are about to delete {selectedStudentIds.length} selected pending student account(s).
+                    </p>
+                    <p className="text-label-secondary">
+                      These students have not completed initial login. Their records and pending requests will be completely removed.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-separator bg-surface-secondary/60 p-4 space-y-2.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-label-secondary">Student Name:</span>
+                      <span className="font-semibold text-label-primary">{selectedDeleteTarget?.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-label-secondary">Email:</span>
+                      <span className="font-mono text-label-primary">{selectedDeleteTarget?.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-label-secondary">Roll Number:</span>
+                      <span className="font-mono text-label-primary">{selectedDeleteTarget?.rollNo || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-label-secondary">Department:</span>
+                      <span className="font-medium text-label-primary">{selectedDeleteTarget?.department || 'General'}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-separator/40 pt-2 text-rose-600 dark:text-rose-400">
+                      <span>Status:</span>
+                      <span className="font-semibold">Pending Initial Login</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-xl bg-surface-secondary p-3 text-xs text-label-secondary">
+                  <span className="font-semibold text-label-primary">Security Note: </span>
+                  Accounts that have already been claimed / onboarded by students cannot be deleted through this action.
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3 border-t border-separator/60 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deletingStudent}
+                  className="rounded-xl px-4 py-2 text-xs font-medium text-label-secondary transition-colors hover:bg-surface-secondary hover:text-label-primary disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deletingStudent}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 px-5 py-2 text-xs font-semibold text-white shadow-md shadow-rose-600/25 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {deletingStudent ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      <span>
+                        {selectedDeleteTarget === 'all_pending'
+                          ? 'Delete All Pending'
+                          : selectedDeleteTarget === 'selected'
+                          ? `Delete (${selectedStudentIds.length})`
+                          : 'Delete Account'}
+                      </span>
                     </>
                   )}
                 </button>

@@ -3,6 +3,7 @@ import {
   getOnboardingStats,
   sendOnboardingReminder,
   updateStudentOnboardingStatus,
+  bulkDeletePendingStudents,
   getAllStudents,
   updateStudentPassword,
   toggleBlockStudent,
@@ -28,6 +29,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
   // Quick actions: send onboarding reminder
   fastify.post('/onboarding-reminder', sendOnboardingReminder);
   fastify.post('/send-onboarding-reminder', sendOnboardingReminder);
+
+  // Quick actions: bulk delete pending initial login students
+  fastify.post('/onboarding/bulk-delete', bulkDeletePendingStudents);
+  fastify.delete('/onboarding/pending-students', bulkDeletePendingStudents);
 
   // Toggle/update student onboarding status
   fastify.patch('/students/:id/onboarding', updateStudentOnboardingStatus);

@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import mongoose from 'mongoose';
 import User from '../models/userModel';
 import bcrypt from 'bcryptjs';
 
@@ -62,16 +63,121 @@ export const toggleBlockStudent = async (request: FastifyRequest, reply: Fastify
 export const deleteStudent = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = request.params as any;
-    const user = await User.findByIdAndDelete(id);
+    const callerId = request.user?.id;
+    const callerRole = request.user?.role;
 
-    if (!user) {
+    if (callerId === id) {
+      return reply.status(400).send({ success: false, error: 'Cannot delete your own administrator account' });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
       return reply.status(404).send({ success: false, error: 'Student not found' });
     }
 
-    return reply.send({ success: true, message: 'Student deleted successfully' });
+    if (targetUser.role === 'SuperAdmin' || targetUser.role === 'Admin') {
+      if (callerRole !== 'SuperAdmin') {
+        return reply.status(403).send({ success: false, error: 'Only SuperAdmin can delete an administrator account' });
+      }
+    }
+
+    await User.findByIdAndDelete(id);
+
+    // Clean up any pending password reset requests for this user
+    try {
+      const PasswordResetRequest = (await import('../models/passwordResetRequestModel')).default;
+      await PasswordResetRequest.deleteMany({ userId: id });
+    } catch {}
+
+    return reply.send({ success: true, message: `Student ${targetUser.name} deleted successfully` });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to delete student' });
+  }
+};
+
+/**
+ * Bulk delete students who are in 'Pending Initial Login' status (mustChangePassword === true)
+ * Body: { allPending?: boolean, studentIds?: string[], department?: string }
+ */
+export const bulkDeletePendingStudents = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const callerId = request.user?.id;
+    const { allPending, studentIds, department } = (request.body || {}) as {
+      allPending?: boolean;
+      studentIds?: string[];
+      department?: string;
+    };
+
+    if (!allPending && (!Array.isArray(studentIds) || studentIds.length === 0)) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Please specify allPending: true or provide studentIds array to delete',
+      });
+    }
+
+    const filter: any = {
+      role: { $in: ['Student', 'Member', 'Committee', 'Guest'] }, // Safeguard: Never delete Admin or SuperAdmin
+      mustChangePassword: true, // Safeguard: ONLY delete Pending Initial Login students!
+    };
+
+    if (callerId && mongoose.Types.ObjectId.isValid(callerId)) {
+      filter._id = { $ne: new mongoose.Types.ObjectId(callerId) };
+    }
+
+    if (allPending) {
+      if (department && department !== 'all') {
+        filter.department = new RegExp(`^${department.trim()}$`, 'i');
+      }
+    } else if (studentIds && studentIds.length > 0) {
+      const validIds = studentIds
+        .filter((id) => typeof id === 'string' && mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+
+      if (validIds.length === 0) {
+        return reply.status(400).send({ success: false, error: 'No valid student IDs provided' });
+      }
+
+      filter._id = { $in: validIds };
+      if (callerId && mongoose.Types.ObjectId.isValid(callerId)) {
+        filter._id.$ne = new mongoose.Types.ObjectId(callerId);
+      }
+    }
+
+    // Find all matching users first so we can return their names and clean up requests
+    const matchingUsers = await User.find(filter).select('_id name email rollNo');
+    const userIds = matchingUsers.map((u) => u._id);
+
+    if (userIds.length === 0) {
+      return reply.send({
+        success: true,
+        message: 'No pending initial login student accounts found matching the criteria to delete.',
+        deletedCount: 0,
+        deletedStudents: [],
+      });
+    }
+
+    const deleteResult = await User.deleteMany({ _id: { $in: userIds } });
+
+    // Clean up associated password reset requests
+    try {
+      const PasswordResetRequest = (await import('../models/passwordResetRequestModel')).default;
+      await PasswordResetRequest.deleteMany({ userId: { $in: userIds } });
+    } catch {}
+
+    return reply.send({
+      success: true,
+      message: `Successfully deleted ${deleteResult.deletedCount} pending student user account(s)`,
+      deletedCount: deleteResult.deletedCount,
+      deletedStudents: matchingUsers.map((u) => ({ id: u._id, name: u.name, rollNo: u.rollNo })),
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to bulk delete pending students',
+      details: error.message,
+    });
   }
 };
 
@@ -423,6 +529,7 @@ export default {
   updateStudentPassword,
   toggleBlockStudent,
   deleteStudent,
+  bulkDeletePendingStudents,
   forceLogoutStudent,
   getOnboardingStats,
   sendOnboardingReminder,
