@@ -75,30 +75,78 @@ class EmailService {
 
   public getStatus() {
     this.getTransporter();
-    const hasResend = Boolean(process.env.RESEND_API_KEY);
     const hasBrevo = Boolean(process.env.BREVO_API_KEY);
-    const host = hasResend
+    const hasResend = Boolean(process.env.RESEND_API_KEY);
+    const host = hasBrevo
+      ? 'Brevo HTTP API (Port 443 — Unblocked)'
+      : hasResend
       ? 'Resend HTTP API (Port 443)'
-      : hasBrevo
-      ? 'Brevo HTTP API (Port 443)'
       : process.env.SMTP_HOST || process.env.EMAIL_HOST || 'Not set';
-    const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+
+    const user = hasBrevo
+      ? (process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'rahulraiman03@gmail.com')
+      : (process.env.SMTP_USER || process.env.EMAIL_USER);
+
+    const sender = process.env.BREVO_SENDER_NAME
+      ? `${process.env.BREVO_SENDER_NAME} <${user}>`
+      : process.env.SMTP_FROM || process.env.EMAIL_FROM || 'Code Circle <codecircle@bitsathy.ac.in>';
 
     return {
-      configured: Boolean(hasResend || hasBrevo || (this.isConfigured && this.transporter)),
-      provider: hasResend ? 'resend' : hasBrevo ? 'brevo' : 'smtp',
+      configured: Boolean(hasBrevo || hasResend || (this.isConfigured && this.transporter)),
+      provider: hasBrevo ? 'brevo' : hasResend ? 'resend' : 'smtp',
       host,
       user: user ? `${user.substring(0, 3)}***@${user.split('@')[1] || 'domain'}` : 'Not set',
-      sender: process.env.SMTP_FROM || process.env.EMAIL_FROM || 'Code Circle <codecircle@bitsathy.ac.in>',
+      sender,
     };
   }
 
   public async verifyConnection(): Promise<{ success: boolean; message: string }> {
+    // If Brevo API is configured, verify using Brevo's Account API endpoint
+    if (process.env.BREVO_API_KEY) {
+      try {
+        const axios = (await import('axios')).default;
+        const res = await axios.get('https://api.brevo.com/v3/account', {
+          headers: {
+            'api-key': process.env.BREVO_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          timeout: 6000,
+        });
+
+        const email = res.data?.email || 'verified account';
+        return {
+          success: true,
+          message: `Brevo API connection verified successfully (${email}, plan: ${res.data?.plan?.[0]?.type || 'free'})`,
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          message: `Brevo API verification failed: ${err.response?.data?.message || err.message}`,
+        };
+      }
+    }
+
+    // If Resend API is configured, verify using Resend's API
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const axios = (await import('axios')).default;
+        await axios.get('https://api.resend.com/api-keys', {
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          },
+          timeout: 6000,
+        });
+        return { success: true, message: 'Resend API connection verified successfully' };
+      } catch (err: any) {
+        return { success: false, message: `Resend API verification failed: ${err.message}` };
+      }
+    }
+
     const transporter = this.getTransporter();
     if (!transporter) {
       return {
         success: false,
-        message: 'SMTP credentials are not configured in backend environment (SMTP_HOST, SMTP_USER, SMTP_PASS)',
+        message: 'No email credentials configured. Please set BREVO_API_KEY in backend environment.',
       };
     }
 
@@ -220,7 +268,51 @@ If you did not request this reset, please contact your administrator.
 — Code Circle BIT
     `.trim();
 
-    // Priority 1: Resend HTTP API (HTTPS Port 443 — Unblocked on Render Free Tier)
+    // Priority 1: Brevo HTTP API (HTTPS Port 443 — Guaranteed Unblocked on Render Free Tier)
+    if (process.env.BREVO_API_KEY) {
+      try {
+        const axios = (await import('axios')).default;
+        const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'rahulraiman03@gmail.com';
+        const senderName = process.env.BREVO_SENDER_NAME || 'Code Circle BIT';
+
+        const res = await axios.post(
+          'https://api.brevo.com/v3/smtp/email',
+          {
+            sender: {
+              name: senderName,
+              email: senderEmail,
+            },
+            to: [{ email: to, name }],
+            subject: '🔐 Code Circle — Password Reset Approved',
+            htmlContent,
+            textContent,
+          },
+          {
+            headers: {
+              'api-key': process.env.BREVO_API_KEY,
+              'Content-Type': 'application/json',
+            },
+            timeout: 6000,
+          }
+        );
+
+        console.log(`[EmailService: Brevo] Password reset email sent to ${to}. MessageId: ${res.data?.messageId}`);
+        return {
+          success: true,
+          messageId: res.data?.messageId,
+          simulated: false,
+        };
+      } catch (httpErr: any) {
+        console.error('[EmailService: Brevo] API error sending to', to, httpErr.response?.data || httpErr.message);
+        return {
+          success: false,
+          error: `Brevo API Error: ${httpErr.response?.data?.message || httpErr.message}`,
+          simulated: false,
+        };
+      }
+    }
+
+    // Priority 2: Resend HTTP API (HTTPS Port 443 — Unblocked on Render Free Tier)
     if (process.env.RESEND_API_KEY) {
       try {
         const axios = (await import('axios')).default;
@@ -253,47 +345,6 @@ If you did not request this reset, please contact your administrator.
         return {
           success: false,
           error: `Resend API Error: ${httpErr.response?.data?.message || httpErr.message}`,
-          simulated: false,
-        };
-      }
-    }
-
-    // Priority 2: Brevo HTTP API (HTTPS Port 443 — Unblocked on Render Free Tier)
-    if (process.env.BREVO_API_KEY) {
-      try {
-        const axios = (await import('axios')).default;
-        const res = await axios.post(
-          'https://api.brevo.com/v3/smtp/email',
-          {
-            sender: {
-              name: 'Code Circle BIT',
-              email: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'rahulraiman03@gmail.com',
-            },
-            to: [{ email: to, name }],
-            subject: '🔐 Code Circle — Password Reset Approved',
-            htmlContent,
-            textContent,
-          },
-          {
-            headers: {
-              'api-key': process.env.BREVO_API_KEY,
-              'Content-Type': 'application/json',
-            },
-            timeout: 6000,
-          }
-        );
-
-        console.log(`[EmailService: Brevo] Password reset email sent to ${to}. MessageId: ${res.data?.messageId}`);
-        return {
-          success: true,
-          messageId: res.data?.messageId,
-          simulated: false,
-        };
-      } catch (httpErr: any) {
-        console.error('[EmailService: Brevo] API error sending to', to, httpErr.response?.data || httpErr.message);
-        return {
-          success: false,
-          error: `Brevo API Error: ${httpErr.response?.data?.message || httpErr.message}`,
           simulated: false,
         };
       }
