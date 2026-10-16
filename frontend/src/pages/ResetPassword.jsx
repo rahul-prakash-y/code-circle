@@ -47,7 +47,7 @@ const ResetPassword = () => {
   const [reqEmail, setReqEmail] = useState(emailParam || '');
   const [reqPassword, setReqPassword] = useState('');
   const [reqRollNo, setReqRollNo] = useState('');
-  const [verifyMethod, setVerifyMethod] = useState('password'); // 'password' | 'rollNo'
+  const [verifyMethod, setVerifyMethod] = useState('rollNo'); // 'password' | 'rollNo'
   const [showReqPassword, setShowReqPassword] = useState(false);
   const [reqReason, setReqReason] = useState('');
   const [reqLoading, setReqLoading] = useState(false);
@@ -454,7 +454,7 @@ const ResetPassword = () => {
               <div className="flex items-center justify-between">
                 <label className="input-label">Identity Verification</label>
                 <div className="flex gap-2">
-                  <button
+                  {/* <button
                     type="button"
                     onClick={() => setVerifyMethod('password')}
                     className={`text-[11px] px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
@@ -464,7 +464,7 @@ const ResetPassword = () => {
                     }`}
                   >
                     Via Password
-                  </button>
+                  </button> */}
                   <button
                     type="button"
                     onClick={() => setVerifyMethod('rollNo')}
