@@ -637,9 +637,15 @@ const AdminPasswordResets: React.FC = () => {
                               >
                                 <AlertCircle className="w-3 h-3" /> Delivery Failed
                               </button>
-                              <p className="text-[10px] text-rose-400/80 max-w-[130px] truncate">
-                                {req.emailError || 'Unsent'}
-                              </p>
+                              {req.resetToken && (
+                                <button
+                                  onClick={() => copyResetLink(req.resetToken!, req.email)}
+                                  className="flex items-center gap-1 text-[10px] text-accent hover:text-accent/80 transition-colors cursor-pointer font-medium"
+                                  title="Copy direct reset link"
+                                >
+                                  <Copy className="w-2.5 h-2.5" /> Copy Link
+                                </button>
+                              )}
                             </div>
                           )
                         ) : (
@@ -921,6 +927,17 @@ const AdminPasswordResets: React.FC = () => {
                 <p className="font-bold text-rose-400">Error Description:</p>
                 <p>{errorDetailReq.emailError || 'Unknown delivery failure'}</p>
               </div>
+
+              {errorDetailReq.emailError?.includes('Render') && (
+                <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 text-accent space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-[11px]">
+                    <Sparkles className="w-3.5 h-3.5" /> How to Enable Automated Emails on Render:
+                  </p>
+                  <p className="text-[10px] text-text-secondary leading-relaxed">
+                    Render free tier blocks raw SMTP ports (465/587). Add a free <strong className="text-accent">BREVO_API_KEY</strong> or <strong className="text-accent">RESEND_API_KEY</strong> in Render Dashboard &rarr; Environment to send emails directly over HTTPS (Port 443). Until then, you can copy the manual link below.
+                  </p>
+                </div>
+              )}
 
               {errorDetailReq.resetToken && (
                 <div className="space-y-1.5">
