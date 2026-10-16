@@ -21,6 +21,7 @@ import {
   Activity,
   Flame,
   Sparkles,
+  KeyRound,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -201,6 +202,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       label: 'Directory',
       icon: Shield,
       match: (loc) => loc.pathname === '/users' || loc.pathname === '/students',
+    },
+    {
+      to: '/password-resets',
+      label: 'Password Resets',
+      icon: KeyRound,
+      match: (loc) => loc.pathname === '/password-resets' || loc.pathname === '/admin/password-resets',
     },
     {
       to: '/tracking',

@@ -239,6 +239,17 @@ export const resetPassword = async (request: FastifyRequest, reply: FastifyReply
     user.mustChangePassword = false;
     await user.save();
 
+    // Mark corresponding password reset request as redeemed
+    try {
+      const PasswordResetRequest = (await import('../models/passwordResetRequestModel')).default;
+      await PasswordResetRequest.findOneAndUpdate(
+        { resetToken: token },
+        { isUsed: true, usedAt: new Date() }
+      );
+    } catch {
+      // Non-blocking
+    }
+
     return reply.send({
       success: true,
       message: 'Your password has been reset successfully. Please log in with your new credentials.',

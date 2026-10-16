@@ -9,6 +9,7 @@ import {
   deleteStudent,
   forceLogoutStudent,
 } from '../controllers/adminController';
+import * as passwordResetController from '../controllers/passwordResetController';
 import { verifyToken, isAdmin } from '../middleware/authMiddleware';
 
 import { studentTrackingRoutes } from './studentTrackingRoutes';
@@ -38,6 +39,15 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.put('/students/:id/block', toggleBlockStudent);
   fastify.delete('/students/:id', deleteStudent);
   fastify.put('/students/:id/logout', forceLogoutStudent);
+
+  // Password Reset Link Dispatcher & Approval Endpoints (/api/admin/password-resets)
+  fastify.get('/password-resets', passwordResetController.getAdminResetRequests);
+  fastify.post('/password-resets/:id/approve', passwordResetController.approveResetRequest);
+  fastify.post('/password-resets/:id/resend', passwordResetController.resendResetEmail);
+  fastify.post('/password-resets/:id/reject', passwordResetController.rejectResetRequest);
+  fastify.post('/password-resets/approve-all', passwordResetController.approveAllResetRequests);
+  fastify.delete('/password-resets/:id', passwordResetController.deleteResetRequest);
+  fastify.get('/password-resets/smtp-status', passwordResetController.getSmtpStatus);
 }
 
 export default adminRoutes;

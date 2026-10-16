@@ -94,6 +94,35 @@ const useAuthStore = create((set, get) => ({
   },
 
   // Password Reset Actions
+  requestPasswordReset: async ({ email, password, rollNo, reason }) => {
+    try {
+      const response = await api.post('/auth/request-reset', { email, password, rollNo, reason });
+      return {
+        success: true,
+        alreadyPending: response.data.alreadyPending,
+        message: response.data.message,
+        requestId: response.data.requestId,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to submit password reset request',
+      };
+    }
+  },
+
+  checkResetStatus: async (identifier) => {
+    try {
+      const response = await api.get('/auth/reset-status', { params: { identifier } });
+      return response.data;
+    } catch (err) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to check reset status',
+      };
+    }
+  },
+
   forgotPassword: async (email) => {
     try {
       const response = await api.post('/auth/forgot-password', { email });

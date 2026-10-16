@@ -36,6 +36,7 @@ const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'));
 const ContestsPage = lazy(() => import('./pages/ContestsPage'));
 const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
+const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
 
@@ -405,6 +406,24 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
                   <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Password Reset Link Dispatcher Module */}
+            <Route
+              path="/password-resets"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                  <AdminPasswordResets />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/password-resets"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                  <AdminPasswordResets />
                 </ProtectedRoute>
               }
             />

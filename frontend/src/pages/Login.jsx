@@ -345,27 +345,31 @@ const Login = () => {
                 </button>
               </div>
 
-              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1.5">
-                <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+              <div className="p-4 bg-accent/10 border border-accent/20 rounded-xl space-y-1.5">
+                <div className="flex items-center gap-2 text-accent text-xs font-bold uppercase tracking-wider">
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Admin-Managed Credentials</span>
+                  <span>Verified Reset Link Request</span>
                 </div>
                 <p className="text-xs text-text-secondary leading-relaxed">
-                  Self-service password reset links are disabled for campus data integrity. If you have forgotten your password, an administrator or faculty coordinator will generate a secure temporary password for your account.
+                  You can submit a verified password reset request through our portal. Administrators review requests, approve user accounts, and dispatch official reset links to your registered email.
                 </p>
               </div>
 
-              {/* Contact Admin Card */}
-              <div className="p-4 rounded-xl bg-surface border border-separator space-y-3">
-                <p className="text-[11px] font-bold uppercase text-text-muted tracking-wider">
-                  Club Support Contact
-                </p>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-canvas border border-separator">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Mail className="w-4 h-4 text-accent shrink-0" />
-                    <span className="text-xs font-mono font-semibold text-text-primary truncate">
-                      codecircle@bitsathy.ac.in
-                    </span>
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                <Link
+                  to="/reset-password"
+                  onClick={() => setShowForgotModal(false)}
+                  className="btn-primary w-full py-2.5 text-xs flex items-center justify-center gap-2 text-center"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>Go to Password Reset Portal</span>
+                </Link>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface border border-separator text-xs">
+                  <div className="flex items-center gap-2 text-text-muted">
+                    <Mail className="w-3.5 h-3.5 text-accent" />
+                    <span>codecircle@bitsathy.ac.in</span>
                   </div>
                   <button
                     type="button"
@@ -373,32 +377,17 @@ const Login = () => {
                       navigator.clipboard.writeText('codecircle@bitsathy.ac.in');
                       toast.success('Admin email copied to clipboard!');
                     }}
-                    className="p-1.5 rounded-lg hover:bg-surface-elevated text-text-muted hover:text-accent transition-colors cursor-pointer"
+                    className="p-1 rounded hover:bg-surface-elevated text-text-muted hover:text-accent transition-colors cursor-pointer"
                     title="Copy Email"
                   >
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                <div className="text-[11px] text-text-muted space-y-1 pl-1">
-                  <p><strong>Institution:</strong> Bannari Amman Institute of Technology (BIT)</p>
-                  <p><strong>Include in request:</strong> Your Full Name, Roll Number, and Department.</p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
-                <a
-                  href="mailto:codecircle@bitsathy.ac.in?subject=Code%20Circle%20Password%20Reset%20Request&body=Hello%20Administrator,%0D%0A%0D%0AI%20am%20requesting%20a%20temporary%20password%20reset%20for%20my%20Code%20Circle%20account.%0D%0A%0D%0AName:%20%0D%0ARoll%20Number:%20%0D%0ADepartment:%20%0D%0A%0D%0AThank%20you!"
-                  className="btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-2 text-center"
-                >
-                  <Mail className="w-4 h-4" />
-                  <span>Email Administrator</span>
-                </a>
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(false)}
-                  className="btn-secondary py-2.5 px-5 text-xs cursor-pointer"
+                  className="btn-secondary w-full py-2 text-xs cursor-pointer"
                 >
                   Close
                 </button>

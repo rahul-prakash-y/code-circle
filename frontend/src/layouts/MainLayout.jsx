@@ -13,7 +13,7 @@ import {
   Medal, Trophy, Ticket, MessageSquare,
   Newspaper, Users, Crown, Shield, BarChart3,
   Compass, UserCheck,
-  Flame, Sparkles,
+  Flame, Sparkles, KeyRound,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -116,6 +116,7 @@ export const MainLayout = ({ children }) => {
     ...(isAdmin
       ? [
           { to: '/users', label: 'Directory', icon: Shield },
+          { to: '/password-resets', label: 'Password Resets', icon: KeyRound },
           { to: '/tracking', label: 'Student Tracking', icon: UserCheck },
           { to: '/analytics', label: 'Analytics', icon: BarChart3 },
         ]
