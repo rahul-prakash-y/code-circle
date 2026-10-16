@@ -84,42 +84,73 @@ export const requestPasswordReset = async (request: FastifyRequest, reply: Fasti
       });
     }
 
-    // Check if there is already an active pending request
-    const existingPending = await PasswordResetRequest.findOne({
-      userId: user._id,
-      status: 'pending',
-    });
+    // Generate secure 32-byte reset token valid for 24 hours
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    if (existingPending) {
-      return reply.send({
-        success: true,
-        alreadyPending: true,
-        message: 'A password reset request is already active and awaiting administrator approval.',
-        requestId: existingPending._id,
-        createdAt: existingPending.createdAt,
-      });
-    }
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = expires;
+    await user.save();
 
-    // Create the new reset request
-    const newRequest = new PasswordResetRequest({
-      userId: user._id,
+    const resetLink = `${getClientUrl(request)}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
+
+    // Automatically dispatch password reset email immediately upon request
+    const emailResult = await emailService.sendPasswordResetEmail({
+      to: user.email,
       name: user.name,
-      email: user.email,
       rollNo: user.rollNo,
-      department: user.department || '',
-      status: 'pending',
-      emailSent: false,
-      verificationMethod,
-      reason: reason?.trim() || '',
-      requestIp: request.ip || '',
+      resetLink,
+      expiresHours: 24,
     });
 
-    await newRequest.save();
+    // Check if an existing unused request already exists for this user to update or create new
+    let requestDoc = await PasswordResetRequest.findOne({
+      userId: user._id,
+      isUsed: false,
+    }).sort({ createdAt: -1 });
+
+    if (requestDoc) {
+      requestDoc.status = 'approved';
+      requestDoc.resetToken = token;
+      requestDoc.resetTokenExpires = expires;
+      requestDoc.emailSent = emailResult.success;
+      requestDoc.emailSentAt = emailResult.success ? new Date() : requestDoc.emailSentAt;
+      requestDoc.emailError = emailResult.error || null;
+      requestDoc.emailAttempts = (requestDoc.emailAttempts || 0) + 1;
+      requestDoc.verificationMethod = verificationMethod;
+      if (reason) requestDoc.reason = reason.trim();
+      requestDoc.requestIp = request.ip || '';
+      await requestDoc.save();
+    } else {
+      requestDoc = new PasswordResetRequest({
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        rollNo: user.rollNo,
+        department: user.department || '',
+        status: 'approved',
+        resetToken: token,
+        resetTokenExpires: expires,
+        emailSent: emailResult.success,
+        emailSentAt: emailResult.success ? new Date() : null,
+        emailError: emailResult.error || null,
+        emailAttempts: 1,
+        verificationMethod,
+        reason: reason?.trim() || '',
+        requestIp: request.ip || '',
+        isUsed: false,
+      });
+      await requestDoc.save();
+    }
 
     return reply.status(201).send({
       success: true,
-      message: 'Password reset request verified and created successfully. Queued for administrator approval.',
-      requestId: newRequest._id,
+      message: emailResult.success
+        ? `Password reset link has been emailed to ${user.email}! Please check your inbox.`
+        : `Password reset request created! An email delivery attempt was made, and administrators have been notified.`,
+      emailSent: emailResult.success,
+      emailError: emailResult.error,
+      requestId: requestDoc._id,
       name: user.name,
       email: user.email,
     });

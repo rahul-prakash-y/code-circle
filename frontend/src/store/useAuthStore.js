@@ -102,6 +102,7 @@ const useAuthStore = create((set, get) => ({
         alreadyPending: response.data.alreadyPending,
         message: response.data.message,
         requestId: response.data.requestId,
+        emailSent: response.data.emailSent,
       };
     } catch (err) {
       return {

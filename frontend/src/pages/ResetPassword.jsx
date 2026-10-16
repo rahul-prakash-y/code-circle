@@ -126,6 +126,7 @@ const ResetPassword = () => {
         message: result.message,
         alreadyPending: result.alreadyPending,
         requestId: result.requestId,
+        emailSent: result.emailSent,
       });
       toast.success(result.message || 'Password reset request registered!');
     } else {
@@ -311,14 +312,20 @@ const ResetPassword = () => {
           className="space-y-6"
         >
           <div className="w-16 h-16 bg-accent/10 border border-accent/20 rounded-2xl flex items-center justify-center mx-auto text-accent shadow-lg shadow-accent/10">
-            <Clock className="w-8 h-8 animate-pulse" />
+            {submittedRequest.emailSent ? (
+              <Mail className="w-8 h-8 text-emerald-400 animate-bounce" />
+            ) : (
+              <Clock className="w-8 h-8 text-amber-400" />
+            )}
           </div>
 
           <div className="text-center space-y-2">
-            <h3 className="text-base font-bold text-text-primary">Request Queued for Approval</h3>
+            <h3 className="text-base font-bold text-text-primary">
+              {submittedRequest.emailSent ? 'Password Reset Email Sent' : 'Reset Request Registered'}
+            </h3>
             <p className="text-xs text-text-secondary leading-relaxed">
               {submittedRequest.message ||
-                'Your account has been verified. The reset request has been added to the administrator console for approval and link dispatch.'}
+                'Your account has been verified. A reset link has been dispatched to your email address.'}
             </p>
           </div>
 
@@ -328,14 +335,22 @@ const ResetPassword = () => {
               <span className="font-mono font-semibold text-text-primary">{submittedRequest.email}</span>
             </div>
             <div className="flex items-center justify-between pb-2 border-b border-separator">
-              <span className="text-text-muted">Workflow Status:</span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold text-[11px] border border-amber-500/20">
-                Pending Admin Approval
+              <span className="text-text-muted">Email Delivery:</span>
+              <span
+                className={`px-2 py-0.5 rounded-full font-semibold text-[11px] border ${
+                  submittedRequest.emailSent
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                }`}
+              >
+                {submittedRequest.emailSent ? 'Link Dispatched to Inbox' : 'Awaiting Delivery / Admin Review'}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-text-muted">Email Link:</span>
-              <span className="text-text-muted">Will be dispatched upon approval</span>
+              <span className="text-text-muted">Next Step:</span>
+              <span className="text-text-secondary">
+                {submittedRequest.emailSent ? 'Click link in email to set password' : 'Admin will review or resend link'}
+              </span>
             </div>
           </div>
 
