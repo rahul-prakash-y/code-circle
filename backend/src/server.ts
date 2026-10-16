@@ -67,6 +67,7 @@ server.register(newsRoutes, { prefix: '/api/news' });
 server.register(assessmentRoutes, { prefix: '/api/assessments' });
 server.register(feedbackRoutes, { prefix: '/api/feedback' });
 server.register(require('./routes/health'), { prefix: '/api' });
+server.register(require('./routes/health'), { prefix: '/' });
 server.register(require('./routes/uploadRoutes'), { prefix: '/api/upload' });
 server.register(require('./routes/enrollmentRoutes'), { prefix: '/api/enrollments' });
 server.register(require('./routes/problemRoutes'), { prefix: '/api/problems' });
@@ -107,58 +108,61 @@ export const start = async (): Promise<void> => {
   try {
     await connectDB();
 
-    // Ensure existing level-linked challenges are flagged as isCourseChallenge: true
-    try {
-      const Level = (await import('./models/levelModel')).default;
-      const CodingChallenge = (await import('./models/codingChallengeModel')).default;
-      const levels = await Level.find({
-        $or: [
-          { codingChallengeId: { $ne: null } },
-          { codingChallengePool: { $exists: true, $ne: [] } },
-        ],
-      });
-      const linkedIds = new Set<string>();
-      for (const lvl of levels) {
-        let changed = false;
-        if (!Array.isArray(lvl.codingChallengePool)) {
-          lvl.codingChallengePool = [];
-          changed = true;
-        }
-        if (lvl.codingChallengeId) {
-          const cId = lvl.codingChallengeId.toString();
-          linkedIds.add(cId);
-          if (!lvl.codingChallengePool.some((p: any) => p && p.toString() === cId)) {
-            lvl.codingChallengePool.push(lvl.codingChallengeId);
-            changed = true;
-          }
-        }
-        if (changed) {
-          await lvl.save();
-        }
-      }
-      if (linkedIds.size > 0) {
-        await CodingChallenge.updateMany(
-          { _id: { $in: Array.from(linkedIds) } },
-          { $set: { isCourseChallenge: true } }
-        );
-      }
-    } catch (syncErr) {
-      console.warn('[Server] Level challenge sync skipped:', syncErr);
-    }
-
-    // Sync passing MCQ assessment submissions for missing points
-    try {
-      const { syncAssessmentPoints } = await import('./scripts/syncAssessmentPoints');
-      await syncAssessmentPoints();
-    } catch (assSyncErr) {
-      console.warn('[Server] Assessment points sync skipped:', assSyncErr);
-    }
-
     const port = Number(process.env.PORT) || 5000;
     const host = '0.0.0.0';
 
     await server.listen({ port, host });
     console.log(`[Server] Fastify server listening on http://${host}:${port}`);
+
+    // Asynchronous background migrations & sync (non-blocking)
+    (async () => {
+      // Ensure existing level-linked challenges are flagged as isCourseChallenge: true
+      try {
+        const Level = (await import('./models/levelModel')).default;
+        const CodingChallenge = (await import('./models/codingChallengeModel')).default;
+        const levels = await Level.find({
+          $or: [
+            { codingChallengeId: { $ne: null } },
+            { codingChallengePool: { $exists: true, $ne: [] } },
+          ],
+        });
+        const linkedIds = new Set<string>();
+        for (const lvl of levels) {
+          let changed = false;
+          if (!Array.isArray(lvl.codingChallengePool)) {
+            lvl.codingChallengePool = [];
+            changed = true;
+          }
+          if (lvl.codingChallengeId) {
+            const cId = lvl.codingChallengeId.toString();
+            linkedIds.add(cId);
+            if (!lvl.codingChallengePool.some((p: any) => p && p.toString() === cId)) {
+              lvl.codingChallengePool.push(lvl.codingChallengeId);
+              changed = true;
+            }
+          }
+          if (changed) {
+            await lvl.save();
+          }
+        }
+        if (linkedIds.size > 0) {
+          await CodingChallenge.updateMany(
+            { _id: { $in: Array.from(linkedIds) } },
+            { $set: { isCourseChallenge: true } }
+          );
+        }
+      } catch (syncErr) {
+        console.warn('[Server] Level challenge sync skipped:', syncErr);
+      }
+
+      // Sync passing MCQ assessment submissions for missing points
+      try {
+        const { syncAssessmentPoints } = await import('./scripts/syncAssessmentPoints');
+        await syncAssessmentPoints();
+      } catch (assSyncErr) {
+        console.warn('[Server] Assessment points sync skipped:', assSyncErr);
+      }
+    })().catch((err) => console.warn('[Server] Background sync warning:', err));
   } catch (err) {
     server.log.error(err);
     process.exit(1);
