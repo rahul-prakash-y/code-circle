@@ -298,15 +298,6 @@ function App() {
               }
             />
 
-            {/* Club Hours Arena Hub */}
-            <Route
-              path="/arena"
-              element={
-                <ProtectedRoute>
-                  <ClubArenaPage />
-                </ProtectedRoute>
-              }
-            />
 
             <Route
               path="/certificates"
