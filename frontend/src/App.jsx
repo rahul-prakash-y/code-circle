@@ -37,10 +37,7 @@ const ContestsPage = lazy(() => import('./pages/ContestsPage'));
 const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
 const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
-const ClubArenaPage = lazy(() => import('./pages/ClubArenaPage'));
-const HostSessionPage = lazy(() => import('./pages/HostSessionPage'));
-const ArenaPlayPage = lazy(() => import('./pages/ArenaPlayPage'));
-const ArenaSelfPacedPage = lazy(() => import('./pages/ArenaSelfPacedPage'));
+
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
 
