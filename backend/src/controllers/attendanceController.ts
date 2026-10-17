@@ -101,10 +101,10 @@ export const getAttendanceRecords = async (
     const { studentId, eventId, sessionId, search, page = '1', limit = '50', all } =
       request.query;
 
-    const isAll = all === 'true' || all === '1';
-    // Clamp limit safely to max 100 to prevent unbounded retrieval
-    const parsedLimit = isAll ? 100 : Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
-    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const isAll = all === 'true' || all === '1' || limit === '0' || limit === 'all';
+    // Allow up to 500 records per page for pagination, or 0 for unbounded/all export
+    const parsedLimit = isAll ? 0 : Math.min(500, Math.max(1, parseInt(limit, 10) || 50));
+    const parsedPage = isAll ? 1 : Math.max(1, parseInt(page, 10) || 1);
 
     const result = await AttendanceService.getAttendanceRecords({
       studentId: studentId ? String(studentId) : undefined,
@@ -113,10 +113,14 @@ export const getAttendanceRecords = async (
       search: search ? String(search) : undefined,
       page: parsedPage,
       limit: parsedLimit,
-      all: false,
+      all: isAll,
     });
 
-    const pagination = buildPaginationMeta(result.total, parsedPage, parsedLimit);
+    const pagination = buildPaginationMeta(
+      result.total,
+      parsedPage,
+      parsedLimit > 0 ? parsedLimit : Math.max(1, result.total)
+    );
 
     return reply.send({
       success: true,

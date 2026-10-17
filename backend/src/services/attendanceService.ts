@@ -301,7 +301,36 @@ export class AttendanceService {
         throw new Error('Student not found');
       }
 
-      let query = AttendanceRecord.find({ user: studentId })
+      let recordFilter: any = { user: studentId };
+
+      if (search && search.trim()) {
+        const term = search.trim();
+        const searchRegex = new RegExp(term, 'i');
+        const matchingSessions = await AttendanceSession.find({
+          sessionName: searchRegex,
+        }).select('_id');
+        const matchingEvents = await Event.find({
+          $or: [
+            { title: searchRegex },
+            { type: searchRegex },
+            { format: searchRegex },
+          ],
+        }).select('_id');
+        const eventSessions = await AttendanceSession.find({
+          event: { $in: matchingEvents.map((e) => e._id) },
+        }).select('_id');
+
+        const sessionIds = Array.from(
+          new Set([
+            ...matchingSessions.map((s) => s._id.toString()),
+            ...eventSessions.map((s) => s._id.toString()),
+          ])
+        ).map((id) => new mongoose.Types.ObjectId(id));
+
+        recordFilter.session = { $in: sessionIds };
+      }
+
+      let query = AttendanceRecord.find(recordFilter)
         .populate({
           path: 'session',
           select: 'sessionName otp classHours hourlyPoints totalPoints event',
@@ -317,7 +346,7 @@ export class AttendanceService {
       }
 
       const records = await query;
-      const total = await AttendanceRecord.countDocuments({ user: studentId });
+      const total = await AttendanceRecord.countDocuments(recordFilter);
 
       return {
         mode: 'student',

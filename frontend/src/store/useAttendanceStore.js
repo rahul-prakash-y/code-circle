@@ -100,8 +100,19 @@ const useAttendanceStore = create((set) => ({
 
       const res = await api.get(`/attendance/records?${params.toString()}`);
       if (res.data.success) {
-        set({ recordsData: res.data.data, loading: false });
-        return res.data.data;
+        const payload = {
+          ...res.data.data,
+          pagination: res.data.pagination || {
+            total: res.data.data?.total ?? 0,
+            page: res.data.data?.page ?? page,
+            limit: res.data.data?.limit ?? limit,
+            totalPages: res.data.data?.totalPages ?? 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        };
+        set({ recordsData: payload, loading: false });
+        return payload;
       }
       set({ loading: false });
       return null;

@@ -74,12 +74,21 @@ const AttendanceRecordsView: React.FC = () => {
 
   // Helper to re-fetch attendance records
   const refreshRecords = () => {
-    setCurrentPage(1);
     if (filterMode === 'event' && selectedEventId) {
-      fetchAttendanceRecords({ eventId: selectedEventId, search: debouncedSearch, all: true });
+      fetchAttendanceRecords({
+        eventId: selectedEventId,
+        search: debouncedSearch,
+        page: currentPage,
+        limit: pageSize,
+      });
       fetchActiveSession(selectedEventId);
     } else if (filterMode === 'student' && selectedStudentId) {
-      fetchAttendanceRecords({ studentId: selectedStudentId, search: debouncedSearch, all: true });
+      fetchAttendanceRecords({
+        studentId: selectedStudentId,
+        search: debouncedSearch,
+        page: currentPage,
+        limit: pageSize,
+      });
     }
   };
 
@@ -117,15 +126,25 @@ const AttendanceRecordsView: React.FC = () => {
     setCurrentPage(1);
   }, [filterMode, selectedEventId, selectedStudentId, debouncedSearch, pageSize]);
 
-  // Fetch records whenever selection or debounced search changes
+  // Fetch records whenever selection, search, page or pageSize changes
   useEffect(() => {
     if (filterMode === 'event' && selectedEventId) {
-      fetchAttendanceRecords({ eventId: selectedEventId, search: debouncedSearch, all: true });
+      fetchAttendanceRecords({
+        eventId: selectedEventId,
+        search: debouncedSearch,
+        page: currentPage,
+        limit: pageSize,
+      });
       fetchActiveSession(selectedEventId);
     } else if (filterMode === 'student' && selectedStudentId) {
-      fetchAttendanceRecords({ studentId: selectedStudentId, search: debouncedSearch, all: true });
+      fetchAttendanceRecords({
+        studentId: selectedStudentId,
+        search: debouncedSearch,
+        page: currentPage,
+        limit: pageSize,
+      });
     }
-  }, [filterMode, selectedEventId, selectedStudentId, debouncedSearch, fetchAttendanceRecords, fetchActiveSession]);
+  }, [filterMode, selectedEventId, selectedStudentId, debouncedSearch, currentPage, pageSize, fetchAttendanceRecords, fetchActiveSession]);
 
   // Countdown timer for active OTP session
   useEffect(() => {
@@ -173,49 +192,15 @@ const AttendanceRecordsView: React.FC = () => {
     return [1, '...', current - 1, current, current + 1, '...', total];
   };
 
-  // Filtered and paginated records in Event mode
-  const allEventRecords = useMemo(() => recordsData?.records || [], [recordsData]);
-  const filteredEventRecords = useMemo(() => {
-    if (!debouncedSearch.trim()) return allEventRecords;
-    const term = debouncedSearch.toLowerCase();
-    return allEventRecords.filter((r: any) => {
-      const user = r.user;
-      return (
-        user?.name?.toLowerCase().includes(term) ||
-        user?.rollNo?.toLowerCase().includes(term) ||
-        user?.email?.toLowerCase().includes(term) ||
-        user?.department?.toLowerCase().includes(term) ||
-        r.session?.sessionName?.toLowerCase().includes(term)
-      );
-    });
-  }, [allEventRecords, debouncedSearch]);
+  // Event mode records & total counts (from backend pagination)
+  const eventRecords = useMemo(() => recordsData?.records || [], [recordsData]);
+  const totalEventRecords = recordsData?.pagination?.total ?? recordsData?.total ?? 0;
+  const totalEventPages = recordsData?.pagination?.totalPages ?? recordsData?.totalPages ?? Math.max(1, Math.ceil(totalEventRecords / pageSize));
 
-  const totalEventPages = Math.max(1, Math.ceil(filteredEventRecords.length / pageSize));
-  const paginatedEventRecords = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredEventRecords.slice(start, start + pageSize);
-  }, [filteredEventRecords, currentPage, pageSize]);
-
-  // Filtered and paginated records in Student mode
-  const allStudentRecords = useMemo(() => recordsData?.records || [], [recordsData]);
-  const filteredStudentRecords = useMemo(() => {
-    if (!debouncedSearch.trim()) return allStudentRecords;
-    const term = debouncedSearch.toLowerCase();
-    return allStudentRecords.filter((r: any) => {
-      return (
-        r.event?.title?.toLowerCase().includes(term) ||
-        r.sessionName?.toLowerCase().includes(term) ||
-        r.event?.type?.toLowerCase().includes(term) ||
-        r.event?.format?.toLowerCase().includes(term)
-      );
-    });
-  }, [allStudentRecords, debouncedSearch]);
-
-  const totalStudentPages = Math.max(1, Math.ceil(filteredStudentRecords.length / pageSize));
-  const paginatedStudentRecords = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredStudentRecords.slice(start, start + pageSize);
-  }, [filteredStudentRecords, currentPage, pageSize]);
+  // Student mode records & total counts (from backend pagination)
+  const studentRecords = useMemo(() => recordsData?.records || [], [recordsData]);
+  const totalStudentRecords = recordsData?.pagination?.total ?? recordsData?.total ?? 0;
+  const totalStudentPages = recordsData?.pagination?.totalPages ?? recordsData?.totalPages ?? Math.max(1, Math.ceil(totalStudentRecords / pageSize));
 
   // Export Attendance CSV: Always downloads ALL attendance entries across the selected scope!
   const handleExportCsv = async () => {
@@ -234,7 +219,7 @@ const AttendanceRecordsView: React.FC = () => {
 
         // Fetch ALL attendance records for this event from backend
         const allData = await fetchAllAttendanceRecords({ eventId: selectedEventId });
-        recordsToExport = allData?.records || allEventRecords;
+        recordsToExport = allData?.records || eventRecords;
         if (allData?.event?.title) currentEventTitle = allData.event.title;
       } else {
         if (!selectedStudentId) {
@@ -245,7 +230,7 @@ const AttendanceRecordsView: React.FC = () => {
 
         // Fetch ALL attendance records for this student from backend
         const allData = await fetchAllAttendanceRecords({ studentId: selectedStudentId });
-        recordsToExport = allData?.records || allStudentRecords;
+        recordsToExport = allData?.records || studentRecords;
         if (allData?.student?.name) currentStudentName = allData.student.name;
       }
 
@@ -560,7 +545,7 @@ const AttendanceRecordsView: React.FC = () => {
                   <span>•</span>
                   <span>Status: <strong className="text-text-primary font-medium">{recordsData.event.status}</strong></span>
                   <span>•</span>
-                  <span>Total Present: <strong className="text-text-primary font-semibold">{filteredEventRecords.length}</strong></span>
+                  <span>Total Present: <strong className="text-text-primary font-semibold">{totalEventRecords}</strong></span>
                 </div>
                 <button
                   type="button"
@@ -590,7 +575,7 @@ const AttendanceRecordsView: React.FC = () => {
                 </div>
               </div>
               <span className="text-xs font-mono text-text-muted">
-                {filteredEventRecords.length} verified
+                {totalEventRecords} verified
               </span>
             </div>
 
@@ -612,8 +597,8 @@ const AttendanceRecordsView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-separator">
-                  {paginatedEventRecords.length > 0 ? (
-                    paginatedEventRecords.map((r: any) => (
+                  {eventRecords.length > 0 ? (
+                    eventRecords.map((r: any) => (
                       <tr key={r._id} className="hover:bg-surface-elevated transition-colors">
                         <td className="px-4 sm:px-6 py-3.5">
                           <div className="flex items-center gap-3">
@@ -723,21 +708,21 @@ const AttendanceRecordsView: React.FC = () => {
             </div>
 
             {/* Pagination Controls Bar */}
-            {filteredEventRecords.length > 0 && (
+            {totalEventRecords > 0 && (
               <div className="px-6 py-4 border-t border-separator bg-canvas flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3 text-xs text-text-muted">
                   <span>
                     Showing{' '}
                     <strong className="text-text-primary font-semibold">
-                      {(currentPage - 1) * pageSize + 1}
+                      {totalEventRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1}
                     </strong>{' '}
                     to{' '}
                     <strong className="text-text-primary font-semibold">
-                      {Math.min(currentPage * pageSize, filteredEventRecords.length)}
+                      {Math.min(currentPage * pageSize, totalEventRecords)}
                     </strong>{' '}
                     of{' '}
                     <strong className="text-text-primary font-semibold">
-                      {filteredEventRecords.length}
+                      {totalEventRecords}
                     </strong>{' '}
                     verified attendees
                   </span>
@@ -875,7 +860,7 @@ const AttendanceRecordsView: React.FC = () => {
                 </div>
 
                 <div className="text-center sm:text-right">
-                  <span className="text-xl font-bold text-text-primary">{filteredStudentRecords.length}</span>
+                  <span className="text-xl font-bold text-text-primary">{totalStudentRecords}</span>
                   <p className="text-[10px] uppercase tracking-wider text-text-muted">
                     Sessions Attended
                   </p>
@@ -897,7 +882,7 @@ const AttendanceRecordsView: React.FC = () => {
                 </div>
               </div>
               <span className="text-xs font-mono text-text-muted">
-                {filteredStudentRecords.length} verified sessions
+                {totalStudentRecords} verified sessions
               </span>
             </div>
 
@@ -917,8 +902,8 @@ const AttendanceRecordsView: React.FC = () => {
                     </tr>
                   </thead>
                 <tbody className="divide-y divide-separator">
-                  {paginatedStudentRecords.length > 0 ? (
-                    paginatedStudentRecords.map((r: any) => (
+                  {studentRecords.length > 0 ? (
+                    studentRecords.map((r: any) => (
                       <tr key={r._id} className="hover:bg-surface-elevated transition-colors">
                         <td className="px-4 sm:px-6 py-3.5 font-semibold text-text-primary text-xs whitespace-nowrap">
                           {r.event?.title || 'Event Session'}
@@ -1001,21 +986,21 @@ const AttendanceRecordsView: React.FC = () => {
             </div>
 
             {/* Pagination Controls Bar for Student Mode */}
-            {filteredStudentRecords.length > 0 && (
+            {totalStudentRecords > 0 && (
               <div className="px-6 py-4 border-t border-separator bg-canvas flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3 text-xs text-text-muted">
                   <span>
                     Showing{' '}
                     <strong className="text-text-primary font-semibold">
-                      {(currentPage - 1) * pageSize + 1}
+                      {totalStudentRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1}
                     </strong>{' '}
                     to{' '}
                     <strong className="text-text-primary font-semibold">
-                      {Math.min(currentPage * pageSize, filteredStudentRecords.length)}
+                      {Math.min(currentPage * pageSize, totalStudentRecords)}
                     </strong>{' '}
                     of{' '}
                     <strong className="text-text-primary font-semibold">
-                      {filteredStudentRecords.length}
+                      {totalStudentRecords}
                     </strong>{' '}
                     attended sessions
                   </span>

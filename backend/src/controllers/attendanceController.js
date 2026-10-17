@@ -139,18 +139,29 @@ const getAttendanceRecords = async (request, reply) => {
     const AttendanceService = require('../services/attendanceService').default || require('../services/attendanceService');
     const isAll = all === 'true' || all === '1' || limit === '0' || limit === 'all';
     const parsedLimit = isAll ? 0 : (parseInt(limit, 10) || 50);
+    const parsedPage = isAll ? 1 : (parseInt(page, 10) || 1);
 
     const result = await AttendanceService.getAttendanceRecords({
       studentId: studentId ? String(studentId) : undefined,
       eventId: eventId ? String(eventId) : undefined,
       sessionId: sessionId ? String(sessionId) : undefined,
       search: search ? String(search) : undefined,
-      page: isAll ? 1 : (parseInt(page, 10) || 1),
+      page: parsedPage,
       limit: parsedLimit,
       all: isAll,
     });
 
-    return reply.send({ success: true, data: result });
+    const totalPages = parsedLimit > 0 ? Math.ceil(result.total / parsedLimit) : 1;
+    const pagination = {
+      page: parsedPage,
+      limit: parsedLimit || result.total,
+      total: result.total,
+      totalPages,
+      hasNextPage: parsedPage < totalPages,
+      hasPreviousPage: parsedPage > 1,
+    };
+
+    return reply.send({ success: true, data: result, records: result.records, pagination });
   } catch (error) {
     request.log.error(error);
     return reply.status(400).send({ success: false, error: error.message || 'Failed to fetch attendance records' });
