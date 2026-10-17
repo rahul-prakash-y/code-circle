@@ -185,31 +185,6 @@ function App() {
             }
           />
 
-          {/* Fullscreen Club Arena Live Player & Host */}
-          <Route
-            path="/arena/play/:pin"
-            element={
-              <ProtectedRoute>
-                <ArenaPlayPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/arena/host/:pin"
-            element={
-              <ProtectedRoute>
-                <HostSessionPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/arena/self-paced/:quizId"
-            element={
-              <ProtectedRoute>
-                <ArenaSelfPacedPage />
-              </ProtectedRoute>
-            }
-          />
 
 
           {/* Persistent App Shell Layout Route */}
