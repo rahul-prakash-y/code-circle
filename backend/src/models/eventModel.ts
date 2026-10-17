@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
-export type EventType = 'Technical' | 'Non-Technical' | 'Lecture' | 'Workshop' | 'Individual' | 'Team';
+export type EventType = 'Technical' | 'Non-Technical' | 'Lecture' | 'Workshop' | 'Individual' | 'Team' | 'Club Hour';
 export type EventFormat = 'Individual' | 'Duo' | 'Team';
 export type EventStatus = 'Upcoming' | 'Live' | 'Completed' | 'Cancelled';
 
@@ -50,7 +50,7 @@ const eventSchema = new Schema<IEvent>(
     },
     type: {
       type: String,
-      enum: ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Individual', 'Team'],
+      enum: ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Individual', 'Team', 'Club Hour'],
       default: 'Technical',
       required: true,
     },

@@ -1,6 +1,6 @@
 import { User } from './user';
 
-export type EventType = 'Individual' | 'Team' | 'Duo' | 'Technical' | 'Non-Technical' | 'Lecture' | 'Workshop';
+export type EventType = 'Individual' | 'Team' | 'Duo' | 'Technical' | 'Non-Technical' | 'Lecture' | 'Workshop' | 'Club Hour';
 export type EventFormat = 'Individual' | 'Duo' | 'Team';
 
 export interface CustomField {

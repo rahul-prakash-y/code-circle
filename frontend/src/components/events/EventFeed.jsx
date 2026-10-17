@@ -30,7 +30,7 @@ import {
   Award
 } from 'lucide-react';
 
-const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop'];
+const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['all', 'Individual', 'Duo', 'Team'];
 
 export const EventFeed = ({

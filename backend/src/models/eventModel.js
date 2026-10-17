@@ -30,7 +30,7 @@ const eventSchema = new mongoose.Schema({
   },
   type: { 
     type: String, 
-    enum: ['Individual', 'Team'], 
+    enum: ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Individual', 'Team', 'Club Hour'], 
     required: true 
   },
   maxParticipants: { 

@@ -11,7 +11,7 @@ import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
 import { formatDateToISTDateInput } from '../../lib/dateUtils';
 
-const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop'];
+const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];
 const EVENT_STATUSES = ['Upcoming', 'Live', 'Completed', 'Cancelled'];
 
@@ -598,7 +598,7 @@ export const EventModal = ({
                 <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                   <Layers size={14} className="text-accent" /> Event Type
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                   {EVENT_TYPES.map((t) => (
                     <button
                       type="button"
