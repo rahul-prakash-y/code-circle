@@ -125,8 +125,19 @@ export const getEventPassport = async (request: FastifyRequest, reply: FastifyRe
 
     const processedEventIds = new Set<string>();
 
+    // Filter out any enrollments whose event has been deleted
+    const validEnrollments = enrollments.filter((act: any) => Boolean(act.event));
+
+    // Opportunistically prune orphaned enrollments from the database
+    const orphanedEnrollmentIds = enrollments
+      .filter((act: any) => !act.event)
+      .map((act: any) => act._id);
+    if (orphanedEnrollmentIds.length > 0) {
+      (Enrollment as any).deleteMany({ _id: { $in: orphanedEnrollmentIds } }).catch(() => {});
+    }
+
     // Format formal enrollments enriched with club hours & attendance verification
-    const passportData = enrollments.map((act: any) => {
+    const passportData = validEnrollments.map((act: any) => {
       const eventIdStr = act.event?._id?.toString();
       if (eventIdStr) processedEventIds.add(eventIdStr);
 

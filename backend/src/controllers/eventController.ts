@@ -2,6 +2,14 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import Event, { EventType, EventFormat, EventStatus, ICustomField } from '../models/eventModel';
 import Enrollment from '../models/enrollmentModel';
+import AttendanceSession from '../models/attendanceSessionModel';
+import AttendanceRecord from '../models/attendanceRecordModel';
+import Attendance from '../models/attendanceModel';
+import Team from '../models/teamModel';
+import Feedback from '../models/feedbackModel';
+import MissedEventRequest from '../models/missedEventRequestModel';
+import { IssuedCertificate } from '../models/certificateModel';
+import Assessment from '../models/assessmentModel';
 
 export interface CreateEventBody {
   title: string;
@@ -335,12 +343,66 @@ export const deleteEvent = async (
       return reply.status(404).send({ success: false, error: 'Event not found' });
     }
 
-    return reply.send({ success: true, message: 'Event deleted successfully' });
+    const eventObjectId = new mongoose.Types.ObjectId(id);
+
+    // Cascade delete related records across the system
+    // 1. Delete all student enrollments for this event
+    await (Enrollment as any).deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }],
+    });
+
+    // 2. Cascade delete attendance sessions & student attendance records
+    const sessions = await AttendanceSession.find({
+      $or: [{ event: id }, { event: eventObjectId }],
+    })
+      .select('_id')
+      .lean();
+    const sessionIds = sessions.map((s: any) => s._id);
+    if (sessionIds.length > 0) {
+      await AttendanceRecord.deleteMany({ session: { $in: sessionIds } });
+      await AttendanceSession.deleteMany({ _id: { $in: sessionIds } });
+    }
+
+    // 3. Delete direct attendance records (legacy Attendance collection)
+    await Attendance.deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }, { eventId: String(id) }],
+    });
+
+    // 4. Delete teams formed specifically for this event
+    await Team.deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }],
+    });
+
+    // 5. Delete feedbacks for this event
+    await Feedback.deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }],
+    });
+
+    // 6. Delete missed event requests for this event
+    await MissedEventRequest.deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }],
+    });
+
+    // 7. Delete issued certificates associated with this event
+    await IssuedCertificate.deleteMany({
+      $or: [{ associatedEventId: id }, { associatedEventId: eventObjectId }],
+    });
+
+    // 8. Disassociate any assessments linked to this event
+    await Assessment.updateMany(
+      { $or: [{ eventId: id }, { eventId: eventObjectId }] },
+      { $set: { eventId: null } }
+    );
+
+    return reply.send({
+      success: true,
+      message: 'Event and all associated student enrollments and records deleted successfully',
+    });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({
       success: false,
-      error: 'Failed to delete event',
+      error: error.message || 'Failed to delete event',
     });
   }
 };

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../lib/axios';
+import useEnrollmentStore from './useEnrollmentStore';
 
 const defaultPagination = {
   total: 0,
@@ -170,8 +171,16 @@ const useEventStore = create((set) => ({
       set((state) => ({
         events: state.events.filter((e) => e._id !== id),
         upcomingEvents: state.upcomingEvents.filter((e) => e._id !== id),
+        pastEvents: state.pastEvents ? state.pastEvents.filter((e) => e._id !== id) : [],
         loading: false
       }));
+
+      // Immediately sync student enrollment state so the deleted event enrollment is removed
+      try {
+        useEnrollmentStore.getState().removeEnrolledEvent(id);
+      } catch {
+        // Safe fallback
+      }
     } catch (error) {
       set({ 
         error: error.response?.data?.error || 'Failed to delete event', 

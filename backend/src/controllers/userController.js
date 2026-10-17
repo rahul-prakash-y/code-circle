@@ -94,11 +94,19 @@ const getEventPassport = async (request, reply) => {
     .populate('event')
     .sort({ createdAt: -1 });
 
-    const passportData = activities.map(act => ({
+    const validActivities = activities.filter(act => Boolean(act.event));
+
+    // Prune orphaned enrollments
+    const orphanedIds = activities.filter(act => !act.event).map(act => act._id);
+    if (orphanedIds.length > 0) {
+      Enrollment.deleteMany({ _id: { $in: orphanedIds } }).catch(() => {});
+    }
+
+    const passportData = validActivities.map(act => ({
       id: act._id,
-      eventId: act.event?._id,
-      eventTitle: act.event?.title || 'Code Circle Event',
-      eventDate: act.event?.date || act.createdAt,
+      eventId: act.event._id,
+      eventTitle: act.event.title,
+      eventDate: act.event.date || act.createdAt,
       type: act.type,
       attendanceStatus: act.attendanceStatus,
       certificateUrl: act.certificateUrl,

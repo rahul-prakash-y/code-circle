@@ -26,6 +26,12 @@ const useEnrollmentStore = create((set, get) => ({
     }
   },
 
+  removeEnrolledEvent: (eventId) => {
+    set((state) => ({
+      myEnrolledEventIds: (state.myEnrolledEventIds || []).filter((id) => id !== eventId),
+    }));
+  },
+
   enrollInEvent: async (enrollmentData) => {
     set({ loading: true, error: null, success: false });
     try {
