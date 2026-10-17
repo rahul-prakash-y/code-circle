@@ -5,6 +5,7 @@ import User from '../models/userModel';
 import Event from '../models/eventModel';
 import AttendanceRecord from '../models/attendanceRecordModel';
 import AttendanceSession from '../models/attendanceSessionModel';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 /**
  * Student creates a missed event request (e.g. missed club hours / workshop).
@@ -111,17 +112,37 @@ export const getMyMissedEventRequests = async (request: FastifyRequest, reply: F
       return reply.status(401).send({ success: false, error: 'Authentication required' });
     }
 
-    const requests = await MissedEventRequest.find({
+    const { page, limit, skip, sort } = parsePaginationParams(request.query as any, {
+      defaultLimit: 20,
+      maxLimit: 50,
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+      allowedSortFields: ['createdAt', 'missedDate', 'status'],
+    });
+
+    const filter = {
       student: new mongoose.Types.ObjectId(user.id),
-    })
-      .populate('event', 'title type format date hourlyPoints status venueOrLink')
-      .populate('session', 'sessionName classHours hourlyPoints totalPoints')
-      .populate('reviewedBy', 'name role')
-      .sort({ createdAt: -1 });
+    };
+
+    const [requests, total] = await Promise.all([
+      MissedEventRequest.find(filter)
+        .populate('event', 'title type format date hourlyPoints status venueOrLink')
+        .populate('session', 'sessionName classHours hourlyPoints totalPoints')
+        .populate('reviewedBy', 'name role')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      MissedEventRequest.countDocuments(filter),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
       data: requests,
+      count: requests.length,
+      pagination,
     });
   } catch (error: any) {
     request.log.error(error);
@@ -139,17 +160,19 @@ export const getMyMissedEventRequests = async (request: FastifyRequest, reply: F
  */
 export const getAdminMissedEventRequests = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
+    const { page, limit, skip, sort } = parsePaginationParams(request.query as any, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+      allowedSortFields: ['createdAt', 'missedDate', 'status'],
+    });
+
     const {
       status,
       search,
       eventId,
-      page: pageQuery = '1',
-      limit: limitQuery = '20',
     } = (request.query || {}) as any;
-
-    const page = Math.max(1, parseInt(pageQuery, 10) || 1);
-    const limit = Math.max(1, Math.min(100, parseInt(limitQuery, 10) || 20));
-    const skip = (page - 1) * limit;
 
     const filter: any = {};
 
@@ -179,24 +202,19 @@ export const getAdminMissedEventRequests = async (request: FastifyRequest, reply
         .populate('event', 'title type format date hourlyPoints status venueOrLink')
         .populate('session', 'sessionName classHours hourlyPoints totalPoints')
         .populate('reviewedBy', 'name role email')
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit)
         .lean(),
     ]);
 
-    const totalPages = Math.ceil(total / limit) || 1;
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
       data: requests,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasMore: page < totalPages,
-      },
+      count: requests.length,
+      pagination,
     });
   } catch (error: any) {
     request.log.error(error);

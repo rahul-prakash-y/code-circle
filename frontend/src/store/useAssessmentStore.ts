@@ -68,26 +68,37 @@ export interface SubmissionResult {
   submittedAt: string;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 interface AssessmentStoreState {
   assessments: Assessment[];
+  assessmentsPagination: PaginationMeta | null;
   currentAssessment: Assessment | null;
   currentResult: SubmissionResult | null;
   mySubmissions: any[];
   assessmentSubmissions: any[];
+  submissionsPagination: PaginationMeta | null;
   loading: boolean;
   submitting: boolean;
   error: string | null;
   selectedCategory: string;
   searchQuery: string;
 
-  fetchAssessments: (params?: { category?: string; search?: string; eventId?: string }) => Promise<void>;
+  fetchAssessments: (params?: { category?: string; search?: string; eventId?: string; page?: number; limit?: number }) => Promise<void>;
   fetchAssessmentById: (id: string) => Promise<Assessment | null>;
   createAssessment: (payload: any) => Promise<{ success: boolean; assessment?: Assessment; error?: string }>;
   updateAssessment: (id: string, payload: any) => Promise<{ success: boolean; assessment?: Assessment; error?: string }>;
   deleteAssessment: (id: string) => Promise<{ success: boolean; error?: string }>;
   submitAssessment: (id: string, answers: { questionIndex: number; selectedOption: number }[], timeSpentSeconds?: number) => Promise<{ success: boolean; result?: SubmissionResult; error?: string }>;
   fetchMySubmissions: () => Promise<void>;
-  fetchAssessmentSubmissions: (assessmentId: string) => Promise<void>;
+  fetchAssessmentSubmissions: (assessmentId: string, params?: { page?: number; limit?: number }) => Promise<void>;
   deleteSubmission: (assessmentId: string, submissionId: string) => Promise<{ success: boolean; error?: string }>;
   allowStudentReappear: (assessmentId: string, studentId: string) => Promise<{ success: boolean; error?: string }>;
   resetMySubmission: (assessmentId: string) => Promise<{ success: boolean; error?: string }>;
@@ -108,10 +119,12 @@ interface AssessmentStoreState {
 
 export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
   assessments: [],
+  assessmentsPagination: null,
   currentAssessment: null,
   currentResult: null,
   mySubmissions: [],
   assessmentSubmissions: [],
+  submissionsPagination: null,
   loading: false,
   submitting: false,
   error: null,
@@ -120,12 +133,12 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
 
   setSelectedCategory: (category) => {
     set({ selectedCategory: category });
-    get().fetchAssessments({ category, search: get().searchQuery });
+    get().fetchAssessments({ category, search: get().searchQuery, page: 1 });
   },
 
   setSearchQuery: (query) => {
     set({ searchQuery: query });
-    get().fetchAssessments({ category: get().selectedCategory, search: query });
+    get().fetchAssessments({ category: get().selectedCategory, search: query, page: 1 });
   },
 
   clearCurrentResult: () => set({ currentResult: null }),
@@ -140,9 +153,15 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
       if (cat && cat !== 'All') queryParams.append('category', cat);
       if (search && search.trim()) queryParams.append('search', search.trim());
       if (params.eventId) queryParams.append('eventId', params.eventId);
+      if (params.page) queryParams.append('page', String(params.page));
+      if (params.limit) queryParams.append('limit', String(params.limit));
 
       const res = await api.get(`/assessments?${queryParams.toString()}`);
-      set({ assessments: res.data.data || [], loading: false });
+      set({
+        assessments: res.data.data || [],
+        assessmentsPagination: res.data.pagination || null,
+        loading: false,
+      });
     } catch (err: any) {
       set({
         loading: false,
@@ -266,11 +285,15 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
     }
   },
 
-  fetchAssessmentSubmissions: async (assessmentId: string) => {
+  fetchAssessmentSubmissions: async (assessmentId: string, params = {}) => {
     set({ loading: true });
     try {
-      const res = await api.get(`/assessments/${assessmentId}/submissions`);
-      set({ assessmentSubmissions: res.data.data || [], loading: false });
+      const res = await api.get(`/assessments/${assessmentId}/submissions`, { params });
+      set({
+        assessmentSubmissions: res.data.data || [],
+        submissionsPagination: res.data.pagination || null,
+        loading: false,
+      });
     } catch (err: any) {
       set({ loading: false });
       console.error('Failed to fetch assessment submissions', err);

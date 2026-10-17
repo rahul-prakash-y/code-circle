@@ -15,6 +15,7 @@ import rceService from '../services/rceService';
 import { ApiError } from '../utils/ApiError';
 import * as XLSX from 'xlsx';
 import PointTransaction from '../models/pointTransactionModel';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 // Maximum public test cases to execute on Run Code
 const MAX_PUBLIC_TESTCASES_PER_REQUEST = 10;
@@ -217,6 +218,14 @@ export const listCodingChallenges = async (request: FastifyRequest, reply: Fasti
   const isPrivileged =
     user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Faculty';
 
+  const query = request.query as any;
+  const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+    defaultLimit: 20,
+    maxLimit: 100,
+    defaultSortBy: 'createdAt',
+    allowedSortFields: ['createdAt', 'title', 'difficulty'],
+  });
+
   const linkedChallengeIds = await getCourseLinkedChallengeIds();
 
   const filter: any = {
@@ -228,16 +237,42 @@ export const listCodingChallenges = async (request: FastifyRequest, reply: Fasti
     filter.isPublished = true;
   }
 
-  const challenges = await CodingChallenge.find(filter)
-    .select('title description difficulty allowedLanguages timeLimitMinutes isPublished createdAt')
-    .sort({ createdAt: -1 });
+  if (query?.difficulty && ['Easy', 'Medium', 'Hard'].includes(query.difficulty)) {
+    filter.difficulty = query.difficulty;
+  }
 
-  // Attach student's own submission state if authenticated
-  let userSubmissionsMap = new Map<string, any>();
-  if (user?.id) {
+  if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+    filter.$or = [
+      { title: { $regex: query.search.trim(), $options: 'i' } },
+      { description: { $regex: query.search.trim(), $options: 'i' } },
+    ];
+  }
+
+  const sortObj: any = {};
+  sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  sortObj._id = -1;
+
+  const [total, challenges] = await Promise.all([
+    CodingChallenge.countDocuments(filter),
+    CodingChallenge.find(filter)
+      .select('title description difficulty allowedLanguages timeLimitMinutes isPublished createdAt')
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  // Attach student's own submission state only for challenges on current page
+  const pageChallengeIds = challenges.map((c: any) => c._id);
+  const userSubmissionsMap = new Map<string, any>();
+
+  if (user?.id && pageChallengeIds.length > 0) {
     const subs = await CodingSubmission.find({
       student: new mongoose.Types.ObjectId(user.id),
-    }).sort({ createdAt: -1 });
+      challenge: { $in: pageChallengeIds },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
     for (const s of subs) {
       const cId = s.challenge.toString();
@@ -254,7 +289,7 @@ export const listCodingChallenges = async (request: FastifyRequest, reply: Fasti
     }
   }
 
-  const enrichedChallenges = challenges.map((c) => ({
+  const enrichedChallenges = challenges.map((c: any) => ({
     _id: c._id.toString(),
     title: c.title,
     description: c.description,
@@ -266,8 +301,12 @@ export const listCodingChallenges = async (request: FastifyRequest, reply: Fasti
     submission: userSubmissionsMap.get(c._id.toString()) || null,
   }));
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return reply.send({
     success: true,
+    count: enrichedChallenges.length,
+    pagination,
     data: enrichedChallenges,
   });
 };
@@ -771,14 +810,31 @@ export const getMySubmissions = async (request: FastifyRequest, reply: FastifyRe
     throw ApiError.unauthorized('Authentication required');
   }
 
-  const submissions = await CodingSubmission.find({
-    student: new mongoose.Types.ObjectId(user.id),
-  })
-    .populate('challenge', 'title difficulty allowedLanguages timeLimitMinutes')
-    .sort({ createdAt: -1 });
+  const { page, limit, skip } = parsePaginationParams(request.query, {
+    defaultLimit: 20,
+    maxLimit: 100,
+    defaultSortBy: 'createdAt',
+    allowedSortFields: ['createdAt', 'score', 'status'],
+  });
+
+  const filter = { student: new mongoose.Types.ObjectId(user.id) };
+
+  const [total, submissions] = await Promise.all([
+    CodingSubmission.countDocuments(filter),
+    CodingSubmission.find(filter)
+      .populate('challenge', 'title difficulty allowedLanguages timeLimitMinutes')
+      .sort({ createdAt: -1, _id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const pagination = buildPaginationMeta(total, page, limit);
 
   return reply.send({
     success: true,
+    count: submissions.length,
+    pagination,
     data: submissions,
   });
 };
@@ -789,6 +845,14 @@ export const getMySubmissions = async (request: FastifyRequest, reply: FastifyRe
  * Excludes coding challenges linked to course levels.
  */
 export const listAdminCodingChallenges = async (request: FastifyRequest, reply: FastifyReply) => {
+  const query = request.query as any;
+  const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+    defaultLimit: 20,
+    maxLimit: 100,
+    defaultSortBy: 'createdAt',
+    allowedSortFields: ['createdAt', 'title', 'difficulty'],
+  });
+
   const linkedChallengeIds = await getCourseLinkedChallengeIds();
 
   const filter: any = {
@@ -796,28 +860,56 @@ export const listAdminCodingChallenges = async (request: FastifyRequest, reply: 
     _id: { $nin: linkedChallengeIds },
   };
 
-  const challenges = await CodingChallenge.find(filter).sort({ createdAt: -1 });
+  if (query?.difficulty && ['Easy', 'Medium', 'Hard'].includes(query.difficulty)) {
+    filter.difficulty = query.difficulty;
+  }
 
-  // Compute submission statistics per challenge
-  const metrics = await CodingSubmission.aggregate([
-    {
-      $group: {
-        _id: '$challenge',
-        totalSubmissions: { $sum: 1 },
-        passedSubmissions: {
-          $sum: { $cond: [{ $eq: ['$status', 'passed'] }, 1, 0] },
-        },
-        avgScore: { $avg: '$score' },
-      },
-    },
+  if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+    filter.$or = [
+      { title: { $regex: query.search.trim(), $options: 'i' } },
+      { description: { $regex: query.search.trim(), $options: 'i' } },
+    ];
+  }
+
+  const sortObj: any = {};
+  sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  sortObj._id = -1;
+
+  const [total, challenges] = await Promise.all([
+    CodingChallenge.countDocuments(filter),
+    CodingChallenge.find(filter)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
   ]);
+
+  const pageChallengeIds = challenges.map((c: any) => c._id);
+
+  // Compute submission statistics scoped ONLY to the current page's challenges
+  const metrics =
+    pageChallengeIds.length > 0
+      ? await CodingSubmission.aggregate([
+          { $match: { challenge: { $in: pageChallengeIds } } },
+          {
+            $group: {
+              _id: '$challenge',
+              totalSubmissions: { $sum: 1 },
+              passedSubmissions: {
+                $sum: { $cond: [{ $eq: ['$status', 'passed'] }, 1, 0] },
+              },
+              avgScore: { $avg: '$score' },
+            },
+          },
+        ])
+      : [];
 
   const metricsMap = new Map<string, any>();
   metrics.forEach((m) => {
     metricsMap.set(m._id.toString(), m);
   });
 
-  const data = challenges.map((c) => {
+  const data = challenges.map((c: any) => {
     const m = metricsMap.get(c._id.toString()) || {
       totalSubmissions: 0,
       passedSubmissions: 0,
@@ -834,9 +926,9 @@ export const listAdminCodingChallenges = async (request: FastifyRequest, reply: 
       customPoints: c.customPoints !== undefined ? c.customPoints : 50,
       isPublished: c.isPublished,
       singleSubmissionOnly: c.singleSubmissionOnly,
-      testCasesCount: c.testCases.length,
-      visibleTestCasesCount: c.testCases.filter((t) => !t.isHidden).length,
-      hiddenTestCasesCount: c.testCases.filter((t) => t.isHidden).length,
+      testCasesCount: c.testCases?.length || 0,
+      visibleTestCasesCount: (c.testCases || []).filter((t: any) => !t.isHidden).length,
+      hiddenTestCasesCount: (c.testCases || []).filter((t: any) => t.isHidden).length,
       createdAt: c.createdAt,
       totalSubmissions: m.totalSubmissions,
       passedSubmissions: m.passedSubmissions,
@@ -848,8 +940,12 @@ export const listAdminCodingChallenges = async (request: FastifyRequest, reply: 
     };
   });
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return reply.send({
     success: true,
+    count: data.length,
+    pagination,
     data,
   });
 };
@@ -998,14 +1094,40 @@ export const getCodingChallengeSubmissions = async (
     throw ApiError.badRequest('Invalid challenge ID');
   }
 
-  const submissions = await CodingSubmission.find({
-    challenge: new mongoose.Types.ObjectId(id),
-  })
-    .populate('student', 'name email rollNo department profilePicUrl')
-    .sort({ createdAt: -1 });
+  const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(request.query, {
+    defaultLimit: 25,
+    maxLimit: 100,
+    defaultSortBy: 'createdAt',
+    allowedSortFields: ['createdAt', 'score', 'status'],
+  });
+
+  const filter = { challenge: new mongoose.Types.ObjectId(id) };
+
+  const sortObj: any = {};
+  if (sortBy === 'score') {
+    sortObj.score = sortOrder === 'asc' ? 1 : -1;
+    sortObj.createdAt = -1;
+  } else {
+    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  }
+  sortObj._id = -1;
+
+  const [total, submissions] = await Promise.all([
+    CodingSubmission.countDocuments(filter),
+    CodingSubmission.find(filter)
+      .populate('student', 'name email rollNo department profilePicUrl')
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const pagination = buildPaginationMeta(total, page, limit);
 
   return reply.send({
     success: true,
+    count: submissions.length,
+    pagination,
     data: submissions,
   });
 };

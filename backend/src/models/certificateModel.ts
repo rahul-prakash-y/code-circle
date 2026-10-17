@@ -359,6 +359,9 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
 // Compound indexes for rapid lookups
 issuedCertificateSchema.index({ recipientUser: 1, associatedEventId: 1 });
 issuedCertificateSchema.index({ recipientUser: 1, associatedDomainId: 1 });
+issuedCertificateSchema.index({ recipientUser: 1, status: 1, issueDate: -1 });
+issuedCertificateSchema.index({ status: 1, createdAt: -1 });
+issuedCertificateSchema.index({ templateId: 1, createdAt: -1 });
 
 export const CertificateTemplate: Model<ICertificateTemplate> =
   mongoose.models.CertificateTemplate ||

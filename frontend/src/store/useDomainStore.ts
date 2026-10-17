@@ -18,7 +18,9 @@ interface DomainState {
   levels: ILevel[];
   activeLevel: ILevel | null;
   userProgress: IStudentProgress;
+  domainsPagination?: any;
   enrolledStudents: IEnrolledStudent[];
+  enrolledStudentsPagination?: any;
   loadingStudents: boolean;
   loading: boolean;
   submittingQuest: boolean;
@@ -37,7 +39,7 @@ interface DomainState {
 
   // Actions
   setCurrentDomain: (domain: IDomain | null) => void;
-  fetchDomains: () => Promise<void>;
+  fetchDomains: (params?: { page?: number; limit?: number; search?: string }) => Promise<void>;
   fetchDomainLevels: (domainId: string) => Promise<void>;
   setActiveLevel: (level: ILevel | null) => void;
   openQuestModal: () => void;
@@ -45,7 +47,7 @@ interface DomainState {
   resetQuestResult: () => void;
   submitQuest: (levelId: string, answers: number[]) => Promise<IQuestSubmitResult | null>;
   registerForDomain: (domainId: string) => Promise<boolean>;
-  fetchEnrolledStudents: (domainId: string, search?: string) => Promise<IEnrolledStudent[]>;
+  fetchEnrolledStudents: (domainId: string, search?: string, page?: number, limit?: number) => Promise<IEnrolledStudent[]>;
 
   // SuperAdmin Access Control Actions
   fetchCourseAccessConfig: () => Promise<void>;
@@ -116,16 +118,17 @@ export const useDomainStore = create<DomainState>((set, get) => ({
     set({ currentDomain: domain });
   },
 
-  fetchDomains: async () => {
+  fetchDomains: async (params) => {
     try {
       set({ loading: true, error: null });
-      const res = await api.get('/courses');
+      const res = await api.get('/courses', { params });
       if (res.data?.success) {
         const isComingSoon = Boolean(res.data.isComingSoon);
         const hasAccess = res.data.hasAccess !== false;
         const isEarlyAccess = Boolean(res.data.isEarlyAccess);
         set({
           domains: res.data.data || [],
+          domainsPagination: res.data.pagination || null,
           isComingSoon,
           hasCourseAccess: hasAccess,
           isEarlyAccess,
@@ -247,14 +250,21 @@ export const useDomainStore = create<DomainState>((set, get) => ({
     }
   },
 
-  fetchEnrolledStudents: async (domainId: string, search?: string) => {
+  fetchEnrolledStudents: async (domainId: string, search?: string, page?: number, limit?: number) => {
     try {
       set({ loadingStudents: true });
-      const params = search ? { search } : {};
+      const params: any = {};
+      if (search) params.search = search;
+      if (page) params.page = page;
+      if (limit) params.limit = limit;
       const res = await api.get(`/domains/${domainId}/students`, { params });
       if (res.data?.success) {
         const students = res.data.data?.students || [];
-        set({ enrolledStudents: students, loadingStudents: false });
+        set({
+          enrolledStudents: students,
+          enrolledStudentsPagination: res.data.pagination || null,
+          loadingStudents: false,
+        });
         return students;
       }
       set({ loadingStudents: false });

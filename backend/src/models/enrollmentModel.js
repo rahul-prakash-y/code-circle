@@ -50,5 +50,7 @@ enrollmentSchema.index({ enrolledBy: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ members: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ event: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ event: 1, isWalkIn: 1 });
+enrollmentSchema.index({ event: 1, attendanceStatus: 1, createdAt: -1 });
+enrollmentSchema.index({ event: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema);

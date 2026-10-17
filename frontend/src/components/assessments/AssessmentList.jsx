@@ -31,12 +31,14 @@ import AssessmentEditorModal from './AssessmentEditorModal';
 import AssessmentSubmissionsModal from './AssessmentSubmissionsModal';
 import McqBulkUploadModal from './McqBulkUploadModal';
 import { useDebounce } from '../../hooks/useDebounce';
+import Pagination from '../common/Pagination';
 
 const categories = ['All', 'Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
 
 export const AssessmentList = () => {
   const {
     assessments,
+    assessmentsPagination,
     loading,
     fetchAssessments,
     deleteAssessment,
@@ -66,13 +68,15 @@ export const AssessmentList = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [resettingId, setResettingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState(searchQuery || '');
+  const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(searchTerm, 400);
 
   useEffect(() => {
-    fetchAssessments();
-  }, [fetchAssessments]);
+    fetchAssessments({ page, category: selectedCategory, search: debouncedSearch });
+  }, [fetchAssessments, page]);
 
   useEffect(() => {
+    setPage(1);
     setSearchQuery(debouncedSearch);
   }, [debouncedSearch, setSearchQuery]);
 
@@ -656,6 +660,21 @@ export const AssessmentList = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {assessmentsPagination && assessmentsPagination.totalPages > 1 && (
+        <div className="mt-8 flex justify-center">
+          <Pagination
+            pagination={assessmentsPagination}
+            onPageChange={(p) => setPage(p)}
+            onLimitChange={(l) => {
+              setPage(1);
+              fetchAssessments({ page: 1, limit: l, category: selectedCategory, search: debouncedSearch });
+            }}
+            pageSizeOptions={[12, 24, 48]}
+          />
         </div>
       )}
 

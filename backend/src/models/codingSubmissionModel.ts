@@ -126,6 +126,7 @@ const codingSubmissionSchema = new Schema<ICodingSubmission>(
 
 codingSubmissionSchema.index({ challenge: 1, student: 1 });
 codingSubmissionSchema.index({ student: 1, createdAt: -1 });
+codingSubmissionSchema.index({ challenge: 1, score: -1, createdAt: -1 });
 
 export const CodingSubmission: Model<ICodingSubmission> =
   mongoose.models.CodingSubmission ||

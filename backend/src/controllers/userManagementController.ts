@@ -21,6 +21,8 @@ const generateSecureTemporaryPassword = (): string => {
   return result;
 };
 
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+
 /**
  * GET /api/users
  * Paginated user directory with search, role filters, and status filters.
@@ -28,13 +30,18 @@ const generateSecureTemporaryPassword = (): string => {
 export const getUsers = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const queryParams = (request.query || {}) as any;
-    const page = Math.max(1, parseInt(queryParams.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(queryParams.limit) || 10));
+    const { page, limit, skip, sort } = parsePaginationParams(queryParams, {
+      defaultPage: 1,
+      defaultLimit: 10,
+      maxLimit: 100,
+      allowedSortFields: ['name', 'rollNo', 'email', 'department', 'role', 'points', 'createdAt', 'updatedAt'],
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+    });
+
     const search = (queryParams.search || '').trim();
     const role = queryParams.role;
     const status = queryParams.status;
-    const sortBy = queryParams.sortBy || 'createdAt';
-    const sortOrder = queryParams.sortOrder === 'asc' ? 1 : -1;
 
     const filter: any = {};
 
@@ -68,14 +75,13 @@ export const getUsers = async (request: FastifyRequest, reply: FastifyReply) => 
       User.countDocuments(filter),
       User.find(filter)
         .select('-password -resetPasswordToken -resetPasswordExpires')
-        .sort({ [sortBy]: sortOrder })
-        .skip((page - 1) * limit)
+        .sort(sort)
+        .skip(skip)
         .limit(limit)
         .lean(),
     ]);
 
-    const totalPages = Math.ceil(total / limit) || 1;
-    const hasMore = page < totalPages;
+    const pagination = buildPaginationMeta(total, page, limit);
 
     const users = rawUsers.map((u: any) => ({
       ...u,
@@ -86,14 +92,9 @@ export const getUsers = async (request: FastifyRequest, reply: FastifyReply) => 
       success: true,
       data: {
         users,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages,
-          hasMore,
-        },
+        pagination,
       },
+      pagination,
     });
   } catch (error: any) {
     request.log.error(error);

@@ -496,7 +496,7 @@ export const getAdminStudentPoints = async (
     const [students, total] = await Promise.all([
       User.find(matchStage)
         .select('_id name rollNo email department college year profilePicUrl points role')
-        .sort({ [sortField]: sortDirection, createdAt: -1 })
+        .sort({ [sortField]: sortDirection, createdAt: -1, _id: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),

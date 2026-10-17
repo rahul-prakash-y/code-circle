@@ -6,6 +6,7 @@ import ContestSubmission from '../models/contestSubmissionModel';
 import User from '../models/userModel';
 import Notification from '../models/notificationModel';
 import rceService from '../services/rceService';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 interface AuthUser {
   userId?: string;
@@ -95,53 +96,94 @@ export function enrichSubmissionWithContestDetails(submission: any, contest: any
   };
 }
 
-// 1. Get All Contests (Split by Status)
+// 1. Get All Contests (Split by Status) with Pagination & Batch Lookup
 export const getContests = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const userId = getUserId(req);
+    const query = req.query as any;
     const now = new Date();
 
-    const contests = await Contest.find({ isPublished: true })
-      .sort({ startTime: -1 })
-      .lean();
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'startTime',
+      allowedSortFields: ['startTime', 'createdAt', 'title', 'totalPoints'],
+    });
+
+    const filter: any = { isPublished: true };
+    if (query?.type && ['CODING', 'MCQ', 'HYBRID'].includes(query.type)) {
+      filter.type = query.type;
+    }
+    if (query?.difficulty && ['Beginner', 'Intermediate', 'Advanced', 'All Levels'].includes(query.difficulty)) {
+      filter.difficulty = query.difficulty;
+    }
+    if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+      filter.title = { $regex: query.search.trim(), $options: 'i' };
+    }
+
+    const sortObj: any = {};
+    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sortObj._id = -1;
+
+    const [total, contests] = await Promise.all([
+      Contest.countDocuments(filter),
+      Contest.find(filter)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    // Batch-fetch submissions for all contests in this page (eliminating N+1 queries)
+    const contestIds = contests.map((c: any) => c._id);
+    const submissionMap = new Map<string, any>();
+
+    if (userId && contestIds.length > 0) {
+      const userSubs = await ContestSubmission.find({
+        contestId: { $in: contestIds },
+        userId,
+      })
+        .select('contestId status totalScore startedAt submittedAt expiresAt timeTakenSeconds awardedClubPoints pointsAwarded')
+        .lean();
+
+      userSubs.forEach((sub: any) => {
+        submissionMap.set(sub.contestId.toString(), sub);
+      });
+    }
 
     // Map dynamic status based on time
-    const updatedContests = await Promise.all(
-      contests.map(async (c) => {
-        let dynamicStatus = c.status;
-        if (now < new Date(c.startTime)) {
-          dynamicStatus = 'UPCOMING';
-        } else if (now >= new Date(c.startTime) && now <= new Date(c.endTime)) {
-          dynamicStatus = 'LIVE';
-        } else {
-          dynamicStatus = 'ENDED';
-        }
+    const updatedContests = contests.map((c: any) => {
+      let dynamicStatus = c.status;
+      if (now < new Date(c.startTime)) {
+        dynamicStatus = 'UPCOMING';
+      } else if (now >= new Date(c.startTime) && now <= new Date(c.endTime)) {
+        dynamicStatus = 'LIVE';
+      } else {
+        dynamicStatus = 'ENDED';
+      }
 
-        // Check if current user has a submission
-        let mySubmission: any = null;
-        if (userId) {
-          mySubmission = await ContestSubmission.findOne({
-            contestId: c._id,
-            userId,
-          })
-            .select('status totalScore startedAt submittedAt expiresAt timeTakenSeconds awardedClubPoints pointsAwarded')
-            .lean();
-        }
+      const mySubmission = submissionMap.get(c._id.toString()) || null;
 
-        return {
-          ...c,
-          status: dynamicStatus,
-          mySubmission,
-          mcqCount: c.mcqQuestions?.length || 0,
-          codingCount: c.codingProblems?.length || 0,
-          // Redact questions list in overview to save bandwidth
-          mcqQuestions: undefined,
-          codingProblems: undefined,
-        };
-      })
-    );
+      return {
+        ...c,
+        status: dynamicStatus,
+        mySubmission,
+        mcqCount: c.mcqQuestions?.length || 0,
+        codingCount: c.codingProblems?.length || 0,
+        // Redact questions list in overview to save bandwidth
+        mcqQuestions: undefined,
+        codingProblems: undefined,
+      };
+    });
 
-    return reply.send({ success: true, count: updatedContests.length, data: updatedContests });
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      count: updatedContests.length,
+      pagination,
+      data: updatedContests,
+    });
   } catch (error: any) {
     req.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to fetch contests' });
@@ -584,26 +626,39 @@ export const submitContest = async (req: FastifyRequest, reply: FastifyReply) =>
   }
 };
 
-// 7. Get Contest Leaderboard
+// 7. Get Contest Leaderboard (Paginated with Global Ranks)
 export const getContestLeaderboard = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = req.params as { id: string };
+    const query = req.query as any;
 
     const contest = await Contest.findOne({
       $or: [{ _id: mongoose.isValidObjectId(id) ? id : null }, { slug: id.toLowerCase() }],
-    });
+    }).lean();
 
     if (!contest) {
       return reply.status(404).send({ success: false, error: 'Contest not found' });
     }
 
-    const submissions = await ContestSubmission.find({ contestId: contest._id })
-      .sort({ totalScore: -1, timeTakenSeconds: 1 })
-      .populate('userId', 'name rollNo email profilePicUrl avatar department points')
-      .lean();
+    const { page, limit, skip } = parsePaginationParams(query, {
+      defaultLimit: 50,
+      maxLimit: 100,
+      defaultSortBy: 'totalScore',
+      allowedSortFields: ['totalScore', 'timeTakenSeconds', 'submittedAt'],
+    });
+
+    const [total, submissions] = await Promise.all([
+      ContestSubmission.countDocuments({ contestId: contest._id }),
+      ContestSubmission.find({ contestId: contest._id })
+        .sort({ totalScore: -1, timeTakenSeconds: 1, _id: 1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name rollNo email profilePicUrl avatar department points')
+        .lean(),
+    ]);
 
     const leaderboard = submissions.map((s: any, idx: number) => ({
-      rank: idx + 1,
+      rank: skip + idx + 1,
       submissionId: s._id,
       user: s.userId,
       totalScore: s.totalScore,
@@ -619,11 +674,14 @@ export const getContestLeaderboard = async (req: FastifyRequest, reply: FastifyR
       submittedAt: s.submittedAt,
     }));
 
+    const pagination = buildPaginationMeta(total, page, limit);
+
     return reply.send({
       success: true,
       contestTitle: contest.title,
       pointAllocationMode: contest.pointAllocationMode || 'AUTOMATIC',
-      totalParticipants: leaderboard.length,
+      totalParticipants: total,
+      pagination,
       data: leaderboard,
     });
   } catch (error: any) {
@@ -874,26 +932,76 @@ export const bulkAllocateContestPoints = async (req: FastifyRequest, reply: Fast
   }
 };
 
-// 13. Admin: Get Detailed Contest Submissions for Evaluation
+// 13. Admin: Get Detailed Contest Submissions for Evaluation (Paginated)
 export const getContestSubmissionsForAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = req.params as { id: string };
+    const query = req.query as any;
 
     const contest = await Contest.findById(id).lean();
     if (!contest) {
       return reply.status(404).send({ success: false, error: 'Contest not found' });
     }
 
-    const submissions = await ContestSubmission.find({ contestId: contest._id })
-      .sort({ totalScore: -1, timeTakenSeconds: 1 })
-      .populate('userId', 'name rollNo email profilePicUrl avatar department points')
-      .populate('manualAllocatedBy', 'name email')
-      .populate('reentryApprovedBy', 'name email')
-      .lean();
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'totalScore',
+      allowedSortFields: ['totalScore', 'timeTakenSeconds', 'submittedAt', 'createdAt'],
+    });
 
+    const filter: any = { contestId: contest._id };
+
+    if (query?.filterMode === 'REENTRY_REQUESTS') {
+      filter.reentryStatus = 'PENDING';
+    } else if (query?.filterMode === 'ALLOCATED') {
+      filter.pointsAwarded = true;
+      filter.awardedClubPoints = { $gt: 0 };
+    } else if (query?.filterMode === 'PENDING') {
+      filter.$or = [{ pointsAwarded: false }, { awardedClubPoints: 0 }];
+    }
+
+    if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+      const searchRegex = new RegExp(query.search.trim(), 'i');
+      const matchingUsers = await User.find({
+        $or: [
+          { name: searchRegex },
+          { rollNo: searchRegex },
+          { email: searchRegex },
+        ],
+      })
+        .select('_id')
+        .lean();
+      filter.userId = { $in: matchingUsers.map((u) => u._id) };
+    }
+
+    const sortObj: any = {};
+    if (sortBy === 'totalScore') {
+      sortObj.totalScore = sortOrder === 'asc' ? 1 : -1;
+      sortObj.timeTakenSeconds = 1;
+    } else {
+      sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    }
+    sortObj._id = 1;
+
+    const [total, submissions] = await Promise.all([
+      ContestSubmission.countDocuments(filter),
+      ContestSubmission.find(filter)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name rollNo email profilePicUrl avatar department points')
+        .populate('manualAllocatedBy', 'name email')
+        .populate('reentryApprovedBy', 'name email')
+        .lean(),
+    ]);
+
+    // Enrich only the current page of submissions (drastic performance & memory saving)
     const enrichedSubmissions = submissions.map((s: any) =>
       enrichSubmissionWithContestDetails(s, contest)
     );
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
@@ -908,6 +1016,7 @@ export const getContestSubmissionsForAdmin = async (req: FastifyRequest, reply: 
         codingCount: contest.codingProblems?.length || 0,
       },
       count: enrichedSubmissions.length,
+      pagination,
       data: enrichedSubmissions,
     });
   } catch (error: any) {

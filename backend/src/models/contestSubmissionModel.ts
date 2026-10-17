@@ -121,7 +121,9 @@ const contestSubmissionSchema = new Schema<IContestSubmission>(
 
 // One submission session per user per contest
 contestSubmissionSchema.index({ contestId: 1, userId: 1 }, { unique: true });
-contestSubmissionSchema.index({ contestId: 1, totalScore: -1, timeTakenSeconds: 1 });
+contestSubmissionSchema.index({ contestId: 1, totalScore: -1, timeTakenSeconds: 1, _id: 1 });
+contestSubmissionSchema.index({ contestId: 1, reentryStatus: 1, createdAt: -1 });
+contestSubmissionSchema.index({ contestId: 1, pointsAwarded: 1, awardedClubPoints: 1 });
 
 export const ContestSubmission: Model<IContestSubmission> =
   mongoose.models.ContestSubmission ||

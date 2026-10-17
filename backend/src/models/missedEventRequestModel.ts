@@ -90,6 +90,7 @@ const missedEventRequestSchema = new Schema<IMissedEventRequest>(
 
 missedEventRequestSchema.index({ student: 1, event: 1, status: 1 });
 missedEventRequestSchema.index({ status: 1, createdAt: -1 });
+missedEventRequestSchema.index({ student: 1, createdAt: -1 });
 
 export const MissedEventRequest: Model<IMissedEventRequest> =
   mongoose.models.MissedEventRequest ||

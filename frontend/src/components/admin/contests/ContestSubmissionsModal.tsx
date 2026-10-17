@@ -31,6 +31,7 @@ import {
   DeleteSubmissionModal,
 } from './ContestReentryActionModals';
 import TutorialButton from '../../common/TutorialButton';
+import Pagination from '../../common/Pagination';
 
 interface ContestSubmissionsModalProps {
   isOpen: boolean;
@@ -45,6 +46,9 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
 }) => {
   const { fetchContestSubmissions, bulkAllocatePoints } = useContestStore();
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState<'ALL' | 'REENTRY_REQUESTS' | 'ALLOCATED' | 'PENDING'>('ALL');
@@ -55,38 +59,46 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
   const [selectedSubmissionForDelete, setSelectedSubmissionForDelete] = useState<any | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (targetPage = page) => {
     if (!contest) return;
     setLoading(true);
-    const res = await fetchContestSubmissions(contest._id);
+    const res = await fetchContestSubmissions(contest._id, {
+      page: targetPage,
+      limit,
+      search: search.trim() || undefined,
+      filterMode,
+    });
     if (res.success && res.data) {
       setSubmissions(res.data);
+      if (res.pagination) {
+        setPagination(res.pagination);
+      }
     }
     setLoading(false);
   };
 
   useEffect(() => {
     if (isOpen && contest) {
-      loadData();
+      loadData(page);
     }
-  }, [isOpen, contest]);
+  }, [isOpen, contest, page, limit, filterMode]);
+
+  useEffect(() => {
+    if (!isOpen || !contest) return;
+    const timer = setTimeout(() => {
+      setPage(1);
+      loadData(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   if (!isOpen || !contest) return null;
 
-  const pendingReentryCount = submissions.filter((s) => s.reentryStatus === 'PENDING').length;
+  const pendingReentryCount = pagination?.total
+    ? submissions.filter((s) => s.reentryStatus === 'PENDING').length
+    : 0;
 
-  const filtered = submissions.filter((s) => {
-    const matchesSearch =
-      s.userId?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      s.userId?.rollNo?.toLowerCase().includes(search.toLowerCase()) ||
-      s.userId?.email?.toLowerCase().includes(search.toLowerCase());
-
-    if (!matchesSearch) return false;
-    if (filterMode === 'REENTRY_REQUESTS') return s.reentryStatus === 'PENDING';
-    if (filterMode === 'ALLOCATED') return s.pointsAwarded && (s.awardedClubPoints || 0) > 0;
-    if (filterMode === 'PENDING') return !s.pointsAwarded || (s.awardedClubPoints || 0) === 0;
-    return true;
-  });
+  const filtered = submissions;
 
   const handleBulkMatchScores = async () => {
     if (!confirm(`Allocate club points equal to each student's earned contest score for all participants?`)) {
@@ -471,17 +483,32 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
             )}
           </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-separator bg-surface-secondary flex items-center justify-between text-xs text-label-secondary">
-            <span>
-              Showing {filtered.length} of {submissions.length} participants
-            </span>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-surface border border-separator rounded-xl font-bold text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
-            >
-              Close
-            </button>
+          {/* Footer & Pagination */}
+          <div className="p-4 border-t border-separator bg-surface-secondary flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary">
+            <div className="w-full sm:w-auto">
+              {pagination && pagination.totalPages > 1 && (
+                <Pagination
+                  pagination={pagination}
+                  onPageChange={(p) => setPage(p)}
+                  onLimitChange={(l) => {
+                    setLimit(l);
+                    setPage(1);
+                  }}
+                  pageSizeOptions={[10, 20, 50]}
+                />
+              )}
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              <span>
+                Total: {pagination?.total ?? submissions.length} participant{pagination?.total === 1 ? '' : 's'}
+              </span>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-surface border border-separator rounded-xl font-bold text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>

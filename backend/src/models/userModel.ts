@@ -99,6 +99,9 @@ const userSchema = new Schema<IUser>(
 userSchema.index({ role: 1, isBlocked: 1 });
 userSchema.index({ role: 1, hasChangedDefaultPassword: 1 });
 userSchema.index({ role: 1, isOnboarded: 1 });
+userSchema.index({ role: 1, mustChangePassword: 1, createdAt: -1 });
+userSchema.index({ role: 1, createdAt: -1 });
+userSchema.index({ role: 1, points: -1, createdAt: -1 });
 userSchema.index({ department: 1, role: 1 });
 userSchema.index({ createdAt: -1 });
 

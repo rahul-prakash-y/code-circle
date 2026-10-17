@@ -3,12 +3,56 @@ import mongoose from 'mongoose';
 import User from '../models/userModel';
 import bcrypt from 'bcryptjs';
 
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+
 export const getAllStudents = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const students = await User.find({ 
-      role: { $in: ['Student', 'Member', 'Committee'] } 
-    }).select('-password -resetPasswordToken -resetPasswordExpires').sort({ createdAt: -1 });
-    return reply.send(students);
+    const query = (request.query || {}) as any;
+    const { page, limit, skip, sort } = parsePaginationParams(query, {
+      defaultPage: 1,
+      defaultLimit: 20,
+      maxLimit: 100,
+      allowedSortFields: ['name', 'rollNo', 'email', 'department', 'points', 'createdAt'],
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+    });
+
+    const filter: any = {
+      role: { $in: ['Student', 'Member', 'Committee'] },
+    };
+
+    if (query.department && query.department !== 'all') {
+      filter.department = query.department;
+    }
+
+    if (query.search && query.search.trim()) {
+      const searchRegex = new RegExp(query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { rollNo: searchRegex },
+        { email: searchRegex },
+        { department: searchRegex },
+      ];
+    }
+
+    const [total, students] = await Promise.all([
+      User.countDocuments(filter),
+      User.find(filter)
+        .select('-password -resetPasswordToken -resetPasswordExpires')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      data: students,
+      students,
+      pagination,
+    });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to fetch students' });
@@ -345,14 +389,22 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
       ];
     }
 
-    const limit = query.limit ? Math.min(parseInt(query.limit, 10), 5000) : 2000;
+    const page = Math.max(1, parseInt((query as any).page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit as any, 10) || 50));
+    const skip = (page - 1) * limit;
 
     // Fetch students list (Not Onboarded / mustChangePassword: true first by default)
-    const students = await User.find(studentListFilter)
-      .select('name rollNo email department college year mustChangePassword isBlocked createdAt')
-      .sort({ mustChangePassword: -1, createdAt: -1 })
-      .limit(limit)
-      .lean();
+    const [totalMatchingStudents, students] = await Promise.all([
+      User.countDocuments(studentListFilter),
+      User.find(studentListFilter)
+        .select('name rollNo email department college year mustChangePassword isBlocked createdAt')
+        .sort({ mustChangePassword: -1, createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const pagination = buildPaginationMeta(totalMatchingStudents, page, limit);
 
     const formattedStudents = students.map((s: any) => {
       const isMustChange = Boolean(s.mustChangePassword);
@@ -396,9 +448,11 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
       success: true,
       stats: statsPayload,
       students: formattedStudents,
+      pagination,
       data: {
         stats: statsPayload,
         students: formattedStudents,
+        pagination,
       },
     });
   } catch (error: any) {

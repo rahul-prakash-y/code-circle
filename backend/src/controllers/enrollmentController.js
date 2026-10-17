@@ -265,13 +265,42 @@ const getEventEnrollments = async (request, reply) => {
       query.attendanceStatus = false;
     }
 
-    const enrollments = await Enrollment.find(query)
-      .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
-      .populate('members', 'name rollNo email profilePicUrl department year phone college role')
-      .sort({ createdAt: -1 })
-      .lean();
+    const isPaginated = request.query && request.query.page !== undefined;
+    const page = Math.max(1, parseInt(request.query?.page, 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(request.query?.limit, 10) || (isPaginated ? 20 : 200)));
+    const skip = (page - 1) * limit;
 
-    return reply.send(formatEnrollmentsList(enrollments));
+    const [enrollments, total] = await Promise.all([
+      Enrollment.find(query)
+        .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
+        .populate('members', 'name rollNo email profilePicUrl department year phone college role')
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Enrollment.countDocuments(query),
+    ]);
+
+    const formatted = formatEnrollmentsList(enrollments);
+    if (isPaginated) {
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      return reply.send({
+        success: true,
+        data: formatted,
+        count: formatted.length,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          pages: totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      });
+    }
+
+    return reply.send(formatted);
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Failed to fetch enrollments' });
@@ -317,15 +346,43 @@ const getEventParticipants = async (request, reply) => {
       request.log.warn(`[getEventParticipants] AttendanceRecord sync notice: ${syncErr.message}`);
     }
 
-    // STRICT: Participants list contains ONLY students who marked attendance (including walk-ins)
-    // Registered students who didn't mark attendance (attendanceStatus === false) are strictly excluded!
-    const enrollments = await Enrollment.find({ event: eventId, attendanceStatus: true })
-      .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
-      .populate('members', 'name rollNo email profilePicUrl department year phone college role')
-      .sort({ updatedAt: -1 })
-      .lean();
+    const isPaginated = request.query && request.query.page !== undefined;
+    const page = Math.max(1, parseInt(request.query?.page, 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(request.query?.limit, 10) || (isPaginated ? 20 : 200)));
+    const skip = (page - 1) * limit;
 
-    return reply.send(formatEnrollmentsList(enrollments));
+    const filter = { event: eventId, attendanceStatus: true };
+    const [enrollments, total] = await Promise.all([
+      Enrollment.find(filter)
+        .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
+        .populate('members', 'name rollNo email profilePicUrl department year phone college role')
+        .sort({ updatedAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Enrollment.countDocuments(filter),
+    ]);
+
+    const formatted = formatEnrollmentsList(enrollments);
+    if (isPaginated) {
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      return reply.send({
+        success: true,
+        data: formatted,
+        count: formatted.length,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          pages: totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      });
+    }
+
+    return reply.send(formatted);
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Failed to fetch event participants' });
@@ -336,14 +393,43 @@ const getEventRegistered = async (request, reply) => {
   try {
     const { eventId } = request.params;
 
-    // STRICT: Registered students list contains only pre-registered students (excludes walk-in attendance)
-    const enrollments = await Enrollment.find({ event: eventId, isWalkIn: { $ne: true } })
-      .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
-      .populate('members', 'name rollNo email profilePicUrl department year phone college role')
-      .sort({ createdAt: -1 })
-      .lean();
+    const isPaginated = request.query && request.query.page !== undefined;
+    const page = Math.max(1, parseInt(request.query?.page, 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(request.query?.limit, 10) || (isPaginated ? 20 : 200)));
+    const skip = (page - 1) * limit;
 
-    return reply.send(formatEnrollmentsList(enrollments));
+    const filter = { event: eventId, isWalkIn: { $ne: true } };
+    const [enrollments, total] = await Promise.all([
+      Enrollment.find(filter)
+        .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
+        .populate('members', 'name rollNo email profilePicUrl department year phone college role')
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Enrollment.countDocuments(filter),
+    ]);
+
+    const formatted = formatEnrollmentsList(enrollments);
+    if (isPaginated) {
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      return reply.send({
+        success: true,
+        data: formatted,
+        count: formatted.length,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          pages: totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      });
+    }
+
+    return reply.send(formatted);
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Failed to fetch registered students' });

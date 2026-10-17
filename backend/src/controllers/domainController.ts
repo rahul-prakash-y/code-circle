@@ -12,6 +12,7 @@ import CodingChallenge from '../models/codingChallengeModel';
 import PointTransaction from '../models/pointTransactionModel';
 import LevelAssessmentSession from '../models/levelAssessmentSessionModel';
 import CodingSubmission from '../models/codingSubmissionModel';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 // Interface for submitting answers
 export interface SubmitQuestBody {
@@ -375,7 +376,30 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
     // Seed initial domains if database has none
     // await ensureSeedData(request.user?.id);
 
-    const domains = await Domain.find().sort({ createdAt: 1 }).lean();
+    const query = request.query as any;
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'createdAt',
+      allowedSortFields: ['createdAt', 'name'],
+    });
+
+    const filter: any = {};
+    if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+      filter.$or = [
+        { name: { $regex: query.search.trim(), $options: 'i' } },
+        { description: { $regex: query.search.trim(), $options: 'i' } },
+      ];
+    }
+
+    const sortObj: any = {};
+    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sortObj._id = 1;
+
+    const [total, domains] = await Promise.all([
+      Domain.countDocuments(filter),
+      Domain.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+    ]);
 
     // Check user progress if user is authenticated
     const userId = request.user?.id || (request.user as any)?._id;
@@ -423,47 +447,72 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
       userEnrollments.forEach((e) => userEnrolledDomainIds.add(e.domainId.toString()));
     }
 
-    // Aggregate enrollment counts across all domains
-    const enrollmentCounts = await DomainEnrollment.aggregate([
-      { $group: { _id: '$domainId', count: { $sum: 1 } } },
-    ]);
+    const pageDomainIds = domains.map((d: any) => d._id);
+
+    // Batch-query levels for only domains on the current page (eliminates N+1 queries)
+    const pageLevels =
+      pageDomainIds.length > 0
+        ? await Level.find({ domainId: { $in: pageDomainIds } })
+            .select('_id domainId levelNumber')
+            .lean()
+        : [];
+
+    const domainLevelsMap = new Map<string, any[]>();
+    pageLevels.forEach((lvl: any) => {
+      const dId = lvl.domainId.toString();
+      if (!domainLevelsMap.has(dId)) {
+        domainLevelsMap.set(dId, []);
+      }
+      domainLevelsMap.get(dId)!.push(lvl);
+    });
+
+    // Aggregate enrollment counts scoped ONLY to the current page's domains
+    const enrollmentCounts =
+      pageDomainIds.length > 0
+        ? await DomainEnrollment.aggregate([
+            { $match: { domainId: { $in: pageDomainIds } } },
+            { $group: { _id: '$domainId', count: { $sum: 1 } } },
+          ])
+        : [];
     const enrollmentCountMap = new Map<string, number>();
-    enrollmentCounts.forEach((ec) => {
+    enrollmentCounts.forEach((ec: any) => {
       enrollmentCountMap.set(ec._id.toString(), ec.count);
     });
 
-    // Enrich each domain with total levels, completed levels, and lock status
-    const enrichedDomains = await Promise.all(
-      domains.map(async (domain) => {
-        const levels = await Level.find({ domainId: domain._id }).select('_id levelNumber').lean();
-        const totalLevels = levels.length;
-        const completedLevelsCount = levels.filter((lvl) =>
-          completedLevelIds.includes(lvl._id.toString())
-        ).length;
+    // Enrich each domain with total levels, completed levels, and lock status without N+1 queries
+    const enrichedDomains = domains.map((domain: any) => {
+      const levels = domainLevelsMap.get(domain._id.toString()) || [];
+      const totalLevels = levels.length;
+      const completedLevelsCount = levels.filter((lvl: any) =>
+        completedLevelIds.includes(lvl._id.toString())
+      ).length;
 
-        const progressPercentage =
-          totalLevels > 0 ? Math.round((completedLevelsCount / totalLevels) * 100) : 0;
+      const progressPercentage =
+        totalLevels > 0 ? Math.round((completedLevelsCount / totalLevels) * 100) : 0;
 
-        const isDomainApproved = !domain.isLocked || unlockedDomainIds.includes(domain._id.toString());
-        const isLockedForStudent = !isAdmin && !isDomainApproved;
-        const enrolledStudentsCount = enrollmentCountMap.get(domain._id.toString()) || 0;
-        const isEnrolled = isAdmin || userEnrolledDomainIds.has(domain._id.toString());
+      const isDomainApproved = !domain.isLocked || unlockedDomainIds.includes(domain._id.toString());
+      const isLockedForStudent = !isAdmin && !isDomainApproved;
+      const enrolledStudentsCount = enrollmentCountMap.get(domain._id.toString()) || 0;
+      const isEnrolled = isAdmin || userEnrolledDomainIds.has(domain._id.toString());
 
-        return {
-          ...domain,
-          totalLevels,
-          completedLevelsCount,
-          progressPercentage,
-          isLocked: Boolean(domain.isLocked),
-          isLockedForStudent,
-          enrolledStudentsCount,
-          isEnrolled,
-        };
-      })
-    );
+      return {
+        ...domain,
+        totalLevels,
+        completedLevelsCount,
+        progressPercentage,
+        isLocked: Boolean(domain.isLocked),
+        isLockedForStudent,
+        enrolledStudentsCount,
+        isEnrolled,
+      };
+    });
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.status(200).send({
       success: true,
+      count: enrichedDomains.length,
+      pagination,
       isComingSoon: false,
       hasAccess: true,
       isEarlyAccess: !isAdmin && !courseConfig.coursesVisibleToAll && isStudentAllowed,
@@ -1562,12 +1611,13 @@ export const registerForDomain = async (
  * View list of registered students for a course track with their progress metrics.
  */
 export const getEnrolledStudents = async (
-  request: FastifyRequest<{ Params: { id: string }; Querystring: { search?: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Querystring: { search?: string; page?: string; limit?: string } }>,
   reply: FastifyReply
 ) => {
   try {
     const { id: domainId } = request.params;
-    const { search } = (request.query || {}) as any;
+    const query = (request.query || {}) as any;
+    const { search } = query;
 
     if (!mongoose.Types.ObjectId.isValid(domainId)) {
       return reply.status(400).send({ success: false, error: 'Invalid course ID' });
@@ -1578,20 +1628,49 @@ export const getEnrolledStudents = async (
       return reply.status(404).send({ success: false, error: 'Course not found' });
     }
 
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 25,
+      maxLimit: 100,
+      defaultSortBy: 'enrolledAt',
+      allowedSortFields: ['enrolledAt', 'createdAt'],
+    });
+
+    const filter: any = { domainId: new mongoose.Types.ObjectId(domainId) };
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      const matchingUsers = await User.find({
+        $or: [
+          { name: searchRegex },
+          { rollNo: searchRegex },
+          { email: searchRegex },
+          { department: searchRegex },
+        ],
+      })
+        .select('_id')
+        .lean();
+      filter.userId = { $in: matchingUsers.map((u) => u._id) };
+    }
+
     // Get all levels for this domain
     const levels = await Level.find({ domainId }).select('_id levelNumber').lean();
     const totalLevels = levels.length;
     const levelIdStrings = new Set(levels.map((lvl) => lvl._id.toString()));
 
-    // Fetch enrollments populated with user info
-    const enrollments = await DomainEnrollment.find({ domainId })
-      .populate('userId', 'name rollNo email department year college profilePicUrl role')
-      .sort({ enrolledAt: -1 })
-      .lean();
+    const [total, enrollments] = await Promise.all([
+      DomainEnrollment.countDocuments(filter),
+      DomainEnrollment.find(filter)
+        .populate('userId', 'name rollNo email department year college profilePicUrl role')
+        .sort({ enrolledAt: sortOrder === 'asc' ? 1 : -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
-    // Batch fetch student progress
+    // Batch fetch student progress only for current page's students
     const userIds = enrollments.map((e) => (e.userId as any)?._id).filter(Boolean);
-    const progressDocs = await StudentProgress.find({ userId: { $in: userIds } }).lean();
+    const progressDocs =
+      userIds.length > 0 ? await StudentProgress.find({ userId: { $in: userIds } }).lean() : [];
     const progressMap = new Map<string, string[]>();
     progressDocs.forEach((doc) => {
       progressMap.set(
@@ -1600,12 +1679,17 @@ export const getEnrolledStudents = async (
       );
     });
 
-    // Also check any passed level assessment sessions for these students and domain levels
-    const passedSessions = await LevelAssessmentSession.find({
-      student: { $in: userIds },
-      level: { $in: Array.from(levelIdStrings).map((id) => new mongoose.Types.ObjectId(id)) },
-      $or: [{ isCompleted: true }, { verdict: 'passed' }],
-    }).select('student level').lean();
+    // Check passed sessions only for current page's students
+    const passedSessions =
+      userIds.length > 0
+        ? await LevelAssessmentSession.find({
+            student: { $in: userIds },
+            level: { $in: Array.from(levelIdStrings).map((id) => new mongoose.Types.ObjectId(id)) },
+            $or: [{ isCompleted: true }, { verdict: 'passed' }],
+          })
+            .select('student level')
+            .lean()
+        : [];
 
     passedSessions.forEach((s) => {
       if (s.student && s.level) {
@@ -1619,7 +1703,7 @@ export const getEnrolledStudents = async (
       }
     });
 
-    let enrolledStudents = enrollments
+    const enrolledStudents = enrollments
       .filter((e) => e.userId != null)
       .map((e) => {
         const u = e.userId as any;
@@ -1658,20 +1742,11 @@ export const getEnrolledStudents = async (
         };
       });
 
-    // Optional query filter
-    if (search && typeof search === 'string' && search.trim()) {
-      const q = search.trim().toLowerCase();
-      enrolledStudents = enrolledStudents.filter(
-        (s) =>
-          s.user.name?.toLowerCase().includes(q) ||
-          s.user.rollNo?.toLowerCase().includes(q) ||
-          s.user.email?.toLowerCase().includes(q) ||
-          s.user.department?.toLowerCase().includes(q)
-      );
-    }
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.status(200).send({
       success: true,
+      pagination,
       data: {
         domain: {
           _id: domain._id,
@@ -1679,7 +1754,8 @@ export const getEnrolledStudents = async (
           description: domain.description,
           totalLevels,
         },
-        totalStudents: enrolledStudents.length,
+        totalStudents: total,
+        pagination,
         students: enrolledStudents,
       },
     });

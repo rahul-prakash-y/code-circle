@@ -97,6 +97,8 @@ export const submitFeedback = async (
  * - If user.role === 'SuperAdmin': populates the full user document (name, rollNo, email, department, profilePicUrl).
  * - If user.role !== 'SuperAdmin' (e.g. 'Admin', 'Faculty', 'Committee'): strictly strips real user data and obscures as 'Anonymous Student'.
  */
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+
 export const getFeedbacks = async (
   request: FastifyRequest<{ Querystring: GetFeedbackQuery }>,
   reply: FastifyReply
@@ -106,6 +108,14 @@ export const getFeedbacks = async (
     if (!user) {
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
+
+    const { page, limit, skip, sort } = parsePaginationParams(request.query as any, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+      allowedSortFields: ['createdAt', 'rating', 'type'],
+    });
 
     const { type, eventId, rating, search } = request.query;
     const filter: any = {};
@@ -134,14 +144,19 @@ export const getFeedbacks = async (
 
     let query = Feedback.find(filter)
       .populate('event', 'title date type status')
-      .sort({ createdAt: -1 });
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
 
     if (isSuperAdmin) {
       // SuperAdmin clearance: Populate actual user identity
       query = query.populate('user', 'name rollNo email department profilePicUrl role');
     }
 
-    const rawFeedbacks = await query.lean();
+    const [rawFeedbacks, total] = await Promise.all([
+      query.lean(),
+      Feedback.countDocuments(filter),
+    ]);
 
     // PRIVACY FILTER:
     // When requester is SuperAdmin: feedback is attributed and displayed by the user's real name.
@@ -177,6 +192,8 @@ export const getFeedbacks = async (
       };
     });
 
+    const pagination = buildPaginationMeta(total, page, limit);
+
     return reply.send({
       success: true,
       viewerRole: user.role,
@@ -186,6 +203,7 @@ export const getFeedbacks = async (
         : 'Standard Administrator clearance: Student feedback identities are displayed as anonymous user to protect privacy.',
       count: feedbacks.length,
       data: feedbacks,
+      pagination,
     });
   } catch (error: any) {
     return reply.status(500).send({
@@ -202,14 +220,33 @@ export const getMyFeedbacks = async (request: FastifyRequest, reply: FastifyRepl
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
 
-    const feedbacks = await Feedback.find({ user: user.id })
-      .populate('event', 'title date type')
-      .sort({ createdAt: -1 })
-      .lean();
+    const { page, limit, skip, sort } = parsePaginationParams(request.query as any, {
+      defaultLimit: 20,
+      maxLimit: 50,
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+      allowedSortFields: ['createdAt', 'rating'],
+    });
+
+    const filter = { user: user.id };
+
+    const [feedbacks, total] = await Promise.all([
+      Feedback.find(filter)
+        .populate('event', 'title date type')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Feedback.countDocuments(filter),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
       data: feedbacks,
+      count: feedbacks.length,
+      pagination,
     });
   } catch (error: any) {
     return reply.status(500).send({

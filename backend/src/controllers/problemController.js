@@ -12,7 +12,38 @@ const createProblem = async (req, reply) => {
 
 const getProblems = async (req, reply) => {
   try {
-    const problems = await Problem.find({}, { testCases: 0 }); // Hide test cases in list
+    const isPaginated = req.query && req.query.page !== undefined;
+    const page = Math.max(1, parseInt(req.query?.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query?.limit, 10) || (isPaginated ? 20 : 100)));
+    const skip = (page - 1) * limit;
+
+    const [problems, total] = await Promise.all([
+      Problem.find({}, { testCases: 0 })
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Problem.countDocuments({}),
+    ]);
+
+    if (isPaginated) {
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      return reply.send({
+        success: true,
+        problems,
+        data: problems,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          pages: totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      });
+    }
+
     return reply.send(problems);
   } catch (error) {
     return reply.code(500).send({ message: error.message });

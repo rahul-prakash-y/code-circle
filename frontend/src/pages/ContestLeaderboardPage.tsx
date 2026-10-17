@@ -23,6 +23,7 @@ import useContestStore, { LeaderboardEntry, Contest } from '../store/useContestS
 import AllocatePointsModal from '../components/admin/contests/AllocatePointsModal';
 import ContestSubmissionsModal from '../components/admin/contests/ContestSubmissionsModal';
 import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
+import Pagination from '../components/common/Pagination';
 
 export const ContestLeaderboardPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +31,7 @@ export const ContestLeaderboardPage: React.FC = () => {
   const { profile } = useProfileStore();
   const {
     leaderboard,
+    leaderboardPagination,
     loading,
     fetchLeaderboard,
     bulkAllocatePoints,
@@ -38,6 +40,8 @@ export const ContestLeaderboardPage: React.FC = () => {
     fetchContestById,
     activeContest,
   } = useContestStore();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [search, setSearch] = useState('');
   const [selectedEntryForPoints, setSelectedEntryForPoints] = useState<LeaderboardEntry | null>(null);
   const [selectedSubmissionForDetails, setSelectedSubmissionForDetails] = useState<any | null>(null);
@@ -56,10 +60,10 @@ export const ContestLeaderboardPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      fetchLeaderboard(id);
+      fetchLeaderboard(id, { page, limit });
       fetchContestById(id);
     }
-  }, [id]);
+  }, [id, page, limit]);
 
   const currentUserId = user?._id || user?.id || (user as any)?.userId;
   const myLeaderboardEntry = leaderboard.find(
@@ -412,6 +416,19 @@ export const ContestLeaderboardPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {leaderboardPagination && leaderboardPagination.totalPages > 1 && (
+          <div className="p-4 border-t border-separator">
+            <Pagination
+              pagination={leaderboardPagination}
+              onPageChange={(newPage) => setPage(newPage)}
+              onLimitChange={(newLimit) => {
+                setLimit(newLimit);
+                setPage(1);
+              }}
+              pageSizeOptions={[20, 50, 100]}
+            />
+          </div>
+        )}
       </div>
 
       {/* Allocate Points Modal */}

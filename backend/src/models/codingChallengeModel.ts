@@ -182,6 +182,7 @@ const codingChallengeSchema = new Schema<ICodingChallenge>(
 // Indexes for query optimization
 codingChallengeSchema.index({ isPublished: 1, createdAt: -1 });
 codingChallengeSchema.index({ isCourseChallenge: 1, createdAt: -1 });
+codingChallengeSchema.index({ isCourseChallenge: 1, isPublished: 1, createdAt: -1 });
 
 export const CodingChallenge: Model<ICodingChallenge> =
   mongoose.models.CodingChallenge ||

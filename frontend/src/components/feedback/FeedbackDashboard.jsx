@@ -18,12 +18,14 @@ import useFeedbackStore from '../../store/useFeedbackStore';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import SubmitFeedbackModal from './SubmitFeedbackModal';
+import Pagination from '../common/Pagination';
 import toast from 'react-hot-toast';
 import { useDebounce } from '../../hooks/useDebounce';
 
 const FeedbackDashboard = () => {
   const {
     feedbacks,
+    pagination,
     stats,
     isSuperAdminView,
     privacyNotice,
@@ -42,6 +44,7 @@ const FeedbackDashboard = () => {
 
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 300);
 
   const effectiveRole = profile?.role || user?.role || 'Student';
@@ -49,10 +52,15 @@ const FeedbackDashboard = () => {
   const isSuperAdmin = isSuperAdminRole || isSuperAdminView;
   const isAdmin = isSuperAdmin || ['admin', 'faculty', 'committee'].includes(effectiveRole?.toLowerCase());
 
+  // Reset page when filters change
   useEffect(() => {
-    fetchFeedbacks();
+    setPage(1);
+  }, [debouncedSearch, typeFilter, ratingFilter]);
+
+  useEffect(() => {
+    fetchFeedbacks({ page, search: debouncedSearch });
     fetchFeedbackStats();
-  }, [fetchFeedbacks, fetchFeedbackStats]);
+  }, [fetchFeedbacks, fetchFeedbackStats, page, debouncedSearch, typeFilter, ratingFilter]);
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to remove this feedback entry?')) {
@@ -544,6 +552,19 @@ const FeedbackDashboard = () => {
               );
             })}
           </AnimatePresence>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="pt-2">
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            itemsPerPage={pagination.limit}
+            onPageChange={(newPage) => setPage(newPage)}
+          />
         </div>
       )}
 

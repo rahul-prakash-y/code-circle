@@ -16,6 +16,7 @@ import {
   buildCertificatePdfBuffer,
   uploadCertificateToCloudinary,
 } from '../utils/certificatePdfRenderer';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 interface AuthUser {
   userId?: string;
@@ -264,9 +265,15 @@ export const issueCertificates = async (req: FastifyRequest, reply: FastifyReply
 // 7. Get All Issued Certificates (Ledger / Registry)
 export const getIssuedCertificates = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
+    const { page, limit, skip, sort } = parsePaginationParams(req.query as any, {
+      defaultLimit: 25,
+      maxLimit: 100,
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+      allowedSortFields: ['createdAt', 'issueDate', 'recipientName', 'title', 'status'],
+    });
+
     const {
-      page = 1,
-      limit = 25,
       search = '',
       status = '',
       templateId = '',
@@ -290,26 +297,23 @@ export const getIssuedCertificates = async (req: FastifyRequest, reply: FastifyR
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
     const [certificates, total] = await Promise.all([
       IssuedCertificate.find(query)
         .populate('recipientUser', 'name email rollNo avatar')
         .populate('templateId', 'theme orientation')
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(limit)
+        .lean(),
       IssuedCertificate.countDocuments(query),
     ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
       data: certificates,
-      pagination: {
-        total,
-        page: Number(page),
-        limit: Number(limit),
-        pages: Math.ceil(total / Number(limit)),
-      },
+      pagination,
     });
   } catch (error: any) {
     req.log.error(error);
@@ -350,14 +354,37 @@ export const revokeCertificate = async (req: FastifyRequest, reply: FastifyReply
 export const getMyCertificates = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const userId = getUserId(req);
-    const certificates = await IssuedCertificate.find({
+    const { page, limit, skip, sort } = parsePaginationParams(req.query as any, {
+      defaultLimit: 20,
+      maxLimit: 50,
+      defaultSortBy: 'issueDate',
+      defaultSortOrder: 'desc',
+      allowedSortFields: ['issueDate', 'createdAt', 'title'],
+    });
+
+    const filter = {
       recipientUser: userId,
       status: 'ACTIVE',
-    })
-      .populate('templateId', 'theme orientation bgImageUrl')
-      .sort({ issueDate: -1 });
+    };
 
-    return reply.send({ success: true, count: certificates.length, data: certificates });
+    const [certificates, total] = await Promise.all([
+      IssuedCertificate.find(filter)
+        .populate('templateId', 'theme orientation bgImageUrl')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      IssuedCertificate.countDocuments(filter),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      count: certificates.length,
+      data: certificates,
+      pagination,
+    });
   } catch (error: any) {
     req.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to fetch student certificates' });

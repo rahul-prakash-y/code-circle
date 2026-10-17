@@ -3,7 +3,7 @@ import StudentBearer from '../models/studentBearerModel';
 
 export const getBearers = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const bearers = await StudentBearer.find().sort({ createdAt: 1 });
+    const bearers = await StudentBearer.find().sort({ createdAt: 1 }).limit(100).lean();
     return reply.send(bearers);
   } catch (error: any) {
     request.log.error(error);

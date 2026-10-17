@@ -96,12 +96,34 @@ export const createEvent = async (
   }
 };
 
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+
+export interface GetEventsQuery {
+  status?: string;
+  type?: string;
+  format?: string;
+  search?: string;
+  page?: string;
+  limit?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 export const getEvents = async (
   request: FastifyRequest<{ Querystring: GetEventsQuery }>,
   reply: FastifyReply
 ) => {
   try {
     const { status, type, format, search } = request.query;
+    const { page, limit, skip, sort } = parsePaginationParams(request.query, {
+      defaultPage: 1,
+      defaultLimit: 20,
+      maxLimit: 100,
+      allowedSortFields: ['date', 'title', 'status', 'type', 'format', 'createdAt', 'startDate', 'endDate'],
+      defaultSortBy: 'date',
+      defaultSortOrder: 'asc',
+    });
+
     const query: any = {};
     const now = new Date();
 
@@ -138,16 +160,22 @@ export const getEvents = async (
     }
 
     if (search && search.trim()) {
-      const regex = new RegExp(search.trim(), 'i');
+      const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       query.$or = [{ title: regex }, { description: regex }, { venueOrLink: regex }];
     }
 
-    const events = await Event.find(query)
-      .sort({ date: 1 })
-      .populate('createdBy', 'name email profilePicUrl role');
+    const [total, events] = await Promise.all([
+      Event.countDocuments(query),
+      Event.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate('createdBy', 'name email profilePicUrl role')
+        .lean(),
+    ]);
 
-    const eventIds = events.map((e) => e._id);
-    const enrollments = await (Enrollment as any).find({ event: { $in: eventIds } });
+    const eventIds = events.map((e: any) => e._id);
+    const enrollments = await (Enrollment as any).find({ event: { $in: eventIds } }).lean();
     const countMap: Record<string, number> = {};
     const participantCountMap: Record<string, number> = {};
     for (const enr of enrollments) {
@@ -161,14 +189,20 @@ export const getEvents = async (
       }
     }
 
-    const eventsWithCounts = events.map((e) => {
-      const obj: any = e.toObject ? e.toObject() : { ...e };
-      obj.enrolledCount = countMap[e._id.toString()] || 0;
-      obj.participantsCount = participantCountMap[e._id.toString()] || 0;
-      return obj;
-    });
+    const eventsWithCounts = events.map((e: any) => ({
+      ...e,
+      enrolledCount: countMap[e._id.toString()] || 0,
+      participantsCount: participantCountMap[e._id.toString()] || 0,
+    }));
 
-    return reply.send(eventsWithCounts);
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      data: eventsWithCounts,
+      events: eventsWithCounts,
+      pagination,
+    });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({

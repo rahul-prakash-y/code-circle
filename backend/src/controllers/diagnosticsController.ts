@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import os from 'os';
 import axios from 'axios';
 import attendanceBuffer from '../services/attendanceBuffer';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 // Utility to measure Event Loop Delay (Lag) in milliseconds
 const measureEventLoopLag = (): Promise<number> => {
@@ -243,7 +244,13 @@ const normalizePayloadTypes = (collection: string, data: any) => {
 export const getCollectionDocuments = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const { collection } = req.params as { collection: string };
-    const { page = 1, limit = 20, search = '' } = req.query as any;
+    const queryParams = req.query as any;
+    const { search = '' } = queryParams;
+
+    const { page, limit, skip } = parsePaginationParams(queryParams, {
+      defaultLimit: 20,
+      maxLimit: 100,
+    });
 
     if (!mongoose.connection.db) {
       return reply.status(503).send({ success: false, error: 'Database connection not ready' });
@@ -269,9 +276,8 @@ export const getCollectionDocuments = async (req: FastifyRequest, reply: Fastify
       }
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
     const [docs, total] = await Promise.all([
-      col.find(query).sort({ _id: -1 }).skip(skip).limit(Number(limit)).toArray(),
+      col.find(query).sort({ _id: -1 }).skip(skip).limit(limit).toArray(),
       col.countDocuments(query),
     ]);
 
@@ -359,14 +365,17 @@ export const getCollectionDocuments = async (req: FastifyRequest, reply: Fastify
       });
     }
 
+    const pagination = buildPaginationMeta(total, page, limit);
+
     return reply.send({
       success: true,
       collection,
       documents: docs,
       total,
-      page: Number(page),
-      limit: Number(limit),
-      pages: Math.ceil(total / Number(limit)),
+      page,
+      limit,
+      pages: pagination.totalPages,
+      pagination,
       userMap,
       schemaFields,
     });

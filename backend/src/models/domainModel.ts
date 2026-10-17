@@ -52,6 +52,8 @@ const domainSchema = new Schema<IDomain>(
   }
 );
 
+domainSchema.index({ createdAt: 1 });
+
 const Domain: Model<IDomain> =
   mongoose.models.Domain || mongoose.model<IDomain>('Domain', domainSchema);
 

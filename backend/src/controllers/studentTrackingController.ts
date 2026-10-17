@@ -241,14 +241,20 @@ export const getTrackingStudents = async (
     const students = result?.data || [];
     const total = result?.totalCount?.[0]?.count || 0;
 
+    const totalPages = Math.ceil(total / limit) || 1;
     return reply.send({
       success: true,
       students,
+      data: students,
       pagination: {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit) || 1,
+        totalPages,
+        pages: totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+        hasMore: page < totalPages,
       },
     });
   } catch (error: any) {

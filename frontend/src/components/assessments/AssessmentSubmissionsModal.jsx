@@ -22,10 +22,12 @@ import TutorialButton from '../common/TutorialButton';
 import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { formatISTDateTime } from '../../lib/dateUtils';
+import Pagination from '../common/Pagination';
 
 const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose }) => {
   const {
     assessmentSubmissions,
+    submissionsPagination,
     fetchAssessmentSubmissions,
     deleteSubmission,
     allowStudentReappear,
@@ -35,6 +37,7 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
   const { awardBonusPoints } = usePointsStore();
 
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 350);
   const [confirmAction, setConfirmAction] = useState(null); // { type: 'delete' | 'reappear', subId, studentId, studentName }
   const [actionLoading, setActionLoading] = useState(false);
@@ -48,11 +51,11 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
 
   useEffect(() => {
     if (isOpen && assessmentId) {
-      fetchAssessmentSubmissions(assessmentId);
+      fetchAssessmentSubmissions(assessmentId, { page });
       setConfirmAction(null);
       setAwardPointsTarget(null);
     }
-  }, [isOpen, assessmentId, fetchAssessmentSubmissions]);
+  }, [isOpen, assessmentId, page, fetchAssessmentSubmissions]);
 
   const filteredSubmissions = useMemo(() => {
     if (!debouncedSearch.trim()) return assessmentSubmissions;
@@ -321,6 +324,21 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
             </div>
           )}
         </div>
+
+        {/* Submissions Pagination */}
+        {submissionsPagination && submissionsPagination.totalPages > 1 && (
+          <div className="pt-3 border-t border-border flex justify-center flex-shrink-0">
+            <Pagination
+              pagination={submissionsPagination}
+              onPageChange={(p) => setPage(p)}
+              onLimitChange={(l) => {
+                setPage(1);
+                fetchAssessmentSubmissions(assessmentId, { page: 1, limit: l });
+              }}
+              pageSizeOptions={[10, 25, 50]}
+            />
+          </div>
+        )}
 
         {/* Confirmation Modal Overlay */}
         <AnimatePresence>

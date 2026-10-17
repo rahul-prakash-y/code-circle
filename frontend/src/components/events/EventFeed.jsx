@@ -10,6 +10,7 @@ import AttendanceDashboard from '../admin/AttendanceDashboard';
 import EventParticipantsModal from '../admin/EventParticipantsModal';
 import { EventCardSkeleton } from '../ui/LoadingSkeleton';
 import { useDebounce } from '../../hooks/useDebounce';
+import Pagination from '../common/Pagination';
 import { 
   Search, 
   CalendarCheck, 
@@ -37,7 +38,7 @@ export const EventFeed = ({
   onEdit,
   onDelete,
 }) => {
-  const { events, upcomingEvents, pastEvents, loading, fetchEvents } = useEventStore();
+  const { events, upcomingEvents, pastEvents, pagination, loading, fetchEvents } = useEventStore();
   const { myEnrolledEventIds, fetchMyEnrollments } = useEnrollmentStore();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [selectedType, setSelectedType] = useState('all');
@@ -45,6 +46,8 @@ export const EventFeed = ({
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 350);
   const [viewMode, setViewMode] = useState('grid');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
   // Selected event for modals
   const [enrollEvent, setEnrollEvent] = useState(null);
@@ -53,15 +56,22 @@ export const EventFeed = ({
   const [participantsEvent, setParticipantsEvent] = useState(null);
   const [participantsTab, setParticipantsTab] = useState('participants');
 
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, selectedType, selectedFormat, debouncedSearch]);
+
   useEffect(() => {
     fetchEvents({
       status: activeTab === 'all' ? undefined : activeTab,
       type: selectedType !== 'all' ? selectedType : undefined,
       format: selectedFormat !== 'all' ? selectedFormat : undefined,
-      search: searchQuery || undefined,
+      search: debouncedSearch || undefined,
+      page,
+      limit,
     });
     fetchMyEnrollments();
-  }, [activeTab, selectedType, selectedFormat, searchQuery, fetchEvents, fetchMyEnrollments]);
+  }, [activeTab, selectedType, selectedFormat, debouncedSearch, page, limit, fetchEvents, fetchMyEnrollments]);
 
   const isEventLive = (e) => {
     if (!e) return false;
@@ -441,6 +451,23 @@ export const EventFeed = ({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {pagination && pagination.total > 0 && (
+        <div className="pt-4 border-t border-separator">
+          <Pagination
+            page={page}
+            totalPages={pagination.totalPages || 1}
+            totalItems={pagination.total}
+            limit={limit}
+            onPageChange={(p) => setPage(p)}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </div>
       )}
 

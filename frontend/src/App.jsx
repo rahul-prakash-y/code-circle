@@ -37,6 +37,10 @@ const ContestsPage = lazy(() => import('./pages/ContestsPage'));
 const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
 const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
+const ClubArenaPage = lazy(() => import('./pages/ClubArenaPage'));
+const HostSessionPage = lazy(() => import('./pages/HostSessionPage'));
+const ArenaPlayPage = lazy(() => import('./pages/ArenaPlayPage'));
+const ArenaSelfPacedPage = lazy(() => import('./pages/ArenaSelfPacedPage'));
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
 
@@ -184,6 +188,32 @@ function App() {
             }
           />
 
+          {/* Fullscreen Club Arena Live Player & Host */}
+          <Route
+            path="/arena/play/:pin"
+            element={
+              <ProtectedRoute>
+                <ArenaPlayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/arena/host/:pin"
+            element={
+              <ProtectedRoute>
+                <HostSessionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/arena/self-paced/:quizId"
+            element={
+              <ProtectedRoute>
+                <ArenaSelfPacedPage />
+              </ProtectedRoute>
+            }
+          />
+
 
           {/* Persistent App Shell Layout Route */}
           <Route element={<MainLayout />}>
@@ -292,6 +322,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ContestLeaderboardPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Club Hours Arena Hub */}
+            <Route
+              path="/arena"
+              element={
+                <ProtectedRoute>
+                  <ClubArenaPage />
                 </ProtectedRoute>
               }
             />

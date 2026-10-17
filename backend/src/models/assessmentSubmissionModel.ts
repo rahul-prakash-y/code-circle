@@ -109,6 +109,7 @@ const assessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
 
 assessmentSubmissionSchema.index({ assessment: 1, user: 1 });
 assessmentSubmissionSchema.index({ user: 1, createdAt: -1 });
+assessmentSubmissionSchema.index({ assessment: 1, score: -1, createdAt: -1 });
 
 const AssessmentSubmission: Model<IAssessmentSubmission> =
   mongoose.models.AssessmentSubmission ||

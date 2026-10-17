@@ -5,6 +5,7 @@ import Assessment, { IAssessment, IAssessmentQuestion } from '../models/assessme
 import AssessmentSubmission from '../models/assessmentSubmissionModel';
 import User from '../models/userModel';
 import PointTransaction from '../models/pointTransactionModel';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 export interface CreateAssessmentBody {
   title: string;
@@ -39,7 +40,8 @@ export const getAssessments = async (request: FastifyRequest, reply: FastifyRepl
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
 
-    const { category, eventId, search } = request.query as any;
+    const query = request.query as any;
+    const { category, eventId, search } = query;
     const filter: any = {};
 
     const isAdmin =
@@ -68,22 +70,45 @@ export const getAssessments = async (request: FastifyRequest, reply: FastifyRepl
       ];
     }
 
-    const assessments = await Assessment.find(filter)
-      .populate('eventId', 'title date type status')
-      .populate('createdBy', 'name email role')
-      .sort({ createdAt: -1 })
-      .lean();
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'createdAt',
+      allowedSortFields: ['createdAt', 'title', 'category'],
+    });
 
-    // Fetch student's own submissions to attach their latest result
-    const userSubmissions = await AssessmentSubmission.find({ user: user.id })
-      .sort({ createdAt: -1 })
-      .lean();
+    const sortObj: any = {};
+    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sortObj._id = -1;
 
+    const [total, assessments] = await Promise.all([
+      Assessment.countDocuments(filter),
+      Assessment.find(filter)
+        .populate('eventId', 'title date type status')
+        .populate('createdBy', 'name email role')
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    // Fetch student's own submissions only for the assessments on this page
+    const pageAssessmentIds = assessments.map((a: any) => a._id);
     const submissionMap = new Map<string, any>();
-    for (const sub of userSubmissions) {
-      const aId = sub.assessment.toString();
-      if (!submissionMap.has(aId)) {
-        submissionMap.set(aId, sub);
+
+    if (pageAssessmentIds.length > 0) {
+      const userSubmissions = await AssessmentSubmission.find({
+        assessment: { $in: pageAssessmentIds },
+        user: user.id,
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      for (const sub of userSubmissions) {
+        const aId = sub.assessment.toString();
+        if (!submissionMap.has(aId)) {
+          submissionMap.set(aId, sub);
+        }
       }
     }
 
@@ -124,8 +149,12 @@ export const getAssessments = async (request: FastifyRequest, reply: FastifyRepl
       };
     });
 
+    const pagination = buildPaginationMeta(total, page, limit);
+
     return reply.send({
       success: true,
+      count: sanitizedAssessments.length,
+      pagination,
       data: sanitizedAssessments,
     });
   } catch (error: any) {
@@ -591,13 +620,31 @@ export const getMySubmissions = async (request: FastifyRequest, reply: FastifyRe
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
 
-    const submissions = await AssessmentSubmission.find({ user: user.id })
-      .populate('assessment', 'title category timeLimitMinutes passingScorePercentage eventId')
-      .sort({ createdAt: -1 })
-      .lean();
+    const { page, limit, skip } = parsePaginationParams(request.query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'createdAt',
+      allowedSortFields: ['createdAt', 'score', 'percentage'],
+    });
+
+    const filter = { user: user.id };
+
+    const [total, submissions] = await Promise.all([
+      AssessmentSubmission.countDocuments(filter),
+      AssessmentSubmission.find(filter)
+        .populate('assessment', 'title category timeLimitMinutes passingScorePercentage eventId')
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
+      count: submissions.length,
+      pagination,
       data: submissions,
     });
   } catch (error: any) {
@@ -618,13 +665,40 @@ export const getAssessmentSubmissions = async (
       return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
     }
 
-    const submissions = await AssessmentSubmission.find({ assessment: id })
-      .populate('user', 'name rollNo email department profilePicUrl')
-      .sort({ score: -1, createdAt: -1 })
-      .lean();
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(request.query, {
+      defaultLimit: 25,
+      maxLimit: 100,
+      defaultSortBy: 'score',
+      allowedSortFields: ['score', 'createdAt', 'percentage'],
+    });
+
+    const filter = { assessment: id };
+
+    const sortObj: any = {};
+    if (sortBy === 'score') {
+      sortObj.score = sortOrder === 'asc' ? 1 : -1;
+      sortObj.createdAt = -1;
+    } else {
+      sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    }
+    sortObj._id = -1;
+
+    const [total, submissions] = await Promise.all([
+      AssessmentSubmission.countDocuments(filter),
+      AssessmentSubmission.find(filter)
+        .populate('user', 'name rollNo email department profilePicUrl')
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
+      count: submissions.length,
+      pagination,
       data: submissions,
     });
   } catch (error: any) {

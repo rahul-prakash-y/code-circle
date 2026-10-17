@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import News from '../models/newsModel';
 import mongoose from 'mongoose';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 interface NewsQuery {
   search?: string;
@@ -25,11 +26,14 @@ export const getNews = async (
   reply: FastifyReply
 ) => {
   try {
-    const { search, tag, page = '1', limit = '20', includeUnpublished } = request.query;
+    const { page, limit, skip } = parsePaginationParams(request.query as any, {
+      defaultLimit: 20,
+      maxLimit: 50,
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+    });
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
-    const skip = (pageNum - 1) * limitNum;
+    const { search, tag, includeUnpublished } = request.query;
 
     const filter: Record<string, any> = {};
 
@@ -51,19 +55,23 @@ export const getNews = async (
       News.countDocuments(filter),
       News.find(filter)
         .populate('author', 'name rollNo profilePicUrl role')
-        .sort({ pinned: -1, date: -1, createdAt: -1 })
+        .sort({ pinned: -1, date: -1, createdAt: -1, _id: -1 })
         .skip(skip)
-        .limit(limitNum)
+        .limit(limit)
         .lean(),
     ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
       count: news.length,
       total,
-      page: pageNum,
-      totalPages: Math.ceil(total / limitNum) || 1,
+      page,
+      totalPages: pagination.totalPages,
       news,
+      data: news,
+      pagination,
     });
   } catch (error: any) {
     request.log.error(error);

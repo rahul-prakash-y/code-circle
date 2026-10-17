@@ -91,6 +91,8 @@ export const markAttendance = async (
   }
 };
 
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+
 export const getAttendanceRecords = async (
   request: FastifyRequest<{ Querystring: AttendanceRecordsQuery }>,
   reply: FastifyReply
@@ -99,22 +101,28 @@ export const getAttendanceRecords = async (
     const { studentId, eventId, sessionId, search, page = '1', limit = '50', all } =
       request.query;
 
-    const isAll = all === 'true' || all === '1' || limit === '0' || limit === 'all';
-    const parsedLimit = isAll ? 0 : (parseInt(limit, 10) || 50);
+    const isAll = all === 'true' || all === '1';
+    // Clamp limit safely to max 100 to prevent unbounded retrieval
+    const parsedLimit = isAll ? 100 : Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
 
     const result = await AttendanceService.getAttendanceRecords({
       studentId: studentId ? String(studentId) : undefined,
       eventId: eventId ? String(eventId) : undefined,
       sessionId: sessionId ? String(sessionId) : undefined,
       search: search ? String(search) : undefined,
-      page: isAll ? 1 : (parseInt(page, 10) || 1),
+      page: parsedPage,
       limit: parsedLimit,
-      all: isAll,
+      all: false,
     });
+
+    const pagination = buildPaginationMeta(result.total, parsedPage, parsedLimit);
 
     return reply.send({
       success: true,
       data: result,
+      records: result.records,
+      pagination,
     });
   } catch (error: any) {
     request.log.error(error);
@@ -152,7 +160,7 @@ export const getEventSessions = async (
 ) => {
   try {
     const { eventId } = request.params;
-    const sessions = await AttendanceSession.find({ event: eventId }).sort({ createdAt: -1 });
+    const sessions = await AttendanceSession.find({ event: eventId }).sort({ createdAt: -1 }).lean();
 
     return reply.send(sessions);
   } catch (error: any) {
@@ -165,16 +173,36 @@ export const getEventSessions = async (
 };
 
 export const getSessionAttendance = async (
-  request: FastifyRequest<{ Params: { sessionId: string } }>,
+  request: FastifyRequest<{ Params: { sessionId: string }; Querystring: { page?: string; limit?: string } }>,
   reply: FastifyReply
 ) => {
   try {
     const { sessionId } = request.params;
-    const records = await AttendanceRecord.find({ session: sessionId })
-      .populate('user', 'name rollNo email department profilePicUrl')
-      .sort({ timestamp: -1 });
+    const { page, limit, skip } = parsePaginationParams(request.query || {}, {
+      defaultPage: 1,
+      defaultLimit: 50,
+      maxLimit: 100,
+    });
 
-    return reply.send(records);
+    const filter = { session: sessionId };
+    const [total, records] = await Promise.all([
+      AttendanceRecord.countDocuments(filter),
+      AttendanceRecord.find(filter)
+        .populate('user', 'name rollNo email department profilePicUrl')
+        .sort({ timestamp: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      data: records,
+      records,
+      pagination,
+    });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({
@@ -185,7 +213,7 @@ export const getSessionAttendance = async (
 };
 
 export const getUserAttendanceHistory = async (
-  request: FastifyRequest,
+  request: FastifyRequest<{ Querystring: { page?: string; limit?: string } }>,
   reply: FastifyReply
 ) => {
   try {
@@ -194,14 +222,34 @@ export const getUserAttendanceHistory = async (
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
 
-    const records = await AttendanceRecord.find({ user: user.id || user._id })
-      .populate({
-        path: 'session',
-        populate: { path: 'event', select: 'title date venueOrLink type format status thumbnail' },
-      })
-      .sort({ timestamp: -1 });
+    const { page, limit, skip } = parsePaginationParams(request.query || {}, {
+      defaultPage: 1,
+      defaultLimit: 20,
+      maxLimit: 100,
+    });
 
-    return reply.send(records);
+    const filter = { user: user.id || user._id };
+    const [total, records] = await Promise.all([
+      AttendanceRecord.countDocuments(filter),
+      AttendanceRecord.find(filter)
+        .populate({
+          path: 'session',
+          populate: { path: 'event', select: 'title date venueOrLink type format status thumbnail' },
+        })
+        .sort({ timestamp: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      data: records,
+      records,
+      pagination,
+    });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({

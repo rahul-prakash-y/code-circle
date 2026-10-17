@@ -122,17 +122,27 @@ export interface LeaderboardEntry {
   submittedAt?: string;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 interface ContestState {
   contests: Contest[];
   activeContest: Contest | null;
   activeSession: ContestSession | null;
   leaderboard: LeaderboardEntry[];
+  leaderboardPagination: PaginationMeta | null;
   loading: boolean;
   executing: boolean;
   submitting: boolean;
   error: string | null;
 
-  fetchContests: () => Promise<void>;
+  fetchContests: (params?: { page?: number; limit?: number; type?: string; search?: string }) => Promise<void>;
   fetchContestById: (id: string) => Promise<Contest | null>;
   startSession: (contestId: string) => Promise<ContestSession | null>;
   runCode: (
@@ -152,7 +162,7 @@ interface ContestState {
     contestId: string,
     mcqAnswers: Array<{ questionId: string; selectedOption: number }>
   ) => Promise<any>;
-  fetchLeaderboard: (contestId: string) => Promise<void>;
+  fetchLeaderboard: (contestId: string, params?: { page?: number; limit?: number }) => Promise<void>;
   createContest: (data: Partial<Contest>) => Promise<boolean>;
   updateContest: (id: string, data: Partial<Contest>) => Promise<boolean>;
   deleteContest: (id: string) => Promise<boolean>;
@@ -166,8 +176,9 @@ interface ContestState {
     payload: { preset?: string; bonusPoints?: number; reason?: string; allocations?: any[] }
   ) => Promise<boolean>;
   fetchContestSubmissions: (
-    contestId: string
-  ) => Promise<{ success: boolean; data?: any[]; contest?: any; error?: string }>;
+    contestId: string,
+    params?: { page?: number; limit?: number; search?: string; filterMode?: string }
+  ) => Promise<{ success: boolean; data?: any[]; pagination?: PaginationMeta; contest?: any; error?: string }>;
   fetchMyContestSubmission: (
     contestId: string
   ) => Promise<{ success: boolean; data?: any; contest?: any; error?: string }>;
@@ -204,15 +215,16 @@ export const useContestStore = create<ContestState>((set, get) => ({
   activeContest: null,
   activeSession: null,
   leaderboard: [],
+  leaderboardPagination: null,
   loading: false,
   executing: false,
   submitting: false,
   error: null,
 
-  fetchContests: async () => {
+  fetchContests: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await api.get('/contests');
+      const res = await api.get('/contests', { params });
       set({ contests: res.data.data || [], loading: false });
     } catch (err: any) {
       set({ loading: false, error: err.response?.data?.error || 'Failed to load contests' });
@@ -335,11 +347,15 @@ export const useContestStore = create<ContestState>((set, get) => ({
     }
   },
 
-  fetchLeaderboard: async (contestId) => {
+  fetchLeaderboard: async (contestId, params) => {
     set({ loading: true });
     try {
-      const res = await api.get(`/contests/${contestId}/leaderboard`);
-      set({ leaderboard: res.data.data || [], loading: false });
+      const res = await api.get(`/contests/${contestId}/leaderboard`, { params });
+      set({
+        leaderboard: res.data.data || [],
+        leaderboardPagination: res.data.pagination || null,
+        loading: false,
+      });
     } catch (err: any) {
       set({ loading: false });
     }
@@ -415,10 +431,15 @@ export const useContestStore = create<ContestState>((set, get) => ({
     }
   },
 
-  fetchContestSubmissions: async (contestId) => {
+  fetchContestSubmissions: async (contestId, params) => {
     try {
-      const res = await api.get(`/contests/${contestId}/submissions`);
-      return { success: true, data: res.data.data, contest: res.data.contest };
+      const res = await api.get(`/contests/${contestId}/submissions`, { params });
+      return {
+        success: true,
+        data: res.data.data,
+        pagination: res.data.pagination,
+        contest: res.data.contest,
+      };
     } catch (err: any) {
       return { success: false, error: err.response?.data?.error || 'Failed to load submissions' };
     }

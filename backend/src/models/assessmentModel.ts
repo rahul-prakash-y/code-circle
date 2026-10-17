@@ -122,6 +122,7 @@ const assessmentSchema = new Schema<IAssessment>(
 
 assessmentSchema.index({ eventId: 1, isPublished: 1 });
 assessmentSchema.index({ category: 1, isPublished: 1 });
+assessmentSchema.index({ isPublished: 1, createdAt: -1 });
 
 const Assessment: Model<IAssessment> =
   mongoose.models.Assessment || mongoose.model<IAssessment>('Assessment', assessmentSchema);
