@@ -42,17 +42,17 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface rounded-3xl border border-destructive/30 max-w-md w-full shadow-2xl overflow-hidden p-6 space-y-5"
+        className="bg-surface rounded-2xl sm:rounded-3xl border border-destructive/30 max-w-md w-full shadow-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5"
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
-              <AlertTriangle size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+              <AlertTriangle size={20} className="sm:w-6 sm:h-6" />
             </div>
             <div>
               <h3 className="text-base font-bold text-label-primary">Delete Document Record</h3>
@@ -71,7 +71,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         </div>
 
         {/* Record Overview Card */}
-        <div className="p-4 bg-surface-secondary rounded-2xl border border-separator space-y-2.5">
+        <div className="p-3 sm:p-4 bg-surface-secondary rounded-2xl border border-separator space-y-2.5">
           <div className="flex items-center justify-between text-xs">
             <span className="text-label-tertiary font-mono">_id</span>
             <span className="font-mono text-primary font-bold">{doc._id}</span>
@@ -80,7 +80,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           {titleOrName && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-label-tertiary">Record Label</span>
-              <span className="font-semibold text-label-primary truncate max-w-[200px]">
+              <span className="font-semibold text-label-primary truncate max-w-[180px] sm:max-w-[200px]">
                 {titleOrName}
               </span>
             </div>
@@ -108,12 +108,12 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         </p>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 sm:gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
             disabled={deleting}
-            className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary transition-colors"
+            className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-label-secondary hover:text-label-primary hover:bg-surface-secondary rounded-xl transition-colors text-center"
           >
             Cancel
           </button>
@@ -121,7 +121,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             type="button"
             onClick={handleDelete}
             disabled={deleting}
-            className="px-5 py-2.5 bg-destructive text-white text-xs font-bold rounded-xl shadow-md shadow-destructive/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+            className="w-full sm:w-auto px-5 py-2.5 bg-destructive text-white text-xs font-bold rounded-xl shadow-md shadow-destructive/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Trash2 size={14} className={deleting ? 'animate-spin' : ''} />
             <span>{deleting ? 'Deleting...' : 'Delete Permanently'}</span>

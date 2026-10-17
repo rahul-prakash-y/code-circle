@@ -227,8 +227,8 @@ export const ContestLeaderboardPage: React.FC = () => {
 
       {/* --- FULL RANKINGS TABLE --- */}
       <div className="bg-surface rounded-3xl border border-separator p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h3 className="text-sm font-bold text-label-primary uppercase tracking-wider">
               All Participant Standings ({leaderboard.length})
             </h3>
@@ -239,9 +239,9 @@ export const ContestLeaderboardPage: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
             {isPrivileged && leaderboard.length > 0 && (
-              <div className="flex items-center gap-1.5 mr-2">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto justify-between sm:justify-start">
                 <button
                   type="button"
                   disabled={bulkLoading}
@@ -254,7 +254,7 @@ export const ContestLeaderboardPage: React.FC = () => {
                       setBulkLoading(false);
                     }
                   }}
-                  className="px-2.5 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-[11px] font-bold text-label-primary rounded-xl transition-all flex items-center gap-1 shadow-xs disabled:opacity-50"
+                  className="px-2.5 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-[11px] font-bold text-label-primary rounded-xl transition-all flex items-center gap-1 shadow-xs disabled:opacity-50 flex-1 sm:flex-initial justify-center"
                   title="Auto-credit total score as points for all"
                 >
                   <Zap size={12} className="text-amber-500" />
@@ -276,7 +276,7 @@ export const ContestLeaderboardPage: React.FC = () => {
                       setBulkLoading(false);
                     }
                   }}
-                  className="px-2.5 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-[11px] font-bold text-label-primary rounded-xl transition-all flex items-center gap-1 shadow-xs disabled:opacity-50"
+                  className="px-2.5 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-[11px] font-bold text-label-primary rounded-xl transition-all flex items-center gap-1 shadow-xs disabled:opacity-50 flex-1 sm:flex-initial justify-center"
                   title="Add bonus XP to all participants"
                 >
                   <Sparkles size={12} className="text-indigo-500" />
@@ -285,21 +285,21 @@ export const ContestLeaderboardPage: React.FC = () => {
               </div>
             )}
 
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search student or roll number..."
-                className="pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface w-52 sm:w-60"
+                className="pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface w-full sm:w-60"
               />
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto border border-separator rounded-2xl">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto custom-scrollbar border border-separator rounded-2xl">
+          <table className="w-full text-left text-xs min-w-[720px]">
             <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3 px-4">Rank</th>

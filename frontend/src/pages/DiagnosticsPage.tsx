@@ -220,15 +220,15 @@ export const DiagnosticsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-5 sm:pb-6">
         <div>
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-1">
             <Server size={16} />
             <span>SuperAdmin Mission Control</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
             System Diagnostics & Database Manager
           </h1>
           <p className="text-xs text-label-tertiary mt-1">
@@ -236,12 +236,12 @@ export const DiagnosticsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Tabs */}
-          <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
             <button
               onClick={() => setActiveTab('health')}
-              className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'health'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -252,7 +252,7 @@ export const DiagnosticsPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('database')}
-              className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'database'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -379,10 +379,10 @@ export const DiagnosticsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
               <button
                 onClick={() => setAutoRefresh(!autoRefresh)}
-                className={`px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all ${
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all text-center ${
                   autoRefresh
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                     : 'bg-surface-secondary border-separator text-label-secondary hover:text-label-primary'
@@ -393,7 +393,7 @@ export const DiagnosticsPage: React.FC = () => {
               <button
                 onClick={syncCache}
                 disabled={syncing}
-                className="px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
                 <span>{syncing ? 'Flushing Buffers...' : 'Sync Buffers Now'}</span>
@@ -510,8 +510,8 @@ export const DiagnosticsPage: React.FC = () => {
                   </h3>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="relative">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-52">
                     <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
                     <input
                       type="text"
@@ -520,14 +520,14 @@ export const DiagnosticsPage: React.FC = () => {
                         setDocSearch(e.target.value);
                         fetchCollectionDocuments(selectedCollection, 1, 20, e.target.value);
                       }}
-                      placeholder="Search collection records..."
-                      className="pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface w-52"
+                      placeholder="Search records..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface"
                     />
                   </div>
 
                   <button
                     onClick={() => setIsNewDocModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all shrink-0 cursor-pointer"
                   >
                     <Plus size={14} />
                     <span>Insert Doc</span>
@@ -553,8 +553,8 @@ export const DiagnosticsPage: React.FC = () => {
               )}
 
               {/* Table of Records */}
-              <div className="overflow-x-auto border border-separator rounded-2xl">
-                <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto border border-separator rounded-2xl custom-scrollbar">
+                <table className="w-full text-left text-xs min-w-[720px]">
                   <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                     {selectedCollection === 'users' ? (
                       <tr>

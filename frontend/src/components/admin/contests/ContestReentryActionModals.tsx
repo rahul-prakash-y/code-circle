@@ -62,24 +62,24 @@ export const ApproveReentryModal: React.FC<ApproveReentryModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-70 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-separator rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden text-label-primary"
+          className="bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden text-label-primary"
         >
           {/* Header */}
-          <div className="p-6 border-b border-separator bg-surface-secondary flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center">
+          <div className="p-4 sm:p-6 border-b border-separator bg-surface-secondary flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
                 <UserCheck size={20} />
               </div>
-              <div>
-                <h3 className="text-base font-extrabold text-label-primary tracking-tight">
+              <div className="min-w-0">
+                <h3 className="text-base font-extrabold text-label-primary tracking-tight truncate">
                   Approve Contest Re-entry
                 </h3>
-                <p className="text-xs text-label-tertiary">
+                <p className="text-xs text-label-tertiary truncate">
                   Grant re-entry permission and resume student timer
                 </p>
               </div>
@@ -87,13 +87,13 @@ export const ApproveReentryModal: React.FC<ApproveReentryModalProps> = ({
             <button
               onClick={onClose}
               disabled={submitting}
-              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer"
+              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer shrink-0"
             >
               <X size={18} />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
             {/* Student Info Card */}
             <div className="p-3.5 bg-surface-secondary rounded-2xl border border-separator space-y-1">
               <div className="flex items-center justify-between">
@@ -102,7 +102,7 @@ export const ApproveReentryModal: React.FC<ApproveReentryModalProps> = ({
                   Roll: {studentRoll}
                 </span>
               </div>
-              <p className="text-xs text-label-tertiary">{studentEmail}</p>
+              <p className="text-xs text-label-tertiary truncate">{studentEmail}</p>
               {submission.reentryReason && (
                 <div className="mt-2 pt-2 border-t border-separator/60">
                   <p className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">
@@ -121,20 +121,20 @@ export const ApproveReentryModal: React.FC<ApproveReentryModalProps> = ({
                 <Clock size={13} className="text-primary" />
                 <span>Active Session Timer for Re-entry (Minutes)</span>
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <input
                   type="number"
                   min="5"
                   max="360"
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(Math.max(5, parseInt(e.target.value) || 0))}
-                  className="flex-1 px-3.5 py-2.5 bg-surface border border-separator rounded-xl text-sm font-mono font-bold text-label-primary focus:outline-none focus:border-primary"
+                  className="w-full sm:flex-1 px-3.5 py-2.5 bg-surface border border-separator rounded-xl text-sm font-mono font-bold text-label-primary focus:outline-none focus:border-primary"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setDurationMinutes(defaultDuration)}
-                  className="px-3 py-2.5 bg-surface-secondary hover:bg-surface border border-separator rounded-xl text-xs font-bold text-label-secondary transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-3 py-2.5 bg-surface-secondary hover:bg-surface border border-separator rounded-xl text-xs font-bold text-label-secondary transition-colors cursor-pointer text-center"
                   title="Reset to contest standard duration"
                 >
                   Standard ({defaultDuration}m)
@@ -178,19 +178,19 @@ export const ApproveReentryModal: React.FC<ApproveReentryModalProps> = ({
             </div>
 
             {/* Footer Buttons */}
-            <div className="pt-2 flex items-center justify-end gap-2.5">
+            <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={submitting}
-                className="px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <CheckCircle2 size={14} />
                 <span>{submitting ? 'Approving...' : 'Approve & Allow Re-entry'}</span>
@@ -242,23 +242,23 @@ export const RejectReentryModal: React.FC<RejectReentryModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-70 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-separator rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-label-primary"
+          className="bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col overflow-hidden text-label-primary"
         >
-          <div className="p-6 border-b border-separator bg-surface-secondary flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center">
+          <div className="p-4 sm:p-6 border-b border-separator bg-surface-secondary flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0">
                 <XCircle size={20} />
               </div>
-              <div>
-                <h3 className="text-base font-extrabold text-label-primary tracking-tight">
+              <div className="min-w-0">
+                <h3 className="text-base font-extrabold text-label-primary tracking-tight truncate">
                   Decline Re-entry Request
                 </h3>
-                <p className="text-xs text-label-tertiary">
+                <p className="text-xs text-label-tertiary truncate">
                   Reject request from {studentName}
                 </p>
               </div>
@@ -266,13 +266,13 @@ export const RejectReentryModal: React.FC<RejectReentryModalProps> = ({
             <button
               onClick={onClose}
               disabled={submitting}
-              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer"
+              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer shrink-0"
             >
               <X size={18} />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
             {submission.reentryReason && (
               <div className="p-3 bg-surface-secondary rounded-2xl border border-separator">
                 <p className="text-[10px] font-bold text-label-tertiary uppercase">Student Appeal:</p>
@@ -294,19 +294,19 @@ export const RejectReentryModal: React.FC<RejectReentryModalProps> = ({
               />
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-2.5">
+            <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={submitting}
-                className="px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <XCircle size={14} />
                 <span>{submitting ? 'Declining...' : 'Decline Request'}</span>
@@ -358,24 +358,24 @@ export const DeleteSubmissionModal: React.FC<DeleteSubmissionModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-70 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-rose-500/30 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-label-primary"
+          className="bg-surface border border-rose-500/30 rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col overflow-hidden text-label-primary"
         >
           {/* Header */}
-          <div className="p-6 border-b border-separator bg-rose-500/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center">
+          <div className="p-4 sm:p-6 border-b border-separator bg-rose-500/5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0">
                 <Trash2 size={20} />
               </div>
-              <div>
-                <h3 className="text-base font-extrabold text-label-primary tracking-tight">
+              <div className="min-w-0">
+                <h3 className="text-base font-extrabold text-label-primary tracking-tight truncate">
                   Delete Student Contest Entry
                 </h3>
-                <p className="text-xs text-rose-500 font-semibold">
+                <p className="text-xs text-rose-500 font-semibold truncate">
                   Permanent removal & participation reset
                 </p>
               </div>
@@ -383,13 +383,13 @@ export const DeleteSubmissionModal: React.FC<DeleteSubmissionModalProps> = ({
             <button
               onClick={onClose}
               disabled={submitting}
-              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer"
+              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer shrink-0"
             >
               <X size={18} />
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
             <div className="p-4 bg-surface-secondary rounded-2xl border border-separator space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-sm text-label-primary">{studentName}</span>
@@ -419,12 +419,12 @@ export const DeleteSubmissionModal: React.FC<DeleteSubmissionModalProps> = ({
               </ul>
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-2.5">
+            <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={submitting}
-                className="px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
               >
                 Cancel
               </button>
@@ -432,7 +432,7 @@ export const DeleteSubmissionModal: React.FC<DeleteSubmissionModalProps> = ({
                 type="button"
                 onClick={handleDelete}
                 disabled={submitting}
-                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <Trash2 size={14} />
                 <span>{submitting ? 'Deleting...' : 'Confirm Delete Entry'}</span>

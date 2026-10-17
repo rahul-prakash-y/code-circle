@@ -256,38 +256,38 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface rounded-3xl border border-separator max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-surface rounded-2xl sm:rounded-3xl border border-separator max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-separator px-6 py-4 bg-surface-secondary/40">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-separator px-4 sm:px-6 py-3.5 sm:py-4 bg-surface-secondary/40 gap-3">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
                 {mode === 'create' ? 'Create Record' : 'Edit Record'}
               </span>
-              <span className="text-xs font-mono text-label-secondary">
+              <span className="text-xs font-mono text-label-secondary truncate">
                 Collection: <span className="font-bold text-label-primary">{collectionName}</span>
               </span>
             </div>
-            <h2 className="text-base font-bold text-label-primary mt-1">
+            <h2 className="text-sm sm:text-base font-bold text-label-primary mt-1 truncate">
               {mode === 'create'
                 ? `Insert Document into '${collectionName}'`
                 : `Edit Document: ${initialData?._id || ''}`}
             </h2>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
             {/* Form / Raw JSON Tab Toggle */}
             <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-xl">
               <button
                 type="button"
                 onClick={() => handleTabSwitch('form')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'form'
                     ? 'bg-primary text-white shadow-xs'
                     : 'text-label-secondary hover:text-label-primary'
@@ -299,7 +299,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleTabSwitch('json')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'json'
                     ? 'bg-primary text-white shadow-xs'
                     : 'text-label-secondary hover:text-label-primary'
@@ -312,7 +312,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 hover:bg-surface-secondary rounded-xl text-label-tertiary hover:text-label-primary transition-colors"
+              className="p-1.5 hover:bg-surface-secondary rounded-xl text-label-tertiary hover:text-label-primary transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -320,7 +320,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           {activeTab === 'json' ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-label-secondary">
@@ -608,17 +608,17 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-separator px-6 py-4 bg-surface-secondary/40">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-separator px-4 sm:px-6 py-3.5 sm:py-4 bg-surface-secondary/40 gap-2.5">
           <span className="text-xs text-label-tertiary">
             {activeTab === 'form' ? `${fields.length} fields defined` : 'JSON mode'}
           </span>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary transition-colors cursor-pointer text-center"
             >
               Cancel
             </button>
@@ -626,7 +626,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
               type="button"
               onClick={handleSubmit}
               disabled={saving}
-              className="px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+              className="flex-1 sm:flex-none px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer text-center"
             >
               {saving ? (
                 <>

@@ -109,9 +109,9 @@ export const ContestsPage: React.FC = () => {
         </div>
 
         {/* View Switcher for Admins */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3 flex-col pb-1">
           {isPrivileged && (
-            <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
+            <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs shrink-0">
               <button
                 onClick={() => setViewMode('arena')}
                 className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -143,7 +143,7 @@ export const ContestsPage: React.FC = () => {
                 setEditingContest(null);
                 setIsBuilderOpen(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
+              className="flex items-center whitespace-nowrap gap-2 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
             >
               <Plus size={15} />
               <span>New Contest</span>
@@ -175,28 +175,28 @@ export const ContestsPage: React.FC = () => {
                     key={c._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="group bg-surface rounded-3xl border border-separator hover:border-primary/40 p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden flex flex-col justify-between"
+                    className="group bg-surface rounded-2xl sm:rounded-3xl border border-separator hover:border-primary/40 p-4 sm:p-6 md:p-8 shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden flex flex-col justify-between"
                   >
                     {/* Subtle decorative glow in top right */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
                     <div className="space-y-4 relative z-10">
-                      <div className="flex items-center justify-between">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 animate-pulse flex items-center gap-1.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="w-fit px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 animate-pulse flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           <span>LIVE ARENA</span>
                         </span>
                         <span
-                          className="text-xs font-mono font-bold text-label-secondary flex items-center gap-1"
+                          className="text-xs font-mono font-bold text-label-secondary flex items-center gap-1.5"
                           title={`Scheduled contest closing time: ${formatISTDateTime(c.endTime)}`}
                         >
-                          <Clock size={13} className="text-primary" />
-                          <span>{formatRemainingTime(c.endTime)} • Closes {formatISTTime(c.endTime)}</span>
+                          <Clock size={13} className="text-primary shrink-0" />
+                          <span className="truncate">{formatRemainingTime(c.endTime)} • Closes {formatISTTime(c.endTime)}</span>
                         </span>
                       </div>
 
                       <div>
-                        <h3 className="text-xl sm:text-2xl font-black text-label-primary tracking-tight">
+                        <h3 className="text-lg sm:text-2xl font-black text-label-primary tracking-tight break-words">
                           {c.title}
                         </h3>
                         <p className="text-xs text-label-tertiary mt-1.5 line-clamp-2 leading-relaxed">
@@ -204,7 +204,7 @@ export const ContestsPage: React.FC = () => {
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-label-secondary pt-2">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-medium text-label-secondary pt-1 sm:pt-2">
                         <span className="flex items-center gap-1.5 bg-surface-secondary px-2.5 py-1 rounded-xl border border-separator/80">
                           <Zap size={13} className="text-amber-500" />
                           <span>{c.totalPoints} Reward Points</span>
@@ -220,11 +220,11 @@ export const ContestsPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="pt-6 mt-6 border-t border-separator/60 flex flex-wrap items-center justify-between gap-3 relative z-10">
-                      <div className="flex items-center gap-2">
+                    <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-separator/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 relative z-10">
+                      <div className="flex items-center justify-between sm:justify-start gap-2">
                         <button
                           onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                          className="text-xs font-bold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1 cursor-pointer"
+                          className="text-xs font-bold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1 cursor-pointer py-1.5"
                         >
                           <Trophy size={14} className="text-amber-500" />
                           <span>Leaderboard</span>
@@ -234,7 +234,7 @@ export const ContestsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSelectedContestForSubmissions(c)}
-                            className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
                             title="Submissions & Point Allocation"
                           >
                             <Sliders size={13} />
@@ -244,11 +244,11 @@ export const ContestsPage: React.FC = () => {
                       </div>
 
                       {c.mySubmission?.status === 'SUBMITTED' ? (
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                           <button
                             type="button"
                             onClick={() => handleOpenMySubmission(c)}
-                            className="px-4 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                            className="flex-1 sm:flex-initial px-4 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                             title="View your submitted MCQ choices and code solutions"
                           >
                             <FileCode2 size={14} />
@@ -285,7 +285,7 @@ export const ContestsPage: React.FC = () => {
                             }
                             navigate(`/contests/${c._id}/arena`);
                           }}
-                          className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                          className="w-full sm:w-auto px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <Play size={14} className="fill-current" />
                           <span>{c.mySubmission ? 'Resume Contest' : 'Enter Arena'}</span>
@@ -451,22 +451,22 @@ export const ContestsPage: React.FC = () => {
                 ) : (
                   contests.map((c) => (
                     <tr key={c._id} className="hover:bg-surface-secondary/60 transition-colors">
-                      <td className="py-3 px-4">
-                        <p className="font-bold text-label-primary">{c.title}</p>
-                        <p className="text-[10px] text-label-tertiary font-mono">{c.slug}</p>
+                      <td className="py-3 px-4 ">
+                        <p className="font-bold text-label-primary whitespace-nowrap">{c.title}</p>
+                        <p className="text-[10px] text-label-tertiary font-mono whitespace-nowrap">{c.slug}</p>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
                           {c.type}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-[11px] text-label-secondary font-mono">
+                      <td className="py-3 px-4 text-[11px] text-label-secondary font-mono whitespace-nowrap">
                         {formatISTRange(c.startTime, c.endTime)}
                       </td>
-                      <td className="py-3 px-4 font-mono">{c.durationMinutes}m</td>
-                      <td className="py-3 px-4 font-bold font-mono text-amber-500">{c.totalPoints} pts</td>
-                      <td className="py-3 px-4 font-mono">{c.participantsCount}</td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 font-mono whitespace-nowrap">{c.durationMinutes}m</td>
+                      <td className="py-3 px-4 font-bold font-mono text-amber-500 whitespace-nowrap">{c.totalPoints} pts</td>
+                      <td className="py-3 px-4 font-mono whitespace-nowrap">{c.participantsCount}</td>
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             c.status === 'LIVE'
@@ -479,7 +479,7 @@ export const ContestsPage: React.FC = () => {
                           {c.status}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right space-x-1.5">
+                      <td className="py-3 px-4 text-right whitespace-nowrap space-x-1.5">
                         <button
                           onClick={() => setSelectedContestForSubmissions(c)}
                           className="p-1.5 hover:bg-amber-500/10 text-amber-500 rounded-lg transition-colors"

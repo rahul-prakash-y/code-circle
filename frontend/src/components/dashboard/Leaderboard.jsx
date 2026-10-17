@@ -36,42 +36,42 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
   // Styling configurations for Gold, Silver, and Bronze
   const config = isFirst
     ? {
-        pedestalHeight: 'h-40 sm:h-48',
+        pedestalHeight: 'h-32 sm:h-48',
         pedestalBg: 'bg-gradient-to-t from-amber-500/25 via-amber-500/10 to-amber-500/5 dark:from-amber-500/20 dark:via-amber-500/10 dark:to-transparent',
         pedestalBorder: 'border-t-2 border-x border-amber-400/60 dark:border-amber-400/40',
-        ring: 'ring-4 ring-amber-400 shadow-xl shadow-amber-400/20',
+        ring: 'ring-2 sm:ring-4 ring-amber-400 shadow-xl shadow-amber-400/20',
         badgeBg: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/30',
         badgeText: '#1 Champion',
-        icon: <Crown size={22} className="text-amber-500 fill-amber-400 drop-shadow-[0_2px_8px_rgba(245,158,11,0.5)]" />,
+        icon: <Crown size={18} className="sm:w-[22px] sm:h-[22px] text-amber-500 fill-amber-400 drop-shadow-[0_2px_8px_rgba(245,158,11,0.5)]" />,
         numeral: 'I',
         numeralColor: 'text-amber-500/30 dark:text-amber-400/20',
         aura: 'bg-amber-400/10 dark:bg-amber-400/5',
-        order: 'order-1 sm:order-2',
-        mt: '-mt-4 sm:-mt-8',
+        order: 'order-2 sm:order-2',
+        mt: '-mt-2 sm:-mt-8',
       }
     : isSecond
     ? {
-        pedestalHeight: 'h-28 sm:h-36',
+        pedestalHeight: 'h-24 sm:h-36',
         pedestalBg: 'bg-gradient-to-t from-slate-400/20 via-slate-400/10 to-transparent dark:from-slate-400/15 dark:via-slate-400/5 dark:to-transparent',
         pedestalBorder: 'border-t-2 border-x border-slate-300 dark:border-slate-600',
-        ring: 'ring-4 ring-slate-300 dark:ring-slate-500 shadow-lg shadow-slate-400/15',
+        ring: 'ring-2 sm:ring-4 ring-slate-300 dark:ring-slate-500 shadow-lg shadow-slate-400/15',
         badgeBg: 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600',
         badgeText: '#2 Runner-up',
-        icon: <Medal size={20} className="text-slate-400 fill-slate-300 dark:text-slate-300 dark:fill-slate-400" />,
+        icon: <Medal size={16} className="sm:w-[20px] sm:h-[20px] text-slate-400 fill-slate-300 dark:text-slate-300 dark:fill-slate-400" />,
         numeral: 'II',
         numeralColor: 'text-slate-400/30 dark:text-slate-400/20',
         aura: 'bg-slate-400/10 dark:bg-slate-400/5',
-        order: 'order-2 sm:order-1',
+        order: 'order-1 sm:order-1',
         mt: 'mt-0 sm:mt-2',
       }
     : {
-        pedestalHeight: 'h-20 sm:h-28',
+        pedestalHeight: 'h-16 sm:h-28',
         pedestalBg: 'bg-gradient-to-t from-amber-700/20 via-amber-700/10 to-transparent dark:from-amber-700/15 dark:via-amber-700/5 dark:to-transparent',
         pedestalBorder: 'border-t-2 border-x border-amber-700/40 dark:border-amber-700/30',
-        ring: 'ring-4 ring-amber-700/60 shadow-lg shadow-amber-800/15',
+        ring: 'ring-2 sm:ring-4 ring-amber-700/60 shadow-lg shadow-amber-800/15',
         badgeBg: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-700/30',
         badgeText: '#3 Bronze',
-        icon: <Medal size={20} className="text-amber-700 fill-amber-600 dark:text-amber-500 dark:fill-amber-600" />,
+        icon: <Medal size={16} className="sm:w-[20px] sm:h-[20px] text-amber-700 fill-amber-600 dark:text-amber-500 dark:fill-amber-600" />,
         numeral: 'III',
         numeralColor: 'text-amber-700/30 dark:text-amber-700/20',
         order: 'order-3 sm:order-3',
@@ -79,7 +79,7 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
       };
 
   return (
-    <div className={`flex flex-col items-center flex-1 min-w-[180px] max-w-[260px] ${config.order} ${config.mt} relative group`}>
+    <div className={`flex flex-col items-center flex-1 min-w-[96px] sm:min-w-[180px] max-w-[115px] sm:max-w-[260px] ${config.order} ${config.mt} relative group shrink-0 sm:shrink`}>
       {/* Decorative Aura */}
       <div className={`absolute top-6 w-32 h-32 rounded-full ${config.aura} blur-2xl pointer-events-none -z-10`} />
 
@@ -91,42 +91,42 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
         </div>
 
         {/* Circular Avatar */}
-        <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-surface-secondary border border-separator ${config.ring} transition-all duration-300 group-hover:shadow-2xl flex items-center justify-center relative`}>
+        <div className={`w-14 h-14 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-surface-secondary border border-separator ${config.ring} transition-all duration-300 group-hover:shadow-2xl flex items-center justify-center relative`}>
           {user.profilePicUrl ? (
             <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center font-extrabold text-2xl text-label-primary bg-surface-raised">
+            <div className="w-full h-full flex items-center justify-center font-extrabold text-lg sm:text-2xl text-label-primary bg-surface-raised">
               {user.name ? user.name[0]?.toUpperCase() : 'U'}
             </div>
           )}
 
           {isCurrentUser && (
-            <span className="absolute bottom-1 right-1 px-1.5 py-0.2 text-[9px] font-black uppercase rounded bg-primary text-white shadow-xs">
+            <span className="absolute bottom-1 right-1 px-1 sm:px-1.5 py-0.2 text-[8px] sm:text-[9px] font-black uppercase rounded bg-primary text-white shadow-xs">
               You
             </span>
           )}
         </div>
 
         {/* Rank Pill Tag */}
-        <div className={`-mt-3 z-10 px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${config.badgeBg} flex items-center gap-1 shadow-sm`}>
+        <div className={`-mt-2.5 sm:-mt-3 z-10 px-2 sm:px-3 py-0.5 rounded-full text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider ${config.badgeBg} flex items-center gap-1 shadow-sm`}>
           <span>{config.badgeText}</span>
         </div>
       </div>
 
       {/* Student Details */}
-      <div className="text-center w-full px-2 space-y-1 mb-3">
-        <h4 className="text-label-primary font-bold text-sm sm:text-base truncate group-hover:text-primary transition-colors">
+      <div className="text-center w-full px-1 sm:px-2 space-y-0.5 sm:space-y-1 mb-2 sm:mb-3">
+        <h4 className="text-label-primary font-bold text-xs sm:text-base truncate group-hover:text-primary transition-colors">
           {user.name}
         </h4>
-        <div className="flex items-center justify-center gap-1.5 flex-wrap">
-          <span className="text-[11px] text-label-tertiary font-mono">{user.rollNo}</span>
-          <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded bg-surface-secondary border border-separator text-label-secondary">
+        <div className="flex items-center justify-center gap-1 flex-wrap">
+          <span className="text-[10px] sm:text-[11px] text-label-tertiary font-mono truncate max-w-[70px] sm:max-w-none">{user.rollNo}</span>
+          <span className="text-[9px] sm:text-[10px] font-semibold uppercase px-1 sm:px-1.5 py-0.2 rounded bg-surface-secondary border border-separator text-label-secondary">
             {dept}
           </span>
         </div>
 
         {/* Engagement Chips */}
-        <div className="flex items-center justify-center gap-2 pt-1 text-[10px] text-label-secondary font-medium">
+        <div className="hidden sm:flex items-center justify-center gap-2 pt-1 text-[10px] text-label-secondary font-medium">
           {problems > 0 && (
             <span className="inline-flex items-center gap-1">
               <Code2 size={11} className="text-blue-500" />
@@ -144,19 +144,19 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
 
       {/* 3D Tiered Pedestal Block */}
       <div
-        className={`w-full ${config.pedestalHeight} ${config.pedestalBg} ${config.pedestalBorder} rounded-t-2xl sm:rounded-t-3xl flex flex-col items-center justify-between py-3 px-2 shadow-card backdrop-blur-sm relative overflow-hidden transition-all duration-300 group-hover:brightness-105`}
+        className={`w-full ${config.pedestalHeight} ${config.pedestalBg} ${config.pedestalBorder} rounded-t-2xl sm:rounded-t-3xl flex flex-col items-center justify-between py-2 sm:py-3 px-1.5 sm:px-2 shadow-card backdrop-blur-sm relative overflow-hidden transition-all duration-300 group-hover:brightness-105`}
       >
         {/* Roman Numeral watermark */}
-        <span className={`text-4xl sm:text-6xl font-black font-mono select-none ${config.numeralColor}`}>
+        <span className={`text-2xl sm:text-6xl font-black font-mono select-none ${config.numeralColor}`}>
           {config.numeral}
         </span>
 
         {/* Score Badge at base */}
-        <div className="bg-surface/90 dark:bg-surface-raised/90 backdrop-blur-md border border-separator rounded-xl px-3 py-1.5 shadow-xs text-center w-full max-w-[130px]">
-          <span className="text-base sm:text-xl font-extrabold text-label-primary tracking-tight">
+        <div className="bg-surface/90 dark:bg-surface-raised/90 backdrop-blur-md border border-separator rounded-xl px-1.5 sm:px-3 py-1 sm:py-1.5 shadow-xs text-center w-full max-w-[90px] sm:max-w-[130px]">
+          <span className="text-xs sm:text-xl font-extrabold text-label-primary tracking-tight">
             {points.toLocaleString()}
           </span>
-          <span className="text-[10px] font-bold text-label-tertiary uppercase ml-1">pts</span>
+          <span className="text-[8px] sm:text-[10px] font-bold text-label-tertiary uppercase ml-0.5 sm:ml-1">pts</span>
         </div>
       </div>
     </div>
@@ -474,7 +474,7 @@ export const Leaderboard = () => {
           </div>
 
           {/* Podiums Row */}
-          <div className="flex flex-col sm:flex-row justify-center items-end gap-6 sm:gap-4 md:gap-8 pt-4 pb-2 relative z-10">
+          <div className="flex flex-row justify-center items-end gap-1.5 sm:gap-4 md:gap-8 pt-4 pb-2 relative z-10 overflow-x-auto sm:overflow-visible no-scrollbar px-1">
             {/* Rank 2 (Silver) */}
             {top3[1] && (
               <PodiumPedestal
@@ -564,20 +564,20 @@ export const Leaderboard = () => {
         </div>
 
         {/* Filter Badges Row: Departments & Sort Modes */}
-        <div className="pt-3 border-t border-separator flex flex-wrap items-center justify-between gap-3">
+        <div className="pt-3 border-t border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Department Filter Chips */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary mr-1">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary mr-1 shrink-0">
               Branch:
             </span>
-            <div className="flex items-center gap-1 flex-wrap">
+            <div className="flex items-center gap-1 shrink-0">
               {availableDepartments.map((dept) => {
                 const isActive = selectedDept === dept;
                 return (
                   <button
                     key={dept}
                     onClick={() => setSelectedDept(dept)}
-                    className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    className={`px-2.5 sm:px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                       isActive
                         ? 'bg-primary text-white shadow-xs font-bold'
                         : 'bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
@@ -624,7 +624,7 @@ export const Leaderboard = () => {
       {/* ── Rankings Table (Rank #4 and beyond) ─────────────────────── */}
       <div className="bg-surface rounded-2xl sm:rounded-3xl border border-separator shadow-card overflow-hidden">
         {/* Table Header */}
-        <div className="grid grid-cols-12 px-6 py-3.5 bg-surface-secondary border-b border-separator text-[11px] font-bold uppercase tracking-wider text-label-secondary">
+        <div className="grid grid-cols-12 px-3 sm:px-6 py-3.5 bg-surface-secondary border-b border-separator text-[11px] font-bold uppercase tracking-wider text-label-secondary">
           <div className="col-span-2 sm:col-span-1 text-center">Rank</div>
           <div className="col-span-6 sm:col-span-5">Student</div>
           <div className="hidden sm:block sm:col-span-2 text-center">Problems</div>
@@ -648,7 +648,7 @@ export const Leaderboard = () => {
             return (
               <div
                 key={u._id || index}
-                className={`grid grid-cols-12 px-6 py-3.5 items-center group transition-colors duration-150 ${
+                className={`grid grid-cols-12 px-3 sm:px-6 py-3 items-center group transition-colors duration-150 ${
                   isMe
                     ? 'bg-primary/5 hover:bg-primary/10 border-l-4 border-l-primary'
                     : 'hover:bg-surface-secondary/70'

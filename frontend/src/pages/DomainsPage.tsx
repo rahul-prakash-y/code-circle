@@ -61,6 +61,7 @@ export const DomainsPage: React.FC = () => {
     activeLevel,
     isQuestModalOpen,
     loading,
+    setCurrentDomain,
     fetchDomains,
     fetchDomainLevels,
     setActiveLevel,
@@ -125,16 +126,20 @@ export const DomainsPage: React.FC = () => {
 
   // Initial fetch of all domains and access config
   useEffect(() => {
-    fetchDomains();
+    if (!domainId || domains.length === 0) {
+      fetchDomains();
+    }
     fetchCourseAccessConfig();
-  }, [fetchDomains, fetchCourseAccessConfig]);
+  }, [domainId, domains.length, fetchDomains, fetchCourseAccessConfig]);
 
   // Fetch domain levels if domainId route param is present
   useEffect(() => {
     if (domainId) {
       fetchDomainLevels(domainId);
+    } else if (currentDomain) {
+      setCurrentDomain(null);
     }
-  }, [domainId, fetchDomainLevels]);
+  }, [domainId, fetchDomainLevels, setCurrentDomain]);
 
   const filteredDomains = domains.filter((d) => {
     const matchesSearch =
@@ -181,8 +186,41 @@ export const DomainsPage: React.FC = () => {
     return <CoursesComingSoonView onRefresh={fetchDomains} />;
   }
 
-  // Detail / Course View when domainId is active
-  if (domainId && currentDomain) {
+  // Active course resolution from store or cached domains
+  const activeCourse = (currentDomain && currentDomain._id === domainId)
+    ? currentDomain
+    : domains.find((d) => d._id === domainId) || null;
+
+  // If domainId is present in URL, never show catalog page
+  if (domainId) {
+    if (!activeCourse) {
+      return (
+        <div className="space-y-8 max-w-7xl mx-auto pb-16">
+          <div className="flex items-center gap-3 pb-4 border-b border-separator">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentDomain(null);
+                navigate('/courses');
+              }}
+              className="w-9 h-9 rounded-full bg-surface border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer"
+              aria-label="Back to courses"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="space-y-1.5">
+              <div className="h-3 w-20 bg-surface-secondary rounded animate-pulse" />
+              <div className="h-6 w-44 bg-surface-secondary rounded-md animate-pulse" />
+            </div>
+          </div>
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <Loader2 className="w-8 h-8 text-accent animate-spin" />
+            <p className="text-xs text-label-secondary font-medium">Loading course track and curriculum...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-8 max-w-7xl mx-auto pb-16">
         {/* Navigation Breadcrumb & Header */}
@@ -190,7 +228,10 @@ export const DomainsPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate('/courses')}
+              onClick={() => {
+                setCurrentDomain(null);
+                navigate('/courses');
+              }}
               className="w-9 h-9 rounded-full bg-surface border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer"
               aria-label="Back to courses"
             >
@@ -200,10 +241,10 @@ export const DomainsPage: React.FC = () => {
               <div className="flex items-center gap-2 text-xs font-semibold text-accent uppercase tracking-wider">
                 <span>Course</span>
                 <span>/</span>
-                <span>{currentDomain.name}</span>
+                <span>{activeCourse.name}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-label-primary mt-0.5">
-                {currentDomain.name}
+                {activeCourse.name}
               </h1>
             </div>
           </div>
@@ -220,18 +261,18 @@ export const DomainsPage: React.FC = () => {
 
             {/* Registration status badge or action */}
             {!isAdmin && (
-              currentDomain.isEnrolled ? (
+              activeCourse.isEnrolled ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Enrolled
                 </span>
               ) : (
                 <button
                   type="button"
-                  onClick={(e) => handleRegisterCourse(e, currentDomain)}
-                  disabled={registeringDomainId === currentDomain._id}
+                  onClick={(e) => handleRegisterCourse(e, activeCourse)}
+                  disabled={registeringDomainId === activeCourse._id}
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow cursor-pointer disabled:opacity-50"
                 >
-                  {registeringDomainId === currentDomain._id ? (
+                  {registeringDomainId === activeCourse._id ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Sparkles className="w-3.5 h-3.5" />
@@ -247,26 +288,26 @@ export const DomainsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedDomainForStudents(currentDomain);
+                    setSelectedDomainForStudents(activeCourse);
                     setIsStudentsModalOpen(true);
                   }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer"
                   title="View registered student roster"
                 >
                   <Users className="w-3.5 h-3.5 text-accent" />
-                  <span>Students ({currentDomain.enrolledStudentsCount || 0})</span>
+                  <span>Students ({activeCourse.enrolledStudentsCount || 0})</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => toggleDomainLock(currentDomain._id)}
+                  onClick={() => toggleDomainLock(activeCourse._id)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer ${
-                    currentDomain.isLocked
+                    activeCourse.isLocked
                       ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
                       : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
                   }`}
-                  title={currentDomain.isLocked ? 'Approve & Unlock course for students' : 'Lock course for students'}
+                  title={activeCourse.isLocked ? 'Approve & Unlock course for students' : 'Lock course for students'}
                 >
-                  {currentDomain.isLocked ? (
+                  {activeCourse.isLocked ? (
                     <>
                       <Lock className="w-3.5 h-3.5 text-amber-500" /> Unlock for Students
                     </>
@@ -279,7 +320,7 @@ export const DomainsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setBulkUploadTargetDomain({ id: currentDomain._id, name: currentDomain.name });
+                    setBulkUploadTargetDomain({ id: activeCourse._id, name: activeCourse.name });
                     setIsBulkUploadOpen(true);
                   }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition cursor-pointer"
@@ -301,7 +342,7 @@ export const DomainsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setDomainToEdit(currentDomain);
+                    setDomainToEdit(activeCourse);
                     setIsDomainModalOpen(true);
                   }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer"
@@ -338,7 +379,7 @@ export const DomainsPage: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-label-secondary mt-0.5 max-w-xl">
-                  You have mastered all {levels.length} levels in {currentDomain.name}! Your institutional certificate backed by Code Circle and BIT faculty is ready.
+                  You have mastered all {levels.length} levels in {activeCourse.name}! Your institutional certificate backed by Code Circle and BIT faculty is ready.
                 </p>
               </div>
             </div>
@@ -360,7 +401,7 @@ export const DomainsPage: React.FC = () => {
         )}
 
         {/* Course Registration Hero Banner for Unregistered Students */}
-        {!isAdmin && !currentDomain.isEnrolled && (
+        {!isAdmin && !activeCourse.isEnrolled && (
           <div className="p-4 sm:p-5 rounded-2xl bg-accent/10 border border-accent/20 text-label-primary flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center shrink-0 shadow-sm">
@@ -378,11 +419,11 @@ export const DomainsPage: React.FC = () => {
 
             <button
               type="button"
-              onClick={(e) => handleRegisterCourse(e, currentDomain)}
-              disabled={registeringDomainId === currentDomain._id}
+              onClick={(e) => handleRegisterCourse(e, activeCourse)}
+              disabled={registeringDomainId === activeCourse._id}
               className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer disabled:opacity-50"
             >
-              {registeringDomainId === currentDomain._id ? (
+              {registeringDomainId === activeCourse._id ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Sparkles className="w-4 h-4" />
@@ -393,7 +434,7 @@ export const DomainsPage: React.FC = () => {
         )}
 
         {/* Locked Status Banner for Students & Faculty */}
-        {currentDomain.isLocked && (
+        {activeCourse.isLocked && (
           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
@@ -404,7 +445,7 @@ export const DomainsPage: React.FC = () => {
                   Course Locked • Pending Administrator Approval
                 </div>
                 <p className="text-xs opacity-90 mt-0.5">
-                  {currentDomain.isLockedForStudent
+                  {activeCourse.isLockedForStudent
                     ? 'This course is currently locked by administrators. Video quests and assessment certifications will be accessible once approved.'
                     : 'This course is currently locked for students. As an administrator, you have full preview and testing privileges.'}
                 </p>
@@ -414,7 +455,7 @@ export const DomainsPage: React.FC = () => {
             {isAdmin && (
               <button
                 type="button"
-                onClick={() => toggleDomainLock(currentDomain._id)}
+                onClick={() => toggleDomainLock(activeCourse._id)}
                 className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-500 transition shadow cursor-pointer"
               >
                 <ShieldCheck className="w-3.5 h-3.5" /> Approve & Unlock Course Now
@@ -474,7 +515,7 @@ export const DomainsPage: React.FC = () => {
         {isLevelModalOpen && (
           <LevelEditorModal
             isOpen={isLevelModalOpen}
-            domainId={currentDomain._id}
+            domainId={activeCourse._id}
             levelToEdit={levelToEdit}
             onClose={() => setIsLevelModalOpen(false)}
           />
@@ -489,7 +530,7 @@ export const DomainsPage: React.FC = () => {
         {isStudentsModalOpen && (
           <RegisteredStudentsModal
             isOpen={isStudentsModalOpen}
-            domain={selectedDomainForStudents || currentDomain}
+            domain={selectedDomainForStudents || activeCourse}
             onClose={() => {
               setIsStudentsModalOpen(false);
               setSelectedDomainForStudents(null);
@@ -758,7 +799,10 @@ export const DomainsPage: React.FC = () => {
               key={domain._id}
               whileHover={{ scale: 1.02 }}
               transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-              onClick={() => navigate(`/courses/${domain._id}`)}
+              onClick={() => {
+                setCurrentDomain(domain);
+                navigate(`/courses/${domain._id}`);
+              }}
               className="group cursor-pointer rounded-[28px] overflow-hidden bg-surface shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 flex flex-col transition-all duration-300 relative"
             >
               {/* Cover Image Container */}

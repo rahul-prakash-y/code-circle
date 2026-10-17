@@ -160,7 +160,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
       {/* Apple Blur Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
@@ -168,26 +168,26 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-4xl bg-surface border border-separator/80 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden z-10 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-4xl bg-surface border border-separator/80 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden z-10 animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="p-5 sm:p-6 pb-4 border-b border-separator/70 flex items-start justify-between gap-4 bg-surface/80 backdrop-blur-md">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 shadow-sm">
+        <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-separator/70 flex items-start justify-between gap-3 bg-surface/80 backdrop-blur-md">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 shadow-sm mt-0.5 sm:mt-0">
               <Crown className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                   SuperAdmin Clearance
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/10 text-accent">
+                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-semibold bg-accent/10 text-accent">
                   Course Access Control
                 </span>
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-label-primary tracking-tight">
+              <h2 className="text-base sm:text-xl font-bold text-label-primary tracking-tight break-words mt-0.5">
                 Course Visibility & Selective Student Permissions
               </h2>
-              <p className="text-xs text-label-secondary mt-0.5">
+              <p className="text-[11px] sm:text-xs text-label-secondary mt-0.5 line-clamp-2 sm:line-clamp-none">
                 Toggle between public release and Coming Soon mode, or grant individual students early course access.
               </p>
             </div>
@@ -196,7 +196,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-surface-secondary text-label-secondary hover:text-label-primary hover:bg-surface border border-separator flex items-center justify-center transition cursor-pointer shrink-0"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-surface-secondary text-label-secondary hover:text-label-primary hover:bg-surface border border-separator flex items-center justify-center transition cursor-pointer shrink-0"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -204,25 +204,25 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
         </div>
 
         {/* Global Visibility Mode Switch Card */}
-        <div className="p-5 sm:p-6 pb-3 border-b border-separator/60 bg-surface-secondary/40">
-          <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-separator shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-start sm:items-center gap-3.5">
+        <div className="p-3 sm:p-6 pb-3 border-b border-separator/60 bg-surface-secondary/40">
+          <div className="p-3.5 sm:p-5 rounded-2xl bg-surface border border-separator shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
+            <div className="flex items-start sm:items-center gap-3">
               <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition ${
                   isPublic
                     ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
                     : 'bg-amber-500/10 text-amber-600 border border-amber-500/30'
                 }`}
               >
-                {isPublic ? <Globe className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+                {isPublic ? <Globe className="w-4 h-4 sm:w-5 sm:h-5" /> : <Lock className="w-4 h-4 sm:w-5 sm:h-5" />}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-label-primary">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h3 className="text-xs sm:text-sm font-bold text-label-primary">
                     {isPublic ? 'Public Course Release Active' : 'Courses Coming Soon Mode Active'}
                   </h3>
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold ${
                       isPublic
                         ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                         : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
@@ -231,7 +231,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
                     {isPublic ? 'Live for All Students' : 'Restricted / Coming Soon'}
                   </span>
                 </div>
-                <p className="text-xs text-label-secondary mt-0.5 max-w-xl">
+                <p className="text-[11px] sm:text-xs text-label-secondary mt-0.5 max-w-xl">
                   {isPublic
                     ? 'All enrolled students can view the curriculum, register, watch lectures, and solve quests.'
                     : `Courses are hidden behind a Coming Soon screen. Only ${totalAllowed} approved student(s) can view and register.`}
@@ -244,7 +244,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
               type="button"
               onClick={handleToggleVisibility}
               disabled={togglingVisibility}
-              className={`shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold transition shadow-sm cursor-pointer disabled:opacity-50 ${
+              className={`w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs font-semibold transition shadow-sm cursor-pointer disabled:opacity-50 ${
                 isPublic
                   ? 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
                   : 'bg-accent text-white hover:bg-accent-hover shadow-accent/20'
@@ -263,7 +263,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
         </div>
 
         {/* Toolbar: Search, Filter Tabs & Batch Actions */}
-        <div className="px-5 sm:px-6 py-3 border-b border-separator/60 flex flex-col md:flex-row items-center justify-between gap-3 bg-surface">
+        <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-separator/60 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 bg-surface">
           {/* Search Bar */}
           <div className="relative w-full md:max-w-xs">
             <Search className="w-3.5 h-3.5 text-label-tertiary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -271,13 +271,13 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search students by name, roll no, department..."
+              placeholder="Search students by name, roll no..."
               className="w-full pl-9 pr-3 py-1.5 rounded-full bg-surface-secondary border border-separator text-xs text-label-primary placeholder:text-label-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
             />
           </div>
 
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-surface-secondary border border-separator text-xs font-medium self-stretch sm:self-auto">
+          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-surface-secondary border border-separator text-xs font-medium overflow-x-auto no-scrollbar flex-nowrap w-full sm:w-auto shrink-0">
             <button
               type="button"
               onClick={() => handleTabChange('all')}
@@ -314,7 +314,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
           </div>
 
           {/* Batch Actions */}
-          <div className="flex items-center gap-2 self-end md:self-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
             <button
               type="button"
               onClick={() => handleBatchAction('allow_all')}
@@ -339,7 +339,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
         </div>
 
         {/* Student Access Directory Table Container */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 flex flex-col justify-between">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 flex flex-col justify-between">
           {loadingStudentAccess ? (
             <div className="py-20 flex flex-col items-center justify-center gap-3">
               <Loader2 className="w-7 h-7 text-accent animate-spin" />
@@ -363,8 +363,8 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
             </div>
           ) : (
             <div className="border border-separator/80 rounded-2xl overflow-hidden shadow-xs bg-surface flex flex-col">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[620px]">
                   <thead>
                     <tr className="border-b border-separator/70 bg-surface-secondary/60 text-[11px] font-bold text-label-secondary uppercase tracking-wider">
                       <th className="py-3 px-4">Student</th>
@@ -462,54 +462,61 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
               </div>
 
               {/* Enhanced Pagination Controls Bar */}
-              <div className="px-4 py-3 border-t border-separator/70 bg-surface-secondary/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-t border-separator/70 bg-surface-secondary/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                 {/* Left: Summary and Page Size */}
-                <div className="flex items-center gap-3">
-                  <span className="text-label-secondary">
+                <div className="flex flex-wrap items-center justify-between sm:justify-start w-full sm:w-auto gap-2.5">
+                  <span className="text-label-secondary text-[11px] sm:text-xs">
                     Showing <span className="font-semibold text-label-primary">{startItem}</span>–
                     <span className="font-semibold text-label-primary">{endItem}</span> of{' '}
-                    <span className="font-semibold text-label-primary">{totalItems}</span> students
+                    <span className="font-semibold text-label-primary">{totalItems}</span>
                   </span>
 
-                  <div className="flex items-center gap-1.5 pl-3 border-l border-separator/80">
+                  <div className="flex items-center gap-1.5 pl-2.5 sm:pl-3 border-l border-separator/80">
                     <span className="text-label-tertiary text-[11px]">Rows:</span>
                     <select
                       value={pageSize}
                       onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       className="px-2 py-1 rounded-lg bg-surface border border-separator text-label-primary text-xs focus:outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer transition shadow-2xs"
                     >
-                      <option value={10}>10 / page</option>
-                      <option value={25}>25 / page</option>
-                      <option value={50}>50 / page</option>
-                      <option value={100}>100 / page</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Right: Navigation Controls & Page Pill Buttons */}
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(1)}
-                    disabled={currentPage <= 1 || loadingStudentAccess}
-                    title="First page"
-                    className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface border border-separator disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                  >
-                    <ChevronsLeft className="w-4 h-4" />
-                  </button>
+                <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-1">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(1)}
+                      disabled={currentPage <= 1 || loadingStudentAccess}
+                      title="First page"
+                      className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface border border-separator disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                    >
+                      <ChevronsLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage <= 1 || loadingStudentAccess}
-                    title="Previous page"
-                    className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface border border-separator disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage <= 1 || loadingStudentAccess}
+                      title="Previous page"
+                      className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface border border-separator disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
 
-                  {/* Page Numbers */}
-                  <div className="flex items-center gap-1 px-1">
+                  {/* Compact Page Indicator on mobile */}
+                  <span className="sm:hidden text-[11px] font-mono text-label-secondary px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+
+                  {/* Full Page Numbers on desktop */}
+                  <div className="hidden sm:flex items-center gap-1 px-1">
                     {pageNumbers.map((p, idx) =>
                       typeof p === 'number' ? (
                         <button
@@ -533,25 +540,27 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage >= totalPages || loadingStudentAccess}
-                    title="Next page"
-                    className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface border border-separator disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage >= totalPages || loadingStudentAccess}
+                      title="Next page"
+                      className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface border border-separator disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(totalPages)}
-                    disabled={currentPage >= totalPages || loadingStudentAccess}
-                    title="Last page"
-                    className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface border border-separator disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                  >
-                    <ChevronsRight className="w-4 h-4" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={currentPage >= totalPages || loadingStudentAccess}
+                      title="Last page"
+                      className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface border border-separator disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                    >
+                      <ChevronsRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

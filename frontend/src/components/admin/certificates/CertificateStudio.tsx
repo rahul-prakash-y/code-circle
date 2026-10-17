@@ -214,11 +214,11 @@ export const CertificateStudio: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Navigation Sub-Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-2 rounded-2xl border border-separator shadow-sm">
-        <div className="flex items-center gap-1.5 p-1 bg-surface-raised rounded-xl border border-separator/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-2 rounded-2xl border border-separator shadow-sm">
+        <div className="flex items-center gap-1.5 p-1 bg-surface-raised rounded-xl border border-separator/60 overflow-x-auto no-scrollbar w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('designer')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
               activeTab === 'designer'
                 ? 'bg-primary text-white shadow-md shadow-primary/20'
                 : 'text-label-tertiary hover:text-label-primary'
@@ -229,7 +229,7 @@ export const CertificateStudio: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('issue')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
               activeTab === 'issue'
                 ? 'bg-primary text-white shadow-md shadow-primary/20'
                 : 'text-label-tertiary hover:text-label-primary'
@@ -240,7 +240,7 @@ export const CertificateStudio: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('ledger')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
               activeTab === 'ledger'
                 ? 'bg-primary text-white shadow-md shadow-primary/20'
                 : 'text-label-tertiary hover:text-label-primary'
@@ -256,11 +256,11 @@ export const CertificateStudio: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           {activeTab === 'designer' && (
             <button
               onClick={handleResetToNew}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 rounded-lg transition-colors border border-primary/20"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 rounded-lg transition-colors border border-primary/20 cursor-pointer"
             >
               <Plus size={14} />
               <span>New Template</span>
@@ -516,14 +516,15 @@ export const CertificateStudio: React.FC = () => {
             </div>
 
             {/* Visual Canvas Card */}
-            <div
-              className="w-full aspect-[1.414/1] rounded-2xl p-6 sm:p-10 flex flex-col justify-between shadow-2xl relative overflow-hidden transition-all duration-300 select-none border"
-              style={{
-                backgroundColor: currentTheme.bg,
-                borderColor: currentTheme.primary + '55',
-                color: currentTheme.text,
-              }}
-            >
+            <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+              <div
+                className="min-w-[560px] sm:min-w-0 w-full aspect-[1.414/1] rounded-2xl p-6 sm:p-10 flex flex-col justify-between shadow-2xl relative overflow-hidden transition-all duration-300 select-none border"
+                style={{
+                  backgroundColor: currentTheme.bg,
+                  borderColor: currentTheme.primary + '55',
+                  color: currentTheme.text,
+                }}
+              >
               {/* Decorative Corner Ornaments */}
               <div
                 className="absolute inset-3 sm:inset-5 border rounded-xl pointer-events-none"
@@ -698,15 +699,16 @@ export const CertificateStudio: React.FC = () => {
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* --- TAB 2: BULK ISSUER --- */}
       {activeTab === 'issue' && (
-        <div className="max-w-3xl mx-auto bg-surface p-8 rounded-3xl border border-separator shadow-sm space-y-6">
+        <div className="max-w-3xl mx-auto bg-surface p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-separator shadow-sm space-y-6">
           <div>
-            <h2 className="text-lg font-bold text-label-primary flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-label-primary flex items-center gap-2">
               <Send size={20} className="text-primary" />
               <span>Bulk Certificate Issuance Studio</span>
             </h2>
@@ -740,7 +742,7 @@ export const CertificateStudio: React.FC = () => {
               <label className="text-xs font-bold text-label-secondary uppercase tracking-wider">
                 2. Target Recipient Source
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setTargetType('EVENT')}
@@ -915,7 +917,7 @@ export const CertificateStudio: React.FC = () => {
 
       {/* --- TAB 3: REGISTRY & LEDGER --- */}
       {activeTab === 'ledger' && (
-        <div className="bg-surface rounded-2xl border border-separator shadow-sm overflow-hidden space-y-4 p-6">
+        <div className="bg-surface rounded-2xl border border-separator shadow-sm overflow-hidden space-y-4 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
@@ -927,8 +929,8 @@ export const CertificateStudio: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
                 <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
                 <input
                   type="text"
@@ -938,7 +940,7 @@ export const CertificateStudio: React.FC = () => {
                     fetchIssuedCertificates({ search: e.target.value, status: statusFilter });
                   }}
                   placeholder="Search recipient or ID..."
-                  className="pl-8 pr-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary w-48"
+                  className="pl-8 pr-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary w-full sm:w-48"
                 />
               </div>
 
@@ -948,7 +950,7 @@ export const CertificateStudio: React.FC = () => {
                   setStatusFilter(e.target.value);
                   fetchIssuedCertificates({ search: ledgerSearch, status: e.target.value });
                 }}
-                className="px-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none"
+                className="px-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none w-full sm:w-auto"
               >
                 <option value="">All Statuses</option>
                 <option value="ACTIVE">Active Only</option>
@@ -958,8 +960,8 @@ export const CertificateStudio: React.FC = () => {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto border border-separator rounded-xl">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto border border-separator rounded-xl custom-scrollbar">
+            <table className="w-full text-left text-xs min-w-[650px]">
               <thead className="bg-surface-raised border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Certificate ID</th>

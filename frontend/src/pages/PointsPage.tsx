@@ -218,27 +218,27 @@ export const PointsPage: React.FC = () => {
 
         {/* Admin View Mode Switcher */}
         {isAdmin && (
-          <div className="inline-flex p-1 rounded-xl bg-surface-secondary border border-separator shadow-sm self-start sm:self-auto">
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex p-1 rounded-xl bg-surface-secondary border border-separator shadow-sm shrink-0">
             <button
               onClick={() => setActiveTab('student')}
-              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 sm:px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer text-center ${
                 activeTab === 'student'
                   ? 'bg-surface text-label-primary shadow-sm border border-separator'
                   : 'text-label-secondary hover:text-label-primary'
               }`}
             >
-              My Points (Student View)
+              My Points
             </button>
             <button
               onClick={() => setActiveTab('admin')}
-              className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 sm:px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${
                 activeTab === 'admin'
                   ? 'bg-accent text-white shadow-sm'
                   : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               <ShieldCheck size={14} />
-              <span>Admin Points Console</span>
+              <span>Admin Console</span>
             </button>
           </div>
         )}
@@ -451,24 +451,24 @@ export const PointsPage: React.FC = () => {
               </div>
 
               {/* Search & Filter pills */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
+                <div className="relative w-full sm:w-56">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-secondary" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search activity..."
-                    className="input-field pl-9 pr-3 py-1.5 text-xs w-48 sm:w-56"
+                    className="input-field pl-9 pr-3 py-1.5 text-xs w-full"
                   />
                 </div>
 
-                <div className="flex items-center gap-1 bg-surface-secondary p-1 rounded-xl border border-separator overflow-x-auto">
+                <div className="flex items-center gap-1 bg-surface-secondary p-1 rounded-xl border border-separator overflow-x-auto no-scrollbar w-full sm:w-auto">
                   {['all', 'attendance', 'coding', 'contest', 'course', 'assessment', 'bonus'].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setCategoryFilter(cat)}
-                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg capitalize transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg capitalize transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                         categoryFilter === cat
                           ? 'bg-surface text-label-primary shadow-xs border border-separator'
                           : 'text-label-secondary hover:text-label-primary'
@@ -492,11 +492,11 @@ export const PointsPage: React.FC = () => {
               {filteredTransactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-surface-secondary/50 transition-colors"
+                  className="p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-surface-secondary/50 transition-colors"
                 >
-                  <div className="flex items-start gap-3.5 min-w-0">
+                  <div className="flex items-start gap-3 min-w-0">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 border mt-0.5 sm:mt-0 ${
                         tx.category === 'Attendance'
                           ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
                           : tx.category === 'Coding'
@@ -526,7 +526,7 @@ export const PointsPage: React.FC = () => {
                     </div>
 
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <h4 className="text-xs sm:text-sm font-bold text-label-primary truncate">{tx.title}</h4>
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-separator bg-surface-secondary text-label-secondary">
                           {tx.category === 'Attendance'
@@ -543,7 +543,7 @@ export const PointsPage: React.FC = () => {
                       </div>
 
                       {tx.description && (
-                        <p className="text-[11px] text-label-secondary mt-0.5 truncate">{tx.description}</p>
+                        <p className="text-[11px] text-label-secondary mt-0.5 break-words">{tx.description}</p>
                       )}
 
                       <p className="text-[10px] text-label-secondary font-mono mt-1">
@@ -553,7 +553,8 @@ export const PointsPage: React.FC = () => {
                   </div>
 
                   {/* Points Pill */}
-                  <div className="text-right shrink-0">
+                  <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-separator/40 shrink-0">
+                    <span className="sm:hidden text-[11px] text-label-tertiary font-medium">Earned</span>
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-mono font-bold border ${
                         tx.amount >= 0
@@ -660,53 +661,55 @@ export const PointsPage: React.FC = () => {
               </div>
 
               {/* Filters */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full sm:w-48">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-secondary" />
                   <input
                     type="text"
                     value={adminSearch}
                     onChange={(e) => setAdminSearch(e.target.value)}
                     placeholder="Search name, roll no..."
-                    className="input-field pl-9 pr-3 py-1.5 text-xs w-44 sm:w-52"
+                    className="input-field pl-9 pr-3 py-1.5 text-xs w-full"
                   />
                 </div>
 
-                <select
-                  value={deptFilter}
-                  onChange={(e) => setDeptFilter(e.target.value)}
-                  className="input-field py-1.5 px-3 text-xs"
-                >
-                  <option value="all">All Departments</option>
-                  <option value="CSE">CSE</option>
-                  <option value="IT">IT</option>
-                  <option value="AI&DS">AI & DS</option>
-                  <option value="ECE">ECE</option>
-                  <option value="EEE">EEE</option>
-                  <option value="MECH">MECH</option>
-                  <option value="CIVIL">CIVIL</option>
-                </select>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <select
+                    value={deptFilter}
+                    onChange={(e) => setDeptFilter(e.target.value)}
+                    className="input-field py-1.5 px-3 text-xs w-full sm:w-auto"
+                  >
+                    <option value="all">All Departments</option>
+                    <option value="CSE">CSE</option>
+                    <option value="IT">IT</option>
+                    <option value="AI&DS">AI & DS</option>
+                    <option value="ECE">ECE</option>
+                    <option value="EEE">EEE</option>
+                    <option value="MECH">MECH</option>
+                    <option value="CIVIL">CIVIL</option>
+                  </select>
 
-                <select
-                  value={yearFilter}
-                  onChange={(e) => setYearFilter(e.target.value)}
-                  className="input-field py-1.5 px-3 text-xs"
-                >
-                  <option value="all">All Years</option>
-                  <option value="1st Year">1st Year</option>
-                  <option value="2nd Year">2nd Year</option>
-                  <option value="3rd Year">3rd Year</option>
-                  <option value="4th Year">4th Year</option>
-                </select>
+                  <select
+                    value={yearFilter}
+                    onChange={(e) => setYearFilter(e.target.value)}
+                    className="input-field py-1.5 px-3 text-xs w-full sm:w-auto"
+                  >
+                    <option value="all">All Years</option>
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                  </select>
 
-                <select
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value as any)}
-                  className="input-field py-1.5 px-3 text-xs"
-                >
-                  <option value="desc">Highest Points First</option>
-                  <option value="asc">Lowest Points First</option>
-                </select>
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as any)}
+                    className="input-field py-1.5 px-3 text-xs col-span-2 sm:col-auto w-full sm:w-auto"
+                  >
+                    <option value="desc">Highest Points First</option>
+                    <option value="asc">Lowest Points First</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -737,37 +740,37 @@ export const PointsPage: React.FC = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-bold text-label-primary">{s.name}</p>
-                            <p className="text-[11px] text-label-secondary font-mono">{s.rollNo}</p>
+                            <p className="font-bold text-label-primary whitespace-nowrap">{s.name}</p>
+                            <p className="text-[11px] text-label-secondary font-mono whitespace-nowrap">{s.rollNo}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <span className="font-semibold text-label-primary">{s.department || 'General'}</span>
-                        <span className="text-label-secondary block text-[11px]">{s.year || '3rd Year'}</span>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <span className="font-semibold text-label-primary whitespace-nowrap">{s.department || 'General'}</span>
+                        <span className="text-label-secondary block text-[11px] whitespace-nowrap">{s.year || '3rd Year'}</span>
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-5 py-3.5 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                           <Clock size={12} />
                           {s.totalClubHours || 0} hr{s.totalClubHours === 1 ? '' : 's'}
                         </span>
-                        <span className="text-[10px] text-label-secondary block mt-0.5">
+                        <span className="text-[10px] text-label-secondary block mt-0.5 whitespace-nowrap">
                           {s.sessionsCount || 0} session(s)
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                      <td className="px-5 py-3.5 font-mono font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                         +{s.attendancePoints || 0} pts
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-label-secondary">
+                      <td className="px-5 py-3.5 font-mono text-label-secondary whitespace-nowrap">
                         +{s.otherPoints || 0} pts
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-5 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-black text-sm text-label-primary">
                             {(s.totalPoints || 0).toLocaleString()}
                           </span>
                           <span
-                            className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border"
+                            className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border whitespace-nowrap"
                             style={{
                               borderColor: s.tier?.color || '#0071E3',
                               color: s.tier?.color || '#0071E3',
@@ -777,7 +780,7 @@ export const PointsPage: React.FC = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 text-right">
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleOpenAudit(s._id, s)}
@@ -816,7 +819,7 @@ export const PointsPage: React.FC = () => {
       {/* ========================================================================= */}
       <AnimatePresence>
         {isAuditModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -829,28 +832,28 @@ export const PointsPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-3xl max-h-[90vh] flex flex-col surface rounded-[24px] border border-separator shadow-2xl overflow-hidden z-10"
+              className="relative w-full max-w-3xl max-h-[92vh] flex flex-col surface rounded-2xl sm:rounded-[24px] border border-separator shadow-2xl overflow-hidden z-10"
             >
               {/* Modal Header */}
-              <div className="p-5 sm:p-6 border-b border-separator flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-label-primary">
+              <div className="p-4 sm:p-6 border-b border-separator flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-label-primary truncate">
                     Student Points Audit & Ledger
                   </h3>
-                  <p className="text-xs text-label-secondary">
+                  <p className="text-xs text-label-secondary truncate">
                     {selectedAudit?.student?.name || targetStudent?.name} ({selectedAudit?.student?.rollNo || targetStudent?.rollNo})
                   </p>
                 </div>
                 <button
                   onClick={handleCloseAudit}
-                  className="w-8 h-8 rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer shrink-0"
                 >
                   <X size={16} />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto space-y-6 flex-1">
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-5 sm:space-y-6 flex-1">
                 {loadingAudit ? (
                   <div className="py-20 flex flex-col items-center justify-center gap-3">
                     <Loader2 size={32} className="animate-spin text-accent" />
@@ -859,29 +862,29 @@ export const PointsPage: React.FC = () => {
                 ) : selectedAudit ? (
                   <>
                     {/* Macro Stats Bar */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="p-3.5 rounded-xl bg-surface-secondary border border-separator">
-                        <span className="text-[11px] text-label-secondary font-semibold">Total Points</span>
-                        <p className="text-xl font-bold font-mono text-label-primary">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                      <div className="p-3 sm:p-3.5 rounded-xl bg-surface-secondary border border-separator">
+                        <span className="text-[10px] sm:text-[11px] text-label-secondary font-semibold">Total Points</span>
+                        <p className="text-lg sm:text-xl font-bold font-mono text-label-primary">
                           {selectedAudit.totalPoints.toLocaleString()} PTS
                         </p>
                       </div>
-                      <div className="p-3.5 rounded-xl bg-surface-secondary border border-separator">
-                        <span className="text-[11px] text-label-secondary font-semibold">Club Rank</span>
-                        <p className="text-xl font-bold font-mono text-label-primary">
+                      <div className="p-3 sm:p-3.5 rounded-xl bg-surface-secondary border border-separator">
+                        <span className="text-[10px] sm:text-[11px] text-label-secondary font-semibold">Club Rank</span>
+                        <p className="text-lg sm:text-xl font-bold font-mono text-label-primary">
                           #{selectedAudit.rank} of {selectedAudit.totalStudents}
                         </p>
                       </div>
-                      <div className="p-3.5 rounded-xl bg-surface-secondary border border-separator">
-                        <span className="text-[11px] text-label-secondary font-semibold">Club Hours Logged</span>
-                        <p className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400">
+                      <div className="p-3 sm:p-3.5 rounded-xl bg-surface-secondary border border-separator">
+                        <span className="text-[10px] sm:text-[11px] text-label-secondary font-semibold">Club Hours Logged</span>
+                        <p className="text-lg sm:text-xl font-bold font-mono text-blue-600 dark:text-blue-400">
                           {selectedAudit.summary?.attendance?.totalClubHours || 0} hrs
                         </p>
                       </div>
-                      <div className="p-3.5 rounded-xl bg-surface-secondary border border-separator">
-                        <span className="text-[11px] text-label-secondary font-semibold">Tier</span>
+                      <div className="p-3 sm:p-3.5 rounded-xl bg-surface-secondary border border-separator">
+                        <span className="text-[10px] sm:text-[11px] text-label-secondary font-semibold">Tier</span>
                         <p
-                          className="text-xl font-bold uppercase"
+                          className="text-lg sm:text-xl font-bold uppercase"
                           style={{ color: selectedAudit.tier?.color || '#0071E3' }}
                         >
                           {selectedAudit.tier?.name || 'Bronze'}
@@ -890,27 +893,27 @@ export const PointsPage: React.FC = () => {
                     </div>
 
                     {/* Breakdown Pillars */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                      <div className="p-3 rounded-xl border border-separator bg-surface">
-                        <span className="text-label-secondary block">Club Hours Pts:</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
+                      <div className="p-2.5 sm:p-3 rounded-xl border border-separator bg-surface">
+                        <span className="text-label-secondary block text-[11px]">Club Hours Pts:</span>
                         <span className="font-bold text-emerald-600 font-mono">
                           +{selectedAudit.summary?.attendance?.points || 0} pts
                         </span>
                       </div>
-                      <div className="p-3 rounded-xl border border-separator bg-surface">
-                        <span className="text-label-secondary block">Coding Challenges:</span>
+                      <div className="p-2.5 sm:p-3 rounded-xl border border-separator bg-surface">
+                        <span className="text-label-secondary block text-[11px]">Coding Challenges:</span>
                         <span className="font-bold text-purple-600 font-mono">
                           +{selectedAudit.summary?.coding?.points || 0} pts
                         </span>
                       </div>
-                      <div className="p-3 rounded-xl border border-separator bg-surface">
-                        <span className="text-label-secondary block">Contests:</span>
+                      <div className="p-2.5 sm:p-3 rounded-xl border border-separator bg-surface">
+                        <span className="text-label-secondary block text-[11px]">Contests:</span>
                         <span className="font-bold text-amber-600 font-mono">
                           +{selectedAudit.summary?.contests?.points || 0} pts
                         </span>
                       </div>
-                      <div className="p-3 rounded-xl border border-separator bg-surface">
-                        <span className="text-label-secondary block">Course / Bonus:</span>
+                      <div className="p-2.5 sm:p-3 rounded-xl border border-separator bg-surface">
+                        <span className="text-label-secondary block text-[11px]">Course / Bonus:</span>
                         <span className="font-bold text-blue-600 font-mono">
                           +{(selectedAudit.summary?.courses?.points || 0) + (selectedAudit.summary?.bonus?.points || 0)} pts
                         </span>
@@ -919,15 +922,15 @@ export const PointsPage: React.FC = () => {
 
                     {/* Chronological Activity Ledger ("How they earned") */}
                     <div>
-                      <h4 className="text-sm font-bold text-label-primary mb-3">
+                      <h4 className="text-xs sm:text-sm font-bold text-label-primary mb-2.5">
                         Activity History ({selectedAudit.transactions.length} records)
                       </h4>
 
                       <div className="border border-separator rounded-xl overflow-hidden divide-y divide-separator">
                         {selectedAudit.transactions.map((tx) => (
-                          <div key={tx.id} className="p-3.5 flex items-center justify-between gap-3 text-xs">
+                          <div key={tx.id} className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 text-xs">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                                 <span className="font-bold text-label-primary truncate">{tx.title}</span>
                                 <span className="text-[10px] px-2 py-0.5 rounded-full border border-separator bg-surface-secondary text-label-secondary">
                                   {tx.category}
@@ -939,22 +942,24 @@ export const PointsPage: React.FC = () => {
                                 )}
                               </div>
                               {tx.description && (
-                                <p className="text-[11px] text-label-secondary mt-0.5">{tx.description}</p>
+                                <p className="text-[11px] text-label-secondary mt-0.5 break-words">{tx.description}</p>
                               )}
                               <p className="text-[10px] text-label-secondary font-mono mt-0.5">
                                 {tx.timestamp ? formatISTDateTime(tx.timestamp) : '—'}
                               </p>
                             </div>
 
-                            <span
-                              className={`shrink-0 font-mono font-bold px-2.5 py-1 rounded-full text-xs ${
-                                tx.amount >= 0
-                                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                                  : 'bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400'
-                              }`}
-                            >
-                              {tx.amount >= 0 ? `+${tx.amount}` : tx.amount} PTS
-                            </span>
+                            <div className="flex items-center justify-end shrink-0">
+                              <span
+                                className={`font-mono font-bold px-2.5 py-1 rounded-full text-xs ${
+                                  tx.amount >= 0
+                                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400'
+                                }`}
+                              >
+                                {tx.amount >= 0 ? `+${tx.amount}` : tx.amount} PTS
+                              </span>
+                            </div>
                           </div>
                         ))}
 
@@ -972,21 +977,21 @@ export const PointsPage: React.FC = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 border-t border-separator bg-surface-secondary/40 flex justify-end gap-3">
+              <div className="p-3.5 sm:p-4 border-t border-separator bg-surface-secondary/40 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
                 {targetStudent && (
                   <button
                     onClick={() => {
                       handleCloseAudit();
                       handleOpenAward(targetStudent);
                     }}
-                    className="btn-primary py-2 px-4 text-xs font-semibold cursor-pointer"
+                    className="btn-primary py-2 px-4 text-xs font-semibold cursor-pointer w-full sm:w-auto text-center"
                   >
                     Award Merit Points
                   </button>
                 )}
                 <button
                   onClick={handleCloseAudit}
-                  className="btn-secondary py-2 px-4 text-xs font-semibold cursor-pointer"
+                  className="btn-secondary py-2 px-4 text-xs font-semibold cursor-pointer w-full sm:w-auto text-center"
                 >
                   Close
                 </button>
@@ -1001,7 +1006,7 @@ export const PointsPage: React.FC = () => {
       {/* ========================================================================= */}
       <AnimatePresence>
         {isAwardModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1014,24 +1019,24 @@ export const PointsPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-md surface rounded-[24px] border border-separator shadow-2xl overflow-hidden z-10"
+              className="relative w-full max-w-md max-h-[92vh] flex flex-col surface rounded-2xl sm:rounded-[24px] border border-separator shadow-2xl overflow-hidden z-10"
             >
-              <div className="p-5 border-b border-separator flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-label-primary">Grant Merit Points</h3>
-                  <p className="text-xs text-label-secondary">
+              <div className="p-4 sm:p-5 border-b border-separator flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-label-primary truncate">Grant Merit Points</h3>
+                  <p className="text-xs text-label-secondary truncate">
                     Award points directly to {targetStudent?.name} ({targetStudent?.rollNo})
                   </p>
                 </div>
                 <button
                   onClick={() => setIsAwardModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer shrink-0"
                 >
                   <X size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleAwardSubmit} className="p-6 space-y-4 text-xs">
+              <form onSubmit={handleAwardSubmit} className="p-4 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
                 <div>
                   <label className="block font-semibold text-label-primary mb-1">Points Amount</label>
                   <input
@@ -1088,18 +1093,18 @@ export const PointsPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="pt-2 flex justify-end gap-3">
+                <div className="pt-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setIsAwardModalOpen(false)}
-                    className="btn-secondary py-2 px-4 font-semibold cursor-pointer"
+                    className="btn-secondary py-2 px-4 font-semibold cursor-pointer w-full sm:w-auto text-center"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingAward}
-                    className="btn-primary py-2 px-5 font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="btn-primary py-2 px-5 font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                   >
                     {isSubmittingAward ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                     <span>Confirm Award</span>

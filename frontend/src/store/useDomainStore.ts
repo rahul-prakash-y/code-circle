@@ -36,6 +36,7 @@ interface DomainState {
   isEarlyAccess: boolean;
 
   // Actions
+  setCurrentDomain: (domain: IDomain | null) => void;
   fetchDomains: () => Promise<void>;
   fetchDomainLevels: (domainId: string) => Promise<void>;
   setActiveLevel: (level: ILevel | null) => void;
@@ -110,6 +111,10 @@ export const useDomainStore = create<DomainState>((set, get) => ({
   isComingSoon: false,
   hasCourseAccess: true,
   isEarlyAccess: false,
+
+  setCurrentDomain: (domain: IDomain | null) => {
+    set({ currentDomain: domain });
+  },
 
   fetchDomains: async () => {
     try {

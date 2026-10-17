@@ -35,36 +35,36 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
   const userRefRegex = /(user|student|createdby|updatedby|author|instructor|unblockedby|member|mentor)/i;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface rounded-3xl border border-separator max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+        className="bg-surface rounded-2xl sm:rounded-3xl border border-separator max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-separator px-6 py-4 bg-surface-secondary/40">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-separator px-4 sm:px-6 py-3.5 sm:py-4 bg-surface-secondary/40 gap-3">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-surface border border-separator text-label-secondary">
                 {collectionName}
               </span>
-              <span className="text-xs font-mono text-label-secondary">
+              <span className="text-xs font-mono text-label-secondary truncate">
                 _id: <span className="font-bold text-primary">{doc._id}</span>
               </span>
             </div>
-            <h3 className="text-base font-bold text-label-primary mt-1 truncate max-w-md">
+            <h3 className="text-sm sm:text-base font-bold text-label-primary mt-1 truncate max-w-md">
               {doc.title || doc.name || doc.email || doc.username || `Document Details`}
             </h3>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
             {/* Tab switch */}
             <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-xl">
               <button
                 type="button"
                 onClick={() => setActiveTab('details')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'details'
                     ? 'bg-primary text-white shadow-xs'
                     : 'text-label-secondary hover:text-label-primary'
@@ -76,7 +76,7 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('json')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'json'
                     ? 'bg-primary text-white shadow-xs'
                     : 'text-label-secondary hover:text-label-primary'
@@ -89,7 +89,7 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 hover:bg-surface-secondary rounded-xl text-label-tertiary hover:text-label-primary transition-colors"
+              className="p-1.5 hover:bg-surface-secondary rounded-xl text-label-tertiary hover:text-label-primary transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -97,12 +97,12 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6">
           {activeTab === 'json' ? (
             <div className="relative">
               <button
                 onClick={handleCopyJson}
-                className="absolute top-3 right-3 px-2.5 py-1.5 bg-surface rounded-xl border border-separator text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1.5 shadow-xs"
+                className="absolute top-3 right-3 px-2.5 py-1.5 bg-surface rounded-xl border border-separator text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
               >
                 {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                 <span>{copied ? 'Copied!' : 'Copy JSON'}</span>
@@ -112,7 +112,7 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
               </pre>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               {Object.entries(doc).map(([key, val]) => {
                 const isUserField =
                   userRefRegex.test(key) ||
@@ -122,13 +122,13 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
                 return (
                   <div
                     key={key}
-                    className="p-3 bg-surface-secondary/50 rounded-2xl border border-separator/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                    className="p-3 bg-surface-secondary/50 rounded-2xl border border-separator/70 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2"
                   >
-                    <span className="text-xs font-bold text-label-secondary font-mono shrink-0 min-w-[140px]">
+                    <span className="text-xs font-bold text-label-secondary font-mono shrink-0 sm:min-w-[140px]">
                       {key}
                     </span>
 
-                    <div className="flex-1 text-right sm:text-right text-xs">
+                    <div className="flex-1 text-left sm:text-right text-xs">
                       {isUserField && val ? (
                         <div className="flex sm:justify-end">
                           <UserBadge
@@ -180,23 +180,23 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-separator px-6 py-4 bg-surface-secondary/40">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between border-t border-separator px-4 sm:px-6 py-3.5 sm:py-4 bg-surface-secondary/40 gap-2.5">
           <button
             onClick={handleCopyJson}
-            className="flex items-center gap-1.5 text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors"
+            className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors cursor-pointer py-1"
           >
             {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
             <span>{copied ? 'JSON Copied' : 'Copy Full Document'}</span>
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {onEdit && (
               <button
                 onClick={() => {
                   onClose();
                   onEdit();
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all cursor-pointer text-center"
               >
                 <Edit2 size={13} />
                 <span>Edit Document</span>
@@ -204,7 +204,7 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-surface-secondary text-label-primary text-xs font-bold rounded-xl border border-separator hover:bg-surface transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2 bg-surface-secondary text-label-primary text-xs font-bold rounded-xl border border-separator hover:bg-surface transition-colors cursor-pointer text-center"
             >
               Close
             </button>

@@ -95,22 +95,22 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-60 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-separator rounded-3xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden text-label-primary"
+          className="bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden text-label-primary"
         >
           {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-separator bg-surface-secondary flex items-start sm:items-center justify-between gap-3">
+          <div className="p-3.5 sm:p-6 border-b border-separator bg-surface-secondary flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                <FileCode2 size={22} />
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                <FileCode2 size={20} className="sm:w-[22px] sm:h-[22px]" />
               </div>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-black text-label-primary tracking-tight truncate">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h3 className="text-sm sm:text-lg font-black text-label-primary tracking-tight truncate">
                     {isAdminView ? `${studentName}'s Submission` : 'Your Contest Submission'}
                   </h3>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
@@ -128,12 +128,12 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 self-end sm:self-center flex-wrap">
               {isAdminView && onApproveReentry && (
                 <button
                   type="button"
                   onClick={() => onApproveReentry(submission)}
-                  className="px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500/20 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500/20 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                   title="Approve or grant re-entry"
                 >
                   <UserCheck size={13} />
@@ -154,7 +154,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                 <button
                   type="button"
                   onClick={() => onAllocatePoints(submission)}
-                  className="px-3 py-1.5 bg-primary text-white hover:brightness-110 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-primary/20 cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 bg-primary text-white hover:brightness-110 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-primary/20 cursor-pointer"
                 >
                   <Zap size={13} className="fill-current" />
                   <span className="hidden sm:inline">Allocate Points</span>
@@ -162,7 +162,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
               )}
               <button
                 onClick={onClose}
-                className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -224,12 +224,12 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
           </div>
 
           {/* Navigation Tabs */}
-          <div className="px-4 sm:px-6 pt-3 border-b border-separator flex items-center justify-between gap-2 bg-surface-secondary/40">
-            <div className="flex items-center gap-2">
+          <div className="px-4 sm:px-6 pt-3 border-b border-separator flex items-center justify-between gap-2 bg-surface-secondary/40 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-2 min-w-max pb-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('mcq')}
-                className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'mcq'
                     ? 'border-primary text-primary'
                     : 'border-transparent text-label-secondary hover:text-label-primary'
@@ -245,7 +245,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
               <button
                 type="button"
                 onClick={() => setActiveTab('coding')}
-                className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'coding'
                     ? 'border-primary text-primary'
                     : 'border-transparent text-label-secondary hover:text-label-primary'
@@ -261,7 +261,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
               <button
                 type="button"
                 onClick={() => setActiveTab('summary')}
-                className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'summary'
                     ? 'border-primary text-primary'
                     : 'border-transparent text-label-secondary hover:text-label-primary'
@@ -279,15 +279,15 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
             {activeTab === 'mcq' && (
               <div className="space-y-4">
                 {/* MCQ Filters Bar */}
-                <div className="flex items-center justify-between gap-3 bg-surface-secondary p-2 rounded-2xl border border-separator text-xs">
-                  <span className="text-label-secondary font-medium px-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-surface-secondary p-2.5 rounded-2xl border border-separator text-xs">
+                  <span className="text-label-secondary font-medium px-1 sm:px-2 text-[11px] sm:text-xs">
                     Showing {filteredMcqs.length} of {mcqTotalCount} questions
                   </span>
-                  <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-separator text-[11px]">
+                  <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-separator text-[11px] overflow-x-auto no-scrollbar">
                     <button
                       type="button"
                       onClick={() => setMcqFilter('all')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap shrink-0 ${
                         mcqFilter === 'all'
                           ? 'bg-primary text-white shadow-xs'
                           : 'text-label-secondary hover:text-label-primary'
@@ -298,7 +298,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                     <button
                       type="button"
                       onClick={() => setMcqFilter('correct')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap shrink-0 ${
                         mcqFilter === 'correct'
                           ? 'bg-emerald-600 text-white shadow-xs'
                           : 'text-label-secondary hover:text-label-primary'
@@ -309,7 +309,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                     <button
                       type="button"
                       onClick={() => setMcqFilter('incorrect')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap shrink-0 ${
                         mcqFilter === 'incorrect'
                           ? 'bg-rose-600 text-white shadow-xs'
                           : 'text-label-secondary hover:text-label-primary'
@@ -684,13 +684,13 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-separator bg-surface-secondary flex items-center justify-between text-xs">
-            <span className="text-label-tertiary font-medium">
+          <div className="p-3.5 sm:p-4 border-t border-separator bg-surface-secondary flex items-center justify-between text-xs gap-2">
+            <span className="text-label-tertiary font-medium text-[11px] sm:text-xs truncate">
               Contest Review Engine • Code Circle
             </span>
             <button
               onClick={onClose}
-              className="px-5 py-2 bg-surface border border-separator hover:bg-surface-secondary rounded-xl font-bold text-label-primary transition-colors cursor-pointer"
+              className="px-4 sm:px-5 py-2 bg-surface border border-separator hover:bg-surface-secondary rounded-xl font-bold text-label-primary transition-colors cursor-pointer shrink-0"
             >
               Close
             </button>

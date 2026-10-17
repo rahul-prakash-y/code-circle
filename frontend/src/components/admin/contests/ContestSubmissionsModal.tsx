@@ -118,38 +118,38 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-separator rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+          className="bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden"
         >
           {/* Header */}
-          <div className="p-6 border-b border-separator flex items-center justify-between bg-surface-secondary">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
+          <div className="p-4 sm:p-6 border-b border-separator flex items-start sm:items-center justify-between gap-3 bg-surface-secondary">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                 <Sliders size={20} />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-extrabold text-label-primary tracking-tight">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-extrabold text-label-primary tracking-tight break-words">
                     Submissions & Student Re-entry
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
                     {contest.pointAllocationMode || 'AUTOMATIC'} MODE
                   </span>
                 </div>
-                <p className="text-xs text-label-tertiary">
+                <p className="text-[11px] sm:text-xs text-label-tertiary truncate max-w-xl">
                   {contest.title} • Review student submissions, evaluate code, approve re-entry, or delete entries
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               <TutorialButton tutorialId="contests" variant="icon" />
               <button
                 onClick={onClose}
-                className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -157,10 +157,10 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
           </div>
 
           {/* Action Toolbar */}
-          <div className="p-4 border-b border-separator bg-surface-secondary/50 flex flex-wrap items-center justify-between gap-4">
+          <div className="p-3 sm:p-4 border-b border-separator bg-surface-secondary/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search & Filter */}
-            <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-              <div className="relative flex-1 max-w-xs">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
+              <div className="relative w-full sm:max-w-xs">
                 <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
                 <input
                   type="text"
@@ -172,7 +172,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
               </div>
 
               {/* Status Pills */}
-              <div className="flex items-center bg-surface p-1 rounded-xl border border-separator text-[11px] overflow-x-auto">
+              <div className="flex items-center bg-surface p-1 rounded-xl border border-separator text-[11px] overflow-x-auto no-scrollbar flex-nowrap shrink-0">
                 {(['ALL', 'REENTRY_REQUESTS', 'ALLOCATED', 'PENDING'] as const).map((mode) => (
                   <button
                     key={mode}
@@ -209,7 +209,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
             </div>
 
             {/* Bulk Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleBulkMatchScores}
@@ -242,7 +242,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
           </div>
 
           {/* Submissions Table */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6">
             {loading ? (
               <div className="py-20 text-center space-y-3">
                 <RefreshCw size={24} className="animate-spin text-primary mx-auto" />
@@ -258,17 +258,18 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
               </div>
             ) : (
               <div className="border border-separator rounded-2xl overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-3 px-4">Student</th>
-                      <th className="py-3 px-4 text-center">Score Earned</th>
-                      <th className="py-3 px-4 text-center">MCQ Breakdown</th>
-                      <th className="py-3 px-4 text-center">Code Solutions</th>
-                      <th className="py-3 px-4 text-center">Awarded Points</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-xs min-w-[720px]">
+                    <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
+                      <tr>
+                        <th className="py-3 px-4">Student</th>
+                        <th className="py-3 px-4 text-center">Score Earned</th>
+                        <th className="py-3 px-4 text-center">MCQ Breakdown</th>
+                        <th className="py-3 px-4 text-center">Code Solutions</th>
+                        <th className="py-3 px-4 text-center">Awarded Points</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
                   <tbody className="divide-y divide-separator text-label-primary font-medium">
                     {filtered.map((s) => {
                       const mcqCorrect = (s.mcqAnswers || []).filter((a: any) => a.isCorrect).length;
@@ -465,6 +466,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>
