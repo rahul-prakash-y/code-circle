@@ -304,7 +304,7 @@ export class AttendanceService {
       let recordFilter: any = { user: studentId };
 
       if (search && search.trim()) {
-        const term = search.trim();
+        const term = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const searchRegex = new RegExp(term, 'i');
         const matchingSessions = await AttendanceSession.find({
           sessionName: searchRegex,
@@ -361,7 +361,7 @@ export class AttendanceService {
           sessionName: r.session?.sessionName || 'General Session',
           otp: r.session?.otp,
           event: r.session?.event || null,
-          pointsAwarded: r.pointsAwarded ?? r.session?.totalPoints ?? 0,
+          pointsAwarded: r.pointsAwarded || r.session?.totalPoints || 0,
           classHours: r.session?.classHours || [],
         })),
       };
@@ -393,7 +393,7 @@ export class AttendanceService {
 
       // If search is provided, find user IDs matching term or session names matching term
       if (search && search.trim()) {
-        const term = search.trim();
+        const term = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const searchRegex = new RegExp(term, 'i');
         const matchingUsers = await User.find({
           $or: [
@@ -440,7 +440,7 @@ export class AttendanceService {
           timestamp: r.timestamp,
           user: r.user,
           session: r.session,
-          pointsAwarded: r.pointsAwarded ?? r.session?.totalPoints ?? 0,
+          pointsAwarded: r.pointsAwarded || r.session?.totalPoints || 0,
           classHours: r.session?.classHours || [],
         })),
       };
@@ -479,7 +479,7 @@ export class AttendanceService {
         sessionName: r.session?.sessionName,
         session: r.session,
         event: r.session?.event,
-        pointsAwarded: r.pointsAwarded ?? r.session?.totalPoints ?? 0,
+        pointsAwarded: r.pointsAwarded || r.session?.totalPoints || 0,
         classHours: r.session?.classHours || [],
       })),
     };
