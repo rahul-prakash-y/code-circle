@@ -64,6 +64,84 @@ const deriveStudentYear = (user: any): string => {
   return '1st Year';
 };
 
+const DEPT_MAP: Record<string, string> = {
+  UCS: 'CSE',
+  UIT: 'IT',
+  UAD: 'AIDS',
+  UAL: 'AIML',
+  UEC: 'ECE',
+  UEI: 'EIE',
+  UEE: 'EEE',
+  UCE: 'CIVIL',
+  UME: 'MECH',
+  UBT: 'BIOTECH',
+  UFT: 'FOOD TECH',
+
+  CS: 'CSE',
+  IT: 'IT',
+  AD: 'AIDS',
+  AL: 'AIML',
+  EC: 'ECE',
+  EI: 'EIE',
+  EE: 'EEE',
+  CE: 'CIVIL',
+  ME: 'MECH',
+  BT: 'BIOTECH',
+  FT: 'FOOD TECH',
+};
+
+const deriveStudentDepartment = (user: any): string => {
+  if (!user) return 'CSE';
+
+  const roll = String(user.rollNo || '').toUpperCase().trim();
+  const email = String(user.email || '').toLowerCase().trim();
+
+  // 1. BIT Roll format with 3-letter UG code: e.g. 2026UAD1214 -> AIDS, 2026UCS1001 -> CSE
+  const bitMatch = roll.match(/(U[A-Z]{2})/);
+  if (bitMatch && DEPT_MAP[bitMatch[1]]) {
+    return DEPT_MAP[bitMatch[1]];
+  }
+
+  // 2. Anna University format: 7376YY(D)XX... e.g. 7376231CS272 -> CS -> CSE
+  const auMatch = roll.match(/7376\d{2,3}([A-Z]{2})/);
+  if (auMatch && DEPT_MAP[auMatch[1]]) {
+    return DEPT_MAP[auMatch[1]];
+  }
+
+  // 3. 2-digit roll format: e.g. 23CS012, 241CS222, 26AD105
+  const rollCodeMatch = roll.match(/^\d{2,3}([A-Z]{2})/);
+  if (rollCodeMatch && DEPT_MAP[rollCodeMatch[1]]) {
+    return DEPT_MAP[rollCodeMatch[1]];
+  }
+
+  // 4. Institutional email: e.g. name.ad26@bitsathy.ac.in, bhavana.cs22@bitsathy.ac.in
+  const emailMatch = email.match(/\.([a-z]{2,3})\d{2}@bitsathy\.ac\.in/);
+  if (emailMatch) {
+    const code = emailMatch[1].toUpperCase();
+    if (DEPT_MAP[code]) return DEPT_MAP[code];
+  }
+
+  // 5. Normalization of existing user.department string
+  if (user.department) {
+    const d = String(user.department).toUpperCase().trim();
+    if (DEPT_MAP[d]) return DEPT_MAP[d];
+    if (d.includes('COMPUTER') || d === 'CSE') return 'CSE';
+    if (d.includes('INFORMATION') || d === 'IT') return 'IT';
+    if (d.includes('DATA SCIENCE') || d.includes('AIDS') || d.includes('AI & DS') || d.includes('AI&DS')) return 'AIDS';
+    if (d.includes('MACHINE LEARNING') || d.includes('AIML')) return 'AIML';
+    if (d.includes('COMMUNICATION') || d === 'ECE') return 'ECE';
+    if (d.includes('INSTRUMENTATION') || d === 'EIE') return 'EIE';
+    if (d.includes('ELECTRICAL') || d === 'EEE') return 'EEE';
+    if (d.includes('CIVIL') || d === 'UCE') return 'CIVIL';
+    if (d.includes('MECH') || d === 'UME') return 'MECH';
+    if (d.includes('BIOTECH') || d === 'UBT') return 'BIOTECH';
+    if (d.includes('FOOD') || d === 'UFT') return 'FOOD TECH';
+    return String(user.department).trim();
+  }
+
+  return 'CSE';
+};
+
 const syncCollegeAndYear = async () => {
   try {
     const mongoUri = process.env.MONGO_URI;
@@ -83,8 +161,9 @@ const syncCollegeAndYear = async () => {
     for (const u of users) {
       const derivedCollege = u.college || 'BIT';
       const derivedYear = deriveStudentYear(u);
+      const derivedDepartment = deriveStudentDepartment(u);
 
-      if (u.college !== derivedCollege || u.year !== derivedYear) {
+      if (u.college !== derivedCollege || u.year !== derivedYear || u.department !== derivedDepartment) {
         bulkOps.push({
           updateOne: {
             filter: { _id: u._id },
@@ -92,6 +171,7 @@ const syncCollegeAndYear = async () => {
               $set: {
                 college: derivedCollege,
                 year: derivedYear,
+                department: derivedDepartment,
               },
             },
           },
@@ -102,16 +182,16 @@ const syncCollegeAndYear = async () => {
 
     if (bulkOps.length > 0) {
       await User.bulkWrite(bulkOps);
-      console.log(`[Sync] Successfully updated ${updatedCount} users with college: 'BIT' and derived year!`);
+      console.log(`[Sync] Successfully updated ${updatedCount} users with college, year, and department!`);
     } else {
-      console.log('[Sync] All users already have college and year populated.');
+      console.log('[Sync] All users already have college, year, and department up to date.');
     }
 
     // Sample check
-    const sample = await User.find({ role: 'Student' }).limit(3).lean();
+    const sample = await User.find({ role: 'Student' }).limit(5).lean();
     console.log('[Sync] Sample updated students:');
     sample.forEach((s: any) => {
-      console.log(` - ${s.name} (${s.rollNo}): College = ${s.college}, Year = ${s.year}`);
+      console.log(` - ${s.name} (${s.rollNo}): College = ${s.college}, Year = ${s.year}, Dept = ${s.department}`);
     });
 
     await mongoose.disconnect();
@@ -123,3 +203,4 @@ const syncCollegeAndYear = async () => {
 };
 
 syncCollegeAndYear();
+

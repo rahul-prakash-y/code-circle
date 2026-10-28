@@ -64,3 +64,85 @@ export const getStudentYear = (user: any): string => {
 
   return '1st Year';
 };
+
+// Department mappings defined by institution
+export const DEPT_MAP: Record<string, string> = {
+  // BIT 3-letter UG codes specified by user
+  UCS: 'CSE',
+  UIT: 'IT',
+  UAD: 'AIDS',
+  UAL: 'AIML',
+  UEC: 'ECE',
+  UEI: 'EIE',
+  UEE: 'EEE',
+  UCE: 'CIVIL',
+  UME: 'MECH',
+  UBT: 'BIOTECH',
+  UFT: 'FOOD TECH',
+
+  // 2-letter standard department codes (e.g. from Anna University register or email)
+  CS: 'CSE',
+  IT: 'IT',
+  AD: 'AIDS',
+  AL: 'AIML',
+  EC: 'ECE',
+  EI: 'EIE',
+  EE: 'EEE',
+  CE: 'CIVIL',
+  ME: 'MECH',
+  BT: 'BIOTECH',
+  FT: 'FOOD TECH',
+};
+
+// Helper to derive student department accurately from rollNo, email, or stored department
+export const getStudentDepartment = (user: any): string => {
+  if (!user) return 'CSE';
+
+  const roll = String(user.rollNo || '').toUpperCase().trim();
+  const email = String(user.email || '').toLowerCase().trim();
+
+  // 1. BIT Roll format with 3-letter UG code: e.g. 2026UAD1214 -> AIDS, 2026UCS1001 -> CSE
+  const bitMatch = roll.match(/(U[A-Z]{2})/);
+  if (bitMatch && DEPT_MAP[bitMatch[1]]) {
+    return DEPT_MAP[bitMatch[1]];
+  }
+
+  // 2. Anna University format: 7376YY(D)XX... e.g. 7376231CS272 -> CS -> CSE
+  const auMatch = roll.match(/7376\d{2,3}([A-Z]{2})/);
+  if (auMatch && DEPT_MAP[auMatch[1]]) {
+    return DEPT_MAP[auMatch[1]];
+  }
+
+  // 3. 2-digit roll format: e.g. 23CS012, 241CS222, 26AD105
+  const rollCodeMatch = roll.match(/^\d{2,3}([A-Z]{2})/);
+  if (rollCodeMatch && DEPT_MAP[rollCodeMatch[1]]) {
+    return DEPT_MAP[rollCodeMatch[1]];
+  }
+
+  // 4. Institutional email: e.g. name.ad26@bitsathy.ac.in, bhavana.cs22@bitsathy.ac.in
+  const emailMatch = email.match(/\.([a-z]{2,3})\d{2}@bitsathy\.ac\.in/);
+  if (emailMatch) {
+    const code = emailMatch[1].toUpperCase();
+    if (DEPT_MAP[code]) return DEPT_MAP[code];
+  }
+
+  // 5. Normalization of existing user.department string
+  if (user.department) {
+    const d = String(user.department).toUpperCase().trim();
+    if (DEPT_MAP[d]) return DEPT_MAP[d];
+    if (d.includes('COMPUTER') || d === 'CSE') return 'CSE';
+    if (d.includes('INFORMATION') || d === 'IT') return 'IT';
+    if (d.includes('DATA SCIENCE') || d.includes('AIDS') || d.includes('AI & DS') || d.includes('AI&DS')) return 'AIDS';
+    if (d.includes('MACHINE LEARNING') || d.includes('AIML')) return 'AIML';
+    if (d.includes('COMMUNICATION') || d === 'ECE') return 'ECE';
+    if (d.includes('INSTRUMENTATION') || d === 'EIE') return 'EIE';
+    if (d.includes('ELECTRICAL') || d === 'EEE') return 'EEE';
+    if (d.includes('CIVIL') || d === 'UCE') return 'CIVIL';
+    if (d.includes('MECH') || d === 'UME') return 'MECH';
+    if (d.includes('BIOTECH') || d === 'UBT') return 'BIOTECH';
+    if (d.includes('FOOD') || d === 'UFT') return 'FOOD TECH';
+    return String(user.department).trim();
+  }
+
+  return 'CSE';
+};

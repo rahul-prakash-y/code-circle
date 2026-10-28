@@ -34,7 +34,7 @@ import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import toast from 'react-hot-toast';
 import { useDebounce } from '../../hooks/useDebounce';
-import { getStudentCollege, getStudentYear } from '../../utils/studentUtils';
+import { getStudentCollege, getStudentYear, getStudentDepartment } from '../../utils/studentUtils';
 import EventBulkUploadModal from '../events/EventBulkUploadModal';
 
 export const EventParticipantsModal = ({
@@ -159,7 +159,7 @@ export const EventParticipantsModal = ({
         e.enrolledBy?.name?.toLowerCase().includes(q) ||
         e.enrolledBy?.rollNo?.toLowerCase().includes(q) ||
         e.enrolledBy?.email?.toLowerCase().includes(q) ||
-        e.enrolledBy?.department?.toLowerCase().includes(q);
+        getStudentDepartment(e.enrolledBy).toLowerCase().includes(q);
 
       // Check team name
       const teamNameMatch = e.teamName?.toLowerCase().includes(q);
@@ -170,7 +170,7 @@ export const EventParticipantsModal = ({
           m?.name?.toLowerCase().includes(q) ||
           m?.rollNo?.toLowerCase().includes(q) ||
           m?.email?.toLowerCase().includes(q) ||
-          m?.department?.toLowerCase().includes(q)
+          getStudentDepartment(m).toLowerCase().includes(q)
       );
 
       const matchesSearch = !q || leaderMatch || teamNameMatch || memberMatch;
@@ -272,6 +272,7 @@ export const EventParticipantsModal = ({
       // Lead student
       const leadCollege = getStudentCollege(e.enrolledBy);
       const leadYear = getStudentYear(e.enrolledBy);
+      const leadDept = getStudentDepartment(e.enrolledBy);
 
       const customValues = customFieldCols.map((cf) => {
         const val = e.customResponses?.[cf.id || cf.label] ?? e.customResponses?.[cf.label] ?? '';
@@ -289,7 +290,7 @@ export const EventParticipantsModal = ({
         `"${(e.enrolledBy?.name || 'N/A').replace(/"/g, '""')}"`,
         `"${e.enrolledBy?.rollNo || 'N/A'}"`,
         `"${e.enrolledBy?.email || 'N/A'}"`,
-        `"${e.enrolledBy?.department || 'N/A'}"`,
+        `"${leadDept}"`,
         `"${leadYear}"`,
         `"${leadCollege}"`,
         `"${attendance}"`,
@@ -302,6 +303,7 @@ export const EventParticipantsModal = ({
         e.members.forEach((m) => {
           const memberCollege = getStudentCollege(m);
           const memberYear = getStudentYear(m);
+          const memberDept = getStudentDepartment(m);
 
           rows.push([
             `"${event.title.replace(/"/g, '""')}"`,
@@ -313,7 +315,7 @@ export const EventParticipantsModal = ({
             `"${(m?.name || 'N/A').replace(/"/g, '""')}"`,
             `"${m?.rollNo || 'N/A'}"`,
             `"${m?.email || 'N/A'}"`,
-            `"${m?.department || 'N/A'}"`,
+            `"${memberDept}"`,
             `"${memberYear}"`,
             `"${memberCollege}"`,
             `"${attendance}"`,
@@ -896,12 +898,10 @@ export const EventParticipantsModal = ({
                             <Mail size={12} className="text-label-tertiary" />
                             {e.enrolledBy?.email || 'N/A'}
                           </span>
-                          {e.enrolledBy?.department && (
-                            <span className="flex items-center gap-1 text-label-secondary dark:text-[#86868B]">
-                              <GraduationCap size={13} className="text-label-tertiary" />
-                              {e.enrolledBy.department}
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1 text-label-secondary dark:text-[#86868B]">
+                            <GraduationCap size={13} className="text-label-tertiary" />
+                            {getStudentDepartment(e.enrolledBy)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1029,11 +1029,9 @@ export const EventParticipantsModal = ({
                             <p className="text-label-tertiary text-[11px] truncate">
                               {e.enrolledBy?.email || 'No email'}
                             </p>
-                            {e.enrolledBy?.department && (
-                              <p className="text-[10px] text-label-tertiary truncate">
-                                {e.enrolledBy.department}
-                              </p>
-                            )}
+                            <p className="text-[10px] text-label-tertiary truncate">
+                              {getStudentDepartment(e.enrolledBy)}
+                            </p>
                           </div>
                         </div>
 
@@ -1064,9 +1062,7 @@ export const EventParticipantsModal = ({
                               <p className="text-label-tertiary text-[11px] truncate">
                                 {m?.email || 'No email'}
                               </p>
-                              {m?.department && (
-                                <p className="text-[10px] text-label-tertiary truncate">{m.department}</p>
-                              )}
+                              <p className="text-[10px] text-label-tertiary truncate">{getStudentDepartment(m)}</p>
                             </div>
                           </div>
                         ))}
