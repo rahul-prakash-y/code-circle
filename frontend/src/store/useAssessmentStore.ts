@@ -84,6 +84,7 @@ interface AssessmentStoreState {
   currentResult: SubmissionResult | null;
   mySubmissions: any[];
   assessmentSubmissions: any[];
+  activeAssessmentDetails: any | null;
   submissionsPagination: PaginationMeta | null;
   loading: boolean;
   submitting: boolean;
@@ -99,6 +100,7 @@ interface AssessmentStoreState {
   submitAssessment: (id: string, answers: { questionIndex: number; selectedOption: number }[], timeSpentSeconds?: number) => Promise<{ success: boolean; result?: SubmissionResult; error?: string }>;
   fetchMySubmissions: () => Promise<void>;
   fetchAssessmentSubmissions: (assessmentId: string, params?: { page?: number; limit?: number }) => Promise<void>;
+  exportAssessmentSubmissionsCsv: (assessmentId: string) => Promise<void>;
   deleteSubmission: (assessmentId: string, submissionId: string) => Promise<{ success: boolean; error?: string }>;
   allowStudentReappear: (assessmentId: string, studentId: string) => Promise<{ success: boolean; error?: string }>;
   resetMySubmission: (assessmentId: string) => Promise<{ success: boolean; error?: string }>;
@@ -124,6 +126,7 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
   currentResult: null,
   mySubmissions: [],
   assessmentSubmissions: [],
+  activeAssessmentDetails: null,
   submissionsPagination: null,
   loading: false,
   submitting: false,
@@ -291,12 +294,33 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
       const res = await api.get(`/assessments/${assessmentId}/submissions`, { params });
       set({
         assessmentSubmissions: res.data.data || [],
+        activeAssessmentDetails: res.data.assessment || null,
         submissionsPagination: res.data.pagination || null,
         loading: false,
       });
     } catch (err: any) {
       set({ loading: false });
       console.error('Failed to fetch assessment submissions', err);
+    }
+  },
+
+  exportAssessmentSubmissionsCsv: async (assessmentId: string) => {
+    try {
+      const toastId = toast.loading('Preparing assessment submissions report...');
+      const res = await api.get(`/assessments/${assessmentId}/submissions/export`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `assessment_submissions_${assessmentId.slice(-6)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Report downloaded successfully!', { id: toastId });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to download report');
     }
   },
 

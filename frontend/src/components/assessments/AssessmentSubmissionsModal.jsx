@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   Loader2,
   Sparkles,
+  FileText,
+  Download,
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import usePointsStore from '../../store/usePointsStore';
@@ -23,12 +25,15 @@ import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { formatISTDateTime } from '../../lib/dateUtils';
 import Pagination from '../common/Pagination';
+import AssessmentSubmissionDetailModal from './AssessmentSubmissionDetailModal';
 
 const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose }) => {
   const {
     assessmentSubmissions,
+    activeAssessmentDetails,
     submissionsPagination,
     fetchAssessmentSubmissions,
+    exportAssessmentSubmissionsCsv,
     deleteSubmission,
     allowStudentReappear,
     loading,
@@ -41,6 +46,7 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
   const debouncedSearch = useDebounce(search, 350);
   const [confirmAction, setConfirmAction] = useState(null); // { type: 'delete' | 'reappear', subId, studentId, studentName }
   const [actionLoading, setActionLoading] = useState(false);
+  const [inspectingSubmission, setInspectingSubmission] = useState(null);
 
   // Award custom points dialog state
   const [awardPointsTarget, setAwardPointsTarget] = useState(null); // { studentId, studentName, score, totalPoints, percentage }
@@ -179,7 +185,7 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
         </div>
 
         {/* Filter Bar */}
-        <div className="pt-5 pb-4 flex items-center justify-between gap-4 flex-shrink-0 relative z-10">
+        <div className="pt-5 pb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 flex-shrink-0 relative z-10">
           <div className="flex items-center gap-2 px-4 py-2 bg-surface-elevated border border-border rounded-2xl focus-within:border-purple-500/40 transition-all flex-1 max-w-sm">
             <Search size={16} className="text-text-muted" />
             <input
@@ -191,9 +197,20 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
             />
           </div>
 
-          <span className="text-xs font-bold text-text-muted">
-            Total Submissions: <span className="text-text-primary font-black">{filteredSubmissions.length}</span>
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => exportAssessmentSubmissionsCsv(assessmentId)}
+              className="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="Download full assessment report as CSV"
+            >
+              <Download size={14} className="text-emerald-400" />
+              <span>Export All (CSV)</span>
+            </button>
+            <span className="text-xs font-bold text-text-muted">
+              Total Submissions: <span className="text-text-primary font-black">{filteredSubmissions.length}</span>
+            </span>
+          </div>
         </div>
 
         {/* Table / List */}
@@ -261,6 +278,16 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
 
                       {/* Management Action Buttons */}
                       <div className="flex items-center gap-1.5 ml-2 border-l border-border/80 pl-3">
+                        <button
+                          type="button"
+                          onClick={() => setInspectingSubmission(sub)}
+                          className="px-2.5 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                          title="View detailed questions and answers report"
+                        >
+                          <FileText size={12} className="text-purple-400" />
+                          <span>View Report</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -545,6 +572,16 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Detailed Report Modal */}
+        {inspectingSubmission && (
+          <AssessmentSubmissionDetailModal
+            isOpen={Boolean(inspectingSubmission)}
+            onClose={() => setInspectingSubmission(null)}
+            submission={inspectingSubmission}
+            assessment={assessment || activeAssessmentDetails}
+          />
+        )}
       </motion.div>
     </div>
   );

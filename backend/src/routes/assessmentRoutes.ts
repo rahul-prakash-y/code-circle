@@ -43,6 +43,16 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
     { preHandler: [isAdminOrFaculty] },
     assessmentController.getAssessmentSubmissions as any
   );
+  fastify.get(
+    '/:id/submissions/export',
+    { preHandler: [isAdminOrFaculty] },
+    assessmentController.exportAssessmentSubmissionsCsv as any
+  );
+  fastify.get(
+    '/:id/submissions/:submissionId/report',
+    { preHandler: [isAdminOrFaculty] },
+    assessmentController.getSingleAssessmentSubmissionReport as any
+  );
   fastify.delete(
     '/:id/submissions/:submissionId',
     assessmentController.deleteAssessmentSubmission as any

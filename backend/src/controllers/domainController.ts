@@ -12,6 +12,8 @@ import CodingChallenge from '../models/codingChallengeModel';
 import PointTransaction from '../models/pointTransactionModel';
 import LevelAssessmentSession from '../models/levelAssessmentSessionModel';
 import CodingSubmission from '../models/codingSubmissionModel';
+import LevelQuestSubmission from '../models/levelQuestSubmissionModel';
+import AssessmentSubmission from '../models/assessmentSubmissionModel';
 import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 // Interface for submitting answers
@@ -988,6 +990,26 @@ export const submitLevelQuest = async (
     const passRate = (correctCount / totalQuestions) * 100;
     // 70% pass threshold required to pass the quest and unlock coding assessment
     const passed = passRate >= 70;
+
+    // Persist quest submission for administrative inspection and report tracking
+    try {
+      await LevelQuestSubmission.findOneAndUpdate(
+        { level: level._id, student: new mongoose.Types.ObjectId(userId) },
+        {
+          domain: level.domainId,
+          answers: userAnswers.map((ans, idx) => ({ questionIndex: idx, selectedOption: ans })),
+          detailedResults: questionFeedback,
+          score: correctCount,
+          total: totalQuestions,
+          passRate: Math.round(passRate),
+          passed,
+          submittedAt: new Date(),
+        },
+        { upsert: true, new: true }
+      );
+    } catch (saveErr) {
+      console.warn('[DomainController] Could not persist LevelQuestSubmission:', saveErr);
+    }
 
     let unlockedAssessmentId: string | null = null;
     let unlockedCodingChallengeId: string | null = null;
@@ -2761,7 +2783,8 @@ export const getLevelSubmissions = async (request: FastifyRequest, reply: Fastif
 
     const level = await Level.findById(levelId)
       .populate('domainId', 'name description')
-      .populate('codingChallengeId', 'title slug difficulty marks');
+      .populate('codingChallengeId', 'title slug difficulty marks')
+      .populate('assessmentId', 'title description category passingScorePercentage timeLimitMinutes questions');
 
     if (!level) {
       return reply.status(404).send({ success: false, error: 'Level not found' });
@@ -2788,6 +2811,22 @@ export const getLevelSubmissions = async (request: FastifyRequest, reply: Fastif
       const challengeId = (level.codingChallengeId as any)._id || level.codingChallengeId;
       directSubmissions = await CodingSubmission.find({ challenge: challengeId })
         .populate('student', 'name email rollNo department avatar studentId')
+        .sort({ createdAt: -1 })
+        .lean();
+    }
+
+    // 4. Fetch stored QuestSubmissions with full question results
+    const questSubmissions = await LevelQuestSubmission.find({ level: levelId })
+      .populate('student', 'name email rollNo department avatar studentId')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    // 5. Fetch AssessmentSubmissions if an assessment is mapped to this level
+    let assessmentSubmissions: any[] = [];
+    if (level.assessmentId) {
+      const assessmentRefId = (level.assessmentId as any)._id || level.assessmentId;
+      assessmentSubmissions = await AssessmentSubmission.find({ assessment: assessmentRefId })
+        .populate('user', 'name email rollNo department avatar profilePicUrl')
         .sort({ createdAt: -1 })
         .lean();
     }
@@ -2954,6 +2993,95 @@ export const getLevelSubmissions = async (request: FastifyRequest, reply: Fastif
       }
     }
 
+    // Process quest submissions with questions & answers
+    for (const q of questSubmissions) {
+      const student = q.student as any;
+      if (!student || !student._id) continue;
+      const sId = student._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: student._id,
+            name: student.name || 'Anonymous Student',
+            email: student.email,
+            rollNo: student.rollNo || student.studentId || '',
+            department: student.department || '',
+            avatar: student.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: q.passed,
+          questSubmission: q,
+          sessions: [],
+          submissions: [],
+          bestScore: q.score || 0,
+          verdict: q.passed ? 'passed' : 'in_progress',
+          totalAttempts: 1,
+          lastActivityAt: q.submittedAt || (q as any).createdAt,
+        });
+      } else {
+        const rec = studentMap.get(sId)!;
+        rec.questSubmission = q;
+        if (q.passed) rec.questCompleted = true;
+        if (q.score > rec.bestScore) rec.bestScore = q.score;
+        if (q.passed && rec.verdict === 'unattempted') rec.verdict = 'passed';
+      }
+    }
+
+    // Process assessment submissions if any
+    for (const a of assessmentSubmissions) {
+      const student = a.user as any;
+      if (!student || !student._id) continue;
+      const sId = student._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: student._id,
+            name: student.name || 'Anonymous Student',
+            email: student.email,
+            rollNo: student.rollNo || '',
+            department: student.department || '',
+            avatar: student.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: false,
+          assessmentSubmission: a,
+          sessions: [],
+          submissions: [],
+          bestScore: a.score || 0,
+          verdict: a.passed ? 'passed' : 'failed',
+          totalAttempts: 1,
+          lastActivityAt: a.createdAt,
+        });
+      } else {
+        const rec = studentMap.get(sId)!;
+        rec.assessmentSubmission = a;
+        if (a.score > rec.bestScore) rec.bestScore = a.score;
+        if (a.passed && rec.verdict !== 'passed') rec.verdict = 'passed';
+      }
+    }
+
+    // Synthesize quest submission report for legacy records marked completedQuests without LevelQuestSubmission doc
+    for (const rec of studentMap.values()) {
+      if (rec.questCompleted && !rec.questSubmission && Array.isArray(level.questQuestions) && level.questQuestions.length > 0) {
+        rec.questSubmission = {
+          score: level.questQuestions.length,
+          total: level.questQuestions.length,
+          passRate: 100,
+          passed: true,
+          submittedAt: rec.lastActivityAt,
+          detailedResults: level.questQuestions.map((q: any, idx: number) => ({
+            questionIndex: idx,
+            question: q.question,
+            selectedOption: q.correctOption,
+            correctOption: q.correctOption,
+            isCorrect: true,
+          })),
+        };
+      }
+    }
+
     const students = Array.from(studentMap.values()).sort((a, b) => {
       if (a.verdict === 'passed' && b.verdict !== 'passed') return -1;
       if (b.verdict === 'passed' && a.verdict !== 'passed') return 1;
@@ -2968,6 +3096,9 @@ export const getLevelSubmissions = async (request: FastifyRequest, reply: Fastif
         title: level.title,
         domain: level.domainId,
         codingChallenge: level.codingChallengeId,
+        questQuestions: level.questQuestions || [],
+        points: level.points,
+        assessment: level.assessmentId || null,
       },
       totalStudents: students.length,
       passedCount: students.filter((s) => s.verdict === 'passed' || s.levelCompleted).length,

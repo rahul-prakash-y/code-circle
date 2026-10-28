@@ -665,6 +665,11 @@ export const getAssessmentSubmissions = async (
       return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
     }
 
+    const assessment = await Assessment.findById(id).lean();
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
     const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(request.query, {
       defaultLimit: 25,
       maxLimit: 100,
@@ -693,18 +698,270 @@ export const getAssessmentSubmissions = async (
         .lean(),
     ]);
 
+    const enrichedSubmissions = submissions.map((sub: any) => {
+      let detailed = sub.detailedResults || [];
+      if (!detailed || detailed.length === 0) {
+        const ansMap = new Map<number, number>();
+        (sub.answers || []).forEach((a: any) => ansMap.set(a.questionIndex, a.selectedOption));
+        detailed = assessment.questions.map((q: any, idx: number) => {
+          const selectedOption = ansMap.has(idx) ? ansMap.get(idx)! : -1;
+          const isCorrect = selectedOption === q.correctOptionIndex && selectedOption !== -1;
+          return {
+            questionIndex: idx,
+            questionText: q.questionText,
+            selectedOption,
+            correctOptionIndex: q.correctOptionIndex,
+            isCorrect,
+            points: q.points || 1,
+            explanation: q.explanation || '',
+          };
+        });
+      }
+      return {
+        ...sub,
+        detailedResults: detailed,
+      };
+    });
+
     const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
-      count: submissions.length,
+      assessment: {
+        _id: assessment._id,
+        title: assessment.title,
+        description: assessment.description,
+        category: assessment.category,
+        timeLimitMinutes: assessment.timeLimitMinutes,
+        passingScorePercentage: assessment.passingScorePercentage,
+        customPoints: assessment.customPoints,
+        questions: assessment.questions,
+      },
+      count: enrichedSubmissions.length,
       pagination,
-      data: submissions,
+      data: enrichedSubmissions,
     });
   } catch (error: any) {
     return reply.status(500).send({
       success: false,
       error: error.message || 'Failed to fetch assessment submissions',
+    });
+  }
+};
+
+export const getSingleAssessmentSubmissionReport = async (
+  request: FastifyRequest<{ Params: { id: string; submissionId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id, submissionId } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(submissionId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid ID parameters' });
+    }
+
+    const [assessment, submission] = await Promise.all([
+      Assessment.findById(id).lean(),
+      AssessmentSubmission.findOne({ _id: submissionId, assessment: id })
+        .populate('user', 'name rollNo email department profilePicUrl')
+        .lean(),
+    ]);
+
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+    if (!submission) {
+      return reply.status(404).send({ success: false, error: 'Submission not found' });
+    }
+
+    const studentAnsMap = new Map<number, number>();
+    (submission.answers || []).forEach((a: any) => studentAnsMap.set(a.questionIndex, a.selectedOption));
+
+    const questionsReport = assessment.questions.map((q: any, idx: number) => {
+      const selectedOption = studentAnsMap.has(idx) ? studentAnsMap.get(idx)! : -1;
+      const isCorrect = selectedOption === q.correctOptionIndex && selectedOption !== -1;
+      return {
+        questionIndex: idx,
+        questionText: q.questionText,
+        options: q.options || [],
+        selectedOption,
+        selectedOptionText: selectedOption >= 0 && q.options ? q.options[selectedOption] || '' : 'Unanswered',
+        correctOptionIndex: q.correctOptionIndex,
+        correctOptionText: q.options ? q.options[q.correctOptionIndex] || '' : '',
+        isCorrect,
+        points: q.points || 1,
+        earnedPoints: isCorrect ? (q.points || 1) : 0,
+        explanation: q.explanation || '',
+      };
+    });
+
+    return reply.send({
+      success: true,
+      report: {
+        assessment: {
+          _id: assessment._id,
+          title: assessment.title,
+          category: assessment.category,
+          timeLimitMinutes: assessment.timeLimitMinutes,
+          passingScorePercentage: assessment.passingScorePercentage,
+        },
+        student: submission.user,
+        submission: {
+          _id: submission._id,
+          score: submission.score,
+          totalPoints: submission.totalPoints,
+          percentage: submission.percentage,
+          passed: submission.passed,
+          pointsAwarded: submission.pointsAwarded || 0,
+          timeSpentSeconds: submission.timeSpentSeconds || 0,
+          submittedAt: (submission as any).createdAt,
+        },
+        questions: questionsReport,
+      },
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to fetch submission report',
+    });
+  }
+};
+
+export const exportAssessmentSubmissionsCsv = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
+    }
+
+    const [assessment, submissions] = await Promise.all([
+      Assessment.findById(id).lean(),
+      AssessmentSubmission.find({ assessment: id })
+        .populate('user', 'name rollNo email department')
+        .sort({ score: -1, createdAt: -1 })
+        .lean(),
+    ]);
+
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
+    const escapeCsv = (val: any) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const headers = [
+      'Student Name',
+      'Roll Number',
+      'Email',
+      'Department',
+      'Score',
+      'Total Points',
+      'Percentage',
+      'Verdict',
+      'Time Spent (seconds)',
+      'Submitted At',
+      'Question Number',
+      'Question Text',
+      'Selected Option Index',
+      'Selected Option Text',
+      'Correct Option Index',
+      'Correct Option Text',
+      'Question Verdict',
+      'Points Earned',
+    ];
+
+    const rows: string[] = [headers.join(',')];
+
+    for (const sub of submissions) {
+      const student = (sub.user as any) || {};
+      const studentName = student.name || 'Anonymous';
+      const rollNo = student.rollNo || '';
+      const email = student.email || '';
+      const dept = student.department || '';
+      const score = sub.score;
+      const totalPoints = sub.totalPoints;
+      const percentage = `${sub.percentage}%`;
+      const verdict = sub.passed ? 'PASSED' : 'FAILED';
+      const timeSpent = sub.timeSpentSeconds || 0;
+      const submittedAt = (sub as any).createdAt ? new Date((sub as any).createdAt).toISOString() : '';
+
+      const ansMap = new Map<number, number>();
+      (sub.answers || []).forEach((a: any) => ansMap.set(a.questionIndex, a.selectedOption));
+
+      if (assessment.questions && assessment.questions.length > 0) {
+        assessment.questions.forEach((q: any, idx: number) => {
+          const selectedOption = ansMap.has(idx) ? ansMap.get(idx)! : -1;
+          const isCorrect = selectedOption === q.correctOptionIndex && selectedOption !== -1;
+          const selectedText = selectedOption >= 0 && q.options ? q.options[selectedOption] || '' : 'Unanswered';
+          const correctText = q.options ? q.options[q.correctOptionIndex] || '' : '';
+          const pointsEarned = isCorrect ? (q.points || 1) : 0;
+
+          rows.push(
+            [
+              escapeCsv(studentName),
+              escapeCsv(rollNo),
+              escapeCsv(email),
+              escapeCsv(dept),
+              score,
+              totalPoints,
+              escapeCsv(percentage),
+              escapeCsv(verdict),
+              timeSpent,
+              escapeCsv(submittedAt),
+              idx + 1,
+              escapeCsv(q.questionText),
+              selectedOption,
+              escapeCsv(selectedText),
+              q.correctOptionIndex,
+              escapeCsv(correctText),
+              escapeCsv(isCorrect ? 'CORRECT' : 'INCORRECT'),
+              pointsEarned,
+            ].join(',')
+          );
+        });
+      } else {
+        rows.push(
+          [
+            escapeCsv(studentName),
+            escapeCsv(rollNo),
+            escapeCsv(email),
+            escapeCsv(dept),
+            score,
+            totalPoints,
+            escapeCsv(percentage),
+            escapeCsv(verdict),
+            timeSpent,
+            escapeCsv(submittedAt),
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+          ].join(',')
+        );
+      }
+    }
+
+    const csvContent = rows.join('\r\n');
+    const safeTitle = (assessment.title || 'assessment').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `${safeTitle}_submissions_report_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    return reply
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(csvContent);
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to export assessment submissions',
     });
   }
 };
@@ -1271,6 +1528,8 @@ export default {
   submitAssessment,
   getMySubmissions,
   getAssessmentSubmissions,
+  getSingleAssessmentSubmissionReport,
+  exportAssessmentSubmissionsCsv,
   deleteAssessmentSubmission,
   allowStudentReappear,
   resetMyAssessmentSubmission,
