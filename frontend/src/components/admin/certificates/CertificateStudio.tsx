@@ -81,16 +81,16 @@ export const CertificateStudio: React.FC = () => {
   const [theme, setTheme] = useState<string>('classic-ivory');
   
   // Three Faculty Members - All Positions Set as Faculty Coordinator
-  const [signatoryName, setSignatoryName] = useState('Dr. S. K. Ramesh');
+  const [signatoryName, setSignatoryName] = useState('Dr. Dhanasekar R');
   const [signatoryTitle, setSignatoryTitle] = useState('Faculty Coordinator');
-  const [secondarySignatoryName, setSecondarySignatoryName] = useState('Dr. P. Balasubramanie');
+  const [secondarySignatoryName, setSecondarySignatoryName] = useState('Dr. Nandhini K M');
   const [secondarySignatoryTitle, setSecondarySignatoryTitle] = useState('Faculty Coordinator');
-  const [tertiarySignatoryName, setTertiarySignatoryName] = useState('Dr. C. Palanisamy');
+  const [tertiarySignatoryName, setTertiarySignatoryName] = useState('Prof. RATHNA S');
   const [tertiarySignatoryTitle, setTertiarySignatoryTitle] = useState('Faculty Coordinator');
   const [signatoryOrganization, setSignatoryOrganization] = useState('Code Circle · Bannari Amman Institute of Technology');
   
-  const [sampleRecipientName, setSampleRecipientName] = useState('Alex Rivera');
-  const [sampleRollNo, setSampleRollNo] = useState('7376222CB101');
+  const [sampleRecipientName, setSampleRecipientName] = useState('RAHUL P');
+  const [sampleRollNo, setSampleRollNo] = useState('7376231CS272');
   const [associatedEventId, setAssociatedEventId] = useState('');
   const [associatedDomainId, setAssociatedDomainId] = useState('');
 
@@ -643,7 +643,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[6px] sm:text-[7px] opacity-60 truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      Faculty Coordinator · CSE
+                      Faculty Coordinator · EIE
                     </p>
                   </div>
 
@@ -668,7 +668,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[6px] sm:text-[7px] opacity-60 truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      Faculty Coordinator · IT
+                      Faculty Coordinator · EIE
                     </p>
                   </div>
 
@@ -693,7 +693,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[6px] sm:text-[7px] opacity-60 truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      Faculty Coordinator · AI&DS
+                      Faculty Coordinator · CSE
                     </p>
                   </div>
                 </div>
