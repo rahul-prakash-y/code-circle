@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import EnrollmentModal from './EnrollmentModal';
 import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
 import EventParticipantsModal from '../admin/EventParticipantsModal';
 import EventBulkUploadModal from './EventBulkUploadModal';
+import EventArenaAdminModal from './EventArenaAdminModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
+  const navigate = useNavigate();
   const { myEnrolledEventIds } = useEnrollmentStore();
   const isEnrolled = myEnrolledEventIds.includes(event._id);
   const [timeLeft, setTimeLeft] = useState('');
@@ -17,6 +20,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [isArenaAdminOpen, setIsArenaAdminOpen] = useState(false);
   const [participantsInitialTab, setParticipantsInitialTab] = useState('participants');
 
   useEffect(() => {
@@ -95,6 +99,12 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
               {event.registrationType === 'admin_upload' && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/25">
                   Admin Upload Only
+                </span>
+              )}
+              {event.hasArena && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-500 border border-indigo-500/25 flex items-center gap-1 shadow-xs">
+                  <Sparkles size={10} />
+                  Event Arena
                 </span>
               )}
             </div>
@@ -245,6 +255,13 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   <UserCheck size={15} strokeWidth={1.75} />
                 </button>
                 <button
+                  onClick={() => setIsArenaAdminOpen(true)}
+                  className="p-2 text-label-secondary hover:text-indigo-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Event Arena Hub: Configure & Questions"
+                >
+                  <Sparkles size={15} strokeWidth={1.75} />
+                </button>
+                <button
                   onClick={() => onEdit(event)}
                   className="p-2 text-label-secondary hover:text-label-primary hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Edit Event"
@@ -310,6 +327,18 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                     )}
                   </button>
                 )}
+
+                {/* Enter Arena Button for Students */}
+                {event.hasArena && (
+                  <button
+                    onClick={() => navigate(`/events/${event._id}/arena`)}
+                    className="btn-primary text-[12px] py-1.5 px-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer"
+                    title="Enter Event Arena to take assessments"
+                  >
+                    <Sparkles size={13} />
+                    <span>Arena</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -371,6 +400,15 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
         onClose={() => setIsAttendanceOpen(false)}
         event={event}
       />
+
+      {/* Event Arena Admin & Question Hub Modal */}
+      {isAdmin && (
+        <EventArenaAdminModal
+          isOpen={isArenaAdminOpen}
+          onClose={() => setIsArenaAdminOpen(false)}
+          event={event}
+        />
+      )}
     </>
   );
 };

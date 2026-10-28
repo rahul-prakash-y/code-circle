@@ -182,6 +182,7 @@ export const getEvents = async (
         .skip(skip)
         .limit(limit)
         .populate('createdBy', 'name email profilePicUrl role')
+        .populate('arenaAdmins', 'name email profilePicUrl role rollNo department')
         .lean(),
     ]);
 
@@ -233,10 +234,9 @@ export const getEventById = async (
       return reply.status(400).send({ success: false, error: 'Invalid event ID' });
     }
 
-    const event = await Event.findById(id).populate(
-      'createdBy',
-      'name email profilePicUrl role'
-    );
+    const event = await Event.findById(id)
+      .populate('createdBy', 'name email profilePicUrl role')
+      .populate('arenaAdmins', 'name email profilePicUrl role rollNo department');
 
     if (!event) {
       return reply.status(404).send({ success: false, error: 'Event not found' });

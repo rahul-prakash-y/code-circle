@@ -37,6 +37,7 @@ const ContestsPage = lazy(() => import('./pages/ContestsPage'));
 const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
 const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
+const EventArenaPage = lazy(() => import('./pages/EventArenaPage'));
 
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
@@ -181,6 +182,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <ContestArenaPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fullscreen Event Arena without App Shell */}
+          <Route
+            path="/events/:id/arena"
+            element={
+              <ProtectedRoute>
+                <EventArenaPage />
               </ProtectedRoute>
             }
           />
