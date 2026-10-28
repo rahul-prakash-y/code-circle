@@ -27,6 +27,7 @@ export interface IUser extends Document {
   dob?: string;
   dateOfBirth?: string;
   gender?: string;
+  residenceType?: 'Hosteller' | 'Day Scholar' | '';
   bio?: string;
   skills: string[];
   socialLinks: ISocialLinks;
@@ -75,6 +76,13 @@ const userSchema = new Schema<IUser>(
     dob: { type: String, default: '', trim: true },
     dateOfBirth: { type: String, default: '', trim: true },
     gender: { type: String, default: '', trim: true },
+    residenceType: {
+      type: String,
+      enum: ['Hosteller', 'Day Scholar', ''],
+      default: '',
+      trim: true,
+      index: true,
+    },
     bio: { type: String, default: '', trim: true },
     skills: [{ type: String, trim: true }],
     socialLinks: {

@@ -838,6 +838,31 @@ const downloadSampleTemplate = async (request, reply) => {
   }
 };
 
+const deleteEventEnrollment = async (request, reply) => {
+  try {
+    const { enrollmentId } = request.params;
+    if (!enrollmentId) {
+      return reply.status(400).send({ error: 'Enrollment ID is required' });
+    }
+
+    const enrollment = await Enrollment.findById(enrollmentId);
+    if (!enrollment) {
+      return reply.status(404).send({ error: 'Participant enrollment record not found' });
+    }
+
+    await Enrollment.findByIdAndDelete(enrollmentId);
+
+    return reply.send({
+      success: true,
+      message: 'Participant enrollment removed successfully',
+      deletedEnrollmentId: enrollmentId,
+    });
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ error: 'Failed to remove participant enrollment' });
+  }
+};
+
 module.exports = {
   enrollInEvent,
   getEventEnrollments,
@@ -848,4 +873,5 @@ module.exports = {
   getMyCertificates,
   bulkUploadEventParticipants,
   downloadSampleTemplate,
+  deleteEventEnrollment,
 };

@@ -25,13 +25,23 @@ import {
   Check,
   Eye,
   FileCode,
+  Building,
+  Bus,
+  Palette,
+  ExternalLink,
+  Image as ImageIcon,
+  Maximize2,
+  FileText,
+  CheckCircle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useAuthStore from '../../store/useAuthStore';
 import useEventArenaStore, {
+  ArenaAssessment,
   ArenaAdminCandidate,
   ArenaMcqQuestion,
   ArenaCodingProblem,
+  ArenaDesignChallenge,
 } from '../../store/useEventArenaStore';
 
 interface EventArenaAdminModalProps {
@@ -50,34 +60,80 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const { user } = useAuthStore();
   const {
     fetchAdminCandidates,
-    fetchAdminArenaData,
-    updateArenaConfig,
-    saveArenaMcqs,
-    saveArenaCodingProblems,
-    bulkUploadArenaQuestions,
+    fetchAssessments,
+    createAssessment,
+    updateAssessment,
+    deleteAssessment,
+    fetchAdminAssessmentQuestions,
+    saveAssessmentMcqs,
+    saveAssessmentCodingProblems,
+    saveAssessmentDesignChallenge,
+    uploadDesignImage,
+    evaluateAssessmentDesign,
+    bulkUploadAssessmentQuestions,
     downloadArenaTemplate,
-    fetchAdminSubmissions,
+    fetchAdminAssessmentSubmissions,
+    assessments,
+    selectedAssessment,
+    setSelectedAssessment,
     adminCandidates,
-    adminArenaEvent,
     adminMcqs,
     adminCoding,
+    adminDesignChallenge,
     adminSubmissions,
     loading,
     actionLoading,
   } = useEventArenaStore();
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'mcq' | 'coding' | 'submissions'>(
-    'settings'
-  );
+  const isSuperAdmin = user?.role === 'SuperAdmin';
 
-  // Settings State
-  const [hasArena, setHasArena] = useState(false);
-  const [arenaType, setArenaType] = useState<'CODING' | 'MCQ' | 'HYBRID'>('HYBRID');
-  const [arenaStatus, setArenaStatus] = useState<'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED'>('LIVE');
-  const [arenaDuration, setArenaDuration] = useState(60);
-  const [arenaPassingScore, setArenaPassingScore] = useState(50);
-  const [selectedAdminIds, setSelectedAdminIds] = useState<string[]>([]);
+  // Modal Views & Tabs
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [activeTab, setActiveTab] = useState<'settings' | 'mcq' | 'coding' | 'design' | 'submissions'>('settings');
+
+  // New Assessment Form
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newType, setNewType] = useState<'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX'>('HYBRID');
+  const [newDuration, setNewDuration] = useState(60);
+  const [newPassingScore, setNewPassingScore] = useState(50);
+  const [newAssignedAdminIds, setNewAssignedAdminIds] = useState<string[]>([]);
+
+  // Selected Assessment Edit State
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editType, setEditType] = useState<'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX'>('HYBRID');
+  const [editStatus, setEditStatus] = useState<'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED'>('LIVE');
+  const [editDuration, setEditDuration] = useState(60);
+  const [editPassingScore, setEditPassingScore] = useState(50);
+  const [editAssignedAdminIds, setEditAssignedAdminIds] = useState<string[]>([]);
   const [adminSearch, setAdminSearch] = useState('');
+
+  // Design Challenge Form state
+  const [designTitle, setDesignTitle] = useState('');
+  const [designDesc, setDesignDesc] = useState('');
+  const [designProblem, setDesignProblem] = useState('');
+  const [designImageUrl, setDesignImageUrl] = useState('');
+  const [designRefFigma, setDesignRefFigma] = useState('');
+  const [designDeliverables, setDesignDeliverables] = useState<string[]>([
+    'High-fidelity Desktop & Mobile layouts',
+    'Interactive Prototype link with micro-interactions',
+    'Consistent Component Design System',
+  ]);
+  const [designGuidelines, setDesignGuidelines] = useState<string[]>([
+    'Adhere to visual hierarchy and readable typography scale',
+    'Proper color contrast adhering to WCAG AA standard',
+    'Use Figma auto-layout and clear layer naming',
+  ]);
+  const [designPoints, setDesignPoints] = useState(100);
+  const [uploadingDesignImg, setUploadingDesignImg] = useState(false);
+  const [previewModalImg, setPreviewModalImg] = useState<string | null>(null);
+
+  // Submissions evaluation state
+  const [evaluatingSub, setEvaluatingSub] = useState<any | null>(null);
+  const [evalPoints, setEvalPoints] = useState<number>(0);
+  const [evalFeedback, setEvalFeedback] = useState<string>('');
+  const [previewFigmaUrl, setPreviewFigmaUrl] = useState<string | null>(null);
 
   // MCQ Form state
   const [showAddMcq, setShowAddMcq] = useState(false);
@@ -102,60 +158,87 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [bulkModalType, setBulkModalType] = useState<'mcq' | 'coding' | null>(null);
   const [bulkFile, setBulkFile] = useState<File | null>(null);
 
-  const isSuperAdmin = user?.role === 'SuperAdmin';
-
-  const isAssignedAdmin = useMemo(() => {
-    if (!user || !event) return false;
+  // Check if current user can manage questions for the selected assessment
+  const canManageSelected = useMemo(() => {
+    if (!user || !selectedAssessment) return false;
     if (isSuperAdmin) return true;
-    const adminList = adminArenaEvent?.arenaAdmins || event.arenaAdmins || [];
-    return adminList.some((adm: any) => {
+    const assigned = selectedAssessment.assignedAdmins || [];
+    return assigned.some((adm: any) => {
       const id = adm?._id ? adm._id.toString() : adm.toString();
       return id === (user.id || user._id)?.toString();
     });
-  }, [user, event, isSuperAdmin, adminArenaEvent]);
+  }, [user, selectedAssessment, isSuperAdmin]);
 
-  const canEditQuestions = isSuperAdmin || isAssignedAdmin;
+  const selectedAssessmentId = selectedAssessment?._id;
 
+  // Load initial data (only when modal opens or event ID changes)
   useEffect(() => {
     if (isOpen && event?._id) {
-      fetchAdminCandidates();
-      fetchAdminArenaData(event._id);
-      fetchAdminSubmissions(event._id);
-
-      // Initialize config values
-      setHasArena(Boolean(event.hasArena));
-      setArenaType(event.arenaType || 'HYBRID');
-      setArenaStatus(event.arenaStatus || 'LIVE');
-      setArenaDuration(event.arenaDurationMinutes || 60);
-      setArenaPassingScore(event.arenaPassingPercentage || 50);
-
-      const assigned = (event.arenaAdmins || []).map((adm: any) =>
-        adm?._id ? adm._id.toString() : adm.toString()
-      );
-      setSelectedAdminIds(assigned);
+      if (adminCandidates.length === 0) {
+        fetchAdminCandidates();
+      }
+      fetchAssessments(event._id);
     }
   }, [isOpen, event?._id]);
 
+  // Fetch questions and submissions ONLY when selected assessment ID changes
   useEffect(() => {
-    if (adminArenaEvent) {
-      setHasArena(Boolean(adminArenaEvent.hasArena));
-      setArenaType(adminArenaEvent.arenaType || 'HYBRID');
-      setArenaStatus(adminArenaEvent.arenaStatus || 'LIVE');
-      setArenaDuration(adminArenaEvent.arenaDurationMinutes || 60);
-      setArenaPassingScore(adminArenaEvent.arenaPassingPercentage || 50);
+    if (isOpen && event?._id && selectedAssessmentId) {
+      fetchAdminAssessmentQuestions(event._id, selectedAssessmentId);
+      fetchAdminAssessmentSubmissions(event._id, selectedAssessmentId);
+    }
+  }, [isOpen, event?._id, selectedAssessmentId]);
 
-      if (adminArenaEvent.arenaAdmins) {
-        const assigned = adminArenaEvent.arenaAdmins.map((adm: any) =>
-          adm?._id ? adm._id.toString() : adm.toString()
-        );
-        setSelectedAdminIds(assigned);
+  // Sync edit form fields when selected assessment changes
+  useEffect(() => {
+    if (selectedAssessment) {
+      setEditTitle(selectedAssessment.title || '');
+      setEditDesc(selectedAssessment.description || '');
+      setEditType(selectedAssessment.type || 'HYBRID');
+      setEditStatus(selectedAssessment.status || 'LIVE');
+      setEditDuration(selectedAssessment.durationMinutes || 60);
+      setEditPassingScore(selectedAssessment.passingPercentage || 50);
+
+      const assigned = (selectedAssessment.assignedAdmins || []).map((adm: any) =>
+        adm?._id ? adm._id.toString() : adm.toString()
+      );
+      setEditAssignedAdminIds(assigned);
+
+      if (selectedAssessment.type === 'UI_UX') {
+        setActiveTab((prev) => (prev === 'mcq' || prev === 'coding' ? 'design' : prev));
       }
     }
-  }, [adminArenaEvent]);
+  }, [selectedAssessmentId]);
+
+  // Sync design challenge form fields (no API calls here)
+  useEffect(() => {
+    const dc = adminDesignChallenge || selectedAssessment?.designChallenge;
+    if (dc) {
+      setDesignTitle(dc.title || selectedAssessment?.title || '');
+      setDesignDesc(dc.description || selectedAssessment?.description || '');
+      setDesignProblem(dc.problemStatement || '');
+      setDesignImageUrl(dc.referenceImageUrl || dc.designImageUrl || '');
+      setDesignRefFigma(dc.figmaStarterUrl || dc.referenceFigmaUrl || '');
+      if (dc.deliverables && dc.deliverables.length > 0) {
+        setDesignDeliverables(dc.deliverables);
+      }
+      if (dc.guidelines && dc.guidelines.length > 0) {
+        setDesignGuidelines(dc.guidelines);
+      }
+      setDesignPoints(dc.totalPoints || dc.points || selectedAssessment?.totalPoints || 100);
+    } else if (selectedAssessment) {
+      setDesignTitle(selectedAssessment.title || '');
+      setDesignDesc(selectedAssessment.description || '');
+      setDesignProblem('');
+      setDesignImageUrl('');
+      setDesignRefFigma('');
+      setDesignPoints(selectedAssessment.totalPoints || 100);
+    }
+  }, [adminDesignChallenge, selectedAssessmentId]);
 
   if (!isOpen || !event) return null;
 
-  // Filter admin candidates for SuperAdmin selection
+  // Filter candidates
   const filteredCandidates = adminCandidates.filter((cand) => {
     const q = adminSearch.toLowerCase();
     return (
@@ -165,74 +248,110 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     );
   });
 
-  const toggleAdminSelection = (candId: string) => {
+  const toggleEditAdmin = (candId: string) => {
     if (!isSuperAdmin) return;
-    setSelectedAdminIds((prev) =>
+    setEditAssignedAdminIds((prev) =>
       prev.includes(candId) ? prev.filter((id) => id !== candId) : [...prev, candId]
     );
   };
 
-  const handleSaveConfig = async () => {
+  const toggleNewAdmin = (candId: string) => {
+    if (!isSuperAdmin) return;
+    setNewAssignedAdminIds((prev) =>
+      prev.includes(candId) ? prev.filter((id) => id !== candId) : [...prev, candId]
+    );
+  };
+
+  const handleCreateAssessment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) {
+      return toast.error('Please enter an assessment title');
+    }
     try {
-      await updateArenaConfig(event._id, {
-        hasArena,
-        arenaType,
-        arenaStatus,
-        arenaDurationMinutes: Number(arenaDuration),
-        arenaPassingPercentage: Number(arenaPassingScore),
-        ...(isSuperAdmin ? { arenaAdmins: selectedAdminIds } : {}),
+      await createAssessment(event._id, {
+        title: newTitle.trim(),
+        description: newDesc.trim(),
+        type: newType,
+        durationMinutes: Number(newDuration),
+        passingPercentage: Number(newPassingScore),
+        assignedAdmins: newAssignedAdminIds,
       });
-      if (onSuccess) onSuccess();
+      setIsCreatingNew(false);
+      setNewTitle('');
+      setNewDesc('');
+      setNewAssignedAdminIds([]);
     } catch {
-      // toast already shown in store
+      // Error handled in store
     }
   };
 
-  const handleAddMcq = async () => {
-    if (!newQuestionText.trim()) {
-      return toast.error('Please enter question text');
+  const handleSaveAssessmentConfig = async () => {
+    if (!selectedAssessment) return;
+    try {
+      await updateAssessment(event._id, selectedAssessment._id, {
+        title: editTitle.trim(),
+        description: editDesc.trim(),
+        type: editType,
+        status: editStatus,
+        durationMinutes: Number(editDuration),
+        passingPercentage: Number(editPassingScore),
+        assignedAdmins: isSuperAdmin ? editAssignedAdminIds : undefined,
+      });
+    } catch {
+      // Handled in store
     }
-    const filteredOptions = newOptions.map((o) => o.trim()).filter(Boolean);
-    if (filteredOptions.length < 2) {
-      return toast.error('Please provide at least 2 valid options');
-    }
+  };
 
-    const question: ArenaMcqQuestion = {
+  const handleDeleteAssessment = async () => {
+    if (!selectedAssessment) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete assessment "${selectedAssessment.title}"? All questions and student submissions will be removed.`
+      )
+    ) {
+      return;
+    }
+    await deleteAssessment(event._id, selectedAssessment._id);
+  };
+
+  const handleAddMcq = async () => {
+    if (!newQuestionText.trim()) return toast.error('Question text is required');
+    const validOptions = newOptions.filter((opt) => opt.trim() !== '');
+    if (validOptions.length < 2) return toast.error('At least 2 options are required');
+    if (!selectedAssessment) return;
+
+    const newQuestion: ArenaMcqQuestion = {
       question: newQuestionText.trim(),
-      options: filteredOptions,
+      options: newOptions.map((o) => o.trim()),
       correctOptionIndex: newCorrectIndex,
       points: Number(newMcqPoints) || 10,
       explanation: newExplanation.trim(),
     };
 
-    try {
-      await saveArenaMcqs(event._id, [...adminMcqs, question], 'replace');
-      setNewQuestionText('');
-      setNewOptions(['', '', '', '']);
-      setNewCorrectIndex(0);
-      setNewExplanation('');
-      setShowAddMcq(false);
-      toast.success('Question added successfully!');
-    } catch {
-      // error handled
-    }
+    const updated = [...adminMcqs, newQuestion];
+    await saveAssessmentMcqs(event._id, selectedAssessment._id, updated, 'replace');
+
+    // Reset form
+    setNewQuestionText('');
+    setNewOptions(['', '', '', '']);
+    setNewCorrectIndex(0);
+    setNewMcqPoints(10);
+    setNewExplanation('');
+    setShowAddMcq(false);
   };
 
-  const handleDeleteMcq = async (idxToDelete: number) => {
-    if (!window.confirm('Are you sure you want to delete this question?')) return;
-    const updated = adminMcqs.filter((_, idx) => idx !== idxToDelete);
-    try {
-      await saveArenaMcqs(event._id, updated, 'replace');
-      toast.success('Question deleted');
-    } catch {
-      // error handled
-    }
+  const handleDeleteMcq = async (idx: number) => {
+    if (!selectedAssessment) return;
+    if (!window.confirm('Delete this question?')) return;
+    const updated = adminMcqs.filter((_, i) => i !== idx);
+    await saveAssessmentMcqs(event._id, selectedAssessment._id, updated, 'replace');
   };
 
   const handleAddCoding = async () => {
     if (!newCodingTitle.trim() || !newCodingDesc.trim()) {
-      return toast.error('Please provide problem title and description');
+      return toast.error('Problem title and description are required');
     }
+    if (!selectedAssessment) return;
 
     const testCases = [
       {
@@ -250,7 +369,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       });
     }
 
-    const problem: ArenaCodingProblem = {
+    const newProblem: ArenaCodingProblem = {
       title: newCodingTitle.trim(),
       description: newCodingDesc.trim(),
       difficulty: newCodingDiff,
@@ -261,986 +380,1972 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       testCases,
     };
 
-    try {
-      await saveArenaCodingProblems(event._id, [...adminCoding, problem], 'replace');
-      setNewCodingTitle('');
-      setNewCodingDesc('');
-      setNewSampleInput('');
-      setNewSampleOutput('');
-      setNewHiddenInput('');
-      setNewHiddenOutput('');
-      setShowAddCoding(false);
-      toast.success('Coding problem added successfully!');
-    } catch {
-      // error handled
-    }
+    const updated = [...adminCoding, newProblem];
+    await saveAssessmentCodingProblems(event._id, selectedAssessment._id, updated, 'replace');
+
+    // Reset form
+    setNewCodingTitle('');
+    setNewCodingDesc('');
+    setNewCodingPoints(30);
+    setNewSampleInput('');
+    setNewSampleOutput('');
+    setNewHiddenInput('');
+    setNewHiddenOutput('');
+    setShowAddCoding(false);
   };
 
-  const handleDeleteCoding = async (idxToDelete: number) => {
-    if (!window.confirm('Are you sure you want to delete this coding problem?')) return;
-    const updated = adminCoding.filter((_, idx) => idx !== idxToDelete);
-    try {
-      await saveArenaCodingProblems(event._id, updated, 'replace');
-      toast.success('Problem deleted');
-    } catch {
-      // error handled
-    }
+  const handleDeleteCoding = async (idx: number) => {
+    if (!selectedAssessment) return;
+    if (!window.confirm('Delete this coding challenge?')) return;
+    const updated = adminCoding.filter((_, i) => i !== idx);
+    await saveAssessmentCodingProblems(event._id, selectedAssessment._id, updated, 'replace');
   };
 
   const handleBulkUpload = async () => {
-    if (!bulkFile || !bulkModalType) return;
+    if (!bulkFile || !bulkModalType || !selectedAssessment) {
+      return toast.error('Please choose a file to upload');
+    }
+    await bulkUploadAssessmentQuestions(
+      event._id,
+      selectedAssessment._id,
+      bulkFile,
+      bulkModalType,
+      'append'
+    );
+    setBulkModalType(null);
+    setBulkFile(null);
+  };
+
+  const handleSaveDesignChallenge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAssessment) return;
+    if (!designTitle.trim()) {
+      return toast.error('Please enter a challenge title');
+    }
+    if (!designImageUrl.trim()) {
+      return toast.error('Please upload or provide a reference design image');
+    }
+    await saveAssessmentDesignChallenge(event._id, selectedAssessment._id, {
+      title: designTitle.trim(),
+      description: designDesc.trim(),
+      problemStatement: designProblem.trim(),
+      designImageUrl: designImageUrl.trim(),
+      referenceFigmaUrl: designRefFigma.trim(),
+      deliverables: designDeliverables.filter((d) => d.trim()),
+      guidelines: designGuidelines.filter((g) => g.trim()),
+      points: Number(designPoints) || 100,
+    });
+  };
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      return toast.error('Please upload an image file (PNG, JPG, WEBP, etc.)');
+    }
+    setUploadingDesignImg(true);
     try {
-      await bulkUploadArenaQuestions(event._id, bulkFile, bulkModalType, 'append');
-      setBulkModalType(null);
-      setBulkFile(null);
+      const url = await uploadDesignImage(file);
+      setDesignImageUrl(url);
+      toast.success('Design reference image uploaded successfully!');
     } catch {
-      // handled
+      // toast in store
+    } finally {
+      setUploadingDesignImg(false);
     }
   };
 
+  const handleEvaluateSubmit = async () => {
+    if (!selectedAssessment || !evaluatingSub) return;
+    await evaluateAssessmentDesign(
+      event._id,
+      selectedAssessment._id,
+      evaluatingSub._id,
+      {
+        pointsEarned: Number(evalPoints) || 0,
+        feedback: evalFeedback.trim(),
+      }
+    );
+    setEvaluatingSub(null);
+    setEvalPoints(0);
+    setEvalFeedback('');
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-3 sm:p-5 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden bg-black/80 backdrop-blur-md">
       <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 12 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-5xl my-auto bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[90vh] max-h-[90vh]"
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="w-full max-w-5xl h-[92vh] flex flex-col rounded-2xl bg-[#0F0F12] border border-white/10 shadow-2xl overflow-hidden text-text-primary"
       >
-        {/* ================================================================= */}
-        {/* MODAL HEADER                                                      */}
-        {/* ================================================================= */}
-        <div className="p-5 sm:p-6 border-b border-separator dark:border-white/10 bg-canvas/40 dark:bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border border-indigo-500/30 bg-gradient-to-br from-indigo-500/20 via-purple-500/15 to-pink-500/20 text-indigo-500 shadow-sm">
-              <Sparkles size={24} />
+        {/* Top Header */}
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+              <Sparkles size={20} />
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-black text-label-primary dark:text-[#F5F5F7] tracking-tight font-heading">
-                  Event Arena Hub
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25">
-                  {event.title}
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold tracking-tight text-white">Event Arena Assessments</h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 uppercase">
+                  Admin Panel
                 </span>
-                {hasArena && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Arena Active
-                  </span>
-                )}
               </div>
-              <p className="text-xs text-label-secondary dark:text-[#86868B] font-medium mt-0.5">
-                Configure assessments, upload coding/MCQ questions, and manage author access.
+              <p className="text-xs text-text-muted mt-0.5 truncate max-w-lg">
+                {event.title} • Multi-Assessment Management & Assigned Admins
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas dark:hover:bg-white/10 transition-colors cursor-pointer self-start sm:self-auto shrink-0"
-            title="Close"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-white hover:bg-white/10 transition-colors"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Clear Authorization Banner */}
-        <div className="px-6 py-2.5 bg-canvas/60 dark:bg-white/[0.015] border-b border-separator dark:border-white/5 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            {isSuperAdmin ? (
-              <span className="inline-flex items-center gap-1.5 font-bold text-purple-600 dark:text-purple-400">
-                <Crown size={15} />
-                <span>SuperAdmin Master Authorization: Full Access & Admin Assignment</span>
-              </span>
-            ) : isAssignedAdmin ? (
-              <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
-                <ShieldCheck size={15} />
-                <span>Designated Question Coordinator: Authorized by SuperAdmin to manage questions</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400">
-                <AlertCircle size={15} />
-                <span>View Only: Question management restricted to SuperAdmin & designated Arena Admins</span>
-              </span>
-            )}
+        {/* Assessment Switcher Bar */}
+        <div className="px-6 py-2.5 border-b border-white/10 bg-white/[0.01] flex items-center justify-between gap-3 overflow-x-auto shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto py-1">
+            <span className="text-xs font-semibold text-text-muted shrink-0 flex items-center gap-1.5 mr-1">
+              <Layers size={13} className="text-purple-400" />
+              <span>Assessments:</span>
+            </span>
+
+            {assessments.map((asm) => {
+              const isSelected = !isCreatingNew && selectedAssessment?._id === asm._id;
+              return (
+                <button
+                  key={asm._id}
+                  onClick={() => {
+                    setIsCreatingNew(false);
+                    setSelectedAssessment(asm);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 shrink-0 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/5'
+                  }`}
+                >
+                  <span className="truncate max-w-[150px]">{asm.title}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded text-[10px] uppercase font-mono ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
+                    }`}
+                  >
+                    {asm.type}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] text-label-secondary">
-            <span>MCQs: <strong>{adminMcqs.length}</strong></span>
-            <span>•</span>
-            <span>Coding: <strong>{adminCoding.length}</strong></span>
-          </div>
-        </div>
-
-        {/* ================================================================= */}
-        {/* SEGMENTED NAVIGATION TABS                                         */}
-        {/* ================================================================= */}
-        <div className="flex items-center gap-1 px-6 pt-3 border-b border-separator dark:border-white/5 bg-surface dark:bg-[#121214] shrink-0 overflow-x-auto">
           <button
-            onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'settings'
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-label-secondary hover:text-label-primary'
+            onClick={() => setIsCreatingNew(true)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+              isCreatingNew
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                : 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
             }`}
           >
-            <Settings size={15} />
-            <span>Settings & Assigned Admins</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('mcq')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'mcq'
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-label-secondary hover:text-label-primary'
-            }`}
-          >
-            <HelpCircle size={15} />
-            <span>MCQ Questions ({adminMcqs.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('coding')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'coding'
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-label-secondary hover:text-label-primary'
-            }`}
-          >
-            <Code2 size={15} />
-            <span>Coding Challenges ({adminCoding.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('submissions')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'submissions'
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-label-secondary hover:text-label-primary'
-            }`}
-          >
-            <Award size={15} />
-            <span>Submissions ({adminSubmissions.length})</span>
+            <Plus size={14} />
+            <span>Create Assessment</span>
           </button>
         </div>
 
-        {/* ================================================================= */}
-        {/* MODAL BODY (SCROLLABLE)                                           */}
-        {/* ================================================================= */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
-          {/* TAB 1: SETTINGS & ASSIGNED ADMINS */}
-          {activeTab === 'settings' && (
-            <div className="space-y-6 max-w-4xl mx-auto">
-              <div className="p-4 sm:p-5 rounded-2xl bg-canvas/50 dark:bg-white/[0.02] border border-separator dark:border-white/10 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-label-primary dark:text-white">
-                      Enable Event Arena Assessments
-                    </h3>
-                    <p className="text-xs text-label-secondary mt-0.5">
-                      Allow enrolled participants to enter the Event Arena to complete coding and MCQ assessments.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasArena}
-                      onChange={(e) => setHasArena(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-300 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+        {/* Main Body */}
+        {isCreatingNew ? (
+          /* CREATE NEW ASSESSMENT VIEW */
+          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Plus size={16} className="text-emerald-400" />
+                    <span>Create a New Arena Assessment</span>
+                  </h3>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Add another round or assessment (e.g. Round 1 MCQ, Round 2 Coding) and assign admins.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingNew(false)}
+                  className="text-xs text-text-muted hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateAssessment} className="space-y-5">
+                <div>
+                  <label className="block text-xs font-bold text-white/80 mb-1.5">
+                    Assessment Title <span className="text-rose-400">*</span>
                   </label>
+                  <input
+                    type="text"
+                    required
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="e.g. Round 1: Screening Test or Coding Finale"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-purple-500 outline-none"
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-separator dark:border-white/5">
+                <div>
+                  <label className="block text-xs font-bold text-white/80 mb-1.5">Description</label>
+                  <textarea
+                    rows={2}
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    placeholder="Short description or guidelines for this assessment..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-purple-500 outline-none resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-label-primary dark:text-white mb-1.5">
-                      Assessment Format
-                    </label>
+                    <label className="block text-xs font-bold text-white/80 mb-1.5">Assessment Type</label>
                     <select
-                      value={arenaType}
-                      onChange={(e) => setArenaType(e.target.value as any)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs font-semibold text-label-primary dark:text-white outline-none focus:border-indigo-500"
+                      value={newType}
+                      onChange={(e) => setNewType(e.target.value as any)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none"
                     >
                       <option value="HYBRID">Hybrid (MCQ + Coding)</option>
+                      <option value="MCQ">MCQ Questions Only</option>
                       <option value="CODING">Coding Challenges Only</option>
-                      <option value="MCQ">MCQ Assessment Only</option>
+                      <option value="UI_UX">🎨 UI/UX Design (Figma)</option>
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-xs font-bold text-label-primary dark:text-white mb-1.5">
-                      Duration (Minutes)
-                    </label>
+                    <label className="block text-xs font-bold text-white/80 mb-1.5">Duration (Minutes)</label>
                     <input
                       type="number"
                       min={5}
-                      max={360}
-                      value={arenaDuration}
-                      onChange={(e) => setArenaDuration(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs font-semibold text-label-primary dark:text-white outline-none focus:border-indigo-500"
+                      value={newDuration}
+                      onChange={(e) => setNewDuration(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-xs font-bold text-label-primary dark:text-white mb-1.5">
-                      Passing Score (%)
-                    </label>
+                    <label className="block text-xs font-bold text-white/80 mb-1.5">Passing Score (%)</label>
                     <input
                       type="number"
                       min={0}
                       max={100}
-                      value={arenaPassingScore}
-                      onChange={(e) => setArenaPassingScore(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs font-semibold text-label-primary dark:text-white outline-none focus:border-indigo-500"
+                      value={newPassingScore}
+                      onChange={(e) => setNewPassingScore(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* SECTION: SUPERADMIN ASSIGN QUESTION COORDINATORS */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-canvas/50 dark:bg-white/[0.02] border border-separator dark:border-white/10 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Users size={16} className="text-purple-500" />
-                      <h3 className="text-sm font-bold text-label-primary dark:text-white">
-                        Designated Arena Question Authors (Admins)
-                      </h3>
-                      {isSuperAdmin && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                          SuperAdmin Control
-                        </span>
-                      )}
+                {/* Assigned Admins Selector */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Users size={14} className="text-purple-400" />
+                        <span>Assign Assessment Admins</span>
+                      </label>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        Selected admins will have exclusive authority to create and manage questions for this assessment.
+                      </p>
                     </div>
-                    <p className="text-xs text-label-secondary mt-0.5">
-                      {isSuperAdmin
-                        ? 'Select which Admins / Faculty members have authority to upload and curate questions for this Event Arena.'
-                        : 'Only the Admins selected by SuperAdmin below are permitted to upload or edit questions.'}
-                    </p>
+                    {isSuperAdmin && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                        SuperAdmin Control
+                      </span>
+                    )}
                   </div>
 
-                  {isSuperAdmin && (
-                    <div className="relative w-full sm:w-64">
-                      <Search
-                        size={14}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-label-secondary"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Search admins..."
-                        value={adminSearch}
-                        onChange={(e) => setAdminSearch(e.target.value)}
-                        className="w-full pl-9 pr-3.5 py-1.5 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs outline-none focus:border-purple-500 text-label-primary dark:text-white"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Selected Admins Pill Display */}
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {selectedAdminIds.length === 0 ? (
-                    <p className="text-xs text-label-secondary italic">
-                      No designated admins assigned yet. Only SuperAdmins can currently upload questions.
-                    </p>
-                  ) : (
-                    adminCandidates
-                      .filter((c) => selectedAdminIds.includes(c._id))
-                      .map((admin) => (
-                        <span
-                          key={admin._id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/25 shadow-sm"
-                        >
-                          <ShieldCheck size={13} />
-                          <span>{admin.name}</span>
-                          <span className="text-[10px] text-purple-500/80">({admin.role})</span>
-                          {isSuperAdmin && (
-                            <button
-                              type="button"
-                              onClick={() => toggleAdminSelection(admin._id)}
-                              className="ml-1 hover:text-red-500 cursor-pointer"
-                              title="Remove access"
-                            >
-                              <X size={13} />
-                            </button>
-                          )}
-                        </span>
-                      ))
-                  )}
-                </div>
-
-                {/* SuperAdmin Selection Grid */}
-                {isSuperAdmin && (
-                  <div className="pt-3 border-t border-separator dark:border-white/5">
-                    <p className="text-[11px] font-bold text-label-secondary mb-2 uppercase tracking-wider">
-                      Available Administrators & Faculty ({filteredCandidates.length})
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto pr-1">
-                      {filteredCandidates.map((cand) => {
-                        const isSelected = selectedAdminIds.includes(cand._id);
-                        return (
-                          <div
-                            key={cand._id}
-                            onClick={() => toggleAdminSelection(cand._id)}
-                            className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                              isSelected
-                                ? 'bg-purple-500/10 border-purple-500/40 text-purple-900 dark:text-purple-200'
-                                : 'bg-surface dark:bg-[#1C1C1E] border-separator dark:border-white/5 hover:border-separator-active text-label-primary dark:text-white'
-                            }`}
-                          >
-                            <div className="truncate">
-                              <p className="text-xs font-bold truncate">{cand.name}</p>
-                              <p className="text-[11px] text-label-secondary truncate">{cand.email}</p>
-                              <span className="text-[10px] text-label-secondary font-medium">
-                                {cand.role} {cand.department ? `• ${cand.department}` : ''}
-                              </span>
-                            </div>
-                            <div
-                              className={`w-5 h-5 rounded-lg flex items-center justify-center border shrink-0 ml-2 transition-colors ${
-                                isSelected
-                                  ? 'bg-purple-600 border-purple-600 text-white'
-                                  : 'border-separator'
-                              }`}
-                            >
-                              {isSelected && <Check size={12} strokeWidth={3} />}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Save Settings Button */}
-              <div className="flex justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={handleSaveConfig}
-                  disabled={actionLoading}
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {actionLoading ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-                  <span>Save Arena Configuration</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: MCQ QUESTIONS */}
-          {activeTab === 'mcq' && (
-            <div className="space-y-5">
-              {/* Actions Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-canvas/40 dark:bg-white/[0.02] border border-separator dark:border-white/10">
-                <div className="flex items-center gap-2">
-                  <HelpCircle size={18} className="text-indigo-500" />
-                  <span className="text-sm font-bold text-label-primary dark:text-white">
-                    MCQ Question Bank ({adminMcqs.length})
-                  </span>
-                  <span className="text-xs text-label-secondary">
-                    Total MCQ Points: {adminMcqs.reduce((s, q) => s + (q.points || 10), 0)}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => downloadArenaTemplate(event._id, 'mcq')}
-                    className="px-3 py-1.5 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs font-semibold text-label-primary dark:text-white hover:bg-canvas transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download size={13} />
-                    <span>Download Template</span>
-                  </button>
-
-                  {canEditQuestions && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setBulkModalType('mcq')}
-                        className="px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25 text-xs font-semibold hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <FileSpreadsheet size={13} />
-                        <span>Bulk Upload MCQs</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowAddMcq(!showAddMcq)}
-                        className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Plus size={13} />
-                        <span>{showAddMcq ? 'Cancel' : 'Add MCQ'}</span>
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Add MCQ Form */}
-              {showAddMcq && canEditQuestions && (
-                <div className="p-5 rounded-2xl bg-surface-raised dark:bg-[#18181A] border border-indigo-500/30 space-y-4 shadow-lg">
-                  <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-wider">
-                    Add New Multiple Choice Question
-                  </h4>
-
-                  <div>
-                    <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                      Question Text
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={newQuestionText}
-                      onChange={(e) => setNewQuestionText(e.target.value)}
-                      placeholder="Enter the question statement..."
-                      className="w-full p-3 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs outline-none focus:border-indigo-500 text-label-primary dark:text-white"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {newOptions.map((opt, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setNewCorrectIndex(i)}
-                          className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 border transition-colors ${
-                            newCorrectIndex === i
-                              ? 'bg-emerald-500 border-emerald-500 text-white'
-                              : 'bg-surface dark:bg-[#121214] border-separator text-label-secondary'
-                          }`}
-                          title={newCorrectIndex === i ? 'Correct Option' : 'Mark as Correct'}
-                        >
-                          {String.fromCharCode(65 + i)}
-                        </button>
+                  {isSuperAdmin ? (
+                    <div className="space-y-3 p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                      <div className="relative">
+                        <Search
+                          size={14}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
+                        />
                         <input
                           type="text"
-                          value={opt}
-                          onChange={(e) => {
-                            const updated = [...newOptions];
-                            updated[i] = e.target.value;
-                            setNewOptions(updated);
-                          }}
-                          placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                          className="w-full px-3 py-2 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs outline-none focus:border-indigo-500 text-label-primary dark:text-white"
+                          value={adminSearch}
+                          onChange={(e) => setAdminSearch(e.target.value)}
+                          placeholder="Search admins by name, email, roll number..."
+                          className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 outline-none"
                         />
                       </div>
-                    ))}
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <div>
-                      <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                        Points
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={newMcqPoints}
-                        onChange={(e) => setNewMcqPoints(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs text-label-primary dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                        Explanation (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={newExplanation}
-                        onChange={(e) => setNewExplanation(e.target.value)}
-                        placeholder="Brief explanation for students after grading..."
-                        className="w-full px-3 py-2 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs text-label-primary dark:text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddMcq(false)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAddMcq}
-                      className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md"
-                    >
-                      Save Question
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Questions List */}
-              {adminMcqs.length === 0 ? (
-                <div className="p-8 text-center border border-dashed border-separator dark:border-white/10 rounded-2xl">
-                  <HelpCircle size={32} className="mx-auto text-label-secondary mb-2" />
-                  <p className="text-xs font-bold text-label-primary dark:text-white">
-                    No MCQ Questions Added Yet
-                  </p>
-                  <p className="text-[11px] text-label-secondary mt-1">
-                    Upload questions in bulk via Excel or add them manually using the button above.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {adminMcqs.map((q, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-2xl bg-canvas/40 dark:bg-white/[0.02] border border-separator dark:border-white/10 space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <span className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 border border-indigo-500/20">
-                            {idx + 1}
-                          </span>
-                          <div>
-                            <p className="text-xs font-bold text-label-primary dark:text-white">
-                              {q.question}
-                            </p>
-                            <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 text-indigo-600">
-                              {q.points || 10} Points
-                            </span>
-                          </div>
-                        </div>
-
-                        {canEditQuestions && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMcq(idx)}
-                            className="p-1.5 rounded-lg text-label-secondary hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
-                            title="Delete Question"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 pl-8">
-                        {q.options.map((opt, optIdx) => {
-                          const isCorrect = q.correctOptionIndex === optIdx;
+                      <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                        {filteredCandidates.map((cand) => {
+                          const isAssigned = newAssignedAdminIds.includes(cand._id);
                           return (
                             <div
-                              key={optIdx}
-                              className={`p-2 rounded-xl text-xs flex items-center gap-2 border ${
-                                isCorrect
-                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-semibold'
-                                  : 'bg-surface dark:bg-[#1C1C1E] border-separator text-label-secondary'
+                              key={cand._id}
+                              onClick={() => toggleNewAdmin(cand._id)}
+                              className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                                isAssigned
+                                  ? 'bg-purple-500/15 border-purple-500/40 text-white'
+                                  : 'bg-white/[0.02] border-white/5 hover:border-white/15 text-white/70'
                               }`}
                             >
-                              <span className="font-bold">{String.fromCharCode(65 + optIdx)}.</span>
-                              <span className="truncate">{opt}</span>
-                              {isCorrect && (
-                                <span className="ml-auto text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                                  ✓ Correct
-                                </span>
-                              )}
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/10 shrink-0">
+                                  <img
+                                    src={
+                                      cand.profilePicUrl ||
+                                      `https://ui-avatars.com/api/?name=${cand.name}&background=1D1D1F&color=fff&size=80`
+                                    }
+                                    alt={cand.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-xs font-bold">{cand.name}</p>
+                                  <p className="text-[10px] text-text-muted">
+                                    {cand.email} • {cand.role} {cand.department ? `(${cand.department})` : ''}
+                                  </p>
+                                </div>
+                              </div>
+                              <div
+                                className={`w-5 h-5 rounded-md flex items-center justify-center border ${
+                                  isAssigned
+                                    ? 'bg-purple-600 border-purple-500 text-white'
+                                    : 'border-white/20'
+                                }`}
+                              >
+                                {isAssigned && <Check size={12} />}
+                              </div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 3: CODING PROBLEMS */}
-          {activeTab === 'coding' && (
-            <div className="space-y-5">
-              {/* Actions Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-canvas/40 dark:bg-white/[0.02] border border-separator dark:border-white/10">
-                <div className="flex items-center gap-2">
-                  <Code2 size={18} className="text-purple-500" />
-                  <span className="text-sm font-bold text-label-primary dark:text-white">
-                    Coding Challenges ({adminCoding.length})
-                  </span>
-                  <span className="text-xs text-label-secondary">
-                    Total Coding Points: {adminCoding.reduce((s, p) => s + (p.points || 30), 0)}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => downloadArenaTemplate(event._id, 'coding')}
-                    className="px-3 py-1.5 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs font-semibold text-label-primary dark:text-white hover:bg-canvas transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download size={13} />
-                    <span>Download Template</span>
-                  </button>
-
-                  {canEditQuestions && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setBulkModalType('coding')}
-                        className="px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/25 text-xs font-semibold hover:bg-purple-500/20 transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <FileSpreadsheet size={13} />
-                        <span>Bulk Upload Coding</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowAddCoding(!showAddCoding)}
-                        className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Plus size={13} />
-                        <span>{showAddCoding ? 'Cancel' : 'Add Problem'}</span>
-                      </button>
-                    </>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-text-muted">
+                      Admin assignment is managed by SuperAdmin.
+                    </div>
                   )}
                 </div>
+
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingNew(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {actionLoading && <Loader2 size={13} className="animate-spin" />}
+                    <span>Create Assessment</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : selectedAssessment ? (
+          /* SELECTED ASSESSMENT WORKSPACE */
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Assessment Sub-Navigation */}
+            <div className="px-6 py-2.5 border-b border-white/10 bg-white/[0.015] flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    activeTab === 'settings'
+                      ? 'bg-white/15 text-white'
+                      : 'text-text-muted hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Settings size={13} />
+                  <span>Config & Assigned Admins</span>
+                </button>
+
+                {(selectedAssessment.type === 'MCQ' || selectedAssessment.type === 'HYBRID') && (
+                  <button
+                    onClick={() => setActiveTab('mcq')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      activeTab === 'mcq'
+                        ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30'
+                        : 'text-text-muted hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <HelpCircle size={13} />
+                    <span>MCQs ({adminMcqs.length})</span>
+                  </button>
+                )}
+
+                {(selectedAssessment.type === 'CODING' || selectedAssessment.type === 'HYBRID') && (
+                  <button
+                    onClick={() => setActiveTab('coding')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      activeTab === 'coding'
+                        ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
+                        : 'text-text-muted hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Code2 size={13} />
+                    <span>Coding Challenges ({adminCoding.length})</span>
+                  </button>
+                )}
+
+                {selectedAssessment.type === 'UI_UX' && (
+                  <button
+                    onClick={() => setActiveTab('design')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      activeTab === 'design'
+                        ? 'bg-gradient-to-r from-pink-600/30 to-purple-600/30 text-pink-300 border border-pink-500/40 shadow-sm shadow-pink-500/20'
+                        : 'text-text-muted hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Palette size={13} className="text-pink-400" />
+                    <span>🎨 UI/UX Design Challenge</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setActiveTab('submissions')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    activeTab === 'submissions'
+                      ? 'bg-white/15 text-white'
+                      : 'text-text-muted hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Award size={13} />
+                  <span>Submissions ({adminSubmissions.length})</span>
+                </button>
               </div>
 
-              {/* Add Coding Problem Form */}
-              {showAddCoding && canEditQuestions && (
-                <div className="p-5 rounded-2xl bg-surface-raised dark:bg-[#18181A] border border-purple-500/30 space-y-4 shadow-lg">
-                  <h4 className="text-xs font-bold text-purple-500 uppercase tracking-wider">
-                    Add New Coding Challenge
-                  </h4>
+              {/* Status Indicator & Assigned Admins summary */}
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-1.5 overflow-hidden">
+                  {(selectedAssessment.assignedAdmins || []).slice(0, 3).map((adm: any) => (
+                    <img
+                      key={adm._id || adm}
+                      title={adm.name || 'Assigned Admin'}
+                      src={
+                        adm.profilePicUrl ||
+                        `https://ui-avatars.com/api/?name=${adm.name || 'Admin'}&background=7C3AED&color=fff&size=60`
+                      }
+                      className="w-5 h-5 rounded-full border border-black object-cover"
+                    />
+                  ))}
+                </div>
+                {canManageSelected ? (
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                    Authorized Editor
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                    View Only
+                  </span>
+                )}
+              </div>
+            </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                        Problem Title
-                      </label>
-                      <input
-                        type="text"
-                        value={newCodingTitle}
-                        onChange={(e) => setNewCodingTitle(e.target.value)}
-                        placeholder="e.g. Reverse Linked List, Maximum Subarray..."
-                        className="w-full px-3 py-2 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs outline-none focus:border-purple-500 text-label-primary dark:text-white"
+            {/* Sub-Tab Contents */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* TAB 1: CONFIG & ASSIGNED ADMINS */}
+              {activeTab === 'settings' && (
+                <div className="max-w-3xl mx-auto space-y-6">
+                  <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-5">
+                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Assessment Information</h3>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Configure title, type, duration and passing criteria
+                        </p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                        {selectedAssessment.totalPoints} Points Total
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">Assessment Title</label>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none focus:border-purple-500 disabled:opacity-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">Status</label>
+                        <select
+                          value={editStatus}
+                          onChange={(e) => setEditStatus(e.target.value as any)}
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                        >
+                          <option value="LIVE">Live (Open for students)</option>
+                          <option value="UPCOMING">Upcoming</option>
+                          <option value="DRAFT">Draft</option>
+                          <option value="ENDED">Ended</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-white/80 mb-1.5">Description</label>
+                      <textarea
+                        rows={2}
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        disabled={!canManageSelected}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none resize-none disabled:opacity-50"
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                        Difficulty & Points
-                      </label>
-                      <div className="flex gap-2">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">Type</label>
                         <select
-                          value={newCodingDiff}
-                          onChange={(e) => setNewCodingDiff(e.target.value as any)}
-                          className="w-1/2 px-2.5 py-2 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs font-semibold outline-none text-label-primary dark:text-white"
+                          value={editType}
+                          onChange={(e) => setEditType(e.target.value as any)}
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none disabled:opacity-50"
                         >
-                          <option value="Easy">Easy</option>
-                          <option value="Medium">Medium</option>
-                          <option value="Hard">Hard</option>
+                          <option value="HYBRID">Hybrid (MCQ + Coding)</option>
+                          <option value="MCQ">MCQ Questions Only</option>
+                          <option value="CODING">Coding Challenges Only</option>
+                          <option value="UI_UX">🎨 UI/UX Design (Figma)</option>
                         </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">Duration (Mins)</label>
                         <input
                           type="number"
-                          value={newCodingPoints}
-                          onChange={(e) => setNewCodingPoints(Number(e.target.value))}
-                          className="w-1/2 px-2.5 py-2 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs outline-none text-label-primary dark:text-white"
+                          min={5}
+                          value={editDuration}
+                          onChange={(e) => setEditDuration(Number(e.target.value))}
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">Passing %</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={editPassingScore}
+                          onChange={(e) => setEditPassingScore(Number(e.target.value))}
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                      Problem Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={newCodingDesc}
-                      onChange={(e) => setNewCodingDesc(e.target.value)}
-                      placeholder="Explain the problem statement, constraints, and requirements..."
-                      className="w-full p-3 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs outline-none focus:border-purple-500 text-label-primary dark:text-white"
-                    />
+                  {/* Assigned Admins for this Assessment */}
+                  <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                      <div>
+                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                          <Crown size={15} className="text-amber-400" />
+                          <span>Assigned Assessment Admins</span>
+                        </h3>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Admins selected here have exclusive permission to upload questions to this assessment.
+                        </p>
+                      </div>
+                      {isSuperAdmin && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                          SuperAdmin Assigning
+                        </span>
+                      )}
+                    </div>
+
+                    {isSuperAdmin ? (
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <Search
+                            size={14}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
+                          />
+                          <input
+                            type="text"
+                            value={adminSearch}
+                            onChange={(e) => setAdminSearch(e.target.value)}
+                            placeholder="Search admin name, email, roll number..."
+                            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 outline-none"
+                          />
+                        </div>
+
+                        <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                          {filteredCandidates.map((cand) => {
+                            const isAssigned = editAssignedAdminIds.includes(cand._id);
+                            return (
+                              <div
+                                key={cand._id}
+                                onClick={() => toggleEditAdmin(cand._id)}
+                                className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                                  isAssigned
+                                    ? 'bg-purple-500/15 border-purple-500/40 text-white'
+                                    : 'bg-white/[0.02] border-white/5 hover:border-white/15 text-white/70'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/10 shrink-0">
+                                    <img
+                                      src={
+                                        cand.profilePicUrl ||
+                                        `https://ui-avatars.com/api/?name=${cand.name}&background=1D1D1F&color=fff&size=80`
+                                      }
+                                      alt={cand.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-xs font-bold">{cand.name}</p>
+                                    <p className="text-[10px] text-text-muted">
+                                      {cand.email} • {cand.role} {cand.department ? `(${cand.department})` : ''}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div
+                                  className={`w-5 h-5 rounded-md flex items-center justify-center border ${
+                                    isAssigned
+                                      ? 'bg-purple-600 border-purple-500 text-white'
+                                      : 'border-white/20'
+                                  }`}
+                                >
+                                  {isAssigned && <Check size={12} />}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {(selectedAssessment.assignedAdmins || []).length > 0 ? (
+                          (selectedAssessment.assignedAdmins || []).map((adm: any) => (
+                            <div
+                              key={adm._id || adm}
+                              className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-xs"
+                            >
+                              <div className="w-5 h-5 rounded-full overflow-hidden bg-purple-500/20 shrink-0">
+                                <img
+                                  src={
+                                    adm.profilePicUrl ||
+                                    `https://ui-avatars.com/api/?name=${adm.name || 'Admin'}&background=7C3AED&color=fff&size=40`
+                                  }
+                                  alt={adm.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <span className="font-semibold text-white">{adm.name || 'Admin'}</span>
+                              <span className="text-[10px] text-text-muted">{adm.role}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-text-muted italic">No admins specifically assigned yet.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                        Sample Input (Public Test Case)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={newSampleInput}
-                        onChange={(e) => setNewSampleInput(e.target.value)}
-                        placeholder="e.g. 5&#10;1 2 3 4 5"
-                        className="w-full p-2.5 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs font-mono outline-none text-label-primary dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                        Sample Expected Output
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={newSampleOutput}
-                        onChange={(e) => setNewSampleOutput(e.target.value)}
-                        placeholder="e.g. 15"
-                        className="w-full p-2.5 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs font-mono outline-none text-label-primary dark:text-white"
-                      />
-                    </div>
-                  </div>
+                  {/* Actions */}
+                  <div className="flex items-center justify-between pt-2">
+                    {isSuperAdmin && (
+                      <button
+                        type="button"
+                        onClick={handleDeleteAssessment}
+                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 flex items-center gap-1.5 transition-colors"
+                      >
+                        <Trash2 size={13} />
+                        <span>Delete Assessment</span>
+                      </button>
+                    )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                        Hidden Input (Evaluation Test Case)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={newHiddenInput}
-                        onChange={(e) => setNewHiddenInput(e.target.value)}
-                        placeholder="e.g. 100&#10;..."
-                        className="w-full p-2.5 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs font-mono outline-none text-label-primary dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-label-primary dark:text-white mb-1">
-                        Hidden Expected Output
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={newHiddenOutput}
-                        onChange={(e) => setNewHiddenOutput(e.target.value)}
-                        placeholder="Expected output for hidden evaluation..."
-                        className="w-full p-2.5 rounded-xl bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 text-xs font-mono outline-none text-label-primary dark:text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddCoding(false)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAddCoding}
-                      className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md"
-                    >
-                      Save Problem
-                    </button>
+                    {canManageSelected && (
+                      <button
+                        type="button"
+                        onClick={handleSaveAssessmentConfig}
+                        disabled={actionLoading}
+                        className="ml-auto px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {actionLoading && <Loader2 size={13} className="animate-spin" />}
+                        <span>Save Changes</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Problems List */}
-              {adminCoding.length === 0 ? (
-                <div className="p-8 text-center border border-dashed border-separator dark:border-white/10 rounded-2xl">
-                  <Code2 size={32} className="mx-auto text-label-secondary mb-2" />
-                  <p className="text-xs font-bold text-label-primary dark:text-white">
-                    No Coding Challenges Added Yet
-                  </p>
-                  <p className="text-[11px] text-label-secondary mt-1">
-                    Upload coding problems in bulk via Excel or create them manually using the button above.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {adminCoding.map((p, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-2xl bg-canvas/40 dark:bg-white/[0.02] border border-separator dark:border-white/10 space-y-2"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0 border border-purple-500/20">
-                            {idx + 1}
-                          </span>
+              {/* TAB 2: MCQ QUESTIONS */}
+              {activeTab === 'mcq' && (
+                <div className="space-y-6">
+                  {/* Action Bar */}
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                        <HelpCircle size={18} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">MCQ Question Bank</h4>
+                        <p className="text-xs text-text-muted">
+                          {adminMcqs.length} Questions • Total {adminMcqs.reduce((s, q) => s + (q.points || 10), 0)} Points
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => downloadArenaTemplate(event._id, 'mcq')}
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-colors"
+                      >
+                        <Download size={13} />
+                        <span>Sample Template</span>
+                      </button>
+
+                      {canManageSelected && (
+                        <>
+                          <button
+                            onClick={() => setBulkModalType('mcq')}
+                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-colors"
+                          >
+                            <Upload size={13} />
+                            <span>Bulk Upload Excel</span>
+                          </button>
+
+                          <button
+                            onClick={() => setShowAddMcq(!showAddMcq)}
+                            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all"
+                          >
+                            <Plus size={14} />
+                            <span>Add Question</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Manual Add MCQ Form */}
+                  <AnimatePresence>
+                    {showAddMcq && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="p-5 rounded-2xl bg-white/[0.03] border border-purple-500/30 space-y-4 overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                          <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                            <Plus size={14} className="text-purple-400" />
+                            <span>Add New Multiple Choice Question</span>
+                          </h4>
+                          <button
+                            onClick={() => setShowAddMcq(false)}
+                            className="text-text-muted hover:text-white"
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-white/80 mb-1.5">Question Text</label>
+                          <textarea
+                            rows={2}
+                            value={newQuestionText}
+                            onChange={(e) => setNewQuestionText(e.target.value)}
+                            placeholder="Enter the question prompt..."
+                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 outline-none resize-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {newOptions.map((opt, optIdx) => (
+                            <div key={optIdx} className="space-y-1">
+                              <label className="flex items-center justify-between text-[11px] font-bold text-white/70">
+                                <span>Option {String.fromCharCode(65 + optIdx)}</span>
+                                <label className="flex items-center gap-1 text-emerald-400 cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name="correctOption"
+                                    checked={newCorrectIndex === optIdx}
+                                    onChange={() => setNewCorrectIndex(optIdx)}
+                                    className="accent-purple-500 cursor-pointer"
+                                  />
+                                  <span>Correct Answer</span>
+                                </label>
+                              </label>
+                              <input
+                                type="text"
+                                value={opt}
+                                onChange={(e) => {
+                                  const updated = [...newOptions];
+                                  updated[optIdx] = e.target.value;
+                                  setNewOptions(updated);
+                                }}
+                                placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none focus:border-purple-500"
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-xs font-bold text-label-primary dark:text-white">
-                                {p.title}
-                              </h4>
+                            <label className="block text-xs font-bold text-white/80 mb-1">Points</label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={newMcqPoints}
+                              onChange={(e) => setNewMcqPoints(Number(e.target.value))}
+                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-xs font-bold text-white/80 mb-1">Explanation (Optional)</label>
+                            <input
+                              type="text"
+                              value={newExplanation}
+                              onChange={(e) => setNewExplanation(e.target.value)}
+                              placeholder="Explanation shown after submission..."
+                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button
+                            onClick={() => setShowAddMcq(false)}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleAddMcq}
+                            disabled={actionLoading}
+                            className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5"
+                          >
+                            {actionLoading && <Loader2 size={12} className="animate-spin" />}
+                            <span>Save Question</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* List of MCQs */}
+                  <div className="space-y-3">
+                    {adminMcqs.length === 0 ? (
+                      <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-2">
+                        <HelpCircle size={28} className="mx-auto text-white/30" />
+                        <h4 className="text-sm font-bold text-white">No MCQ Questions Yet</h4>
+                        <p className="text-xs text-text-muted max-w-sm mx-auto">
+                          Click "Add Question" above or upload an Excel file containing questions and options.
+                        </p>
+                      </div>
+                    ) : (
+                      adminMcqs.map((q, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/15 transition-all space-y-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2.5">
+                              <span className="w-6 h-6 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-400 text-xs font-bold flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <div>
+                                <h5 className="text-xs font-bold text-white leading-relaxed">{q.question}</h5>
+                                {q.explanation && (
+                                  <p className="text-[11px] text-text-muted italic mt-1">{q.explanation}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-white/80">
+                                {q.points || 10} pts
+                              </span>
+                              {canManageSelected && (
+                                <button
+                                  onClick={() => handleDeleteMcq(idx)}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 pl-8">
+                            {q.options.map((opt, optIdx) => {
+                              const isCorrect = q.correctOptionIndex === optIdx;
+                              return (
+                                <div
+                                  key={optIdx}
+                                  className={`px-3 py-1.5 rounded-lg border text-xs flex items-center justify-between ${
+                                    isCorrect
+                                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold'
+                                      : 'bg-white/[0.01] border-white/5 text-white/70'
+                                  }`}
+                                >
+                                  <span>
+                                    {String.fromCharCode(65 + optIdx)}. {opt}
+                                  </span>
+                                  {isCorrect && (
+                                    <span className="text-[10px] uppercase font-bold text-emerald-400 flex items-center gap-1">
+                                      <CheckCircle2 size={11} />
+                                      <span>Correct</span>
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: CODING CHALLENGES */}
+              {activeTab === 'coding' && (
+                <div className="space-y-6">
+                  {/* Action Bar */}
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                        <Code2 size={18} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Coding Challenges</h4>
+                        <p className="text-xs text-text-muted">
+                          {adminCoding.length} Problems • Total{' '}
+                          {adminCoding.reduce((s, p) => s + (p.points || 30), 0)} Points
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => downloadArenaTemplate(event._id, 'coding')}
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-colors"
+                      >
+                        <Download size={13} />
+                        <span>Sample Template</span>
+                      </button>
+
+                      {canManageSelected && (
+                        <>
+                          <button
+                            onClick={() => setBulkModalType('coding')}
+                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-colors"
+                          >
+                            <Upload size={13} />
+                            <span>Bulk Upload Excel</span>
+                          </button>
+
+                          <button
+                            onClick={() => setShowAddCoding(!showAddCoding)}
+                            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
+                          >
+                            <Plus size={14} />
+                            <span>Add Problem</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Manual Add Coding Problem Form */}
+                  <AnimatePresence>
+                    {showAddCoding && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="p-5 rounded-2xl bg-white/[0.03] border border-blue-500/30 space-y-4 overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                          <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                            <Plus size={14} className="text-blue-400" />
+                            <span>Add New Coding Challenge</span>
+                          </h4>
+                          <button
+                            onClick={() => setShowAddCoding(false)}
+                            className="text-text-muted hover:text-white"
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-2">
+                            <label className="block text-xs font-bold text-white/80 mb-1">Problem Title</label>
+                            <input
+                              type="text"
+                              value={newCodingTitle}
+                              onChange={(e) => setNewCodingTitle(e.target.value)}
+                              placeholder="e.g. Invert a Binary Tree or Maximum Subarray"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none focus:border-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-white/80 mb-1">Difficulty</label>
+                            <select
+                              value={newCodingDiff}
+                              onChange={(e) => setNewCodingDiff(e.target.value as any)}
+                              className="w-full px-3 py-2 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none"
+                            >
+                              <option value="Easy">Easy</option>
+                              <option value="Medium">Medium</option>
+                              <option value="Hard">Hard</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-white/80 mb-1">
+                            Problem Description & Constraints
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={newCodingDesc}
+                            onChange={(e) => setNewCodingDesc(e.target.value)}
+                            placeholder="Describe the challenge problem, input and output expectations..."
+                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none resize-none focus:border-blue-500"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-white/80 mb-1">Sample Input</label>
+                            <textarea
+                              rows={2}
+                              value={newSampleInput}
+                              onChange={(e) => setNewSampleInput(e.target.value)}
+                              placeholder="Sample stdin input..."
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono outline-none resize-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-white/80 mb-1">
+                              Sample Output (Expected)
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={newSampleOutput}
+                              onChange={(e) => setNewSampleOutput(e.target.value)}
+                              placeholder="Sample expected output..."
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono outline-none resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-amber-400 mb-1">
+                              Hidden Test Case Input
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={newHiddenInput}
+                              onChange={(e) => setNewHiddenInput(e.target.value)}
+                              placeholder="Hidden input for grading..."
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-white font-mono outline-none resize-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-amber-400 mb-1">
+                              Hidden Test Case Expected Output
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={newHiddenOutput}
+                              onChange={(e) => setNewHiddenOutput(e.target.value)}
+                              placeholder="Hidden expected output..."
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-white font-mono outline-none resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button
+                            onClick={() => setShowAddCoding(false)}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleAddCoding}
+                            disabled={actionLoading}
+                            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5"
+                          >
+                            {actionLoading && <Loader2 size={12} className="animate-spin" />}
+                            <span>Save Challenge</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* List of Coding Challenges */}
+                  <div className="space-y-3">
+                    {adminCoding.length === 0 ? (
+                      <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-2">
+                        <Code2 size={28} className="mx-auto text-white/30" />
+                        <h4 className="text-sm font-bold text-white">No Coding Challenges Yet</h4>
+                        <p className="text-xs text-text-muted max-w-sm mx-auto">
+                          Click "Add Problem" above or upload an Excel file containing coding challenges and test cases.
+                        </p>
+                      </div>
+                    ) : (
+                      adminCoding.map((p, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/15 transition-all space-y-2.5"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2.5">
+                              <span className="w-6 h-6 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <div>
+                                <h5 className="text-xs font-bold text-white">{p.title}</h5>
+                                <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2">
+                                  {p.description}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                   p.difficulty === 'Easy'
-                                    ? 'bg-emerald-500/10 text-emerald-600'
+                                    ? 'bg-emerald-500/15 text-emerald-400'
                                     : p.difficulty === 'Hard'
-                                    ? 'bg-red-500/10 text-red-600'
-                                    : 'bg-amber-500/10 text-amber-600'
+                                    ? 'bg-rose-500/15 text-rose-400'
+                                    : 'bg-amber-500/15 text-amber-400'
                                 }`}
                               >
                                 {p.difficulty}
                               </span>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600">
-                                {p.points || 30} Pts
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-white/80">
+                                {p.points || 30} pts
                               </span>
+                              {canManageSelected && (
+                                <button
+                                  onClick={() => handleDeleteCoding(idx)}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
                             </div>
-                            <p className="text-xs text-label-secondary line-clamp-2 mt-1">
-                              {p.description}
-                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-[11px] text-text-muted pl-8">
+                            <span>Test Cases: {(p.testCases || []).length}</span>
+                            <span>Allowed: {(p.allowedLanguages || []).join(', ')}</span>
                           </div>
                         </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
 
-                        {canEditQuestions && (
+              {/* TAB 3.5: UI/UX DESIGN CHALLENGE (FIGMA) */}
+              {activeTab === 'design' && (
+                <div className="max-w-4xl mx-auto space-y-6">
+                  {/* Header Banner */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 border border-pink-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 shrink-0">
+                        <Palette size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <span>UI/UX & Figma Design Challenge Configuration</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-pink-500/20 text-pink-300 border border-pink-500/30">
+                            Figma Prototype
+                          </span>
+                        </h4>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Upload reference designs, define user stories & problem statement, and provide starter Figma links.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white/10 text-white border border-white/10">
+                        {designPoints} Total Pts
+                      </span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSaveDesignChallenge} className="space-y-6">
+                    {/* SECTION 1: REFERENCE DESIGN IMAGE UPLOAD */}
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <ImageIcon size={14} className="text-pink-400" />
+                            <span>Design Reference Mockup Image</span>
+                            <span className="text-rose-400">*</span>
+                          </label>
+                          <p className="text-[11px] text-text-muted mt-0.5">
+                            Upload a high-resolution design mockup/wireframe that students must replicate or take inspiration from.
+                          </p>
+                        </div>
+                        {designImageUrl && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteCoding(idx)}
-                            className="p-1.5 rounded-lg text-label-secondary hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
-                            title="Delete Problem"
+                            onClick={() => setPreviewModalImg(designImageUrl)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-white flex items-center gap-1.5 transition-colors"
                           >
-                            <Trash2 size={14} />
+                            <Maximize2 size={12} />
+                            <span>Preview Fullscreen</span>
                           </button>
                         )}
                       </div>
 
-                      <div className="pl-8 pt-1 flex items-center gap-3 text-[11px] text-label-secondary font-medium">
-                        <span>
-                          Test Cases: <strong>{(p.testCases || []).length}</strong>
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Languages: <strong>{(p.allowedLanguages || []).join(', ')}</strong>
-                        </span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        {/* Upload Controls */}
+                        <div className="space-y-3">
+                          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/15 hover:border-pink-500/50 rounded-2xl cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] transition-all group">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageFileUpload}
+                              disabled={uploadingDesignImg || !canManageSelected}
+                              className="hidden"
+                            />
+                            {uploadingDesignImg ? (
+                              <div className="flex flex-col items-center gap-2 py-3 text-pink-400">
+                                <Loader2 size={24} className="animate-spin" />
+                                <span className="text-xs font-semibold">Uploading to Cloudinary...</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-2 text-center py-2">
+                                <div className="w-10 h-10 rounded-xl bg-pink-500/15 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                  <Upload size={18} />
+                                </div>
+                                <span className="text-xs font-bold text-white group-hover:text-pink-300 transition-colors">
+                                  Click or Drag Image Here
+                                </span>
+                                <span className="text-[10px] text-text-muted">
+                                  PNG, JPG, SVG, WEBP up to 10MB
+                                </span>
+                              </div>
+                            )}
+                          </label>
+
+                          <div className="relative">
+                            <span className="text-[11px] text-text-muted block mb-1">Or paste direct image URL:</span>
+                            <input
+                              type="url"
+                              value={designImageUrl}
+                              onChange={(e) => setDesignImageUrl(e.target.value)}
+                              placeholder="https://res.cloudinary.com/... or image link"
+                              disabled={!canManageSelected}
+                              className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Image Preview Box */}
+                        <div className="h-52 rounded-2xl border border-white/10 bg-black/40 overflow-hidden flex items-center justify-center relative group">
+                          {designImageUrl ? (
+                            <>
+                              <img
+                                src={designImageUrl}
+                                alt="Design Reference"
+                                className="w-full h-full object-contain"
+                              />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewModalImg(designImageUrl)}
+                                  className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm transition-all"
+                                >
+                                  <Maximize2 size={13} />
+                                  <span>Inspect</span>
+                                </button>
+                                {canManageSelected && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setDesignImageUrl('')}
+                                    className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm transition-all"
+                                  >
+                                    <Trash2 size={13} />
+                                    <span>Remove</span>
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2 text-text-muted">
+                              <ImageIcon size={32} className="opacity-30" />
+                              <span className="text-xs">No reference image uploaded yet</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* TAB 4: SUBMISSIONS & LEADERBOARD */}
-          {activeTab === 'submissions' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-canvas/40 dark:bg-white/[0.02] border border-separator dark:border-white/10">
-                <span className="text-xs font-bold text-label-primary dark:text-white">
-                  Participant Arena Submissions ({adminSubmissions.length})
-                </span>
-                <span className="text-xs text-label-secondary">
-                  Passing Criteria: ≥ {arenaPassingScore}%
-                </span>
-              </div>
+                    {/* SECTION 2: CHALLENGE DETAILS & PROBLEM STATEMENT */}
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-bold text-white/80 mb-1.5">
+                            Challenge Title <span className="text-rose-400">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={designTitle}
+                            onChange={(e) => setDesignTitle(e.target.value)}
+                            placeholder="e.g. Modern Fintech Banking App Mobile & Desktop UI"
+                            disabled={!canManageSelected}
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-white/80 mb-1.5">
+                            Total Points
+                          </label>
+                          <input
+                            type="number"
+                            min={10}
+                            value={designPoints}
+                            onChange={(e) => setDesignPoints(Number(e.target.value))}
+                            disabled={!canManageSelected}
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono outline-none disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
 
-              {adminSubmissions.length === 0 ? (
-                <div className="p-8 text-center border border-dashed border-separator dark:border-white/10 rounded-2xl">
-                  <Award size={32} className="mx-auto text-label-secondary mb-2" />
-                  <p className="text-xs font-bold text-label-primary dark:text-white">
-                    No Submissions Recorded Yet
-                  </p>
-                  <p className="text-[11px] text-label-secondary mt-1">
-                    Student scores and evaluation records will appear here as participants complete the Event Arena.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-2xl border border-separator dark:border-white/10">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-canvas dark:bg-[#1C1C1E] text-label-secondary font-bold border-b border-separator dark:border-white/10">
-                      <tr>
-                        <th className="p-3">Rank</th>
-                        <th className="p-3">Student</th>
-                        <th className="p-3">Roll No</th>
-                        <th className="p-3">Score</th>
-                        <th className="p-3">Percentage</th>
-                        <th className="p-3">Result</th>
-                        <th className="p-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-separator dark:divide-white/5">
-                      {adminSubmissions.map((sub, idx) => {
-                        const student = sub.userId || {};
-                        return (
-                          <tr key={sub._id} className="hover:bg-canvas/50 transition-colors">
-                            <td className="p-3 font-bold text-indigo-600">#{idx + 1}</td>
-                            <td className="p-3 font-semibold text-label-primary dark:text-white">
-                              {student.name || 'Unknown'}
-                            </td>
-                            <td className="p-3 text-label-secondary font-mono">{student.rollNo || '-'}</td>
-                            <td className="p-3 font-bold">
-                              {sub.totalScore} / {sub.maxPossibleScore}
-                            </td>
-                            <td className="p-3 font-bold text-indigo-500">{sub.scorePercentage}%</td>
-                            <td className="p-3">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  sub.isPassed
-                                    ? 'bg-emerald-500/10 text-emerald-600'
-                                    : 'bg-red-500/10 text-red-600'
-                                }`}
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">
+                          Brief Overview / Description
+                        </label>
+                        <input
+                          type="text"
+                          value={designDesc}
+                          onChange={(e) => setDesignDesc(e.target.value)}
+                          placeholder="e.g. Design a sleek, high-conversion crypto & banking experience with rich micro-interactions."
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">
+                          Problem Statement & Functional Requirements
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={designProblem}
+                          onChange={(e) => setDesignProblem(e.target.value)}
+                          placeholder="Detail the target audience, user personas, key flows (Onboarding, Dashboard, Transactions), design constraints, and expected user journeys..."
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none resize-none disabled:opacity-50 leading-relaxed"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5 flex items-center justify-between">
+                          <span>Reference / Starter Figma URL (Optional)</span>
+                          <span className="text-[10px] text-text-muted">Students can duplicate this file</span>
+                        </label>
+                        <input
+                          type="url"
+                          value={designRefFigma}
+                          onChange={(e) => setDesignRefFigma(e.target.value)}
+                          placeholder="https://www.figma.com/file/... (starter kit / UI kit)"
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: DELIVERABLES CHECKLIST */}
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h5 className="text-xs font-bold text-white">Expected Deliverables</h5>
+                          <p className="text-[11px] text-text-muted">Items students must complete in their Figma file.</p>
+                        </div>
+                        {canManageSelected && (
+                          <button
+                            type="button"
+                            onClick={() => setDesignDeliverables([...designDeliverables, ''])}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 flex items-center gap-1 transition-colors"
+                          >
+                            <Plus size={12} />
+                            <span>Add Deliverable</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        {designDeliverables.map((deliv, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-pink-500/15 text-pink-400 text-[10px] font-bold flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={deliv}
+                              onChange={(e) => {
+                                const copy = [...designDeliverables];
+                                copy[idx] = e.target.value;
+                                setDesignDeliverables(copy);
+                              }}
+                              placeholder="e.g. Responsive Desktop layout (1440px) and Mobile layout (390px)"
+                              disabled={!canManageSelected}
+                              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/20 outline-none focus:border-pink-500 disabled:opacity-50"
+                            />
+                            {canManageSelected && designDeliverables.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setDesignDeliverables(designDeliverables.filter((_, i) => i !== idx))}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                               >
-                                {sub.isPassed ? 'Passed' : 'Needs Retake'}
-                              </span>
-                            </td>
-                            <td className="p-3 text-label-secondary font-medium">{sub.status}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* SECTION 4: GUIDELINES & EVALUATION CRITERIA */}
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h5 className="text-xs font-bold text-white">Guidelines & Evaluation Criteria</h5>
+                          <p className="text-[11px] text-text-muted">Rubric used by admins when grading design links.</p>
+                        </div>
+                        {canManageSelected && (
+                          <button
+                            type="button"
+                            onClick={() => setDesignGuidelines([...designGuidelines, ''])}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 flex items-center gap-1 transition-colors"
+                          >
+                            <Plus size={12} />
+                            <span>Add Guideline</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        {designGuidelines.map((guide, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-purple-500/15 text-purple-400 text-[10px] font-bold flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={guide}
+                              onChange={(e) => {
+                                const copy = [...designGuidelines];
+                                copy[idx] = e.target.value;
+                                setDesignGuidelines(copy);
+                              }}
+                              placeholder="e.g. Visual Hierarchy, Spacing consistency, WCAG AA Contrast"
+                              disabled={!canManageSelected}
+                              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/20 outline-none focus:border-purple-500 disabled:opacity-50"
+                            />
+                            {canManageSelected && designGuidelines.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setDesignGuidelines(designGuidelines.filter((_, i) => i !== idx))}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* SAVE BUTTON */}
+                    {canManageSelected && (
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="submit"
+                          disabled={actionLoading}
+                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          {actionLoading && <Loader2 size={14} className="animate-spin" />}
+                          <CheckCircle2 size={14} />
+                          <span>Save Design Challenge</span>
+                        </button>
+                      </div>
+                    )}
+                  </form>
                 </div>
               )}
-            </div>
-          )}
-        </div>
 
-        {/* BULK UPLOAD DIALOG MODAL */}
-        {bulkModalType && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-label-primary dark:text-white flex items-center gap-2">
-                  <FileSpreadsheet size={16} className="text-indigo-500" />
-                  <span>Bulk Upload {bulkModalType === 'mcq' ? 'MCQ Questions' : 'Coding Problems'}</span>
-                </h4>
-                <button
-                  onClick={() => {
-                    setBulkModalType(null);
-                    setBulkFile(null);
-                  }}
-                  className="p-1 text-label-secondary hover:text-label-primary"
-                >
-                  <X size={16} />
-                </button>
-              </div>
+              {/* TAB 4: SUBMISSIONS & LEADERBOARD */}
+              {activeTab === 'submissions' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Student Submissions</h4>
+                      <p className="text-xs text-text-muted">
+                        Total {adminSubmissions.length} submissions for "{selectedAssessment.title}"
+                      </p>
+                    </div>
+                  </div>
 
-              <p className="text-xs text-label-secondary">
-                Upload your questions formatted as an Excel spreadsheet (.xlsx, .xls) or JSON file.
-              </p>
-
-              <div className="p-4 border-2 border-dashed border-separator dark:border-white/15 rounded-xl text-center space-y-2">
-                <Upload size={24} className="mx-auto text-indigo-500" />
-                <input
-                  type="file"
-                  accept=".xlsx, .xls, .json"
-                  onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
-                  className="text-xs text-label-secondary file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white cursor-pointer"
-                />
-                {bulkFile && (
-                  <p className="text-xs font-bold text-indigo-500 mt-2 truncate">
-                    Selected: {bulkFile.name}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBulkModalType(null);
-                    setBulkFile(null);
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={!bulkFile || actionLoading}
-                  onClick={handleBulkUpload}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-                  <span>Upload Now</span>
-                </button>
-              </div>
+                  {adminSubmissions.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-2">
+                      <Award size={28} className="mx-auto text-white/30" />
+                      <h4 className="text-sm font-bold text-white">No Submissions Yet</h4>
+                      <p className="text-xs text-text-muted">
+                        Submissions from students who complete this assessment will appear here with complete details.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.01]">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-white/5 border-b border-white/10 text-text-muted uppercase text-[10px]">
+                          <tr>
+                            <th className="p-3">Rank & Student</th>
+                            <th className="p-3">Residence</th>
+                            <th className="p-3">Score</th>
+                            <th className="p-3">Percentage</th>
+                            <th className="p-3">Result</th>
+                            <th className="p-3">Figma / Work</th>
+                            <th className="p-3">Submitted At</th>
+                            <th className="p-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {adminSubmissions.map((sub, idx) => (
+                            <tr key={sub._id || idx} className="hover:bg-white/[0.02] transition-colors">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="font-mono text-text-muted w-4">#{idx + 1}</span>
+                                  <div className="w-6 h-6 rounded-full overflow-hidden bg-white/10 shrink-0">
+                                    <img
+                                      src={
+                                        sub.userId?.profilePicUrl ||
+                                        `https://ui-avatars.com/api/?name=${sub.userId?.name}&background=1D1D1F&color=fff&size=60`
+                                      }
+                                      alt={sub.userId?.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-white">{sub.userId?.name || 'Student'}</p>
+                                    <p className="text-[10px] text-text-muted">
+                                      {sub.userId?.rollNo || sub.userId?.email}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                {sub.userId?.residenceType ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 border border-white/10 text-purple-300">
+                                    {sub.userId.residenceType === 'Hosteller' ? (
+                                      <Building size={10} />
+                                    ) : (
+                                      <Bus size={10} />
+                                    )}
+                                    <span>{sub.userId.residenceType}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-text-muted text-[10px]">—</span>
+                                )}
+                              </td>
+                              <td className="p-3 font-mono font-bold text-white">
+                                {sub.totalScore} / {sub.maxPossibleScore}
+                              </td>
+                              <td className="p-3 font-mono text-white/80">{sub.scorePercentage}%</td>
+                              <td className="p-3">
+                                <span
+                                  className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    sub.isPassed
+                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                                  }`}
+                                >
+                                  {sub.isPassed ? 'Passed' : 'Failed'}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                {sub.designSubmission?.figmaLink ? (
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <a
+                                        href={sub.designSubmission.figmaLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-400 hover:text-pink-300 underline underline-offset-2"
+                                      >
+                                        <Palette size={11} />
+                                        <span>Figma File</span>
+                                        <ExternalLink size={10} />
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
+                                        className="px-1.5 py-0.5 rounded text-[10px] bg-white/10 hover:bg-white/20 text-white font-medium"
+                                      >
+                                        Embed
+                                      </button>
+                                    </div>
+                                    {sub.designSubmission.isEvaluated ? (
+                                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                                        <CheckCircle size={10} />
+                                        <span>Graded: {sub.designSubmission.pointsEarned} pts</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-amber-400 font-semibold">
+                                        Pending Review
+                                      </span>
+                                    )}
+                                    {sub.designSubmission.notes && (
+                                      <p className="text-[10px] text-text-muted italic truncate max-w-[150px]">
+                                        "{sub.designSubmission.notes}"
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-text-muted text-[10px]">—</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-[11px] text-text-muted">
+                                {sub.submittedAt
+                                  ? new Date(sub.submittedAt).toLocaleTimeString([], {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })
+                                  : 'In Progress'}
+                              </td>
+                              <td className="p-3 text-right">
+                                {sub.designSubmission?.figmaLink && canManageSelected ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEvaluatingSub(sub);
+                                      setEvalPoints(sub.designSubmission?.pointsEarned || 0);
+                                      setEvalFeedback(sub.designSubmission?.feedback || '');
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 transition-all inline-flex items-center gap-1"
+                                  >
+                                    <Award size={11} />
+                                    <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-text-muted text-[10px]">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3">
+            <Layers size={36} className="text-purple-400/50" />
+            <h3 className="text-base font-bold text-white">No Assessments Created Yet</h3>
+            <p className="text-xs text-text-muted max-w-md">
+              Create the first assessment for this Event Arena. You can create as many assessments as needed
+              and assign admins to curate each one.
+            </p>
+            <button
+              onClick={() => setIsCreatingNew(true)}
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
+            >
+              <Plus size={14} />
+              <span>Create First Assessment</span>
+            </button>
+          </div>
         )}
+
+        {/* BULK UPLOAD SUB-MODAL */}
+        <AnimatePresence>
+          {bulkModalType && (
+            <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-md rounded-2xl bg-[#141418] border border-white/15 p-6 shadow-2xl space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <FileSpreadsheet size={16} className="text-purple-400" />
+                    <span>Upload {bulkModalType.toUpperCase()} Questions</span>
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setBulkModalType(null);
+                      setBulkFile(null);
+                    }}
+                    className="text-text-muted hover:text-white"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <p className="text-xs text-text-muted">
+                  Upload an Excel (.xlsx) or JSON file formatted according to the sample template. Questions
+                  will be added directly to{' '}
+                  <span className="font-semibold text-white">"{selectedAssessment?.title}"</span>.
+                </p>
+
+                <div className="p-6 rounded-xl border-2 border-dashed border-white/15 hover:border-purple-500/50 text-center space-y-2 cursor-pointer transition-colors bg-white/[0.01]">
+                  <Upload size={24} className="mx-auto text-purple-400" />
+                  <div>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.json"
+                      onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="bulk-file-input"
+                    />
+                    <label
+                      htmlFor="bulk-file-input"
+                      className="text-xs font-bold text-purple-400 hover:text-purple-300 cursor-pointer"
+                    >
+                      Browse file from device
+                    </label>
+                  </div>
+                  {bulkFile && (
+                    <p className="text-xs text-white font-mono truncate px-4">{bulkFile.name}</p>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    onClick={() => {
+                      setBulkModalType(null);
+                      setBulkFile(null);
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkUpload}
+                    disabled={!bulkFile || actionLoading}
+                    className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {actionLoading && <Loader2 size={12} className="animate-spin" />}
+                    <span>Upload Now</span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* DESIGN IMAGE FULLSCREEN LIGHTBOX */}
+        <AnimatePresence>
+          {previewModalImg && (
+            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center"
+              >
+                <div className="w-full flex justify-between items-center pb-3 text-white">
+                  <span className="text-xs font-bold text-white/80">Reference Design Mockup</span>
+                  <button
+                    onClick={() => setPreviewModalImg(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="overflow-auto max-h-[82vh] rounded-2xl border border-white/20 bg-black/60 p-2">
+                  <img
+                    src={previewModalImg}
+                    alt="Design Reference Full"
+                    className="max-h-[80vh] w-auto object-contain mx-auto rounded-xl shadow-2xl"
+                  />
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* FIGMA EMBED PREVIEW MODAL */}
+        <AnimatePresence>
+          {previewFigmaUrl && (
+            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-5xl h-[85vh] rounded-2xl bg-[#141418] border border-white/20 shadow-2xl flex flex-col overflow-hidden"
+              >
+                <div className="px-6 py-3.5 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400">
+                      <Palette size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Interactive Figma Prototype Embed</h4>
+                      <a
+                        href={previewFigmaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-pink-400 hover:text-pink-300 underline inline-flex items-center gap-1"
+                      >
+                        <span>Open directly in Figma</span>
+                        <ExternalLink size={10} />
+                      </a>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPreviewFigmaUrl(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="flex-1 bg-black/50 p-2">
+                  <iframe
+                    src={`https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(previewFigmaUrl)}`}
+                    className="w-full h-full border-0 rounded-xl"
+                    allowFullScreen
+                  />
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* DESIGN SUBMISSION EVALUATION DRAWER / MODAL */}
+        <AnimatePresence>
+          {evaluatingSub && (
+            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-lg rounded-2xl bg-[#141418] border border-white/20 p-6 shadow-2xl space-y-5"
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400">
+                      <Award size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Evaluate Figma Design</h4>
+                      <p className="text-xs text-text-muted">
+                        Student: <span className="text-white font-semibold">{evaluatingSub.userId?.name}</span> ({evaluatingSub.userId?.rollNo || evaluatingSub.userId?.email})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEvaluatingSub(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-muted">Submitted Figma Link:</span>
+                    <a
+                      href={evaluatingSub.designSubmission?.figmaLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-pink-400 hover:text-pink-300 font-mono underline inline-flex items-center gap-1"
+                    >
+                      <span>Open Figma</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                  {evaluatingSub.designSubmission?.notes && (
+                    <div className="pt-1 text-xs">
+                      <span className="text-text-muted block text-[10px] uppercase font-bold tracking-wider mb-0.5">Student Notes:</span>
+                      <p className="text-white/80 bg-white/5 p-2 rounded-lg text-[11px] leading-relaxed">
+                        {evaluatingSub.designSubmission.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="text-xs font-bold text-white">Awarded Points</label>
+                      <span className="text-xs font-mono font-bold text-pink-400">
+                        {evalPoints} / {selectedAssessment?.totalPoints || 100} pts
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={selectedAssessment?.totalPoints || 100}
+                      value={evalPoints}
+                      onChange={(e) => setEvalPoints(Number(e.target.value))}
+                      className="w-full accent-pink-500 cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[10px] text-text-muted font-mono mt-1">
+                      <span>0 pts</span>
+                      <span>{Math.round((selectedAssessment?.totalPoints || 100) / 2)} pts</span>
+                      <span>{selectedAssessment?.totalPoints || 100} pts</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1.5">
+                      Reviewer Feedback / Comments
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={evalFeedback}
+                      onChange={(e) => setEvalFeedback(e.target.value)}
+                      placeholder="e.g. Excellent layout spacing, responsive auto-layout implemented cleanly. Typography hierarchy is on point!"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none resize-none leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setEvaluatingSub(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white/70 hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleEvaluateSubmit}
+                    disabled={actionLoading}
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {actionLoading && <Loader2 size={13} className="animate-spin" />}
+                    <CheckCircle2 size={13} />
+                    <span>Save Evaluation</span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

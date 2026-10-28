@@ -28,6 +28,7 @@ import {
   FileSpreadsheet,
   ArrowRight,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
@@ -42,7 +43,7 @@ export const EventParticipantsModal = ({
   event,
   initialTab = 'participants',
 }) => {
-  const { fetchEventEnrollments, generateCertificates, loading } = useEnrollmentStore();
+  const { fetchEventEnrollments, generateCertificates, deleteParticipantEnrollment, loading } = useEnrollmentStore();
   const [activeTab, setActiveTab] = useState(initialTab || 'participants');
   const [enrollments, setEnrollments] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +53,25 @@ export const EventParticipantsModal = ({
   const [expandedTeams, setExpandedTeams] = useState(new Set());
   const [generatingCertificates, setGeneratingCertificates] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [confirmDeleteEnrollment, setConfirmDeleteEnrollment] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteEnrollment) return;
+    setIsDeleting(true);
+    try {
+      await deleteParticipantEnrollment(confirmDeleteEnrollment._id);
+      setEnrollments((prev) => prev.filter((e) => e._id !== confirmDeleteEnrollment._id));
+      toast.success(
+        `Removed ${confirmDeleteEnrollment.enrolledBy?.name || 'student'} from event registrations`
+      );
+      setConfirmDeleteEnrollment(null);
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove participant');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Sync activeTab whenever initialTab changes or modal opens
   useEffect(() => {
@@ -931,6 +951,17 @@ export const EventParticipantsModal = ({
                           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </button>
                       )}
+
+                      {/* Delete Participant Button */}
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteEnrollment(e)}
+                        title="Delete participant from event"
+                        className="py-1 px-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 hover:border-red-500/40 transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-sm"
+                      >
+                        <Trash2 size={13} />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
 
@@ -1099,6 +1130,95 @@ export const EventParticipantsModal = ({
           }
         }}
       />
+
+      {/* DELETE PARTICIPANT CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {confirmDeleteEnrollment && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center shrink-0">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-label-primary dark:text-white">
+                    Remove Participant?
+                  </h3>
+                  <p className="text-xs text-label-secondary dark:text-white/60">
+                    Delete student registration from this event
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-canvas dark:bg-[#1F1F22] border border-separator dark:border-white/10 space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-label-tertiary dark:text-white/50">Student Name:</span>
+                  <span className="font-bold text-label-primary dark:text-white">
+                    {confirmDeleteEnrollment.enrolledBy?.name || 'Unknown'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-label-tertiary dark:text-white/50">Roll Number:</span>
+                  <span className="font-mono font-semibold text-label-primary dark:text-white">
+                    {confirmDeleteEnrollment.enrolledBy?.rollNo || 'N/A'}
+                  </span>
+                </div>
+                {confirmDeleteEnrollment.teamName && (
+                  <div className="flex justify-between">
+                    <span className="text-label-tertiary dark:text-white/50">Team Name:</span>
+                    <span className="font-bold text-purple-600 dark:text-purple-400">
+                      {confirmDeleteEnrollment.teamName}
+                    </span>
+                  </div>
+                )}
+                {confirmDeleteEnrollment.members?.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-label-tertiary dark:text-white/50">Teammates:</span>
+                    <span className="font-semibold text-label-primary dark:text-white">
+                      +{confirmDeleteEnrollment.members.length} member(s)
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-label-tertiary dark:text-white/50">Status:</span>
+                  <span className={confirmDeleteEnrollment.attendanceStatus ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
+                    {confirmDeleteEnrollment.attendanceStatus ? 'Attended (Verified)' : 'Registered'}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-red-500/90 dark:text-red-400/90 leading-relaxed bg-red-500/5 p-3 rounded-xl border border-red-500/15">
+                Warning: Removing this registration will free up the participant spot. Any certificates or attendance records associated with this enrollment will be removed.
+              </p>
+
+              <div className="flex justify-end gap-2.5 pt-1">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setConfirmDeleteEnrollment(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary dark:text-white/70 dark:hover:text-white hover:bg-canvas dark:hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={confirmDelete}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md shadow-red-600/30 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer transition-all"
+                >
+                  {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  <span>{isDeleting ? 'Removing...' : 'Confirm & Delete'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema({
   dob: { type: String, default: '', trim: true },
   dateOfBirth: { type: String, default: '', trim: true },
   gender: { type: String, default: '', trim: true },
+  residenceType: { type: String, enum: ['Hosteller', 'Day Scholar', ''], default: '', trim: true },
   bio: { type: String, default: '', trim: true },
   skills: [{ type: String, trim: true }],
   socialLinks: {

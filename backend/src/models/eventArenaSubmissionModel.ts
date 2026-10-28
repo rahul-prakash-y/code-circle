@@ -26,16 +26,31 @@ export interface ICodingSubmissionItem {
   executionTimeMs?: number;
 }
 
+export interface IDesignSubmissionItem {
+  figmaLink: string;
+  notes?: string;
+  previewImageUrl?: string;
+  submittedAt: Date;
+  pointsEarned?: number;
+  feedback?: string;
+  isEvaluated?: boolean;
+  evaluatedBy?: mongoose.Types.ObjectId;
+  evaluatedAt?: Date;
+}
+
 export interface IEventArenaSubmission extends Document {
   eventId: mongoose.Types.ObjectId;
+  assessmentId: string;
   userId: mongoose.Types.ObjectId;
   status: EventArenaSubmissionStatus;
   startedAt: Date;
   submittedAt?: Date;
   mcqAnswers: IMCQAnswer[];
   codingSubmissions: ICodingSubmissionItem[];
+  designSubmission?: IDesignSubmissionItem;
   mcqScore: number;
   codingScore: number;
+  designScore: number;
   totalScore: number;
   maxPossibleScore: number;
   scorePercentage: number;
@@ -84,11 +99,32 @@ const codingSubmissionItemSchema = new Schema<ICodingSubmissionItem>(
   { _id: false }
 );
 
+const designSubmissionItemSchema = new Schema<IDesignSubmissionItem>(
+  {
+    figmaLink: { type: String, required: true },
+    notes: { type: String, default: '' },
+    previewImageUrl: { type: String, default: '' },
+    submittedAt: { type: Date, default: Date.now },
+    pointsEarned: { type: Number, default: 0 },
+    feedback: { type: String, default: '' },
+    isEvaluated: { type: Boolean, default: false },
+    evaluatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    evaluatedAt: { type: Date },
+  },
+  { _id: false }
+);
+
 const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
   {
     eventId: {
       type: Schema.Types.ObjectId,
       ref: 'Event',
+      required: true,
+      index: true,
+    },
+    assessmentId: {
+      type: String,
+      default: 'default',
       required: true,
       index: true,
     },
@@ -120,11 +156,19 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
       type: [codingSubmissionItemSchema],
       default: [],
     },
+    designSubmission: {
+      type: designSubmissionItemSchema,
+      default: null,
+    },
     mcqScore: {
       type: Number,
       default: 0,
     },
     codingScore: {
+      type: Number,
+      default: 0,
+    },
+    designScore: {
       type: Number,
       default: 0,
     },
@@ -157,8 +201,8 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
   }
 );
 
-eventArenaSubmissionSchema.index({ eventId: 1, userId: 1 }, { unique: true });
-eventArenaSubmissionSchema.index({ eventId: 1, totalScore: -1, submittedAt: 1 });
+eventArenaSubmissionSchema.index({ eventId: 1, assessmentId: 1, userId: 1 }, { unique: true });
+eventArenaSubmissionSchema.index({ eventId: 1, assessmentId: 1, totalScore: -1, submittedAt: 1 });
 
 const EventArenaSubmission: Model<IEventArenaSubmission> =
   mongoose.models.EventArenaSubmission ||

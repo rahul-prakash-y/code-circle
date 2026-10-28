@@ -38,6 +38,7 @@ export const updateMe = async (request: FastifyRequest, reply: FastifyReply) => 
       year,
       college,
       bio,
+      residenceType,
     } = (request.body || {}) as any;
     
     const updateData: any = {};
@@ -63,6 +64,10 @@ export const updateMe = async (request: FastifyRequest, reply: FastifyReply) => 
     if (year !== undefined) updateData.year = year ? String(year).trim() : '';
     if (college !== undefined) updateData.college = college ? String(college).trim() : 'BIT';
     if (bio !== undefined) updateData.bio = bio ? String(bio).trim() : '';
+    if (residenceType !== undefined) {
+      const trimmed = String(residenceType).trim();
+      updateData.residenceType = ['Hosteller', 'Day Scholar'].includes(trimmed) ? trimmed : '';
+    }
 
     const user = await User.findByIdAndUpdate(
       id,

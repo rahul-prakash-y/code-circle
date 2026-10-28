@@ -192,6 +192,16 @@ const useEnrollmentStore = create((set, get) => ({
     }
   },
 
+  deleteParticipantEnrollment: async (enrollmentId) => {
+    try {
+      const response = await api.delete(`/enrollments/${enrollmentId}`);
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to delete participant enrollment';
+      throw new Error(msg);
+    }
+  },
+
   resetStatus: () => set({ error: null, success: false, loading: false })
 }));
 

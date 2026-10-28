@@ -24,7 +24,10 @@ import {
   GraduationCap,
   FileText,
   Instagram,
-  Sparkles
+  Sparkles,
+  Home,
+  Bus,
+  Building
 } from 'lucide-react';
 import useProfileStore from '../store/useProfileStore';
 import useAuthStore from '../store/useAuthStore';
@@ -120,6 +123,7 @@ const Profile = () => {
     gender: p?.gender || '',
     year: p?.year || '',
     college: p?.college || 'BIT',
+    residenceType: p?.residenceType || '',
     bio: p?.bio || '',
     socialLinks: {
       github: p?.socialLinks?.github || '',
@@ -278,6 +282,12 @@ const Profile = () => {
                   {profile.gender}
                 </span>
               )}
+              {profile.residenceType && (
+                <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-accent flex items-center gap-1.5 font-medium">
+                  {profile.residenceType === 'Hosteller' ? <Building size={12} className="opacity-80" /> : <Bus size={12} className="opacity-80" />}
+                  {profile.residenceType}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -433,6 +443,40 @@ const Profile = () => {
                     <option value="4th Year">4th Year</option>
                     <option value="Post Graduate">Post Graduate</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Residence Type (Hosteller or Day Scholar) */}
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                  <Home size={13} className="text-text-muted" />
+                  <span>Accommodation / Residence</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Hosteller' ? '' : 'Hosteller' }))}
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      formData.residenceType === 'Hosteller'
+                        ? 'bg-accent/15 border-accent text-accent font-semibold shadow-sm'
+                        : 'border-separator hover:border-separator-hover text-text-secondary bg-surface'
+                    }`}
+                  >
+                    <Building size={14} />
+                    <span>Hosteller</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Day Scholar' ? '' : 'Day Scholar' }))}
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      formData.residenceType === 'Day Scholar'
+                        ? 'bg-accent/15 border-accent text-accent font-semibold shadow-sm'
+                        : 'border-separator hover:border-separator-hover text-text-secondary bg-surface'
+                    }`}
+                  >
+                    <Bus size={14} />
+                    <span>Day Scholar</span>
+                  </button>
                 </div>
               </div>
 
