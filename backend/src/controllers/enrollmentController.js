@@ -9,6 +9,7 @@ const AttendanceSession = rawAttendanceSession.default || rawAttendanceSession;
 const rawAttendanceRecord = require('../models/attendanceRecordModel');
 const AttendanceRecord = rawAttendanceRecord.default || rawAttendanceRecord;
 const { generateCertificate } = require('../utils/pdfGenerator');
+const XLSX = require('xlsx');
 
 const enrollInEvent = async (request, reply) => {
   try {
@@ -22,6 +23,16 @@ const enrollInEvent = async (request, reply) => {
     const event = await Event.findById(eventId);
     if (!event) {
       return reply.status(404).send({ error: 'Event not found' });
+    }
+
+    // Check if event is restricted to Admin upload only
+    if (event.registrationType === 'admin_upload') {
+      const callerRole = user.role;
+      if (callerRole !== 'Admin' && callerRole !== 'SuperAdmin') {
+        return reply.status(400).send({
+          error: 'Self-registration is disabled for this event. Participants are uploaded directly by the administrator.'
+        });
+      }
     }
 
     // Determine registration format ('Individual' vs 'Duo' vs 'Team')
@@ -538,6 +549,295 @@ const getMyCertificates = async (request, reply) => {
   }
 };
 
+const bulkUploadEventParticipants = async (request, reply) => {
+  try {
+    const { eventId } = request.params;
+    if (!eventId) {
+      return reply.status(400).send({ success: false, error: 'Event ID is required' });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return reply.status(404).send({ success: false, error: 'Event not found' });
+    }
+
+    let data;
+    try {
+      data = await request.file();
+    } catch (err) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Failed to read upload file stream: ' + (err.message || 'Stream error'),
+      });
+    }
+
+    if (!data) {
+      return reply.status(400).send({ success: false, error: 'No Excel file uploaded' });
+    }
+
+    const filename = (data.filename || '').toLowerCase();
+    if (!filename.endsWith('.xlsx') && !filename.endsWith('.xls') && !filename.endsWith('.csv')) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Only .xlsx, .xls, and .csv files are supported',
+      });
+    }
+
+    // Read options passed in multipart form fields or query params
+    let markAsAttended = false;
+    const queryMark = request.query?.markAttendance;
+    if (queryMark === 'true' || queryMark === true || queryMark === '1') {
+      markAsAttended = true;
+    }
+    if (data.fields?.markAttendance) {
+      const val =
+        typeof data.fields.markAttendance === 'object' && 'value' in data.fields.markAttendance
+          ? data.fields.markAttendance.value
+          : data.fields.markAttendance;
+      if (val === 'true' || val === true || val === '1') {
+        markAsAttended = true;
+      }
+    }
+
+    const chunks = [];
+    for await (const chunk of data.file) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    if (buffer.length === 0) {
+      return reply.status(400).send({ success: false, error: 'Uploaded file is empty' });
+    }
+
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      return reply.status(400).send({ success: false, error: 'Excel file has no valid sheets' });
+    }
+
+    const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+    if (!rawRows || rawRows.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error: 'The uploaded file contains no student data rows',
+      });
+    }
+
+    // Extract roll numbers and emails from rows
+    const studentEntries = [];
+    for (let i = 0; i < rawRows.length; i++) {
+      const row = rawRows[i];
+      let rollNo = '';
+      let email = '';
+      let name = '';
+      let dept = '';
+      let rowAttendance = markAsAttended;
+
+      for (const [key, val] of Object.entries(row)) {
+        const cleanKey = key.trim().toLowerCase();
+        const strVal = String(val).trim();
+
+        if (cleanKey.includes('roll') || cleanKey.includes('reg') || cleanKey.includes('register')) {
+          if (!rollNo && strVal) rollNo = strVal.toUpperCase();
+        } else if (cleanKey.includes('email') || cleanKey.includes('mail')) {
+          if (!email && strVal) email = strVal.toLowerCase();
+        } else if (cleanKey.includes('name')) {
+          if (!name && strVal) name = strVal;
+        } else if (cleanKey.includes('dept') || cleanKey.includes('department') || cleanKey.includes('branch')) {
+          if (!dept && strVal) dept = strVal;
+        } else if (cleanKey.includes('attend') || cleanKey.includes('present') || cleanKey.includes('status')) {
+          if (strVal) {
+            const lower = strVal.toLowerCase();
+            if (lower === 'present' || lower === 'yes' || lower === '1' || lower === 'attended' || lower === 'true') {
+              rowAttendance = true;
+            } else if (lower === 'absent' || lower === 'no' || lower === '0' || lower === 'false') {
+              rowAttendance = false;
+            }
+          }
+        }
+      }
+
+      if (rollNo || email) {
+        studentEntries.push({
+          rowNumber: i + 2,
+          rollNo,
+          email,
+          name,
+          dept,
+          attended: rowAttendance,
+        });
+      }
+    }
+
+    if (studentEntries.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error:
+          'No valid student roll numbers or emails found in the file. Please check column headers (e.g. "Reg No", "Roll Number", or "Email").',
+      });
+    }
+
+    // Query matching users in MongoDB
+    const searchRollNos = studentEntries.map((s) => s.rollNo).filter(Boolean);
+    const searchEmails = studentEntries.map((s) => s.email).filter(Boolean);
+
+    const conditions = [];
+    if (searchRollNos.length > 0) conditions.push({ rollNo: { $in: searchRollNos } });
+    if (searchEmails.length > 0) conditions.push({ email: { $in: searchEmails } });
+
+    const matchedUsers = await User.find({ $or: conditions })
+      .select('_id rollNo email name department year phone role')
+      .lean();
+
+    const userByRoll = new Map();
+    const userByEmail = new Map();
+    for (const u of matchedUsers) {
+      if (u.rollNo) userByRoll.set(u.rollNo.toUpperCase().trim(), u);
+      if (u.email) userByEmail.set(u.email.toLowerCase().trim(), u);
+    }
+
+    // Existing enrollments for this event
+    const matchedUserIds = matchedUsers.map((u) => u._id);
+    const existingEnrollments = await Enrollment.find({
+      event: eventId,
+      $or: [{ enrolledBy: { $in: matchedUserIds } }, { members: { $in: matchedUserIds } }],
+    });
+
+    const enrolledUserMap = new Map();
+    for (const enr of existingEnrollments) {
+      if (enr.enrolledBy) enrolledUserMap.set(enr.enrolledBy.toString(), enr);
+      if (enr.members && enr.members.length > 0) {
+        for (const m of enr.members) {
+          enrolledUserMap.set(m.toString(), enr);
+        }
+      }
+    }
+
+    let newlyEnrolledCount = 0;
+    let attendanceUpdatedCount = 0;
+    let alreadyEnrolledCount = 0;
+    const notFound = [];
+    const processedUserIds = new Set();
+    const newEnrollmentsToInsert = [];
+
+    for (const entry of studentEntries) {
+      const user =
+        (entry.rollNo && userByRoll.get(entry.rollNo)) ||
+        (entry.email && userByEmail.get(entry.email));
+
+      if (!user) {
+        notFound.push({
+          row: entry.rowNumber,
+          rollNo: entry.rollNo || 'N/A',
+          email: entry.email || 'N/A',
+          name: entry.name || 'N/A',
+          reason: 'Student not found in Code Circle system',
+        });
+        continue;
+      }
+
+      const uIdStr = user._id.toString();
+      if (processedUserIds.has(uIdStr)) {
+        continue; // Skip duplicate row in sheet
+      }
+      processedUserIds.add(uIdStr);
+
+      const existingEnr = enrolledUserMap.get(uIdStr);
+      if (existingEnr) {
+        alreadyEnrolledCount++;
+        // If student is already enrolled and sheet indicates attendance, update attendance
+        if (entry.attended && !existingEnr.attendanceStatus) {
+          existingEnr.attendanceStatus = true;
+          await existingEnr.save();
+          attendanceUpdatedCount++;
+        }
+      } else {
+        newEnrollmentsToInsert.push({
+          event: eventId,
+          enrolledBy: user._id,
+          type: 'Individual',
+          attendanceStatus: entry.attended,
+          isWalkIn: false,
+          customResponses: {},
+        });
+        newlyEnrolledCount++;
+      }
+    }
+
+    if (newEnrollmentsToInsert.length > 0) {
+      await Enrollment.insertMany(newEnrollmentsToInsert, { ordered: false });
+    }
+
+    return reply.send({
+      success: true,
+      message: `Roster upload complete: ${newlyEnrolledCount} student(s) enrolled, ${alreadyEnrolledCount} already enrolled${
+        attendanceUpdatedCount > 0 ? ` (${attendanceUpdatedCount} attendance verified)` : ''
+      }${notFound.length > 0 ? `, ${notFound.length} not found` : ''}.`,
+      summary: {
+        totalRowsInFile: rawRows.length,
+        validStudentEntries: studentEntries.length,
+        newlyEnrolledCount,
+        alreadyEnrolledCount,
+        attendanceUpdatedCount,
+        notFoundCount: notFound.length,
+        notFound: notFound.slice(0, 50),
+      },
+    });
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to bulk upload event participants: ' + (error.message || 'Unknown error'),
+    });
+  }
+};
+
+const downloadSampleTemplate = async (request, reply) => {
+  try {
+    const { eventId } = request.params;
+    const event = await Event.findById(eventId).select('title date format type');
+
+    const sampleData = [
+      {
+        'Reg No': '7376221CS101',
+        'Student Name': 'Aditya Kumar',
+        'Student Official Email ID': 'aditya.cs22@bitsathy.ac.in',
+        'Department': 'CSE',
+        'Attendance Status (Optional)': 'Present',
+      },
+      {
+        'Reg No': '7376221CS102',
+        'Student Name': 'Bhavana S',
+        'Student Official Email ID': 'bhavana.cs22@bitsathy.ac.in',
+        'Department': 'AI & DS',
+        'Attendance Status (Optional)': 'Present',
+      },
+      {
+        'Reg No': '7376221EC105',
+        'Student Name': 'Chandran R',
+        'Student Official Email ID': 'chandran.ec22@bitsathy.ac.in',
+        'Department': 'ECE',
+        'Attendance Status (Optional)': 'Absent',
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(sampleData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Participants Roster');
+
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const safeTitle = event?.title ? event.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() : 'event';
+    const filename = `${safeTitle}_participants_sample_template.xlsx`;
+
+    reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return reply.send(buffer);
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ error: 'Failed to generate sample template' });
+  }
+};
+
 module.exports = {
   enrollInEvent,
   getEventEnrollments,
@@ -545,5 +845,7 @@ module.exports = {
   getEventRegistered,
   updateAttendance,
   generateCertificates,
-  getMyCertificates
+  getMyCertificates,
+  bulkUploadEventParticipants,
+  downloadSampleTemplate,
 };

@@ -148,6 +148,50 @@ const useEnrollmentStore = create((set, get) => ({
     }
   },
 
+  bulkUploadParticipants: async (eventId, file, options = {}) => {
+    set({ loading: true, error: null });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (options.markAttendance) {
+        formData.append('markAttendance', 'true');
+      }
+
+      const response = await api.post(`/enrollments/event/${eventId}/bulk-upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to upload participants list';
+      set({ error: msg, loading: false });
+      throw new Error(msg);
+    }
+  },
+
+  downloadParticipantsTemplate: async (eventId) => {
+    try {
+      const response = await api.get(`/enrollments/event/${eventId}/sample-template`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'event_participants_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to download template';
+      throw new Error(msg);
+    }
+  },
+
   resetStatus: () => set({ error: null, success: false, loading: false })
 }));
 

@@ -14,6 +14,8 @@ import {
   UserCheck,
   Award,
   Sliders,
+  FileSpreadsheet,
+  Upload,
 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -28,6 +30,7 @@ export const EventDetailsModal = ({
   onEdit,
   onViewParticipants,
   onViewRegistered,
+  onUploadParticipants,
 }) => {
   if (!isOpen || !event) return null;
 
@@ -116,6 +119,11 @@ export const EventDetailsModal = ({
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-separator text-label-secondary">
                   {formatLabel}
                 </span>
+                {event.registrationType === 'admin_upload' && (
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                    Admin Upload Only
+                  </span>
+                )}
                 {isLive && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/15 text-destructive border border-red-500/20">
                     <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
@@ -390,6 +398,19 @@ export const EventDetailsModal = ({
                 </div>
               </div>
             )}
+
+            {/* Registration Mode Explanatory Notice */}
+            {event.registrationType === 'admin_upload' && !isEnrolled && !isAdmin && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-700 dark:text-amber-300">
+                <Upload size={20} className="shrink-0 text-amber-500" />
+                <div className="text-xs">
+                  <p className="font-bold">Participant Roster Upload by Administrator</p>
+                  <p className="opacity-90 mt-0.5">
+                    Self-registration is disabled for this event. Organizers will upload the confirmed participant roster directly via spreadsheet.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer Actions */}
@@ -404,6 +425,17 @@ export const EventDetailsModal = ({
             <div className="flex items-center gap-2 flex-wrap">
               {isAdmin && (
                 <>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      if (onUploadParticipants) onUploadParticipants(event);
+                    }}
+                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-emerald-500 hover:text-emerald-400 border border-emerald-500/25"
+                    title="Upload Participants from Excel"
+                  >
+                    <FileSpreadsheet size={14} />
+                    <span>Upload Participants</span>
+                  </button>
                   <button
                     onClick={() => {
                       onClose();
@@ -440,31 +472,42 @@ export const EventDetailsModal = ({
               )}
 
               {!isAdmin && (
-                <button
-                  onClick={() => {
-                    onClose();
-                    if (!isEnrolled && onEnroll) onEnroll(event);
-                  }}
-                  disabled={isEnrolled || isDeadlinePassed || isPast}
-                  className={
-                    isEnrolled
-                      ? 'btn-secondary text-xs py-2 px-5 opacity-90 cursor-default'
-                      : 'btn-primary text-xs py-2 px-5 flex items-center gap-2 cursor-pointer'
-                  }
-                >
-                  <span>
-                    {isEnrolled
-                      ? 'Enrolled'
-                      : isPast
-                      ? 'Event Concluded'
-                      : isDeadlinePassed
-                      ? 'Registration Closed'
-                      : 'Enroll Now'}
-                  </span>
-                  {!isEnrolled && !isDeadlinePassed && !isPast && (
-                    <ArrowUpRight size={14} />
-                  )}
-                </button>
+                event.registrationType === 'admin_upload' && !isEnrolled ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-secondary text-xs py-2 px-5 opacity-80 cursor-not-allowed text-amber-500 border border-amber-500/25"
+                    title="Registration for this event is managed directly by administrators."
+                  >
+                    <span>Admin Upload Only</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      if (!isEnrolled && onEnroll) onEnroll(event);
+                    }}
+                    disabled={isEnrolled || isDeadlinePassed || isPast}
+                    className={
+                      isEnrolled
+                        ? 'btn-secondary text-xs py-2 px-5 opacity-90 cursor-default'
+                        : 'btn-primary text-xs py-2 px-5 flex items-center gap-2 cursor-pointer'
+                    }
+                  >
+                    <span>
+                      {isEnrolled
+                        ? 'Enrolled'
+                        : isPast
+                        ? 'Event Concluded'
+                        : isDeadlinePassed
+                        ? 'Registration Closed'
+                        : 'Enroll Now'}
+                    </span>
+                    {!isEnrolled && !isDeadlinePassed && !isPast && (
+                      <ArrowUpRight size={14} />
+                    )}
+                  </button>
+                )
               )}
             </div>
           </div>

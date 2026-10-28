@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import EnrollmentModal from './EnrollmentModal';
 import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
 import EventParticipantsModal from '../admin/EventParticipantsModal';
+import EventBulkUploadModal from './EventBulkUploadModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
@@ -15,6 +16,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [participantsInitialTab, setParticipantsInitialTab] = useState('participants');
 
   useEffect(() => {
@@ -86,9 +88,16 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
         <div>
           {/* Top Bar: Editorial Metadata & Live indicator */}
           <div className="flex items-center justify-between gap-3 mb-4">
-            <span className="meta-editorial">
-              {categoryLabel} • {formatLabel}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="meta-editorial">
+                {categoryLabel} • {formatLabel}
+              </span>
+              {event.registrationType === 'admin_upload' && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                  Admin Upload Only
+                </span>
+              )}
+            </div>
 
             {isLive ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-destructive border border-red-500/20">
@@ -202,6 +211,13 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   <Eye size={15} strokeWidth={1.75} />
                 </button>
                 <button
+                  onClick={() => setIsBulkUploadOpen(true)}
+                  className="p-2 text-label-secondary hover:text-emerald-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Upload Participants List (Excel / CSV)"
+                >
+                  <FileSpreadsheet size={15} strokeWidth={1.75} />
+                </button>
+                <button
                   onClick={() => {
                     setParticipantsInitialTab('registered');
                     setIsParticipantsOpen(true);
@@ -252,36 +268,48 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                 >
                   <Eye size={14} />
                 </button>
-                <button
-                  onClick={() => !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && setIsEnrollModalOpen(true)}
-                  disabled={timeLeft === 'Closed' || isPast || isEnrolled || (event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants)}
-                  className={
-                    isEnrolled
-                      ? 'btn-secondary text-[13px] py-1.5 px-4 opacity-90 cursor-default'
-                      : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
-                      ? 'btn-secondary text-[13px] py-1.5 px-3.5 opacity-60 cursor-not-allowed text-rose-500'
-                      : 'btn-primary text-[13px] py-1.5 px-4.5 flex items-center gap-1.5 cursor-pointer'
-                  }
-                >
-                  <span>
-                    {isEnrolled
-                      ? 'Enrolled'
-                      : isPast
-                      ? 'Concluded'
-                      : timeLeft === 'Closed'
-                      ? 'Closed'
-                      : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
-                      ? 'Full'
-                      : 'Enroll'}
-                  </span>
-                  {!isPast && timeLeft !== 'Closed' && !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && (
-                    <ArrowUpRight
-                      size={13}
-                      strokeWidth={2}
-                      className="transition-transform duration-200 group-hover:translate-x-[3px] group-hover:-translate-y-[3px]"
-                    />
-                  )}
-                </button>
+
+                {event.registrationType === 'admin_upload' && !isEnrolled ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-secondary text-[12px] py-1.5 px-3.5 opacity-80 cursor-not-allowed text-amber-500 border border-amber-500/25"
+                    title="Self-registration is disabled for this event. Participants list is uploaded directly by administrators."
+                  >
+                    <span>Admin Upload</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && setIsEnrollModalOpen(true)}
+                    disabled={timeLeft === 'Closed' || isPast || isEnrolled || (event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants)}
+                    className={
+                      isEnrolled
+                        ? 'btn-secondary text-[13px] py-1.5 px-4 opacity-90 cursor-default'
+                        : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
+                        ? 'btn-secondary text-[13px] py-1.5 px-3.5 opacity-60 cursor-not-allowed text-rose-500'
+                        : 'btn-primary text-[13px] py-1.5 px-4.5 flex items-center gap-1.5 cursor-pointer'
+                    }
+                  >
+                    <span>
+                      {isEnrolled
+                        ? 'Enrolled'
+                        : isPast
+                        ? 'Concluded'
+                        : timeLeft === 'Closed'
+                        ? 'Closed'
+                        : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
+                        ? 'Full'
+                        : 'Enroll'}
+                    </span>
+                    {!isPast && timeLeft !== 'Closed' && !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && (
+                      <ArrowUpRight
+                        size={13}
+                        strokeWidth={2}
+                        className="transition-transform duration-200 group-hover:translate-x-[3px] group-hover:-translate-y-[3px]"
+                      />
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -305,7 +333,20 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
           setParticipantsInitialTab('registered');
           setIsParticipantsOpen(true);
         }}
+        onUploadParticipants={() => setIsBulkUploadOpen(true)}
       />
+
+      {/* Event Bulk Upload Modal for Admin */}
+      {isAdmin && isBulkUploadOpen && (
+        <EventBulkUploadModal
+          isOpen={isBulkUploadOpen}
+          onClose={() => setIsBulkUploadOpen(false)}
+          event={event}
+          onSuccess={() => {
+            setIsBulkUploadOpen(false);
+          }}
+        />
+      )}
 
       {/* Event Participants & Registered Students Modal for Admin */}
       {isAdmin && (

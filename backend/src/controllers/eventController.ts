@@ -16,6 +16,7 @@ export interface CreateEventBody {
   description: string;
   type?: EventType;
   format?: EventFormat;
+  registrationType?: 'open' | 'admin_upload';
   date: string | Date;
   startDate?: string | Date;
   endDate?: string | Date;
@@ -51,6 +52,7 @@ export const createEvent = async (
       description,
       type = 'Technical',
       format = 'Individual',
+      registrationType = 'open',
       date,
       startDate,
       endDate,
@@ -80,6 +82,7 @@ export const createEvent = async (
       description: description.trim(),
       type,
       format,
+      registrationType: registrationType === 'admin_upload' ? 'admin_upload' : 'open',
       date: eventDate,
       startDate: evStartDate,
       endDate: evEndDate,
@@ -305,6 +308,10 @@ export const updateEvent = async (
 
     if (updateData.registrationDeadline) {
       updateData.registrationDeadline = new Date(updateData.registrationDeadline);
+    }
+
+    if (updateData.registrationType !== undefined) {
+      updateData.registrationType = updateData.registrationType === 'admin_upload' ? 'admin_upload' : 'open';
     }
 
     const event = await Event.findByIdAndUpdate(

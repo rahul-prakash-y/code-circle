@@ -33,6 +33,11 @@ const eventSchema = new mongoose.Schema({
     enum: ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Individual', 'Team', 'Club Hour'], 
     required: true 
   },
+  registrationType: {
+    type: String,
+    enum: ['open', 'admin_upload'],
+    default: 'open'
+  },
   maxParticipants: { 
     type: Number,
     default: 0

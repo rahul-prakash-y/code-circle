@@ -3,12 +3,14 @@ import mongoose, { Document, Schema, Model } from 'mongoose';
 export type EventType = 'Technical' | 'Non-Technical' | 'Lecture' | 'Workshop' | 'Individual' | 'Team' | 'Club Hour';
 export type EventFormat = 'Individual' | 'Duo' | 'Team';
 export type EventStatus = 'Upcoming' | 'Live' | 'Completed' | 'Cancelled';
+export type EventRegistrationType = 'open' | 'admin_upload';
 
 export interface IEvent extends Document {
   title: string;
   description: string;
   type: EventType;
   format: EventFormat;
+  registrationType?: EventRegistrationType;
   date: Date;
   startDate: Date;
   endDate: Date;
@@ -59,6 +61,11 @@ const eventSchema = new Schema<IEvent>(
       enum: ['Individual', 'Duo', 'Team'],
       default: 'Individual',
       required: true,
+    },
+    registrationType: {
+      type: String,
+      enum: ['open', 'admin_upload'],
+      default: 'open',
     },
     date: {
       type: Date,

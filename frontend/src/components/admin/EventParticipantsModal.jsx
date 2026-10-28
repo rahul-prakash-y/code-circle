@@ -34,6 +34,7 @@ import useEnrollmentStore from '../../store/useEnrollmentStore';
 import toast from 'react-hot-toast';
 import { useDebounce } from '../../hooks/useDebounce';
 import { getStudentCollege, getStudentYear } from '../../utils/studentUtils';
+import EventBulkUploadModal from '../events/EventBulkUploadModal';
 
 export const EventParticipantsModal = ({
   isOpen,
@@ -50,6 +51,7 @@ export const EventParticipantsModal = ({
   const [attendanceFilter, setAttendanceFilter] = useState('all');
   const [expandedTeams, setExpandedTeams] = useState(new Set());
   const [generatingCertificates, setGeneratingCertificates] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   // Sync activeTab whenever initialTab changes or modal opens
   useEffect(() => {
@@ -369,6 +371,12 @@ export const EventParticipantsModal = ({
                     ? `${stats.presentStudents} Attended`
                     : `${stats.totalStudents} Registered`}
                 </span>
+                {event?.registrationType === 'admin_upload' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 inline-flex items-center gap-1 shadow-sm">
+                    <ShieldCheck size={12} />
+                    Admin Upload Roster
+                  </span>
+                )}
               </div>
               <p className="text-xs text-label-secondary dark:text-[#86868B] font-medium mt-0.5 truncate max-w-xl">
                 {isParticipantsTab
@@ -410,6 +418,15 @@ export const EventParticipantsModal = ({
                 </button>
               </>
             )}
+
+            <button
+              onClick={() => setIsBulkUploadOpen(true)}
+              className="py-2 px-3.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer"
+              title="Upload Participants / Registrations from Excel or CSV"
+            >
+              <FileSpreadsheet size={14} />
+              <span>Upload Excel</span>
+            </button>
 
             <button
               onClick={exportCSV}
@@ -1065,6 +1082,23 @@ export const EventParticipantsModal = ({
           </div>
         </div>
       </motion.div>
+
+      {/* Bulk Upload Modal */}
+      <EventBulkUploadModal
+        isOpen={isBulkUploadOpen}
+        onClose={() => setIsBulkUploadOpen(false)}
+        event={event}
+        onSuccess={async () => {
+          if (event?._id) {
+            try {
+              const data = await fetchEventEnrollments(event._id);
+              setEnrollments(data || []);
+            } catch (err) {
+              console.error('Failed to reload enrollments after upload:', err);
+            }
+          }
+        }}
+      />
     </div>
   );
 };
