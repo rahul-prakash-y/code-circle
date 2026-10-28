@@ -1029,6 +1029,32 @@ export const submitLevelQuest = async (
         },
       };
 
+      // Award 50 points for clearing the quest (if not already awarded for this level quest)
+      const existingQuestTx = await PointTransaction.findOne({
+        user: new mongoose.Types.ObjectId(userId),
+        category: 'Course',
+        referenceId: level._id.toString(),
+      });
+
+      if (!existingQuestTx) {
+        pointsAwarded = 50;
+        await User.findByIdAndUpdate(userId, { $inc: { points: 50 } });
+        try {
+          await PointTransaction.create({
+            user: new mongoose.Types.ObjectId(userId),
+            amount: 50,
+            category: 'Course',
+            title: `Completed Quest: Level ${level.levelNumber} - ${level.title}`,
+            description: `Successfully cleared Level ${level.levelNumber} verification quest`,
+            referenceId: level._id.toString(),
+            referenceModel: 'Level',
+            timestamp: new Date(),
+          });
+        } catch (txErr) {
+          console.warn('[DomainController] Could not log PointTransaction for quest:', txErr);
+        }
+      }
+
       if (hasCodingChallenge) {
         // Coding assessment is mapped (pool or individual):
         // Unlock coding assessment, but do NOT complete level or unlock next level yet!
@@ -1042,7 +1068,7 @@ export const submitLevelQuest = async (
         // Complete level directly and unlock next level
         updateOperations.$addToSet.completedLevels = level._id;
 
-        // Award points if completing this level for the first time
+        // Check if level has remaining points beyond the 50 quest points
         const currentProgress = await StudentProgress.findOne({
           userId: new mongoose.Types.ObjectId(userId),
         }).lean();
@@ -1050,20 +1076,21 @@ export const submitLevelQuest = async (
           currentProgress?.completedLevels?.some((l: any) => l.toString() === level._id.toString())
         );
         if (!alreadyCompleted) {
-          const levelPoints =
+          const totalLevelPoints =
             typeof level.points === 'number' && level.points >= 0
               ? level.points
               : getDefaultPointsForLevel(level.levelNumber);
-          pointsAwarded = levelPoints;
-          if (pointsAwarded > 0) {
-            await User.findByIdAndUpdate(userId, { $inc: { points: pointsAwarded } });
+          const bonusLevelPoints = Math.max(0, totalLevelPoints - 50);
+          if (bonusLevelPoints > 0) {
+            pointsAwarded += bonusLevelPoints;
+            await User.findByIdAndUpdate(userId, { $inc: { points: bonusLevelPoints } });
             try {
               await PointTransaction.create({
                 user: new mongoose.Types.ObjectId(userId),
-                amount: pointsAwarded,
+                amount: bonusLevelPoints,
                 category: 'Course',
-                title: `Completed Quest: Level ${level.levelNumber} - ${level.title}`,
-                description: `Successfully mastered Level ${level.levelNumber} verification quest`,
+                title: `Completed Level: Level ${level.levelNumber} - ${level.title}`,
+                description: `Successfully completed Level ${level.levelNumber}`,
                 referenceId: level._id.toString(),
                 referenceModel: 'Level',
                 timestamp: new Date(),

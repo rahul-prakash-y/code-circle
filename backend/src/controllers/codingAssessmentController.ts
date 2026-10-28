@@ -623,12 +623,15 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
 
       for (const lvl of linkedLevels) {
         if (!existingCompleted.has(lvl._id.toString())) {
-          const pts =
-            typeof challenge.customPoints === 'number' && challenge.customPoints >= 0
-              ? challenge.customPoints
-              : typeof lvl.points === 'number' && lvl.points >= 0
+          const totalLevelPts =
+            typeof lvl.points === 'number' && lvl.points > 50
               ? lvl.points
-              : getDefaultPointsForLevel(lvl.levelNumber);
+              : (lvl.levelNumber === 3 ? 250 : 150);
+          const remainingCodingPts = Math.max(0, totalLevelPts - 50);
+          const pts =
+            typeof challenge.customPoints === 'number' && challenge.customPoints > 0
+              ? challenge.customPoints
+              : Math.max(50, Math.round(remainingCodingPts / 2));
           pointsAwarded += pts;
         }
       }
@@ -2245,13 +2248,74 @@ export const submitLevelAssessmentCode = async (
     session.submissions.push(subRecord);
   }
 
-  // Immediately persist passed challenge to student's completedCodingChallenges
+  const levelDoc = await Level.findById(levelId);
+  let pointsAwarded = 0;
+
+  // Immediately persist passed challenge and award points for this coding question separately
   if (submissionStatus === 'passed') {
     await StudentProgress.findOneAndUpdate(
       { userId },
       { $addToSet: { completedCodingChallenges: challenge._id } },
       { upsert: true }
     );
+
+    // Check if student already received points for this specific challenge
+    const existingChallengeTx = await PointTransaction.findOne({
+      user: new mongoose.Types.ObjectId(userId),
+      category: 'Coding',
+      referenceId: challenge._id.toString(),
+    });
+
+    // Also check if student has a legacy level-wide transaction covering this level
+    const existingLevelTx = levelDoc
+      ? await PointTransaction.findOne({
+          user: new mongoose.Types.ObjectId(userId),
+          category: 'Coding',
+          referenceId: levelDoc._id.toString(),
+          referenceModel: 'Level',
+        })
+      : null;
+
+    if (!existingChallengeTx && !existingLevelTx) {
+      // Quests have 50 points; remaining points for the level are divided across assigned coding questions
+      const totalLevelPoints =
+        typeof levelDoc?.points === 'number' && levelDoc.points > 50
+          ? levelDoc.points
+          : (levelDoc?.levelNumber === 3 ? 250 : 150);
+      const remainingPoints = Math.max(0, totalLevelPoints - 50);
+      const questionsCount = Math.max(1, session.assignedQuestions.length || 2);
+      let questionPoints = Math.round(remainingPoints / questionsCount);
+
+      if (typeof challenge.customPoints === 'number' && challenge.customPoints > 0) {
+        questionPoints = challenge.customPoints;
+      } else if (questionPoints <= 0) {
+        questionPoints = 50;
+      }
+
+      const attemptNumber = session.attemptNumber || 1;
+      const deductionFraction = Math.min(1.0, (attemptNumber - 1) * 0.10);
+      const finalQuestionPoints = Math.max(0, Math.round(questionPoints * (1 - deductionFraction)));
+
+      if (finalQuestionPoints > 0) {
+        pointsAwarded = finalQuestionPoints;
+        session.pointsAwarded = (session.pointsAwarded || 0) + finalQuestionPoints;
+        await User.findByIdAndUpdate(userId, { $inc: { points: finalQuestionPoints } });
+        try {
+          await PointTransaction.create({
+            user: new mongoose.Types.ObjectId(userId),
+            amount: finalQuestionPoints,
+            category: 'Coding',
+            title: `Completed Coding Assessment: ${challenge.title}`,
+            description: `Passed all test cases for coding challenge "${challenge.title}" in Level ${levelDoc?.levelNumber || ''}`,
+            referenceId: challenge._id.toString(),
+            referenceModel: 'CodingChallenge',
+            timestamp: new Date(),
+          });
+        } catch (txErr) {
+          console.warn('[CodingAssessmentController] Could not log PointTransaction for challenge:', txErr);
+        }
+      }
+    }
   }
 
   // Check if all assigned questions are passed (including any passed in earlier sessions/attempts)
@@ -2277,9 +2341,6 @@ export const submitLevelAssessmentCode = async (
   let levelCompleted = false;
   let unlockedNextLevel = false;
   let nextLevelId: string | null = null;
-  let pointsAwarded = 0;
-
-  const levelDoc = await Level.findById(levelId);
 
   if (allPassed) {
     session.isCompleted = true;
@@ -2288,43 +2349,6 @@ export const submitLevelAssessmentCode = async (
     levelCompleted = true;
 
     if (levelDoc) {
-      // 1. Mark completed in student progress
-      const existingProgress = await StudentProgress.findOne({ userId }).lean();
-      const existingCompleted = new Set(
-        (existingProgress?.completedLevels || []).map((id) => id.toString())
-      );
-
-      if (!existingCompleted.has(levelDoc._id.toString())) {
-        const initialPoints =
-          typeof levelDoc.points === 'number' && levelDoc.points >= 0
-            ? levelDoc.points
-            : getDefaultPointsForLevel(levelDoc.levelNumber);
-
-        const attemptNumber = session.attemptNumber || 1;
-        // Deduct 10% of initial points for each attempt after attempt 1
-        const deductionFraction = Math.min(1.0, (attemptNumber - 1) * 0.10);
-        pointsAwarded = Math.max(0, Math.round(initialPoints * (1 - deductionFraction)));
-        session.pointsAwarded = pointsAwarded;
-
-        if (pointsAwarded > 0) {
-          await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
-          try {
-            await PointTransaction.create({
-              user: new mongoose.Types.ObjectId(user.id),
-              amount: pointsAwarded,
-              category: 'Coding',
-              title: `Completed Level Assessment: ${levelDoc.title || `Level ${levelDoc.levelNumber}`}`,
-              description: `Passed coding assessment for Level ${levelDoc.levelNumber}`,
-              referenceId: levelDoc._id.toString(),
-              referenceModel: 'Level',
-              timestamp: new Date(),
-            });
-          } catch (txErr) {
-            console.warn('[CodingAssessmentController] Could not log PointTransaction for level session:', txErr);
-          }
-        }
-      }
-
       const updateOp: any = {
         $addToSet: {
           completedLevels: levelDoc._id,
@@ -2349,10 +2373,20 @@ export const submitLevelAssessmentCode = async (
         nextLevelId = nextLevel._id.toString();
       }
 
-      // Update enrollment
+      // Update enrollment status
+      const allDomainLevels = await Level.find({ domainId: levelDoc.domainId }).select('_id').lean();
+      const updatedProgress = await StudentProgress.findOne({ userId }).lean();
+      const doneSet = new Set((updatedProgress?.completedLevels || []).map((id) => id.toString()));
+      doneSet.add(levelDoc._id.toString());
+      const isCourseCompleted = allDomainLevels.length > 0 && allDomainLevels.every((l) => doneSet.has(l._id.toString()));
+
       await DomainEnrollment.findOneAndUpdate(
         { userId, domainId: levelDoc.domainId },
-        { status: 'in_progress', updatedAt: new Date() },
+        {
+          status: isCourseCompleted ? 'completed' : 'in_progress',
+          ...(isCourseCompleted ? { completedAt: new Date() } : {}),
+          updatedAt: new Date(),
+        },
         { upsert: true }
       );
     }
