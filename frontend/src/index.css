@@ -4,11 +4,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ══════════════════════════════════════════════════════════════
-   ACADEMIC MINIMALISM + PREMIUM PRODUCT DESIGN SYSTEM
+   HIGH-CRAFT PRODUCT DESIGN SYSTEM (Inspired by Linear, Stripe & Vercel)
    Canvas: #F5F5F7 (light) / #000000 (dark)
    Accent: Apple System Blue #0071E3 (light) / #2997FF (dark)
    Secondary text: #86868B
-   Surfaces: 18px radius, subtle soft shadow, no borders
+   Surfaces: 18px radius, subtle soft shadow, micro-hairline borders
 ══════════════════════════════════════════════════════════════ */
 
 @theme {
@@ -58,7 +58,7 @@
   --surface-raised: #FFFFFF;
   --surface-overlay: rgba(255, 255, 255, 0.92);
 
-  /* Apple Liquid Glass — restricted to Navbar and Tab Bar only */
+  /* Liquid Glass — restricted to Navbar and Tab Bar only */
   --glass-bg: rgba(255, 255, 255, 0.82);
   --glass-bg-dark: rgba(255, 255, 255, 0.65);
   --glass-border: rgba(0, 0, 0, 0.06);
@@ -67,10 +67,10 @@
   --separator: rgba(0, 0, 0, 0.07);
   --separator-opaque: #E5E5EA;
 
-  /* Labels — Apple typography hierarchy */
-  --label-primary: #1D1D1F;
-  --label-secondary: #86868B;    /* Apple Gray */
-  --label-tertiary: #AEAEB2;
+  /* 4-Tier Tonal Hierarchy: High contrast, neutral precision */
+  --label-primary: #1D1D1F;      /* Tier 1: Dominant contrast */
+  --label-secondary: #6E6E73;    /* Tier 2: Refined editorial gray */
+  --label-tertiary: #8E8E93;     /* Tier 3: Muted metadata / timestamps */
 
   /* Legacy variable fallbacks */
   --text-primary: var(--label-primary);
@@ -89,12 +89,12 @@
   --accent-subtle: rgba(0, 113, 227, 0.08);
   --accent-ring: rgba(0, 113, 227, 0.16);
 
-  /* Semantic (used strictly for functional meaning) */
+  /* Semantic (used strictly for functional status) */
   --success: #34C759;
   --warning: #FF9F0A;
   --destructive: #FF3B30;
 
-  /* Shadows — Refined layered lift, natural and gentle */
+  /* Shadows — Refined layered lift */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
   --shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 8px 24px -4px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.03);
@@ -120,9 +120,10 @@
   --separator: rgba(255, 255, 255, 0.08);
   --separator-opaque: #38383A;
 
-  --label-primary: #F5F5F7;
-  --label-secondary: #86868B;
-  --label-tertiary: #636366;
+  /* 4-Tier Tonal Hierarchy: High contrast, neutral precision */
+  --label-primary: #F5F5F7;      /* Tier 1: Crisp high contrast */
+  --label-secondary: #A1A1A6;    /* Tier 2: Neutral readable zinc */
+  --label-tertiary: #6E6E73;     /* Tier 3: Muted metadata / timestamps */
 
   /* Legacy variable fallbacks */
   --text-primary: var(--label-primary);
@@ -154,7 +155,7 @@
   color-scheme: dark;
 }
 
-/* ── Base ─────────────────────────────────────────────────── */
+/* ── Base Layer & Typography System ──────────────────────── */
 @layer base {
   a, button, [role="button"] {
     transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
@@ -175,10 +176,27 @@
     letter-spacing: -0.011em;
   }
 
+  /* Headings: Balanced, optical letter spacing, no awkward orphans */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
     color: var(--label-primary);
+    text-wrap: balance;
+  }
+
+  /* Paragraphs: Pretty wrapping to prevent single-word hanging orphans */
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Vertical alignment precision for all numbers, tables, and counters */
+  table, .tabular-nums, [data-tabular-nums], .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Constrained prose width helper */
+  .max-w-prose {
+    max-width: 65ch;
   }
 
   /* Minimal scrollbar */
@@ -192,14 +210,14 @@
 /* ── Components ───────────────────────────────────────────── */
 @layer components {
 
-  /* ── Apple Liquid Glass — strictly for navbar/sticky elements ── */
+  /* ── Liquid Glass — strictly for navbar/sticky elements ── */
   .liquid-glass {
     background: var(--glass-bg);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
 
-  /* ── Clean Solid Surfaces (transforms all legacy glass cards into premium surfaces) ── */
+  /* ── Clean Solid Surfaces ── */
   .surface, .glass, .glass-card {
     background: var(--surface);
     border-radius: 18px;
@@ -223,32 +241,34 @@
     position: relative;
   }
 
-  /* ── Apple-spec macro numbers ── */
+  /* ── High-Craft Typographic Hierarchy ── */
   .display-number {
     font-family: var(--font-sans);
-    font-size: clamp(2.5rem, 6vw, 5.5rem);
-    font-weight: 700;
-    letter-spacing: -0.04em;
+    font-size: clamp(2.25rem, 5vw, 4.5rem);
+    font-weight: 600;
+    letter-spacing: -0.035em;
     line-height: 1;
+    font-variant-numeric: tabular-nums;
     color: var(--label-primary);
   }
 
   .display-number-sm {
     font-family: var(--font-sans);
-    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
-    font-weight: 700;
-    letter-spacing: -0.035em;
+    font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
     line-height: 1;
+    font-variant-numeric: tabular-nums;
     color: var(--label-primary);
   }
 
   .display-headline {
-    /* Mobile-first: floor starts at 1.75rem (~28px) so it never overflows a 375px phone */
-    font-size: clamp(1.75rem, 5.5vw, 3.8rem);
-    font-weight: 700;
-    letter-spacing: -0.035em;
-    line-height: 1.05;
+    font-size: clamp(1.75rem, 5vw, 3.25rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
     color: var(--label-primary);
+    text-wrap: balance;
   }
 
   /* ── Slide-over panel ── */
@@ -276,7 +296,7 @@
     border-left: 1px solid var(--separator);
   }
 
-  /* ── Buttons ── */
+  /* ── Buttons (Linear / Stripe Weight: font-medium 500) ── */
   .btn-primary {
     display: inline-flex;
     align-items: center;
@@ -288,7 +308,7 @@
     font-weight: 500;
     letter-spacing: -0.01em;
     padding: 9px 18px;
-    border-radius: 980px;         /* Apple pill */
+    border-radius: 980px;
     cursor: pointer;
     user-select: none;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
@@ -353,7 +373,7 @@
     opacity: 0.85;
   }
 
-  /* ── Inputs (standardized for both input-base and input-field) ── */
+  /* ── Inputs ── */
   .input-base, .input-field {
     width: 100%;
     background: var(--canvas);
@@ -388,7 +408,7 @@
   /* ── Separator ── */
   .sep { height: 1px; background: var(--separator); }
 
-  /* ── Editorial metadata tags (replaces badge explosion) ── */
+  /* ── Editorial metadata tags ── */
   .meta-editorial {
     font-size: 11px;
     font-weight: 600;
@@ -407,6 +427,7 @@
     letter-spacing: 0.02em;
     padding: 2px 8px;
     border-radius: 980px;
+    font-variant-numeric: tabular-nums;
   }
 
   .tag-blue  { background: var(--accent-subtle); color: var(--accent); }
@@ -418,7 +439,6 @@
   /* ── Tactile Interactive Card (Desktop Hover) ── */
   .interactive-card {
     transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
-    /* Eliminate 300ms tap delay on iOS and Android */
     touch-action: manipulation;
   }
   @media (hover: hover) and (pointer: fine) {
@@ -428,7 +448,7 @@
     }
   }
 
-  /* ── CSS Spotlight Highlight for Metric Cards (Zero React re-renders) ── */
+  /* ── CSS Spotlight Highlight for Metric Cards ── */
   .spotlight-card {
     position: relative;
     overflow: hidden;
@@ -461,7 +481,7 @@
     }
   }
 
-  /* ── Calm Skeleton State (No flashy sweep) ── */
+  /* ── Calm Skeleton State ── */
   .skeleton-calm {
     background: var(--separator);
     animation: skeleton-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -510,4 +530,3 @@
     scroll-behavior: auto !important;
   }
 }
-

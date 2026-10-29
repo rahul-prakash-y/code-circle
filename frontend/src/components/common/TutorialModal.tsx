@@ -86,19 +86,19 @@ export const TutorialModal: React.FC = () => {
           {/* Header */}
           <div className="flex items-start justify-between pb-5 border-b border-separator relative z-10 shrink-0">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-accent/10 border border-accent/25 flex items-center justify-center text-accent shadow-sm">
-                <IconComponent size={24} />
+              <div className="w-12 h-12 rounded-2xl bg-accent/10 border border-accent/25 flex items-center justify-center text-accent shadow-xs">
+                <IconComponent size={22} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg sm:text-xl font-black text-label-primary tracking-tight">
+                  <h2 className="text-lg sm:text-xl font-semibold text-label-primary tracking-tight">
                     {activeTutorial.title}
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-accent/15 text-accent border border-accent/25">
-                    {activeTutorial.category === 'modal' ? 'Modal Walkthrough' : 'Page Guide'}
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-accent/15 text-accent border border-accent/25">
+                    {activeTutorial.category === 'modal' ? 'Modal walkthrough' : 'Page guide'}
                   </span>
                 </div>
-                <p className="text-xs text-label-secondary mt-0.5 leading-relaxed">
+                <p className="text-xs text-label-secondary mt-0.5 leading-relaxed font-normal">
                   {activeTutorial.subtitle}
                 </p>
               </div>
@@ -108,7 +108,7 @@ export const TutorialModal: React.FC = () => {
               type="button"
               onClick={closeTutorial}
               className="p-2 rounded-xl bg-surface-secondary hover:bg-surface-raised border border-separator text-label-tertiary hover:text-label-primary transition-all cursor-pointer shrink-0"
-              title="Close Tutorial"
+              title="Close tutorial"
             >
               <X size={18} />
             </button>
@@ -117,16 +117,16 @@ export const TutorialModal: React.FC = () => {
           {/* Scrollable Content Body */}
           <div className="overflow-y-auto custom-scrollbar flex-1 py-5 space-y-6 relative z-10 pr-1">
             {/* Overview Card */}
-            <div className="p-4 rounded-2xl bg-surface-secondary/70 border border-separator text-xs text-label-secondary leading-relaxed">
+            <div className="p-4 rounded-2xl bg-surface-secondary/70 border border-separator text-xs text-label-secondary leading-relaxed font-normal">
               <p>{activeTutorial.overview}</p>
             </div>
 
-            {/* "What You Can Do Here" Highlights */}
+            {/* Highlights */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-amber-400" />
-                <h3 className="text-xs font-black uppercase tracking-wider text-label-primary">
-                  What You Can Do
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-label-primary">
+                  What you can do
                 </h3>
               </div>
 
@@ -136,15 +136,15 @@ export const TutorialModal: React.FC = () => {
                     key={idx}
                     className={`p-3.5 rounded-2xl border transition-all ${
                       action.highlight
-                        ? 'bg-accent/5 border-accent/30 shadow-sm'
+                        ? 'bg-accent/5 border-accent/30 shadow-xs'
                         : 'bg-surface border-separator hover:border-separator/80'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs font-bold text-label-primary">{action.title}</span>
+                      <span className="text-xs font-medium text-label-primary">{action.title}</span>
                       {action.badge && (
                         <span
-                          className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold tracking-wide uppercase ${
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wider uppercase ${
                             action.badge.toLowerCase().includes('admin')
                               ? 'bg-purple-500/15 text-purple-400 border border-purple-500/25'
                               : 'bg-surface-secondary text-label-secondary border border-separator'
@@ -154,7 +154,7 @@ export const TutorialModal: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-label-secondary leading-relaxed">
+                    <p className="text-[11px] text-label-secondary leading-relaxed font-normal">
                       {action.description}
                     </p>
                   </div>
@@ -169,9 +169,9 @@ export const TutorialModal: React.FC = () => {
                   <div className="p-4 rounded-2xl bg-surface border border-separator space-y-2.5">
                     <div className="flex items-center gap-2 text-emerald-500">
                       <GraduationCap size={16} />
-                      <h4 className="text-xs font-bold text-label-primary">For Students</h4>
+                      <h4 className="text-xs font-semibold text-label-primary">For students</h4>
                     </div>
-                    <ul className="space-y-2 text-[11px] text-label-secondary leading-relaxed">
+                    <ul className="space-y-2 text-[11px] text-label-secondary leading-relaxed font-normal">
                       {activeTutorial.studentGuide.map((step, sIdx) => (
                         <li key={sIdx} className="flex items-start gap-2">
                           <CheckCircle2 size={13} className="text-emerald-500 shrink-0 mt-0.5" />
@@ -192,11 +192,11 @@ export const TutorialModal: React.FC = () => {
                   >
                     <div className="flex items-center gap-2 text-purple-400">
                       <Crown size={16} />
-                      <h4 className="text-xs font-bold text-label-primary">
-                        For Admins & Faculty {isAdmin && <span className="text-[10px] text-purple-400">(Your Role)</span>}
+                      <h4 className="text-xs font-semibold text-label-primary">
+                        For admins & faculty {isAdmin && <span className="text-[10px] text-purple-400 font-normal">(Your role)</span>}
                       </h4>
                     </div>
-                    <ul className="space-y-2 text-[11px] text-label-secondary leading-relaxed">
+                    <ul className="space-y-2 text-[11px] text-label-secondary leading-relaxed font-normal">
                       {activeTutorial.adminGuide.map((step, aIdx) => (
                         <li key={aIdx} className="flex items-start gap-2">
                           <CheckCircle2 size={13} className="text-purple-400 shrink-0 mt-0.5" />
@@ -209,15 +209,15 @@ export const TutorialModal: React.FC = () => {
               </div>
             )}
 
-            {/* Pro Tips Callout Box */}
+            {/* Tips Callout Box */}
             {activeTutorial.proTips && activeTutorial.proTips.length > 0 && (
               <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-3 text-xs text-label-primary">
                 <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="font-bold text-[11px] text-amber-400 uppercase tracking-wider">
-                    Pro Tips & Shortcuts
+                  <p className="font-semibold text-[11px] text-amber-400 uppercase tracking-wider">
+                    Tips & shortcuts
                   </p>
-                  <ul className="text-[11px] text-label-secondary space-y-1">
+                  <ul className="text-[11px] text-label-secondary space-y-1 font-normal">
                     {activeTutorial.proTips.map((tip, tIdx) => (
                       <li key={tIdx}>• {tip}</li>
                     ))}
@@ -230,15 +230,15 @@ export const TutorialModal: React.FC = () => {
           {/* Footer Action */}
           <div className="pt-4 border-t border-separator flex items-center justify-between gap-3 relative z-10 shrink-0">
             <span className="text-[11px] text-label-tertiary">
-              💡 Press <kbd className="px-1.5 py-0.5 bg-surface border border-separator rounded text-[10px] font-mono">Esc</kbd> to close anytime
+              Press <kbd className="px-1.5 py-0.5 bg-surface border border-separator rounded text-[10px] font-mono">Esc</kbd> to close anytime
             </span>
 
             <button
               type="button"
               onClick={closeTutorial}
-              className="px-5 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-accent to-purple-600 hover:from-accent-hover hover:to-purple-500 shadow-lg shadow-accent/20 cursor-pointer transition-all"
+              className="px-5 py-2.5 rounded-xl text-xs font-medium text-white bg-primary hover:bg-primary-hover shadow-xs cursor-pointer transition-all"
             >
-              Got it, let&apos;s explore!
+              Got it
             </button>
           </div>
         </motion.div>

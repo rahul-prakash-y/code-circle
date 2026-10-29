@@ -22,60 +22,57 @@ export const CoursesComingSoonView: React.FC<CoursesComingSoonViewProps> = ({
   const upcomingTeasers = [
     {
       title: 'Full Stack Web Engineering',
-      desc: 'Master React 19, high-throughput Node.js microservices, and database architecture.',
+      desc: 'Master modern React patterns, high-throughput backend services, and database architecture.',
       icon: Code2,
-      tag: 'Frontend & Backend',
-      levels: '5 Levels Planned',
+      tag: 'Frontend & backend',
+      levels: '5 levels planned',
     },
     {
       title: 'Artificial Intelligence & Deep Learning',
-      desc: 'Deep dive into PyTorch, transformers, embeddings, and generative neural pipelines.',
+      desc: 'Foundations of PyTorch, transformers, vector embeddings, and neural inference pipelines.',
       icon: Cpu,
-      tag: 'AI / ML Track',
-      levels: '6 Levels Planned',
+      tag: 'AI & machine learning',
+      levels: '6 levels planned',
     },
     {
       title: 'Cloud Infrastructure & DevOps',
-      desc: 'Production containerization with Docker, Kubernetes clustering, and CI/CD automation.',
+      desc: 'Production containerization with Docker, Kubernetes clusters, and automated delivery pipelines.',
       icon: Terminal,
-      tag: 'Systems & Cloud',
-      levels: '4 Levels Planned',
+      tag: 'Systems & cloud',
+      levels: '4 levels planned',
     },
   ];
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 space-y-12 animate-in fade-in duration-300">
+    <div className="max-w-5xl mx-auto py-10 px-4 sm:px-6 space-y-12 animate-in fade-in duration-300">
       {/* Hero Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-surface border border-separator/80 p-8 sm:p-12 md:p-16 text-center shadow-xl">
-        {/* Ambient Gradient Background Glow */}
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-accent/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 right-1/4 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-surface border border-separator/80 p-8 sm:p-12 md:p-16 text-center shadow-sm">
+        {/* Subtle Ambient Glow */}
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 max-w-2xl mx-auto space-y-6">
+        <div className="relative z-10 max-w-2xl mx-auto space-y-5">
           {/* Status Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold tracking-wide uppercase shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[11px] font-semibold tracking-wide uppercase">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Curriculum In Preparation • Coming Soon</span>
+            <span>Curriculum in preparation • Coming soon</span>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-label-primary tracking-tight leading-tight">
-            Exciting Courses Are <br className="hidden sm:inline" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-500 to-indigo-500">
-              Launching Soon
-            </span>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-label-primary tracking-tight leading-[1.15]">
+            Curated engineering courses <br className="hidden sm:inline" />
+            are launching soon
           </h1>
 
           {/* Subtitle */}
-          <p className="text-sm sm:text-base text-label-secondary leading-relaxed max-w-xl mx-auto">
-            Our faculty and mentors are fine-tuning interactive video quests, curated study materials, and real-time coding assessments. The full course catalog will unlock soon.
+          <p className="text-sm sm:text-[15px] text-label-secondary leading-relaxed max-w-prose mx-auto">
+            Faculty coordinators and student leads are preparing interactive video walkthroughs, study notes, and hands-on coding challenges. The catalog will open shortly.
           </p>
 
           {/* Early Access Notice Card */}
-          <div className="p-4 rounded-2xl bg-surface-secondary/70 border border-separator text-xs text-label-secondary flex items-center justify-center gap-2.5 max-w-lg mx-auto shadow-xs">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-surface-secondary/70 border border-separator text-xs text-label-secondary flex items-center justify-center gap-2.5 max-w-lg mx-auto">
             <Lock className="w-4 h-4 text-amber-500 shrink-0" />
-            <span>
-              Selected for early alpha testing? Contact your <strong className="text-label-primary">SuperAdmin</strong> to receive early access clearance.
+            <span className="text-left sm:text-center">
+              Selected for early preview? Contact a club administrator for access permissions.
             </span>
           </div>
 
@@ -84,10 +81,10 @@ export const CoursesComingSoonView: React.FC<CoursesComingSoonViewProps> = ({
               <button
                 type="button"
                 onClick={onRefresh}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary active:scale-98 transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium bg-surface border border-separator text-label-primary hover:bg-surface-secondary active:scale-98 transition shadow-xs cursor-pointer min-h-[40px]"
               >
                 <Clock className="w-4 h-4 text-accent" />
-                <span>Check Availability Status</span>
+                <span>Check availability status</span>
               </button>
             </div>
           )}
@@ -96,13 +93,13 @@ export const CoursesComingSoonView: React.FC<CoursesComingSoonViewProps> = ({
 
       {/* Curriculum Preview Section */}
       <div className="space-y-6">
-        <div className="text-center">
-          <p className="text-xs font-bold uppercase tracking-wider text-accent">Upcoming Sneak Peek</p>
-          <h2 className="text-xl sm:text-2xl font-bold text-label-primary mt-1">
-            Tracks Under Active Development
+        <div className="text-center space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">Preview</p>
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-label-primary">
+            Tracks currently in development
           </h2>
-          <p className="text-xs text-label-secondary mt-1">
-            Here is a preview of the upcoming learning paths arriving this semester.
+          <p className="text-xs sm:text-sm text-label-secondary max-w-prose mx-auto">
+            A preview of upcoming hands-on learning pathways arriving this term.
           </p>
         </div>
 
@@ -119,28 +116,28 @@ export const CoursesComingSoonView: React.FC<CoursesComingSoonViewProps> = ({
                     <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center group-hover:scale-105 transition">
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-secondary text-label-tertiary border border-separator">
-                      Coming Soon
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-surface-secondary text-label-tertiary border border-separator">
+                      Coming soon
                     </span>
                   </div>
 
                   <span className="text-[11px] font-semibold text-accent block mb-1">
                     {teaser.tag}
                   </span>
-                  <h3 className="text-base font-bold text-label-primary mb-2">
+                  <h3 className="text-base font-semibold text-label-primary mb-2 tracking-tight">
                     {teaser.title}
                   </h3>
-                  <p className="text-xs text-label-secondary leading-relaxed">
+                  <p className="text-xs sm:text-[13px] text-label-secondary leading-relaxed">
                     {teaser.desc}
                   </p>
                 </div>
 
-                <div className="pt-6 mt-6 border-t border-separator/60 flex items-center justify-between text-xs text-label-tertiary">
-                  <span className="flex items-center gap-1.5 font-medium">
+                <div className="pt-5 mt-5 border-t border-separator/60 flex items-center justify-between text-xs text-label-tertiary">
+                  <span className="flex items-center gap-1.5 font-medium tabular-nums">
                     <GraduationCap className="w-3.5 h-3.5" />
                     {teaser.levels}
                   </span>
-                  <span className="font-semibold text-accent flex items-center gap-1 group-hover:translate-x-0.5 transition">
+                  <span className="font-medium text-accent flex items-center gap-1 group-hover:translate-x-0.5 transition">
                     Preview <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>

@@ -3,11 +3,7 @@ import {
   X,
   CheckCircle2,
   UserCheck,
-  ShieldCheck,
   Loader2,
-  Award,
-  Plus,
-  Calendar,
   Clock,
   Key,
   Users,
@@ -15,15 +11,8 @@ import {
   Copy,
   Check,
   Download,
-  Sparkles,
   Radio,
-  CheckSquare,
-  Square,
-  AlertCircle,
-  Hash,
-  GraduationCap,
-  Building2,
-  RefreshCw,
+  Plus,
 } from 'lucide-react';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import useAttendanceStore from '../../store/useAttendanceStore';
@@ -150,8 +139,6 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
     }
   };
 
-
-
   const toggleManualAttendance = (id) => {
     setSelectedEnrollmentIds((prev) => {
       const next = new Set(prev);
@@ -180,7 +167,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
   const saveManualAttendance = async () => {
     try {
       await updateAttendance(event._id, Array.from(selectedEnrollmentIds));
-      toast.success(`Attendance successfully synced! (${selectedEnrollmentIds.size} present)`);
+      toast.success(`Attendance successfully synced (${selectedEnrollmentIds.size} present)`);
       const data = await fetchEventEnrollments(event._id);
       setEnrollments(data || []);
     } catch (error) {
@@ -192,7 +179,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
     if (!otp) return;
     navigator.clipboard.writeText(String(otp));
     setCopiedOtp(String(otp));
-    toast.success(`OTP ${otp} copied to clipboard!`);
+    toast.success(`OTP ${otp} copied to clipboard`);
     setTimeout(() => setCopiedOtp(null), 2000);
   };
 
@@ -237,29 +224,29 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
         {/* Top Header */}
         <div className="p-5 sm:p-6 border-b border-separator dark:border-white/10 bg-canvas/40 dark:bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-purple-500/15 border border-blue-500/25 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-sm">
-              <UserCheck size={24} />
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-xs">
+              <UserCheck size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-black text-label-primary dark:text-[#F5F5F7] tracking-tight font-heading">
-                  Attendance Intelligence
+                <h2 className="text-xl sm:text-2xl font-semibold text-label-primary dark:text-[#F5F5F7] tracking-tight">
+                  Attendance intelligence
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                  Live Engine
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  Live engine
                 </span>
               </div>
-              <p className="text-xs text-label-secondary dark:text-[#86868B] font-medium mt-0.5 truncate max-w-md">
-                Event: <strong className="text-label-primary dark:text-white">{event?.title}</strong>
+              <p className="text-xs text-label-secondary dark:text-[#86868B] font-normal mt-0.5 truncate max-w-md">
+                Event: <strong className="text-label-primary dark:text-white font-medium">{event?.title}</strong>
               </p>
             </div>
           </div>
 
           {/* Quick Metrics Capsule & Close */}
           <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs font-semibold">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs font-normal">
               <span className="text-label-secondary dark:text-[#86868B]">Turnout:</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+              <span className="font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
                 {presentStudents} / {totalStudents} ({turnoutRate}%)
               </span>
             </div>
@@ -269,7 +256,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
               className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas dark:hover:bg-white/10 transition-colors cursor-pointer border border-transparent hover:border-separator shrink-0"
               title="Close Attendance Intelligence"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
         </div>
@@ -279,16 +266,16 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
           <div className="flex p-1 bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-2xl shrink-0">
             <button
               onClick={() => setActiveTab('manual')}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                 activeTab === 'manual'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary hover:bg-canvas/60 dark:hover:bg-white/5'
               }`}
             >
-              <UserCheck size={15} />
-              <span>Manual Roll-Call Registry</span>
+              <UserCheck size={14} />
+              <span>Manual roll-call registry</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-medium tabular-nums ${
                   activeTab === 'manual' ? 'bg-black/25 text-white' : 'bg-separator text-label-secondary'
                 }`}
               >
@@ -298,16 +285,16 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
 
             <button
               onClick={() => setActiveTab('sessions')}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                 activeTab === 'sessions'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary hover:bg-canvas/60 dark:hover:bg-white/5'
               }`}
             >
-              <Key size={15} />
-              <span>OTP Live Sessions Hub</span>
+              <Key size={14} />
+              <span>OTP live sessions hub</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-medium tabular-nums ${
                   activeTab === 'sessions'
                     ? 'bg-black/25 text-white'
                     : activeSessionsCount > 0
@@ -320,7 +307,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
             </button>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 text-xs text-label-secondary dark:text-[#86868B]">
+          <div className="hidden md:flex items-center gap-2 text-xs text-label-secondary dark:text-[#86868B] font-normal">
             <Radio size={14} className="text-emerald-500 animate-pulse" />
             <span>Real-time cloud synchronization active</span>
           </div>
@@ -329,9 +316,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
         {/* Content Area */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {activeTab === 'manual' ? (
-            /* ================================================================= */
-            /* MANUAL ROLL-CALL REGISTRY TAB                                      */
-            /* ================================================================= */
+            /* MANUAL ROLL-CALL REGISTRY TAB */
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Filter & Action Toolbar */}
               <div className="p-4 sm:p-5 border-b border-separator dark:border-white/10 bg-canvas/20 dark:bg-white/[0.01] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
@@ -344,7 +329,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                       value={manualSearch}
                       onChange={(e) => setManualSearch(e.target.value)}
                       placeholder="Search students, roll numbers, teams..."
-                      className="w-full text-xs py-2 pl-9.5 pr-4 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] placeholder:text-label-tertiary focus:outline-none focus:border-blue-500/40 transition-colors"
+                      className="w-full text-xs py-2 pl-9.5 pr-4 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] placeholder:text-label-tertiary focus:outline-none focus:border-blue-500/40 transition-colors font-normal"
                     />
                     {manualSearch && (
                       <button
@@ -359,11 +344,11 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                   <select
                     value={manualStatusFilter}
                     onChange={(e) => setManualStatusFilter(e.target.value)}
-                    className="text-xs font-semibold py-2 px-3 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-secondary dark:text-[#86868B] focus:outline-none cursor-pointer shrink-0"
+                    className="text-xs font-medium py-2 px-3 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-secondary dark:text-[#86868B] focus:outline-none cursor-pointer shrink-0"
                   >
                     <option value="all">All ({totalStudents})</option>
-                    <option value="present">Present Only ({presentStudents})</option>
-                    <option value="absent">Absent Only ({totalStudents - presentStudents})</option>
+                    <option value="present">Present only ({presentStudents})</option>
+                    <option value="absent">Absent only ({totalStudents - presentStudents})</option>
                   </select>
                 </div>
 
@@ -371,23 +356,23 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                 <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
                   <button
                     onClick={handleSelectAllFiltered}
-                    className="py-1.5 px-3 rounded-xl text-xs font-semibold text-label-secondary dark:text-[#86868B] hover:text-label-primary bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
+                    className="py-1.5 px-3 rounded-xl text-xs font-medium text-label-secondary dark:text-[#86868B] hover:text-label-primary bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
                   >
-                    Mark Filtered Present
+                    Mark filtered present
                   </button>
                   <button
                     onClick={handleDeselectAllFiltered}
-                    className="py-1.5 px-3 rounded-xl text-xs font-semibold text-label-secondary dark:text-[#86868B] hover:text-label-primary bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
+                    className="py-1.5 px-3 rounded-xl text-xs font-medium text-label-secondary dark:text-[#86868B] hover:text-label-primary bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
                   >
-                    Reset Filtered
+                    Reset filtered
                   </button>
                   <button
                     onClick={saveManualAttendance}
                     disabled={enrollmentLoading}
-                    className="btn-primary py-2 px-4.5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                    className="btn-primary py-2 px-4.5 text-xs font-medium flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
                   >
                     {enrollmentLoading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                    <span>Sync Registry to Cloud</span>
+                    <span>Sync registry to cloud</span>
                   </button>
                 </div>
               </div>
@@ -404,15 +389,15 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                     <div className="w-12 h-12 rounded-2xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 flex items-center justify-center text-label-tertiary mx-auto">
                       <Users size={22} />
                     </div>
-                    <p className="text-sm font-bold text-label-primary dark:text-[#F5F5F7]">No students found</p>
+                    <p className="text-sm font-semibold tracking-tight text-label-primary dark:text-[#F5F5F7]">No students found</p>
                     <p className="text-xs text-label-secondary dark:text-[#86868B] max-w-sm mx-auto">
                       No registrations match your current search query or filter.
                     </p>
                   </div>
                 ) : (
                   <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-surface dark:bg-[#161617] border-b border-separator dark:border-white/10 z-10 shadow-sm">
-                      <tr className="text-[11px] font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider">
+                    <thead className="sticky top-0 bg-surface dark:bg-[#161617] border-b border-separator dark:border-white/10 z-10 shadow-xs">
+                      <tr className="text-[11px] font-semibold text-label-secondary dark:text-[#86868B] uppercase tracking-wider">
                         <th className="py-3.5 px-6">Student Information</th>
                         <th className="py-3.5 px-6">Roll Number</th>
                         <th className="py-3.5 px-6">Department & Year</th>
@@ -436,7 +421,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                             <td className="py-3.5 px-6">
                               <div className="flex items-center gap-3">
                                 <div
-                                  className={`w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 border ${
+                                  className={`w-9 h-9 rounded-xl font-medium text-xs flex items-center justify-center shrink-0 border ${
                                     isPresent
                                       ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                                       : 'bg-canvas dark:bg-[#1C1C1E] text-label-secondary dark:text-[#86868B] border-separator dark:border-white/10'
@@ -446,11 +431,11 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                                 </div>
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-sm text-label-primary dark:text-[#F5F5F7] truncate">
+                                    <span className="font-medium text-sm text-label-primary dark:text-[#F5F5F7] truncate">
                                       {student.name || 'Unknown Student'}
                                     </span>
                                     {e.isWalkIn && (
-                                      <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                                      <span className="px-2 py-0.2 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25">
                                         Walk-in
                                       </span>
                                     )}
@@ -462,7 +447,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                               </div>
                             </td>
 
-                            <td className="py-3.5 px-6 font-mono text-xs font-semibold text-label-primary dark:text-[#F5F5F7]">
+                            <td className="py-3.5 px-6 font-mono text-xs font-medium tabular-nums text-label-primary dark:text-[#F5F5F7]">
                               {student.rollNo || 'N/A'}
                             </td>
 
@@ -478,7 +463,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
 
                             <td className="py-3.5 px-6">
                               <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                                   e.type === 'Team'
                                     ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
                                     : e.type === 'Duo'
@@ -495,7 +480,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                               <button
                                 type="button"
                                 onClick={() => toggleManualAttendance(e._id)}
-                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
                                   isPresent
                                     ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
                                     : 'bg-canvas dark:bg-[#1C1C1E] text-label-tertiary border-separator dark:border-white/10 hover:border-separator-opaque'
@@ -523,22 +508,20 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
               </div>
             </div>
           ) : (
-            /* ================================================================= */
-            /* OTP SESSIONS HUB TAB                                               */
-            /* ================================================================= */
+            /* OTP SESSIONS HUB TAB */
             <div className="flex-1 flex overflow-hidden flex-col md:flex-row">
               {/* Left Pane: Sessions List */}
               <div className="w-full md:w-88 border-r border-separator dark:border-white/10 flex flex-col bg-canvas/30 dark:bg-white/[0.01]">
                 <div className="p-4 border-b border-separator dark:border-white/10 flex items-center justify-between gap-2">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-label-secondary dark:text-[#86868B]">
-                    Attendance Sessions ({sessions.length})
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-label-secondary dark:text-[#86868B] tabular-nums">
+                    Attendance sessions ({sessions.length})
                   </h3>
                   <button
                     onClick={() => setShowCreateSession(true)}
-                    className="btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    className="btn-primary py-1.5 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Plus size={14} />
-                    <span>New Session</span>
+                    <span>New session</span>
                   </button>
                 </div>
 
@@ -546,9 +529,9 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                   {sessions.length === 0 ? (
                     <div className="py-12 text-center p-4 space-y-2">
                       <Key size={24} className="text-label-tertiary mx-auto" />
-                      <p className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">No Active Sessions</p>
+                      <p className="text-xs font-semibold text-label-primary dark:text-[#F5F5F7]">No active sessions</p>
                       <p className="text-[11px] text-label-secondary dark:text-[#86868B]">
-                        Click "New Session" above to generate a live attendance OTP.
+                        Click &quot;New session&quot; above to generate a live attendance OTP.
                       </p>
                     </div>
                   ) : (
@@ -560,16 +543,16 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                           onClick={() => handleViewSession(s)}
                           className={`p-3.5 rounded-2xl text-left transition-all border cursor-pointer ${
                             isSelected
-                              ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/35 shadow-sm'
+                              ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/35 shadow-xs'
                               : 'bg-surface dark:bg-[#161617] hover:bg-canvas/80 dark:hover:bg-white/[0.03] border-separator dark:border-white/10'
                           }`}
                         >
                           <div className="flex justify-between items-start gap-2 mb-2">
-                            <h4 className="font-bold text-sm text-label-primary dark:text-[#F5F5F7] truncate">
+                            <h4 className="font-medium text-sm text-label-primary dark:text-[#F5F5F7] truncate">
                               {s.sessionName}
                             </h4>
                             <span
-                              className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 border ${
+                              className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 border ${
                                 s.isActive
                                   ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                                   : 'bg-red-500/10 text-red-500 dark:text-red-400 border-red-500/20'
@@ -579,19 +562,19 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-xs font-medium text-label-secondary dark:text-[#86868B] mb-2">
+                          <div className="flex items-center justify-between text-xs font-normal text-label-secondary dark:text-[#86868B] mb-2">
                             <span className="flex items-center gap-1">
                               <Clock size={12} />
                               {format(new Date(s.createdAt), 'hh:mm a')}
                             </span>
-                            <span className="font-mono text-[11px] bg-canvas dark:bg-[#1C1C1E] px-2 py-0.5 rounded-md border border-separator dark:border-white/10">
+                            <span className="font-mono text-[11px] bg-canvas dark:bg-[#1C1C1E] px-2 py-0.5 rounded-md border border-separator dark:border-white/10 tabular-nums">
                               {s.durationMinutes || 60}m limit
                             </span>
                           </div>
 
                           {/* OTP Display Pill */}
                           <div className="flex items-center justify-between pt-2 border-t border-separator/60 dark:border-white/5">
-                            <div className="flex items-center gap-1.5 font-mono text-sm font-black text-blue-600 dark:text-blue-400">
+                            <div className="flex items-center gap-1.5 font-mono text-sm font-semibold tabular-nums text-blue-600 dark:text-blue-400">
                               <Key size={13} />
                               <span className="tracking-widest">{s.otp}</span>
                             </div>
@@ -625,11 +608,11 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                     <div className="p-5 border-b border-separator dark:border-white/10 bg-canvas/20 dark:bg-white/[0.01] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base sm:text-lg font-black text-label-primary dark:text-[#F5F5F7]">
+                          <h3 className="text-base sm:text-lg font-semibold text-label-primary dark:text-[#F5F5F7] tracking-tight">
                             {selectedSession.sessionName}
                           </h3>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                               selectedSession.isActive
                                 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                                 : 'bg-red-500/10 text-red-500 dark:text-red-400'
@@ -638,9 +621,9 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                             {selectedSession.isActive ? 'Active OTP' : 'Session Expired'}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-label-secondary dark:text-[#86868B] mt-1 font-medium flex-wrap">
+                        <div className="flex items-center gap-3 text-xs text-label-secondary dark:text-[#86868B] mt-1 font-normal flex-wrap">
                           <span>
-                            OTP: <strong className="font-mono text-blue-600 dark:text-blue-400">{selectedSession.otp}</strong>
+                            OTP: <strong className="font-mono text-blue-600 dark:text-blue-400 tabular-nums">{selectedSession.otp}</strong>
                           </span>
                           <span>•</span>
                           <span>
@@ -659,14 +642,14 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                         <button
                           onClick={exportSessionCSV}
                           disabled={!sessionAttendance.length}
-                          className="btn-secondary py-1.5 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="btn-secondary py-1.5 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <Download size={13} />
-                          <span>Export Attendees CSV</span>
+                          <span>Export attendees (CSV)</span>
                         </button>
                         <div className="px-3.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-center shrink-0">
-                          <span className="text-base font-black leading-none block">{sessionAttendance.length}</span>
-                          <span className="text-[9px] uppercase font-bold tracking-wider leading-none mt-0.5 block">
+                          <span className="text-base font-semibold tabular-nums leading-none block">{sessionAttendance.length}</span>
+                          <span className="text-[10px] uppercase font-semibold tracking-wider leading-none mt-0.5 block">
                             Verified
                           </span>
                         </div>
@@ -684,15 +667,15 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                           <div className="w-12 h-12 rounded-2xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 flex items-center justify-center text-label-tertiary mx-auto">
                             <Clock size={22} />
                           </div>
-                          <p className="text-sm font-bold text-label-primary dark:text-[#F5F5F7]">No attendees recorded yet</p>
+                          <p className="text-sm font-semibold tracking-tight text-label-primary dark:text-[#F5F5F7]">No attendees recorded yet</p>
                           <p className="text-xs text-label-secondary dark:text-[#86868B] max-w-sm mx-auto">
-                            Share the 6-digit OTP code <strong className="font-mono text-blue-500">{selectedSession.otp}</strong> with students to begin collecting attendance.
+                            Share the 6-digit OTP code <strong className="font-mono text-blue-500 tabular-nums">{selectedSession.otp}</strong> with students to begin collecting attendance.
                           </p>
                         </div>
                       ) : (
                         <table className="w-full text-left border-collapse">
-                          <thead className="sticky top-0 bg-surface dark:bg-[#161617] border-b border-separator dark:border-white/10 z-10 shadow-sm">
-                            <tr className="text-[11px] font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider">
+                          <thead className="sticky top-0 bg-surface dark:bg-[#161617] border-b border-separator dark:border-white/10 z-10 shadow-xs">
+                            <tr className="text-[11px] font-semibold text-label-secondary dark:text-[#86868B] uppercase tracking-wider">
                               <th className="py-3 px-6">Attendee</th>
                               <th className="py-3 px-6">Roll Number</th>
                               <th className="py-3 px-6">Verified Time</th>
@@ -701,13 +684,13 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                           <tbody className="divide-y divide-separator/60 dark:divide-white/5">
                             {sessionAttendance.map((rec) => (
                               <tr key={rec._id} className="hover:bg-canvas/50 dark:hover:bg-white/[0.02] transition-colors">
-                                <td className="py-3 px-6 font-bold text-sm text-label-primary dark:text-[#F5F5F7]">
+                                <td className="py-3 px-6 font-medium text-sm text-label-primary dark:text-[#F5F5F7]">
                                   {rec.user?.name || 'Unknown Student'}
                                 </td>
-                                <td className="py-3 px-6 font-mono text-xs text-label-secondary dark:text-[#86868B]">
+                                <td className="py-3 px-6 font-mono text-xs font-medium tabular-nums text-label-secondary dark:text-[#86868B]">
                                   {rec.user?.rollNo || 'N/A'}
                                 </td>
-                                <td className="py-3 px-6 text-xs text-label-secondary dark:text-[#86868B] font-medium">
+                                <td className="py-3 px-6 text-xs text-label-secondary dark:text-[#86868B] font-normal">
                                   {format(new Date(rec.timestamp || rec.createdAt), 'MMM dd, hh:mm:ss a')}
                                 </td>
                               </tr>
@@ -722,7 +705,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                     <div className="w-12 h-12 rounded-2xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 flex items-center justify-center text-label-tertiary">
                       <Key size={22} />
                     </div>
-                    <p className="text-sm font-bold text-label-primary dark:text-[#F5F5F7]">Select a Session</p>
+                    <p className="text-sm font-semibold tracking-tight text-label-primary dark:text-[#F5F5F7]">Select a session</p>
                     <p className="text-xs text-label-secondary dark:text-[#86868B] max-w-sm">
                       Select any attendance session from the left sidebar to view its roster and verification logs.
                     </p>
@@ -749,8 +732,8 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                       <Key size={18} />
                     </div>
                     <div>
-                      <h3 className="text-base font-extrabold text-label-primary dark:text-white">
-                        Create Attendance Session
+                      <h3 className="text-base font-semibold text-label-primary dark:text-white tracking-tight">
+                        Create attendance session
                       </h3>
                       <p className="text-[11px] text-label-secondary dark:text-[#86868B]">
                         Generate dynamic OTP code for live student check-in
@@ -767,8 +750,8 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
 
                 <form onSubmit={handleCreateSession} className="space-y-4">
                   <div>
-                    <label className="text-[11px] font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
-                      Session Name / Description
+                    <label className="text-[11px] font-semibold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
+                      Session name or description
                     </label>
                     <input
                       autoFocus
@@ -776,13 +759,13 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                       value={newSessionName}
                       onChange={(e) => setNewSessionName(e.target.value)}
                       placeholder="e.g. Day 1 - Morning Session / Lab Check-in"
-                      className="w-full text-xs py-2.5 px-3.5 rounded-xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] placeholder:text-label-tertiary focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                      className="w-full text-xs py-2.5 px-3.5 rounded-xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] placeholder:text-label-tertiary focus:outline-none focus:border-blue-500 transition-colors font-normal"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
-                      OTP Validity Duration
+                    <label className="text-[11px] font-semibold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
+                      OTP validity duration
                     </label>
                     <div className="grid grid-cols-4 gap-1.5">
                       {[15, 30, 60, 120].map((mins) => (
@@ -790,9 +773,9 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                           key={mins}
                           type="button"
                           onClick={() => setDurationMinutes(mins)}
-                          className={`py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                          className={`py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer tabular-nums ${
                             durationMinutes === mins
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
                               : 'bg-canvas dark:bg-[#1C1C1E] border-separator dark:border-white/10 text-label-secondary hover:text-label-primary'
                           }`}
                         >
@@ -803,8 +786,8 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
-                      Associated Class Hours (1 to 7)
+                    <label className="text-[11px] font-semibold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
+                      Associated class hours (1 to 7)
                     </label>
                     <div className="flex gap-1.5 flex-wrap">
                       {[1, 2, 3, 4, 5, 6, 7].map((h) => {
@@ -818,7 +801,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                                 isSelected ? prev.filter((item) => item !== h) : [...prev, h].sort((a, b) => a - b)
                               );
                             }}
-                            className={`w-9 h-8 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                            className={`w-9 h-8 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
                               isSelected
                                 ? 'bg-blue-600 text-white border-blue-600'
                                 : 'bg-canvas dark:bg-[#1C1C1E] border-separator dark:border-white/10 text-label-secondary hover:text-label-primary'
@@ -832,15 +815,15 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
-                      Hourly Points per Session
+                    <label className="text-[11px] font-semibold text-label-secondary dark:text-[#86868B] uppercase tracking-wider mb-1.5 block">
+                      Hourly points per session
                     </label>
                     <input
                       type="number"
                       min={0}
                       value={hourlyPoints}
                       onChange={(e) => setHourlyPoints(Number(e.target.value) || 0)}
-                      className="w-full text-xs py-2 px-3.5 rounded-xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-blue-500 font-medium"
+                      className="w-full text-xs py-2 px-3.5 rounded-xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-blue-500 font-normal tabular-nums"
                     />
                   </div>
 
@@ -848,17 +831,17 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                     <button
                       type="button"
                       onClick={() => setShowCreateSession(false)}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-label-secondary hover:text-label-primary bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
+                      className="px-4 py-2 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={creatingSession}
-                      className="btn-primary px-5 py-2 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-500/25"
+                      className="btn-primary px-5 py-2 text-xs font-medium flex items-center gap-2 cursor-pointer shadow-xs"
                     >
                       {creatingSession && <Loader2 size={13} className="animate-spin" />}
-                      <span>Generate & Activate OTP</span>
+                      <span>Generate and activate OTP</span>
                     </button>
                   </div>
                 </form>

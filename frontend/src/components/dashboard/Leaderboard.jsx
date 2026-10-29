@@ -40,7 +40,7 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
         pedestalBg: 'bg-gradient-to-t from-amber-500/25 via-amber-500/10 to-amber-500/5 dark:from-amber-500/20 dark:via-amber-500/10 dark:to-transparent',
         pedestalBorder: 'border-t-2 border-x border-amber-400/60 dark:border-amber-400/40',
         ring: 'ring-2 sm:ring-4 ring-amber-400 shadow-xl shadow-amber-400/20',
-        badgeBg: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/30',
+        badgeBg: 'bg-amber-500 text-white shadow-xs',
         badgeText: '#1 Champion',
         icon: <Crown size={18} className="sm:w-[22px] sm:h-[22px] text-amber-500 fill-amber-400 drop-shadow-[0_2px_8px_rgba(245,158,11,0.5)]" />,
         numeral: 'I',
@@ -86,47 +86,47 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
       {/* Profile & Avatar Pod */}
       <div className="relative mb-2.5 sm:mb-3 flex flex-col items-center">
         {/* Floating Crown / Medal Icon */}
-        <div className="mb-1.5 transition-transform duration-300 group-hover:scale-115">
+        <div className="mb-1.5 transition-transform duration-300 group-hover:scale-110">
           {config.icon}
         </div>
 
         {/* Circular Avatar */}
-        <div className={`w-13 h-13 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-surface-secondary border border-separator ${config.ring} transition-all duration-300 group-hover:shadow-2xl flex items-center justify-center relative`}>
+        <div className={`w-13 h-13 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-surface-secondary border border-separator ${config.ring} transition-all duration-300 group-hover:shadow-xl flex items-center justify-center relative`}>
           {user.profilePicUrl ? (
             <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center font-extrabold text-base sm:text-2xl text-label-primary bg-surface-raised">
+            <div className="w-full h-full flex items-center justify-center font-semibold text-base sm:text-2xl text-label-primary bg-surface-raised">
               {user.name ? user.name[0]?.toUpperCase() : 'U'}
             </div>
           )}
 
           {isCurrentUser && (
-            <span className="absolute bottom-1 right-1 px-1 sm:px-1.5 py-0.2 text-[8px] sm:text-[9px] font-black uppercase rounded bg-primary text-white shadow-xs">
+            <span className="absolute bottom-1 right-1 px-1 sm:px-1.5 py-0.2 text-[8px] sm:text-[9px] font-semibold uppercase rounded bg-primary text-white shadow-xs">
               You
             </span>
           )}
         </div>
 
         {/* Rank Pill Tag */}
-        <div className={`-mt-2.5 sm:-mt-3 z-10 px-1.5 sm:px-3 py-0.5 rounded-full text-[7.5px] sm:text-[10px] font-extrabold uppercase tracking-wider ${config.badgeBg} flex items-center gap-1 shadow-sm`}>
+        <div className={`-mt-2.5 sm:-mt-3 z-10 px-2 sm:px-3 py-0.5 rounded-full text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider ${config.badgeBg} flex items-center gap-1 shadow-xs`}>
           <span>{config.badgeText}</span>
         </div>
       </div>
 
       {/* Student Details */}
       <div className="text-center w-full px-0.5 sm:px-2 space-y-0.5 sm:space-y-1 mb-2 sm:mb-3">
-        <h4 className="text-label-primary font-bold text-[11px] sm:text-base truncate group-hover:text-primary transition-colors">
+        <h4 className="text-label-primary font-medium text-[11px] sm:text-base truncate group-hover:text-primary transition-colors tracking-tight">
           {user.name}
         </h4>
         <div className="flex items-center justify-center gap-1 flex-wrap">
-          <span className="text-[9.5px] sm:text-[11px] text-label-tertiary font-mono truncate max-w-[65px] sm:max-w-none">{user.rollNo}</span>
-          <span className="text-[8.5px] sm:text-[10px] font-semibold uppercase px-1 sm:px-1.5 py-0.2 rounded bg-surface-secondary border border-separator text-label-secondary">
+          <span className="text-[10px] sm:text-[11px] text-label-tertiary font-mono truncate max-w-[65px] sm:max-w-none">{user.rollNo}</span>
+          <span className="text-[9px] sm:text-[10px] font-medium uppercase px-1.5 py-0.2 rounded bg-surface-secondary border border-separator text-label-secondary">
             {dept}
           </span>
         </div>
 
         {/* Engagement Chips */}
-        <div className="hidden sm:flex items-center justify-center gap-2 pt-1 text-[10px] text-label-secondary font-medium">
+        <div className="hidden sm:flex items-center justify-center gap-2 pt-1 text-[10px] text-label-secondary font-medium tabular-nums">
           {problems > 0 && (
             <span className="inline-flex items-center gap-1">
               <Code2 size={11} className="text-blue-500" />
@@ -147,16 +147,16 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
         className={`w-full ${config.pedestalHeight} ${config.pedestalBg} ${config.pedestalBorder} rounded-t-2xl sm:rounded-t-3xl flex flex-col items-center justify-between py-2 sm:py-3 px-1 sm:px-2 shadow-card backdrop-blur-sm relative overflow-hidden transition-all duration-300 group-hover:brightness-105`}
       >
         {/* Roman Numeral watermark */}
-        <span className={`text-2xl sm:text-6xl font-black font-mono select-none ${config.numeralColor}`}>
+        <span className={`text-2xl sm:text-6xl font-semibold font-mono select-none ${config.numeralColor}`}>
           {config.numeral}
         </span>
 
         {/* Score Badge at base */}
-        <div className="bg-surface/90 dark:bg-surface-raised/90 backdrop-blur-md border border-separator rounded-xl px-1 sm:px-3 py-1 sm:py-1.5 shadow-xs text-center w-full max-w-[85px] sm:max-w-[130px]">
-          <span className="text-xs sm:text-xl font-extrabold text-label-primary tracking-tight">
+        <div className="bg-surface/90 dark:bg-surface-raised/90 backdrop-blur-md border border-separator rounded-xl px-1.5 sm:px-3 py-1 sm:py-1.5 shadow-xs text-center w-full max-w-[85px] sm:max-w-[130px]">
+          <span className="text-xs sm:text-lg font-semibold text-label-primary tracking-tight tabular-nums">
             {points.toLocaleString()}
           </span>
-          <span className="text-[8px] sm:text-[10px] font-bold text-label-tertiary uppercase ml-0.5 sm:ml-1">pts</span>
+          <span className="text-[9px] sm:text-[10px] font-medium text-label-tertiary uppercase ml-0.5 sm:ml-1">pts</span>
         </div>
       </div>
     </div>
@@ -300,18 +300,18 @@ export const Leaderboard = () => {
           {/* 1. Total Scholars */}
           <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
-                Total Scholars
+              <span className="text-[11px] font-medium uppercase tracking-wider text-label-tertiary">
+                Total scholars
               </span>
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
                 <User size={16} />
               </div>
             </div>
             <div>
-              <p className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+              <p className="text-xl sm:text-2xl font-semibold text-label-primary tracking-tight tabular-nums">
                 {stats.totalScholars}
               </p>
-              <p className="text-[10px] sm:text-[11px] font-medium text-label-secondary mt-0.5">
+              <p className="text-[11px] font-normal text-label-secondary mt-0.5">
                 Active ranked members
               </p>
             </div>
@@ -320,18 +320,18 @@ export const Leaderboard = () => {
           {/* 2. Total Points Awarded */}
           <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
-                Points Pool
+              <span className="text-[11px] font-medium uppercase tracking-wider text-label-tertiary">
+                Points pool
               </span>
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-xs">
                 <Sparkles size={16} />
               </div>
             </div>
             <div>
-              <p className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+              <p className="text-xl sm:text-2xl font-semibold text-label-primary tracking-tight tabular-nums">
                 {stats.totalScorePool.toLocaleString()}
               </p>
-              <p className="text-[10px] sm:text-[11px] font-medium text-label-secondary mt-0.5">
+              <p className="text-[11px] font-normal text-label-secondary mt-0.5">
                 Cumulative club points
               </p>
             </div>
@@ -340,19 +340,19 @@ export const Leaderboard = () => {
           {/* 3. Average Score */}
           <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
-                Average Points
+              <span className="text-[11px] font-medium uppercase tracking-wider text-label-tertiary">
+                Average points
               </span>
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-500/10 dark:bg-purple-500/15 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-xs">
                 <TrendingUp size={16} />
               </div>
             </div>
             <div>
-              <p className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+              <p className="text-xl sm:text-2xl font-semibold text-label-primary tracking-tight tabular-nums">
                 {stats.avgScore.toLocaleString()}
-                <span className="text-xs font-semibold text-label-tertiary ml-1.5 uppercase">pts</span>
+                <span className="text-xs font-medium text-label-tertiary ml-1.5 uppercase">pts</span>
               </p>
-              <p className="text-[10px] sm:text-[11px] font-medium text-label-secondary mt-0.5">
+              <p className="text-[11px] font-normal text-label-secondary mt-0.5">
                 Across all departments
               </p>
             </div>
@@ -361,18 +361,18 @@ export const Leaderboard = () => {
           {/* 4. Top Department */}
           <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
-                Leading Branch
+              <span className="text-[11px] font-medium uppercase tracking-wider text-label-tertiary">
+                Leading branch
               </span>
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs">
                 <Flame size={16} />
               </div>
             </div>
             <div>
-              <p className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight truncate">
+              <p className="text-xl sm:text-2xl font-semibold text-label-primary tracking-tight truncate">
                 {stats.topDept}
               </p>
-              <p className="text-[10px] sm:text-[11px] font-medium text-label-secondary mt-0.5">
+              <p className="text-[11px] font-normal text-label-secondary mt-0.5">
                 Highest engagement volume
               </p>
             </div>
@@ -385,24 +385,24 @@ export const Leaderboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-primary/10 via-surface to-primary/5 border border-primary/25 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          className="bg-surface border border-primary/25 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
           <div className="flex items-center gap-3.5 sm:gap-4">
             {/* Rank Badge pod */}
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary text-white shadow-md shadow-primary/25 flex flex-col items-center justify-center shrink-0">
-              <span className="text-[8.5px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80">Rank</span>
-              <span className="text-lg sm:text-xl font-black leading-none">#{currentUserStanding.rank}</span>
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary text-white shadow-xs flex flex-col items-center justify-center shrink-0">
+              <span className="text-[9px] font-medium uppercase tracking-wider opacity-80">Rank</span>
+              <span className="text-base sm:text-lg font-semibold leading-none tabular-nums">#{currentUserStanding.rank}</span>
             </div>
 
             <div className="space-y-0.5 sm:space-y-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm sm:text-base font-extrabold text-label-primary truncate">
+                <span className="text-sm sm:text-base font-medium text-label-primary truncate">
                   {currentUserStanding.entry.name}
                 </span>
-                <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
-                  Your Standing
+                <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  Your standing
                 </span>
-                <span className="text-[9.5px] sm:text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-surface-secondary text-label-secondary border border-separator">
+                <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-surface-secondary text-label-secondary border border-separator tabular-nums">
                   Top {currentUserStanding.percentile}%
                 </span>
               </div>
@@ -414,25 +414,25 @@ export const Leaderboard = () => {
 
           <div className="flex items-center gap-3 sm:gap-6 self-start sm:self-center border-t sm:border-t-0 pt-3 sm:pt-0 border-separator w-full sm:w-auto justify-between sm:justify-end">
             <div className="text-left sm:text-right">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-label-tertiary block">
-                Total Score
+              <span className="text-[10px] font-medium uppercase tracking-wider text-label-tertiary block">
+                Total score
               </span>
-              <span className="text-lg sm:text-2xl font-black text-primary">
+              <span className="text-lg sm:text-xl font-semibold text-primary tabular-nums">
                 {(currentUserStanding.entry.totalPoints ?? currentUserStanding.entry.points ?? 0).toLocaleString()}
-                <span className="text-xs font-bold text-label-tertiary ml-1">pts</span>
+                <span className="text-xs font-normal text-label-tertiary ml-1">pts</span>
               </span>
             </div>
 
             <div className="flex items-center gap-2 text-xs">
-              <div className="px-2.5 py-1.5 rounded-xl bg-surface border border-separator shadow-xs text-center">
-                <div className="text-[9px] sm:text-[10px] text-label-tertiary font-bold">SOLVED</div>
-                <div className="font-extrabold text-label-primary">
+              <div className="px-2.5 py-1.5 rounded-xl bg-surface border border-separator shadow-2xs text-center">
+                <div className="text-[9px] sm:text-[10px] text-label-tertiary font-medium uppercase">Solved</div>
+                <div className="font-medium text-label-primary tabular-nums">
                   {currentUserStanding.entry.problemsSolved ?? 0}
                 </div>
               </div>
-              <div className="px-2.5 py-1.5 rounded-xl bg-surface border border-separator shadow-xs text-center">
-                <div className="text-[9px] sm:text-[10px] text-label-tertiary font-bold">EVENTS</div>
-                <div className="font-extrabold text-label-primary">
+              <div className="px-2.5 py-1.5 rounded-xl bg-surface border border-separator shadow-2xs text-center">
+                <div className="text-[9px] sm:text-[10px] text-label-tertiary font-medium uppercase">Events</div>
+                <div className="font-medium text-label-primary tabular-nums">
                   {currentUserStanding.entry.eventsAttended ?? 0}
                 </div>
               </div>
@@ -449,15 +449,15 @@ export const Leaderboard = () => {
 
           {/* Podium Title */}
           <div className="text-center space-y-1 mb-6 sm:mb-8">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-secondary border border-separator text-[11px] font-bold uppercase tracking-wider text-label-secondary mb-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-secondary border border-separator text-[11px] font-medium uppercase tracking-wider text-label-secondary mb-1">
               <Crown size={12} className="text-amber-500" />
-              <span>Honor Roll Podium</span>
+              <span>Honor roll podium</span>
             </div>
-            <h3 className="text-lg sm:text-2xl font-extrabold text-label-primary tracking-tight font-heading">
-              Top Ranked Contributors
+            <h3 className="text-lg sm:text-2xl font-semibold text-label-primary tracking-tight">
+              Top ranked contributors
             </h3>
-            <p className="text-xs text-label-secondary max-w-md mx-auto">
-              Leading the club with outstanding problem-solving dedication and consistent event participation
+            <p className="text-xs sm:text-sm text-label-secondary max-w-prose mx-auto">
+              Leading the club with consistent problem-solving dedication and active event participation.
             </p>
           </div>
 
@@ -506,12 +506,12 @@ export const Leaderboard = () => {
       <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5 sm:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-medium shrink-0">
               <Filter size={15} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-label-primary">Rankings & Department Directory</h4>
-              <p className="text-[11px] text-label-secondary">
+              <h4 className="text-sm font-medium text-label-primary">Rankings & department directory</h4>
+              <p className="text-[11px] text-label-secondary tabular-nums">
                 Showing {processedLeaderboard.length} of {leaderboard.length} scholars
               </p>
             </div>
@@ -526,7 +526,7 @@ export const Leaderboard = () => {
                 placeholder="Search name or roll no..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input-field pl-9 pr-8 text-xs py-2 min-h-[38px] w-full"
+                className="input-field pl-9 pr-8 text-xs py-2 min-h-[38px] w-full font-normal"
               />
               {search && (
                 <button
@@ -545,8 +545,8 @@ export const Leaderboard = () => {
               onClick={() => fetchLeaderboard()}
               disabled={loading}
               className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl bg-surface-secondary hover:bg-surface border border-separator text-label-secondary hover:text-label-primary transition-all shadow-xs cursor-pointer disabled:opacity-50"
-              title="Refresh Leaderboard"
-              aria-label="Refresh Leaderboard"
+              title="Refresh leaderboard"
+              aria-label="Refresh leaderboard"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin text-primary' : ''} />
             </button>
@@ -557,7 +557,7 @@ export const Leaderboard = () => {
         <div className="pt-3 border-t border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Department Filter Chips */}
           <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar py-0.5 max-w-full">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary mr-1 shrink-0">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-label-tertiary mr-1 shrink-0">
               Branch:
             </span>
             <div className="flex items-center gap-1 shrink-0">
@@ -567,9 +567,9 @@ export const Leaderboard = () => {
                   <button
                     key={dept}
                     onClick={() => setSelectedDept(dept)}
-                    className={`px-2.5 sm:px-3 py-1.5 min-h-[34px] rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 touch-manipulation ${
+                    className={`px-2.5 sm:px-3 py-1.5 min-h-[34px] rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 touch-manipulation ${
                       isActive
-                        ? 'bg-primary text-white shadow-xs font-bold'
+                        ? 'bg-primary text-white shadow-xs'
                         : 'bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
                     }`}
                   >
@@ -582,7 +582,7 @@ export const Leaderboard = () => {
 
           {/* Sort By Toggle Pill */}
           <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary mr-1">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-label-tertiary mr-1">
               Sort:
             </span>
             <div className="flex items-center gap-0.5 p-0.5 bg-surface-secondary border border-separator rounded-xl">
@@ -596,9 +596,9 @@ export const Leaderboard = () => {
                   <button
                     key={id}
                     onClick={() => setSortBy(id)}
-                    className={`px-2.5 py-1 min-h-[32px] rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation ${
+                    className={`px-2.5 py-1 min-h-[32px] rounded-lg text-xs font-medium transition-all cursor-pointer touch-manipulation ${
                       isActive
-                        ? 'bg-surface text-primary shadow-xs border border-separator font-bold'
+                        ? 'bg-surface text-primary shadow-xs border border-separator'
                         : 'text-label-secondary hover:text-label-primary'
                     }`}
                   >
@@ -614,16 +614,16 @@ export const Leaderboard = () => {
       {/* ── Rankings Table (Rank #4 and beyond) ─────────────────────── */}
       <div className="bg-surface rounded-2xl sm:rounded-3xl border border-separator shadow-card overflow-hidden">
         {/* Table Header */}
-        <div className="grid grid-cols-12 px-3 sm:px-6 py-3.5 bg-surface-secondary border-b border-separator text-[11px] font-bold uppercase tracking-wider text-label-secondary">
+        <div className="grid grid-cols-12 px-3 sm:px-6 py-3 bg-surface-secondary border-b border-separator text-[11px] font-medium uppercase tracking-wider text-label-tertiary">
           <div className="col-span-2 sm:col-span-1 text-center">Rank</div>
           <div className="col-span-6 sm:col-span-5">Student</div>
           <div className="hidden sm:block sm:col-span-2 text-center">Problems</div>
           <div className="hidden sm:block sm:col-span-2 text-center">Events</div>
-          <div className="col-span-4 sm:col-span-2 text-right">Total Score</div>
+          <div className="col-span-4 sm:col-span-2 text-right">Total score</div>
         </div>
 
         {/* Table Body */}
-        <div className="divide-y divide-separator max-h-[600px] overflow-y-auto">
+        <div className="divide-y divide-separator max-h-[600px] overflow-y-auto custom-scrollbar">
           {rankedRest.map((u, index) => {
             const actualRank = index + 4;
             const points = u.totalPoints ?? u.points ?? 0;
@@ -647,7 +647,7 @@ export const Leaderboard = () => {
                 {/* Rank Column */}
                 <div className="col-span-2 sm:col-span-1 flex justify-center">
                   <span
-                    className={`font-mono text-xs font-bold px-2 py-0.5 rounded-lg select-none ${
+                    className={`font-mono text-xs font-medium px-2 py-0.5 rounded-lg select-none tabular-nums ${
                       actualRank <= 10
                         ? 'bg-primary/10 text-primary border border-primary/20'
                         : 'text-label-tertiary'
@@ -659,30 +659,30 @@ export const Leaderboard = () => {
 
                 {/* Student Info */}
                 <div className="col-span-6 sm:col-span-5 flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden bg-surface-secondary border border-separator flex items-center justify-center text-xs font-bold text-label-secondary shrink-0 shadow-xs">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden bg-surface-secondary border border-separator flex items-center justify-center text-xs font-medium text-label-secondary shrink-0 shadow-2xs">
                     {u.profilePicUrl ? (
                       <img src={u.profilePicUrl} alt={u.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-label-primary font-bold">
+                      <span className="text-label-primary font-medium">
                         {u.name ? u.name[0]?.toUpperCase() : 'U'}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-label-primary font-semibold text-xs sm:text-sm truncate group-hover:text-primary transition-colors">
+                      <span className="text-label-primary font-medium text-xs sm:text-sm truncate group-hover:text-primary transition-colors">
                         {u.name}
                       </span>
                       {isMe && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-primary text-white">
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-medium uppercase bg-primary text-white">
                           You
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10.5px] sm:text-[11px] text-label-tertiary font-mono">
+                    <div className="flex items-center gap-1.5 text-[11px] text-label-tertiary font-mono">
                       <span className="truncate">{u.rollNo}</span>
                       <span>•</span>
-                      <span className="uppercase text-label-secondary font-sans font-semibold text-[9.5px] sm:text-[10px]">
+                      <span className="uppercase text-label-secondary font-sans font-medium text-[10px]">
                         {dept}
                       </span>
                     </div>
@@ -690,23 +690,23 @@ export const Leaderboard = () => {
                 </div>
 
                 {/* Problems Solved */}
-                <div className="hidden sm:flex sm:col-span-2 items-center justify-center gap-1 text-xs font-semibold text-label-secondary">
+                <div className="hidden sm:flex sm:col-span-2 items-center justify-center gap-1 text-xs font-normal text-label-secondary tabular-nums">
                   <Code2 size={13} className="text-blue-500" />
                   <span>{problems}</span>
                 </div>
 
                 {/* Events Attended */}
-                <div className="hidden sm:flex sm:col-span-2 items-center justify-center gap-1 text-xs font-semibold text-label-secondary">
+                <div className="hidden sm:flex sm:col-span-2 items-center justify-center gap-1 text-xs font-normal text-label-secondary tabular-nums">
                   <CalendarCheck size={13} className="text-purple-500" />
                   <span>{events}</span>
                 </div>
 
                 {/* Points Column */}
                 <div className="col-span-4 sm:col-span-2 text-right">
-                  <span className="text-label-primary font-extrabold text-sm sm:text-base group-hover:text-primary transition-colors">
+                  <span className="text-label-primary font-semibold text-sm sm:text-base group-hover:text-primary transition-colors tabular-nums">
                     {points.toLocaleString()}
                   </span>
-                  <span className="text-[10px] text-label-tertiary uppercase font-bold ml-1">pts</span>
+                  <span className="text-[10px] text-label-tertiary uppercase font-medium ml-1">pts</span>
                 </div>
               </div>
             );
@@ -725,7 +725,7 @@ export const Leaderboard = () => {
               <div className="w-12 h-12 rounded-2xl bg-surface-secondary border border-separator text-label-tertiary flex items-center justify-center mx-auto">
                 <Trophy size={22} />
               </div>
-              <h4 className="text-sm font-bold text-label-primary">No Scholars Found</h4>
+              <h4 className="text-sm font-medium text-label-primary">No scholars found</h4>
               <p className="text-xs text-label-secondary max-w-xs mx-auto">
                 No students match your filter or search query. Try switching branches or clearing the search.
               </p>
@@ -734,9 +734,9 @@ export const Leaderboard = () => {
                   setSearch('');
                   setSelectedDept('All');
                 }}
-                className="px-4 py-2 min-h-[38px] rounded-xl text-xs font-bold bg-primary text-white shadow-xs cursor-pointer"
+                className="px-4 py-2 min-h-[38px] rounded-xl text-xs font-medium bg-primary text-white shadow-xs cursor-pointer"
               >
-                Reset Filters
+                Reset filters
               </button>
             </div>
           )}

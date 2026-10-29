@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import useBearerStore from '../../store/useBearerStore';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
-import { Plus, Edit2, Trash2, X, Github, Linkedin, Mail, Instagram, Shield, Terminal, Cpu, Layout, Loader2, Camera } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Github, Linkedin, Mail, Shield, Terminal, Cpu, Layout, Loader2 } from 'lucide-react';
 
 const icons = ['Shield', 'Terminal', 'Cpu', 'Layout'];
 
@@ -37,7 +37,7 @@ const BearerManager = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setFormData({ ...formData, profilePicUrl: response.data.url });
-      toast.success('Image uploaded successfully!');
+      toast.success('Image uploaded successfully');
     } catch {
       toast.error('Image upload failed');
     } finally {
@@ -96,15 +96,15 @@ const BearerManager = () => {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-text-primary">Manage Student Bearers</h2>
-          <p className="text-text-muted text-sm">Add or update the club leadership board.</p>
+          <h2 className="text-2xl font-semibold text-text-primary tracking-tight">Manage student bearers</h2>
+          <p className="text-text-muted text-sm font-normal">Add or update the club leadership board.</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-muted text-text-primary rounded-xl font-bold transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-muted text-text-primary rounded-xl font-medium transition-all cursor-pointer"
         >
           <Plus size={18} />
-          Add Bearer
+          Add bearer
         </button>
       </div>
 
@@ -127,21 +127,21 @@ const BearerManager = () => {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleOpenModal(bearer)}
-                      className="p-2 hover:bg-surface-elevated rounded-lg text-text-muted hover:text-text-primary transition-colors"
+                      className="p-2 hover:bg-surface-elevated rounded-lg text-text-muted hover:text-text-primary transition-colors cursor-pointer"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button 
                       onClick={() => handleDelete(bearer._id)}
-                      className="p-2 hover:bg-red-500/10 rounded-lg text-text-muted hover:text-red-400 transition-colors"
+                      className="p-2 hover:bg-red-500/10 rounded-lg text-text-muted hover:text-red-400 transition-colors cursor-pointer"
                     >
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
-                <h3 className="font-bold text-lg text-text-primary">{bearer.name}</h3>
-                <p className="text-accent-muted text-xs font-black uppercase tracking-widest mb-2">{bearer.role}</p>
-                <p className="text-text-muted text-sm mb-4">{bearer.specialization}</p>
+                <h3 className="font-semibold text-lg text-text-primary">{bearer.name}</h3>
+                <p className="text-accent-muted text-xs font-semibold uppercase tracking-wider mb-2">{bearer.role}</p>
+                <p className="text-text-muted text-sm font-normal mb-4">{bearer.specialization}</p>
               </div>
               
               <div className="flex gap-3 pt-4 border-t border-border">
@@ -160,13 +160,13 @@ const BearerManager = () => {
           <div className="w-full max-w-lg bg-surface-elevated border border-slate-800 rounded-3xl p-8 shadow-2xl relative">
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-6 right-6 p-2 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-colors"
+              className="absolute top-6 right-6 p-2 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-colors cursor-pointer"
             >
               <X size={20} />
             </button>
 
-            <h3 className="text-2xl font-bold text-text-primary mb-6">
-              {editingBearer ? 'Edit Bearer' : 'Add New Bearer'}
+            <h3 className="text-2xl font-semibold text-text-primary tracking-tight mb-6">
+              {editingBearer ? 'Edit bearer' : 'Add new bearer'}
             </h3>
 
             {/* Profile Pic Upload */}
@@ -184,58 +184,58 @@ const BearerManager = () => {
                     </div>
                   )}
                 </div>
-                <label className="absolute -bottom-2 -right-2 p-2 bg-accent hover:bg-accent-muted text-text-primary rounded-xl shadow-xl cursor-pointer transition-all">
+                <label className="absolute -bottom-2 -right-2 p-2 bg-accent hover:bg-accent-muted text-text-primary rounded-xl shadow-xs cursor-pointer transition-all">
                   <Plus size={16} />
                   <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
                 </label>
               </div>
-              <p className="text-[10px] uppercase tracking-widest font-black text-text-muted">Profile Portrait</p>
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-text-muted">Profile portrait</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest font-black text-text-muted px-1">Full Name</label>
+                  <label className="text-[11px] uppercase tracking-wider font-semibold text-text-muted px-1">Full name</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors"
+                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors font-normal"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest font-black text-text-muted px-1">Role</label>
+                  <label className="text-[11px] uppercase tracking-wider font-semibold text-text-muted px-1">Role</label>
                   <input
                     type="text"
                     required
                     value={formData.role}
                     onChange={(e) => setFormData({...formData, role: e.target.value})}
-                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors"
+                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors font-normal"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-widest font-black text-text-muted px-1">Specialization</label>
+                <label className="text-[11px] uppercase tracking-wider font-semibold text-text-muted px-1">Specialization</label>
                 <input
                   type="text"
                   required
                   value={formData.specialization}
                   onChange={(e) => setFormData({...formData, specialization: e.target.value})}
-                  className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors"
+                  className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors font-normal"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-widest font-black text-text-muted px-1">Icon Theme</label>
+                <label className="text-[11px] uppercase tracking-wider font-semibold text-text-muted px-1">Icon theme</label>
                 <div className="flex gap-4 p-2 bg-surface-elevated border border-slate-700 rounded-xl">
                   {icons.map((icon) => (
                     <button
                       key={icon}
                       type="button"
                       onClick={() => setFormData({...formData, iconType: icon})}
-                      className={`flex-1 p-2 rounded-lg flex items-center justify-center transition-all ${formData.iconType === icon ? 'bg-accent text-text-primary' : 'hover:bg-surface-elevated text-text-muted'}`}
+                      className={`flex-1 p-2 rounded-lg flex items-center justify-center transition-all cursor-pointer ${formData.iconType === icon ? 'bg-accent text-text-primary' : 'hover:bg-surface-elevated text-text-muted'}`}
                     >
                       {icon === 'Shield' && <Shield size={18} />}
                       {icon === 'Terminal' && <Terminal size={18} />}
@@ -248,50 +248,50 @@ const BearerManager = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest font-black text-text-muted px-1">GitHub URL</label>
+                  <label className="text-[11px] uppercase tracking-wider font-semibold text-text-muted px-1">GitHub URL</label>
                   <input
                     type="text"
                     value={formData.socialLinks.github}
                     onChange={(e) => setFormData({...formData, socialLinks: {...formData.socialLinks, github: e.target.value}})}
-                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors"
+                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors font-normal"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest font-black text-text-muted px-1">LinkedIn URL</label>
+                  <label className="text-[11px] uppercase tracking-wider font-semibold text-text-muted px-1">LinkedIn URL</label>
                   <input
                     type="text"
                     value={formData.socialLinks.linkedin}
                     onChange={(e) => setFormData({...formData, socialLinks: {...formData.socialLinks, linkedin: e.target.value}})}
-                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors"
+                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors font-normal"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest font-black text-text-muted px-1">Instagram URL</label>
+                  <label className="text-[11px] uppercase tracking-wider font-semibold text-text-muted px-1">Instagram URL</label>
                   <input
                     type="text"
                     value={formData.socialLinks.instagram}
                     onChange={(e) => setFormData({...formData, socialLinks: {...formData.socialLinks, instagram: e.target.value}})}
-                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors"
+                    className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors font-normal"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-widest font-black text-text-muted px-1">Contact Email</label>
+                <label className="text-[11px] uppercase tracking-wider font-semibold text-text-muted px-1">Contact email</label>
                 <input
                   type="email"
                   value={formData.socialLinks.email}
                   onChange={(e) => setFormData({...formData, socialLinks: {...formData.socialLinks, email: e.target.value}})}
-                  className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors"
+                  className="w-full bg-surface-elevated border border-slate-700 rounded-xl px-4 py-2.5 text-text-primary focus:border-blue-500 transition-colors font-normal"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-accent hover:bg-accent-muted text-text-primary font-bold py-4 rounded-xl mt-6 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-accent hover:bg-accent-muted text-text-primary font-medium py-3 rounded-xl mt-6 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : editingBearer ? 'Update Bearer' : 'Create Bearer'}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : editingBearer ? 'Update bearer' : 'Create bearer'}
               </button>
             </form>
           </div>

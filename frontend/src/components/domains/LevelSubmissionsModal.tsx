@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -7,24 +7,15 @@ import {
   XCircle,
   Clock,
   Code2,
-  Terminal,
-  Award,
   RefreshCw,
   Copy,
   Check,
-  ChevronRight,
-  Filter,
-  User,
   GraduationCap,
-  Sparkles,
-  FileCode,
   AlertTriangle,
   Download,
   Printer,
   FileSpreadsheet,
   FileText,
-  Info,
-  BookOpen,
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { toast } from 'react-hot-toast';
@@ -154,7 +145,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Export all students' ledger to CSV
+  // Export all students ledger to CSV
   const handleExportAllCsv = () => {
     try {
       const escapeCsv = (val: any) => {
@@ -218,7 +209,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      toast.success('Course level submissions exported successfully!');
+      toast.success('Course level submissions exported successfully');
     } catch {
       toast.error('Failed to export CSV ledger');
     }
@@ -324,7 +315,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      toast.success('Student report CSV downloaded!');
+      toast.success('Student report CSV downloaded');
     } catch {
       toast.error('Failed to export student CSV report');
     }
@@ -371,21 +362,21 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
       align-items: flex-start;
     }
     .brand {
-      font-size: 22px;
-      font-weight: 900;
+      font-size: 20px;
+      font-weight: 700;
       color: #4f46e5;
       letter-spacing: -0.5px;
     }
     .brand-sub {
       font-size: 11px;
       color: #64748b;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.8px;
     }
     .title {
-      font-size: 18px;
-      font-weight: 800;
+      font-size: 17px;
+      font-weight: 600;
       color: #0f172a;
       margin-top: 4px;
     }
@@ -405,11 +396,11 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
       font-size: 10px;
       text-transform: uppercase;
       color: #64748b;
-      font-weight: 700;
+      font-weight: 600;
     }
     .meta-val {
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 14px;
+      font-weight: 600;
       color: #0f172a;
       margin-top: 3px;
     }
@@ -418,14 +409,14 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
       padding: 2px 8px;
       border-radius: 9999px;
       font-size: 10px;
-      font-weight: 800;
+      font-weight: 600;
       text-transform: uppercase;
     }
     .badge-pass { background: #dcfce7; color: #15803d; }
     .badge-fail { background: #fee2e2; color: #b91c1c; }
     .section-title {
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin: 22px 0 12px 0;
@@ -448,12 +439,12 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
     }
     .q-num {
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 600;
       color: #64748b;
     }
     .q-text {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       color: #0f172a;
       margin-bottom: 10px;
     }
@@ -474,13 +465,13 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
       background: #f0fdf4;
       border-color: #86efac;
       color: #166534;
-      font-weight: 700;
+      font-weight: 600;
     }
     .option-item.incorrect {
       background: #fef2f2;
       border-color: #fca5a5;
       color: #991b1b;
-      font-weight: 700;
+      font-weight: 600;
     }
     .code-container {
       background: #0f172a;
@@ -503,23 +494,23 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
   <div class="header">
     <div>
       <div class="brand">CODE CIRCLE</div>
-      <div class="brand-sub">Course Level Assessment Dossier</div>
+      <div class="brand-sub">Course level assessment dossier</div>
       <div class="title">Level ${currentLevel.levelNumber}: ${currentLevel.title}</div>
     </div>
     <div style="text-align: right;">
-      <div style="font-size: 11px; color: #64748b; font-weight: 700;">Evaluation Timestamp</div>
-      <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${formatISTDateTime(studentRec.lastActivityAt)}</div>
+      <div style="font-size: 11px; color: #64748b; font-weight: 600;">Evaluation timestamp</div>
+      <div style="font-size: 12px; font-weight: 600; color: #0f172a;">${formatISTDateTime(studentRec.lastActivityAt)}</div>
     </div>
   </div>
 
   <div class="meta-grid">
     <div class="meta-card">
-      <div class="meta-label">Student Name</div>
+      <div class="meta-label">Student name</div>
       <div class="meta-val">${studentRec.student.name}</div>
       <div style="font-size: 10px; color: #64748b;">${studentRec.student.rollNo} • ${studentRec.student.department}</div>
     </div>
     <div class="meta-card">
-      <div class="meta-label">Overall Verdict</div>
+      <div class="meta-label">Overall verdict</div>
       <div class="meta-val">
         <span class="badge ${studentRec.verdict === 'passed' ? 'badge-pass' : 'badge-fail'}">
           ${studentRec.verdict.toUpperCase()}
@@ -528,25 +519,25 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
       <div style="font-size: 10px; color: #64748b;">Level ${studentRec.levelCompleted ? 'Completed' : 'Incomplete'}</div>
     </div>
     <div class="meta-card">
-      <div class="meta-label">Best Score</div>
+      <div class="meta-label">Best score</div>
       <div class="meta-val">${studentRec.bestScore} pts</div>
-      <div style="font-size: 10px; color: #64748b;">Total Attempts: ${studentRec.totalAttempts}</div>
+      <div style="font-size: 10px; color: #64748b;">Total attempts: ${studentRec.totalAttempts}</div>
     </div>
     <div class="meta-card">
-      <div class="meta-label">Quest Status</div>
+      <div class="meta-label">Quest status</div>
       <div class="meta-val">
         <span class="badge ${studentRec.questCompleted ? 'badge-pass' : 'badge-fail'}">
           ${studentRec.questCompleted ? 'PASSED' : 'PENDING'}
         </span>
       </div>
-      <div style="font-size: 10px; color: #64748b;">${questQuestions.length} Questions</div>
+      <div style="font-size: 10px; color: #64748b;">${questQuestions.length} questions</div>
     </div>
   </div>
 
   ${
     questResults.length > 0
       ? `
-    <div class="section-title">Quest Questions & Answers (${questResults.length} Questions)</div>
+    <div class="section-title">Quest questions & answers (${questResults.length} questions)</div>
     ${questResults
       .map((qr, idx) => {
         const fullQ = questQuestions[qr.questionIndex ?? idx];
@@ -573,19 +564,19 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
 
                     if (isSelected && isAnswer) {
                       cls += ' correct';
-                      tag = '✓ Student Answer (Correct)';
+                      tag = '✓ Student answer (correct)';
                     } else if (isSelected && !isAnswer) {
                       cls += ' incorrect';
-                      tag = '✗ Student Answer';
+                      tag = '✗ Student answer';
                     } else if (isAnswer) {
                       cls += ' correct';
-                      tag = '✓ Correct Answer';
+                      tag = '✓ Correct answer';
                     }
 
                     return `
               <div class="${cls}">
                 <span><strong>${String.fromCharCode(65 + optIdx)}.</strong> ${optText}</span>
-                ${tag ? `<span style="font-size: 9px; font-weight: 800;">${tag}</span>` : ''}
+                ${tag ? `<span style="font-size: 9px; font-weight: 600;">${tag}</span>` : ''}
               </div>
             `;
                   })
@@ -604,7 +595,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
   ${
     studentRec.submissions && studentRec.submissions.length > 0
       ? `
-    <div class="section-title">Coding Challenge Submission</div>
+    <div class="section-title">Coding challenge submission</div>
     ${studentRec.submissions
       .map(
         (sub, idx) => `
@@ -652,12 +643,12 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
         <div className="p-5 sm:p-6 border-b border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-raised shrink-0">
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-accent/15 text-accent border border-accent/25">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-accent/15 text-accent border border-accent/25">
                 Level {currentLevel.levelNumber}
               </span>
-              <span className="text-xs text-label-tertiary">Course Level Submissions Ledger</span>
+              <span className="text-xs text-label-tertiary">Course level submissions ledger</span>
             </div>
-            <h2 className="text-lg sm:text-xl font-extrabold text-label-primary tracking-tight mt-1 truncate">
+            <h2 className="text-lg sm:text-xl font-semibold text-label-primary tracking-tight mt-1 truncate">
               {currentLevel.title}
             </h2>
           </div>
@@ -667,11 +658,11 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
             <button
               onClick={handleExportAllCsv}
               disabled={students.length === 0}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
               title="Download entire course level submissions ledger as CSV"
             >
               <Download size={14} />
-              <span>Export Ledger (CSV)</span>
+              <span>Export ledger (CSV)</span>
             </button>
 
             <button
@@ -694,37 +685,37 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 sm:p-6 border-b border-separator bg-surface shrink-0">
           <div className="p-3 bg-surface-raised rounded-2xl border border-separator/80">
-            <p className="text-[10px] uppercase font-bold text-label-secondary tracking-wider">
-              Total Students
+            <p className="text-[11px] uppercase font-semibold text-label-secondary tracking-wider">
+              Total students
             </p>
-            <p className="text-xl sm:text-2xl font-black text-label-primary mt-0.5">
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums text-label-primary mt-0.5">
               {totalStudents}
             </p>
           </div>
 
           <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-            <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
-              Passed Students
+            <p className="text-[11px] uppercase font-semibold text-emerald-600 dark:text-emerald-400 tracking-wider">
+              Passed students
             </p>
-            <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
               {passedCount}
             </p>
           </div>
 
           <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-            <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider">
-              Pass Rate
+            <p className="text-[11px] uppercase font-semibold text-blue-600 dark:text-blue-400 tracking-wider">
+              Pass rate
             </p>
-            <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 mt-0.5">
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
               {totalStudents > 0 ? `${Math.round((passedCount / totalStudents) * 100)}%` : '0%'}
             </p>
           </div>
 
           <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20">
-            <p className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 tracking-wider">
-              Points Available
+            <p className="text-[11px] uppercase font-semibold text-purple-600 dark:text-purple-400 tracking-wider">
+              Points available
             </p>
-            <p className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-0.5">
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums text-purple-600 dark:text-purple-400 mt-0.5">
               {currentLevel.points || 50} pts
             </p>
           </div>
@@ -739,7 +730,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search student by name, roll no, department..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary transition-all font-medium"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary transition-all font-normal"
             />
           </div>
 
@@ -748,7 +739,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
               <button
                 key={filterKey}
                 onClick={() => setVerdictFilter(filterKey)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer tabular-nums ${
                   verdictFilter === filterKey
                     ? 'bg-primary text-white shadow-xs'
                     : 'bg-surface border border-separator text-label-secondary hover:text-label-primary'
@@ -771,7 +762,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
           ) : filteredStudents.length === 0 ? (
             <div className="text-center py-16 space-y-3">
               <GraduationCap className="w-12 h-12 mx-auto text-label-tertiary stroke-1 opacity-60" />
-              <h3 className="text-base font-bold text-label-primary">No Student Submissions Found</h3>
+              <h3 className="text-base font-semibold tracking-tight text-label-primary">No student submissions found</h3>
               <p className="text-xs text-label-tertiary max-w-sm mx-auto">
                 {search
                   ? 'No submissions matched your search query. Try clearing filters.'
@@ -784,7 +775,6 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                 const isPassed = rec.verdict === 'passed' || rec.levelCompleted;
                 const isFailed = rec.verdict === 'failed' && !rec.levelCompleted;
                 const hasCode = rec.submissions && rec.submissions.length > 0;
-                const hasQuest = rec.questCompleted || (questQuestions.length > 0 && rec.questSubmission);
 
                 return (
                   <div
@@ -793,7 +783,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                   >
                     {/* Student Info */}
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-bold text-xs uppercase shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-semibold text-xs uppercase shrink-0">
                         {rec.student.avatar ? (
                           <img
                             src={rec.student.avatar}
@@ -807,11 +797,11 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-bold text-label-primary truncate">
+                          <h4 className="text-xs sm:text-sm font-semibold text-label-primary truncate">
                             {rec.student.name}
                           </h4>
                           {rec.student.rollNo && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-surface-raised border border-separator text-label-secondary font-medium">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-surface-raised border border-separator text-label-secondary font-medium tabular-nums">
                               {rec.student.rollNo}
                             </span>
                           )}
@@ -832,20 +822,20 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                     <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                       {/* Quest Status */}
                       {rec.questCompleted && (
-                        <span className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                        <span className="px-2 py-1 rounded-lg text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
                           <CheckCircle2 size={12} />
-                          Quest Done
+                          Quest done
                         </span>
                       )}
 
                       {/* Best Score */}
-                      <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-surface-raised border border-separator text-label-primary">
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-medium tabular-nums bg-surface-raised border border-separator text-label-primary">
                         Score: {rec.bestScore} pts
                       </span>
 
                       {/* Verdict Badge */}
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 ${
+                        className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
                           isPassed
                             ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                             : isFailed
@@ -881,11 +871,11 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                           );
                           setActiveCodeTab(0);
                         }}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-accent text-white hover:bg-accent/90 shadow-sm shadow-accent/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl text-xs font-medium bg-accent text-white hover:bg-accent/90 shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                         title="View full report with questions, answers, and code"
                       >
                         <FileText size={14} />
-                        <span>View Report</span>
+                        <span>View report</span>
                       </button>
                     </div>
                   </div>
@@ -896,8 +886,8 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
         </div>
 
         {/* Bottom Footer Note */}
-        <div className="p-4 border-t border-separator bg-surface-raised text-center text-xs text-label-tertiary shrink-0">
-          Admin Course Inspector · Viewing {filteredStudents.length} of {totalStudents} student record(s)
+        <div className="p-4 border-t border-separator bg-surface-raised text-center text-xs text-label-tertiary shrink-0 tabular-nums">
+          Admin course inspector · Viewing {filteredStudents.length} of {totalStudents} student record(s)
         </div>
       </motion.div>
 
@@ -914,20 +904,20 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
               {/* Header */}
               <div className="p-4 sm:p-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/80 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-black">
+                  <div className="w-10 h-10 rounded-2xl bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-semibold">
                     {inspectingStudent.student.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
                       <span>{inspectingStudent.student.name}</span>
                       {inspectingStudent.student.rollNo && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/10 text-white/70">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/10 text-white/70 tabular-nums font-medium">
                           {inspectingStudent.student.rollNo}
                         </span>
                       )}
                     </h3>
                     <p className="text-xs text-white/60">
-                      Level {currentLevel.levelNumber}: {currentLevel.title} · Student Performance Dossier
+                      Level {currentLevel.levelNumber}: {currentLevel.title} · Student performance dossier
                     </p>
                   </div>
                 </div>
@@ -936,8 +926,8 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                 <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                   <button
                     onClick={() => handlePrintStudentPdf(inspectingStudent)}
-                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer"
-                    title="Print or Save PDF report"
+                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    title="Print or save PDF report"
                   >
                     <Printer size={13} />
                     <span>Print / PDF</span>
@@ -945,7 +935,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
 
                   <button
                     onClick={() => handleExportStudentCsv(inspectingStudent)}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/30 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                     title="Export CSV report"
                   >
                     <FileSpreadsheet size={13} />
@@ -964,9 +954,9 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
               {/* Performance Ribbon */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 sm:p-4 bg-slate-900/40 border-b border-white/10 shrink-0">
                 <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-                  <span className="text-[10px] text-white/50 uppercase font-mono">Verdict</span>
+                  <span className="text-[11px] text-white/50 uppercase font-medium">Verdict</span>
                   <p
-                    className={`text-xs font-bold uppercase font-mono mt-0.5 ${
+                    className={`text-xs font-semibold uppercase font-mono mt-0.5 ${
                       inspectingStudent.verdict === 'passed' || inspectingStudent.levelCompleted
                         ? 'text-emerald-400'
                         : 'text-rose-400'
@@ -977,52 +967,52 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                 </div>
 
                 <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-                  <span className="text-[10px] text-white/50 uppercase font-mono">Best Score</span>
-                  <p className="text-xs font-bold text-amber-400 font-mono mt-0.5">
+                  <span className="text-[11px] text-white/50 uppercase font-medium">Best score</span>
+                  <p className="text-xs font-semibold tabular-nums text-amber-400 font-mono mt-0.5">
                     {inspectingStudent.bestScore} pts
                   </p>
                 </div>
 
                 <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-                  <span className="text-[10px] text-white/50 uppercase font-mono">Quest Status</span>
-                  <p className="text-xs font-bold text-white font-mono mt-0.5">
+                  <span className="text-[11px] text-white/50 uppercase font-medium">Quest status</span>
+                  <p className="text-xs font-semibold text-white font-mono mt-0.5">
                     {inspectingStudent.questCompleted ? 'Completed' : 'Pending'}
                   </p>
                 </div>
 
                 <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-                  <span className="text-[10px] text-white/50 uppercase font-mono">Coding Submissions</span>
-                  <p className="text-xs font-bold text-primary font-mono mt-0.5">
-                    {inspectingStudent.submissions ? inspectingStudent.submissions.length : 0} Attempt(s)
+                  <span className="text-[11px] text-white/50 uppercase font-medium">Coding submissions</span>
+                  <p className="text-xs font-semibold tabular-nums text-primary font-mono mt-0.5">
+                    {inspectingStudent.submissions ? inspectingStudent.submissions.length : 0} attempt(s)
                   </p>
                 </div>
               </div>
 
-              {/* Detail Tabs (Questions vs Code) */}
+              {/* Detail Tabs */}
               <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-900/60 border-b border-white/10 shrink-0">
                 <button
                   onClick={() => setActiveDetailTab('questions')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer tabular-nums ${
                     activeDetailTab === 'questions'
-                      ? 'bg-primary text-white shadow-sm'
+                      ? 'bg-primary text-white shadow-xs'
                       : 'bg-white/5 text-white/60 hover:text-white'
                   }`}
                 >
                   <FileText size={13} />
-                  <span>Questions & Answers ({questQuestions.length})</span>
+                  <span>Questions & answers ({questQuestions.length})</span>
                 </button>
 
                 {inspectingStudent.submissions && inspectingStudent.submissions.length > 0 && (
                   <button
                     onClick={() => setActiveDetailTab('code')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer tabular-nums ${
                       activeDetailTab === 'code'
-                        ? 'bg-primary text-white shadow-sm'
+                        ? 'bg-primary text-white shadow-xs'
                         : 'bg-white/5 text-white/60 hover:text-white'
                     }`}
                   >
                     <Code2 size={13} />
-                    <span>Coding Solution ({inspectingStudent.submissions.length})</span>
+                    <span>Coding solution ({inspectingStudent.submissions.length})</span>
                   </button>
                 )}
               </div>
@@ -1049,15 +1039,15 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                         return (
                           <div
                             key={idx}
-                            className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 shadow-xs"
+                            className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3 shadow-2xs"
                           >
                             <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/10 text-white/80">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-white/10 text-white/80 tabular-nums">
                                 QUESTION #{idx + 1}
                               </span>
 
                               <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 ${
                                   isCorrect
                                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                                     : 'bg-red-500/20 text-red-300 border border-red-500/30'
@@ -1068,7 +1058,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                               </span>
                             </div>
 
-                            <p className="text-xs sm:text-sm font-bold text-white leading-relaxed">
+                            <p className="text-xs sm:text-sm font-semibold text-white leading-relaxed">
                               {q.question}
                             </p>
 
@@ -1081,11 +1071,11 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
 
                                   let styleClass = 'bg-white/[0.02] border-white/10 text-white/70';
                                   if (isSelected && isAnswer) {
-                                    styleClass = 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 font-bold';
+                                    styleClass = 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 font-medium';
                                   } else if (isSelected && !isAnswer) {
-                                    styleClass = 'bg-red-500/15 border-red-500/50 text-red-300 font-bold';
+                                    styleClass = 'bg-red-500/15 border-red-500/50 text-red-300 font-medium';
                                   } else if (isAnswer) {
-                                    styleClass = 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-semibold';
+                                    styleClass = 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-medium';
                                   }
 
                                   return (
@@ -1094,7 +1084,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                                       className={`p-2.5 rounded-xl border flex items-start justify-between gap-2 text-xs transition-all ${styleClass}`}
                                     >
                                       <div className="flex items-start gap-2 min-w-0">
-                                        <span className="w-4 h-4 rounded bg-white/10 flex items-center justify-center font-bold text-[9px] text-white shrink-0 mt-0.5">
+                                        <span className="w-4 h-4 rounded bg-white/10 flex items-center justify-center font-medium text-[9px] text-white shrink-0 mt-0.5">
                                           {String.fromCharCode(65 + optIdx)}
                                         </span>
                                         <span className="break-words leading-relaxed">{optText}</span>
@@ -1102,7 +1092,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
 
                                       {isSelected && (
                                         <span
-                                          className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 ${
+                                          className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider shrink-0 ${
                                             isAnswer
                                               ? 'bg-emerald-500/30 text-emerald-300'
                                               : 'bg-red-500/30 text-red-300'
@@ -1112,7 +1102,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                                         </span>
                                       )}
                                       {isAnswer && !isSelected && (
-                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 shrink-0">
+                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 shrink-0">
                                           Correct
                                         </span>
                                       )}
@@ -1141,7 +1131,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                               <button
                                 key={idx}
                                 onClick={() => setActiveCodeTab(idx)}
-                                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer tabular-nums ${
                                   activeCodeTab === idx
                                     ? 'bg-primary text-white shadow-xs'
                                     : 'bg-white/5 text-white/70 hover:bg-white/10'
@@ -1156,16 +1146,16 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                         {/* Execution Metrics Banner */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                            <span className="text-[10px] text-white/50 uppercase font-mono">Language</span>
-                            <p className="text-xs font-bold text-primary uppercase font-mono mt-0.5">
+                            <span className="text-[11px] text-white/50 uppercase font-medium">Language</span>
+                            <p className="text-xs font-semibold text-primary uppercase font-mono mt-0.5">
                               {activeSub.language || 'python'}
                             </p>
                           </div>
 
                           <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                            <span className="text-[10px] text-white/50 uppercase font-mono">Verdict</span>
+                            <span className="text-[11px] text-white/50 uppercase font-medium">Verdict</span>
                             <p
-                              className={`text-xs font-bold uppercase font-mono mt-0.5 ${
+                              className={`text-xs font-semibold uppercase font-mono mt-0.5 ${
                                 activeSub.status === 'passed'
                                   ? 'text-emerald-400'
                                   : 'text-rose-400'
@@ -1176,15 +1166,15 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                           </div>
 
                           <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                            <span className="text-[10px] text-white/50 uppercase font-mono">Test Cases</span>
-                            <p className="text-xs font-bold text-white font-mono mt-0.5">
+                            <span className="text-[11px] text-white/50 uppercase font-medium">Test cases</span>
+                            <p className="text-xs font-semibold tabular-nums text-white font-mono mt-0.5">
                               {activeSub.passed} / {activeSub.total || 0} passed
                             </p>
                           </div>
 
                           <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                            <span className="text-[10px] text-white/50 uppercase font-mono">Score Awarded</span>
-                            <p className="text-xs font-bold text-amber-400 font-mono mt-0.5">
+                            <span className="text-[11px] text-white/50 uppercase font-medium">Score awarded</span>
+                            <p className="text-xs font-semibold tabular-nums text-amber-400 font-mono mt-0.5">
                               +{activeSub.score} pts
                             </p>
                           </div>
@@ -1211,9 +1201,9 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
                         {/* Error diagnostics if any */}
                         {activeSub.details?.error && (
                           <div className="p-3.5 rounded-xl bg-destructive/15 border border-destructive/30 text-rose-300 text-xs font-mono space-y-1">
-                            <div className="flex items-center gap-1.5 font-bold text-rose-400">
+                            <div className="flex items-center gap-1.5 font-semibold text-rose-400">
                               <AlertTriangle size={14} />
-                              <span>Compiler / Runtime Diagnostics:</span>
+                              <span>Compiler / Runtime diagnostics:</span>
                             </div>
                             <pre className="whitespace-pre-wrap">{activeSub.details.error}</pre>
                           </div>
@@ -1226,12 +1216,12 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
 
               {/* Modal Footer */}
               <div className="p-3.5 sm:p-4 border-t border-white/10 bg-slate-900/80 flex items-center justify-between text-xs text-white/50 shrink-0">
-                <span>Course Level Inspection Record · Code Circle</span>
+                <span>Course level inspection record · Code Circle</span>
                 <button
                   onClick={() => setInspectingStudent(null)}
-                  className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all cursor-pointer"
+                  className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all cursor-pointer"
                 >
-                  Close Dossier
+                  Close dossier
                 </button>
               </div>
             </motion.div>

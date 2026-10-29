@@ -1,23 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   X,
   CheckCircle2,
   XCircle,
-  HelpCircle,
-  Clock,
-  Award,
-  Download,
   Printer,
   FileSpreadsheet,
   Search,
-  Filter,
-  User,
-  GraduationCap,
-  Calendar,
-  Sparkles,
-  ChevronRight,
-  BookOpen,
   Info,
 } from 'lucide-react';
 import { formatISTDateTime } from '../../lib/dateUtils';
@@ -199,7 +188,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      toast.success('Student CSV report downloaded!');
+      toast.success('Student CSV report downloaded');
     } catch {
       toast.error('Failed to export CSV report');
     }
@@ -236,23 +225,23 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
       align-items: flex-start;
     }
     .brand {
-      font-size: 24px;
-      font-weight: 900;
+      font-size: 22px;
+      font-weight: 700;
       color: #4f46e5;
       letter-spacing: -0.5px;
     }
     .brand-sub {
-      font-size: 12px;
+      font-size: 11px;
       color: #64748b;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
     }
     .title {
-      font-size: 20px;
-      font-weight: 800;
+      font-size: 18px;
+      font-weight: 600;
       color: #0f172a;
-      margin-top: 5px;
+      margin-top: 4px;
     }
     .meta-grid {
       display: grid;
@@ -270,12 +259,12 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
       font-size: 10px;
       text-transform: uppercase;
       color: #64748b;
-      font-weight: 700;
+      font-weight: 600;
       letter-spacing: 0.5px;
     }
     .meta-val {
-      font-size: 16px;
-      font-weight: 800;
+      font-size: 15px;
+      font-weight: 600;
       color: #0f172a;
       margin-top: 4px;
     }
@@ -283,15 +272,15 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
       display: inline-block;
       padding: 3px 10px;
       border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 800;
+      font-size: 10px;
+      font-weight: 600;
       text-transform: uppercase;
     }
     .badge-pass { background: #dcfce7; color: #15803d; }
     .badge-fail { background: #fee2e2; color: #b91c1c; }
     .section-title {
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 14px;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin: 25px 0 15px 0;
@@ -313,13 +302,13 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
       margin-bottom: 10px;
     }
     .q-num {
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 11px;
+      font-weight: 600;
       color: #64748b;
     }
     .q-text {
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 600;
       color: #0f172a;
       margin-bottom: 12px;
     }
@@ -341,13 +330,13 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
       background: #f0fdf4;
       border-color: #86efac;
       color: #166534;
-      font-weight: 700;
+      font-weight: 600;
     }
     .option-item.incorrect {
       background: #fef2f2;
       border-color: #fca5a5;
       color: #991b1b;
-      font-weight: 700;
+      font-weight: 600;
     }
     .explanation {
       background: #f8fafc;
@@ -368,12 +357,12 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
   <div class="header">
     <div>
       <div class="brand">CODE CIRCLE</div>
-      <div class="brand-sub">Official Student Assessment Evaluation Dossier</div>
+      <div class="brand-sub">Official student assessment evaluation dossier</div>
       <div class="title">${assessment?.title || 'MCQ Assessment'}</div>
     </div>
     <div style="text-align: right;">
-      <div style="font-size: 12px; color: #64748b; font-weight: 700;">Evaluation Date</div>
-      <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${formatISTDateTime(submission.createdAt)}</div>
+      <div style="font-size: 11px; color: #64748b; font-weight: 600;">Evaluation Date</div>
+      <div style="font-size: 12px; font-weight: 600; color: #0f172a;">${formatISTDateTime(submission.createdAt)}</div>
     </div>
   </div>
 
@@ -381,12 +370,12 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
     <div class="meta-card">
       <div class="meta-label">Student Name</div>
       <div class="meta-val">${studentName}</div>
-      <div style="font-size: 11px; color: #64748b;">${studentRoll} • ${studentDept}</div>
+      <div style="font-size: 10px; color: #64748b;">${studentRoll} • ${studentDept}</div>
     </div>
     <div class="meta-card">
       <div class="meta-label">Score Earned</div>
       <div class="meta-val">${submission.score} / ${submission.totalPoints} pts</div>
-      <div style="font-size: 11px; color: #64748b;">${correctCount} of ${totalCount} Correct</div>
+      <div style="font-size: 10px; color: #64748b;">${correctCount} of ${totalCount} correct</div>
     </div>
     <div class="meta-card">
       <div class="meta-label">Result Verdict</div>
@@ -395,12 +384,12 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
           ${submission.passed ? 'PASSED' : 'FAILED'} (${submission.percentage}%)
         </span>
       </div>
-      <div style="font-size: 11px; color: #64748b;">Req: ${assessment?.passingScorePercentage || 60}%</div>
+      <div style="font-size: 10px; color: #64748b;">Req: ${assessment?.passingScorePercentage || 60}%</div>
     </div>
     <div class="meta-card">
       <div class="meta-label">Time Taken</div>
       <div class="meta-val">${formatSeconds(submission.timeSpentSeconds)}</div>
-      <div style="font-size: 11px; color: #64748b;">${assessment?.category || 'Technical'}</div>
+      <div style="font-size: 10px; color: #64748b;">${assessment?.category || 'Technical'}</div>
     </div>
   </div>
 
@@ -441,7 +430,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
                   return `
             <div class="${cls}">
               <span><strong>${String.fromCharCode(65 + optIdx)}.</strong> ${optText}</span>
-              ${tag ? `<span style="font-size: 10px; font-weight: 800;">${tag}</span>` : ''}
+              ${tag ? `<span style="font-size: 9px; font-weight: 600;">${tag}</span>` : ''}
             </div>
           `;
                 })
@@ -488,16 +477,16 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/80 shrink-0">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 font-black text-sm shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 font-semibold text-sm shrink-0">
               {studentName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
-                  {studentName}&apos;s Assessment Report
+                <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight truncate">
+                  {studentName}&apos;s assessment report
                 </h3>
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider tabular-nums border ${
                     submission.passed
                       ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                       : 'bg-red-500/20 text-red-400 border-red-500/30'
@@ -506,18 +495,18 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
                   {submission.passed ? 'PASSED' : 'FAILED'} ({submission.percentage}%)
                 </span>
               </div>
-              <p className="text-xs text-white/60 truncate mt-0.5">
+              <p className="text-xs text-white/60 truncate mt-0.5 font-normal">
                 {assessment?.title || 'Assessment'} • {studentRoll} • {studentDept} ({studentEmail})
               </p>
             </div>
           </div>
 
-          {/* Action Header Buttons: Print & Download CSV & Close */}
+          {/* Action Header Buttons */}
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
             <button
               onClick={handlePrintPdf}
-              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer"
-              title="Print or Save PDF Report"
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+              title="Print or save PDF report"
             >
               <Printer size={14} />
               <span>Print / PDF</span>
@@ -525,7 +514,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
 
             <button
               onClick={handleDownloadCsv}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/30 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
               title="Download CSV breakdown"
             >
               <FileSpreadsheet size={14} />
@@ -544,37 +533,37 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 sm:p-5 border-b border-white/10 bg-slate-900/40 shrink-0">
           <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-            <span className="text-[10px] uppercase font-bold text-white/50 tracking-wider">
-              Total Score
+            <span className="text-[11px] uppercase font-semibold text-white/50 tracking-wider">
+              Total score
             </span>
-            <p className="text-lg sm:text-xl font-black text-white mt-0.5">
+            <p className="text-lg sm:text-xl font-semibold tabular-nums text-white mt-0.5">
               {submission.score} <span className="text-xs text-white/50 font-normal">/ {submission.totalPoints} pts</span>
             </p>
           </div>
 
           <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
-              Correct Answers
+            <span className="text-[11px] uppercase font-semibold text-emerald-400 tracking-wider">
+              Correct answers
             </span>
-            <p className="text-lg sm:text-xl font-black text-emerald-400 mt-0.5">
+            <p className="text-lg sm:text-xl font-semibold tabular-nums text-emerald-400 mt-0.5">
               {correctCount} <span className="text-xs text-emerald-400/60 font-normal">/ {totalCount} ({Math.round((correctCount / Math.max(1, totalCount)) * 100)}%)</span>
             </p>
           </div>
 
           <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
-            <span className="text-[10px] uppercase font-bold text-red-400 tracking-wider">
-              Incorrect Answers
+            <span className="text-[11px] uppercase font-semibold text-red-400 tracking-wider">
+              Incorrect answers
             </span>
-            <p className="text-lg sm:text-xl font-black text-red-400 mt-0.5">
+            <p className="text-lg sm:text-xl font-semibold tabular-nums text-red-400 mt-0.5">
               {incorrectCount} <span className="text-xs text-red-400/60 font-normal">/ {totalCount}</span>
             </p>
           </div>
 
           <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-            <span className="text-[10px] uppercase font-bold text-white/50 tracking-wider">
-              Time Taken
+            <span className="text-[11px] uppercase font-semibold text-white/50 tracking-wider">
+              Time taken
             </span>
-            <p className="text-lg sm:text-xl font-black text-purple-400 mt-0.5">
+            <p className="text-lg sm:text-xl font-semibold tabular-nums text-purple-400 mt-0.5">
               {formatSeconds(submission.timeSpentSeconds)}
             </p>
           </div>
@@ -589,7 +578,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search question prompt or options..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-purple-500 transition-all font-medium"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-purple-500 transition-all font-normal"
             />
           </div>
 
@@ -598,9 +587,9 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
               <button
                 key={mode}
                 onClick={() => setFilter(mode)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer tabular-nums ${
                   filter === mode
-                    ? 'bg-purple-600 text-white shadow-sm'
+                    ? 'bg-purple-600 text-white shadow-xs'
                     : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10 border border-white/5'
                 }`}
               >
@@ -625,21 +614,21 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
               return (
                 <div
                   key={q.questionIndex ?? idx}
-                  className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4 hover:border-white/20 transition-all shadow-sm"
+                  className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4 hover:border-white/20 transition-all shadow-xs"
                 >
                   {/* Question Header */}
                   <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-white/10 text-white/80">
+                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-medium bg-white/10 text-white/80 tabular-nums">
                         Q{q.questionIndex + 1}
                       </span>
-                      <span className="text-xs font-semibold text-white/50">
+                      <span className="text-xs font-medium text-white/50 tabular-nums">
                         {q.points} pt{q.points > 1 ? 's' : ''}
                       </span>
                     </div>
 
                     <span
-                      className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 ${
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${
                         q.isCorrect
                           ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                           : 'bg-red-500/15 text-red-400 border border-red-500/30'
@@ -651,7 +640,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
                   </div>
 
                   {/* Question Text */}
-                  <h4 className="text-sm sm:text-base font-bold text-white leading-relaxed">
+                  <h4 className="text-sm sm:text-base font-semibold text-white leading-relaxed">
                     {q.questionText}
                   </h4>
 
@@ -664,11 +653,11 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
 
                         let styleClasses = 'bg-white/[0.02] border-white/10 text-white/80';
                         if (isStudentAnswer && isCorrectAnswer) {
-                          styleClasses = 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 font-bold';
+                          styleClasses = 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 font-medium';
                         } else if (isStudentAnswer && !isCorrectAnswer) {
-                          styleClasses = 'bg-red-500/15 border-red-500/50 text-red-300 font-bold';
+                          styleClasses = 'bg-red-500/15 border-red-500/50 text-red-300 font-medium';
                         } else if (isCorrectAnswer) {
-                          styleClasses = 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-semibold';
+                          styleClasses = 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-medium';
                         }
 
                         return (
@@ -677,7 +666,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
                             className={`p-3 rounded-xl border flex items-start justify-between gap-3 text-xs sm:text-sm transition-all ${styleClasses}`}
                           >
                             <div className="flex items-start gap-2.5 min-w-0">
-                              <span className="w-5 h-5 rounded-md bg-white/10 flex items-center justify-center font-bold text-[10px] text-white shrink-0 mt-0.5">
+                              <span className="w-5 h-5 rounded-md bg-white/10 flex items-center justify-center font-medium text-[10px] text-white shrink-0 mt-0.5">
                                 {String.fromCharCode(65 + optIdx)}
                               </span>
                               <span className="break-words leading-relaxed">{optText}</span>
@@ -686,18 +675,18 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
                             <div className="shrink-0 flex items-center gap-1">
                               {isStudentAnswer && (
                                 <span
-                                  className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                                  className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
                                     isCorrectAnswer
                                       ? 'bg-emerald-500/30 text-emerald-300'
                                       : 'bg-red-500/30 text-red-300'
                                   }`}
                                 >
-                                  Student Choice
+                                  Student choice
                                 </span>
                               )}
                               {isCorrectAnswer && !isStudentAnswer && (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400">
-                                  Correct Key
+                                <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-400">
+                                  Correct key
                                 </span>
                               )}
                             </div>
@@ -717,7 +706,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
                     <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-start gap-2.5 text-xs text-purple-200">
                       <Info size={16} className="text-purple-400 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold text-purple-300 mr-1.5">Explanation:</span>
+                        <span className="font-semibold text-purple-300 mr-1.5">Explanation:</span>
                         <span>{q.explanation}</span>
                       </div>
                     </div>
@@ -730,12 +719,12 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
 
         {/* Footer */}
         <div className="p-4 border-t border-white/10 bg-slate-900/80 flex items-center justify-between text-xs text-white/50 shrink-0">
-          <span>Detailed Assessment Ledger · Student Performance Audit</span>
+          <span>Detailed assessment ledger · Student performance audit</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all cursor-pointer"
+            className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all cursor-pointer"
           >
-            Close Report
+            Close report
           </button>
         </div>
       </motion.div>
