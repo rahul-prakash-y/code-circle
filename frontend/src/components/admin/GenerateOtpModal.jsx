@@ -146,30 +146,31 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-xl glass border border-border p-6 sm:p-8 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] max-h-[90vh] overflow-y-auto"
+        className="w-[calc(100%-1.5rem)] sm:w-full max-w-xl glass border border-border p-4 sm:p-7 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] max-h-[90dvh] overflow-y-auto rounded-2xl sm:rounded-3xl"
       >
         {/* Glow ambient light */}
         <div className="absolute top-0 right-0 w-64 h-64 -mr-20 -mt-20 rounded-full bg-blue-500/15 blur-3xl pointer-events-none" />
 
         {/* Header */}
-        <div className="flex justify-between items-center mb-6 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+        <div className="flex justify-between items-center mb-5 sm:mb-6 relative z-10 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
               <KeyRound size={20} />
             </div>
-            <div>
-              <h2 className="text-xl font-black text-text-primary">Generate Attendance OTP</h2>
-              <p className="text-xs text-text-muted">Map class periods & award leaderboard points</p>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-xl font-black text-text-primary truncate">Generate Attendance OTP</h2>
+              <p className="text-[11px] sm:text-xs text-text-muted truncate">Map class periods & award leaderboard points</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors cursor-pointer shrink-0"
+            aria-label="Close modal"
           >
             <X size={20} />
           </button>
@@ -177,9 +178,9 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
 
         {!generatedSession ? (
           /* Form view */
-          <form onSubmit={handleGenerate} className="space-y-5 relative z-10">
+          <form onSubmit={handleGenerate} className="space-y-4 sm:space-y-5 relative z-10">
             <div>
-              <label className="input-label flex items-center gap-2">
+              <label className="input-label flex items-center gap-2 text-xs">
                 <Calendar size={14} className="text-accent" />
                 Target Event
               </label>
@@ -187,61 +188,61 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                 <select
                   value={selectedEventId}
                   onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="input-field bg-[#0f172a] text-text-primary border-border cursor-pointer text-xs py-2.5"
+                  className="input-field bg-surface text-text-primary border-border cursor-pointer text-xs py-2.5 min-h-[44px]"
                   required
                 >
                   {events.map((ev) => (
-                    <option key={ev._id} value={ev._id} className="bg-surface-elevated text-text-primary">
+                    <option key={ev._id} value={ev._id} className="bg-surface text-text-primary">
                       {ev.title} ({formatISTDate(ev.startDate || ev.date)}) • {ev.hourlyPoints || 50} pts/hr
                     </option>
                   ))}
                 </select>
               ) : (
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-3">
-                  <AlertCircle size={18} />
+                  <AlertCircle size={18} className="shrink-0" />
                   <span>No events found. Please create an event before generating attendance.</span>
                 </div>
               )}
             </div>
 
             <div>
-              <label className="input-label">Session Name / Description</label>
+              <label className="input-label text-xs">Session Name / Description</label>
               <input
                 type="text"
                 value={sessionName}
                 onChange={(e) => setSessionName(e.target.value)}
                 placeholder="e.g. Technical Workshop - Forenoon Session"
-                className="input-field text-xs py-2.5"
+                className="input-field text-xs py-2.5 min-h-[44px]"
                 required
               />
             </div>
 
             {/* Seven College Class Hours Mapping */}
-            <div className="p-4 rounded-2xl bg-surface-elevated/70 border border-border space-y-3">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-surface-elevated/70 border border-border space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                  <Layers size={14} className="text-accent" /> Mapped Class Hours (7 College Periods)
+                <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                  <Layers size={14} className="text-accent shrink-0" /> Mapped Class Hours (7 Periods)
                 </label>
                 <div className="flex items-center gap-1.5 text-[11px]">
-                  <span className="text-text-muted">Presets:</span>
+                  <span className="text-text-muted text-[10px]">Presets:</span>
                   <button
                     type="button"
                     onClick={() => setHourPreset([1, 2, 3, 4])}
-                    className="px-2 py-0.5 rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all"
+                    className="px-2 py-1 min-h-[28px] rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all cursor-pointer"
                   >
                     1 - 4
                   </button>
                   <button
                     type="button"
                     onClick={() => setHourPreset([5, 6, 7])}
-                    className="px-2 py-0.5 rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all"
+                    className="px-2 py-1 min-h-[28px] rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all cursor-pointer"
                   >
                     5 - 7
                   </button>
                   <button
                     type="button"
                     onClick={() => setHourPreset([1, 2, 3, 4, 5, 6, 7])}
-                    className="px-2 py-0.5 rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all"
+                    className="px-2 py-1 min-h-[28px] rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all cursor-pointer"
                   >
                     All 7
                   </button>
@@ -249,7 +250,7 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
               </div>
 
               {/* 7 Class Hours Toggle Buttons */}
-              <div className="grid grid-cols-7 gap-1.5">
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                 {COLLEGE_HOURS.map((hr) => {
                   const isSelected = selectedClassHours.includes(hr);
                   return (
@@ -257,25 +258,25 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                       key={hr}
                       type="button"
                       onClick={() => toggleClassHour(hr)}
-                      className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl font-bold transition-all border cursor-pointer ${
+                      className={`flex flex-col items-center justify-center py-2 sm:py-2.5 px-0.5 sm:px-1 rounded-xl font-bold transition-all border cursor-pointer touch-manipulation min-h-[44px] ${
                         isSelected
                           ? 'bg-accent text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.4)] scale-102'
                           : 'bg-surface text-text-muted border-border hover:bg-surface-elevated hover:text-text-primary'
                       }`}
                     >
-                      <span className="text-[10px] uppercase tracking-wider opacity-80">Hr</span>
-                      <span className="text-base font-black font-mono">{hr}</span>
+                      <span className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-80">Hr</span>
+                      <span className="text-sm sm:text-base font-black font-mono">{hr}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Selected summary */}
-              <div className="flex items-center justify-between text-[11px] pt-1 text-text-muted">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-[11px] pt-1 text-text-muted gap-1">
                 <span>
                   Selected: <strong className="text-text-primary font-mono">{selectedClassHours.map(h => `Hour ${h}`).join(', ')}</strong> ({selectedClassHours.length} hr{selectedClassHours.length > 1 ? 's' : ''})
                 </span>
-                <span className="text-accent font-semibold">
+                <span className="text-accent font-semibold text-[10.5px]">
                   Tap to toggle periods
                 </span>
               </div>
@@ -284,7 +285,7 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
             {/* Hourly Points & Leaderboard Calculation Live Preview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                   <Award size={14} className="text-amber-400" /> Hourly Rate (Points/Hour)
                 </label>
                 <div className="relative">
@@ -293,17 +294,17 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                     min="0"
                     value={hourlyPoints}
                     onChange={(e) => setHourlyPoints(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="input-field text-xs py-2.5 font-mono pr-12"
+                    className="input-field text-xs py-2.5 font-mono pr-14 min-h-[44px]"
                     required
                   />
-                  <span className="absolute right-3 top-2.5 text-[11px] font-bold text-text-muted uppercase">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] sm:text-[11px] font-bold text-text-muted uppercase pointer-events-none">
                     pts/hr
                   </span>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                   <Clock size={14} className="text-purple-400" /> Validity
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -312,7 +313,7 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                       key={mins}
                       type="button"
                       onClick={() => setDurationMinutes(mins)}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all border ${
+                      className={`py-2 min-h-[44px] rounded-xl text-xs font-bold transition-all border cursor-pointer touch-manipulation ${
                         durationMinutes === mins
                           ? 'bg-purple-600 text-white border-purple-400 shadow-sm'
                           : 'bg-surface-elevated text-text-muted border-border hover:bg-surface'
@@ -326,28 +327,28 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Dynamic Points Awarded Live Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-orange-500/10 border border-amber-500/30 flex items-center justify-between gap-3 shadow-inner">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
-                  <Sparkles size={20} />
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-orange-500/10 border border-amber-500/30 flex items-center justify-between gap-3 shadow-inner">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                  <Sparkles size={18} />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-text-primary">Leaderboard Award</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                       {selectedClassHours.length} {selectedClassHours.length === 1 ? 'Period' : 'Periods'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-text-muted mt-0.5 font-mono">
+                  <p className="text-[10.5px] sm:text-[11px] text-text-muted mt-0.5 font-mono truncate">
                     {selectedClassHours.length} hr{selectedClassHours.length > 1 ? 's' : ''} × {hourlyPoints} pts/hr = {calculatedTotalPoints} pts
                   </p>
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-2xl font-black text-amber-400 font-mono tracking-tight">
+                <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono tracking-tight">
                   +{calculatedTotalPoints}
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400/80">
+                <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-400/80">
                   Per Student
                 </span>
               </div>
@@ -357,7 +358,7 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
               <button
                 type="submit"
                 disabled={loading || events.length === 0}
-                className="w-full btn-primary flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold shadow-lg"
+                className="w-full btn-primary flex items-center justify-center gap-2 py-3 min-h-[48px] rounded-2xl text-xs sm:text-sm font-bold shadow-lg cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -375,14 +376,14 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
           </form>
         ) : (
           /* Active OTP Display view */
-          <div className="space-y-6 text-center relative z-10">
-            <div className="p-6 rounded-3xl bg-linear-to-b from-blue-500/10 to-indigo-500/5 border border-accent/30">
+          <div className="space-y-5 sm:space-y-6 text-center relative z-10">
+            <div className="p-5 sm:p-6 rounded-3xl bg-linear-to-b from-blue-500/10 to-indigo-500/5 border border-accent/30">
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent block mb-2">
                 ACTIVE VERIFICATION CODE
               </span>
 
               {/* Huge glowing 6-digit OTP */}
-              <div className="text-5xl md:text-6xl font-black font-mono tracking-[0.3em] text-text-primary my-4 drop-shadow-[0_0_25px_rgba(59,130,246,0.6)]">
+              <div className="text-4xl sm:text-5xl md:text-6xl font-black font-mono tracking-[0.25em] text-text-primary my-3 sm:my-4 drop-shadow-[0_0_25px_rgba(59,130,246,0.6)]">
                 {generatedSession.otp}
               </div>
 
@@ -397,10 +398,10 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            <div className="text-left bg-surface-elevated p-4 rounded-2xl border border-border space-y-2 text-xs text-text-muted">
-              <div className="flex items-center justify-between pb-2 border-b border-border/50">
+            <div className="text-left bg-surface-elevated p-3.5 sm:p-4 rounded-2xl border border-border space-y-2 text-xs text-text-muted">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-border/50 gap-1">
                 <span className="text-text-primary font-bold text-sm">{generatedSession.sessionName}</span>
-                <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-mono font-bold text-xs">
+                <span className="w-fit px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-mono font-bold text-[11px]">
                   +{generatedSession.totalPoints || ((generatedSession.hourlyPoints || 50) * (generatedSession.classHours?.length || 1))} Leaderboard Pts
                 </span>
               </div>
@@ -418,10 +419,10 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
               </p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
               <button
                 onClick={copyToClipboard}
-                className="flex-1 btn-primary flex items-center justify-center gap-2 py-3 rounded-xl font-bold"
+                className="flex-1 btn-primary flex items-center justify-center gap-2 py-3 min-h-[46px] rounded-xl font-bold cursor-pointer"
               >
                 {copied ? <Check size={18} className="text-emerald-500" /> : <Copy size={18} />}
                 {copied ? 'Copied Code!' : 'Copy Code'}
@@ -429,7 +430,7 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => setGeneratedSession(null)}
-                className="btn-secondary px-6 text-xs font-bold rounded-xl"
+                className="btn-secondary px-6 min-h-[46px] text-xs font-bold rounded-xl cursor-pointer"
               >
                 Generate Another
               </button>

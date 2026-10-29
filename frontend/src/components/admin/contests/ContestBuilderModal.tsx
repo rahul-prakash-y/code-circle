@@ -428,7 +428,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface dark:bg-[#121214] rounded-3xl border border-separator dark:border-white/10 max-w-5xl w-full p-5 sm:p-7 space-y-5 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto"
+        className="bg-surface dark:bg-[#121214] rounded-2xl sm:rounded-3xl border border-separator dark:border-white/10 w-[min(1024px,96vw)] p-4 sm:p-7 space-y-4 sm:space-y-5 shadow-2xl overflow-hidden flex flex-col max-h-[90dvh] my-auto"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-separator dark:border-white/10 pb-4 shrink-0">
@@ -456,7 +456,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
             <TutorialButton tutorialId="contests" variant="icon" />
             <button
               onClick={onClose}
-              className="p-2 hover:bg-surface-secondary dark:hover:bg-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+              className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center hover:bg-surface-secondary dark:hover:bg-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>
@@ -464,10 +464,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-2 p-1 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10 shrink-0 overflow-x-auto no-scrollbar touch-pan-x flex-nowrap">
           <button
             onClick={() => setActiveTab('info')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 min-w-[120px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'info'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
@@ -478,7 +478,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {type !== 'CODING' && (
             <button
               onClick={() => setActiveTab('mcq')}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'mcq'
                   ? 'bg-primary text-white shadow-xs'
                   : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
@@ -490,7 +490,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {type !== 'MCQ' && (
             <button
               onClick={() => setActiveTab('coding')}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 min-w-[160px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'coding'
                   ? 'bg-primary text-white shadow-xs'
                   : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
@@ -1258,8 +1258,8 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-separator dark:border-white/10 shrink-0">
-          <div className="text-xs text-label-secondary dark:text-[#86868B]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-separator dark:border-white/10 shrink-0">
+          <div className="text-xs text-label-secondary dark:text-[#86868B] text-center sm:text-left">
             Total Reward: <strong className="text-amber-500 font-mono font-bold">{totalPoints} XP</strong>
             {questionsPointSum > 0 && (
               <span className="ml-1 text-[11px] text-label-tertiary">
@@ -1272,14 +1272,14 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial min-h-[42px] px-4 py-2.5 text-xs font-bold text-label-secondary hover:text-label-primary bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl transition-colors cursor-pointer text-center justify-center inline-flex items-center"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+              className="flex-1 sm:flex-initial min-h-[42px] px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
             >
               <Save size={15} />
               <span>{editingContest ? 'Update Contest' : 'Publish Contest'}</span>

@@ -66,7 +66,7 @@ const Hero = ({
     >
       {/* Subtle ambient warmth behind hero in light mode (almost invisible depth) */}
       <div
-        className="absolute -top-6 -left-8 w-[680px] h-[280px] pointer-events-none -z-10 rounded-full dark:hidden"
+        className="absolute -top-6 -left-8 w-full max-w-[680px] h-[280px] pointer-events-none -z-10 rounded-full dark:hidden overflow-hidden"
         style={{
           background: 'radial-gradient(ellipse at 25% 45%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.45) 50%, transparent 80%)',
         }}
@@ -104,11 +104,11 @@ const Hero = ({
       </motion.p>
 
       {/* 4. Primary CTA */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
         <MagneticCTA maxDisplacement={3}>
           <button
             onClick={onBrowse}
-            className="btn-primary flex items-center gap-2 text-[14px] cursor-pointer"
+            className="btn-primary flex items-center justify-center gap-2 text-[14px] min-h-[44px] px-5 cursor-pointer shadow-md shadow-accent/15"
           >
             Browse Events
             <ArrowUpRight size={14} strokeWidth={2} />
@@ -118,7 +118,7 @@ const Hero = ({
         {isAdmin && (
           <button
             onClick={onCreateEvent}
-            className="btn-secondary flex items-center gap-2 text-[14px] cursor-pointer"
+            className="btn-secondary flex items-center justify-center gap-2 text-[14px] min-h-[44px] px-4 cursor-pointer"
           >
             <Plus size={14} strokeWidth={2} />
             New Event

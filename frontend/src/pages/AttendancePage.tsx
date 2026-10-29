@@ -24,27 +24,27 @@ export const AttendancePage: React.FC = () => {
   const isFaculty = profile?.role === 'Faculty';
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-separator">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-3 border-b border-separator">
         <div>
           <p className="meta-editorial mb-1 text-label-secondary">Verification</p>
           <h1 className="display-headline text-label-primary">Attendance</h1>
-          <p className="text-[14px] text-label-secondary mt-1">
+          <p className="text-[13px] sm:text-[14px] text-label-secondary mt-1">
             {isAdmin || isFaculty
               ? 'Manage session attendance, generate secure OTPs, and review verification records.'
               : 'Enter session OTPs to verify your presence and track historical event attendance.'}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           {/* Apply for Missed Event Request */}
           <button
             type="button"
             onClick={() => setIsMissedRequestOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-surface-secondary border border-separator text-label-primary hover:bg-surface-raised transition-all text-[13px] font-semibold flex items-center gap-2 cursor-pointer shadow-xs"
+            className="w-full sm:w-auto px-4 py-2 min-h-[40px] rounded-xl bg-surface-secondary border border-separator text-label-primary hover:bg-surface-raised transition-all text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xs"
           >
-            <Clock size={15} className="text-indigo-400" />
+            <Clock size={15} className="text-indigo-400 shrink-0" />
             <span>Apply for Missed Event</span>
           </button>
 
@@ -53,9 +53,9 @@ export const AttendancePage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsAdminRequestsOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500/20 transition-all text-[13px] font-semibold flex items-center gap-2 cursor-pointer shadow-xs"
+              className="w-full sm:w-auto px-4 py-2 min-h-[40px] rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500/20 transition-all text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
-              <ShieldAlert size={15} />
+              <ShieldAlert size={15} className="shrink-0" />
               <span>Review Missed Requests</span>
             </button>
           )}

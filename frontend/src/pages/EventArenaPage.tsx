@@ -199,57 +199,45 @@ export const EventArenaPage: React.FC = () => {
   // Sync Figma submission state when submission changes
   useEffect(() => {
     if (submission?.designSubmission) {
-      setStudentFigmaLink(submission.designSubmission.figmaLink || '');
-      setStudentDesignNotes(submission.designSubmission.notes || '');
+      if (submission.designSubmission.figmaFileUrl) {
+        setStudentFigmaLink(submission.designSubmission.figmaFileUrl);
+      }
+      if (submission.designSubmission.notes) {
+        setStudentDesignNotes(submission.designSubmission.notes);
+      }
     }
   }, [submission]);
 
-  const handleStudentDesignSubmit = async () => {
-    if (!id || !activeAssessmentId) return;
-    if (!studentFigmaLink.trim()) {
-      return toast.error('Please enter your Figma design or prototype link');
-    }
-    if (!studentFigmaLink.includes('figma.com/')) {
-      return toast.error(
-        'Please provide a valid Figma URL (e.g. https://www.figma.com/file/... or /proto/...)'
-      );
-    }
-    await submitAssessmentDesign(id, activeAssessmentId, {
-      figmaLink: studentFigmaLink.trim(),
-      notes: studentDesignNotes.trim(),
-    });
-  };
+  const currentMcq = studentMcqs[selectedIndex];
+  const currentCoding = studentCoding[selectedIndex];
 
-  const handleSelectMcqOption = (questionId: string, optionIdx: number) => {
+  const handleSelectMcqOption = (questionId: string, optionIndex: number) => {
     setMcqAnswers((prev) => ({
       ...prev,
-      [questionId]: optionIdx,
+      [questionId]: optionIndex,
     }));
   };
 
   const handleRunCode = async () => {
     if (!id || !activeAssessmentId || !currentCoding?._id) return;
-    const currentEntry = codingCodes[currentCoding._id];
-    const code = currentEntry?.code || '';
+    const currentCode = codingCodes[currentCoding._id]?.code;
+    if (!currentCode) return toast.error('Please enter some code to execute');
 
     setIsExecuting(true);
     setRunResults(null);
     try {
-      const res = await runAssessmentCode(
-        id,
-        activeAssessmentId,
-        currentCoding._id,
-        currentLanguage,
-        code
-      );
-      setRunResults(res.results || []);
-      if (res.allPassed) {
-        toast.success('Sample test cases passed!');
-      } else {
-        toast.error('Some test cases failed.');
+      const res = await runAssessmentCode(id, activeAssessmentId, currentCoding._id, {
+        code: currentCode,
+        language: currentLanguage,
+      });
+      if (res && res.testCaseResults) {
+        setRunResults(res.testCaseResults);
+        if (res.allPassed) {
+          toast.success('All public test cases passed! 🎉');
+        } else {
+          toast.error('Some test cases failed. Check output.');
+        }
       }
-    } catch {
-      // Handled in store
     } finally {
       setIsExecuting(false);
     }
@@ -257,24 +245,26 @@ export const EventArenaPage: React.FC = () => {
 
   const handleSubmitProblem = async () => {
     if (!id || !activeAssessmentId || !currentCoding?._id) return;
-    const currentEntry = codingCodes[currentCoding._id];
-    const code = currentEntry?.code || '';
+    const currentCode = codingCodes[currentCoding._id]?.code;
+    if (!currentCode) return toast.error('Please enter some code to submit');
 
     setIsSubmittingProblem(true);
     try {
-      const res = await submitAssessmentProblem(
-        id,
-        activeAssessmentId,
-        currentCoding._id,
-        currentLanguage,
-        code
-      );
-      setProblemStatusMap((prev) => ({
-        ...prev,
-        [currentCoding._id!]: res,
-      }));
-    } catch {
-      // Handled in store
+      const res = await submitAssessmentProblem(id, activeAssessmentId, currentCoding._id, {
+        code: currentCode,
+        language: currentLanguage,
+      });
+      if (res) {
+        setProblemStatusMap((prev) => ({
+          ...prev,
+          [currentCoding._id!]: res,
+        }));
+        if (res.status === 'ACCEPTED') {
+          toast.success(`Challenge Solved! +${res.pointsEarned} Points`);
+        } else {
+          toast.error(`Submitted: ${res.passedCount}/${res.totalTestCases} Test cases passed`);
+        }
+      }
     } finally {
       setIsSubmittingProblem(false);
     }
@@ -282,21 +272,35 @@ export const EventArenaPage: React.FC = () => {
 
   const handleFinalSubmit = async (isAuto = false) => {
     if (!id || !activeAssessmentId) return;
-    setShowSubmitConfirm(false);
-
-    const formattedMcqAnswers = Object.entries(mcqAnswers).map(([questionId, selectedOptionIndex]) => ({
-      questionId,
-      selectedOptionIndex,
+    const formattedMcqAnswers = Object.entries(mcqAnswers).map(([qId, ansIdx]) => ({
+      questionId: qId,
+      selectedOption: ansIdx,
     }));
 
     try {
-      const res = await submitAssessmentFinal(id, activeAssessmentId, formattedMcqAnswers);
-      setFinalResultModal(res.results);
-      if (isAuto) {
-        toast('Time is up! Your assessment was automatically submitted.', { icon: '⏰' });
+      const res = await submitAssessmentFinal(id, activeAssessmentId, {
+        mcqAnswers: formattedMcqAnswers,
+      });
+      if (res) {
+        setShowSubmitConfirm(false);
+        setFinalResultModal(res);
+        toast.success(isAuto ? 'Time up! Assessment auto-submitted.' : 'Assessment submitted successfully!');
       }
-      // Refresh assessments list in store
-      fetchAssessments(id);
+    } catch {
+      // Handled in store
+    }
+  };
+
+  const handleStudentDesignSubmit = async () => {
+    if (!id || !activeAssessmentId) return;
+    if (!studentFigmaLink.trim()) {
+      return toast.error('Please paste your Figma file or prototype link.');
+    }
+    try {
+      await submitAssessmentDesign(id, activeAssessmentId, {
+        figmaFileUrl: studentFigmaLink.trim(),
+        notes: studentDesignNotes.trim(),
+      });
     } catch {
       // Handled in store
     }
@@ -313,13 +317,13 @@ export const EventArenaPage: React.FC = () => {
   // -------------------------------------------------------------------------
   if (!activeAssessmentId) {
     return (
-      <div className="min-h-screen bg-[#0A0A0D] text-white flex flex-col">
+      <div className="min-h-[100dvh] bg-[#0A0A0D] text-white flex flex-col">
         {/* Top Header */}
-        <header className="h-16 border-b border-white/10 px-6 sm:px-10 flex items-center justify-between shrink-0 bg-[#0F0F14]/80 backdrop-blur-md">
+        <header className="h-16 border-b border-white/10 px-4 sm:px-10 flex items-center justify-between shrink-0 bg-[#0F0F14]/80 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/events')}
-              className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold"
+              className="p-2 min-h-[38px] rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
             >
               <ArrowLeft size={16} />
               <span>Back to Events</span>
@@ -329,7 +333,7 @@ export const EventArenaPage: React.FC = () => {
               <span className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
                 <Sparkles size={16} />
               </span>
-              <h1 className="text-base font-bold text-white tracking-tight">Event Arena Hub</h1>
+              <h1 className="text-sm sm:text-base font-bold text-white tracking-tight">Event Arena Hub</h1>
             </div>
           </div>
 
@@ -341,7 +345,7 @@ export const EventArenaPage: React.FC = () => {
         </header>
 
         {/* Hero Section */}
-        <div className="max-w-6xl w-full mx-auto p-6 sm:p-10 space-y-8 flex-1">
+        <div className="max-w-6xl w-full mx-auto p-4 sm:p-10 space-y-6 sm:space-y-8 flex-1">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
               <ShieldCheck size={14} />
@@ -350,7 +354,7 @@ export const EventArenaPage: React.FC = () => {
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {currentEvent?.title || 'Event Arena Assessments'}
             </h2>
-            <p className="text-sm text-white/60 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-white/60 max-w-2xl leading-relaxed">
               Complete each assessment round created by the event coordinators and faculty. Your scores,
               code test-case executions, and performance will be tracked on the live leaderboard.
             </p>
@@ -363,7 +367,7 @@ export const EventArenaPage: React.FC = () => {
               <p className="text-xs text-white/50">Loading event assessments...</p>
             </div>
           ) : assessments.length === 0 ? (
-            <div className="p-12 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-3">
+            <div className="p-8 sm:p-12 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-3">
               <Layers size={36} className="mx-auto text-white/30" />
               <h3 className="text-base font-bold text-white">No Assessments Active</h3>
               <p className="text-xs text-white/50 max-w-sm mx-auto">
@@ -383,7 +387,7 @@ export const EventArenaPage: React.FC = () => {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.08 }}
-                    className="rounded-3xl bg-[#121217] border border-white/10 hover:border-purple-500/40 p-6 flex flex-col justify-between space-y-5 transition-all shadow-xl group relative overflow-hidden"
+                    className="rounded-3xl bg-[#121217] border border-white/10 hover:border-purple-500/40 p-5 sm:p-6 flex flex-col justify-between space-y-5 transition-all shadow-xl group relative overflow-hidden"
                   >
                     {/* Top Glow on hover */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -476,7 +480,7 @@ export const EventArenaPage: React.FC = () => {
                           onClick={() => {
                             setActiveAssessmentId(asm._id);
                           }}
-                          className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <Trophy size={13} className="text-amber-400" />
                           <span>View Scorecard</span>
@@ -487,7 +491,7 @@ export const EventArenaPage: React.FC = () => {
                           onClick={() => {
                             setActiveAssessmentId(asm._id);
                           }}
-                          className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <Play size={13} />
                           <span>{isInProgress ? 'Resume Assessment' : 'Start Assessment'}</span>
@@ -508,35 +512,35 @@ export const EventArenaPage: React.FC = () => {
   // VIEW 2: FULLSCREEN ASSESSMENT WORKSPACE (When activeAssessmentId is chosen)
   // -------------------------------------------------------------------------
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#0A0A0D] text-white overflow-hidden select-none">
+    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-[#0A0A0D] text-white overflow-hidden select-none">
       {/* Top Header Bar */}
-      <header className="h-14 border-b border-white/10 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#0F0F14]/90 backdrop-blur-md">
-        <div className="flex items-center gap-3">
+      <header className="min-h-14 py-2 border-b border-white/10 px-3 sm:px-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 bg-[#0F0F14]/90 backdrop-blur-md z-30">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={handleReturnToHub}
-            className="px-2.5 py-1.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold"
+            className="px-2.5 py-1.5 min-h-[36px] rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer shrink-0"
           >
             <ChevronLeft size={16} />
-            <span>All Rounds</span>
+            <span className="hidden sm:inline">All Rounds</span>
           </button>
-          <div className="h-4 w-[1px] bg-white/10" />
-          <div className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+          <div className="h-4 w-[1px] bg-white/10 shrink-0" />
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
               <Sparkles size={14} />
             </span>
-            <span className="font-bold text-xs sm:text-sm text-white truncate max-w-[200px] sm:max-w-md">
+            <span className="font-bold text-xs sm:text-sm text-white truncate max-w-[120px] sm:max-w-md">
               {selectedAssessment?.title || currentEvent?.title || 'Arena Assessment'}
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase shrink-0">
               {selectedAssessment?.type || 'HYBRID'}
             </span>
           </div>
         </div>
 
         {/* Live Timer & Submit */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div
-            className={`flex items-center gap-2 px-3 py-1 rounded-xl text-xs font-mono font-bold border transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-mono font-bold border transition-colors ${
               remainingSeconds < 300
                 ? 'bg-rose-500/15 border-rose-500/30 text-rose-400 animate-pulse'
                 : 'bg-white/5 border-white/10 text-white/90'
@@ -549,7 +553,7 @@ export const EventArenaPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowSubmitConfirm(true)}
-            className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 sm:px-4 py-1.5 min-h-[36px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Send size={13} />
             <span>Finish Round</span>
@@ -561,7 +565,7 @@ export const EventArenaPage: React.FC = () => {
       {selectedAssessment?.type === 'UI_UX' ? (
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#0A0A0D]">
           {/* Left Column: Design Brief & Reference Mockup */}
-          <div className="w-full lg:w-1/2 border-r border-white/10 flex flex-col overflow-y-auto p-5 sm:p-6 space-y-6 bg-[#0A0A0D]">
+          <div className="w-full lg:w-1/2 border-r border-white/10 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#0A0A0D]">
             {/* Header info */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div className="flex items-center gap-2.5">
@@ -592,7 +596,7 @@ export const EventArenaPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setPreviewReferenceImg(studentDesignChallenge.referenceImageUrl || null)}
-                    className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+                    className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer py-1"
                   >
                     <Maximize2 size={12} />
                     <span>Enlarge</span>
@@ -691,7 +695,7 @@ export const EventArenaPage: React.FC = () => {
           </div>
 
           {/* Right Column: Submission & Live Figma Interactive Embed */}
-          <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto p-5 sm:p-6 space-y-5 bg-[#0D0D11]">
+          <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-5 bg-[#0D0D11]">
             {/* Header & Status */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div>
@@ -742,7 +746,7 @@ export const EventArenaPage: React.FC = () => {
                   value={studentFigmaLink}
                   onChange={(e) => setStudentFigmaLink(e.target.value)}
                   placeholder="https://www.figma.com/file/... or /design/... or /proto/..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs placeholder:text-white/30 focus:outline-none focus:border-purple-500 font-mono transition-all"
+                  className="w-full px-3.5 py-2.5 min-h-[42px] rounded-xl bg-black/40 border border-white/10 text-white text-xs placeholder:text-white/30 focus:outline-none focus:border-purple-500 font-mono transition-all"
                 />
                 <p className="text-[10px] text-white/40 mt-1 flex items-center gap-1">
                   <Info size={11} className="text-white/40" />
@@ -780,7 +784,7 @@ export const EventArenaPage: React.FC = () => {
                   type="button"
                   disabled={actionLoading}
                   onClick={handleStudentDesignSubmit}
-                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                  className="px-5 py-2.5 min-h-[42px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer shrink-0"
                 >
                   {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                   <span>{submission?.designSubmission?.submittedAt ? 'Update Submission' : 'Submit Figma Link'}</span>
@@ -789,7 +793,7 @@ export const EventArenaPage: React.FC = () => {
             </div>
 
             {/* Live Interactive Figma Embed */}
-            <div className="flex-1 min-h-[440px] flex flex-col rounded-2xl bg-black/40 border border-white/10 overflow-hidden shadow-inner">
+            <div className="flex-1 min-h-[380px] sm:min-h-[440px] flex flex-col rounded-2xl bg-black/40 border border-white/10 overflow-hidden shadow-inner">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-[#121216]">
                 <div className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${studentFigmaLink.trim().includes('figma.com') ? 'bg-purple-500 animate-pulse' : 'bg-white/20'}`} />
@@ -800,7 +804,7 @@ export const EventArenaPage: React.FC = () => {
                     href={studentFigmaLink.trim()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all"
+                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all"
                   >
                     <ExternalLink size={12} />
                     <span>Open in Figma</span>
@@ -809,11 +813,11 @@ export const EventArenaPage: React.FC = () => {
               </div>
 
               {studentFigmaLink.trim().includes('figma.com') ? (
-                <div className="flex-1 w-full min-h-[440px] relative bg-black">
+                <div className="flex-1 w-full min-h-[380px] sm:min-h-[440px] relative bg-black">
                   <iframe
                     title="Student Figma Submission Preview"
                     src={`https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(studentFigmaLink.trim())}`}
-                    className="w-full h-full min-h-[440px] border-0"
+                    className="w-full h-full min-h-[380px] sm:min-h-[440px] border-0"
                     allowFullScreen
                   />
                 </div>
@@ -834,377 +838,377 @@ export const EventArenaPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar: Problem Navigation Palette */}
-        <div className="w-56 sm:w-64 border-r border-white/10 flex flex-col bg-[#0D0D11] shrink-0">
-          {/* Section Switcher Tabs (MCQ vs Coding) */}
-          <div className="p-3 border-b border-white/10 flex gap-1.5 bg-[#121216]">
-            {studentMcqs.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedType('mcq');
-                  setSelectedIndex(0);
-                }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  selectedType === 'mcq'
-                    ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <HelpCircle size={13} />
-                <span>MCQs ({studentMcqs.length})</span>
-              </button>
-            )}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* Left / Top Navigation Palette (MCQ vs Coding & Question Buttons) */}
+          <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-[#0D0D11] shrink-0">
+            {/* Section Switcher Tabs (MCQ vs Coding) */}
+            <div className="p-2.5 sm:p-3 border-b border-white/10 flex gap-1.5 bg-[#121216]">
+              {studentMcqs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedType('mcq');
+                    setSelectedIndex(0);
+                  }}
+                  className={`flex-1 py-2 min-h-[36px] rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    selectedType === 'mcq'
+                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <HelpCircle size={13} />
+                  <span>MCQs ({studentMcqs.length})</span>
+                </button>
+              )}
 
-            {studentCoding.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedType('coding');
-                  setSelectedIndex(0);
-                }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  selectedType === 'coding'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Code2 size={13} />
-                <span>Coding ({studentCoding.length})</span>
-              </button>
-            )}
+              {studentCoding.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedType('coding');
+                    setSelectedIndex(0);
+                  }}
+                  className={`flex-1 py-2 min-h-[36px] rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    selectedType === 'coding'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Code2 size={13} />
+                  <span>Coding ({studentCoding.length})</span>
+                </button>
+              )}
+            </div>
+
+            {/* Question Palette Grid (Horizontal scroll on mobile, vertical grid on desktop) */}
+            <div className="p-3 md:p-4 space-y-2 md:space-y-4 md:flex-1 md:overflow-y-auto">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-white/50 hidden md:block">
+                {selectedType === 'mcq' ? 'Questions' : 'Challenges'}
+              </span>
+
+              <div className="flex md:grid md:grid-cols-4 gap-2 overflow-x-auto custom-scrollbar touch-pan-x pb-1 md:pb-0">
+                {selectedType === 'mcq'
+                  ? studentMcqs.map((q, idx) => {
+                      const isAnswered = q._id && mcqAnswers[q._id] !== undefined;
+                      const isCurrent = selectedIndex === idx;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSelectedIndex(idx)}
+                          className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer shrink-0 ${
+                            isCurrent
+                              ? 'ring-2 ring-purple-400 bg-purple-600 text-white'
+                              : isAnswered
+                              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                              : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                          }`}
+                        >
+                          {idx + 1}
+                        </button>
+                      );
+                    })
+                  : studentCoding.map((p, idx) => {
+                      const isPassed = p._id && problemStatusMap[p._id]?.status === 'ACCEPTED';
+                      const isCurrent = selectedIndex === idx;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSelectedIndex(idx)}
+                          className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer shrink-0 ${
+                            isCurrent
+                              ? 'ring-2 ring-blue-400 bg-blue-600 text-white'
+                              : isPassed
+                              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                              : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                          }`}
+                        >
+                          {idx + 1}
+                        </button>
+                      );
+                    })}
+              </div>
+            </div>
           </div>
 
-          {/* Question Palette Grid */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-white/50">
-              {selectedType === 'mcq' ? 'Questions' : 'Challenges'}
-            </span>
+          {/* Center / Right Content Panel */}
+          {selectedType === 'mcq' && currentMcq && (
+            <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-8 md:p-10 bg-[#0F0F14]">
+              <div className="max-w-3xl mx-auto w-full space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                    Question {selectedIndex + 1} of {studentMcqs.length}
+                  </span>
+                  <span className="text-xs font-mono text-white/60">
+                    {currentMcq.points || 10} Points
+                  </span>
+                </div>
 
-            <div className="grid grid-cols-4 gap-2">
-              {selectedType === 'mcq'
-                ? studentMcqs.map((q, idx) => {
-                    const isAnswered = q._id && mcqAnswers[q._id] !== undefined;
-                    const isCurrent = selectedIndex === idx;
+                <div className="p-4 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                  <h3 className="text-base sm:text-lg font-bold text-white leading-relaxed break-words">
+                    {currentMcq.question}
+                  </h3>
+                </div>
+
+                {/* Options */}
+                <div className="space-y-3">
+                  {currentMcq.options.map((opt, optIdx) => {
+                    const isSelected =
+                      currentMcq._id && mcqAnswers[currentMcq._id] === optIdx;
                     return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setSelectedIndex(idx)}
-                        className={`h-9 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer ${
-                          isCurrent
-                            ? 'ring-2 ring-purple-400 bg-purple-600 text-white'
-                            : isAnswered
-                            ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                            : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                      <div
+                        key={optIdx}
+                        onClick={() => currentMcq._id && handleSelectMcqOption(currentMcq._id, optIdx)}
+                        className={`p-3.5 sm:p-4 min-h-[46px] rounded-xl border flex items-center gap-3.5 cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-purple-600/20 border-purple-500 text-white shadow-md shadow-purple-600/15'
+                            : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-white/80 hover:bg-white/[0.04]'
                         }`}
                       >
-                        {idx + 1}
-                      </button>
-                    );
-                  })
-                : studentCoding.map((p, idx) => {
-                    const isPassed = p._id && problemStatusMap[p._id]?.status === 'ACCEPTED';
-                    const isCurrent = selectedIndex === idx;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setSelectedIndex(idx)}
-                        className={`h-9 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer ${
-                          isCurrent
-                            ? 'ring-2 ring-blue-400 bg-blue-600 text-white'
-                            : isPassed
-                            ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                            : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
-                        }`}
-                      >
-                        {idx + 1}
-                      </button>
+                        <div
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 border ${
+                            isSelected
+                              ? 'bg-purple-600 border-purple-500 text-white'
+                              : 'border-white/20 text-white/60'
+                          }`}
+                        >
+                          {String.fromCharCode(65 + optIdx)}
+                        </div>
+                        <span className="text-xs sm:text-sm font-medium leading-relaxed break-words min-w-0 flex-1">{opt}</span>
+                      </div>
                     );
                   })}
+                </div>
+
+                {/* Next/Prev Navigation */}
+                <div className="pt-6 flex justify-between">
+                  <button
+                    type="button"
+                    disabled={selectedIndex === 0}
+                    onClick={() => setSelectedIndex((prev) => Math.max(0, prev - 1))}
+                    className="px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 disabled:opacity-30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Previous</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={selectedIndex >= studentMcqs.length - 1}
+                    onClick={() => setSelectedIndex((prev) => Math.min(studentMcqs.length - 1, prev + 1))}
+                    className="px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 disabled:opacity-30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Center / Right Content Panel */}
-        {selectedType === 'mcq' && currentMcq && (
-          <div className="flex-1 flex flex-col overflow-y-auto p-6 sm:p-10 bg-[#0F0F14]">
-            <div className="max-w-3xl mx-auto w-full space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
-                  Question {selectedIndex + 1} of {studentMcqs.length}
-                </span>
-                <span className="text-xs font-mono text-white/60">
-                  {currentMcq.points || 10} Points
-                </span>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
-                <h3 className="text-base sm:text-lg font-bold text-white leading-relaxed">
-                  {currentMcq.question}
-                </h3>
-              </div>
-
-              {/* Options */}
-              <div className="space-y-3">
-                {currentMcq.options.map((opt, optIdx) => {
-                  const isSelected =
-                    currentMcq._id && mcqAnswers[currentMcq._id] === optIdx;
-                  return (
-                    <div
-                      key={optIdx}
-                      onClick={() => currentMcq._id && handleSelectMcqOption(currentMcq._id, optIdx)}
-                      className={`p-4 rounded-xl border flex items-center gap-3.5 cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-purple-600/20 border-purple-500 text-white shadow-md shadow-purple-600/15'
-                          : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-white/80 hover:bg-white/[0.04]'
+          {selectedType === 'coding' && currentCoding && (
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+              {/* Left Column: Problem Statement */}
+              <div className="w-full lg:w-1/2 overflow-y-auto p-4 sm:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-white/10 bg-[#0E0E12] max-h-72 lg:max-h-none shrink-0 lg:shrink">
+                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                      Challenge {selectedIndex + 1}
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        currentCoding.difficulty === 'Easy'
+                          ? 'bg-emerald-500/15 text-emerald-400'
+                          : currentCoding.difficulty === 'Hard'
+                          ? 'bg-rose-500/15 text-rose-400'
+                          : 'bg-amber-500/15 text-amber-400'
                       }`}
                     >
-                      <div
-                        className={`w-6 h-6 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 border ${
-                          isSelected
-                            ? 'bg-purple-600 border-purple-500 text-white'
-                            : 'border-white/20 text-white/60'
-                        }`}
-                      >
-                        {String.fromCharCode(65 + optIdx)}
-                      </div>
-                      <span className="text-xs sm:text-sm font-medium leading-relaxed">{opt}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Next/Prev Navigation */}
-              <div className="pt-6 flex justify-between">
-                <button
-                  type="button"
-                  disabled={selectedIndex === 0}
-                  onClick={() => setSelectedIndex((prev) => Math.max(0, prev - 1))}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 disabled:opacity-30 transition-colors flex items-center gap-1.5"
-                >
-                  <ChevronLeft size={16} />
-                  <span>Previous</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={selectedIndex >= studentMcqs.length - 1}
-                  onClick={() => setSelectedIndex((prev) => Math.min(studentMcqs.length - 1, prev + 1))}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 disabled:opacity-30 transition-colors flex items-center gap-1.5"
-                >
-                  <span>Next</span>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedType === 'coding' && currentCoding && (
-          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            {/* Left Column: Problem Statement */}
-            <div className="w-full lg:w-1/2 overflow-y-auto p-6 space-y-5 border-r border-white/10 bg-[#0E0E12]">
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                    Challenge {selectedIndex + 1}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      currentCoding.difficulty === 'Easy'
-                        ? 'bg-emerald-500/15 text-emerald-400'
-                        : currentCoding.difficulty === 'Hard'
-                        ? 'bg-rose-500/15 text-rose-400'
-                        : 'bg-amber-500/15 text-amber-400'
-                    }`}
-                  >
-                    {currentCoding.difficulty}
-                  </span>
-                </div>
-                <span className="text-xs font-mono text-white/60">
-                  {currentCoding.points || 30} Points
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-bold text-white">{currentCoding.title}</h3>
-                <p className="text-xs text-white/80 mt-2 leading-relaxed whitespace-pre-line">
-                  {currentCoding.description}
-                </p>
-              </div>
-
-              {currentCoding.inputFormat && (
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-white/80">Input Format</h4>
-                  <p className="text-xs text-white/60 font-mono bg-white/5 p-2.5 rounded-xl border border-white/5">
-                    {currentCoding.inputFormat}
-                  </p>
-                </div>
-              )}
-
-              {currentCoding.outputFormat && (
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-white/80">Output Format</h4>
-                  <p className="text-xs text-white/60 font-mono bg-white/5 p-2.5 rounded-xl border border-white/5">
-                    {currentCoding.outputFormat}
-                  </p>
-                </div>
-              )}
-
-              {/* Sample I/O */}
-              <div className="space-y-3 pt-2">
-                <div className="space-y-1">
-                  <h4 className="text-[11px] font-bold text-white/70">Sample Input</h4>
-                  <pre className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto">
-                    {currentCoding.sampleInput || '(No input required)'}
-                  </pre>
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-[11px] font-bold text-white/70">Sample Output</h4>
-                  <pre className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto">
-                    {currentCoding.sampleOutput || ''}
-                  </pre>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Monaco Code Editor & Terminal */}
-            <div className="w-full lg:w-1/2 flex flex-col bg-[#111114]">
-              {/* Language Toolbar */}
-              <div className="h-11 px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#141418]">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-white/60">Language:</span>
-                  <select
-                    value={currentLanguage}
-                    onChange={(e) => setCurrentLanguage(e.target.value)}
-                    className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-white outline-none cursor-pointer"
-                  >
-                    {['python', 'javascript', 'cpp', 'java', 'c'].map((lang) => (
-                      <option key={lang} value={lang} className="bg-[#1A1A1E]">
-                        {LANG_DISPLAY_NAMES[lang]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={isExecuting}
-                    onClick={handleRunCode}
-                    className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
-                    <span>Run Code</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isSubmittingProblem}
-                    onClick={handleSubmitProblem}
-                    className="px-3.5 py-1 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {isSubmittingProblem ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <Send size={12} />
-                    )}
-                    <span>Submit Code</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Monaco Editor */}
-              <div className="flex-1 overflow-hidden">
-                <Editor
-                  height="100%"
-                  language={MONACO_LANG_MAP[currentLanguage] || 'python'}
-                  theme="vs-dark"
-                  value={
-                    currentCoding._id && codingCodes[currentCoding._id]
-                      ? codingCodes[currentCoding._id].code
-                      : '# Write solution here\n'
-                  }
-                  onChange={(val) => {
-                    if (currentCoding._id) {
-                      setCodingCodes((prev) => ({
-                        ...prev,
-                        [currentCoding._id!]: {
-                          code: val || '',
-                          language: currentLanguage,
-                        },
-                      }));
-                    }
-                  }}
-                  options={{
-                    fontSize: 13,
-                    fontFamily: 'Fira Code, Menlo, Monaco, monospace',
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                    lineNumbers: 'on',
-                    tabSize: 4,
-                  }}
-                />
-              </div>
-
-              {/* Terminal / Run Results Drawer */}
-              {runResults && (
-                <div className="h-44 border-t border-white/10 bg-[#0C0C0E] p-3 overflow-y-auto space-y-2 shrink-0 font-mono text-xs">
-                  <div className="flex items-center justify-between pb-1 border-b border-white/5">
-                    <span className="font-bold text-white/70 flex items-center gap-1.5">
-                      <Terminal size={13} />
-                      <span>Execution Output</span>
+                      {currentCoding.difficulty}
                     </span>
-                    <button
-                      onClick={() => setRunResults(null)}
-                      className="text-white/40 hover:text-white"
+                  </div>
+                  <span className="text-xs font-mono text-white/60">
+                    {currentCoding.points || 30} Points
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">{currentCoding.title}</h3>
+                  <p className="text-xs text-white/80 mt-2 leading-relaxed whitespace-pre-line">
+                    {currentCoding.description}
+                  </p>
+                </div>
+
+                {currentCoding.inputFormat && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-white/80">Input Format</h4>
+                    <p className="text-xs text-white/60 font-mono bg-white/5 p-2.5 rounded-xl border border-white/5">
+                      {currentCoding.inputFormat}
+                    </p>
+                  </div>
+                )}
+
+                {currentCoding.outputFormat && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-white/80">Output Format</h4>
+                    <p className="text-xs text-white/60 font-mono bg-white/5 p-2.5 rounded-xl border border-white/5">
+                      {currentCoding.outputFormat}
+                    </p>
+                  </div>
+                )}
+
+                {/* Sample I/O */}
+                <div className="space-y-3 pt-2">
+                  <div className="space-y-1">
+                    <h4 className="text-[11px] font-bold text-white/70">Sample Input</h4>
+                    <pre className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto">
+                      {currentCoding.sampleInput || '(No input required)'}
+                    </pre>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-[11px] font-bold text-white/70">Sample Output</h4>
+                    <pre className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto">
+                      {currentCoding.sampleOutput || ''}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Monaco Code Editor & Terminal */}
+              <div className="w-full lg:w-1/2 flex flex-col flex-1 bg-[#111114] min-h-[320px]">
+                {/* Language Toolbar */}
+                <div className="h-11 px-3 sm:px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#141418]">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="text-[11px] font-bold text-white/60 hidden sm:inline">Language:</span>
+                    <select
+                      value={currentLanguage}
+                      onChange={(e) => setCurrentLanguage(e.target.value)}
+                      className="px-2 sm:px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-white outline-none cursor-pointer"
                     >
-                      ✕
-                    </button>
+                      {['python', 'javascript', 'cpp', 'java', 'c'].map((lang) => (
+                        <option key={lang} value={lang} className="bg-[#1A1A1E]">
+                          {LANG_DISPLAY_NAMES[lang]}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  {runResults.map((res, i) => (
-                    <div
-                      key={i}
-                      className={`p-2.5 rounded-xl border ${
-                        res.passed
-                          ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
-                          : 'bg-red-500/10 border-red-500/25 text-red-300'
-                      }`}
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <button
+                      type="button"
+                      disabled={isExecuting}
+                      onClick={handleRunCode}
+                      className="px-2.5 sm:px-3 py-1.5 min-h-[34px] rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                     >
-                      <div className="flex items-center justify-between font-bold">
-                        <span>
-                          Test Case #{res.testCaseNumber}: {res.passed ? 'PASSED ✓' : 'FAILED ✗'}
-                        </span>
-                        <span className="text-[10px] text-white/50">{res.executionTimeMs}ms</span>
-                      </div>
-                      <div className="mt-1 space-y-0.5 text-[11px] text-white/80">
-                        <p>
-                          Expected: <span className="text-white">{res.expectedOutput}</span>
-                        </p>
-                        <p>
-                          Output: <span className="text-white">{res.actualOutput || '(Empty)'}</span>
-                        </p>
-                        {res.error && <p className="text-red-400">Error: {res.error}</p>}
-                      </div>
-                    </div>
-                  ))}
+                      {isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                      <span>Run</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSubmittingProblem}
+                      onClick={handleSubmitProblem}
+                      className="px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {isSubmittingProblem ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Send size={12} />
+                      )}
+                      <span>Submit</span>
+                    </button>
+                  </div>
                 </div>
-              )}
+
+                {/* Monaco Editor */}
+                <div className="flex-1 overflow-hidden min-h-[200px]">
+                  <Editor
+                    height="100%"
+                    language={MONACO_LANG_MAP[currentLanguage] || 'python'}
+                    theme="vs-dark"
+                    value={
+                      currentCoding._id && codingCodes[currentCoding._id]
+                        ? codingCodes[currentCoding._id].code
+                        : '# Write solution here\n'
+                    }
+                    onChange={(val) => {
+                      if (currentCoding._id) {
+                        setCodingCodes((prev) => ({
+                          ...prev,
+                          [currentCoding._id!]: {
+                            code: val || '',
+                            language: currentLanguage,
+                          },
+                        }));
+                      }
+                    }}
+                    options={{
+                      fontSize: 13,
+                      fontFamily: 'Fira Code, Menlo, Monaco, monospace',
+                      minimap: { enabled: false },
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      lineNumbers: 'on',
+                      tabSize: 4,
+                    }}
+                  />
+                </div>
+
+                {/* Terminal / Run Results Drawer */}
+                {runResults && (
+                  <div className="h-44 border-t border-white/10 bg-[#0C0C0E] p-3 overflow-y-auto space-y-2 shrink-0 font-mono text-xs">
+                    <div className="flex items-center justify-between pb-1 border-b border-white/5">
+                      <span className="font-bold text-white/70 flex items-center gap-1.5">
+                        <Terminal size={13} />
+                        <span>Execution Output</span>
+                      </span>
+                      <button
+                        onClick={() => setRunResults(null)}
+                        className="text-white/40 hover:text-white p-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {runResults.map((res, i) => (
+                      <div
+                        key={i}
+                        className={`p-2.5 rounded-xl border ${
+                          res.passed
+                            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
+                            : 'bg-red-500/10 border-red-500/25 text-red-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-bold">
+                          <span>
+                            Test Case #{res.testCaseNumber}: {res.passed ? 'PASSED ✓' : 'FAILED ✗'}
+                          </span>
+                          <span className="text-[10px] text-white/50">{res.executionTimeMs}ms</span>
+                        </div>
+                        <div className="mt-1 space-y-0.5 text-[11px] text-white/80">
+                          <p>
+                            Expected: <span className="text-white">{res.expectedOutput}</span>
+                          </p>
+                          <p>
+                            Output: <span className="text-white">{res.actualOutput || '(Empty)'}</span>
+                          </p>
+                          {res.error && <p className="text-red-400">Error: {res.error}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    )}
+          )}
+        </div>
+      )}
 
       {/* SUBMIT CONFIRMATION MODAL */}
       {showSubmitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
-          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto shadow-2xl space-y-4">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Send size={18} className="text-purple-400" />
               <span>Submit Assessment Round?</span>
@@ -1252,7 +1256,7 @@ export const EventArenaPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowSubmitConfirm(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white/70 hover:text-white"
+                className="px-4 py-2 min-h-[40px] rounded-xl text-xs font-semibold text-white/70 hover:text-white cursor-pointer"
               >
                 Keep Working
               </button>
@@ -1271,7 +1275,7 @@ export const EventArenaPage: React.FC = () => {
                     handleFinalSubmit(false);
                   }
                 }}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2 min-h-[40px] rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
                 {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                 <span>Confirm & Submit</span>
@@ -1284,7 +1288,7 @@ export const EventArenaPage: React.FC = () => {
       {/* FINAL SCORE & EVALUATION RESULTS MODAL */}
       {finalResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-lg p-4">
-          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-5 shadow-2xl">
+          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center space-y-5 shadow-2xl">
             <div
               className={`w-16 h-16 rounded-3xl mx-auto flex items-center justify-center shadow-lg border ${
                 finalResultModal.isPassed
@@ -1337,7 +1341,7 @@ export const EventArenaPage: React.FC = () => {
             <button
               type="button"
               onClick={handleReturnToHub}
-              className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 transition-all cursor-pointer"
+              className="w-full py-3 min-h-[44px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 transition-all cursor-pointer"
             >
               Return to Arena Rounds
             </button>
@@ -1359,7 +1363,7 @@ export const EventArenaPage: React.FC = () => {
                   href={previewReferenceImg}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+                  className="px-3 py-1.5 min-h-[34px] rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
                 >
                   <ExternalLink size={13} />
                   <span>Open Full Image</span>
@@ -1367,7 +1371,7 @@ export const EventArenaPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setPreviewReferenceImg(null)}
-                  className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer"
+                  className="p-1.5 min-w-[34px] min-h-[34px] rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer inline-flex items-center justify-center"
                 >
                   <X size={16} />
                 </button>

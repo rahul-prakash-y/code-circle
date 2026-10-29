@@ -79,23 +79,23 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
       };
 
   return (
-    <div className={`flex flex-col items-center flex-1 min-w-[96px] sm:min-w-[180px] max-w-[115px] sm:max-w-[260px] ${config.order} ${config.mt} relative group shrink-0 sm:shrink`}>
+    <div className={`flex flex-col items-center flex-1 min-w-[88px] sm:min-w-[180px] max-w-[115px] sm:max-w-[260px] ${config.order} ${config.mt} relative group shrink-0 sm:shrink`}>
       {/* Decorative Aura */}
       <div className={`absolute top-6 w-32 h-32 rounded-full ${config.aura} blur-2xl pointer-events-none -z-10`} />
 
       {/* Profile & Avatar Pod */}
-      <div className="relative mb-3 flex flex-col items-center">
+      <div className="relative mb-2.5 sm:mb-3 flex flex-col items-center">
         {/* Floating Crown / Medal Icon */}
         <div className="mb-1.5 transition-transform duration-300 group-hover:scale-115">
           {config.icon}
         </div>
 
         {/* Circular Avatar */}
-        <div className={`w-14 h-14 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-surface-secondary border border-separator ${config.ring} transition-all duration-300 group-hover:shadow-2xl flex items-center justify-center relative`}>
+        <div className={`w-13 h-13 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-surface-secondary border border-separator ${config.ring} transition-all duration-300 group-hover:shadow-2xl flex items-center justify-center relative`}>
           {user.profilePicUrl ? (
             <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center font-extrabold text-lg sm:text-2xl text-label-primary bg-surface-raised">
+            <div className="w-full h-full flex items-center justify-center font-extrabold text-base sm:text-2xl text-label-primary bg-surface-raised">
               {user.name ? user.name[0]?.toUpperCase() : 'U'}
             </div>
           )}
@@ -108,19 +108,19 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
         </div>
 
         {/* Rank Pill Tag */}
-        <div className={`-mt-2.5 sm:-mt-3 z-10 px-2 sm:px-3 py-0.5 rounded-full text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider ${config.badgeBg} flex items-center gap-1 shadow-sm`}>
+        <div className={`-mt-2.5 sm:-mt-3 z-10 px-1.5 sm:px-3 py-0.5 rounded-full text-[7.5px] sm:text-[10px] font-extrabold uppercase tracking-wider ${config.badgeBg} flex items-center gap-1 shadow-sm`}>
           <span>{config.badgeText}</span>
         </div>
       </div>
 
       {/* Student Details */}
-      <div className="text-center w-full px-1 sm:px-2 space-y-0.5 sm:space-y-1 mb-2 sm:mb-3">
-        <h4 className="text-label-primary font-bold text-xs sm:text-base truncate group-hover:text-primary transition-colors">
+      <div className="text-center w-full px-0.5 sm:px-2 space-y-0.5 sm:space-y-1 mb-2 sm:mb-3">
+        <h4 className="text-label-primary font-bold text-[11px] sm:text-base truncate group-hover:text-primary transition-colors">
           {user.name}
         </h4>
         <div className="flex items-center justify-center gap-1 flex-wrap">
-          <span className="text-[10px] sm:text-[11px] text-label-tertiary font-mono truncate max-w-[70px] sm:max-w-none">{user.rollNo}</span>
-          <span className="text-[9px] sm:text-[10px] font-semibold uppercase px-1 sm:px-1.5 py-0.2 rounded bg-surface-secondary border border-separator text-label-secondary">
+          <span className="text-[9.5px] sm:text-[11px] text-label-tertiary font-mono truncate max-w-[65px] sm:max-w-none">{user.rollNo}</span>
+          <span className="text-[8.5px] sm:text-[10px] font-semibold uppercase px-1 sm:px-1.5 py-0.2 rounded bg-surface-secondary border border-separator text-label-secondary">
             {dept}
           </span>
         </div>
@@ -144,7 +144,7 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
 
       {/* 3D Tiered Pedestal Block */}
       <div
-        className={`w-full ${config.pedestalHeight} ${config.pedestalBg} ${config.pedestalBorder} rounded-t-2xl sm:rounded-t-3xl flex flex-col items-center justify-between py-2 sm:py-3 px-1.5 sm:px-2 shadow-card backdrop-blur-sm relative overflow-hidden transition-all duration-300 group-hover:brightness-105`}
+        className={`w-full ${config.pedestalHeight} ${config.pedestalBg} ${config.pedestalBorder} rounded-t-2xl sm:rounded-t-3xl flex flex-col items-center justify-between py-2 sm:py-3 px-1 sm:px-2 shadow-card backdrop-blur-sm relative overflow-hidden transition-all duration-300 group-hover:brightness-105`}
       >
         {/* Roman Numeral watermark */}
         <span className={`text-2xl sm:text-6xl font-black font-mono select-none ${config.numeralColor}`}>
@@ -152,7 +152,7 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
         </span>
 
         {/* Score Badge at base */}
-        <div className="bg-surface/90 dark:bg-surface-raised/90 backdrop-blur-md border border-separator rounded-xl px-1.5 sm:px-3 py-1 sm:py-1.5 shadow-xs text-center w-full max-w-[90px] sm:max-w-[130px]">
+        <div className="bg-surface/90 dark:bg-surface-raised/90 backdrop-blur-md border border-separator rounded-xl px-1 sm:px-3 py-1 sm:py-1.5 shadow-xs text-center w-full max-w-[85px] sm:max-w-[130px]">
           <span className="text-xs sm:text-xl font-extrabold text-label-primary tracking-tight">
             {points.toLocaleString()}
           </span>
@@ -254,137 +254,125 @@ export const Leaderboard = () => {
     if (index === -1) return null;
     const entry = leaderboard[index];
     const rank = index + 1;
-    const percentile = Math.max(1, Math.round((rank / Math.max(leaderboard.length, 1)) * 100));
+    const total = leaderboard.length;
+    const percentile = Math.max(1, Math.round(((total - rank) / total) * 100));
 
-    return {
-      entry,
-      rank,
-      percentile,
-    };
+    return { rank, entry, percentile };
   }, [leaderboard, currentUserId, currentUserRoll]);
 
-  // KPI Metrics Computed
+  // General Summary Metrics
   const stats = useMemo(() => {
-    if (leaderboard.length === 0) return null;
-    const topScore = Math.max(...leaderboard.map((u) => u.totalPoints ?? u.points ?? 0));
-    const totalPoints = leaderboard.reduce((acc, u) => acc + (u.totalPoints ?? u.points ?? 0), 0);
-    const avgScore = Math.round(totalPoints / leaderboard.length);
+    const totalScholars = leaderboard.length;
+    const totalScorePool = leaderboard.reduce(
+      (acc, curr) => acc + (curr.totalPoints ?? curr.points ?? 0),
+      0
+    );
+    const avgScore = totalScholars > 0 ? Math.round(totalScorePool / totalScholars) : 0;
 
-    // Most active department
-    const deptCount = {};
-    leaderboard.forEach((u) => {
-      const d = u.department || 'General';
-      deptCount[d] = (deptCount[d] || 0) + 1;
+    // Determine top department by aggregate score
+    const deptTotals = {};
+    leaderboard.forEach((item) => {
+      const d = item.department || 'General';
+      deptTotals[d] = (deptTotals[d] || 0) + (item.totalPoints ?? item.points ?? 0);
     });
-    const topDept = Object.keys(deptCount).reduce((a, b) =>
-      deptCount[a] > deptCount[b] ? a : b
+    const topDept = Object.keys(deptTotals).reduce(
+      (a, b) => (deptTotals[a] > deptTotals[b] ? a : b),
+      'General'
     );
 
-    return {
-      topScore,
-      totalCompetitors: leaderboard.length,
-      avgScore,
-      topDept,
-    };
+    return { totalScholars, totalScorePool, avgScore, topDept };
   }, [leaderboard]);
 
   if (loading && leaderboard.length === 0) {
     return (
-      <div className="space-y-8 animate-in fade-in duration-300">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 bg-surface rounded-2xl border border-separator animate-pulse" />
-          ))}
-        </div>
-        <div className="bg-surface rounded-3xl border border-separator p-6 sm:p-10 shadow-card">
-          <TableSkeleton rows={8} />
-        </div>
+      <div className="space-y-6">
+        <div className="h-64 surface rounded-3xl animate-pulse" />
+        <TableSkeleton rows={8} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* ── KPI Summary Cards Strip ───────────────────────────────── */}
-      {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {/* 1. Champion Top Score */}
-          <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
+    <div className="space-y-8 sm:space-y-10">
+      {/* ── Key Leaderboard Metrics (Grid of 4) ───────────────────────── */}
+      {leaderboard.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* 1. Total Scholars */}
+          <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
-                Top Score #1
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
+                Total Scholars
               </span>
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-xs">
-                <Crown size={17} />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
+                <User size={16} />
               </div>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
-                {stats.topScore.toLocaleString()}
-                <span className="text-xs font-semibold text-label-tertiary ml-1.5 uppercase">pts</span>
+              <p className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+                {stats.totalScholars}
               </p>
-              <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1">
-                <Sparkles size={11} /> Leaderboard peak
+              <p className="text-[10px] sm:text-[11px] font-medium text-label-secondary mt-0.5">
+                Active ranked members
               </p>
             </div>
           </div>
 
-          {/* 2. Total Ranked Students */}
-          <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
+          {/* 2. Total Points Awarded */}
+          <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
-                Ranked Scholars
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
+                Points Pool
               </span>
-              <div className="w-9 h-9 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs">
-                <Trophy size={17} />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-xs">
+                <Sparkles size={16} />
               </div>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
-                {stats.totalCompetitors}
+              <p className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+                {stats.totalScorePool.toLocaleString()}
               </p>
-              <p className="text-[11px] font-medium text-label-secondary mt-0.5">
-                Active problem-solvers
+              <p className="text-[10px] sm:text-[11px] font-medium text-label-secondary mt-0.5">
+                Cumulative club points
               </p>
             </div>
           </div>
 
           {/* 3. Average Score */}
-          <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
+          <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
                 Average Points
               </span>
-              <div className="w-9 h-9 rounded-xl bg-purple-500/10 dark:bg-purple-500/15 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-xs">
-                <TrendingUp size={17} />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-500/10 dark:bg-purple-500/15 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-xs">
+                <TrendingUp size={16} />
               </div>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+              <p className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
                 {stats.avgScore.toLocaleString()}
                 <span className="text-xs font-semibold text-label-tertiary ml-1.5 uppercase">pts</span>
               </p>
-              <p className="text-[11px] font-medium text-label-secondary mt-0.5">
+              <p className="text-[10px] sm:text-[11px] font-medium text-label-secondary mt-0.5">
                 Across all departments
               </p>
             </div>
           </div>
 
           {/* 4. Top Department */}
-          <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
+          <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3 relative overflow-hidden group">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-label-tertiary">
                 Leading Branch
               </span>
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs">
-                <Flame size={17} />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs">
+                <Flame size={16} />
               </div>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight truncate">
+              <p className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight truncate">
                 {stats.topDept}
               </p>
-              <p className="text-[11px] font-medium text-label-secondary mt-0.5">
+              <p className="text-[10px] sm:text-[11px] font-medium text-label-secondary mt-0.5">
                 Highest engagement volume
               </p>
             </div>
@@ -397,28 +385,28 @@ export const Leaderboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-primary/10 via-surface to-primary/5 border border-primary/25 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          className="bg-gradient-to-r from-primary/10 via-surface to-primary/5 border border-primary/25 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3.5 sm:gap-4">
             {/* Rank Badge pod */}
-            <div className="w-14 h-14 rounded-2xl bg-primary text-white shadow-md shadow-primary/25 flex flex-col items-center justify-center shrink-0">
-              <span className="text-[9px] font-bold uppercase tracking-widest opacity-80">Rank</span>
-              <span className="text-xl font-black leading-none">#{currentUserStanding.rank}</span>
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary text-white shadow-md shadow-primary/25 flex flex-col items-center justify-center shrink-0">
+              <span className="text-[8.5px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80">Rank</span>
+              <span className="text-lg sm:text-xl font-black leading-none">#{currentUserStanding.rank}</span>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-0.5 sm:space-y-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm sm:text-base font-extrabold text-label-primary">
+                <span className="text-sm sm:text-base font-extrabold text-label-primary truncate">
                   {currentUserStanding.entry.name}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
+                <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
                   Your Standing
                 </span>
-                <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-surface-secondary text-label-secondary border border-separator">
+                <span className="text-[9.5px] sm:text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-surface-secondary text-label-secondary border border-separator">
                   Top {currentUserStanding.percentile}%
                 </span>
               </div>
-              <p className="text-xs text-label-secondary font-mono">
+              <p className="text-xs text-label-secondary font-mono truncate">
                 {currentUserStanding.entry.rollNo} • {currentUserStanding.entry.department || 'Student'}
               </p>
             </div>
@@ -429,7 +417,7 @@ export const Leaderboard = () => {
               <span className="text-[10px] font-bold uppercase tracking-wider text-label-tertiary block">
                 Total Score
               </span>
-              <span className="text-xl sm:text-2xl font-black text-primary">
+              <span className="text-lg sm:text-2xl font-black text-primary">
                 {(currentUserStanding.entry.totalPoints ?? currentUserStanding.entry.points ?? 0).toLocaleString()}
                 <span className="text-xs font-bold text-label-tertiary ml-1">pts</span>
               </span>
@@ -437,13 +425,13 @@ export const Leaderboard = () => {
 
             <div className="flex items-center gap-2 text-xs">
               <div className="px-2.5 py-1.5 rounded-xl bg-surface border border-separator shadow-xs text-center">
-                <div className="text-[10px] text-label-tertiary font-bold">SOLVED</div>
+                <div className="text-[9px] sm:text-[10px] text-label-tertiary font-bold">SOLVED</div>
                 <div className="font-extrabold text-label-primary">
                   {currentUserStanding.entry.problemsSolved ?? 0}
                 </div>
               </div>
               <div className="px-2.5 py-1.5 rounded-xl bg-surface border border-separator shadow-xs text-center">
-                <div className="text-[10px] text-label-tertiary font-bold">EVENTS</div>
+                <div className="text-[9px] sm:text-[10px] text-label-tertiary font-bold">EVENTS</div>
                 <div className="font-extrabold text-label-primary">
                   {currentUserStanding.entry.eventsAttended ?? 0}
                 </div>
@@ -453,20 +441,20 @@ export const Leaderboard = () => {
         </motion.div>
       )}
 
-      {/* ── 3D Olympic Podium: Hall of Champions (Top 3) ────────────── */}
+      {/* ── 3D Olympic Podium Showcase (Top 3) ──────────────────────── */}
       {top3.length > 0 && (
-        <div className="bg-surface rounded-3xl border border-separator shadow-card p-6 sm:p-10 relative overflow-hidden">
-          {/* Subtle top ambient glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-amber-500/5 blur-3xl pointer-events-none" />
+        <div className="surface p-4 sm:p-8 rounded-3xl border border-separator shadow-card relative overflow-hidden">
+          {/* Subtle Stage Ambient Halo */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-48 bg-gradient-to-b from-amber-500/10 via-primary/5 to-transparent blur-3xl pointer-events-none -z-10" />
 
           {/* Podium Title */}
-          <div className="text-center space-y-1 mb-8 relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold uppercase tracking-wider">
-              <Crown size={13} />
-              <span>Hall of Champions</span>
+          <div className="text-center space-y-1 mb-6 sm:mb-8">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-secondary border border-separator text-[11px] font-bold uppercase tracking-wider text-label-secondary mb-1">
+              <Crown size={12} className="text-amber-500" />
+              <span>Honor Roll Podium</span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-extrabold text-label-primary tracking-tight">
-              Top Academic Performers
+            <h3 className="text-lg sm:text-2xl font-extrabold text-label-primary tracking-tight font-heading">
+              Top Ranked Contributors
             </h3>
             <p className="text-xs text-label-secondary max-w-md mx-auto">
               Leading the club with outstanding problem-solving dedication and consistent event participation
@@ -515,10 +503,10 @@ export const Leaderboard = () => {
       )}
 
       {/* ── Filter & Search Control Bar ─────────────────────────────── */}
-      <div className="bg-surface border border-separator rounded-2xl p-5 shadow-xs space-y-4">
+      <div className="bg-surface border border-separator rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5 sm:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
               <Filter size={15} />
             </div>
             <div>
@@ -538,12 +526,13 @@ export const Leaderboard = () => {
                 placeholder="Search name or roll no..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8.5 pr-8 py-2 bg-surface-secondary border border-separator rounded-xl text-xs text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-medium"
+                className="input-field pl-9 pr-8 text-xs py-2 min-h-[38px] w-full"
               />
               {search && (
                 <button
+                  type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 text-label-tertiary hover:text-label-primary p-0.5 rounded cursor-pointer"
+                  className="absolute right-2.5 text-label-tertiary hover:text-label-primary p-1 rounded-full cursor-pointer min-h-[24px] min-w-[24px] flex items-center justify-center"
                   title="Clear search"
                 >
                   <X size={12} />
@@ -555,8 +544,9 @@ export const Leaderboard = () => {
             <button
               onClick={() => fetchLeaderboard()}
               disabled={loading}
-              className="p-2 rounded-xl bg-surface-secondary hover:bg-surface border border-separator text-label-secondary hover:text-label-primary transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl bg-surface-secondary hover:bg-surface border border-separator text-label-secondary hover:text-label-primary transition-all shadow-xs cursor-pointer disabled:opacity-50"
               title="Refresh Leaderboard"
+              aria-label="Refresh Leaderboard"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin text-primary' : ''} />
             </button>
@@ -566,7 +556,7 @@ export const Leaderboard = () => {
         {/* Filter Badges Row: Departments & Sort Modes */}
         <div className="pt-3 border-t border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Department Filter Chips */}
-          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar py-0.5 max-w-full">
             <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary mr-1 shrink-0">
               Branch:
             </span>
@@ -577,7 +567,7 @@ export const Leaderboard = () => {
                   <button
                     key={dept}
                     onClick={() => setSelectedDept(dept)}
-                    className={`px-2.5 sm:px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    className={`px-2.5 sm:px-3 py-1.5 min-h-[34px] rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 touch-manipulation ${
                       isActive
                         ? 'bg-primary text-white shadow-xs font-bold'
                         : 'bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
@@ -590,12 +580,12 @@ export const Leaderboard = () => {
             </div>
           </div>
 
-          {/* Sort Criteria Switcher */}
-          <div className="flex items-center gap-1.5">
+          {/* Sort By Toggle Pill */}
+          <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0">
             <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary mr-1">
-              Sort By:
+              Sort:
             </span>
-            <div className="inline-flex p-1 bg-surface-secondary border border-separator rounded-xl gap-1">
+            <div className="flex items-center gap-0.5 p-0.5 bg-surface-secondary border border-separator rounded-xl">
               {[
                 { id: 'points', label: 'Points' },
                 { id: 'problems', label: 'Problems' },
@@ -606,7 +596,7 @@ export const Leaderboard = () => {
                   <button
                     key={id}
                     onClick={() => setSortBy(id)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 min-h-[32px] rounded-lg text-xs font-semibold transition-all cursor-pointer touch-manipulation ${
                       isActive
                         ? 'bg-surface text-primary shadow-xs border border-separator font-bold'
                         : 'text-label-secondary hover:text-label-primary'
@@ -668,8 +658,8 @@ export const Leaderboard = () => {
                 </div>
 
                 {/* Student Info */}
-                <div className="col-span-6 sm:col-span-5 flex items-center gap-3 min-w-0 pr-2">
-                  <div className="w-9 h-9 rounded-xl overflow-hidden bg-surface-secondary border border-separator flex items-center justify-center text-xs font-bold text-label-secondary shrink-0 shadow-xs">
+                <div className="col-span-6 sm:col-span-5 flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden bg-surface-secondary border border-separator flex items-center justify-center text-xs font-bold text-label-secondary shrink-0 shadow-xs">
                     {u.profilePicUrl ? (
                       <img src={u.profilePicUrl} alt={u.name} className="w-full h-full object-cover" />
                     ) : (
@@ -689,10 +679,10 @@ export const Leaderboard = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-label-tertiary font-mono">
-                      <span>{u.rollNo}</span>
+                    <div className="flex items-center gap-1.5 text-[10.5px] sm:text-[11px] text-label-tertiary font-mono">
+                      <span className="truncate">{u.rollNo}</span>
                       <span>•</span>
-                      <span className="uppercase text-label-secondary font-sans font-semibold text-[10px]">
+                      <span className="uppercase text-label-secondary font-sans font-semibold text-[9.5px] sm:text-[10px]">
                         {dept}
                       </span>
                     </div>
@@ -744,7 +734,7 @@ export const Leaderboard = () => {
                   setSearch('');
                   setSelectedDept('All');
                 }}
-                className="px-4 py-1.5 rounded-xl text-xs font-bold bg-primary text-white shadow-xs cursor-pointer"
+                className="px-4 py-2 min-h-[38px] rounded-xl text-xs font-bold bg-primary text-white shadow-xs cursor-pointer"
               >
                 Reset Filters
               </button>

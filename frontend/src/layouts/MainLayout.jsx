@@ -132,17 +132,17 @@ export const MainLayout = ({ children }) => {
 
   return (
     <div
-      className="min-h-screen relative flex overflow-x-hidden"
+      className="min-h-[100dvh] relative flex overflow-x-hidden"
       style={{ backgroundColor: 'var(--canvas)', color: 'var(--label-primary)' }}
     >
       <BackgroundGradient />
 
-      {/* Desktop Sidebar — hidden on mobile */}
+      {/* Desktop Sidebar — hidden on mobile & tablets (< 1024px) */}
       <div className="hidden lg:block">
         <Sidebar isCollapsed={isSidebarCollapsed} onToggleCollapse={toggleSidebar} />
       </div>
 
-      {/* Mobile Slide-Over Drawer (full link access) — replaces old hamburger behaviour */}
+      {/* Mobile Slide-Over Drawer */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -153,35 +153,34 @@ export const MainLayout = ({ children }) => {
               transition={{ duration: 0.2 }}
               onClick={() => setIsMobileMenuOpen(false)}
               className="fixed inset-0 z-50 lg:hidden"
-              style={{ background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }}
+              style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)' }}
             />
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={EASE_TRANSITION}
-              className="fixed top-0 left-0 bottom-0 w-[280px] z-50 lg:hidden flex flex-col"
+              className="fixed top-0 left-0 bottom-0 w-[min(300px,85vw)] z-50 lg:hidden flex flex-col"
               style={{
-                background: 'var(--glass-bg)',
-                backdropFilter: 'saturate(180%) blur(24px)',
-                WebkitBackdropFilter: 'saturate(180%) blur(24px)',
-                boxShadow: '1px 0 0 var(--separator)',
+                background: 'var(--surface)',
+                borderRight: '1px solid var(--separator)',
+                boxShadow: 'var(--shadow-xl)',
               }}
             >
               {/* Drawer header */}
               <div
-                className="flex items-center justify-between px-5 h-[60px]"
+                className="flex items-center justify-between px-5 h-[60px] shrink-0"
                 style={{ borderBottom: '1px solid var(--separator)' }}
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-8 h-8 rounded-[10px] flex items-center justify-center"
+                    className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
                     style={{ background: 'var(--accent)', boxShadow: '0 2px 8px rgba(0,113,227,0.30)' }}
                   >
                     <span className="text-white font-bold text-[13px]">CC</span>
                   </div>
                   <span
-                    className="text-[15px] font-semibold tracking-tight"
+                    className="text-[15px] font-semibold tracking-tight truncate"
                     style={{ color: 'var(--label-primary)', letterSpacing: '-0.02em' }}
                   >
                     Code Circle
@@ -190,7 +189,7 @@ export const MainLayout = ({ children }) => {
                 {/* 44×44 close button per iOS touch target spec */}
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center rounded-xl active:scale-95 transition-transform"
+                  className="flex items-center justify-center rounded-xl active:scale-95 transition-transform cursor-pointer"
                   style={{ color: 'var(--label-secondary)', minWidth: 44, minHeight: 44 }}
                   aria-label="Close menu"
                 >
@@ -199,7 +198,7 @@ export const MainLayout = ({ children }) => {
               </div>
 
               {/* Nav links */}
-              <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+              <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 custom-scrollbar">
                 {mobileLinks.map((item) => {
                   const Icon = item.icon;
                   const isActive =
@@ -218,14 +217,11 @@ export const MainLayout = ({ children }) => {
                         color: isActive ? 'var(--accent)' : 'var(--label-secondary)',
                         fontWeight: isActive ? 600 : 400,
                         letterSpacing: '-0.01em',
-                        // Minimum 44px touch target
                         minHeight: 44,
-                        display: 'flex',
-                        alignItems: 'center',
                       }}
                     >
                       <Icon size={18} strokeWidth={isActive ? 2 : 1.75} />
-                      {item.label}
+                      <span className="truncate">{item.label}</span>
                     </Link>
                   );
                 })}
@@ -233,10 +229,10 @@ export const MainLayout = ({ children }) => {
 
               {/* Footer */}
               <div
-                className="px-5 py-4 text-[12px]"
+                className="px-5 py-3.5 text-[11px] shrink-0"
                 style={{ color: 'var(--label-tertiary)', borderTop: '1px solid var(--separator)' }}
               >
-                Code Circle v2.0
+                Code Circle v2.0 · Student Platform
               </div>
             </motion.div>
           </>
@@ -258,12 +254,11 @@ export const MainLayout = ({ children }) => {
 
         {/*
           Mobile-first padding:
-          - Mobile: px-4 py-4 (compact, avoids horizontal overflow)
-          - Tablet: px-6 py-6
-          - Desktop: px-10 py-7
-          pb-24 ensures content clears the fixed BottomNav on mobile (56px nav + safe area)
+          - Mobile (< 640px): px-3.5 py-4, pb-24 to comfortably clear bottom nav (56px + safe-area)
+          - Tablet (640px - 1023px): px-6 py-6, pb-8 (since bottom nav is hidden on md+)
+          - Desktop (>= 1024px): px-8 lg:px-10 py-7, pb-10
         */}
-        <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-7 pb-28 md:pb-8">
+        <main className="flex-1 w-full mx-auto px-3.5 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-7 pb-24 md:pb-8">
           <Suspense fallback={<PageSkeleton />}>
             <AnimatePresence mode="wait" initial={false}>
               <PageTransitionWrapper key={location.pathname}>
@@ -276,7 +271,7 @@ export const MainLayout = ({ children }) => {
         </main>
       </motion.div>
 
-      {/* iOS Bottom Navigation — only visible on mobile */}
+      {/* iOS Bottom Navigation — visible only on mobile (< md: 768px) */}
       <BottomNav />
 
       <MandatoryChangePasswordModal />

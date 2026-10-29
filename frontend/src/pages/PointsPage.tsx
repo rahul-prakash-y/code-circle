@@ -832,7 +832,7 @@ export const PointsPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-3xl max-h-[92vh] flex flex-col surface rounded-2xl sm:rounded-[24px] border border-separator shadow-2xl overflow-hidden z-10"
+              className="relative w-full max-w-3xl max-h-[90dvh] flex flex-col surface rounded-2xl sm:rounded-[24px] border border-separator shadow-2xl overflow-hidden z-10"
             >
               {/* Modal Header */}
               <div className="p-4 sm:p-6 border-b border-separator flex items-center justify-between gap-3">
@@ -846,7 +846,8 @@ export const PointsPage: React.FC = () => {
                 </div>
                 <button
                   onClick={handleCloseAudit}
-                  className="w-8 h-8 rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer shrink-0"
+                  className="min-h-[40px] min-w-[40px] rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer shrink-0"
+                  aria-label="Close modal"
                 >
                   <X size={16} />
                 </button>
@@ -1019,7 +1020,7 @@ export const PointsPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-md max-h-[92vh] flex flex-col surface rounded-2xl sm:rounded-[24px] border border-separator shadow-2xl overflow-hidden z-10"
+              className="relative w-full max-w-md max-h-[90dvh] flex flex-col surface rounded-2xl sm:rounded-[24px] border border-separator shadow-2xl overflow-hidden z-10"
             >
               <div className="p-4 sm:p-5 border-b border-separator flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -1030,7 +1031,8 @@ export const PointsPage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setIsAwardModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer shrink-0"
+                  className="min-h-[40px] min-w-[40px] rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer shrink-0"
+                  aria-label="Close modal"
                 >
                   <X size={16} />
                 </button>

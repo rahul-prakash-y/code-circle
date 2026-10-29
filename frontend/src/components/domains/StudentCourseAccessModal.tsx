@@ -168,7 +168,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-4xl bg-surface border border-separator/80 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden z-10 animate-in zoom-in-95 duration-200">
+      <div className="relative w-[min(896px,96vw)] bg-surface border border-separator/80 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden z-10 animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-separator/70 flex items-start justify-between gap-3 bg-surface/80 backdrop-blur-md">
           <div className="flex items-start sm:items-center gap-3 min-w-0">
@@ -196,7 +196,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-surface-secondary text-label-secondary hover:text-label-primary hover:bg-surface border border-separator flex items-center justify-center transition cursor-pointer shrink-0"
+            className="min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] rounded-full bg-surface-secondary text-label-secondary hover:text-label-primary hover:bg-surface border border-separator flex items-center justify-center transition cursor-pointer shrink-0"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -363,8 +363,8 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
             </div>
           ) : (
             <div className="border border-separator/80 rounded-2xl overflow-hidden shadow-xs bg-surface flex flex-col">
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[620px]">
+              <div className="overflow-x-auto custom-scrollbar touch-pan-x">
+                <table className="w-full text-left border-collapse min-w-[720px]">
                   <thead>
                     <tr className="border-b border-separator/70 bg-surface-secondary/60 text-[11px] font-bold text-label-secondary uppercase tracking-wider">
                       <th className="py-3 px-4">Student</th>
@@ -438,7 +438,7 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
                               type="button"
                               onClick={() => handleToggleStudentAccess(student)}
                               disabled={isUpdating}
-                              className={`inline-flex items-center whitespace-nowrap gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold transition cursor-pointer disabled:opacity-50 ${
+                              className={`inline-flex items-center justify-center whitespace-nowrap gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-full text-xs font-semibold transition cursor-pointer disabled:opacity-50 ${
                                 student.isAllowed
                                   ? 'bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20'
                                   : 'bg-accent/10 border border-accent/30 text-accent hover:bg-accent/20'

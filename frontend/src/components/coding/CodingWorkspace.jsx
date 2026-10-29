@@ -50,13 +50,13 @@ const CodingWorkspace = () => {
   };
 
   if (!currentProblem) return (
-    <div className="h-screen bg-surface flex items-center justify-center">
+    <div className="h-[100dvh] min-h-[100dvh] bg-surface flex items-center justify-center">
       <Loader2 className="animate-spin text-accent" size={40} />
     </div>
   );
 
   return (
-    <div className="h-screen bg-surface text-text-secondary flex flex-col overflow-hidden font-sans relative">
+    <div className="h-[100dvh] min-h-[100dvh] bg-surface text-text-secondary flex flex-col overflow-hidden font-sans relative">
       <BackgroundGradient />
 
       {/* Desktop Header (>= 1024px) */}
@@ -64,7 +64,8 @@ const CodingWorkspace = () => {
         <div className="flex items-center gap-6">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="p-2.5 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-all border border-transparent hover:border-border cursor-pointer"
+            className="p-2.5 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-all border border-transparent hover:border-border cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
+            aria-label="Back to dashboard"
           >
             <ChevronLeft size={20} />
           </button>
@@ -86,7 +87,7 @@ const CodingWorkspace = () => {
             <select 
               value={languageId} 
               onChange={(e) => setLanguageId(Number(e.target.value))}
-              className="input-field !py-1.5 !px-4 !text-[10px] !font-black !uppercase !tracking-widest !bg-surface-elevated !border-border group-hover:!border-accent/30 transition-all cursor-pointer appearance-none pr-10"
+              className="input-field !py-1.5 !px-4 !text-[10px] !font-black !uppercase !tracking-widest !bg-surface-elevated !border-border group-hover:!border-accent/30 transition-all cursor-pointer appearance-none pr-10 min-h-[38px]"
             >
               <option value={63} className="bg-surface">JavaScript</option>
               <option value={62} className="bg-surface">Java</option>
@@ -100,7 +101,7 @@ const CodingWorkspace = () => {
           <button
             onClick={handleSubmit}
             disabled={isLoading || cooldown > 0}
-            className="btn-primary !py-2 !px-6 !text-[10px] !uppercase !tracking-widest flex items-center gap-2 group/run disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="btn-primary !py-2 !px-6 !text-[10px] !uppercase !tracking-widest flex items-center gap-2 group/run disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[38px]"
           >
             {isLoading ? (
               <Loader2 className="animate-spin" size={14} />
@@ -126,7 +127,8 @@ const CodingWorkspace = () => {
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button
               onClick={() => navigate('/dashboard')}
-              className="p-1.5 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-all border border-border shrink-0 cursor-pointer"
+              className="p-1.5 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-all border border-border shrink-0 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+              aria-label="Back to dashboard"
             >
               <ChevronLeft size={16} />
             </button>
@@ -148,7 +150,7 @@ const CodingWorkspace = () => {
             <select
               value={languageId}
               onChange={(e) => setLanguageId(Number(e.target.value))}
-              className="bg-surface-elevated text-text-primary text-[11px] font-bold py-1 px-2 rounded-xl border border-border focus:outline-none cursor-pointer"
+              className="bg-surface-elevated text-text-primary text-[11px] font-bold py-1 px-2 rounded-xl border border-border focus:outline-none cursor-pointer min-h-[36px]"
             >
               <option value={63}>JS</option>
               <option value={62}>Java</option>
@@ -158,7 +160,7 @@ const CodingWorkspace = () => {
             <button
               onClick={handleSubmit}
               disabled={isLoading || cooldown > 0}
-              className="btn-primary py-1.5 px-3 text-[11px] font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+              className="btn-primary py-1.5 px-3 min-h-[36px] text-[11px] font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin" size={12} />
@@ -176,7 +178,7 @@ const CodingWorkspace = () => {
         <div className="px-3 py-1.5 bg-canvas/40 border-t border-border grid grid-cols-3 gap-1">
           <button
             onClick={() => setMobileTab('problem')}
-            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
               mobileTab === 'problem' ? 'bg-surface text-text-primary shadow-xs border border-border' : 'text-text-muted hover:text-text-primary'
             }`}
           >
@@ -185,7 +187,7 @@ const CodingWorkspace = () => {
           </button>
           <button
             onClick={() => setMobileTab('code')}
-            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
               mobileTab === 'code' ? 'bg-accent text-white shadow-xs' : 'text-text-muted hover:text-text-primary'
             }`}
           >
@@ -194,7 +196,7 @@ const CodingWorkspace = () => {
           </button>
           <button
             onClick={() => setMobileTab('console')}
-            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
               mobileTab === 'console' ? 'bg-surface text-text-primary shadow-xs border border-border' : 'text-text-muted hover:text-text-primary'
             }`}
           >

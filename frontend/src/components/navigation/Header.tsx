@@ -482,9 +482,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                       transition={{ type: 'spring', damping: 32, stiffness: 340 }}
                       className="relative z-10 w-full rounded-t-[32px] overflow-hidden flex flex-col bg-surface text-text-primary shadow-2xl"
                       style={{
-                        height: '75vh',
-                        maxHeight: '88vh',
-                        minHeight: '440px',
+                        height: 'min(75dvh, 600px)',
+                        maxHeight: '88dvh',
+                        minHeight: '360px',
                         background: 'var(--surface)',
                         color: 'var(--text-primary)',
                         boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.35)',
@@ -501,7 +501,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
 
                       {/* Notif header */}
                       <div
-                        className="flex items-center justify-between px-5 py-3.5 shrink-0"
+                        className="flex items-center justify-between px-4 sm:px-5 py-3 shrink-0"
                         style={{ borderBottom: '1px solid var(--separator)' }}
                       >
                         <div className="flex items-center gap-2">
@@ -524,7 +524,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                           {unread > 0 && (
                             <button
                               onClick={() => markAllAsRead()}
-                              className="text-[13px] font-medium cursor-pointer hover:underline"
+                              className="text-[13px] font-medium cursor-pointer hover:underline min-h-[36px] px-1.5 flex items-center"
                               style={{ color: 'var(--accent)' }}
                             >
                               Mark all read
@@ -536,7 +536,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                                 setShowNotifications(false);
                                 setIsBroadcastModalOpen(true);
                               }}
-                              className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold bg-accent text-white flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+                              className="px-2.5 py-1.5 min-h-[36px] rounded-lg text-[12px] font-semibold bg-accent text-white flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
                               title="Broadcast new announcement"
                             >
                               <Plus size={13} strokeWidth={2.5} />
@@ -545,10 +545,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                           )}
                           <button
                             onClick={() => setShowNotifications(false)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-label-secondary hover:text-label-primary bg-separator/50 active:bg-separator transition-colors ml-1 cursor-pointer"
+                            className="min-w-[40px] min-h-[40px] rounded-full flex items-center justify-center text-label-secondary hover:text-label-primary bg-separator/50 active:bg-separator transition-colors ml-1 cursor-pointer"
                             aria-label="Close notifications"
                           >
-                            <X size={16} strokeWidth={2.2} />
+                            <X size={17} strokeWidth={2.2} />
                           </button>
                         </div>
                       </div>

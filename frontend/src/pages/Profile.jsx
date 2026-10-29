@@ -206,7 +206,7 @@ const Profile = () => {
   if (!profile) return <ProfileSkeleton />;
 
   return (
-    <div className="max-w-4xl mx-auto py-6 sm:py-10 px-4 sm:px-6 space-y-6 sm:space-y-10">
+    <div className="max-w-4xl mx-auto py-2 sm:py-6 px-0 space-y-6 sm:space-y-10">
       {/* Identity Header Card */}
       <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card relative">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">

@@ -66,12 +66,12 @@ export const BearerManagement: React.FC = () => {
   // If NOT SuperAdmin, show Apple-style Access Restricted screen
   if (!isSuperAdmin) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center p-6">
+      <div className="min-h-[70vh] flex items-center justify-center p-4 sm:p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-md w-full surface p-8 rounded-[28px] border border-separator text-center shadow-card space-y-5"
+          className="max-w-md w-full surface p-6 sm:p-8 rounded-[28px] border border-separator text-center shadow-card space-y-5"
         >
           <div className="w-16 h-16 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto border border-destructive/20 shadow-sm">
             <ShieldAlert size={30} />
@@ -94,7 +94,7 @@ export const BearerManagement: React.FC = () => {
           <div className="pt-2 flex justify-center">
             <Link
               to="/dashboard"
-              className="btn-primary py-2.5 px-6 text-xs font-semibold rounded-xl inline-flex items-center gap-2"
+              className="btn-primary py-2.5 px-6 min-h-[44px] text-xs font-semibold rounded-xl inline-flex items-center gap-2"
             >
               <span>Return to Dashboard</span>
               <ArrowRight size={14} />
@@ -202,7 +202,7 @@ export const BearerManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 py-4 max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="space-y-6 sm:space-y-8 py-2 sm:py-4 max-w-7xl mx-auto">
       {/* Top Banner & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -214,16 +214,16 @@ export const BearerManagement: React.FC = () => {
               SuperAdmin Only
             </span>
           </div>
-          <p className="text-sm text-text-muted">
+          <p className="text-xs sm:text-sm text-text-muted">
             Appoint, configure, and maintain executive club council members and public leadership cards.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 self-start sm:self-auto w-full sm:w-auto">
           <Link
             to="/bearers"
             target="_blank"
-            className="btn-secondary py-2.5 px-4 text-xs font-semibold flex items-center gap-1.5 cursor-pointer rounded-xl"
+            className="btn-secondary py-2.5 px-4 min-h-[42px] text-xs font-semibold flex-1 sm:flex-none flex items-center justify-center gap-1.5 cursor-pointer rounded-xl"
             title="Preview Public Page"
           >
             <span>Public View</span>
@@ -232,7 +232,7 @@ export const BearerManagement: React.FC = () => {
 
           <button
             onClick={handleOpenCreate}
-            className="btn-primary py-2.5 px-5 flex items-center gap-2 text-xs font-semibold cursor-pointer rounded-xl shadow-sm"
+            className="btn-primary py-2.5 px-5 min-h-[42px] flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer rounded-xl shadow-sm"
           >
             <Plus size={16} />
             <span>Add Bearer</span>
@@ -241,7 +241,7 @@ export const BearerManagement: React.FC = () => {
       </div>
 
       {/* KPI Metrics Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'Total Executives', value: bearers.length, icon: Crown, statusColor: 'text-text-primary' },
           {
@@ -265,15 +265,15 @@ export const BearerManagement: React.FC = () => {
         ].map((stat, i) => (
           <div
             key={i}
-            className="surface p-5 rounded-[20px] flex items-center justify-between border border-separator shadow-card"
+            className="surface p-4 sm:p-5 rounded-[20px] flex items-center justify-between border border-separator shadow-card"
           >
             <div>
-              <p className="text-xs font-medium text-text-muted">{stat.label}</p>
+              <p className="text-[11px] sm:text-xs font-medium text-text-muted">{stat.label}</p>
               <p className={`text-xl sm:text-2xl font-bold tracking-tight mt-1 ${stat.statusColor}`}>
                 {stat.value}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-surface-elevated text-text-secondary flex items-center justify-center border border-separator">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-surface-elevated text-text-secondary flex items-center justify-center border border-separator shrink-0">
               <stat.icon size={18} />
             </div>
           </div>
@@ -281,7 +281,7 @@ export const BearerManagement: React.FC = () => {
       </div>
 
       {/* Search Bar */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
           <input
@@ -289,7 +289,7 @@ export const BearerManagement: React.FC = () => {
             placeholder="Search bearers by name, title, or bio..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-field pl-10 text-xs"
+            className="input-field pl-10 min-h-[44px] text-xs"
           />
         </div>
         <p className="text-xs text-text-muted">
@@ -314,7 +314,7 @@ export const BearerManagement: React.FC = () => {
           {filteredBearers.map((bearer) => (
             <div
               key={bearer._id}
-              className="surface p-6 rounded-[22px] flex flex-col justify-between border border-separator shadow-card hover:border-text-secondary/30 transition-all duration-200 group"
+              className="surface p-5 sm:p-6 rounded-[22px] flex flex-col justify-between border border-separator shadow-card hover:border-text-secondary/30 transition-all duration-200 group"
             >
               <div>
                 {/* Portrait & Action Buttons */}
@@ -336,17 +336,19 @@ export const BearerManagement: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleOpenEdit(bearer)}
-                      className="p-1.5 text-text-muted hover:text-text-primary rounded-lg hover:bg-surface-elevated transition-colors cursor-pointer"
+                      className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors cursor-pointer"
                       title="Edit bearer"
+                      aria-label={`Edit ${bearer.name}`}
                     >
-                      <Edit2 size={14} />
+                      <Edit2 size={15} />
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(bearer._id)}
-                      className="p-1.5 text-text-muted hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer"
+                      className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-text-muted hover:text-destructive rounded-xl hover:bg-destructive/10 transition-colors cursor-pointer"
                       title="Delete bearer"
+                      aria-label={`Delete ${bearer.name}`}
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
@@ -377,7 +379,7 @@ export const BearerManagement: React.FC = () => {
                     href={bearer.linkedinUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[11px] text-accent hover:underline font-medium"
+                    className="inline-flex items-center gap-1.5 text-[11px] text-accent hover:underline font-medium min-h-[30px]"
                   >
                     <Linkedin size={12} />
                     <span>LinkedIn</span>
@@ -394,7 +396,7 @@ export const BearerManagement: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="surface p-12 rounded-[22px] text-center border border-separator shadow-card">
+        <div className="surface p-8 sm:p-12 rounded-[22px] text-center border border-separator shadow-card">
           <Crown className="w-12 h-12 text-text-muted mx-auto mb-3 opacity-30" />
           <h3 className="text-base font-semibold text-text-primary">No Student Bearers</h3>
           <p className="text-text-muted text-xs mt-1 max-w-sm mx-auto">
@@ -404,7 +406,7 @@ export const BearerManagement: React.FC = () => {
           </p>
           <button
             onClick={handleOpenCreate}
-            className="mt-4 btn-primary py-2 px-4 text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer rounded-xl"
+            className="mt-4 btn-primary py-2.5 px-4 min-h-[42px] text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer rounded-xl"
           >
             <Plus size={14} />
             <span>Add Executive Bearer</span>
@@ -431,158 +433,157 @@ export const BearerManagement: React.FC = () => {
         description="Configure profile portrait, leadership title, and public bio"
         dialogClassName="sm:max-w-lg"
       >
+        {/* Modal Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Photo Upload & Preview Section */}
+          <div className="p-4 rounded-2xl bg-canvas border border-separator flex items-center gap-4">
+            <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-surface-elevated border border-separator shrink-0 flex items-center justify-center shadow-xs">
+              {uploadingImage ? (
+                <Loader2 size={20} className="animate-spin text-accent" />
+              ) : formData.photoUrl ? (
+                <img
+                  src={formData.photoUrl}
+                  alt="Preview"
+                  className="w-full h-full object-cover object-top"
+                />
+              ) : (
+                <Upload size={20} className="text-text-muted" />
+              )}
+            </div>
 
-              {/* Modal Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Photo Upload & Preview Section */}
-                <div className="p-4 rounded-2xl bg-canvas border border-separator flex items-center gap-4">
-                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-surface-elevated border border-separator shrink-0 flex items-center justify-center shadow-xs">
-                    {uploadingImage ? (
-                      <Loader2 size={20} className="animate-spin text-accent" />
-                    ) : formData.photoUrl ? (
-                      <img
-                        src={formData.photoUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover object-top"
-                      />
-                    ) : (
-                      <Upload size={20} className="text-text-muted" />
-                    )}
-                  </div>
+            <div className="flex-1 space-y-1.5">
+              <p className="text-xs font-semibold text-text-primary">Bearer Portrait Photo *</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="btn-secondary py-1.5 px-3 min-h-[36px] text-xs font-medium cursor-pointer rounded-lg inline-flex items-center gap-1.5"
+                >
+                  <Upload size={12} />
+                  <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
+                </button>
+                <span className="text-[11px] text-text-muted">or paste URL below</span>
+              </div>
+            </div>
+          </div>
 
-                  <div className="flex-1 space-y-1.5">
-                    <p className="text-xs font-semibold text-text-primary">Bearer Portrait Photo *</p>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingImage}
-                        className="btn-secondary py-1.5 px-3 text-xs font-medium cursor-pointer rounded-lg inline-flex items-center gap-1.5"
-                      >
-                        <Upload size={12} />
-                        <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
-                      </button>
-                      <span className="text-[11px] text-text-muted">or paste URL below</span>
-                    </div>
-                  </div>
-                </div>
+          {/* Direct Photo URL Input */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary">
+              Photo URL (Direct Link) *
+            </label>
+            <input
+              type="url"
+              required
+              value={formData.photoUrl}
+              onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
+              placeholder="https://images.unsplash.com/photo-..."
+              className="input-field text-xs min-h-[44px]"
+            />
+          </div>
 
-                {/* Direct Photo URL Input */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-text-secondary">
-                    Photo URL (Direct Link) *
-                  </label>
-                  <input
-                    type="url"
-                    required
-                    value={formData.photoUrl}
-                    onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    className="input-field text-xs"
-                  />
-                </div>
+          {/* Name & Position Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-text-secondary">Full Name *</label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g. Aarav Sharma"
+                className="input-field text-xs min-h-[44px]"
+              />
+            </div>
 
-                {/* Name & Position Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-text-secondary">Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g. Aarav Sharma"
-                      className="input-field text-xs"
-                    />
-                  </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-text-secondary">Position / Title *</label>
+              <input
+                type="text"
+                required
+                value={formData.position}
+                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                placeholder="e.g. President, Vice President"
+                className="input-field text-xs min-h-[44px]"
+              />
+            </div>
+          </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-text-secondary">Position / Title *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.position}
-                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                      placeholder="e.g. President, Vice President"
-                      className="input-field text-xs"
-                    />
-                  </div>
-                </div>
+          {/* LinkedIn URL */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary flex items-center justify-between">
+              <span>LinkedIn URL (Optional)</span>
+              <Linkedin size={13} className="text-text-muted" />
+            </label>
+            <input
+              type="url"
+              value={formData.linkedinUrl}
+              onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
+              placeholder="https://linkedin.com/in/username"
+              className="input-field text-xs min-h-[44px]"
+            />
+          </div>
 
-                {/* LinkedIn URL */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-text-secondary flex items-center justify-between">
-                    <span>LinkedIn URL (Optional)</span>
-                    <Linkedin size={13} className="text-text-muted" />
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.linkedinUrl}
-                    onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
-                    placeholder="https://linkedin.com/in/username"
-                    className="input-field text-xs"
-                  />
-                </div>
+          {/* Bio with strict 120 character counter */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-text-secondary">
+                Bio / Summary (Max 120 chars)
+              </label>
+              <span
+                className={`text-[11px] font-mono ${
+                  (formData.bio?.length || 0) > 110
+                    ? 'text-destructive font-semibold'
+                    : (formData.bio?.length || 0) > 90
+                    ? 'text-amber-500'
+                    : 'text-text-muted'
+                }`}
+              >
+                {formData.bio?.length || 0} / 120
+              </span>
+            </div>
+            <textarea
+              rows={3}
+              maxLength={120}
+              value={formData.bio}
+              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+              placeholder="Brief highlight of club leadership responsibilities..."
+              className="input-field resize-none text-xs"
+            />
+          </div>
 
-                {/* Bio with strict 120 character counter */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-text-secondary">
-                      Bio / Summary (Max 120 chars)
-                    </label>
-                    <span
-                      className={`text-[11px] font-mono ${
-                        (formData.bio?.length || 0) > 110
-                          ? 'text-destructive font-semibold'
-                          : (formData.bio?.length || 0) > 90
-                          ? 'text-amber-500'
-                          : 'text-text-muted'
-                      }`}
-                    >
-                      {formData.bio?.length || 0} / 120
-                    </span>
-                  </div>
-                  <textarea
-                    rows={3}
-                    maxLength={120}
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    placeholder="Brief highlight of club leadership responsibilities..."
-                    className="input-field resize-none text-xs"
-                  />
-                </div>
-
-                {/* Modal Actions */}
-                <div className="flex gap-3 pt-3 border-t border-separator">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 btn-secondary py-2.5 text-xs font-medium rounded-xl cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={actionLoading || uploadingImage}
-                    className="flex-1 btn-primary py-2.5 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                  >
-                    {actionLoading ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : editingBearer ? (
-                      'Save Changes'
-                    ) : (
-                      'Create Bearer'
-                    )}
-                  </button>
-                </div>
-              </form>
+          {/* Modal Actions */}
+          <div className="flex gap-3 pt-3 border-t border-separator">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="flex-1 btn-secondary py-2.5 min-h-[44px] text-xs font-medium rounded-xl cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={actionLoading || uploadingImage}
+              className="flex-1 btn-primary py-2.5 min-h-[44px] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            >
+              {actionLoading ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : editingBearer ? (
+                'Save Changes'
+              ) : (
+                'Create Bearer'
+              )}
+            </button>
+          </div>
+        </form>
       </ResponsiveModal>
 
       {/* --- RESPONSIVE MODAL: DELETE CONFIRMATION --- */}
@@ -604,7 +605,7 @@ export const BearerManagement: React.FC = () => {
             <button
               type="button"
               onClick={() => setDeleteConfirmId(null)}
-              className="flex-1 btn-secondary py-2 text-xs font-medium rounded-xl cursor-pointer"
+              className="flex-1 btn-secondary py-2.5 min-h-[42px] text-xs font-medium rounded-xl cursor-pointer"
             >
               Cancel
             </button>
@@ -612,7 +613,7 @@ export const BearerManagement: React.FC = () => {
               type="button"
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
               disabled={actionLoading}
-              className="flex-1 py-2 px-4 rounded-xl text-xs font-semibold bg-destructive hover:bg-destructive/90 text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 px-4 min-h-[42px] rounded-xl text-xs font-semibold bg-destructive hover:bg-destructive/90 text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             >
               {actionLoading ? <Loader2 size={14} className="animate-spin" /> : 'Delete'}
             </button>

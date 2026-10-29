@@ -133,7 +133,7 @@ export const AssessmentList = () => {
   return (
     <div className="space-y-6">
       {/* ── FLAGSHIP SHOWCASE HERO BANNER ───────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 md:p-9 border transition-all duration-300 bg-gradient-to-br from-white via-purple-50/40 to-indigo-50/50 dark:from-[#110e20] dark:via-[#0c0e1e] dark:to-[#080911] border-purple-200/70 dark:border-white/[0.08] shadow-[0_12px_40px_-10px_rgba(99,102,241,0.08)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)]">
+      <div className="relative overflow-hidden rounded-3xl p-5 sm:p-8 md:p-9 border transition-all duration-300 bg-gradient-to-br from-white via-purple-50/40 to-indigo-50/50 dark:from-[#110e20] dark:via-[#0c0e1e] dark:to-[#080911] border-purple-200/70 dark:border-white/[0.08] shadow-[0_12px_40px_-10px_rgba(99,102,241,0.08)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.6)]">
         {/* Ambient Glow Orbs & Subtle Micro-Grid */}
         <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-gradient-to-br from-purple-500/25 via-indigo-500/15 to-transparent blur-3xl opacity-75 dark:opacity-40" />
         <div className="pointer-events-none absolute -bottom-24 -left-20 w-80 h-80 rounded-full bg-gradient-to-tr from-fuchsia-500/15 via-blue-500/10 to-transparent blur-3xl opacity-60 dark:opacity-30" />
@@ -161,58 +161,58 @@ export const AssessmentList = () => {
           </div>
 
           {/* Right Column: Live Stat Cards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 sm:gap-3.5 shrink-0 w-full lg:w-auto">
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-purple-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 sm:gap-3.5 shrink-0 w-full lg:w-auto">
+            <div className="p-3 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-purple-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
                 <Award size={18} />
               </div>
               <div className="min-w-0">
-                <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                <p className="text-sm sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
                   {loading ? '—' : assessments.length}
                 </p>
-                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <p className="text-[9.5px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
                   Assessments
                 </p>
               </div>
             </div>
 
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-indigo-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+            <div className="p-3 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-indigo-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                 <HelpCircle size={18} />
               </div>
               <div className="min-w-0">
-                <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                <p className="text-sm sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
                   {loading ? '—' : `${totalQuestions}+`}
                 </p>
-                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <p className="text-[9.5px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
                   Total Questions
                 </p>
               </div>
             </div>
 
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-blue-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <div className="p-3 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-blue-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                 <Layers size={18} />
               </div>
               <div className="min-w-0">
-                <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                <p className="text-sm sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
                   {categories.length - 1}
                 </p>
-                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <p className="text-[9.5px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
                   Tracks
                 </p>
               </div>
             </div>
 
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-emerald-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+            <div className="p-3 sm:p-4 rounded-2xl bg-white/70 dark:bg-white/[0.04] border border-emerald-200/60 dark:border-white/[0.08] backdrop-blur-md shadow-xs flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                 <CheckCircle2 size={18} />
               </div>
               <div className="min-w-0">
-                <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                <p className="text-sm sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
                   {myCompletedCount}
                 </p>
-                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <p className="text-[9.5px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
                   Completed
                 </p>
               </div>
@@ -226,7 +226,7 @@ export const AssessmentList = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-4">
           {/* Apple-style Search Input with clear button */}
           <div className="relative flex-1 max-w-md">
-            <div className="flex items-center gap-2.5 px-3.5 sm:px-4 py-2 bg-surface-secondary border border-border hover:border-purple-500/40 focus-within:border-purple-500/50 focus-within:ring-2 focus-within:ring-purple-500/15 rounded-xl sm:rounded-2xl transition-all shadow-inner">
+            <div className="flex items-center gap-2.5 px-3.5 sm:px-4 py-2 bg-surface-secondary border border-border hover:border-purple-500/40 focus-within:border-purple-500/50 focus-within:ring-2 focus-within:ring-purple-500/15 rounded-xl sm:rounded-2xl transition-all shadow-inner min-h-[42px]">
               <Search size={15} className="text-text-muted shrink-0" />
               <input
                 type="text"
@@ -239,7 +239,7 @@ export const AssessmentList = () => {
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-text-muted hover:text-text-primary transition-all cursor-pointer"
+                  className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-text-muted hover:text-text-primary transition-all cursor-pointer min-h-[28px] min-w-[28px] flex items-center justify-center"
                   title="Clear search"
                 >
                   <X size={13} />
@@ -254,7 +254,7 @@ export const AssessmentList = () => {
             <div className="flex items-center gap-1 p-1 bg-surface-secondary border border-border rounded-xl shrink-0 shadow-xs">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`p-1.5 sm:px-2.5 sm:py-1.5 min-h-[34px] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'grid'
                     ? 'bg-purple-600 text-white shadow-sm'
                     : 'text-text-muted hover:text-text-primary'
@@ -267,7 +267,7 @@ export const AssessmentList = () => {
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`p-1.5 sm:px-2.5 sm:py-1.5 min-h-[34px] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'table'
                     ? 'bg-purple-600 text-white shadow-sm'
                     : 'text-text-muted hover:text-text-primary'
@@ -284,7 +284,7 @@ export const AssessmentList = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsBulkUploadOpen(true)}
-                  className="py-2 px-3.5 sm:px-4 text-xs font-bold flex items-center gap-2 rounded-xl sm:rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 transition-all cursor-pointer shadow-xs shrink-0 active:scale-95"
+                  className="py-2 px-3.5 sm:px-4 min-h-[40px] text-xs font-bold flex items-center gap-2 rounded-xl sm:rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 transition-all cursor-pointer shadow-xs shrink-0 active:scale-95"
                   title="Bulk Upload MCQ Assessments from Excel"
                 >
                   <FileSpreadsheet size={15} className="text-emerald-500 shrink-0" />
@@ -294,7 +294,7 @@ export const AssessmentList = () => {
 
                 <button
                   onClick={handleOpenCreate}
-                  className="py-2 px-4 sm:px-5 text-xs font-bold flex items-center gap-2 rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:brightness-110 text-white shadow-md shadow-purple-500/25 transition-all cursor-pointer shrink-0 active:scale-95"
+                  className="py-2 px-4 sm:px-5 min-h-[40px] text-xs font-bold flex items-center gap-2 rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:brightness-110 text-white shadow-md shadow-purple-500/25 transition-all cursor-pointer shrink-0 active:scale-95"
                 >
                   <Plus size={15} strokeWidth={2.5} />
                   <span className="hidden sm:inline">Create Assessment</span>
@@ -306,7 +306,7 @@ export const AssessmentList = () => {
         </div>
 
         {/* Category Filter Pills with counts */}
-        <div className="flex items-center gap-1.5 sm:gap-2 pt-3 border-t border-border overflow-x-auto custom-scrollbar">
+        <div className="flex items-center gap-1.5 sm:gap-2 pt-3 border-t border-border overflow-x-auto no-scrollbar max-w-full">
           {categories.map((cat) => {
             const count = getCategoryCount(cat);
             const isSelected = selectedCategory === cat;
@@ -314,7 +314,7 @@ export const AssessmentList = () => {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 sm:px-3.5 py-1.5 rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 sm:px-3.5 py-1.5 min-h-[32px] rounded-xl sm:rounded-full text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 touch-manipulation ${
                   isSelected
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-500/20'
                     : 'bg-surface-secondary text-text-muted hover:text-text-primary hover:bg-surface border border-border'
@@ -338,7 +338,7 @@ export const AssessmentList = () => {
 
       {/* Assessment Content View */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="glass p-6 animate-pulse space-y-4 rounded-3xl">
               <div className="h-6 bg-surface-elevated rounded-lg w-2/3" />
@@ -348,11 +348,11 @@ export const AssessmentList = () => {
           ))}
         </div>
       ) : assessments.length === 0 ? (
-        <div className="glass p-14 text-center space-y-4 rounded-3xl border border-border">
+        <div className="glass p-10 sm:p-14 text-center space-y-4 rounded-3xl border border-border">
           <div className="w-16 h-16 rounded-3xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
             <Award size={32} />
           </div>
-          <h3 className="text-lg font-bold text-text-primary">No Assessments Found</h3>
+          <h3 className="text-base sm:text-lg font-bold text-text-primary">No Assessments Found</h3>
           <p className="text-xs text-text-muted max-w-md mx-auto">
             {searchQuery || selectedCategory !== 'All'
               ? 'No assessments match your active filter criteria. Try resetting filters.'
@@ -361,7 +361,7 @@ export const AssessmentList = () => {
           {isAdmin && (
             <button
               onClick={handleOpenCreate}
-              className="btn-primary py-2 px-5 text-xs font-bold inline-flex items-center gap-1.5 mt-2 cursor-pointer"
+              className="btn-primary py-2 px-5 min-h-[40px] text-xs font-bold inline-flex items-center gap-1.5 mt-2 cursor-pointer"
             >
               <Plus size={15} /> Create First Assessment
             </button>
@@ -369,7 +369,7 @@ export const AssessmentList = () => {
         </div>
       ) : viewMode === 'grid' ? (
         /* Grid View with popLayout AnimatePresence */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
           <AnimatePresence mode="popLayout">
             {assessments.map((assessment) => {
               const mySub = assessment.mySubmission;
@@ -430,7 +430,7 @@ export const AssessmentList = () => {
                       <h3 className="text-base sm:text-lg font-bold text-text-primary group-hover:text-purple-300 transition-colors font-heading">
                         {assessment.title}
                       </h3>
-                      <p className="text-xs text-text-muted mt-1 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-text-muted mt-1 line-clamp-2 leading-relaxed font-normal">
                         {assessment.description || 'Test conceptual clarity and competitive aptitude.'}
                       </p>
                     </div>
@@ -466,22 +466,25 @@ export const AssessmentList = () => {
                         <>
                           <button
                             onClick={() => handleOpenEdit(assessment)}
-                            className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer"
+                            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer"
                             title="Edit Assessment & Questions"
+                            aria-label="Edit Assessment"
                           >
                             <Edit3 size={14} />
                           </button>
                           <button
                             onClick={() => setSubmissionsAssessmentId(assessment._id)}
-                            className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-purple-300 transition-all border border-border cursor-pointer"
+                            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-purple-300 transition-all border border-border cursor-pointer"
                             title="View Student Submissions"
+                            aria-label="View Submissions"
                           >
                             <Users size={14} />
                           </button>
                           <button
                             onClick={() => handleDelete(assessment._id, assessment.title)}
-                            className="p-2 rounded-xl bg-red-500/5 hover:bg-red-500/15 text-red-400 hover:text-red-300 transition-all border border-red-500/10 cursor-pointer"
+                            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-red-500/5 hover:bg-red-500/15 text-red-400 hover:text-red-300 transition-all border border-red-500/10 cursor-pointer"
                             title="Delete Assessment"
+                            aria-label="Delete Assessment"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -495,7 +498,7 @@ export const AssessmentList = () => {
                           type="button"
                           disabled={resettingId === assessment._id}
                           onClick={() => handleResetAndReappear(assessment)}
-                          className="py-2 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25"
+                          className="py-2 px-3 min-h-[36px] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25"
                           title="Delete previous retry and reappear fresh"
                         >
                           <RotateCcw size={12} className={resettingId === assessment._id ? 'animate-spin' : ''} />
@@ -505,7 +508,7 @@ export const AssessmentList = () => {
 
                       <button
                         onClick={() => setSelectedAssessmentToTake(assessment)}
-                        className={`py-2 px-3.5 sm:px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        className={`py-2 px-3.5 sm:px-4 min-h-[36px] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                           hasTaken
                             ? 'bg-surface-elevated hover:bg-surface-elevated text-text-primary border border-border'
                             : 'bg-purple-600 hover:bg-purple-500 text-white shadow-sm shadow-purple-500/25'
@@ -531,10 +534,10 @@ export const AssessmentList = () => {
           </AnimatePresence>
         </div>
       ) : (
-        /* Data Table View with AnimatePresence and inline hover action buttons */
+        /* Data Table View with AnimatePresence and inline action buttons visible on touchscreens */
         <div className="glass overflow-hidden border-border/80 rounded-3xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="bg-surface-elevated/60 border-b border-border/60">
                   <th className="px-6 py-4 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Assessment</th>
@@ -569,7 +572,7 @@ export const AssessmentList = () => {
                               <h4 className="text-sm font-bold text-text-primary truncate font-heading group-hover:text-purple-300 transition-colors">
                                 {assessment.title}
                               </h4>
-                              <p className="text-xs text-text-muted truncate mt-0.5">
+                              <p className="text-xs text-text-muted truncate mt-0.5 font-normal">
                                 {assessment.description || 'MCQ skill challenge'}
                               </p>
                             </div>
@@ -603,29 +606,32 @@ export const AssessmentList = () => {
                           </span>
                         </td>
 
-                        {/* Actions - fade in on hover */}
+                        {/* Actions - visible on touchscreens, hover on desktop */}
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="flex items-center justify-end gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
                             {isAdmin && (
                               <>
                                 <button
                                   onClick={() => handleOpenEdit(assessment)}
-                                  className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-all cursor-pointer"
+                                  className="p-2 min-h-[34px] min-w-[34px] flex items-center justify-center rounded-xl bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-all cursor-pointer"
                                   title="Edit Assessment"
+                                  aria-label="Edit Assessment"
                                 >
                                   <Edit3 size={14} />
                                 </button>
                                 <button
                                   onClick={() => setSubmissionsAssessmentId(assessment._id)}
-                                  className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-purple-300 hover:bg-surface-elevated transition-all cursor-pointer"
+                                  className="p-2 min-h-[34px] min-w-[34px] flex items-center justify-center rounded-xl bg-surface-elevated text-text-muted hover:text-purple-300 hover:bg-surface-elevated transition-all cursor-pointer"
                                   title="View Submissions"
+                                  aria-label="View Submissions"
                                 >
                                   <Users size={14} />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(assessment._id, assessment.title)}
-                                  className="p-2 rounded-xl bg-surface-elevated text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                                  className="p-2 min-h-[34px] min-w-[34px] flex items-center justify-center rounded-xl bg-surface-elevated text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
                                   title="Delete Assessment"
+                                  aria-label="Delete Assessment"
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -637,7 +643,7 @@ export const AssessmentList = () => {
                                 type="button"
                                 disabled={resettingId === assessment._id}
                                 onClick={() => handleResetAndReappear(assessment)}
-                                className="py-1.5 px-2.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25 cursor-pointer flex items-center gap-1 transition-all"
+                                className="py-1.5 px-2.5 min-h-[34px] rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25 cursor-pointer flex items-center gap-1 transition-all"
                                 title="Delete previous retry and reappear fresh"
                               >
                                 <RotateCcw size={11} className={resettingId === assessment._id ? 'animate-spin' : ''} />
@@ -647,7 +653,7 @@ export const AssessmentList = () => {
 
                             <button
                               onClick={() => setSelectedAssessmentToTake(assessment)}
-                              className="btn-primary py-1.5 px-3 text-xs font-bold bg-purple-600 hover:bg-purple-500 cursor-pointer"
+                              className="btn-primary py-1.5 px-3 min-h-[34px] text-xs font-bold bg-purple-600 hover:bg-purple-500 cursor-pointer"
                             >
                               {hasTaken ? 'Retake' : 'Start'}
                             </button>

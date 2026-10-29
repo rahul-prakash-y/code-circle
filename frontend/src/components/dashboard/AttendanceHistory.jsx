@@ -30,17 +30,17 @@ const AttendanceHistory = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto py-4">
+    <div className="space-y-6 sm:space-y-8 max-w-4xl mx-auto py-2 sm:py-4">
       {/* OTP Input Section */}
-      <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card">
-        <div className="max-w-md space-y-2 mb-6">
-          <h2 className="text-xl font-bold text-text-primary tracking-tight">Mark Attendance</h2>
+      <div className="surface rounded-2xl sm:rounded-[18px] p-4 sm:p-7 lg:p-8 border border-separator shadow-card">
+        <div className="max-w-md space-y-1.5 mb-5 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight">Mark Attendance</h2>
           <p className="text-xs text-text-muted leading-relaxed">
             Enter the 6-digit session OTP provided during your event or lecture to verify your presence.
           </p>
         </div>
         
-        <form onSubmit={handleMarkAttendance} className="flex flex-col sm:flex-row gap-3 max-w-md">
+        <form onSubmit={handleMarkAttendance} className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 max-w-md">
           <div className="flex-1 relative">
             <input
               type="text"
@@ -48,7 +48,7 @@ const AttendanceHistory = () => {
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="000000"
               maxLength={6}
-              className="input-field text-lg font-mono tracking-[0.3em] text-center"
+              className="input-field text-lg font-mono tracking-[0.3em] text-center min-h-[46px]"
             />
             {otp.length === 6 && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-accent">
@@ -59,7 +59,7 @@ const AttendanceHistory = () => {
           <button
             type="submit"
             disabled={otp.length !== 6 || isMarking}
-            className="btn-primary py-2.5 px-6 text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="btn-primary py-2.5 px-6 min-h-[46px] text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-md shadow-accent/15"
           >
             {isMarking ? <Loader2 className="animate-spin" size={15} /> : <ArrowRight size={15} />}
             <span>Verify</span>
@@ -68,24 +68,24 @@ const AttendanceHistory = () => {
       </div>
 
       {/* History Table */}
-      <div className="surface rounded-[18px] border border-separator shadow-card overflow-hidden">
+      <div className="surface rounded-2xl sm:rounded-[18px] border border-separator shadow-card overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-separator flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-separator text-text-secondary flex items-center justify-center">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-separator text-text-secondary flex items-center justify-center shrink-0">
               <Clock size={16} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-text-primary">Attendance History</h3>
-              <p className="text-xs text-text-muted">Your verified session presence</p>
+              <h3 className="text-xs sm:text-sm font-semibold text-text-primary">Attendance History</h3>
+              <p className="text-[11px] sm:text-xs text-text-muted">Your verified session presence</p>
             </div>
           </div>
-          <span className="text-xs font-mono text-text-muted">
+          <span className="text-[11px] sm:text-xs font-mono text-text-muted">
             {history.length} session{history.length === 1 ? '' : 's'}
           </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[650px]">
             <thead>
               <tr className="border-b border-separator text-[11px] font-medium text-text-muted bg-canvas">
                 <th className="px-5 py-3.5">Event & Session</th>
@@ -176,4 +176,3 @@ const AttendanceHistory = () => {
 };
 
 export default AttendanceHistory;
-

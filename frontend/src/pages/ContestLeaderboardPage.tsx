@@ -109,12 +109,12 @@ export const ContestLeaderboardPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-6xl mx-auto py-2 sm:py-6 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Top Navigation */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-separator pb-4">
         <Link
           to="/contests"
-          className="flex items-center gap-2 text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors cursor-pointer py-1"
         >
           <ArrowLeft size={14} />
           <span>Back to Weekly Battles</span>
@@ -124,7 +124,7 @@ export const ContestLeaderboardPage: React.FC = () => {
             <button
               type="button"
               onClick={() => handleInspectSubmission(myLeaderboardEntry)}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-3 py-1.5 min-h-[36px] rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="View your submitted MCQ answers and code solution"
             >
               <FileCode2 size={13} />
@@ -135,7 +135,7 @@ export const ContestLeaderboardPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsSubmissionsRosterOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-3 py-1.5 min-h-[36px] rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Open full student submissions roster & point allocations"
             >
               <Sliders size={13} />
@@ -164,14 +164,14 @@ export const ContestLeaderboardPage: React.FC = () => {
 
       {/* --- TOP 3 PODIUM (if participants >= 3) --- */}
       {top3.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 items-end max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 pt-4 sm:pt-6 items-end max-w-4xl mx-auto">
           {/* 2nd Place */}
           {second && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-surface rounded-3xl border border-separator p-6 text-center space-y-3 shadow-md order-2 md:order-1 relative"
+              className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 text-center space-y-3 shadow-md order-2 md:order-1 relative"
             >
               <div className="w-12 h-12 rounded-full bg-slate-300/20 text-slate-400 flex items-center justify-center mx-auto border border-slate-300/40">
                 <Medal size={24} />
@@ -190,7 +190,7 @@ export const ContestLeaderboardPage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-b from-amber-500/15 via-surface to-surface rounded-3xl border-2 border-amber-500/50 p-8 text-center space-y-4 shadow-2xl order-1 md:order-2 relative"
+              className="bg-gradient-to-b from-amber-500/15 via-surface to-surface rounded-3xl border-2 border-amber-500/50 p-6 sm:p-8 text-center space-y-4 shadow-2xl order-1 md:order-2 relative"
             >
               <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center mx-auto border-2 border-amber-500 shadow-lg shadow-amber-500/20">
                 <Crown size={32} />
@@ -202,7 +202,7 @@ export const ContestLeaderboardPage: React.FC = () => {
                 <h3 className="text-xl font-extrabold text-label-primary tracking-tight">{first.user?.name}</h3>
                 <p className="text-xs text-label-tertiary font-mono">{first.user?.rollNo || 'Rank #1'}</p>
               </div>
-              <p className="text-4xl font-black text-amber-500">{first.totalScore} pts</p>
+              <p className="text-3xl sm:text-4xl font-black text-amber-500">{first.totalScore} pts</p>
               <p className="text-xs text-label-tertiary font-mono">{formatSeconds(first.timeTakenSeconds)}</p>
             </motion.div>
           )}
@@ -213,7 +213,7 @@ export const ContestLeaderboardPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-surface rounded-3xl border border-separator p-6 text-center space-y-3 shadow-md order-3 relative"
+              className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 text-center space-y-3 shadow-md order-3 relative"
             >
               <div className="w-12 h-12 rounded-full bg-amber-700/20 text-amber-700 flex items-center justify-center mx-auto border border-amber-700/40">
                 <Medal size={24} />
@@ -230,7 +230,7 @@ export const ContestLeaderboardPage: React.FC = () => {
       )}
 
       {/* --- FULL RANKINGS TABLE --- */}
-      <div className="bg-surface rounded-3xl border border-separator p-6 shadow-sm space-y-4">
+      <div className="bg-surface rounded-3xl border border-separator p-4 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h3 className="text-sm font-bold text-label-primary uppercase tracking-wider">
@@ -258,7 +258,7 @@ export const ContestLeaderboardPage: React.FC = () => {
                       setBulkLoading(false);
                     }
                   }}
-                  className="px-2.5 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-[11px] font-bold text-label-primary rounded-xl transition-all flex items-center gap-1 shadow-xs disabled:opacity-50 flex-1 sm:flex-initial justify-center"
+                  className="px-3 py-2 min-h-[36px] bg-surface border border-separator hover:bg-surface-secondary text-[11px] font-bold text-label-primary rounded-xl transition-all flex items-center gap-1 shadow-xs disabled:opacity-50 flex-1 sm:flex-initial justify-center cursor-pointer"
                   title="Auto-credit total score as points for all"
                 >
                   <Zap size={12} className="text-amber-500" />
@@ -280,7 +280,7 @@ export const ContestLeaderboardPage: React.FC = () => {
                       setBulkLoading(false);
                     }
                   }}
-                  className="px-2.5 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-[11px] font-bold text-label-primary rounded-xl transition-all flex items-center gap-1 shadow-xs disabled:opacity-50 flex-1 sm:flex-initial justify-center"
+                  className="px-3 py-2 min-h-[36px] bg-surface border border-separator hover:bg-surface-secondary text-[11px] font-bold text-label-primary rounded-xl transition-all flex items-center gap-1 shadow-xs disabled:opacity-50 flex-1 sm:flex-initial justify-center cursor-pointer"
                   title="Add bonus XP to all participants"
                 >
                   <Sparkles size={12} className="text-indigo-500" />
@@ -290,20 +290,20 @@ export const ContestLeaderboardPage: React.FC = () => {
             )}
 
             <div className="relative w-full sm:w-auto">
-              <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search student or roll number..."
-                className="pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface w-full sm:w-60"
+                className="pl-8 pr-3 py-2 min-h-[38px] text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface w-full sm:w-60"
               />
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto custom-scrollbar border border-separator rounded-2xl">
-          <table className="w-full text-left text-xs min-w-[720px]">
+        <div className="overflow-x-auto custom-scrollbar border border-separator rounded-2xl touch-pan-x">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3 px-4">Rank</th>
@@ -384,7 +384,7 @@ export const ContestLeaderboardPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleInspectSubmission(entry)}
-                              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer ${
+                              className={`px-3 py-1.5 min-h-[34px] rounded-xl text-[11px] font-bold transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer ${
                                 isMe
                                   ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                                   : 'bg-surface-secondary hover:bg-surface border border-separator text-label-secondary hover:text-label-primary'
@@ -400,7 +400,7 @@ export const ContestLeaderboardPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setSelectedEntryForPoints(entry)}
-                              className="px-2.5 py-1 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[11px] font-bold transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                              className="px-3 py-1.5 min-h-[34px] rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[11px] font-bold transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer"
                               title="Manually allocate or adjust points"
                             >
                               <Zap size={11} className="fill-current" />

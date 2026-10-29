@@ -31,7 +31,7 @@ const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
   const { Icon } = meta;
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap"
       style={{ background: meta.bg, color: meta.color, border: `1px solid var(--border-color)` }}
     >
       <Icon size={11} strokeWidth={2} />
@@ -414,14 +414,14 @@ const UserManagement: React.FC = () => {
 
   // ── Shared form body ──────────────────────────────────────────────────────
   const renderUserForm = (onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
-    <form onSubmit={onSubmit} className="space-y-6 py-2 px-1">
+    <form onSubmit={onSubmit} className="space-y-5 sm:space-y-6 py-2 px-1">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         <Field label="Full Name">
           <input
             type="text" required placeholder="Jane Doe"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="input-field text-sm"
+            className="input-field text-sm min-h-[44px]"
           />
         </Field>
         <Field label="Roll Number">
@@ -429,7 +429,7 @@ const UserManagement: React.FC = () => {
             type="text" required placeholder="21CSE101"
             value={formData.rollNo}
             onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-            className="input-field text-sm font-mono"
+            className="input-field text-sm font-mono min-h-[44px]"
           />
         </Field>
       </div>
@@ -439,7 +439,7 @@ const UserManagement: React.FC = () => {
           type="email" required placeholder="user@university.edu"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="input-field text-sm"
+          className="input-field text-sm min-h-[44px]"
         />
       </Field>
 
@@ -448,7 +448,7 @@ const UserManagement: React.FC = () => {
           <select
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-            className="input-field text-sm"
+            className="input-field text-sm min-h-[44px]"
             style={{ cursor: 'pointer' }}
           >
             <option value="Student">Student</option>
@@ -461,7 +461,7 @@ const UserManagement: React.FC = () => {
             type="text" placeholder="e.g. Computer Science"
             value={formData.department}
             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-            className="input-field text-sm"
+            className="input-field text-sm min-h-[44px]"
           />
         </Field>
       </div>
@@ -472,7 +472,7 @@ const UserManagement: React.FC = () => {
             type="password" placeholder="Leave blank for auto-generated"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="input-field text-sm font-mono"
+            className="input-field text-sm font-mono min-h-[44px]"
           />
         </Field>
       )}
@@ -483,7 +483,7 @@ const UserManagement: React.FC = () => {
           whileTap={{ scale: 0.98 }}
           type="submit"
           disabled={actionLoading}
-          className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm py-3"
+          className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm py-3 min-h-[46px]"
         >
           {actionLoading ? <Loader2 size={16} className="animate-spin" /> : submitLabel}
         </motion.button>
@@ -495,7 +495,7 @@ const UserManagement: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-0">
 
       {/* ── Page Header ── */}
-      <div className="py-8 md:py-10">
+      <div className="py-6 sm:py-8 md:py-10">
         <div>
           <p
             className="text-[11px] font-semibold uppercase tracking-widest mb-2"
@@ -511,7 +511,7 @@ const UserManagement: React.FC = () => {
               >
                 User Directory
               </h1>
-              <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+              <p className="mt-2 text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
                 {isSuperAdmin() && (
                   <span className="font-semibold text-accent">SuperAdmin · </span>
                 )}
@@ -527,58 +527,59 @@ const UserManagement: React.FC = () => {
                 {isSuperAdmin() && (
                   <button
                     onClick={() => setShowCourseAccessModal(true)}
-                    className="btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer text-amber-500 hover:bg-amber-500/10 border-amber-500/30"
+                    className="btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[40px] cursor-pointer text-amber-500 hover:bg-amber-500/10 border-amber-500/30"
                     title="Manage selective student permissions for courses"
                   >
                     <Crown size={15} strokeWidth={2} />
-                    Course Access
+                    <span>Course Access</span>
                   </button>
                 )}
                 <button
                   onClick={() => setShowOnboardingWidget((prev) => !prev)}
-                  className={`btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer ${
+                  className={`btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[40px] cursor-pointer ${
                     showOnboardingWidget ? 'bg-accent/15 text-accent border-accent/40 font-semibold' : ''
                   }`}
                   title="Toggle Student Onboarding Tracker"
                 >
                   <CheckCircle2 size={15} strokeWidth={2} className={showOnboardingWidget ? 'text-accent' : ''} />
-                  {showOnboardingWidget ? 'Hide Onboarding' : 'Onboarding Tracker'}
+                  <span>{showOnboardingWidget ? 'Hide Onboarding' : 'Onboarding Tracker'}</span>
                 </button>
                 <button
                   onClick={() => {
                     resetBulkUpload();
                     setShowBulkUploadPanel(true);
                   }}
-                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-5 py-2.5 cursor-pointer"
+                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-5 py-2 sm:py-2.5 min-h-[40px] cursor-pointer"
                 >
                   <Upload size={15} strokeWidth={2} />
-                  Bulk Upload
+                  <span>Bulk Upload</span>
                 </button>
                 <button
                   onClick={() => {
                     setDeleteAllConfirmText('');
                     setShowDeleteAllModal(true);
                   }}
-                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-sm px-4 py-2.5 cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[40px] cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10"
                   title="Wipe or bulk delete all students"
                 >
                   <Trash2 size={15} strokeWidth={2} />
-                  Delete All Students
+                  <span>Delete All Students</span>
                 </button>
                 <button
                   onClick={() => {
                     setFormData({ name: '', email: '', rollNo: '', role: 'Student', department: '', password: '' });
                     setShowAddPanel(true);
                   }}
-                  className="btn-primary whitespace-nowrap flex items-center gap-2 text-sm px-5 py-2.5 cursor-pointer"
+                  className="btn-primary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 min-h-[40px] cursor-pointer"
                 >
                   <UserPlus size={15} strokeWidth={2} />
-                  Add User
+                  <span>Add User</span>
                 </button>
                 <button
                   onClick={() => fetchUsers()}
                   disabled={loading}
-                  className="p-2.5 rounded-xl cursor-pointer transition-colors duration-150 btn-secondary"
+                  className="p-2 sm:p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 btn-secondary"
+                  aria-label="Refresh user directory"
                 >
                   <RefreshCw size={16} strokeWidth={1.8} className={loading ? 'animate-spin text-accent' : ''} />
                 </button>
@@ -623,18 +624,18 @@ const UserManagement: React.FC = () => {
             placeholder="Search name, roll number, email..."
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-full text-base font-medium bg-transparent border-none pl-7 py-2 focus:outline-none"
+            className="w-full text-sm sm:text-base font-medium bg-transparent border-none pl-7 py-2 min-h-[44px] focus:outline-none"
             style={{ color: 'var(--text-primary)' }}
           />
         </div>
 
         {/* Status filter pills */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
           {(['all', 'active', 'blocked'] as const).map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className="px-3.5 py-1.5 rounded-xl text-[12px] font-semibold cursor-pointer capitalize transition-colors duration-150"
+              className="px-3.5 py-1.5 min-h-[36px] rounded-xl text-[12px] font-semibold cursor-pointer capitalize transition-colors duration-150 whitespace-nowrap flex items-center justify-center"
               style={{
                 background: filters.status === st ? 'var(--accent-subtle)' : 'transparent',
                 color: filters.status === st ? 'var(--accent)' : 'var(--text-muted)',
@@ -648,7 +649,7 @@ const UserManagement: React.FC = () => {
         </div>
 
         {/* Role filter */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
           {[
             { label: 'All', value: 'all' },
             { label: 'Students', value: 'Student' },
@@ -657,7 +658,7 @@ const UserManagement: React.FC = () => {
             <button
               key={item.value}
               onClick={() => setRoleFilter(item.value)}
-              className="px-3.5 py-1.5 rounded-xl text-[12px] font-semibold cursor-pointer transition-colors duration-150"
+              className="px-3.5 py-1.5 min-h-[36px] rounded-xl text-[12px] font-semibold cursor-pointer transition-colors duration-150 whitespace-nowrap flex items-center justify-center"
               style={{
                 background: filters.role === item.value ? 'var(--glass-bg)' : 'transparent',
                 color: filters.role === item.value ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -672,11 +673,11 @@ const UserManagement: React.FC = () => {
 
       {/* ── Table ── */}
       <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full min-w-[720px] text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+        <table className="w-full min-w-[760px] text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
             <tr>
               <th
-                className="py-4 pl-5 pr-2 w-10 text-left"
+                className="py-4 pl-4 sm:pl-5 pr-2 w-10 text-left"
                 style={{ borderBottom: '1px solid var(--border-color)' }}
               >
                 <input
@@ -691,7 +692,7 @@ const UserManagement: React.FC = () => {
               {['User', 'Roll No', 'Role', 'Department', 'Status', ''].map((h) => (
                 <th
                   key={h}
-                  className="py-4 px-5 text-[10px] font-semibold uppercase tracking-widest"
+                  className="py-4 px-4 sm:px-5 text-[10px] font-semibold uppercase tracking-widest"
                   style={{
                     color: 'var(--text-muted)',
                     letterSpacing: '0.1em',
@@ -743,7 +744,7 @@ const UserManagement: React.FC = () => {
                       }}
                     >
                       {/* Selection Checkbox */}
-                      <td className="py-5 pl-5 pr-2 w-10">
+                      <td className="py-4 sm:py-5 pl-4 sm:pl-5 pr-2 w-10">
                         {isStudent ? (
                           <input
                             type="checkbox"
@@ -760,7 +761,7 @@ const UserManagement: React.FC = () => {
                       </td>
 
                       {/* User */}
-                      <td className="py-5 px-5">
+                      <td className="py-4 sm:py-5 px-4 sm:px-5">
                         <div className="flex items-center gap-3.5">
                           <div
                             className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden"
@@ -772,15 +773,15 @@ const UserManagement: React.FC = () => {
                               item.name.charAt(0).toUpperCase()
                             )}
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <div
-                              className="text-sm font-semibold leading-none"
+                              className="text-sm font-semibold leading-none truncate max-w-[200px]"
                               style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
                             >
                               {item.name}
                             </div>
                             <div
-                              className="text-[12px] font-mono mt-1"
+                              className="text-[12px] font-mono mt-1 truncate max-w-[200px]"
                               style={{ color: 'var(--text-muted)' }}
                             >
                               {item.email}
@@ -790,7 +791,7 @@ const UserManagement: React.FC = () => {
                       </td>
 
                       {/* Roll No */}
-                      <td className="py-5 px-5">
+                      <td className="py-4 sm:py-5 px-4 sm:px-5">
                         <span
                           className="text-[12px] font-mono font-semibold tracking-wider"
                           style={{ color: 'var(--text-secondary)' }}
@@ -800,30 +801,30 @@ const UserManagement: React.FC = () => {
                       </td>
 
                       {/* Role */}
-                      <td className="py-5 px-5">
+                      <td className="py-4 sm:py-5 px-4 sm:px-5">
                         <RoleBadge role={item.role} />
                       </td>
 
                       {/* Department */}
-                      <td className="py-5 px-5">
+                      <td className="py-4 sm:py-5 px-4 sm:px-5">
                         <span className="text-[13px] whitespace-nowrap" style={{ color: item.department ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
                           {item.department || <span className="italic text-[12px]">—</span>}
                         </span>
                       </td>
 
                       {/* Status */}
-                      <td className="py-5 px-5">
+                      <td className="py-4 sm:py-5 px-4 sm:px-5">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {item.isBlocked ? (
                             <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
                               style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
                             >
                               <ShieldAlert size={11} strokeWidth={2.5} /> Blocked
                             </span>
                           ) : (
                             <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
                               style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399', border: '1px solid rgba(52,211,153,0.2)' }}
                             >
                               <CheckCircle2 size={11} strokeWidth={2.5} /> Active
@@ -832,7 +833,7 @@ const UserManagement: React.FC = () => {
 
                           {item.isRestricted && (
                             <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
                               style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
                               title={`Restricted: ${item.restrictionReason || 'Academic restriction active'}`}
                             >
@@ -842,8 +843,8 @@ const UserManagement: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Actions */}
-                      <td className="py-5 px-5 text-right">
+                      {/* Actions - visible on touch devices via opacity-100 sm:opacity-0 */}
+                      <td className="py-4 sm:py-5 px-4 sm:px-5 text-right">
                         <AnimatePresence mode="wait">
                           {isConfirmingDelete ? (
                             <motion.div
@@ -863,15 +864,16 @@ const UserManagement: React.FC = () => {
                               <button
                                 onClick={() => handleDeleteSubmit(uid)}
                                 disabled={actionLoading}
-                                className="px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-pointer transition-colors duration-150"
+                                className="px-3 py-1.5 min-h-[34px] rounded-lg text-[12px] font-semibold cursor-pointer transition-colors duration-150 flex items-center justify-center"
                                 style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}
                               >
                                 {actionLoading ? <Loader2 size={12} className="animate-spin" /> : 'Confirm'}
                               </button>
                               <button
                                 onClick={() => setConfirmDeleteId(null)}
-                                className="p-1.5 rounded-lg cursor-pointer transition-colors duration-150"
+                                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer transition-colors duration-150"
                                 style={{ color: 'var(--text-muted)' }}
+                                aria-label="Cancel deletion"
                               >
                                 <X size={14} strokeWidth={2} />
                               </button>
@@ -883,16 +885,17 @@ const UserManagement: React.FC = () => {
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.15 }}
-                              className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                              className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
                             >
                               {/* Reset Link */}
                               <button
                                 onClick={() => handleTriggerResetLink(item)}
-                                className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
+                                className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
                                 style={{ color: 'var(--text-muted)' }}
                                 onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)')}
                                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
                                 title="Generate reset link"
+                                aria-label={`Generate reset link for ${item.name}`}
                               >
                                 <KeyRound size={15} strokeWidth={1.8} />
                               </button>
@@ -901,11 +904,12 @@ const UserManagement: React.FC = () => {
                               {(isSuperAdmin?.() || isAdmin?.() || currentUser?.role === 'Admin' || currentUser?.role === 'SuperAdmin') && (currentUser?.role === 'SuperAdmin' || (item.role !== 'SuperAdmin' && item.role !== 'Admin')) && (
                                 <button
                                   onClick={() => handleForceResetPassword(item)}
-                                  className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
+                                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
                                   style={{ color: 'var(--text-muted)' }}
                                   onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#f59e0b')}
                                   onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
                                   title="Generate temporary password"
+                                  aria-label={`Generate temp password for ${item.name}`}
                                 >
                                   <Sparkles size={15} strokeWidth={1.8} />
                                 </button>
@@ -929,8 +933,9 @@ const UserManagement: React.FC = () => {
                                       }
                                     }
                                   }}
-                                  className="p-2 rounded-xl cursor-pointer transition-colors duration-150 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
                                   title="Lift academic restrictions (assessments, contests, courses)"
+                                  aria-label={`Lift restrictions for ${item.name}`}
                                 >
                                   <Unlock size={15} strokeWidth={2} />
                                 </button>
@@ -939,25 +944,27 @@ const UserManagement: React.FC = () => {
                               {/* Block/Unblock */}
                               <button
                                 onClick={() => handleToggleBlock(item)}
-                                className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
+                                className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
                                 style={{ color: 'var(--text-muted)' }}
                                 onMouseEnter={(e) => {
                                   (e.currentTarget as HTMLButtonElement).style.color = item.isBlocked ? '#34d399' : '#f59e0b';
                                 }}
                                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
                                 title={item.isBlocked ? 'Unblock' : 'Block'}
+                                aria-label={`${item.isBlocked ? 'Unblock' : 'Block'} ${item.name}`}
                               >
                                 {item.isBlocked ? <Check size={15} strokeWidth={2} /> : <ShieldAlert size={15} strokeWidth={1.8} />}
                               </button>
 
-                              {/* Edit — opens slide-over */}
+                              {/* Edit — opens modal */}
                               <button
                                 onClick={() => openEditPanel(item)}
-                                className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
+                                className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
                                 style={{ color: 'var(--text-muted)' }}
                                 onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)')}
                                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
                                 title="Edit user"
+                                aria-label={`Edit ${item.name}`}
                               >
                                 <Edit size={15} strokeWidth={1.8} />
                               </button>
@@ -965,11 +972,12 @@ const UserManagement: React.FC = () => {
                               {/* Delete — inline confirm */}
                               <button
                                 onClick={() => { setSelectedUser(item); setConfirmDeleteId(uid); }}
-                                className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
+                                className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
                                 style={{ color: 'var(--text-muted)' }}
                                 onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#f87171')}
                                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
                                 title="Delete user"
+                                aria-label={`Delete ${item.name}`}
                               >
                                 <Trash2 size={15} strokeWidth={1.8} />
                               </button>
@@ -996,7 +1004,7 @@ const UserManagement: React.FC = () => {
                     </p>
                     <button
                       onClick={() => { setSearchTerm(''); setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}
-                      className="text-[12px] font-semibold cursor-pointer"
+                      className="text-[12px] font-semibold cursor-pointer min-h-[36px]"
                       style={{ color: 'var(--accent)' }}
                     >
                       Clear filters
@@ -1032,7 +1040,7 @@ const UserManagement: React.FC = () => {
           <select
             value={pagination.limit}
             onChange={(e) => setLimit(parseInt(e.target.value))}
-            className="text-[12px] px-2 py-1.5 rounded-lg focus:outline-none cursor-pointer"
+            className="text-[12px] px-2 py-1.5 min-h-[38px] rounded-lg focus:outline-none cursor-pointer"
             style={{
               background: 'var(--glass-bg)',
               border: '1px solid var(--border-color)',
@@ -1047,13 +1055,14 @@ const UserManagement: React.FC = () => {
           <button
             onClick={() => setPage(pagination.page - 1)}
             disabled={pagination.page <= 1}
-            className="p-2 rounded-xl cursor-pointer transition-colors duration-150 disabled:opacity-30"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 disabled:opacity-30"
             style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+            aria-label="Previous page"
           >
             <ChevronLeft size={16} strokeWidth={2} />
           </button>
           <span
-            className="text-[12px] font-mono px-3 py-1.5 rounded-xl"
+            className="text-[12px] font-mono px-3 py-1.5 min-h-[38px] flex items-center justify-center rounded-xl"
             style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
           >
             {pagination.page} / {pagination.totalPages}
@@ -1061,8 +1070,9 @@ const UserManagement: React.FC = () => {
           <button
             onClick={() => setPage(pagination.page + 1)}
             disabled={!pagination.hasMore}
-            className="p-2 rounded-xl cursor-pointer transition-colors duration-150 disabled:opacity-30"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 disabled:opacity-30"
             style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+            aria-label="Next page"
           >
             <ChevronRight size={16} strokeWidth={2} />
           </button>
@@ -1167,7 +1177,7 @@ const UserManagement: React.FC = () => {
           />
           <button
             onClick={() => copyToClipboard(activeResetLink!, 'Reset link copied!')}
-            className="p-1.5 rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+            className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
             style={{ color: 'var(--accent)' }}
             title="Copy reset link"
             aria-label="Copy reset link"
@@ -1176,7 +1186,7 @@ const UserManagement: React.FC = () => {
           </button>
           <button
             onClick={() => handleShareResetLink(activeResetLink!, selectedUser?.name)}
-            className="p-1.5 rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+            className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
             style={{ color: 'var(--accent)' }}
             title="Share reset link"
             aria-label="Share reset link"
@@ -1189,21 +1199,21 @@ const UserManagement: React.FC = () => {
         <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
           <button
             onClick={() => setShowResetLinkModal(false)}
-            className="btn-secondary w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold"
+            className="btn-secondary w-full sm:w-auto px-4 py-2.5 min-h-[42px] text-xs sm:text-sm font-semibold"
           >
             Close
           </button>
           <button
             onClick={() => copyToClipboard(activeResetLink!, 'Reset link copied!')}
-            className="btn-secondary w-full sm:flex-1 py-2.5 text-xs sm:text-sm flex items-center justify-center gap-2 font-semibold"
+            className="btn-secondary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm flex items-center justify-center gap-2 font-semibold"
           >
-            <Copy size={14} strokeWidth={2} /> Copy Link
+            <Copy size={14} strokeWidth={2} /> <span>Copy Link</span>
           </button>
           <button
             onClick={() => handleShareResetLink(activeResetLink!, selectedUser?.name)}
-            className="btn-primary w-full sm:flex-1 py-2.5 text-xs sm:text-sm flex items-center justify-center gap-2 font-semibold shadow-sm"
+            className="btn-primary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm flex items-center justify-center gap-2 font-semibold shadow-sm"
           >
-            <Share2 size={14} strokeWidth={2} /> Share Link
+            <Share2 size={14} strokeWidth={2} /> <span>Share Link</span>
           </button>
         </div>
       </CenteredModal>
@@ -1243,11 +1253,11 @@ const UserManagement: React.FC = () => {
               </p>
             </div>
             <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
-              <button onClick={() => setShowForceResetModal(false)} className="btn-secondary w-full sm:flex-1 py-2.5 text-xs sm:text-sm">Cancel</button>
+              <button onClick={() => setShowForceResetModal(false)} className="btn-secondary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm">Cancel</button>
               <button
                 onClick={executeForceReset}
                 disabled={actionLoading}
-                className="w-full sm:flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors duration-150"
+                className="w-full sm:flex-1 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors duration-150"
                 style={{ background: '#f59e0b', color: '#000' }}
               >
                 {actionLoading ? <Loader2 size={15} className="animate-spin" /> : 'Generate Temp Password'}
@@ -1272,7 +1282,7 @@ const UserManagement: React.FC = () => {
               </code>
               <button
                 onClick={() => copyToClipboard(generatedTempPassword!, 'Temporary password copied!')}
-                className="p-1.5 rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
+                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
                 style={{ color: '#f59e0b' }}
                 title="Copy temporary password"
               >
@@ -1280,7 +1290,7 @@ const UserManagement: React.FC = () => {
               </button>
               <button
                 onClick={() => handleShareResetLink(generatedTempPassword!, selectedUser?.name)}
-                className="p-1.5 rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
+                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
                 style={{ color: '#f59e0b' }}
                 title="Share temporary password"
               >
@@ -1289,7 +1299,7 @@ const UserManagement: React.FC = () => {
             </div>
             <button
               onClick={() => { setShowForceResetModal(false); setGeneratedTempPassword(null); setSelectedUser(null); }}
-              className="btn-primary w-full py-2.5 text-xs sm:text-sm font-semibold"
+              className="btn-primary w-full py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold"
             >
               Done & Close
             </button>
@@ -1298,7 +1308,7 @@ const UserManagement: React.FC = () => {
       </CenteredModal>
 
       {/* ════════════════════════════════════════════════════════
-          FLOATING BULK ACTION BAR
+          FLOATING BULK ACTION BAR (RESPONSIVE)
       ════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {selectedIds.length > 0 && (
@@ -1307,7 +1317,7 @@ const UserManagement: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border"
+            className="fixed bottom-5 sm:bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border w-[calc(100%-2rem)] max-w-lg sm:w-auto"
             style={{
               background: 'rgba(18, 18, 20, 0.92)',
               borderColor: 'var(--border-color)',
@@ -1315,28 +1325,28 @@ const UserManagement: React.FC = () => {
             }}
           >
             <div className="flex items-center gap-2.5">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse" />
-              <span className="text-sm font-semibold text-white whitespace-nowrap">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+              <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
                 {selectedIds.length} student{selectedIds.length > 1 ? 's' : ''} selected
               </span>
             </div>
 
-            <div className="h-4 w-px bg-white/15" />
+            <div className="h-4 w-px bg-white/15 hidden sm:block" />
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-auto sm:ml-0">
               <button
                 onClick={() => setSelectedIds([])}
-                className="px-3 py-1.5 text-xs font-medium text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                className="px-3 py-1.5 min-h-[36px] text-xs font-medium text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center"
               >
                 Clear
               </button>
 
               <button
                 onClick={() => setShowBulkDeleteModal(true)}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 min-h-[36px] text-xs font-semibold text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl transition-colors cursor-pointer justify-center"
               >
                 <Trash2 size={13} strokeWidth={2.2} />
-                Delete Selected ({selectedIds.length})
+                <span>Delete Selected ({selectedIds.length})</span>
               </button>
             </div>
           </motion.div>
@@ -1347,21 +1357,21 @@ const UserManagement: React.FC = () => {
           CENTERED MODAL: BULK DELETE SELECTED
       ════════════════════════════════════════════════════════ */}
       <CenteredModal open={showBulkDeleteModal} onClose={() => setShowBulkDeleteModal(false)}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-red-400">
               Bulk Deletion
             </p>
-            <h3 className="text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            <h3 className="text-lg sm:text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Delete {selectedIds.length} Student{selectedIds.length > 1 ? 's' : ''}?
             </h3>
           </div>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10 text-red-400">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10 text-red-400 shrink-0">
             <Trash2 size={18} strokeWidth={2} />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-[13px] leading-relaxed space-y-2 text-red-200">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-xs sm:text-[13px] leading-relaxed space-y-2 text-red-200">
           <p>
             You are about to permanently remove <strong className="text-white font-bold">{selectedIds.length}</strong> selected student account(s).
           </p>
@@ -1370,18 +1380,18 @@ const UserManagement: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
           <button
             onClick={() => setShowBulkDeleteModal(false)}
             disabled={bulkDeleting}
-            className="btn-secondary flex-1 py-2.5 text-sm"
+            className="btn-secondary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
           >
             Cancel
           </button>
           <button
             onClick={handleExecuteBulkDelete}
             disabled={bulkDeleting}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors bg-red-600 hover:bg-red-700 text-white"
+            className="w-full sm:flex-1 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors bg-red-600 hover:bg-red-700 text-white"
           >
             {bulkDeleting ? <Loader2 size={15} className="animate-spin" /> : `Delete (${selectedIds.length})`}
           </button>
@@ -1392,21 +1402,21 @@ const UserManagement: React.FC = () => {
           CENTERED MODAL: DELETE ALL STUDENTS (Wipe)
       ════════════════════════════════════════════════════════ */}
       <CenteredModal open={showDeleteAllModal} onClose={() => { setShowDeleteAllModal(false); setDeleteAllConfirmText(''); }}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-red-400">
               Danger Zone · Wipe Operation
             </p>
-            <h3 className="text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            <h3 className="text-lg sm:text-xl font-black mt-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Delete All Students
             </h3>
           </div>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10 text-red-400">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10 text-red-400 shrink-0">
             <AlertTriangle size={18} strokeWidth={2} />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-[13px] leading-relaxed space-y-2 text-red-200">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs sm:text-[13px] leading-relaxed space-y-2 text-red-200">
           <p className="font-semibold text-red-100 flex items-center gap-2">
             <AlertTriangle size={15} className="text-red-400 shrink-0" />
             Extreme Safeguard Notice
@@ -1428,7 +1438,7 @@ const UserManagement: React.FC = () => {
             value={deleteAllConfirmText}
             onChange={(e) => setDeleteAllConfirmText(e.target.value)}
             placeholder="DELETE"
-            className="w-full px-3.5 py-2 rounded-xl text-sm font-mono border focus:outline-none"
+            className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl text-sm font-mono border focus:outline-none"
             style={{
               background: 'var(--surface-elevated)',
               borderColor: deleteAllConfirmText === 'DELETE' ? '#ef4444' : 'var(--border-color)',
@@ -1437,21 +1447,21 @@ const UserManagement: React.FC = () => {
           />
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
           <button
             onClick={() => {
               setShowDeleteAllModal(false);
               setDeleteAllConfirmText('');
             }}
             disabled={bulkDeleting}
-            className="btn-secondary flex-1 py-2.5 text-sm"
+            className="btn-secondary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
           >
             Cancel
           </button>
           <button
             onClick={handleExecuteDeleteAll}
             disabled={bulkDeleting || deleteAllConfirmText.trim() !== 'DELETE'}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-red-600 hover:bg-red-700 text-white"
+            className="w-full sm:flex-1 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-red-600 hover:bg-red-700 text-white"
           >
             {bulkDeleting ? <Loader2 size={15} className="animate-spin" /> : 'Confirm & Wipe Students'}
           </button>
@@ -1463,7 +1473,7 @@ const UserManagement: React.FC = () => {
       ════════════════════════════════════════════════════════ */}
       <SlideOver open={showBulkUploadPanel} onClose={() => setShowBulkUploadPanel(false)}>
         <div
-          className="flex items-center justify-between px-6 py-5 shrink-0"
+          className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 shrink-0"
           style={{ borderBottom: '1px solid var(--border-color)' }}
         >
           <div>
@@ -1471,7 +1481,7 @@ const UserManagement: React.FC = () => {
               Import Students
             </p>
             <h2
-              className="text-xl font-black mt-0.5"
+              className="text-lg sm:text-xl font-black mt-0.5"
               style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
             >
               Bulk Upload
@@ -1479,17 +1489,18 @@ const UserManagement: React.FC = () => {
           </div>
           <button
             onClick={() => setShowBulkUploadPanel(false)}
-            className="p-2 rounded-xl cursor-pointer transition-colors duration-150"
+            className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
             style={{ color: 'var(--text-muted)', background: 'var(--glass-bg)' }}
+            aria-label="Close bulk upload panel"
           >
             <X size={18} strokeWidth={2} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 sm:py-6 space-y-6">
           {/* Info Banner */}
           <div
-            className="p-4 rounded-2xl text-[13px] leading-relaxed space-y-2"
+            className="p-4 rounded-2xl text-xs sm:text-[13px] leading-relaxed space-y-2"
             style={{ background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderColor: 'rgba(0,113,227,0.15)' }}
           >
             <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -1510,7 +1521,7 @@ const UserManagement: React.FC = () => {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => bulkFileInputRef.current?.click()}
-              className="relative rounded-2xl cursor-pointer transition-all duration-200 flex flex-col items-center justify-center py-12 gap-4"
+              className="relative rounded-2xl cursor-pointer transition-all duration-200 flex flex-col items-center justify-center py-10 sm:py-12 gap-4"
               style={{
                 border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-color)'}`,
                 background: isDragOver ? 'var(--accent-subtle)' : 'var(--glass-bg)',
@@ -1546,7 +1557,7 @@ const UserManagement: React.FC = () => {
           {/* Selected File Preview */}
           {bulkFile && !bulkResult && (
             <div
-              className="flex items-center gap-3 p-4 rounded-xl"
+              className="flex items-center gap-3 p-3.5 sm:p-4 rounded-xl"
               style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)' }}
             >
               <div
@@ -1565,8 +1576,9 @@ const UserManagement: React.FC = () => {
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); setBulkFile(null); }}
-                className="p-1.5 rounded-lg cursor-pointer transition-colors"
+                className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg cursor-pointer transition-colors"
                 style={{ color: 'var(--text-muted)' }}
+                aria-label="Remove selected file"
               >
                 <X size={14} strokeWidth={2} />
               </button>
@@ -1578,17 +1590,17 @@ const UserManagement: React.FC = () => {
             <button
               onClick={handleBulkUpload}
               disabled={bulkUploading}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm cursor-pointer"
+              className="btn-primary w-full flex items-center justify-center gap-2 py-3 min-h-[46px] text-sm cursor-pointer"
             >
               {bulkUploading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Uploading & Processing...
+                  <span>Uploading & Processing...</span>
                 </>
               ) : (
                 <>
                   <Upload size={16} strokeWidth={2} />
-                  Upload & Create Students
+                  <span>Upload & Create Students</span>
                 </>
               )}
             </button>
@@ -1666,16 +1678,16 @@ const UserManagement: React.FC = () => {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => { setShowBulkUploadPanel(false); resetBulkUpload(); }}
-                  className="btn-secondary flex-1 py-2.5 text-sm"
+                  className="btn-secondary flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
                 >
                   Close
                 </button>
                 <button
                   onClick={resetBulkUpload}
-                  className="btn-primary flex-1 py-2.5 text-sm flex items-center justify-center gap-2"
+                  className="btn-primary flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm flex items-center justify-center gap-2"
                 >
                   <Upload size={14} strokeWidth={2} />
-                  Upload Another
+                  <span>Upload Another</span>
                 </button>
               </div>
             </div>

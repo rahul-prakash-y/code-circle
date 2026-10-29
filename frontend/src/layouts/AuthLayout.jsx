@@ -5,28 +5,28 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 
 const AuthLayout = ({ children, title, subtitle }) => {
   return (
-    <div className="h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8 relative selection:bg-violet-500/20 overflow-hidden">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center p-3.5 sm:p-6 lg:p-8 relative selection:bg-accent/20 overflow-y-auto">
       <BackgroundGradient />
       
       {/* Theme Toggle floating in corner */}
-      <div className="absolute top-4 right-4 z-50">
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-50">
         <ThemeToggle />
       </div>
 
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-[480px] glass-elevated p-8 sm:p-10 relative overflow-hidden rounded-3xl"
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-[460px] glass-elevated p-6 sm:p-8 lg:p-10 relative overflow-hidden rounded-2xl sm:rounded-3xl my-auto"
       >
         {/* Subtle Inner Glow — accent colored */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-[2px] bg-gradient-to-r from-transparent via-accent/50 to-transparent blur-[1px]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 sm:w-1/2 h-[2px] bg-gradient-to-r from-transparent via-accent/50 to-transparent blur-[1px]" />
         
         <div className="relative z-10">
-          <div className="mb-6 text-center">
+          <div className="mb-5 sm:mb-6 text-center">
             {/* Official Club Logo */}
-            <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center shadow-lg overflow-hidden border border-accent/20 backdrop-blur-md">
+            <div className="flex justify-center mb-4 sm:mb-5">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-accent/10 flex items-center justify-center shadow-md overflow-hidden border border-accent/20 backdrop-blur-md">
                 <img 
                   src="/codecirclelogo.jpeg" 
                   alt="Code Circle Logo" 
@@ -35,10 +35,10 @@ const AuthLayout = ({ children, title, subtitle }) => {
               </div>
             </div>
             
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary mb-3 tracking-tight font-heading">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-text-primary mb-2 sm:mb-2.5 tracking-tight font-heading">
               {title}
             </h2>
-            <p className="text-text-muted text-sm sm:text-base font-medium leading-relaxed max-w-[320px] mx-auto">
+            <p className="text-text-muted text-xs sm:text-sm font-medium leading-relaxed max-w-[320px] mx-auto">
               {subtitle}
             </p>
           </div>

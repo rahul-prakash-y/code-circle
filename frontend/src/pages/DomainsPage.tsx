@@ -148,62 +148,58 @@ export const DomainsPage: React.FC = () => {
 
     if (!matchesSearch) return false;
     if (filterMode === 'completed') return (d.progressPercentage || 0) === 100;
-    if (filterMode === 'in_progress')
-      return (d.progressPercentage || 0) > 0 && (d.progressPercentage || 0) < 100;
+    if (filterMode === 'in_progress') return (d.progressPercentage || 0) > 0 && (d.progressPercentage || 0) < 100;
     return true;
   });
 
-  // Overall statistics
   const totalTracks = domains.length;
-  const totalCompletedLevels = domains.reduce(
-    (acc, d) => acc + (d.completedLevelsCount || 0),
-    0
-  );
   const totalLevels = domains.reduce((acc, d) => acc + (d.totalLevels || 0), 0);
+  const totalCompletedLevels = domains.reduce((acc, d) => acc + (d.completedLevelsCount || 0), 0);
 
-  const handleRegisterCourse = async (e: React.MouseEvent, dom: IDomain) => {
+  const handleEditDomain = (e: React.MouseEvent, domain: IDomain) => {
     e.stopPropagation();
-    setRegisteringDomainId(dom._id);
-    await registerForDomain(dom._id);
-    setRegisteringDomainId(null);
-  };
-
-  const handleDeleteDomain = async (e: React.MouseEvent, dom: IDomain) => {
-    e.stopPropagation();
-    if (window.confirm(`Are you sure you want to permanently delete course "${dom.name}" and all its levels?`)) {
-      await deleteDomain(dom._id);
-    }
-  };
-
-  const handleEditDomain = (e: React.MouseEvent, dom: IDomain) => {
-    e.stopPropagation();
-    setDomainToEdit(dom);
+    setDomainToEdit(domain);
     setIsDomainModalOpen(true);
   };
 
-  // Coming Soon view for students who have not been granted early access
-  if (!domainId && !isAdmin && isComingSoon && !hasCourseAccess) {
-    return <CoursesComingSoonView onRefresh={fetchDomains} />;
+  const handleDeleteDomain = async (e: React.MouseEvent, domain: IDomain) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete the course "${domain.name}" and all its levels?`)) {
+      await deleteDomain(domain._id);
+    }
+  };
+
+  const handleRegisterCourse = async (e: React.MouseEvent, domain: IDomain) => {
+    e.stopPropagation();
+    setRegisteringDomainId(domain._id);
+    try {
+      await registerForDomain(domain._id);
+    } finally {
+      setRegisteringDomainId(null);
+    }
+  };
+
+  // --- ACCESS CONTROL GATE: When Courses are in "Coming Soon" Mode ---
+  // If not admin, courses are in coming soon mode, and student does NOT have early access clearance:
+  if (!isAdmin && isComingSoon && !hasCourseAccess) {
+    return <CoursesComingSoonView />;
   }
 
-  // Active course resolution from store or cached domains
-  const activeCourse = (currentDomain && currentDomain._id === domainId)
-    ? currentDomain
-    : domains.find((d) => d._id === domainId) || null;
-
-  // If domainId is present in URL, never show catalog page
+  // --- LEVEL PATH VIEW (If domainId is selected in route) ---
   if (domainId) {
+    const activeCourse = currentDomain || domains.find((d) => d._id === domainId);
+
     if (!activeCourse) {
       return (
-        <div className="space-y-8 max-w-7xl mx-auto pb-16">
-          <div className="flex items-center gap-3 pb-4 border-b border-separator">
+        <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto py-2 sm:py-6 pb-16">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => {
                 setCurrentDomain(null);
                 navigate('/courses');
               }}
-              className="w-9 h-9 rounded-full bg-surface border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer"
+              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-surface border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer"
               aria-label="Back to courses"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -230,9 +226,9 @@ export const DomainsPage: React.FC = () => {
     );
 
     return (
-      <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto pb-16">
+      <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto py-2 sm:py-6 pb-16">
         {/* Executive Hero Banner Card */}
-        <div className="p-6 sm:p-8 rounded-[28px] bg-gradient-to-br from-surface via-surface to-surface-secondary/80 border border-separator/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)] space-y-6">
+        <div className="p-5 sm:p-8 rounded-[28px] bg-gradient-to-br from-surface via-surface to-surface-secondary/80 border border-separator/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)] space-y-6">
           {/* Top Row: Back Navigation, Breadcrumbs & Level Badge */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-separator/60">
             <div className="flex items-center gap-3">
@@ -242,7 +238,7 @@ export const DomainsPage: React.FC = () => {
                   setCurrentDomain(null);
                   navigate('/courses');
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-surface border border-separator text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-full text-xs font-semibold bg-surface border border-separator text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
                 aria-label="Back to courses"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -251,14 +247,14 @@ export const DomainsPage: React.FC = () => {
 
               <div className="flex items-center gap-2 text-xs font-semibold text-accent uppercase tracking-wider">
                 <span>/</span>
-                <span className="truncate max-w-[200px] sm:max-w-none">{activeCourse.name}</span>
+                <span className="truncate max-w-[180px] sm:max-w-none">{activeCourse.name}</span>
               </div>
             </div>
 
             {activeLevel && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-accent/10 text-accent border border-accent/20">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-accent/10 text-accent border border-accent/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                <span>Active: Level {activeLevel.levelNumber} - {activeLevel.title}</span>
+                <span className="truncate max-w-[200px] sm:max-w-none">Active: Level {activeLevel.levelNumber} - {activeLevel.title}</span>
               </span>
             )}
           </div>
@@ -306,7 +302,7 @@ export const DomainsPage: React.FC = () => {
               {/* Enrollment / Status Button */}
               {!isAdmin && (
                 activeCourse.isEnrolled ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-2xs">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 min-h-[38px] rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-2xs">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     <span>Enrolled Student</span>
                   </div>
@@ -315,7 +311,7 @@ export const DomainsPage: React.FC = () => {
                     type="button"
                     onClick={(e) => handleRegisterCourse(e, activeCourse)}
                     disabled={registeringDomainId === activeCourse._id}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/25 cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[42px] rounded-full text-xs font-bold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/25 cursor-pointer disabled:opacity-50"
                   >
                     {registeringDomainId === activeCourse._id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -341,7 +337,7 @@ export const DomainsPage: React.FC = () => {
                   setSelectedDomainForStudents(activeCourse);
                   setIsStudentsModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
                 title="View registered student roster"
               >
                 <Users className="w-3.5 h-3.5 text-accent" />
@@ -350,7 +346,7 @@ export const DomainsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toggleDomainLock(activeCourse._id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer shadow-2xs ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold border transition cursor-pointer shadow-2xs ${
                   activeCourse.isLocked
                     ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
                     : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
@@ -375,7 +371,7 @@ export const DomainsPage: React.FC = () => {
                   setBulkUploadTargetDomain({ id: activeCourse._id, name: activeCourse.name });
                   setIsBulkUploadOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition cursor-pointer shadow-2xs"
                 title="Bulk Upload Levels from Excel"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
@@ -387,7 +383,7 @@ export const DomainsPage: React.FC = () => {
                   setLevelToEdit(null);
                   setIsLevelModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition shadow-sm cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition shadow-sm cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Level</span>
@@ -398,7 +394,7 @@ export const DomainsPage: React.FC = () => {
                   setDomainToEdit(activeCourse);
                   setIsDomainModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit Course</span>
@@ -406,7 +402,7 @@ export const DomainsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/certificates')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-accent/10 border border-accent/25 text-accent hover:bg-accent hover:text-white transition shadow-2xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-accent/10 border border-accent/25 text-accent hover:bg-accent hover:text-white transition shadow-2xs cursor-pointer"
                 title="Issue Course Completion Certificates"
               >
                 <Award className="w-3.5 h-3.5" />
@@ -418,7 +414,7 @@ export const DomainsPage: React.FC = () => {
 
         {/* Horizontal Level Milestone Stepper */}
         {levels.length > 0 && (
-          <div className="p-2 sm:p-2.5 rounded-2xl bg-surface border border-separator/80 shadow-xs flex items-center gap-2 overflow-x-auto scrollbar-thin">
+          <div className="p-2 sm:p-2.5 rounded-2xl bg-surface border border-separator/80 shadow-xs flex items-center gap-2 overflow-x-auto custom-scrollbar no-scrollbar touch-pan-x">
             <div className="flex items-center gap-1.5 shrink-0 px-2 text-xs font-bold uppercase tracking-wider text-label-secondary">
               <Compass className="w-4 h-4 text-accent" />
               <span>Curriculum:</span>
@@ -437,7 +433,7 @@ export const DomainsPage: React.FC = () => {
                   key={lvl._id}
                   type="button"
                   onClick={() => isLvlUnlocked && setActiveLevel(lvl)}
-                  className={`shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+                  className={`shrink-0 inline-flex items-center gap-2 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold transition cursor-pointer border ${
                     isLvlActive
                       ? 'bg-accent text-white border-accent shadow-xs font-bold'
                       : isLvlDone
@@ -492,7 +488,7 @@ export const DomainsPage: React.FC = () => {
               type="button"
               onClick={handleClaimCourseCertificate}
               disabled={claimingCert}
-              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-primary text-white hover:brightness-110 active:scale-98 transition shadow-md shadow-primary/25 cursor-pointer disabled:opacity-50"
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 min-h-[42px] rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-primary text-white hover:brightness-110 active:scale-98 transition shadow-md shadow-primary/25 cursor-pointer disabled:opacity-50"
             >
               {claimingCert ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -525,7 +521,7 @@ export const DomainsPage: React.FC = () => {
               type="button"
               onClick={(e) => handleRegisterCourse(e, activeCourse)}
               disabled={registeringDomainId === activeCourse._id}
-              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer disabled:opacity-50"
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 min-h-[42px] rounded-full text-xs font-bold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer disabled:opacity-50"
             >
               {registeringDomainId === activeCourse._id ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -560,7 +556,7 @@ export const DomainsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toggleDomainLock(activeCourse._id)}
-                className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition shadow cursor-pointer"
+                className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 min-h-[40px] rounded-full text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition shadow cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Approve & Unlock Course Now</span>
@@ -571,7 +567,7 @@ export const DomainsPage: React.FC = () => {
 
         {/* Course Content: Video/Quest Left, Progression Path Right */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
-          {/* Main Video & Quest View (7 cols on lg, 7 cols on xl, 8 cols on 2xl) */}
+          {/* Main Video & Quest View */}
           <div className="lg:col-span-7 xl:col-span-7 2xl:col-span-8 space-y-6">
             {activeLevel ? (
               <VideoQuestView
@@ -582,7 +578,7 @@ export const DomainsPage: React.FC = () => {
                 }}
               />
             ) : (
-              <div className="p-16 rounded-[28px] bg-surface text-center text-label-secondary border border-separator/80 shadow-xs space-y-3">
+              <div className="p-10 sm:p-16 rounded-[28px] bg-surface text-center text-label-secondary border border-separator/80 shadow-xs space-y-3">
                 <PlayCircle className="w-14 h-14 mx-auto stroke-1 opacity-40 text-accent" />
                 <h3 className="text-base font-bold text-label-primary">No Level Selected</h3>
                 <p className="text-xs max-w-md mx-auto">
@@ -679,7 +675,7 @@ export const DomainsPage: React.FC = () => {
 
   // --- GRID VIEW: Apple Spatial UI ---
   return (
-    <div className="space-y-8 mx-auto pb-16">
+    <div className="space-y-6 sm:space-y-8 mx-auto py-2 sm:py-6 pb-16">
       {/* Account Restriction Notice */}
       <RestrictionBanner feature="courses" />
 
@@ -709,7 +705,7 @@ export const DomainsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toggleCourseVisibility(!courseAccessConfig?.coursesVisibleToAll)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold transition shadow-sm cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 min-h-[40px] rounded-full text-xs font-semibold transition shadow-sm cursor-pointer ${
                   courseAccessConfig?.coursesVisibleToAll
                     ? 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
                     : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20 active:scale-98'
@@ -737,7 +733,7 @@ export const DomainsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsAccessModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary active:scale-98 transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[40px] rounded-full text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary active:scale-98 transition shadow-xs cursor-pointer"
                 title="Manage selective student permissions for courses"
               >
                 <Crown className="w-3.5 h-3.5 text-amber-500" />
@@ -754,7 +750,7 @@ export const DomainsPage: React.FC = () => {
                   setBulkUploadTargetDomain(null);
                   setIsBulkUploadOpen(true);
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-98 transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[40px] rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-98 transition shadow-xs cursor-pointer"
                 title="Bulk Upload Courses & Levels from Excel"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
@@ -767,10 +763,10 @@ export const DomainsPage: React.FC = () => {
                   setDomainToEdit(null);
                   setIsDomainModalOpen(true);
                 }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[40px] rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                Create Course
+                <span>Create Course</span>
               </button>
             </>
           )}
@@ -825,7 +821,7 @@ export const DomainsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => toggleCourseVisibility(true)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 transition shadow-xs cursor-pointer"
+              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 min-h-[38px] rounded-full text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 transition shadow-xs cursor-pointer"
             >
               <Eye className="w-3.5 h-3.5" />
               <span>Show Courses Now</span>
@@ -852,7 +848,7 @@ export const DomainsPage: React.FC = () => {
       )}
 
       {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div className="relative w-full sm:max-w-md">
           <Search className="w-4 h-4 text-label-tertiary absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
@@ -860,18 +856,18 @@ export const DomainsPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search courses, topics, or technologies..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-full bg-surface border border-separator/80 text-sm text-label-primary placeholder:text-label-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-full bg-surface border border-separator/80 text-sm text-label-primary placeholder:text-label-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition shadow-sm"
           />
         </div>
 
         {/* Filter Badges */}
-        <div className="flex items-center gap-1.5 self-start sm:self-auto p-1 rounded-xl bg-surface border border-separator shadow-sm text-xs font-medium">
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-surface border border-separator shadow-sm text-xs font-medium overflow-x-auto custom-scrollbar no-scrollbar touch-pan-x flex-nowrap max-w-full">
           <button
             type="button"
             onClick={() => setFilterMode('all')}
-            className={`px-3 py-1 whitespace-nowrap rounded-lg transition cursor-pointer ${
+            className={`px-3.5 py-1.5 min-h-[36px] whitespace-nowrap rounded-xl transition cursor-pointer ${
               filterMode === 'all'
-                ? 'bg-accent text-white font-semibold'
+                ? 'bg-accent text-white font-semibold shadow-xs'
                 : 'text-label-secondary hover:text-label-primary'
             }`}
           >
@@ -880,9 +876,9 @@ export const DomainsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterMode('in_progress')}
-            className={`px-3 py-1 whitespace-nowrap rounded-lg transition cursor-pointer ${
+            className={`px-3.5 py-1.5 min-h-[36px] whitespace-nowrap rounded-xl transition cursor-pointer ${
               filterMode === 'in_progress'
-                ? 'bg-accent text-white font-semibold'
+                ? 'bg-accent text-white font-semibold shadow-xs'
                 : 'text-label-secondary hover:text-label-primary'
             }`}
           >
@@ -891,9 +887,9 @@ export const DomainsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterMode('completed')}
-            className={`px-3 py-1 whitespace-nowrap rounded-lg transition cursor-pointer ${
+            className={`px-3.5 py-1.5 min-h-[36px] whitespace-nowrap rounded-xl transition cursor-pointer ${
               filterMode === 'completed'
-                ? 'bg-accent text-white font-semibold'
+                ? 'bg-accent text-white font-semibold shadow-xs'
                 : 'text-label-secondary hover:text-label-primary'
             }`}
           >
@@ -955,13 +951,13 @@ export const DomainsPage: React.FC = () => {
                             e.stopPropagation();
                             toggleDomainLock(domain._id);
                           }}
-                          className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-amber-500/90 text-white border border-amber-400/30 flex items-center gap-1 hover:bg-amber-600 transition shadow cursor-pointer"
+                          className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-amber-500/90 text-white border border-amber-400/30 flex items-center gap-1 hover:bg-amber-600 transition shadow cursor-pointer min-h-[30px]"
                           title="Course is locked for students. Click to approve & unlock."
                         >
                           <Lock className="w-3 h-3" /> Locked
                         </button>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-amber-500/90 text-white border border-amber-400/30 flex items-center gap-1">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-amber-500/90 text-white border border-amber-400/30 flex items-center gap-1 min-h-[30px]">
                           <Lock className="w-3 h-3" /> Locked
                         </span>
                       )
@@ -973,7 +969,7 @@ export const DomainsPage: React.FC = () => {
                             e.stopPropagation();
                             toggleDomainLock(domain._id);
                           }}
-                          className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-emerald-500/85 text-white border border-emerald-400/30 flex items-center gap-1 hover:bg-emerald-600 transition shadow cursor-pointer"
+                          className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-emerald-500/85 text-white border border-emerald-400/30 flex items-center gap-1 hover:bg-emerald-600 transition shadow cursor-pointer min-h-[30px]"
                           title="Course is approved for students. Click to lock."
                         >
                           <ShieldCheck className="w-3 h-3" /> Approved
@@ -997,26 +993,26 @@ export const DomainsPage: React.FC = () => {
                             setSelectedDomainForStudents(domain);
                             setIsStudentsModalOpen(true);
                           }}
-                          className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition cursor-pointer"
+                          className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/20 transition cursor-pointer"
                           title="View Registered Students"
                         >
-                          <Users className="w-3 h-3" />
+                          <Users className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={(e) => handleEditDomain(e, domain)}
-                          className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition cursor-pointer"
+                          className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/20 transition cursor-pointer"
                           title="Edit Course"
                         >
-                          <Edit3 className="w-3 h-3" />
+                          <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={(e) => handleDeleteDomain(e, domain)}
-                          className="p-1 rounded-full text-rose-300 hover:text-rose-100 hover:bg-rose-500/30 transition cursor-pointer"
+                          className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full text-rose-300 hover:text-rose-100 hover:bg-rose-500/30 transition cursor-pointer"
                           title="Delete Course"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
@@ -1032,7 +1028,7 @@ export const DomainsPage: React.FC = () => {
               </div>
 
               {/* Card Body */}
-              <div className="p-6 flex-1 flex flex-col justify-between space-y-5">
+              <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-5">
                 <p className="text-sm text-label-secondary line-clamp-2 leading-relaxed">
                   {domain.description}
                 </p>
@@ -1080,7 +1076,7 @@ export const DomainsPage: React.FC = () => {
                         type="button"
                         onClick={(e) => handleRegisterCourse(e, domain)}
                         disabled={registeringDomainId === domain._id}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow cursor-pointer disabled:opacity-50"
                       >
                         {registeringDomainId === domain._id ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />

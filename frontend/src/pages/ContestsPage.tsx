@@ -89,12 +89,12 @@ export const ContestsPage: React.FC = () => {
   const pastContests = contests.filter((c) => c.status === 'ENDED');
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto py-2 sm:py-6 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Account Restriction Notice */}
       <RestrictionBanner feature="contests" />
 
       {/* Top Banner Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-5 sm:pb-6">
         <div>
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-1">
             <Flame size={16} className="text-amber-500 animate-pulse" />
@@ -109,12 +109,12 @@ export const ContestsPage: React.FC = () => {
         </div>
 
         {/* View Switcher for Admins */}
-        <div className="flex items-start gap-3 flex-col pb-1">
+        <div className="flex items-start sm:items-end gap-3 flex-col pb-1 w-full sm:w-auto">
           {isPrivileged && (
-            <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs shrink-0">
+            <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs shrink-0 w-full sm:w-auto">
               <button
                 onClick={() => setViewMode('arena')}
-                className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 sm:flex-initial flex items-center justify-center whitespace-nowrap gap-2 px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   viewMode === 'arena'
                     ? 'bg-primary text-white shadow-md shadow-primary/25'
                     : 'text-label-secondary hover:text-label-primary'
@@ -125,7 +125,7 @@ export const ContestsPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setViewMode('manage')}
-                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 whitespace-nowrap px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   viewMode === 'manage'
                     ? 'bg-primary text-white shadow-md shadow-primary/25'
                     : 'text-label-secondary hover:text-label-primary'
@@ -143,7 +143,7 @@ export const ContestsPage: React.FC = () => {
                 setEditingContest(null);
                 setIsBuilderOpen(true);
               }}
-              className="flex items-center whitespace-nowrap gap-2 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all"
+              className="w-full sm:w-auto flex items-center justify-center whitespace-nowrap gap-2 px-4 py-2.5 min-h-[40px] bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
             >
               <Plus size={15} />
               <span>New Contest</span>
@@ -154,7 +154,7 @@ export const ContestsPage: React.FC = () => {
 
       {/* --- VIEW MODE 1: STUDENT ARENA HUB --- */}
       {viewMode === 'arena' && (
-        <div className="space-y-10">
+        <div className="space-y-8 sm:space-y-10">
           {/* 1. LIVE CONTESTS (Spotlight) */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -224,7 +224,7 @@ export const ContestsPage: React.FC = () => {
                       <div className="flex items-center justify-between sm:justify-start gap-2">
                         <button
                           onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                          className="text-xs font-bold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1 cursor-pointer py-1.5"
+                          className="text-xs font-bold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1 cursor-pointer py-1.5 min-h-[38px]"
                         >
                           <Trophy size={14} className="text-amber-500" />
                           <span>Leaderboard</span>
@@ -234,7 +234,7 @@ export const ContestsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSelectedContestForSubmissions(c)}
-                            className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer min-h-[38px]"
                             title="Submissions & Point Allocation"
                           >
                             <Sliders size={13} />
@@ -248,7 +248,7 @@ export const ContestsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleOpenMySubmission(c)}
-                            className="flex-1 sm:flex-initial px-4 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            className="flex-1 sm:flex-initial px-4 py-2.5 min-h-[42px] bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                             title="View your submitted MCQ choices and code solutions"
                           >
                             <FileCode2 size={14} />
@@ -256,7 +256,7 @@ export const ContestsPage: React.FC = () => {
                           </button>
                           {c.mySubmission?.reentryStatus === 'PENDING' ? (
                             <span
-                              className="px-3 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl text-xs font-bold flex items-center gap-1.5"
+                              className="px-3 py-2 min-h-[42px] bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl text-xs font-bold flex items-center gap-1.5"
                               title="Your re-entry request is awaiting administrator approval"
                             >
                               <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
@@ -266,7 +266,7 @@ export const ContestsPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setSelectedContestForReentry(c)}
-                              className="px-3 py-2.5 bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-2.5 min-h-[42px] bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                               title="Request administrator approval to re-enter this contest"
                             >
                               <RotateCcw size={13} />
@@ -285,7 +285,7 @@ export const ContestsPage: React.FC = () => {
                             }
                             navigate(`/contests/${c._id}/arena`);
                           }}
-                          className="w-full sm:w-auto px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full sm:w-auto px-6 py-2.5 min-h-[42px] bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <Play size={14} className="fill-current" />
                           <span>{c.mySubmission ? 'Resume Contest' : 'Enter Arena'}</span>
@@ -312,7 +312,7 @@ export const ContestsPage: React.FC = () => {
                 {upcomingContests.map((c) => (
                   <div
                     key={c._id}
-                    className="bg-surface rounded-2xl border border-separator p-6 space-y-4 shadow-sm hover:border-primary/40 transition-colors"
+                    className="bg-surface rounded-2xl border border-separator p-5 sm:p-6 space-y-4 shadow-sm hover:border-primary/40 transition-colors"
                   >
                     <div className="flex items-center justify-between text-[10px] font-mono font-bold">
                       <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
@@ -354,7 +354,7 @@ export const ContestsPage: React.FC = () => {
               {pastContests.map((c) => (
                 <div
                   key={c._id}
-                  className="bg-surface rounded-2xl border border-separator p-6 space-y-4 shadow-sm hover:border-primary/40 transition-colors flex flex-col justify-between"
+                  className="bg-surface rounded-2xl border border-separator p-5 sm:p-6 space-y-4 shadow-sm hover:border-primary/40 transition-colors flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-[10px] font-mono">
@@ -381,7 +381,7 @@ export const ContestsPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenMySubmission(c)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 min-h-[32px] rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
                           title="View your submitted MCQ choices and code solutions"
                         >
                           <FileCode2 size={13} />
@@ -392,7 +392,7 @@ export const ContestsPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setSelectedContestForSubmissions(c)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 min-h-[32px] rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
                           title="Submissions & Point Allocation"
                         >
                           <Sliders size={13} />
@@ -402,7 +402,7 @@ export const ContestsPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                        className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer py-1 min-h-[32px]"
                       >
                         <Trophy size={13} />
                         <span>Rankings</span>
@@ -418,7 +418,7 @@ export const ContestsPage: React.FC = () => {
 
       {/* --- VIEW MODE 2: ADMIN MANAGEMENT --- */}
       {viewMode === 'manage' && (
-        <div className="bg-surface rounded-3xl border border-separator p-6 shadow-sm space-y-6">
+        <div className="bg-surface rounded-3xl border border-separator p-4 sm:p-6 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
               <Award size={18} className="text-primary" />
@@ -427,8 +427,8 @@ export const ContestsPage: React.FC = () => {
             <span className="text-xs text-label-tertiary font-mono">{contests.length} total contests</span>
           </div>
 
-          <div className="overflow-x-auto border border-separator rounded-2xl">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto border border-separator rounded-2xl custom-scrollbar touch-pan-x">
+            <table className="w-full text-left text-xs min-w-[760px]">
               <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Title & Slug</th>
@@ -451,7 +451,7 @@ export const ContestsPage: React.FC = () => {
                 ) : (
                   contests.map((c) => (
                     <tr key={c._id} className="hover:bg-surface-secondary/60 transition-colors">
-                      <td className="py-3 px-4 ">
+                      <td className="py-3 px-4">
                         <p className="font-bold text-label-primary whitespace-nowrap">{c.title}</p>
                         <p className="text-[10px] text-label-tertiary font-mono whitespace-nowrap">{c.slug}</p>
                       </td>
@@ -479,40 +479,42 @@ export const ContestsPage: React.FC = () => {
                           {c.status}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap space-x-1.5">
-                        <button
-                          onClick={() => setSelectedContestForSubmissions(c)}
-                          className="p-1.5 hover:bg-amber-500/10 text-amber-500 rounded-lg transition-colors"
-                          title="Submissions & Point Allocation"
-                        >
-                          <Sliders size={14} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                          className="p-1.5 hover:bg-surface-secondary text-amber-500 rounded-lg transition-colors"
-                          title="Leaderboard"
-                        >
-                          <Trophy size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingContest(c);
-                            setIsBuilderOpen(true);
-                          }}
-                          className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`Delete contest "${c.title}"?`)) deleteContest(c._id);
-                          }}
-                          className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setSelectedContestForSubmissions(c)}
+                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-amber-500/10 text-amber-500 rounded-lg transition-colors cursor-pointer"
+                            title="Submissions & Point Allocation"
+                          >
+                            <Sliders size={14} />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
+                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-secondary text-amber-500 rounded-lg transition-colors cursor-pointer"
+                            title="Leaderboard"
+                          >
+                            <Trophy size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingContest(c);
+                              setIsBuilderOpen(true);
+                            }}
+                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
+                            title="Edit"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete contest "${c.title}"?`)) deleteContest(c._id);
+                            }}
+                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-destructive/10 text-destructive rounded-lg transition-colors cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

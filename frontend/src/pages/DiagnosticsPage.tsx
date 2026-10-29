@@ -220,7 +220,7 @@ export const DiagnosticsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto py-2 sm:py-6 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-5 sm:pb-6">
         <div>
@@ -241,7 +241,7 @@ export const DiagnosticsPage: React.FC = () => {
           <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
             <button
               onClick={() => setActiveTab('health')}
-              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'health'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -252,7 +252,7 @@ export const DiagnosticsPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('database')}
-              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'database'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -267,7 +267,7 @@ export const DiagnosticsPage: React.FC = () => {
 
       {/* --- TAB 1: SYSTEM HEALTH --- */}
       {activeTab === 'health' && (
-        <div className="space-y-8 animate-in fade-in duration-300">
+        <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
           {/* Telemetry KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Memory */}
@@ -301,108 +301,103 @@ export const DiagnosticsPage: React.FC = () => {
                   }}
                 />
               </div>
+              <span className="text-[10px] text-label-tertiary block font-mono">
+                Heap Total: {healthData?.memory.heapTotalMB || 0} MB
+              </span>
             </div>
 
-            {/* KPI 2: Event Loop Lag */}
+            {/* KPI 2: Node Runtime */}
             <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
-                  Event Loop Latency
+                  Node Engine
                 </span>
                 <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl">
-                  <Zap size={18} />
+                  <Server size={18} />
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-label-primary">
-                  {healthData?.eventLoopLagMs || 0} ms
-                </span>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  Sub-5ms
+                <span className="text-xl sm:text-2xl font-black text-label-primary">
+                  {healthData?.nodeVersion || 'v20.x'}
                 </span>
               </div>
-              <p className="text-[11px] text-label-tertiary">Real-time Node.js I/O loop responsiveness</p>
+              <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                <CheckCircle2 size={13} />
+                <span>NodeJS Production Runtime</span>
+              </div>
+              <span className="text-[10px] text-label-tertiary block font-mono">
+                PID: {healthData?.processId || '—'}
+              </span>
             </div>
 
-            {/* KPI 3: Process Uptime */}
+            {/* KPI 3: Server Uptime */}
             <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
-                  Process Uptime
+                  Continuous Uptime
                 </span>
                 <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl">
                   <Clock size={18} />
                 </div>
               </div>
-              <div className="text-xl font-black text-label-primary font-mono truncate">
-                {formatUptime(healthData?.uptimeSeconds || 0)}
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl sm:text-2xl font-black text-label-primary">
+                  {healthData?.uptimeSeconds ? formatUptime(healthData.uptimeSeconds) : '0s'}
+                </span>
               </div>
-              <p className="text-[11px] text-label-tertiary font-mono">
-                Node {healthData?.nodeVersion || 'v20'} · {healthData?.platform || 'Node'}
-              </p>
+              <div className="flex items-center gap-1.5 text-xs text-label-tertiary">
+                <ShieldCheck size={13} className="text-primary" />
+                <span>Zero Downtime Target</span>
+              </div>
+              <span className="text-[10px] text-label-tertiary block font-mono">
+                Started: {healthData?.serverTime ? new Date(healthData.serverTime).toLocaleTimeString() : '—'}
+              </span>
             </div>
 
-            {/* KPI 4: Database Pool */}
-            <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
-                  MongoDB Status
-                </span>
-                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl">
-                  <Database size={18} />
+            {/* KPI 4: Cache & Telemetry Refresh */}
+            <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
+                    Cache & Telemetry
+                  </span>
+                  <div className="p-2 bg-primary/10 text-primary rounded-xl">
+                    <Zap size={18} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    Live Polling (10s)
+                  </span>
                 </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                  {healthData?.database.status || 'Connected'}
-                </span>
-              </div>
-              <p className="text-[11px] text-label-tertiary font-mono truncate">
-                {healthData?.database.name || 'code_circle'} ({healthData?.database.modelsRegistered || 0} schemas)
-              </p>
-            </div>
-          </div>
 
-          {/* Sync & Buffer Control Panel */}
-          <div className="bg-surface rounded-3xl border border-separator p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Zap size={24} />
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchHealth}
+                  disabled={loadingHealth}
+                  className="flex-1 py-1.5 px-3 min-h-[38px] bg-surface-secondary hover:bg-surface border border-separator text-xs font-bold text-label-primary rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw size={12} className={loadingHealth ? 'animate-spin' : ''} />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={syncCache}
+                  disabled={syncing}
+                  className="flex-1 py-1.5 px-3 min-h-[38px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <Zap size={12} className={syncing ? 'animate-spin' : ''} />
+                  <span>Sync Cache</span>
+                </button>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-label-primary">
-                  Cluster Cache & Write-Buffer Synchronization
-                </h3>
-                <p className="text-xs text-label-tertiary mt-0.5">
-                  Forces an immediate flush of high-throughput in-memory attendance queues to MongoDB Atlas and triggers cache hydration.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-              <button
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                className={`px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all text-center ${
-                  autoRefresh
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-surface-secondary border-separator text-label-secondary hover:text-label-primary'
-                }`}
-              >
-                Auto-Refresh {autoRefresh ? 'ON (10s)' : 'OFF'}
-              </button>
-              <button
-                onClick={syncCache}
-                disabled={syncing}
-                className="px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
-                <span>{syncing ? 'Flushing Buffers...' : 'Sync Buffers Now'}</span>
-              </button>
             </div>
           </div>
 
           {/* Infrastructure Services Grid */}
-          <div className="bg-surface rounded-3xl border border-separator p-6 shadow-sm space-y-4">
+          <div className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-label-secondary uppercase tracking-wider">
               Core Microservices & Integration Grid
             </h3>
@@ -462,19 +457,19 @@ export const DiagnosticsPage: React.FC = () => {
               </span>
               <button
                 onClick={fetchDatabaseStats}
-                className="p-1.5 text-label-secondary hover:text-label-primary transition-colors"
+                className="p-2 min-w-[34px] min-h-[34px] text-label-secondary hover:text-label-primary transition-colors inline-flex items-center justify-center cursor-pointer"
                 title="Refresh Collections"
               >
                 <RefreshCw size={14} className={loadingDb ? 'animate-spin' : ''} />
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
               {databaseStats.map((col) => (
                 <button
                   key={col.name}
                   onClick={() => handleSelectCollection(col.name)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 ${
+                  className={`px-3.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ${
                     selectedCollection === col.name
                       ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
                       : 'bg-surface-secondary border-separator text-label-primary hover:border-primary/40 hover:bg-surface'
@@ -498,7 +493,7 @@ export const DiagnosticsPage: React.FC = () => {
 
           {/* Document Explorer Grid */}
           {selectedCollection ? (
-            <div className="bg-surface rounded-3xl border border-separator shadow-sm p-6 space-y-4">
+            <div className="bg-surface rounded-3xl border border-separator shadow-sm p-4 sm:p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
@@ -512,7 +507,7 @@ export const DiagnosticsPage: React.FC = () => {
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <div className="relative flex-1 sm:w-52">
-                    <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary pointer-events-none" />
                     <input
                       type="text"
                       value={docSearch}
@@ -521,13 +516,13 @@ export const DiagnosticsPage: React.FC = () => {
                         fetchCollectionDocuments(selectedCollection, 1, 20, e.target.value);
                       }}
                       placeholder="Search records..."
-                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface"
+                      className="w-full pl-8 pr-3 py-2 min-h-[38px] text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface"
                     />
                   </div>
 
                   <button
                     onClick={() => setIsNewDocModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all shrink-0 cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-2 min-h-[38px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all shrink-0 cursor-pointer"
                   >
                     <Plus size={14} />
                     <span>Insert Doc</span>
@@ -537,14 +532,14 @@ export const DiagnosticsPage: React.FC = () => {
 
               {/* Selected records bulk actions bar */}
               {selectedRowIds.length > 0 && (
-                <div className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-2xl animate-in fade-in duration-200">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-primary/10 border border-primary/20 rounded-2xl animate-in fade-in duration-200">
                   <span className="text-xs font-bold text-primary">
                     {selectedRowIds.length} document(s) selected
                   </span>
                   <button
                     onClick={handleBatchDelete}
                     disabled={batchDeleting}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-destructive text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] bg-destructive text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all disabled:opacity-50 cursor-pointer"
                   >
                     <Trash2 size={13} className={batchDeleting ? 'animate-spin' : ''} />
                     <span>{batchDeleting ? 'Deleting...' : 'Delete Selected'}</span>
@@ -553,8 +548,8 @@ export const DiagnosticsPage: React.FC = () => {
               )}
 
               {/* Table of Records */}
-              <div className="overflow-x-auto border border-separator rounded-2xl custom-scrollbar">
-                <table className="w-full text-left text-xs min-w-[720px]">
+              <div className="overflow-x-auto border border-separator rounded-2xl custom-scrollbar touch-pan-x">
+                <table className="w-full text-left text-xs min-w-[760px]">
                   <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                     {selectedCollection === 'users' ? (
                       <tr>
@@ -562,7 +557,7 @@ export const DiagnosticsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={handleToggleSelectAll}
-                            className="text-label-tertiary hover:text-label-primary"
+                            className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
                           >
                             {selectedRowIds.length === collectionDocs.length &&
                             collectionDocs.length > 0 ? (
@@ -584,7 +579,7 @@ export const DiagnosticsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={handleToggleSelectAll}
-                            className="text-label-tertiary hover:text-label-primary"
+                            className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
                           >
                             {selectedRowIds.length === collectionDocs.length &&
                             collectionDocs.length > 0 ? (
@@ -629,7 +624,7 @@ export const DiagnosticsPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleToggleSelectRow(doc._id)}
-                                className="text-label-tertiary hover:text-label-primary"
+                                className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
                               >
                                 {isSelected ? (
                                   <CheckSquare size={15} className="text-primary" />
@@ -679,7 +674,7 @@ export const DiagnosticsPage: React.FC = () => {
                                 </span>
                                 <button
                                   onClick={(e) => handleCopyId(doc._id, e)}
-                                  className="text-label-tertiary hover:text-label-primary p-1"
+                                  className="text-label-tertiary hover:text-label-primary p-1.5 rounded-md min-w-[28px] min-h-[28px] inline-flex items-center justify-center cursor-pointer"
                                   title="Copy ObjectId"
                                 >
                                   {copiedId === doc._id ? (
@@ -693,28 +688,30 @@ export const DiagnosticsPage: React.FC = () => {
                             <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
                               {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}
                             </td>
-                            <td className="py-3 px-4 text-right space-x-1.5">
-                              <button
-                                onClick={() => setViewDoc(doc)}
-                                className="p-1.5 hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors"
-                                title="Inspect Document"
-                              >
-                                <Eye size={14} />
-                              </button>
-                              <button
-                                onClick={() => setEditDoc(doc)}
-                                className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
-                                title="Edit Form"
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                              <button
-                                onClick={() => setDeleteDoc(doc)}
-                                className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
-                                title="Delete Record"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => setViewDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors cursor-pointer"
+                                  title="Inspect Document"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setEditDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Form"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-destructive/10 text-destructive rounded-lg transition-colors cursor-pointer"
+                                  title="Delete Record"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -735,7 +732,7 @@ export const DiagnosticsPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleToggleSelectRow(doc._id)}
-                                className="text-label-tertiary hover:text-label-primary"
+                                className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
                               >
                                 {isSelected ? (
                                   <CheckSquare size={15} className="text-primary" />
@@ -751,7 +748,7 @@ export const DiagnosticsPage: React.FC = () => {
                                 </span>
                                 <button
                                   onClick={(e) => handleCopyId(doc._id, e)}
-                                  className="text-label-tertiary hover:text-label-primary p-1"
+                                  className="text-label-tertiary hover:text-label-primary p-1.5 rounded-md min-w-[28px] min-h-[28px] inline-flex items-center justify-center cursor-pointer"
                                   title="Copy ObjectId"
                                 >
                                   {copiedId === doc._id ? (
@@ -775,28 +772,30 @@ export const DiagnosticsPage: React.FC = () => {
                             <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
                               {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}
                             </td>
-                            <td className="py-3 px-4 text-right space-x-1.5">
-                              <button
-                                onClick={() => setViewDoc(doc)}
-                                className="p-1.5 hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors"
-                                title="Inspect Document"
-                              >
-                                <Eye size={14} />
-                              </button>
-                              <button
-                                onClick={() => setEditDoc(doc)}
-                                className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
-                                title="Edit Form"
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                              <button
-                                onClick={() => setDeleteDoc(doc)}
-                                className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
-                                title="Delete Record"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => setViewDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors cursor-pointer"
+                                  title="Inspect Document"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setEditDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Form"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-destructive/10 text-destructive rounded-lg transition-colors cursor-pointer"
+                                  title="Delete Record"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -807,7 +806,7 @@ export const DiagnosticsPage: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between text-xs text-label-secondary pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary pt-2">
                 <span>
                   Page {collectionPagination.page} of {collectionPagination.pages || 1}
                 </span>
@@ -822,7 +821,7 @@ export const DiagnosticsPage: React.FC = () => {
                         docSearch
                       )
                     }
-                    className="p-1.5 bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors"
+                    className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors cursor-pointer"
                   >
                     <ChevronLeft size={16} />
                   </button>
@@ -836,7 +835,7 @@ export const DiagnosticsPage: React.FC = () => {
                         docSearch
                       )
                     }
-                    className="p-1.5 bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors"
+                    className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors cursor-pointer"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -905,4 +904,3 @@ export const DiagnosticsPage: React.FC = () => {
 };
 
 export default DiagnosticsPage;
-

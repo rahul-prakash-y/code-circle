@@ -196,7 +196,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
         </div>
 
         {/* Footer Actions & Status */}
-        <div className="mt-7 pt-4 flex items-center justify-between border-t border-separator">
+        <div className="mt-6 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-separator">
           <div className="flex flex-col min-w-0 pr-2">
             <span className="text-[10px] uppercase font-semibold text-label-tertiary tracking-wider">
               {isPast ? 'Event' : 'Deadline'}
@@ -210,20 +210,22 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
             </span>
           </div>
 
-          <div>
+          <div className="w-full sm:w-auto">
             {isAdmin ? (
-              <div className="flex items-center gap-0.5 p-1 rounded-xl bg-canvas border border-separator">
+              <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl bg-canvas border border-separator w-full sm:w-auto">
                 <button
                   onClick={() => setIsDetailsOpen(true)}
-                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Preview Event Details"
+                  aria-label="Preview Event Details"
                 >
                   <Eye size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => setIsBulkUploadOpen(true)}
-                  className="p-2 text-label-secondary hover:text-emerald-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-emerald-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Upload Participants List (Excel / CSV)"
+                  aria-label="Upload Participants List"
                 >
                   <FileSpreadsheet size={15} strokeWidth={1.75} />
                 </button>
@@ -232,8 +234,9 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                     setParticipantsInitialTab('registered');
                     setIsParticipantsOpen(true);
                   }}
-                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Registered Students List"
+                  aria-label="Registered Students List"
                 >
                   <Users size={15} strokeWidth={1.75} />
                 </button>
@@ -242,46 +245,52 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                     setParticipantsInitialTab('participants');
                     setIsParticipantsOpen(true);
                   }}
-                  className="p-2 text-label-secondary hover:text-emerald-400 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-emerald-400 hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Event Participants List (Attended)"
+                  aria-label="Event Participants List"
                 >
                   <Award size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => setIsAttendanceOpen(true)}
-                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Attendance Sessions & Logs"
+                  aria-label="Attendance Sessions"
                 >
                   <UserCheck size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => setIsArenaAdminOpen(true)}
-                  className="p-2 text-label-secondary hover:text-indigo-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-indigo-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Event Arena Hub: Configure & Questions"
+                  aria-label="Event Arena Hub"
                 >
                   <Sparkles size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => onEdit(event)}
-                  className="p-2 text-label-secondary hover:text-label-primary hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-label-primary hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Edit Event"
+                  aria-label="Edit Event"
                 >
                   <Edit2 size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => onDelete(event._id)}
-                  className="p-2 text-label-secondary hover:text-destructive hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-destructive hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Delete Event"
+                  aria-label="Delete Event"
                 >
                   <Trash2 size={15} strokeWidth={1.75} />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setIsDetailsOpen(true)}
-                  className="btn-secondary text-[13px] py-1.5 px-3 cursor-pointer"
+                  className="btn-secondary text-[13px] py-1.5 px-3 min-h-[38px] cursor-pointer"
                   title="Preview Details"
+                  aria-label="Preview Details"
                 >
                   <Eye size={14} />
                 </button>
@@ -290,7 +299,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   <button
                     type="button"
                     disabled
-                    className="btn-secondary text-[12px] py-1.5 px-3.5 opacity-80 cursor-not-allowed text-amber-500 border border-amber-500/25"
+                    className="btn-secondary text-[12px] py-1.5 px-3.5 min-h-[38px] opacity-80 cursor-not-allowed text-amber-500 border border-amber-500/25"
                     title="Self-registration is disabled for this event. Participants list is uploaded directly by administrators."
                   >
                     <span>Admin Upload</span>
@@ -301,10 +310,10 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                     disabled={timeLeft === 'Closed' || isPast || isEnrolled || (event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants)}
                     className={
                       isEnrolled
-                        ? 'btn-secondary text-[13px] py-1.5 px-4 opacity-90 cursor-default'
+                        ? 'btn-secondary text-[13px] py-1.5 px-4 min-h-[38px] opacity-90 cursor-default'
                         : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
-                        ? 'btn-secondary text-[13px] py-1.5 px-3.5 opacity-60 cursor-not-allowed text-rose-500'
-                        : 'btn-primary text-[13px] py-1.5 px-4.5 flex items-center gap-1.5 cursor-pointer'
+                        ? 'btn-secondary text-[13px] py-1.5 px-3.5 min-h-[38px] opacity-60 cursor-not-allowed text-rose-500'
+                        : 'btn-primary text-[13px] py-1.5 px-4.5 min-h-[38px] flex items-center gap-1.5 cursor-pointer'
                     }
                   >
                     <span>
@@ -332,7 +341,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                 {event.hasArena && (
                   <button
                     onClick={() => navigate(`/events/${event._id}/arena`)}
-                    className="btn-primary text-[12px] py-1.5 px-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer"
+                    className="btn-primary text-[12px] py-1.5 px-3 min-h-[38px] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer"
                     title="Enter Event Arena to take assessments"
                   >
                     <Sparkles size={13} />

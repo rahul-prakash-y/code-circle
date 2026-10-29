@@ -960,8 +960,8 @@ export const CertificateStudio: React.FC = () => {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto border border-separator rounded-xl custom-scrollbar">
-            <table className="w-full text-left text-xs min-w-[650px]">
+          <div className="overflow-x-auto border border-separator rounded-xl custom-scrollbar touch-pan-x">
+            <table className="w-full text-left text-xs min-w-[760px]">
               <thead className="bg-surface-raised border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Certificate ID</th>
@@ -1007,7 +1007,7 @@ export const CertificateStudio: React.FC = () => {
                       <td className="py-3 px-4 text-right space-x-1.5">
                         <button
                           onClick={() => downloadCertificatePdf(cert._id, cert.certificateId)}
-                          className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+                          className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
                           title="Download PDF"
                         >
                           <Download size={15} />
@@ -1018,7 +1018,7 @@ export const CertificateStudio: React.FC = () => {
                             navigator.clipboard.writeText(url);
                             toast.success('Public verification link copied!');
                           }}
-                          className="p-1.5 hover:bg-surface-raised text-label-secondary rounded-lg transition-colors"
+                          className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-raised text-label-secondary rounded-lg transition-colors cursor-pointer"
                           title="Copy Verification Link"
                         >
                           <Copy size={15} />
@@ -1029,7 +1029,7 @@ export const CertificateStudio: React.FC = () => {
                               const reason = prompt('Enter revocation reason (optional):');
                               if (reason !== null) revokeCertificate(cert._id, reason || undefined);
                             }}
-                            className="p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-colors"
+                            className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-rose-500/10 text-rose-500 rounded-lg transition-colors cursor-pointer"
                             title="Revoke Certificate"
                           >
                             <X size={15} />

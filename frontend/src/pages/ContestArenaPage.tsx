@@ -339,7 +339,7 @@ export const ContestArenaPage: React.FC = () => {
 
   if (loading && !activeContest) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background text-label-tertiary">
+      <div className="h-[100dvh] min-h-[100dvh] flex items-center justify-center bg-background text-label-tertiary">
         <RefreshCw size={24} className="animate-spin text-primary mr-2" />
         <span>Loading contest arena...</span>
       </div>
@@ -348,11 +348,11 @@ export const ContestArenaPage: React.FC = () => {
 
   if (!activeContest) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-background text-center p-4">
+      <div className="h-[100dvh] min-h-[100dvh] flex flex-col items-center justify-center bg-background text-center p-4">
         <p className="text-sm font-bold text-label-secondary">Contest not found or closed.</p>
         <button
           onClick={() => navigate('/contests')}
-          className="mt-4 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl cursor-pointer"
+          className="mt-4 px-4 py-2 min-h-[40px] bg-primary text-white text-xs font-bold rounded-xl cursor-pointer"
         >
           Return to Contests
         </button>
@@ -503,7 +503,7 @@ export const ContestArenaPage: React.FC = () => {
       : [];
 
   return (
-    <div className="h-screen w-full flex flex-col bg-background font-sans overflow-hidden select-none antialiased">
+    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-background font-sans overflow-hidden select-none antialiased">
       {/* 1. TOP ARENA APP BAR */}
       <header className="h-14 border-b border-separator bg-surface px-3 sm:px-6 flex items-center justify-between gap-2 shrink-0 shadow-xs z-30">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -511,13 +511,13 @@ export const ContestArenaPage: React.FC = () => {
             onClick={() => {
               if (confirm('Leave arena? Your timer will continue running.')) navigate('/contests');
             }}
-            className="p-1.5 hover:bg-surface-raised rounded-xl text-label-secondary shrink-0 cursor-pointer"
+            className="p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-raised rounded-xl text-label-secondary shrink-0 cursor-pointer"
             title="Return to Contests"
           >
             <ArrowLeft size={16} />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xs sm:text-sm font-extrabold text-label-primary tracking-tight truncate max-w-[120px] sm:max-w-xs md:max-w-md">
+            <h1 className="text-xs sm:text-sm font-extrabold text-label-primary tracking-tight truncate max-w-[110px] sm:max-w-xs md:max-w-md">
               {activeContest.title}
             </h1>
             <p className="text-[9px] sm:text-[10px] text-label-tertiary font-mono uppercase tracking-wider truncate">
@@ -531,7 +531,7 @@ export const ContestArenaPage: React.FC = () => {
           <div className="flex items-center gap-1 p-1 bg-surface-secondary border border-separator rounded-xl text-xs font-bold shrink-0">
             <button
               onClick={() => setSelectedSection('mcq')}
-              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 min-h-[34px] rounded-lg transition-all cursor-pointer ${
                 selectedSection === 'mcq'
                   ? 'bg-primary text-white shadow-xs'
                   : 'text-label-secondary hover:text-label-primary'
@@ -541,7 +541,7 @@ export const ContestArenaPage: React.FC = () => {
             </button>
             <button
               onClick={() => setSelectedSection('coding')}
-              className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 min-h-[34px] rounded-lg transition-all cursor-pointer ${
                 selectedSection === 'coding'
                   ? 'bg-primary text-white shadow-xs'
                   : 'text-label-secondary hover:text-label-primary'
@@ -594,21 +594,21 @@ export const ContestArenaPage: React.FC = () => {
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {isMobileProtected ? (
             <div
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 min-h-[34px] rounded-xl text-[10px] sm:text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
               title="Mobile Call Protection Active: Phone calls and incoming interruptions will not increase warnings"
             >
               <ShieldCheck size={12} className="sm:w-[13px] sm:h-[13px]" />
               <span className="hidden xs:inline">Call Protected</span>
             </div>
           ) : warnings > 0 ? (
-            <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
+            <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 min-h-[34px] rounded-xl text-[11px] sm:text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
               <AlertTriangle size={12} className="sm:w-[13px] sm:h-[13px]" />
               <span>Warnings: {warnings}/3</span>
             </div>
           ) : null}
 
           <div
-            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs font-mono font-bold ${timerColor}`}
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 min-h-[34px] rounded-xl border text-[11px] sm:text-xs font-mono font-bold ${timerColor}`}
           >
             <Clock size={12} className="sm:w-[13px] sm:h-[13px]" />
             <span>{formatTimer(secondsRemaining)}</span>
@@ -617,7 +617,7 @@ export const ContestArenaPage: React.FC = () => {
           <button
             onClick={() => setIsSubmitModalOpen(true)}
             disabled={submitting || antiCheatLocked}
-            className="px-2.5 sm:px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-3 sm:px-4 py-1.5 min-h-[36px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer disabled:opacity-50"
           >
             <Send size={12} className="sm:w-[13px] sm:h-[13px]" />
             <span className="hidden sm:inline">Submit Contest</span>
@@ -660,7 +660,7 @@ export const ContestArenaPage: React.FC = () => {
                             [currentMcq._id]: optIdx,
                           })
                         }
-                        className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border cursor-pointer transition-all flex items-center gap-3 sm:gap-3.5 text-xs font-medium ${
+                        className={`p-3.5 sm:p-4 min-h-[46px] rounded-xl sm:rounded-2xl border cursor-pointer transition-all flex items-center gap-3 sm:gap-3.5 text-xs font-medium ${
                           isSelected
                             ? 'bg-primary/10 border-primary text-label-primary shadow-xs ring-1 ring-primary'
                             : 'bg-surface border-separator hover:border-primary/40 text-label-secondary'
@@ -687,7 +687,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   disabled={currentMcqIdx === 0}
                   onClick={() => setCurrentMcqIdx(currentMcqIdx - 1)}
-                  className="px-3 sm:px-4 py-2 bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1 cursor-pointer"
+                  className="px-4 py-2 min-h-[40px] bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <ChevronLeft size={14} />
                   <span>Previous</span>
@@ -695,7 +695,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   disabled={currentMcqIdx === mcqs.length - 1}
                   onClick={() => setCurrentMcqIdx(currentMcqIdx + 1)}
-                  className="px-3 sm:px-4 py-2 bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1 cursor-pointer"
+                  className="px-4 py-2 min-h-[40px] bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <span>Next</span>
                   <ChevronRight size={14} />
@@ -716,7 +716,7 @@ export const ContestArenaPage: React.FC = () => {
                     <button
                       key={q._id}
                       onClick={() => setCurrentMcqIdx(idx)}
-                      className={`h-8 sm:h-10 rounded-lg sm:rounded-xl text-xs font-mono font-bold transition-all border cursor-pointer ${
+                      className={`h-8 sm:h-10 min-h-[34px] rounded-lg sm:rounded-xl text-xs font-mono font-bold transition-all border cursor-pointer ${
                         isCurrent
                           ? 'ring-2 ring-primary border-primary text-primary bg-primary/10'
                           : isAnswered
@@ -764,7 +764,7 @@ export const ContestArenaPage: React.FC = () => {
                       }`}
                     >
                       <FileText className="w-3.5 h-3.5" />
-                      <span>Problem</span>
+                      <span>Problem Details</span>
                     </button>
                     <button
                       type="button"
@@ -775,27 +775,19 @@ export const ContestArenaPage: React.FC = () => {
                           : 'text-label-secondary hover:text-label-primary'
                       }`}
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Test Cases ({displayTestCases.length})</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Public Test Cases ({displayTestCases.length})</span>
                     </button>
                   </div>
 
-                  {/* Left Tab Content Body */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-label-secondary leading-relaxed scrollbar-thin">
+                  {/* Left Scrollable Content */}
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {activeLeftTab === 'problem' ? (
                       <>
-                        {/* Title, Difficulty & Points */}
+                        {/* Problem Title & Meta */}
                         <div>
                           <div className="flex items-center gap-2 mb-2">
-                            <span
-                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                                currentCoding.difficulty === 'Easy'
-                                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                                  : currentCoding.difficulty === 'Hard'
-                                  ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                                  : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                              }`}
-                            >
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                               {currentCoding.difficulty}
                             </span>
                             <span className="text-xs font-mono font-bold text-amber-500">
@@ -861,7 +853,7 @@ export const ContestArenaPage: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleCopyText(currentCoding.sampleInput || '', 'sample-in')}
-                                    className="flex items-center gap-1 text-[10px] text-label-secondary hover:text-label-primary cursor-pointer"
+                                    className="flex items-center gap-1 text-[10px] text-label-secondary hover:text-label-primary cursor-pointer p-1"
                                   >
                                     {copiedKey === 'sample-in' ? (
                                       <Check className="w-3 h-3 text-emerald-500" />
@@ -882,7 +874,7 @@ export const ContestArenaPage: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => handleCopyText(currentCoding.sampleOutput || '', 'sample-out')}
-                                    className="flex items-center gap-1 text-[10px] text-label-secondary hover:text-label-primary cursor-pointer"
+                                    className="flex items-center gap-1 text-[10px] text-label-secondary hover:text-label-primary cursor-pointer p-1"
                                   >
                                     {copiedKey === 'sample-out' ? (
                                       <Check className="w-3 h-3 text-emerald-500" />
@@ -1301,7 +1293,7 @@ export const ContestArenaPage: React.FC = () => {
             <div className="flex lg:hidden flex-col flex-1 h-full w-full overflow-hidden bg-[#000000]">
               {/* Multi-Problem Switcher Bar on Mobile (if >1 problem) */}
               {codings.length > 1 && (
-                <div className="px-3 py-2 bg-neutral-950 border-b border-white/[0.08] flex items-center gap-1.5 overflow-x-auto shrink-0 z-20">
+                <div className="px-3 py-2 bg-neutral-950 border-b border-white/[0.08] flex items-center gap-1.5 overflow-x-auto custom-scrollbar touch-pan-x shrink-0 z-20">
                   {codings.map((p, idx) => {
                     const submission = (activeSession?.codingSubmissions || []).find(
                       (cs) => cs.problemId?.toString() === p._id.toString()
@@ -1315,7 +1307,7 @@ export const ContestArenaPage: React.FC = () => {
                         key={p._id}
                         type="button"
                         onClick={() => handleSwitchCodingProblem(idx)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                           isActive
                             ? 'bg-primary text-white shadow-xs'
                             : 'bg-white/[0.04] text-neutral-400 hover:text-white'
@@ -1342,7 +1334,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMobileTab('problem')}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     mobileTab === 'problem'
                       ? 'bg-white/[0.14] text-white shadow-xs'
                       : 'text-neutral-400 hover:text-neutral-200'
@@ -1355,7 +1347,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMobileTab('code')}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     mobileTab === 'code'
                       ? 'bg-primary text-white shadow-xs'
                       : 'text-neutral-400 hover:text-neutral-200'
@@ -1368,7 +1360,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMobileTab('testcases')}
-                  className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1 py-2 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     mobileTab === 'testcases'
                       ? 'bg-white/[0.14] text-white shadow-xs'
                       : 'text-neutral-400 hover:text-neutral-200'
@@ -1390,7 +1382,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMobileTab('console')}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     mobileTab === 'console'
                       ? 'bg-white/[0.14] text-white shadow-xs'
                       : 'text-neutral-400 hover:text-neutral-200'
@@ -1459,7 +1451,7 @@ export const ContestArenaPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setMobileTab('code')}
-                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-primary text-white flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                        className="w-full py-3 px-4 min-h-[44px] rounded-xl text-xs font-bold bg-primary text-white flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                       >
                         <Code2 className="w-4 h-4" />
                         <span>Write Code in Editor →</span>
@@ -1531,14 +1523,14 @@ export const ContestArenaPage: React.FC = () => {
                     </div>
 
                     {/* Mobile Quick Coding Accessory Keyboard Row */}
-                    <div className="h-10 border-t border-white/[0.08] bg-neutral-950 px-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 z-20">
+                    <div className="h-10 border-t border-white/[0.08] bg-neutral-950 px-2 flex items-center gap-1.5 overflow-x-auto custom-scrollbar touch-pan-x shrink-0 z-20">
                       {ACCESSORY_KEYS.map((acc, i) => (
                         <button
                           key={i}
                           type="button"
                           onClick={() => insertAccessorySnippet(acc.value)}
                           disabled={antiCheatLocked || executing || submitting}
-                          className="h-7 px-2.5 rounded-lg bg-white/[0.07] hover:bg-white/[0.14] active:bg-white/[0.22] text-xs font-mono font-medium text-neutral-200 border border-white/[0.08] transition-all shrink-0 cursor-pointer disabled:opacity-40"
+                          className="h-8 px-3 min-h-[32px] rounded-lg bg-white/[0.07] hover:bg-white/[0.14] active:bg-white/[0.22] text-xs font-mono font-medium text-neutral-200 border border-white/[0.08] transition-all shrink-0 cursor-pointer disabled:opacity-40"
                         >
                           {acc.label}
                         </button>
@@ -1632,13 +1624,13 @@ export const ContestArenaPage: React.FC = () => {
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                          <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar touch-pan-x pb-1">
                             {executionResult.testCaseResults.map((tc: any, i: number) => (
                               <button
                                 key={i}
                                 type="button"
                                 onClick={() => setSelectedTestCaseIdx(i)}
-                                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
+                                className={`flex items-center gap-1 px-3 py-1.5 min-h-[34px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
                                   selectedTestCaseIdx === i
                                     ? 'bg-white/[0.14] text-white border border-white/[0.15]'
                                     : 'bg-white/[0.03] text-neutral-400 hover:text-white border border-transparent'
@@ -1691,7 +1683,7 @@ export const ContestArenaPage: React.FC = () => {
                           type="button"
                           onClick={handleRunCode}
                           disabled={executing || submitting || antiCheatLocked || runCooldown > 0}
-                          className="text-primary font-bold hover:underline cursor-pointer"
+                          className="text-primary font-bold hover:underline cursor-pointer py-1 inline-block"
                         >
                           Run sample code now →
                         </button>
@@ -1718,7 +1710,7 @@ export const ContestArenaPage: React.FC = () => {
                     value={selectedLanguage}
                     onChange={(e) => handleLanguageChange(e.target.value)}
                     disabled={antiCheatLocked || executing || submitting}
-                    className="appearance-none bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.12] rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-200 transition-all cursor-pointer focus:outline-none pr-6"
+                    className="appearance-none bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.12] rounded-xl px-2.5 py-2 min-h-[42px] text-xs font-semibold text-neutral-200 transition-all cursor-pointer focus:outline-none pr-6"
                   >
                     <option value="python" className="bg-neutral-900 text-white">Python 3</option>
                     <option value="javascript" className="bg-neutral-900 text-white">JS</option>
@@ -1737,7 +1729,7 @@ export const ContestArenaPage: React.FC = () => {
                   onClick={handleResetStarterCode}
                   disabled={antiCheatLocked || executing || submitting}
                   title="Reset code template"
-                  className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-all border border-white/[0.08] shrink-0 cursor-pointer"
+                  className="p-2 min-w-[42px] min-h-[42px] rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-all border border-white/[0.08] shrink-0 inline-flex items-center justify-center cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
@@ -1747,7 +1739,7 @@ export const ContestArenaPage: React.FC = () => {
                   type="button"
                   onClick={handleRunCode}
                   disabled={executing || submitting || antiCheatLocked || runCooldown > 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] disabled:opacity-40 text-white transition-all border border-white/[0.1] cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 min-h-[42px] rounded-xl text-xs font-semibold bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] disabled:opacity-40 text-white transition-all border border-white/[0.1] cursor-pointer"
                 >
                   {executing ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-300" />
@@ -1766,7 +1758,7 @@ export const ContestArenaPage: React.FC = () => {
                   type="button"
                   onClick={handleSubmitProblemCode}
                   disabled={executing || submitting || antiCheatLocked}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-bold bg-primary hover:brightness-110 active:scale-98 disabled:opacity-40 text-white transition-all shadow-xs cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3.5 min-h-[42px] rounded-xl text-xs font-bold bg-primary hover:brightness-110 active:scale-98 disabled:opacity-40 text-white transition-all shadow-xs cursor-pointer"
                 >
                   {executing ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1789,7 +1781,7 @@ export const ContestArenaPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-3xl border border-separator max-w-md w-full p-6 space-y-4 shadow-2xl text-center"
+              className="bg-surface rounded-3xl border border-separator w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto p-6 space-y-4 shadow-2xl text-center"
             >
               <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
                 <Send size={24} />
@@ -1819,7 +1811,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsSubmitModalOpen(false)}
-                  className="py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors cursor-pointer"
+                  className="py-2.5 min-h-[42px] bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors cursor-pointer"
                 >
                   Back to Arena
                 </button>
@@ -1827,7 +1819,7 @@ export const ContestArenaPage: React.FC = () => {
                   type="button"
                   onClick={handleFinalSubmit}
                   disabled={submitting}
-                  className="py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                  className="py-2.5 min-h-[42px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer"
                 >
                   Confirm & Submit
                 </button>
@@ -1844,7 +1836,7 @@ export const ContestArenaPage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-surface rounded-3xl border border-emerald-500/30 max-w-md w-full p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
+              className="bg-surface rounded-3xl border border-emerald-500/30 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto p-6 sm:p-8 text-center space-y-6 shadow-2xl relative"
             >
               <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10 animate-bounce">
                 <Trophy size={32} />
@@ -1887,7 +1879,7 @@ export const ContestArenaPage: React.FC = () => {
                     }
                     setIsDetailModalOpen(true);
                   }}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-2.5 min-h-[42px] bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <FileCode2 size={14} />
                   <span>Review MCQ & Code Solutions</span>
@@ -1896,13 +1888,13 @@ export const ContestArenaPage: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => navigate('/contests')}
-                    className="flex-1 py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors cursor-pointer"
+                    className="flex-1 py-2.5 min-h-[42px] bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors cursor-pointer"
                   >
                     All Battles
                   </button>
                   <button
                     onClick={() => navigate(`/contests/${activeContest._id}/leaderboard`)}
-                    className="flex-1 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                    className="flex-1 py-2.5 min-h-[42px] bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
                   >
                     View Rankings
                   </button>
@@ -1911,7 +1903,7 @@ export const ContestArenaPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsReentryModalOpen(true)}
-                  className="w-full py-2 bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-primary text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-2 min-h-[40px] bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-primary text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw size={13} />
                   <span>Appeal / Request Contest Re-entry</span>
@@ -1935,7 +1927,7 @@ export const ContestArenaPage: React.FC = () => {
       {/* Proctored Lock Overlay on 3 Warnings Reached */}
       {antiCheatLocked && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#18181B] border border-red-500/30 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl shadow-red-500/10">
+          <div className="bg-[#18181B] border border-red-500/30 rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center shadow-2xl shadow-red-500/10">
             <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
               <ShieldAlert className="w-8 h-8" />
             </div>
@@ -1948,7 +1940,7 @@ export const ContestArenaPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsReentryModalOpen(true)}
-                className="flex-1 py-3 px-4 bg-surface hover:bg-surface-raised border border-separator text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 min-h-[44px] px-4 bg-surface hover:bg-surface-raised border border-separator text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <RotateCcw size={14} className="text-amber-400" />
                 <span>Appeal & Re-entry</span>
@@ -1956,7 +1948,7 @@ export const ContestArenaPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/contests')}
-                className="flex-1 py-3 px-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-xs rounded-xl transition-all shadow-lg shadow-red-500/20 cursor-pointer"
+                className="flex-1 py-3 min-h-[44px] px-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-xs rounded-xl transition-all shadow-lg shadow-red-500/20 cursor-pointer"
               >
                 Exit to Contests
               </button>

@@ -21,9 +21,9 @@ export const CertificatesPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'my' | 'studio'>('my');
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Top Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-5 sm:pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-4 sm:pb-6">
         <div>
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-1">
             <ShieldCheck size={16} />
@@ -32,7 +32,7 @@ export const CertificatesPage: React.FC = () => {
           <h1 className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
             Certificates & Credentials
           </h1>
-          <p className="text-xs text-label-tertiary mt-1 max-w-xl">
+          <p className="text-xs sm:text-sm text-label-tertiary mt-1 max-w-xl">
             Verifiable digital certificates backed by Code Circle and Bannari Amman Institute of Technology.
           </p>
         </div>
@@ -42,7 +42,7 @@ export const CertificatesPage: React.FC = () => {
           <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-raised border border-separator rounded-2xl shadow-xs shrink-0">
             <button
               onClick={() => setViewMode('my')}
-              className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'my'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-tertiary hover:text-label-primary'
@@ -53,7 +53,7 @@ export const CertificatesPage: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('studio')}
-              className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'studio'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-tertiary hover:text-label-primary'
