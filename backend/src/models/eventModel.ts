@@ -64,6 +64,9 @@ export interface IEventArenaAssessment {
   startTime?: Date;
   endTime?: Date;
   assignedAdmins: mongoose.Types.ObjectId[];
+  qualificationCutoffRank?: number; // e.g. 80: only top 80 from prior round qualify
+  isTeamMode?: boolean; // round operates in team mode
+  teamSize?: number; // expected team size (e.g. 2-4)
   questions: {
     mcqs: IEventArenaMcqQuestion[];
     coding: IEventArenaCodingProblem[];
@@ -147,6 +150,9 @@ export const eventArenaAssessmentSchema = new Schema<IEventArenaAssessment>(
         ref: 'User',
       },
     ],
+    qualificationCutoffRank: { type: Number, default: 0 },
+    isTeamMode: { type: Boolean, default: false },
+    teamSize: { type: Number, default: 2 },
     designChallenge: {
       title: { type: String, default: '', trim: true },
       description: { type: String, default: '', trim: true },

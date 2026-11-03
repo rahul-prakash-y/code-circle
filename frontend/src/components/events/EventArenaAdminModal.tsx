@@ -83,13 +83,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     adminSubmissions,
     loading,
     actionLoading,
+    arenaTeams,
+    fetchArenaTeams,
+    createArenaTeam,
+    assignArenaTeamMembers,
+    deleteArenaTeam,
   } = useEventArenaStore();
 
   const isSuperAdmin = user?.role === 'SuperAdmin';
 
   // Modal Views & Tabs
   const [isCreatingNew, setIsCreatingNew] = useState(false);
-  const [activeTab, setActiveTab] = useState<'settings' | 'mcq' | 'coding' | 'design' | 'submissions'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'mcq' | 'coding' | 'design' | 'teams' | 'submissions'>('settings');
 
   // New Assessment Form
   const [newTitle, setNewTitle] = useState('');
@@ -98,6 +103,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [newDuration, setNewDuration] = useState(60);
   const [newPassingScore, setNewPassingScore] = useState(50);
   const [newAssignedAdminIds, setNewAssignedAdminIds] = useState<string[]>([]);
+  const [newCutoffRank, setNewCutoffRank] = useState(0);
+  const [newIsTeamMode, setNewIsTeamMode] = useState(false);
+  const [newTeamSize, setNewTeamSize] = useState(2);
 
   // Selected Assessment Edit State
   const [editTitle, setEditTitle] = useState('');
@@ -107,7 +115,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [editDuration, setEditDuration] = useState(60);
   const [editPassingScore, setEditPassingScore] = useState(50);
   const [editAssignedAdminIds, setEditAssignedAdminIds] = useState<string[]>([]);
+  const [editCutoffRank, setEditCutoffRank] = useState(0);
+  const [editIsTeamMode, setEditIsTeamMode] = useState(false);
+  const [editTeamSize, setEditTeamSize] = useState(2);
   const [adminSearch, setAdminSearch] = useState('');
+
+  // Teams Management State
+  const [teamNameInput, setTeamNameInput] = useState('');
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
 
   // Design Challenge Form state
   const [designTitle, setDesignTitle] = useState('');
@@ -186,6 +202,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     if (isOpen && event?._id && selectedAssessmentId) {
       fetchAdminAssessmentQuestions(event._id, selectedAssessmentId);
       fetchAdminAssessmentSubmissions(event._id, selectedAssessmentId);
+      fetchArenaTeams(event._id);
     }
   }, [isOpen, event?._id, selectedAssessmentId]);
 
@@ -198,6 +215,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       setEditStatus(selectedAssessment.status || 'LIVE');
       setEditDuration(selectedAssessment.durationMinutes || 60);
       setEditPassingScore(selectedAssessment.passingPercentage || 50);
+      setEditCutoffRank(selectedAssessment.qualificationCutoffRank || 0);
+      setEditIsTeamMode(Boolean(selectedAssessment.isTeamMode));
+      setEditTeamSize(selectedAssessment.teamSize || 2);
 
       const assigned = (selectedAssessment.assignedAdmins || []).map((adm: any) =>
         adm?._id ? adm._id.toString() : adm.toString()
@@ -275,10 +295,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         durationMinutes: Number(newDuration),
         passingPercentage: Number(newPassingScore),
         assignedAdmins: newAssignedAdminIds,
+        qualificationCutoffRank: Number(newCutoffRank) || 0,
+        isTeamMode: newIsTeamMode,
+        teamSize: Number(newTeamSize) || 2,
       });
       setIsCreatingNew(false);
       setNewTitle('');
       setNewDesc('');
+      setNewCutoffRank(0);
+      setNewIsTeamMode(false);
+      setNewTeamSize(2);
       setNewAssignedAdminIds([]);
     } catch {
       // Error handled in store
@@ -295,6 +321,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         status: editStatus,
         durationMinutes: Number(editDuration),
         passingPercentage: Number(editPassingScore),
+        qualificationCutoffRank: Number(editCutoffRank) || 0,
+        isTeamMode: editIsTeamMode,
+        teamSize: Number(editTeamSize) || 2,
         assignedAdmins: isSuperAdmin ? editAssignedAdminIds : undefined,
       });
     } catch {
@@ -642,6 +671,52 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
                 </div>
 
+                {/* Qualification Cutoff & Team Mode */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-white/80 mb-1.5">
+                      Qualify Top Students (Cutoff)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={newCutoffRank}
+                      onChange={(e) => setNewCutoffRank(Number(e.target.value))}
+                      placeholder="e.g. 80 (0 for all)"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none focus:border-purple-500"
+                    />
+                    <p className="text-[10px] text-white/40 mt-1">
+                      Top N from previous round allowed (0 = open to all enrolled).
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-white/80 mb-1.5">Round Mode</label>
+                    <select
+                      value={newIsTeamMode ? 'team' : 'individual'}
+                      onChange={(e) => setNewIsTeamMode(e.target.value === 'team')}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none"
+                    >
+                      <option value="individual">Individual Participation</option>
+                      <option value="team">👥 Team Mode (Manual Assignment)</option>
+                    </select>
+                  </div>
+
+                  {newIsTeamMode && (
+                    <div>
+                      <label className="block text-xs font-bold text-white/80 mb-1.5">Team Size</label>
+                      <input
+                        type="number"
+                        min={2}
+                        max={10}
+                        value={newTeamSize}
+                        onChange={(e) => setNewTeamSize(Number(e.target.value))}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 {/* Assigned Admins Selector */}
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
@@ -810,6 +885,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 )}
 
                 <button
+                  onClick={() => setActiveTab('teams')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    activeTab === 'teams'
+                      ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
+                      : 'text-text-muted hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Users size={13} />
+                  <span>Teams ({arenaTeams.length})</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab('submissions')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
                     activeTab === 'submissions'
@@ -943,6 +1030,55 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
                         />
                       </div>
+                    </div>
+
+                    {/* Cutoff & Team Mode Configuration */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">
+                          Top Rank Cutoff (Next Round)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={editCutoffRank}
+                          onChange={(e) => setEditCutoffRank(Number(e.target.value))}
+                          disabled={!canManageSelected}
+                          placeholder="e.g. 80 (0 for no limit)"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                        />
+                        <p className="text-[10px] text-white/40 mt-1">
+                          Only top {editCutoffRank || 0} students from previous round attend.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-white/80 mb-1.5">Round Mode</label>
+                        <select
+                          value={editIsTeamMode ? 'team' : 'individual'}
+                          onChange={(e) => setEditIsTeamMode(e.target.value === 'team')}
+                          disabled={!canManageSelected}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                        >
+                          <option value="individual">Individual Participation</option>
+                          <option value="team">👥 Team Mode (Manual Allocation)</option>
+                        </select>
+                      </div>
+
+                      {editIsTeamMode && (
+                        <div>
+                          <label className="block text-xs font-bold text-white/80 mb-1.5">Team Size</label>
+                          <input
+                            type="number"
+                            min={2}
+                            max={10}
+                            value={editTeamSize}
+                            onChange={(e) => setEditTeamSize(Number(e.target.value))}
+                            disabled={!canManageSelected}
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1890,6 +2026,159 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </div>
                     )}
                   </form>
+                </div>
+              )}
+
+              {/* TAB 3.8: TEAMS MANAGEMENT (MANUAL ALLOCATION) */}
+              {activeTab === 'teams' && (
+                <div className="max-w-4xl mx-auto space-y-6">
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                        <Users size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <span>Arena Teams & Manual Allocation</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            {arenaTeams.length} Teams
+                          </span>
+                        </h4>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Manually form teams and assign participants for team-mode arena rounds.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Create Team Form */}
+                  {canManageSelected && (
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+                      <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                        <Plus size={14} className="text-blue-400" />
+                        <span>Create New Team</span>
+                      </h4>
+
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <input
+                          type="text"
+                          value={teamNameInput}
+                          onChange={(e) => setTeamNameInput(e.target.value)}
+                          placeholder="Enter team name (e.g. Code Phoenix, DevSquad)..."
+                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 outline-none focus:border-blue-500"
+                        />
+                        <button
+                          type="button"
+                          disabled={actionLoading || !teamNameInput.trim()}
+                          onClick={async () => {
+                            if (!teamNameInput.trim()) return;
+                            await createArenaTeam(event._id, {
+                              name: teamNameInput.trim(),
+                              memberUserIds: [],
+                            });
+                            setTeamNameInput('');
+                          }}
+                          className="px-5 py-2.5 min-h-[40px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {actionLoading && <Loader2 size={13} className="animate-spin" />}
+                          <Plus size={13} />
+                          <span>Create Team</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Existing Teams List */}
+                  {arenaTeams.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-2">
+                      <Users size={28} className="mx-auto text-white/30" />
+                      <h4 className="text-sm font-bold text-white">No Teams Formed Yet</h4>
+                      <p className="text-xs text-text-muted max-w-sm mx-auto">
+                        Create teams above to assign participants. Students in team-mode rounds will share submissions and scoring.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {arenaTeams.map((team) => (
+                        <div
+                          key={team._id}
+                          className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold text-xs">
+                                👥
+                              </span>
+                              <div>
+                                <h5 className="text-sm font-bold text-white">{team.name}</h5>
+                                <p className="text-[10px] text-white/50">{team.members.length} members</p>
+                              </div>
+                            </div>
+
+                            {canManageSelected && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Delete team "${team.name}"?`)) {
+                                    deleteArenaTeam(event._id, team._id);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Member List */}
+                          <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                            {team.members.length === 0 ? (
+                              <p className="text-[11px] text-white/40 italic">No members assigned yet.</p>
+                            ) : (
+                              team.members.map((mem) => (
+                                <div
+                                  key={mem._id}
+                                  className="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs text-white/80"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="w-5 h-5 rounded-full overflow-hidden bg-white/10 shrink-0">
+                                      <img
+                                        src={mem.profilePicUrl || `https://ui-avatars.com/api/?name=${mem.name}&size=40`}
+                                        alt={mem.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <span className="truncate font-semibold text-[11px]">{mem.name}</span>
+                                    {mem.rollNo && (
+                                      <span className="text-[10px] text-white/40 font-mono">({mem.rollNo})</span>
+                                    )}
+                                  </div>
+
+                                  {canManageSelected && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const remaining = team.members
+                                          .filter((m) => m._id !== mem._id)
+                                          .map((m) => m._id);
+                                        assignArenaTeamMembers(event._id, team._id, {
+                                          memberUserIds: remaining,
+                                        });
+                                      }}
+                                      className="text-white/40 hover:text-rose-400 text-xs px-1"
+                                      title="Remove member"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -9,6 +9,7 @@ import Event, {
 import EventArenaSubmission from '../models/eventArenaSubmissionModel';
 import Enrollment from '../models/enrollmentModel';
 import User from '../models/userModel';
+import Team from '../models/teamModel';
 import rceService from '../services/rceService';
 import * as XLSX from 'xlsx';
 
@@ -1514,6 +1515,9 @@ export const getEventAssessmentsList = async (
         startTime: assessment.startTime,
         endTime: assessment.endTime,
         assignedAdmins: assessment.assignedAdmins || [],
+        qualificationCutoffRank: assessment.qualificationCutoffRank || 0,
+        isTeamMode: Boolean(assessment.isTeamMode),
+        teamSize: assessment.teamSize || 2,
         mcqCount: (assessment.questions?.mcqs || []).length,
         codingCount: (assessment.questions?.coding || []).length,
         canManage: isAssigned,
@@ -1563,6 +1567,9 @@ export const createEventAssessment = async (
       startTime?: string | Date;
       endTime?: string | Date;
       assignedAdmins?: string[];
+      qualificationCutoffRank?: number;
+      isTeamMode?: boolean;
+      teamSize?: number;
     };
   }>,
   reply: FastifyReply
@@ -1615,6 +1622,9 @@ export const createEventAssessment = async (
       startTime: body.startTime ? new Date(body.startTime) : undefined,
       endTime: body.endTime ? new Date(body.endTime) : undefined,
       assignedAdmins,
+      qualificationCutoffRank: Number(body.qualificationCutoffRank) || 0,
+      isTeamMode: Boolean(body.isTeamMode),
+      teamSize: Number(body.teamSize) || 2,
       questions: { mcqs: [], coding: [] },
     };
 
@@ -1665,6 +1675,9 @@ export const updateEventAssessment = async (
       startTime?: string | Date;
       endTime?: string | Date;
       assignedAdmins?: string[];
+      qualificationCutoffRank?: number;
+      isTeamMode?: boolean;
+      teamSize?: number;
     };
   }>,
   reply: FastifyReply
@@ -1715,6 +1728,12 @@ export const updateEventAssessment = async (
       assessment.startTime = body.startTime ? new Date(body.startTime) : undefined;
     if (body.endTime !== undefined)
       assessment.endTime = body.endTime ? new Date(body.endTime) : undefined;
+    if (body.qualificationCutoffRank !== undefined)
+      assessment.qualificationCutoffRank = Number(body.qualificationCutoffRank) || 0;
+    if (body.isTeamMode !== undefined)
+      assessment.isTeamMode = Boolean(body.isTeamMode);
+    if (body.teamSize !== undefined)
+      assessment.teamSize = Number(body.teamSize) || 2;
 
     await event.save();
 
@@ -2134,8 +2153,9 @@ export const getAdminAssessmentSubmissions = async (
 
     const submissions = await EventArenaSubmission.find({ eventId: id, assessmentId })
       .populate('userId', 'name rollNo email profilePicUrl department year college residenceType')
+      .populate('teamId', 'name')
       .populate('designSubmission.evaluatedBy', 'name email role')
-      .sort({ totalScore: -1, submittedAt: 1 })
+      .sort({ totalScore: -1, timeTakenSeconds: 1, submittedAt: 1 })
       .lean();
 
     return reply.send({
@@ -2157,6 +2177,59 @@ export const getAdminAssessmentSubmissions = async (
       error: 'Failed to fetch assessment submissions',
     });
   }
+};
+
+// ---------------------------------------------------------------------------
+// Helper: Check if a student is qualified for an assessment round
+// ---------------------------------------------------------------------------
+export const checkAssessmentQualification = async (
+  event: any,
+  assessmentIndex: number,
+  userId: any
+): Promise<{ isQualified: boolean; reason?: string; requiredRank?: number; previousRoundTitle?: string }> => {
+  // Round 0 (first round): anyone enrolled is eligible
+  if (assessmentIndex <= 0) {
+    return { isQualified: true };
+  }
+
+  const currentAssessment = event.arenaAssessments[assessmentIndex];
+  const cutoffRank = currentAssessment?.qualificationCutoffRank || 0;
+
+  // If cutoffRank is 0 or undefined, no qualification limit is enforced
+  if (!cutoffRank || cutoffRank <= 0) {
+    return { isQualified: true };
+  }
+
+  // Previous round
+  const prevAssessment = event.arenaAssessments[assessmentIndex - 1];
+  if (!prevAssessment) {
+    return { isQualified: true };
+  }
+
+  // Find top N on the previous round's leaderboard
+  const topSubmissions = await EventArenaSubmission.find({
+    eventId: event._id,
+    assessmentId: prevAssessment._id.toString(),
+    status: { $in: ['SUBMITTED', 'AUTO_SUBMITTED'] },
+  })
+    .sort({ totalScore: -1, timeTakenSeconds: 1, submittedAt: 1 })
+    .limit(cutoffRank)
+    .lean();
+
+  const isUserQualified = topSubmissions.some(
+    (sub: any) => sub.userId.toString() === userId.toString()
+  );
+
+  if (!isUserQualified) {
+    return {
+      isQualified: false,
+      reason: `Only top ${cutoffRank} participants from ${prevAssessment.title} qualify for this round.`,
+      requiredRank: cutoffRank,
+      previousRoundTitle: prevAssessment.title,
+    };
+  }
+
+  return { isQualified: true };
 };
 
 // ---------------------------------------------------------------------------
@@ -2190,10 +2263,46 @@ export const getStudentAssessmentData = async (
       }
     }
 
-    const assessment = (event.arenaAssessments || []).find(
+    const assessmentIndex = (event.arenaAssessments || []).findIndex(
       (a: any) => a._id.toString() === assessmentId
     );
-    if (!assessment) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    if (assessmentIndex === -1 || !event.arenaAssessments) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    const assessment = event.arenaAssessments[assessmentIndex];
+
+    // Check qualification for non-admin students
+    if (!isAdminRole) {
+      const qualCheck = await checkAssessmentQualification(event, assessmentIndex, user._id);
+      if (!qualCheck.isQualified) {
+        return reply.status(403).send({
+          success: false,
+          error: qualCheck.reason,
+          isDisqualifiedByRank: true,
+          qualification: qualCheck,
+        });
+      }
+    }
+
+    // If round has team mode, locate student's team
+    let teamInfo: any = null;
+    if (assessment.isTeamMode) {
+      const assignedTeam = await Team.findOne({
+        event: event._id,
+        members: user._id,
+        status: 'Active',
+      })
+        .populate('members', 'name rollNo email profilePicUrl department')
+        .populate('leader', 'name rollNo email')
+        .lean();
+
+      if (assignedTeam) {
+        teamInfo = {
+          _id: assignedTeam._id,
+          name: assignedTeam.name,
+          leader: assignedTeam.leader,
+          members: assignedTeam.members,
+        };
+      }
+    }
 
     const submission = await EventArenaSubmission.findOne({
       eventId: event._id,
@@ -2237,8 +2346,12 @@ export const getStudentAssessmentData = async (
         totalPoints: assessment.totalPoints,
         passingPercentage: assessment.passingPercentage,
         rules: assessment.rules,
+        qualificationCutoffRank: assessment.qualificationCutoffRank || 0,
+        isTeamMode: Boolean(assessment.isTeamMode),
+        teamSize: assessment.teamSize || 2,
         designChallenge: assessment.designChallenge || null,
       },
+      team: teamInfo,
       mcqs: sanitizedMcqs,
       coding: sanitizedCoding,
       designChallenge: assessment.designChallenge || null,
@@ -2270,10 +2383,37 @@ export const startAssessmentSession = async (
       return reply.status(400).send({ success: false, error: 'Event Arena is not available' });
     }
 
-    const assessment = (event.arenaAssessments || []).find(
+    const assessmentIndex = (event.arenaAssessments || []).findIndex(
       (a: any) => a._id.toString() === assessmentId
     );
-    if (!assessment) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    if (assessmentIndex === -1 || !event.arenaAssessments) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    const assessment = event.arenaAssessments[assessmentIndex];
+
+    const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
+    if (!isAdminRole) {
+      const qualCheck = await checkAssessmentQualification(event, assessmentIndex, user._id);
+      if (!qualCheck.isQualified) {
+        return reply.status(403).send({
+          success: false,
+          error: qualCheck.reason,
+        });
+      }
+    }
+
+    // Check team info if team mode
+    let userTeamId: any = undefined;
+    let userTeamName = '';
+    if (assessment.isTeamMode) {
+      const assignedTeam = await Team.findOne({
+        event: event._id,
+        members: user._id,
+        status: 'Active',
+      }).lean();
+      if (assignedTeam) {
+        userTeamId = assignedTeam._id;
+        userTeamName = assignedTeam.name;
+      }
+    }
 
     let submission = await EventArenaSubmission.findOne({
       eventId: event._id,
@@ -2286,6 +2426,8 @@ export const startAssessmentSession = async (
         eventId: event._id,
         assessmentId,
         userId: user._id,
+        teamId: userTeamId,
+        teamName: userTeamName,
         status: 'IN_PROGRESS',
         startedAt: new Date(),
         maxPossibleScore: assessment.totalPoints || 100,
@@ -2507,7 +2649,10 @@ export const submitAssessmentCodingProblem = async (
 export const submitAssessmentFinal = async (
   request: FastifyRequest<{
     Params: { id: string; assessmentId: string };
-    Body: { mcqAnswers?: Array<{ questionId: string; selectedOptionIndex: number }> };
+    Body: {
+      mcqAnswers?: Array<{ questionId: string; selectedOptionIndex: number }>;
+      tabSwitchCount?: number;
+    };
   }>,
   reply: FastifyReply
 ) => {
@@ -2515,7 +2660,7 @@ export const submitAssessmentFinal = async (
     const user = request.user;
     if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
     const { id, assessmentId } = request.params;
-    const { mcqAnswers = [] } = request.body || {};
+    const { mcqAnswers = [], tabSwitchCount = 0 } = request.body || {};
 
     const event = await Event.findById(id).lean();
     if (!event || !event.hasArena) {
@@ -2570,18 +2715,33 @@ export const submitAssessmentFinal = async (
     );
     submission.codingScore = codingScore;
 
-    const totalScore = mcqScore + codingScore;
+    const rawTotalScore = mcqScore + codingScore;
     const maxPossible = assessment.totalPoints || 100;
-    const scorePercentage = maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
+
+    // 5% mark reduction on every tab switch
+    const safeTabSwitchCount = Math.max(0, Number(tabSwitchCount) || submission.tabSwitchCount || 0);
+    const penaltyPercent = Math.min(100, safeTabSwitchCount * 5); // 5% per switch, capped at 100%
+    const penaltyDeduction = (rawTotalScore * penaltyPercent) / 100;
+    const adjustedTotalScore = Math.max(0, Math.round((rawTotalScore - penaltyDeduction) * 10) / 10);
+
+    const scorePercentage = maxPossible > 0 ? Math.round((adjustedTotalScore / maxPossible) * 100) : 0;
     const passingPercentage = assessment.passingPercentage ?? 50;
     const isPassed = scorePercentage >= passingPercentage;
 
-    submission.totalScore = totalScore;
+    const now = new Date();
+    const started = submission.startedAt ? new Date(submission.startedAt) : now;
+    const timeTakenSeconds = Math.max(0, Math.floor((now.getTime() - started.getTime()) / 1000));
+
+    submission.rawTotalScore = rawTotalScore;
+    submission.tabSwitchCount = safeTabSwitchCount;
+    submission.tabSwitchPenaltyPercentage = penaltyPercent;
+    submission.totalScore = adjustedTotalScore;
     submission.maxPossibleScore = maxPossible;
     submission.scorePercentage = scorePercentage;
     submission.isPassed = isPassed;
     submission.status = 'SUBMITTED';
-    submission.submittedAt = new Date();
+    submission.submittedAt = now;
+    submission.timeTakenSeconds = timeTakenSeconds;
 
     await submission.save();
 
@@ -2589,12 +2749,16 @@ export const submitAssessmentFinal = async (
       success: true,
       message: 'Assessment submitted successfully!',
       results: {
-        totalScore,
+        rawTotalScore,
+        tabSwitchCount: safeTabSwitchCount,
+        tabSwitchPenaltyPercentage: penaltyPercent,
+        totalScore: adjustedTotalScore,
         maxPossibleScore: maxPossible,
         scorePercentage,
         isPassed,
         mcqScore,
         codingScore,
+        timeTakenSeconds,
         status: submission.status,
         submittedAt: submission.submittedAt,
       },
@@ -2624,13 +2788,18 @@ export const getAssessmentLeaderboard = async (
       status: { $in: ['SUBMITTED', 'AUTO_SUBMITTED'] },
     })
       .populate('userId', 'name rollNo email profilePicUrl department residenceType')
-      .sort({ totalScore: -1, submittedAt: 1 })
+      .populate('teamId', 'name')
+      .sort({ totalScore: -1, timeTakenSeconds: 1, submittedAt: 1 })
       .limit(100)
       .lean();
 
     const leaderboard = submissions.map((s: any, idx: number) => ({
       rank: idx + 1,
       student: s.userId,
+      teamName: s.teamName || s.teamId?.name || null,
+      rawTotalScore: s.rawTotalScore ?? s.totalScore,
+      tabSwitchCount: s.tabSwitchCount || 0,
+      tabSwitchPenaltyPercentage: s.tabSwitchPenaltyPercentage || 0,
       totalScore: s.totalScore,
       maxPossibleScore: s.maxPossibleScore,
       scorePercentage: s.scorePercentage,
@@ -2638,6 +2807,7 @@ export const getAssessmentLeaderboard = async (
       codingScore: s.codingScore,
       designScore: s.designScore || s.designSubmission?.pointsEarned || 0,
       hasDesignSubmission: !!s.designSubmission?.figmaLink,
+      timeTakenSeconds: s.timeTakenSeconds || 0,
       isPassed: s.isPassed,
       submittedAt: s.submittedAt,
     }));
@@ -2913,4 +3083,146 @@ export const evaluateAssessmentDesign = async (
     });
   }
 };
+
+// ---------------------------------------------------------------------------
+// 33. Arena Teams Management (Create Team & Assign Members for Event Arena)
+// ---------------------------------------------------------------------------
+export const getArenaTeams = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const { id } = request.params;
+    const teams = await Team.find({ event: id, status: 'Active' })
+      .populate('members', 'name rollNo email profilePicUrl department year')
+      .populate('leader', 'name rollNo email')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return reply.send({ success: true, teams });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({ success: false, error: 'Failed to fetch teams' });
+  }
+};
+
+export const createArenaTeam = async (
+  request: FastifyRequest<{
+    Params: { id: string };
+    Body: { name: string; memberUserIds?: string[]; leaderUserId?: string };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    const { id } = request.params;
+    const { name, memberUserIds = [], leaderUserId } = request.body || {};
+
+    if (!name || !name.trim()) {
+      return reply.status(400).send({ success: false, error: 'Team name is required' });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) return reply.status(404).send({ success: false, error: 'Event not found' });
+
+    if (!canManageEventArenaQuestions(user, event)) {
+      return reply.status(403).send({ success: false, error: 'Unauthorized to manage teams' });
+    }
+
+    const existingTeam = await Team.findOne({ name: name.trim(), event: id });
+    if (existingTeam) {
+      return reply.status(400).send({ success: false, error: 'Team with this name already exists in this event' });
+    }
+
+    const memberObjectIds = memberUserIds.map((m) => new mongoose.Types.ObjectId(m));
+    const leaderObjectId = leaderUserId ? new mongoose.Types.ObjectId(leaderUserId) : memberObjectIds[0];
+
+    const team = await Team.create({
+      name: name.trim(),
+      event: event._id,
+      members: memberObjectIds,
+      leader: leaderObjectId,
+      status: 'Active',
+      isActive: true,
+      createdBy: user._id,
+    });
+
+    const populated = await Team.findById(team._id)
+      .populate('members', 'name rollNo email profilePicUrl department year')
+      .populate('leader', 'name rollNo email');
+
+    return reply.status(201).send({ success: true, message: 'Team created successfully', team: populated });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({ success: false, error: err.message || 'Failed to create team' });
+  }
+};
+
+export const assignArenaTeamMembers = async (
+  request: FastifyRequest<{
+    Params: { id: string; teamId: string };
+    Body: { memberUserIds: string[]; leaderUserId?: string };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    const { id, teamId } = request.params;
+    const { memberUserIds = [], leaderUserId } = request.body || {};
+
+    const event = await Event.findById(id);
+    if (!event) return reply.status(404).send({ success: false, error: 'Event not found' });
+
+    if (!canManageEventArenaQuestions(user, event)) {
+      return reply.status(403).send({ success: false, error: 'Unauthorized to manage teams' });
+    }
+
+    const team = await Team.findOne({ _id: teamId, event: id });
+    if (!team) return reply.status(404).send({ success: false, error: 'Team not found' });
+
+    const memberObjectIds = memberUserIds.map((m) => new mongoose.Types.ObjectId(m));
+    team.members = memberObjectIds;
+    if (leaderUserId) {
+      team.leader = new mongoose.Types.ObjectId(leaderUserId);
+    } else if (memberObjectIds.length > 0 && !team.leader) {
+      team.leader = memberObjectIds[0];
+    }
+
+    await team.save();
+
+    const populated = await Team.findById(team._id)
+      .populate('members', 'name rollNo email profilePicUrl department year')
+      .populate('leader', 'name rollNo email');
+
+    return reply.send({ success: true, message: 'Team members updated successfully', team: populated });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({ success: false, error: err.message || 'Failed to assign team members' });
+  }
+};
+
+export const deleteArenaTeam = async (
+  request: FastifyRequest<{ Params: { id: string; teamId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    const { id, teamId } = request.params;
+
+    const event = await Event.findById(id);
+    if (!event) return reply.status(404).send({ success: false, error: 'Event not found' });
+
+    if (!canManageEventArenaQuestions(user, event)) {
+      return reply.status(403).send({ success: false, error: 'Unauthorized to manage teams' });
+    }
+
+    await Team.deleteOne({ _id: teamId, event: id });
+    return reply.send({ success: true, message: 'Team removed successfully' });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({ success: false, error: 'Failed to delete team' });
+  }
+};
+
 

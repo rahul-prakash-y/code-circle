@@ -81,6 +81,9 @@ export interface ArenaAssessment {
   startTime?: string;
   endTime?: string;
   assignedAdmins: ArenaAdminCandidate[];
+  qualificationCutoffRank?: number;
+  isTeamMode?: boolean;
+  teamSize?: number;
   mcqCount?: number;
   codingCount?: number;
   canManage?: boolean;
@@ -88,6 +91,10 @@ export interface ArenaAssessment {
   submission?: {
     status: 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
     totalScore: number;
+    rawTotalScore?: number;
+    tabSwitchCount?: number;
+    tabSwitchPenaltyPercentage?: number;
+    timeTakenSeconds?: number;
     maxPossibleScore: number;
     scorePercentage: number;
     isPassed: boolean;
@@ -114,9 +121,12 @@ export interface ArenaSubmission {
   eventId: string;
   assessmentId?: string;
   userId: string;
+  teamId?: any;
+  teamName?: string;
   status: 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
   startedAt: string;
   submittedAt?: string;
+  timeTakenSeconds?: number;
   mcqAnswers?: Array<{
     questionId: string;
     selectedOptionIndex: number;
@@ -136,10 +146,32 @@ export interface ArenaSubmission {
   designScore?: number;
   mcqScore: number;
   codingScore: number;
+  rawTotalScore?: number;
+  tabSwitchCount?: number;
+  tabSwitchPenaltyPercentage?: number;
   totalScore: number;
   maxPossibleScore: number;
   scorePercentage: number;
   isPassed: boolean;
+}
+
+export interface ArenaTeamMember {
+  _id: string;
+  name: string;
+  rollNo?: string;
+  email: string;
+  profilePicUrl?: string;
+  department?: string;
+}
+
+export interface ArenaTeam {
+  _id: string;
+  name: string;
+  leader?: ArenaTeamMember;
+  members: ArenaTeamMember[];
+  event: string;
+  status: string;
+  createdAt?: string;
 }
 
 interface EventArenaState {
@@ -161,11 +193,13 @@ interface EventArenaState {
 
   // Student Arena state
   currentEvent: any | null;
+  studentTeam: ArenaTeam | null;
   studentMcqs: ArenaMcqQuestion[];
   studentCoding: ArenaCodingProblem[];
   studentDesignChallenge: ArenaDesignChallenge | null;
   submission: ArenaSubmission | null;
   leaderboard: any[];
+  arenaTeams: ArenaTeam[];
 
   // Actions
   setSelectedAssessment: (assessment: ArenaAssessment | null) => void;
@@ -208,6 +242,10 @@ interface EventArenaState {
     mode?: 'append' | 'replace'
   ) => Promise<any>;
   fetchAdminAssessmentSubmissions: (eventId: string, assessmentId: string) => Promise<any>;
+  fetchArenaTeams: (eventId: string) => Promise<ArenaTeam[]>;
+  createArenaTeam: (eventId: string, data: { name: string; memberUserIds: string[]; leaderUserId?: string }) => Promise<any>;
+  assignArenaTeamMembers: (eventId: string, teamId: string, data: { memberUserIds: string[]; leaderUserId?: string }) => Promise<any>;
+  deleteArenaTeam: (eventId: string, teamId: string) => Promise<any>;
 
   // Student Multi-Assessment Actions
   fetchStudentAssessmentData: (eventId: string, assessmentId: string) => Promise<any>;
@@ -229,7 +267,10 @@ interface EventArenaState {
   submitAssessmentFinal: (
     eventId: string,
     assessmentId: string,
-    mcqAnswers: Array<{ questionId: string; selectedOptionIndex: number }>
+    data: {
+      mcqAnswers?: Array<{ questionId: string; selectedOptionIndex: number }>;
+      tabSwitchCount?: number;
+    }
   ) => Promise<any>;
   submitAssessmentDesign: (
     eventId: string,
@@ -296,11 +337,13 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   adminSubmissions: [],
 
   currentEvent: null,
+  studentTeam: null,
   studentMcqs: [],
   studentCoding: [],
   studentDesignChallenge: null,
   submission: null,
   leaderboard: [],
+  arenaTeams: [],
 
   setSelectedAssessment: (assessment) => set({ selectedAssessment: assessment }),
 
@@ -578,6 +621,70 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
     }
   },
 
+  fetchArenaTeams: async (eventId: string) => {
+    try {
+      const res = await api.get(`/events/${eventId}/arena/teams`);
+      const teams = res.data.teams || [];
+      set({ arenaTeams: teams });
+      return teams;
+    } catch (err: any) {
+      console.error('Failed to fetch arena teams:', err);
+      return [];
+    }
+  },
+
+  createArenaTeam: async (eventId: string, data: { name: string; memberUserIds: string[]; leaderUserId?: string }) => {
+    set({ actionLoading: true });
+    try {
+      const res = await api.post(`/events/${eventId}/arena/teams`, data);
+      toast.success(res.data.message || 'Team created successfully!');
+      await get().fetchArenaTeams(eventId);
+      set({ actionLoading: false });
+      return res.data.team;
+    } catch (err: any) {
+      set({ actionLoading: false });
+      const msg = err.response?.data?.error || 'Failed to create team';
+      toast.error(msg);
+      throw err;
+    }
+  },
+
+  assignArenaTeamMembers: async (
+    eventId: string,
+    teamId: string,
+    data: { memberUserIds: string[]; leaderUserId?: string }
+  ) => {
+    set({ actionLoading: true });
+    try {
+      const res = await api.put(`/events/${eventId}/arena/teams/${teamId}/members`, data);
+      toast.success(res.data.message || 'Team members updated successfully!');
+      await get().fetchArenaTeams(eventId);
+      set({ actionLoading: false });
+      return res.data.team;
+    } catch (err: any) {
+      set({ actionLoading: false });
+      const msg = err.response?.data?.error || 'Failed to assign team members';
+      toast.error(msg);
+      throw err;
+    }
+  },
+
+  deleteArenaTeam: async (eventId: string, teamId: string) => {
+    set({ actionLoading: true });
+    try {
+      const res = await api.delete(`/events/${eventId}/arena/teams/${teamId}`);
+      toast.success(res.data.message || 'Team deleted successfully!');
+      await get().fetchArenaTeams(eventId);
+      set({ actionLoading: false });
+      return true;
+    } catch (err: any) {
+      set({ actionLoading: false });
+      const msg = err.response?.data?.error || 'Failed to delete team';
+      toast.error(msg);
+      throw err;
+    }
+  },
+
   // ---------------------------------------------------------------------------
   // Student Multi-Assessment Participation
   // ---------------------------------------------------------------------------
@@ -587,6 +694,7 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
       const res = await api.get(`/events/${eventId}/arena/assessments/${assessmentId}/data`);
       set({
         currentEvent: res.data.event,
+        studentTeam: res.data.team || null,
         studentMcqs: res.data.mcqs || [],
         studentCoding: res.data.coding || [],
         studentDesignChallenge: res.data.designChallenge || null,
@@ -667,13 +775,16 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   submitAssessmentFinal: async (
     eventId: string,
     assessmentId: string,
-    mcqAnswers: Array<{ questionId: string; selectedOptionIndex: number }>
+    data: {
+      mcqAnswers?: Array<{ questionId: string; selectedOptionIndex: number }>;
+      tabSwitchCount?: number;
+    }
   ) => {
     set({ actionLoading: true });
     try {
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/submit`,
-        { mcqAnswers }
+        data
       );
       toast.success(res.data.message || 'Assessment submitted successfully!');
       set({ actionLoading: false });

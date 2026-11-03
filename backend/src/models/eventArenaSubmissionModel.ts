@@ -42,15 +42,21 @@ export interface IEventArenaSubmission extends Document {
   eventId: mongoose.Types.ObjectId;
   assessmentId: string;
   userId: mongoose.Types.ObjectId;
+  teamId?: mongoose.Types.ObjectId;
+  teamName?: string;
   status: EventArenaSubmissionStatus;
   startedAt: Date;
   submittedAt?: Date;
+  timeTakenSeconds?: number;
   mcqAnswers: IMCQAnswer[];
   codingSubmissions: ICodingSubmissionItem[];
   designSubmission?: IDesignSubmissionItem;
   mcqScore: number;
   codingScore: number;
   designScore: number;
+  rawTotalScore: number;
+  tabSwitchCount: number;
+  tabSwitchPenaltyPercentage: number;
   totalScore: number;
   maxPossibleScore: number;
   scorePercentage: number;
@@ -134,6 +140,16 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
       required: true,
       index: true,
     },
+    teamId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Team',
+      default: null,
+      index: true,
+    },
+    teamName: {
+      type: String,
+      default: '',
+    },
     status: {
       type: String,
       enum: ['IN_PROGRESS', 'SUBMITTED', 'AUTO_SUBMITTED'],
@@ -147,6 +163,10 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
     },
     submittedAt: {
       type: Date,
+    },
+    timeTakenSeconds: {
+      type: Number,
+      default: 0,
     },
     mcqAnswers: {
       type: [mcqAnswerSchema],
@@ -169,6 +189,18 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
       default: 0,
     },
     designScore: {
+      type: Number,
+      default: 0,
+    },
+    rawTotalScore: {
+      type: Number,
+      default: 0,
+    },
+    tabSwitchCount: {
+      type: Number,
+      default: 0,
+    },
+    tabSwitchPenaltyPercentage: {
       type: Number,
       default: 0,
     },

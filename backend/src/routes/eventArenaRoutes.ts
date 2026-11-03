@@ -33,6 +33,10 @@ import {
   submitAssessmentFinal,
   submitAssessmentDesign,
   getAssessmentLeaderboard,
+  getArenaTeams,
+  createArenaTeam,
+  assignArenaTeamMembers,
+  deleteArenaTeam,
 } from '../controllers/eventArenaController';
 import { verifyToken, isAdmin, checkFeatureNotRestricted } from '../middleware/authMiddleware';
 
@@ -60,6 +64,12 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
 
   // 4. Sample Templates
   fastify.get('/:id/arena/templates/:type', downloadArenaSampleTemplate);
+
+  // 4.5 Team Management for Event Arena Rounds
+  fastify.get('/:id/arena/teams', getArenaTeams);
+  fastify.post('/:id/arena/teams', createArenaTeam);
+  fastify.put('/:id/arena/teams/:teamId/members', assignArenaTeamMembers);
+  fastify.delete('/:id/arena/teams/:teamId', deleteArenaTeam);
 
   // 5. Legacy / Single Arena Endpoints (Backwards-compatible)
   fastify.put('/:id/arena/config', updateArenaConfig);

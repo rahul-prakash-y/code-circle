@@ -32,6 +32,9 @@ import {
   Eye,
   Info,
   X,
+  Users,
+  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useEventArenaStore, {
@@ -74,6 +77,7 @@ export const EventArenaPage: React.FC = () => {
     studentMcqs,
     studentCoding,
     studentDesignChallenge,
+    studentTeam,
     submission,
     loading,
     actionLoading,
@@ -82,7 +86,9 @@ export const EventArenaPage: React.FC = () => {
   // Active Assessment State: null means we are at the Assessment Hub / List view
   const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null);
 
-  // UI/UX Figma Student Submission state
+  // Anti-Cheat: 5% mark reduction per tab switch (No disqualification)
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [showTabWarning, setShowTabWarning] = useState(false);
   const [studentFigmaLink, setStudentFigmaLink] = useState('');
   const [studentDesignNotes, setStudentDesignNotes] = useState('');
   const [previewReferenceImg, setPreviewReferenceImg] = useState<string | null>(null);
@@ -130,6 +136,30 @@ export const EventArenaPage: React.FC = () => {
       });
     }
   }, [id, activeAssessmentId]);
+
+    // Anti-cheat tab switch listener (deducts 5% per switch, no disqualification)
+  useEffect(() => {
+    if (!activeAssessmentId || submission?.status === 'SUBMITTED' || finalResultModal) return;
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        setTabSwitchCount((prev) => {
+          const next = prev + 1;
+          setShowTabWarning(true);
+          toast.error(`Tab switch detected! -5% marks deducted (Total: -${next * 5}%)`, {
+            duration: 4000,
+            icon: '⚠️',
+          });
+          return next;
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [activeAssessmentId, submission?.status, finalResultModal]);
 
   // Sync starter codes and existing answers
   useEffect(() => {
@@ -280,10 +310,11 @@ export const EventArenaPage: React.FC = () => {
     try {
       const res = await submitAssessmentFinal(id, activeAssessmentId, {
         mcqAnswers: formattedMcqAnswers,
+        tabSwitchCount,
       });
       if (res) {
         setShowSubmitConfirm(false);
-        setFinalResultModal(res);
+        setFinalResultModal(res.results || res);
         toast.success(isAuto ? 'Time up! Assessment auto-submitted.' : 'Assessment submitted successfully!');
       }
     } catch {
@@ -309,6 +340,8 @@ export const EventArenaPage: React.FC = () => {
   const handleReturnToHub = () => {
     setFinalResultModal(null);
     setActiveAssessmentId(null);
+    setTabSwitchCount(0);
+    setShowTabWarning(false);
     if (id) fetchAssessments(id);
   };
 
@@ -381,6 +414,13 @@ export const EventArenaPage: React.FC = () => {
                 const isCompleted = sub?.status === 'SUBMITTED' || sub?.status === 'AUTO_SUBMITTED';
                 const isInProgress = sub?.status === 'IN_PROGRESS';
 
+                // Qualification check for Round > 1
+                const prevRound = idx > 0 ? assessments[idx - 1] : null;
+                const prevCompleted = prevRound?.submission?.status === 'SUBMITTED' || prevRound?.submission?.status === 'AUTO_SUBMITTED';
+                const hasCutoff = (asm.qualificationCutoffRank || 0) > 0;
+                // If previous round isn't completed, lock next round
+                const isLockedBySequence = idx > 0 && !prevCompleted && !isCompleted;
+
                 return (
                   <motion.div
                     key={asm._id}
@@ -394,27 +434,49 @@ export const EventArenaPage: React.FC = () => {
 
                     <div className="space-y-4">
                       {/* Top Badges */}
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-white/10 text-white/80 border border-white/10">
                           Round {idx + 1} • {asm.type}
                         </span>
 
-                        {isCompleted ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                            <CheckCircle2 size={11} />
-                            <span>Completed</span>
-                          </span>
-                        ) : isInProgress ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                            <Clock size={11} />
-                            <span>In Progress</span>
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
-                            Available
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {asm.isTeamMode && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center gap-1">
+                              <Users size={11} />
+                              <span>Team Mode ({asm.teamSize || 2})</span>
+                            </span>
+                          )}
+
+                          {isCompleted ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                              <CheckCircle2 size={11} />
+                              <span>Completed</span>
+                            </span>
+                          ) : isInProgress ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                              <Clock size={11} />
+                              <span>In Progress</span>
+                            </span>
+                          ) : isLockedBySequence ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-white/50 border border-white/10 flex items-center gap-1">
+                              <Lock size={11} />
+                              <span>Locked</span>
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                              Available
+                            </span>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Qualification info notice if applicable */}
+                      {hasCutoff && (
+                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-[11px] text-purple-300">
+                          <Trophy size={13} className="text-amber-400 shrink-0" />
+                          <span>Top {asm.qualificationCutoffRank} participants from Round {idx} qualify</span>
+                        </div>
+                      )}
 
                       {/* Title & Desc */}
                       <div>
@@ -485,6 +547,15 @@ export const EventArenaPage: React.FC = () => {
                           <Trophy size={13} className="text-amber-400" />
                           <span>View Scorecard</span>
                         </button>
+                      ) : isLockedBySequence ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed"
+                        >
+                          <Lock size={13} />
+                          <span>Complete Round {idx} First</span>
+                        </button>
                       ) : (
                         <button
                           type="button"
@@ -534,11 +605,24 @@ export const EventArenaPage: React.FC = () => {
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase shrink-0">
               {selectedAssessment?.type || 'HYBRID'}
             </span>
+            {studentTeam && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/30 flex items-center gap-1 shrink-0">
+                <Users size={11} />
+                <span>Team: {studentTeam.name}</span>
+              </span>
+            )}
           </div>
         </div>
 
         {/* Live Timer & Submit */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {tabSwitchCount > 0 && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] rounded-xl text-xs font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
+              <ShieldAlert size={14} className="animate-bounce" />
+              <span>{tabSwitchCount} Switches (-{tabSwitchCount * 5}%)</span>
+            </div>
+          )}
+
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-mono font-bold border transition-colors ${
               remainingSeconds < 300
@@ -1335,6 +1419,26 @@ export const EventArenaPage: React.FC = () => {
                   {finalResultModal.isPassed ? 'PASSED' : 'PARTICIPATED'}
                 </p>
                 <p className="text-[10px] text-white/40">Status</p>
+              </div>
+            </div>
+
+            {/* Anti-cheat tab switch penalty & completion time metrics */}
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 grid grid-cols-2 gap-3 text-xs">
+              <div className="text-left">
+                <span className="text-[10px] text-white/50 block font-mono">TAB SWITCHES</span>
+                <span className={`font-bold font-mono ${finalResultModal.tabSwitchCount ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {finalResultModal.tabSwitchCount || 0} (-{(finalResultModal.tabSwitchCount || 0) * 5}%)
+                </span>
+                {finalResultModal.rawTotalScore !== undefined && (
+                  <span className="text-[10px] text-white/40 block">Raw: {finalResultModal.rawTotalScore} pts</span>
+                )}
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-white/50 block font-mono">TIME TAKEN</span>
+                <span className="font-bold font-mono text-purple-300">
+                  {Math.floor((finalResultModal.timeTakenSeconds || 0) / 60)}m {(finalResultModal.timeTakenSeconds || 0) % 60}s
+                </span>
+                <span className="text-[10px] text-white/40 block">Total test duration</span>
               </div>
             </div>
 
