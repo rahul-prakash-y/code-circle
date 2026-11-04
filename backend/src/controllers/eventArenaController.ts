@@ -2271,6 +2271,15 @@ export const getStudentAssessmentData = async (
 
     // Check qualification for non-admin students
     if (!isAdminRole) {
+      if (assessment.status !== 'LIVE') {
+        return reply.status(403).send({
+          success: false,
+          error: assessment.status === 'UPCOMING'
+            ? 'This assessment has not started yet. Please wait for the admin to start the round.'
+            : 'This assessment is not currently active.',
+        });
+      }
+
       const qualCheck = await checkAssessmentQualification(event, assessmentIndex, user._id);
       if (!qualCheck.isQualified) {
         return reply.status(403).send({
@@ -2391,6 +2400,15 @@ export const startAssessmentSession = async (
 
     const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
     if (!isAdminRole) {
+      if (assessment.status !== 'LIVE') {
+        return reply.status(403).send({
+          success: false,
+          error: assessment.status === 'UPCOMING'
+            ? 'This assessment has not started yet. Please wait for the admin to start the round.'
+            : 'This assessment is not currently active.',
+        });
+      }
+
       const qualCheck = await checkAssessmentQualification(event, assessmentIndex, user._id);
       if (!qualCheck.isQualified) {
         return reply.status(403).send({

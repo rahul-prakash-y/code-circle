@@ -420,6 +420,7 @@ export const EventArenaPage: React.FC = () => {
                 const hasCutoff = (asm.qualificationCutoffRank || 0) > 0;
                 // If previous round isn't completed, lock next round
                 const isLockedBySequence = idx > 0 && !prevCompleted && !isCompleted;
+                const isNotLive = asm.status !== 'LIVE' && !isCompleted;
 
                 return (
                   <motion.div
@@ -462,9 +463,14 @@ export const EventArenaPage: React.FC = () => {
                               <Lock size={11} />
                               <span>Locked</span>
                             </span>
+                          ) : isNotLive ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                              <Clock size={11} />
+                              <span>Waiting for Admin</span>
+                            </span>
                           ) : (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
-                              Available
+                              Live Now
                             </span>
                           )}
                         </div>
@@ -555,6 +561,16 @@ export const EventArenaPage: React.FC = () => {
                         >
                           <Lock size={13} />
                           <span>Complete Round {idx} First</span>
+                        </button>
+                      ) : isNotLive ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/5 border border-amber-500/25 text-amber-400/80 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed"
+                          title="Assessment will open when admin starts the round"
+                        >
+                          <Clock size={13} />
+                          <span>Waiting for Admin to Start</span>
                         </button>
                       ) : (
                         <button

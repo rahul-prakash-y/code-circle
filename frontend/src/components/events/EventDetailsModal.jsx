@@ -516,8 +516,8 @@ export const EventDetailsModal = ({
                 </>
               )}
 
-              {/* Enter Arena button for students */}
-              {event.hasArena && (
+              {/* Enter Arena button - Only for Enrolled Students or Admins */}
+              {event.hasArena && (isEnrolled || isAdmin) && (
                 <button
                   onClick={() => {
                     onClose();

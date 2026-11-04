@@ -337,8 +337,8 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   </button>
                 )}
 
-                {/* Enter Arena Button for Students */}
-                {event.hasArena && (
+                {/* Enter Arena Button - Only for Enrolled Students or Admins */}
+                {event.hasArena && (isEnrolled || isAdmin) && (
                   <button
                     onClick={() => navigate(`/events/${event._id}/arena`)}
                     className="btn-primary text-[12px] py-1.5 px-3 min-h-[38px] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer"
