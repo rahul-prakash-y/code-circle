@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import ResponsiveModal from '../ui/ResponsiveModal';
+import { EmilButton } from '../ui/emil-ui';
 import useDomainStore from '../../store/useDomainStore';
 import toast from 'react-hot-toast';
 import {

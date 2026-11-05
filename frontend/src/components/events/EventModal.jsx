@@ -8,6 +8,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import useEventStore from '../../store/useEventStore';
+import { EmilButton } from '../ui/emil-ui';
 import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
 import { formatDateToISTDateInput } from '../../lib/dateUtils';

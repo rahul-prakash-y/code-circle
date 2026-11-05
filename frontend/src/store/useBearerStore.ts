@@ -69,7 +69,13 @@ export const useBearerStore = create<BearerStore>((set, get) => ({
   },
 
   updateBearer: async (id: string, data: BearerFormData) => {
-    set({ actionLoading: true, error: null });
+    const previous = get().bearers;
+    // Optimistic UI: update immediately in local state
+    set({
+      bearers: previous.map((b) => (b._id === id ? { ...b, ...data } : b)),
+      actionLoading: true,
+      error: null,
+    });
     try {
       const response = await api.put<StudentBearer>(`/bearers/${id}`, data);
       set((state) => ({
@@ -79,27 +85,30 @@ export const useBearerStore = create<BearerStore>((set, get) => ({
       toast.success(`${data.name} updated successfully!`);
       return true;
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Failed to update student bearer';
-      set({ error: message, actionLoading: false });
-      toast.error(message);
+      // Rollback on error
+      set({ bearers: previous, error: error.response?.data?.error || 'Failed to update student bearer', actionLoading: false });
+      toast.error(error.response?.data?.error || 'Failed to update student bearer');
       return false;
     }
   },
 
   deleteBearer: async (id: string) => {
-    set({ actionLoading: true, error: null });
+    const previous = get().bearers;
+    // Optimistic UI: remove immediately from local state
+    set({
+      bearers: previous.filter((b) => b._id !== id),
+      actionLoading: true,
+      error: null,
+    });
     try {
       await api.delete(`/bearers/${id}`);
-      set((state) => ({
-        bearers: state.bearers.filter((b) => b._id !== id),
-        actionLoading: false,
-      }));
+      set({ actionLoading: false });
       toast.success('Bearer removed successfully!');
       return true;
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Failed to delete student bearer';
-      set({ error: message, actionLoading: false });
-      toast.error(message);
+      // Rollback on failure
+      set({ bearers: previous, error: error.response?.data?.error || 'Failed to delete student bearer', actionLoading: false });
+      toast.error(error.response?.data?.error || 'Failed to delete student bearer');
       return false;
     }
   },

@@ -3,6 +3,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { ExternalLink, RefreshCw, AlertCircle, Code2, Flame, Award, Trophy } from 'lucide-react';
 import { useLeetCodeStats, type LeetCodeStats } from '../../hooks/useLeetCodeStats';
 import CountUp from '../ui/CountUp';
+import { EmilCard, EmilTooltipGroup, EmilTooltip } from '../ui/emil-ui';
 
 // ── Design tokens (mirrors the project's CSS custom props) ────────────────────
 
@@ -252,20 +253,11 @@ export const LeetCodeCard: React.FC<LeetCodeCardProps> = ({ username, className 
     : '0.0';
 
   return (
-    <AnimatePresence>
-      <motion.div
+    <EmilTooltipGroup>
+      <EmilCard
         ref={ref}
-        initial={{ opacity: 0, y: 20 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-        exit={{ opacity: 0, y: 8 }}
-        transition={EASE}
-        whileHover={{ scale: 1.01, transition: SPRING }}
-        whileTap={{ scale: 0.99, transition: SPRING }}
-        className={`w-full h-full min-h-[380px] flex flex-col justify-between rounded-[22px] p-6 sm:p-7 cursor-default select-none ${className}`}
-        style={{
-          background: 'var(--surface)',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)',
-        }}
+        isHoverable
+        className={`w-full h-full min-h-[380px] flex flex-col justify-between rounded-[22px] p-6 sm:p-7 cursor-default select-none border border-separator/80 ${className}`}
         aria-label={`LeetCode stats for ${displayHandle}`}
       >
         {/* ── Top Section (Header + Hero) ── */}
@@ -481,8 +473,8 @@ export const LeetCodeCard: React.FC<LeetCodeCardProps> = ({ username, className 
             </button>
           </div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      </EmilCard>
+    </EmilTooltipGroup>
   );
 };
 

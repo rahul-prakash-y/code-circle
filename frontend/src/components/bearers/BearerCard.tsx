@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Linkedin, Sparkles, ExternalLink } from 'lucide-react';
 import { StudentBearer } from '../../store/useBearerStore';
+import { EmilCard } from '../ui/emil-ui';
+import { EMIL_EASE_OUT, DURATION_MODAL } from '../../lib/motion';
 
 interface BearerCardProps {
   bearer: StudentBearer;
@@ -17,7 +19,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
   const fallbackInitial = bearer.name ? bearer.name.charAt(0).toUpperCase() : 'C';
 
   return (
-    <motion.div
+    <EmilCard
       variants={{
         hidden: { opacity: 0, y: 35 },
         visible: {
@@ -218,7 +220,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
             'radial-gradient(circle at 50% 100%, rgba(0, 113, 227, 0.12) 0%, transparent 70%)',
         }}
       />
-    </motion.div>
+    </EmilCard>
   );
 };
 

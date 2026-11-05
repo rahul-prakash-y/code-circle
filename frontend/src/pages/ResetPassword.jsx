@@ -4,6 +4,7 @@ import useAuthStore from '../store/useAuthStore';
 import AuthLayout from '../layouts/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { EmilButton } from '../components/ui/emil-ui';
 import { 
   Lock, 
   KeyRound, 

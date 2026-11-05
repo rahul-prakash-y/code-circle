@@ -16,6 +16,7 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import useEventStore from '../../store/useEventStore';
+import { EmilButton } from '../ui/emil-ui';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { formatISTDate } from '../../lib/dateUtils';

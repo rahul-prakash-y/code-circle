@@ -34,6 +34,8 @@ import useBearerStore, { StudentBearer } from '../store/useBearerStore';
 import CountUp from '../components/ui/CountUp';
 import QuickActions from '../components/admin/QuickActions';
 import EventModal from '../components/events/EventModal';
+import { EmilCard, EmilButton } from '../components/ui/emil-ui';
+import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
 import MagneticCTA from '../components/ui/MagneticCTA';
 
 // ── Scroll-driven hero (subtle depth, max 12-16px movement) ────────────────────

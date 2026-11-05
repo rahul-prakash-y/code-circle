@@ -15,6 +15,7 @@ import {
   type HackerRankBadge,
 } from '../../hooks/useHackerRankStats';
 import CountUp from '../ui/CountUp';
+import { EmilCard, EmilTooltipGroup, EmilTooltip } from '../ui/emil-ui';
 
 const SPRING = { type: 'spring', stiffness: 260, damping: 30 } as const;
 const EASE = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const;
@@ -232,20 +233,11 @@ export const HackerRankCard: React.FC<HackerRankCardProps> = ({
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
+    <EmilTooltipGroup>
+      <EmilCard
         ref={ref}
-        initial={{ opacity: 0, y: 20 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-        exit={{ opacity: 0, y: 8 }}
-        transition={EASE}
-        whileHover={{ scale: 1.01, transition: SPRING }}
-        whileTap={{ scale: 0.99, transition: SPRING }}
-        className={`w-full h-full min-h-[380px] flex flex-col justify-between rounded-[22px] p-6 sm:p-7 cursor-default select-none ${className}`}
-        style={{
-          background: 'var(--surface)',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03)',
-        }}
+        isHoverable
+        className={`w-full h-full min-h-[380px] flex flex-col justify-between rounded-[22px] p-6 sm:p-7 cursor-default select-none border border-separator/80 ${className}`}
         aria-label={`HackerRank stats for ${displayHandle}`}
       >
         {/* ── Top Section (Header + Hero) ── */}
@@ -490,8 +482,8 @@ export const HackerRankCard: React.FC<HackerRankCardProps> = ({
             </button>
           </div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      </EmilCard>
+    </EmilTooltipGroup>
   );
 };
 

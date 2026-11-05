@@ -9,6 +9,7 @@ import EventParticipantsModal from '../admin/EventParticipantsModal';
 import EventBulkUploadModal from './EventBulkUploadModal';
 import EventArenaAdminModal from './EventArenaAdminModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
+import { EmilCard, EmilButton } from '../ui/emil-ui';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
