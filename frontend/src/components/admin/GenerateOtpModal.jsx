@@ -147,13 +147,16 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-[calc(100%-1.5rem)] sm:w-full max-w-xl glass border border-border p-4 sm:p-7 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] max-h-[90dvh] overflow-y-auto rounded-2xl sm:rounded-3xl"
+        className="w-full max-w-xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 p-4 sm:p-7 relative overflow-hidden shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-t-[28px] sm:rounded-3xl flex flex-col"
       >
+        {/* Mobile bottom-sheet drag handle */}
+        <div className="w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto mb-3 sm:hidden shrink-0" />
+
         {/* Glow ambient light */}
         <div className="absolute top-0 right-0 w-64 h-64 -mr-20 -mt-20 rounded-full bg-blue-500/15 blur-3xl pointer-events-none" />
 

@@ -193,7 +193,7 @@ export const StudentTrackingTable: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-[100vw] overflow-hidden">
       {/* ── Top Header and Metrics Panel ── */}
       <motion.div
         variants={emilCardVariants}
@@ -220,7 +220,7 @@ export const StudentTrackingTable: React.FC = () => {
         </div>
 
         {/* ── Snappy Search Bar & Filter Controls (Instant Keyboard Response) ── */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 pt-1 w-full">
           {/* Real-time search with clear button */}
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
@@ -229,7 +229,7 @@ export const StudentTrackingTable: React.FC = () => {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search student by name, roll number, or email (Instant)..."
-              className="w-full pl-10 pr-10 py-2.5 min-h-[44px] bg-canvas rounded-2xl text-xs sm:text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent/40 border border-separator transition-shadow"
+              className="w-full pl-10 pr-10 py-2.5 min-h-[44px] bg-canvas rounded-2xl text-[16px] md:text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent/40 border border-separator transition-shadow"
             />
             {searchInput && (
               <motion.button
@@ -246,11 +246,11 @@ export const StudentTrackingTable: React.FC = () => {
           </div>
 
           {/* Department Filter Dropdown */}
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 w-full md:w-auto">
             <select
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              className="appearance-none bg-canvas text-text-primary text-xs sm:text-sm font-medium rounded-2xl px-4 py-2.5 pr-8 min-h-[44px] outline-none cursor-pointer border border-separator focus:ring-2 focus:ring-accent/40 transition-shadow"
+              className="w-full md:w-auto appearance-none bg-canvas text-text-primary text-[16px] md:text-sm font-medium rounded-2xl px-4 py-2.5 pr-8 min-h-[44px] outline-none cursor-pointer border border-separator focus:ring-2 focus:ring-accent/40 transition-shadow"
             >
               {departmentsList.map((dep) => (
                 <option key={dep.value} value={dep.value} className="bg-surface text-text-primary">

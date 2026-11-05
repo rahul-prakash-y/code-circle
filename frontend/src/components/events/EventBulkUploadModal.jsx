@@ -192,7 +192,7 @@ export const EventBulkUploadModal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/75 backdrop-blur-md"
+          className="fixed inset-0 bg-black/40 dark:bg-black/75 backdrop-blur-xl"
         />
 
         {/* Modal Window */}
@@ -201,7 +201,7 @@ export const EventBulkUploadModal = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 16 }}
           transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-2xl bg-surface border border-separator rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-2xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden z-10 flex flex-col max-h-[85vh] sm:max-h-[90vh]"
           style={{ backgroundColor: 'var(--surface)', color: 'var(--label-primary)' }}
         >
           {/* Header */}

@@ -356,6 +356,7 @@ export interface EmilModalProps {
   title?: React.ReactNode;
   children: React.ReactNode;
   maxWidth?: string;
+  className?: string;
 }
 
 export const EmilModal: React.FC<EmilModalProps> = ({
@@ -364,6 +365,7 @@ export const EmilModal: React.FC<EmilModalProps> = ({
   title,
   children,
   maxWidth = 'max-w-lg',
+  className = '',
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -378,7 +380,7 @@ export const EmilModal: React.FC<EmilModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
           {/* Backdrop: Liquid glass darkened */}
           <motion.div
             variants={emilBackdropVariants}
@@ -389,31 +391,36 @@ export const EmilModal: React.FC<EmilModalProps> = ({
             className="fixed inset-0 bg-black/30 dark:bg-black/75 backdrop-blur-xl"
           />
 
-          {/* Centered Dialog: enters from scale(0.95), strong ease-out, sub-220ms */}
+          {/* Responsive Bottom Sheet / Centered Dialog */}
           <motion.div
             variants={emilModalVariants}
             initial="initial"
             animate="animate"
             exit="exit"
-            className={`relative z-10 w-full ${maxWidth} rounded-3xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.12)] dark:shadow-none dark:ring-1 dark:ring-white/10 p-6 overflow-hidden`}
+            className={`relative z-10 w-full ${maxWidth} rounded-t-[28px] sm:rounded-3xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.12)] dark:shadow-none dark:ring-1 dark:ring-white/10 p-5 sm:p-6 overflow-hidden max-h-[85vh] sm:max-h-[90vh] flex flex-col ${className}`}
           >
+            {/* Mobile Bottom-sheet Grab Handle */}
+            <div className="w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto mb-3 sm:hidden shrink-0" />
+
             {title && (
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-black/5 dark:border-white/10">
-                <div className="text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
+              <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-black/5 dark:border-white/10 shrink-0">
+                <div className="text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight truncate">
                   {title}
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 cursor-pointer transition-colors"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 cursor-pointer transition-colors shrink-0"
                   aria-label="Close dialog"
                 >
                   ✕
                 </motion.button>
               </div>
             )}
-            {children}
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+              {children}
+            </div>
           </motion.div>
         </div>
       )}

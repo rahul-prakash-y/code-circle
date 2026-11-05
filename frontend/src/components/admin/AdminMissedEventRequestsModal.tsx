@@ -207,13 +207,13 @@ export const AdminMissedEventRequestsModal: React.FC<
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-4xl bg-[#141416] border border-white/[0.12] rounded-3xl shadow-2xl shadow-black/90 overflow-hidden flex flex-col max-h-[92vh]"
+          className="relative w-full max-w-4xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[92vh]"
         >
           {/* Header */}
           <div className="px-6 py-5 border-b border-white/[0.08] bg-[#1A1A1D] flex items-center justify-between">
@@ -222,10 +222,10 @@ export const AdminMissedEventRequestsModal: React.FC<
                 <ShieldAlert className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white tracking-tight">
+                <h2 className="text-base sm:text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
                   Missed Event Requests & Restriction Control
                 </h2>
-                <p className="text-xs text-neutral-400">
+                <p className="text-xs text-[#86868B]">
                   Review student absence justifications • Rejections enforce academic restrictions
                 </p>
               </div>
@@ -233,19 +233,19 @@ export const AdminMissedEventRequestsModal: React.FC<
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Stats Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 px-6 py-4 bg-[#161619] border-b border-white/[0.06]">
-            <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-              <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider block">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 px-6 py-3.5 bg-black/[0.01] dark:bg-white/[0.01] border-b border-black/5 dark:border-white/10 shrink-0">
+            <div className="p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/10">
+              <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider block">
                 Total Requests
               </span>
-              <span className="text-xl font-extrabold text-white">{stats.total}</span>
+              <span className="text-xl font-extrabold text-[#1D1D1F] dark:text-[#F5F5F7]">{stats.total}</span>
             </div>
 
             <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
@@ -283,7 +283,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                     statusFilter === st
                       ? 'bg-amber-600 text-white shadow-sm'
-                      : 'text-neutral-400 hover:text-white'
+                      : 'text-[#86868B] hover:text-white'
                   }`}
                 >
                   {st === 'ALL' ? 'All Requests' : st.charAt(0) + st.slice(1).toLowerCase()}
@@ -293,7 +293,7 @@ export const AdminMissedEventRequestsModal: React.FC<
 
             {/* Search Input */}
             <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#86868B]" />
               <input
                 type="text"
                 value={searchQuery}
@@ -307,7 +307,7 @@ export const AdminMissedEventRequestsModal: React.FC<
           {/* List of Requests */}
           <div className="p-6 overflow-y-auto space-y-4 flex-1">
             {loading ? (
-              <div className="py-20 text-center text-neutral-400 space-y-2">
+              <div className="py-20 text-center text-[#86868B] space-y-2">
                 <Loader2 className="w-7 h-7 animate-spin mx-auto text-amber-500" />
                 <p className="text-xs">Loading missed event requests...</p>
               </div>
@@ -340,7 +340,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                             <span className="font-bold text-sm text-white">
                               {req.student?.name || 'Unknown Student'}
                             </span>
-                            <span className="text-xs font-mono text-neutral-400">
+                            <span className="text-xs font-mono text-[#86868B]">
                               ({req.student?.rollNo || '—'})
                             </span>
                             {isStudentRestricted && (
@@ -350,7 +350,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-neutral-400">
+                          <p className="text-xs text-[#86868B]">
                             {req.student?.department || 'General'} • {req.student?.email} • Points:{' '}
                             <strong className="text-neutral-200">{req.student?.points || 0}</strong>
                           </p>
@@ -395,21 +395,21 @@ export const AdminMissedEventRequestsModal: React.FC<
                     {/* Middle Row: Event & Request Details */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-black/30 p-3.5 rounded-xl border border-white/[0.04]">
                       <div>
-                        <span className="text-neutral-400 block mb-0.5">Event Missed:</span>
+                        <span className="text-[#86868B] block mb-0.5">Event Missed:</span>
                         <strong className="text-white text-sm">
                           {req.event?.title || 'Unknown Event'}
                         </strong>
-                        <p className="text-neutral-400 mt-0.5">
+                        <p className="text-[#86868B] mt-0.5">
                           Date: {formatISTDate(req.missedDate)} • Type: {req.event?.type}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-neutral-400 block mb-0.5">Requested Credit:</span>
+                        <span className="text-[#86868B] block mb-0.5">Requested Credit:</span>
                         <strong className="text-amber-400 text-sm">
                           {req.clubHoursRequested} Club Hour(s)
                         </strong>
-                        <p className="text-neutral-400 mt-0.5">
+                        <p className="text-[#86868B] mt-0.5">
                           Periods: {req.classHours?.join(', ') || '1'}
                         </p>
                       </div>
@@ -417,7 +417,7 @@ export const AdminMissedEventRequestsModal: React.FC<
 
                     {/* Reason statement */}
                     <div className="p-3 rounded-xl bg-black/40 border border-white/[0.04] text-xs text-neutral-300">
-                      <span className="text-neutral-400 font-semibold block mb-0.5">
+                      <span className="text-[#86868B] font-semibold block mb-0.5">
                         Student Justification:
                       </span>
                       {req.reason}
@@ -485,12 +485,12 @@ export const AdminMissedEventRequestsModal: React.FC<
 
         {/* Review Action Confirmation Sub-Modal */}
         {reviewingReq && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-[#1C1C1F] border border-white/[0.12] rounded-3xl p-6 shadow-2xl space-y-4"
+              className="w-full max-w-md bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl p-6 shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-4"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -512,7 +512,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                       ? 'Reject Missed Event Request'
                       : 'Approve Missed Event Request'}
                   </h3>
-                  <p className="text-xs text-neutral-400">
+                  <p className="text-xs text-[#86868B]">
                     Student: {reviewingReq.student.name} ({reviewingReq.student.rollNo})
                   </p>
                 </div>
@@ -568,7 +568,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                 <button
                   type="button"
                   onClick={() => setReviewingReq(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#86868B] hover:text-white transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

@@ -130,12 +130,12 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl w-[min(1152px,96vw)] max-h-[90dvh] flex flex-col overflow-hidden"
+          className="bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 w-full sm:w-[min(1152px,96vw)] max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="p-4 sm:p-6 border-b border-separator flex items-start sm:items-center justify-between gap-3 bg-surface-secondary">

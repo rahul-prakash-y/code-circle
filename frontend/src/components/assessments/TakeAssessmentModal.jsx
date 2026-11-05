@@ -603,10 +603,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       return (
                         <motion.button
                           key={optIndex}
-                          whileHover={{ scale: 1.002 }}
-                          whileTap={{ scale: 0.998 }}
+                          whileHover={{ scale: 1.002 }} whileTap={{ scale: 0.97 }}
+                          
                           onClick={() => handleSelectOption(optIndex)}
-                          className={`w-full p-3.5 sm:p-4 rounded-xl sm:rounded-2xl text-left flex items-center gap-3 sm:gap-4 transition-all duration-150 cursor-pointer border ${
+                          className={`w-full min-h-[44px] p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left flex items-center gap-3 sm:gap-4 transition-all duration-150 cursor-pointer border ${
                             isSelected
                               ? 'bg-accent/10 border-accent text-label-primary shadow-xs'
                               : 'bg-surface border-separator text-label-secondary hover:bg-surface-secondary hover:text-label-primary'

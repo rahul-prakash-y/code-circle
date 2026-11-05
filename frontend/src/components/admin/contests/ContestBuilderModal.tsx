@@ -423,12 +423,12 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/75 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-5 overflow-hidden">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface dark:bg-[#121214] rounded-2xl sm:rounded-3xl border border-separator dark:border-white/10 w-[min(1024px,96vw)] p-4 sm:p-7 space-y-4 sm:space-y-5 shadow-2xl overflow-hidden flex flex-col max-h-[90dvh] my-auto"
+        className="bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-t-[28px] sm:rounded-3xl border border-black/5 dark:border-white/10 w-full sm:w-[min(1024px,96vw)] p-4 sm:p-7 space-y-4 sm:space-y-5 shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[90vh]"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-separator dark:border-white/10 pb-4 shrink-0">
