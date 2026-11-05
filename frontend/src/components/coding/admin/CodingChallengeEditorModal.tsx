@@ -1,3 +1,4 @@
+import ResponsiveModal from '../../ui/ResponsiveModal';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -290,37 +291,27 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="w-full max-w-4xl my-auto bg-surface border border-separator rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center pb-5 border-b border-separator shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
-              <Code2 size={22} />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-label-primary tracking-tight">
-                {isEditing ? 'Edit Coding Challenge' : 'Create Live Coding Challenge'}
-              </h2>
-              <p className="text-xs text-label-secondary">
-                Configure problem statement, test cases, and multi-language starter templates
-              </p>
-            </div>
-          </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center justify-between w-full pr-6">
           <div className="flex items-center gap-2">
-            <TutorialButton tutorialId="coding-challenge-editor" variant="icon" />
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition-colors"
-            >
-              <X size={20} />
-            </button>
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <Code2 className="w-4 h-4" />
+            </div>
+            <span>{isEditing ? 'Edit Coding Challenge' : 'Create Live Coding Challenge'}</span>
           </div>
+          <TutorialButton tutorialId="coding-challenge-editor" variant="icon" />
         </div>
-
+      }
+      description="Configure problem statement, test cases, and multi-language starter templates."
+      dialogClassName="sm:max-w-4xl p-6"
+    >
+      <div className="space-y-4 pt-2">
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 pt-4 pb-2 border-b border-separator shrink-0">
           <button
@@ -757,7 +748,7 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
           </form>
         )}
       </div>
-    </div>
+    </ResponsiveModal>
   );
 };
 

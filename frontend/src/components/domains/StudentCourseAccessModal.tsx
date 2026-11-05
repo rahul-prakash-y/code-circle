@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   X,
@@ -160,49 +161,23 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
-      {/* Apple Blur Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-md transition-opacity animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-
-      {/* Modal Dialog */}
-      <div className="relative w-[min(896px,96vw)] bg-surface border border-separator/80 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden z-10 animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-separator/70 flex items-start justify-between gap-3 bg-surface/80 backdrop-blur-md">
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 shadow-sm mt-0.5 sm:mt-0">
-              <Crown className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                  SuperAdmin Clearance
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-semibold bg-accent/10 text-accent">
-                  Course Access Control
-                </span>
-              </div>
-              <h2 className="text-base sm:text-xl font-bold text-label-primary tracking-tight break-words mt-0.5">
-                Course Visibility & Selective Student Permissions
-              </h2>
-              <p className="text-[11px] sm:text-xs text-label-secondary mt-0.5 line-clamp-2 sm:line-clamp-none">
-                Toggle between public release and Coming Soon mode, or grant individual students early course access.
-              </p>
-            </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+            <Crown className="w-4 h-4" />
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] rounded-full bg-surface-secondary text-label-secondary hover:text-label-primary hover:bg-surface border border-separator flex items-center justify-center transition cursor-pointer shrink-0"
-            aria-label="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <span>Course Visibility & Permissions</span>
         </div>
-
+      }
+      description="Toggle public release vs Coming Soon mode, or grant individual students early course access."
+      dialogClassName="sm:max-w-4xl p-6"
+    >
+      <div className="space-y-4 pt-1">
         {/* Global Visibility Mode Switch Card */}
         <div className="p-3 sm:p-6 pb-3 border-b border-separator/60 bg-surface-secondary/40">
           <div className="p-3.5 sm:p-5 rounded-2xl bg-surface border border-separator shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
@@ -568,23 +543,23 @@ export const StudentCourseAccessModal: React.FC<StudentCourseAccessModalProps> =
         </div>
 
         {/* Footer */}
-        <div className="p-4 px-6 border-t border-separator/70 bg-surface/90 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary">
+        <div className="pt-3 border-t border-separator flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0" />
             <span>
-              Changes take effect immediately for active student sessions upon page refresh or course load.
+              Changes take effect immediately for active student sessions.
             </span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-full text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer"
+            className="px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition cursor-pointer shadow"
           >
-            Close
+            Done
           </button>
         </div>
       </div>
-    </div>
+    </ResponsiveModal>
   );
 };
 

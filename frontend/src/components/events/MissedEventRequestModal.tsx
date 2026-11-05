@@ -168,41 +168,24 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ duration: 0.2 }}
-          className="relative w-full max-w-2xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[90vh]"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.08] bg-[#1C1C1E]">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
-                  Missed Event / Club Hours Request
-                </h2>
-                <p className="text-xs text-[#86868B]">
-                  Submit justification for missed events or view review status
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+            <Calendar className="w-4 h-4" />
           </div>
+          <span>Missed Event / Club Hours Request</span>
+        </div>
+      }
+      description="Submit justification for missed events or view review status."
+      dialogClassName="sm:max-w-2xl p-6"
+    >
+      <div className="space-y-4 pt-2">
 
           {/* Navigation Pill Tabs */}
           <div className="px-6 pt-3.5 pb-3 border-b border-black/5 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.01] shrink-0">
@@ -535,9 +518,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
               </div>
             )}
           </div>
-        </motion.div>
       </div>
-    </AnimatePresence>
+    </ResponsiveModal>
   );
 };
 

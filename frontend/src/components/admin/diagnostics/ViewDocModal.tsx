@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Copy, Check, FileText, Code, Edit2 } from 'lucide-react';
+import ResponsiveModal from '../../ui/ResponsiveModal';
+import { Copy, Check, FileText, Code, Edit2 } from 'lucide-react';
 import { UserBadge } from './UserBadge';
 import { UserLookupItem } from '../../../store/useDiagnosticsStore';
 
@@ -35,137 +35,103 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
   const userRefRegex = /(user|student|createdby|updatedby|author|instructor|unblockedby|member|mentor)/i;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface rounded-2xl sm:rounded-3xl border border-separator max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
-      >
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-separator px-4 sm:px-6 py-3.5 sm:py-4 bg-surface-secondary/40 gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-surface border border-separator text-label-secondary">
-                {collectionName}
-              </span>
-              <span className="text-xs font-mono text-label-secondary truncate">
-                _id: <span className="font-bold text-primary">{doc._id}</span>
-              </span>
-            </div>
-            <h3 className="text-sm sm:text-base font-bold text-label-primary mt-1 truncate max-w-md">
-              {doc.title || doc.name || doc.email || doc.username || `Document Details`}
-            </h3>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4" />
           </div>
-
-          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-            {/* Tab switch */}
-            <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-xl">
-              <button
-                type="button"
-                onClick={() => setActiveTab('details')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'details'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-label-secondary hover:text-label-primary'
-                }`}
-              >
-                <FileText size={13} />
-                <span>Details</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('json')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'json'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-label-secondary hover:text-label-primary'
-                }`}
-              >
-                <Code size={13} />
-                <span>JSON</span>
-              </button>
-            </div>
-
+          <span>{doc.title || doc.name || doc.email || doc.username || 'Document Details'}</span>
+        </div>
+      }
+      description={`Collection: ${collectionName} • ID: ${doc._id}`}
+      dialogClassName="sm:max-w-2xl p-6"
+    >
+      <div className="space-y-4 pt-2">
+        {/* Tab switch header */}
+        <div className="flex items-center justify-between p-1 bg-surface-secondary border border-separator rounded-2xl">
+          <div className="flex items-center gap-1">
             <button
-              onClick={onClose}
-              className="p-1.5 hover:bg-surface-secondary rounded-xl text-label-tertiary hover:text-label-primary transition-colors cursor-pointer"
+              type="button"
+              onClick={() => setActiveTab('details')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'details'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'text-label-secondary hover:text-label-primary'
+              }`}
             >
-              <X size={18} />
+              <FileText size={13} />
+              <span>Details View</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('json')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'json'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'text-label-secondary hover:text-label-primary'
+              }`}
+            >
+              <Code size={13} />
+              <span>BSON / JSON</span>
             </button>
           </div>
+
+          <button
+            onClick={handleCopyJson}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface border border-separator transition-all cursor-pointer mr-1"
+          >
+            {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+            <span>{copied ? 'Copied' : 'Copy'}</span>
+          </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6">
+        {/* Body content */}
+        <div className="max-h-[60vh] overflow-y-auto pr-1">
           {activeTab === 'json' ? (
             <div className="relative">
-              <button
-                onClick={handleCopyJson}
-                className="absolute top-3 right-3 px-2.5 py-1.5 bg-surface rounded-xl border border-separator text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
-              >
-                {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
-                <span>{copied ? 'Copied!' : 'Copy JSON'}</span>
-              </button>
-              <pre className="overflow-auto bg-surface-secondary dark:bg-zinc-950 p-4 rounded-2xl text-xs font-mono text-label-primary dark:text-emerald-400 border border-separator leading-relaxed max-h-[50vh]">
+              <pre className="p-4 bg-surface-secondary border border-separator rounded-2xl font-mono text-xs text-label-primary overflow-x-auto leading-relaxed select-all">
                 {JSON.stringify(doc, null, 2)}
               </pre>
             </div>
           ) : (
-            <div className="space-y-2.5 sm:space-y-3">
-              {Object.entries(doc).map(([key, val]) => {
-                const isUserField =
-                  userRefRegex.test(key) ||
-                  (typeof val === 'string' && userMap[val]) ||
-                  (collectionName === 'users' && key === '_id');
+            <div className="space-y-2">
+              {Object.keys(doc).map((key) => {
+                const val = doc[key];
+                const isUserField = userRefRegex.test(key);
 
                 return (
                   <div
                     key={key}
-                    className="p-3 bg-surface-secondary/50 rounded-2xl border border-separator/70 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2"
+                    className="p-3 bg-surface-secondary/50 rounded-xl border border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-separator/90 transition-colors"
                   >
-                    <span className="text-xs font-bold text-label-secondary font-mono shrink-0 sm:min-w-[140px]">
+                    <span className="text-xs font-mono font-bold text-label-secondary shrink-0">
                       {key}
                     </span>
 
-                    <div className="flex-1 text-left sm:text-right text-xs">
-                      {isUserField && val ? (
-                        <div className="flex sm:justify-end">
-                          <UserBadge
-                            userId={typeof val === 'object' && val?._id ? val._id : String(val)}
-                            userMap={userMap}
-                            showId
-                          />
-                        </div>
+                    <div className="text-xs truncate max-w-full sm:max-w-md text-left sm:text-right">
+                      {key === '_id' ? (
+                        <span className="font-mono text-accent font-bold select-all">{String(val)}</span>
+                      ) : isUserField && typeof val === 'string' && val.length === 24 ? (
+                        <UserBadge userId={val} userMap={userMap} />
                       ) : typeof val === 'boolean' ? (
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                             val
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : 'bg-surface border border-separator text-label-tertiary'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                           }`}
                         >
                           {val ? 'TRUE' : 'FALSE'}
                         </span>
-                      ) : key.endsWith('At') && typeof val === 'string' ? (
-                        <span className="font-mono text-label-secondary">
-                          {new Date(val).toLocaleString()}
-                        </span>
-                      ) : Array.isArray(val) ? (
-                        <div className="flex flex-wrap sm:justify-end gap-1">
-                          {val.map((item: any, i: number) => (
-                            <span
-                              key={i}
-                              className="px-2 py-0.5 rounded-lg bg-surface border border-separator text-[11px] font-mono"
-                            >
-                              {typeof item === 'object' ? JSON.stringify(item) : String(item)}
-                            </span>
-                          ))}
-                        </div>
                       ) : typeof val === 'object' && val !== null ? (
-                        <pre className="font-mono text-[10px] text-left p-2 bg-surface rounded-xl border border-separator overflow-x-auto max-h-28">
-                          {JSON.stringify(val, null, 2)}
-                        </pre>
+                        <span className="font-mono text-[11px] text-label-secondary bg-surface px-2 py-0.5 rounded border border-separator select-all">
+                          {JSON.stringify(val)}
+                        </span>
                       ) : (
                         <span className="text-label-primary font-medium select-all break-all">
                           {String(val ?? '—')}
@@ -180,38 +146,28 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between border-t border-separator px-4 sm:px-6 py-3.5 sm:py-4 bg-surface-secondary/40 gap-2.5">
-          <button
-            onClick={handleCopyJson}
-            className="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors cursor-pointer py-1"
-          >
-            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-            <span>{copied ? 'JSON Copied' : 'Copy Full Document'}</span>
-          </button>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {onEdit && (
-              <button
-                onClick={() => {
-                  onClose();
-                  onEdit();
-                }}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all cursor-pointer text-center"
-              >
-                <Edit2 size={13} />
-                <span>Edit Document</span>
-              </button>
-            )}
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
+          {onEdit && (
             <button
-              onClick={onClose}
-              className="flex-1 sm:flex-none px-4 py-2 bg-surface-secondary text-label-primary text-xs font-bold rounded-xl border border-separator hover:bg-surface transition-colors cursor-pointer text-center"
+              onClick={() => {
+                onClose();
+                onEdit();
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition cursor-pointer"
             >
-              Close
+              <Edit2 size={13} />
+              <span>Edit Document</span>
             </button>
-          </div>
+          )}
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition cursor-pointer shadow"
+          >
+            Close
+          </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

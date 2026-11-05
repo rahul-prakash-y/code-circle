@@ -185,58 +185,32 @@ export const EventBulkUploadModal = ({
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-black/40 dark:bg-black/75 backdrop-blur-xl"
-        />
-
-        {/* Modal Window */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 16 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 16 }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-2xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden z-10 flex flex-col max-h-[85vh] sm:max-h-[90vh]"
-          style={{ backgroundColor: 'var(--surface)', color: 'var(--label-primary)' }}
-        >
-          {/* Header */}
-          <div className="p-5 sm:p-6 border-b border-separator bg-canvas/40 flex items-center justify-between gap-4 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-500 shrink-0">
-                <FileSpreadsheet size={22} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-lg sm:text-xl font-black text-label-primary font-heading">
-                    Upload Event Participants
-                  </h2>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                    event.registrationType === 'admin_upload'
-                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                      : 'bg-accent/10 text-accent border-accent/30'
-                  }`}>
-                    {event.registrationType === 'admin_upload' ? 'Admin Upload Event' : 'Open Registration Event'}
-                  </span>
-                </div>
-                <p className="text-xs text-label-secondary mt-0.5 truncate max-w-md">
-                  Import official student enrollment list for <strong>{event.title}</strong>
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors cursor-pointer"
-            >
-              <X size={18} />
-            </button>
+    <ResponsiveModal
+      open={isOpen && Boolean(event)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <FileSpreadsheet className="w-4 h-4" />
           </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>Upload Event Participants</span>
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+              event.registrationType === 'admin_upload'
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                : 'bg-accent/10 text-accent border-accent/30'
+            }`}>
+              {event.registrationType === 'admin_upload' ? 'Admin Upload' : 'Open Registration'}
+            </span>
+          </div>
+        </div>
+      }
+      description={`Import official student enrollment list for ${event.title}`}
+      dialogClassName="sm:max-w-2xl p-6"
+    >
+      <div className="space-y-4 pt-2">
 
           {/* Modal Body */}
           <div className="p-5 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
@@ -474,11 +448,11 @@ export const EventBulkUploadModal = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="p-5 sm:p-6 border-t border-separator bg-canvas/40 flex items-center justify-between gap-3 shrink-0">
+          <div className="pt-4 border-t border-separator flex items-center justify-between gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="btn-secondary text-xs py-2 px-4 cursor-pointer"
+              className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
             >
               Close
             </button>
@@ -488,10 +462,10 @@ export const EventBulkUploadModal = ({
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="btn-secondary text-xs py-2 px-3.5 flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary flex items-center gap-1.5 cursor-pointer transition"
                 >
                   <RefreshCw size={13} />
-                  <span>Upload Another File</span>
+                  <span>Upload Another</span>
                 </button>
               )}
 
@@ -499,20 +473,19 @@ export const EventBulkUploadModal = ({
                 type="button"
                 onClick={handleUploadSubmit}
                 disabled={!file || loading}
-                className="btn-primary text-xs py-2 px-5 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition cursor-pointer disabled:opacity-50"
               >
                 {loading ? (
-                  <Loader2 size={15} className="animate-spin" />
+                  <Loader2 size={14} className="animate-spin" />
                 ) : (
-                  <Upload size={15} />
+                  <Upload size={14} />
                 )}
-                <span>{loading ? 'Processing Roster...' : 'Upload & Enroll Students'}</span>
+                <span>{loading ? 'Processing...' : 'Upload & Enroll Students'}</span>
               </button>
             </div>
           </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        </div>
+      </ResponsiveModal>
   );
 };
 

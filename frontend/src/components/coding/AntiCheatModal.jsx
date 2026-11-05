@@ -1,58 +1,76 @@
 import React from 'react';
+import ResponsiveModal from '../ui/ResponsiveModal';
 import { AlertCircle, Lock } from 'lucide-react';
 
-const AntiCheatModal = ({ warnings, isLocked }) => {
+export const AntiCheatModal = ({
+  warnings = 1,
+  isLocked = false,
+  isOpen = true,
+  onClose,
+}) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className={`max-w-md w-full glass-morphic-dark border ${
-        isLocked ? 'border-red-500/30' : 'border-yellow-500/30'
-      } p-8 rounded-2xl shadow-2xl relative overflow-hidden`}>
-        {/* Glow effect */}
-        <div className={`absolute -top-24 -left-24 w-48 h-48 rounded-full blur-[100px] ${
-          isLocked ? 'bg-red-500/20' : 'bg-yellow-500/20'
-        }`} />
-        
-        <div className="relative text-center">
-          <div className="flex justify-center mb-6">
-            {isLocked ? (
-              <div className="p-4 bg-red-500/10 rounded-full">
-                <Lock className="text-red-500" size={48} />
-              </div>
-            ) : (
-              <div className="p-4 bg-yellow-500/10 rounded-full">
-                <AlertCircle className="text-yellow-500" size={48} />
-              </div>
-            )}
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && onClose && !isLocked) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div
+            className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+              isLocked
+                ? 'bg-rose-500/10 text-rose-500'
+                : 'bg-amber-500/10 text-amber-500'
+            }`}
+          >
+            {isLocked ? <Lock className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
           </div>
+          <span className={isLocked ? 'text-rose-500 font-bold' : 'text-amber-500 font-bold'}>
+            {isLocked ? 'Workspace Locked' : 'Anti-Cheat Proctoring Alert'}
+          </span>
+        </div>
+      }
+      description={
+        isLocked
+          ? 'You have exceeded the maximum allowed tab switches. Your session has been locked.'
+          : `Switching tabs or minimizing the window is monitored. Warning ${warnings} of 3.`
+      }
+      dialogClassName="sm:max-w-md p-6"
+    >
+      <div className="space-y-4 pt-2">
+        <div
+          className={`p-4 rounded-2xl border ${
+            isLocked
+              ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
+              : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
+          } text-xs leading-relaxed`}
+        >
+          {isLocked
+            ? 'Progress has been timestamped and saved. Please reach out to your club coordinator or exam administrator to appeal for re-entry.'
+            : 'Please keep this workspace active and in focus. Additional window switches will result in immediate session locking.'}
+        </div>
 
-          <h2 className={`text-2xl font-black mb-4 uppercase tracking-tighter ${
-            isLocked ? 'text-red-500' : 'text-yellow-500'
-          }`}>
-            {isLocked ? 'Workspace Locked' : 'Anti-Cheat Warning'}
-          </h2>
-
-          <p className="text-gray-300 mb-8 font-medium leading-relaxed">
-            {isLocked 
-              ? 'You have exceeded the maximum number of tab switches. Your progress has been logged and the workspace is now locked.'
-              : `Switching tabs is not allowed during this session. This is warning ${warnings} of 3.`
-            }
-          </p>
-
+        <div className="pt-2 flex justify-end gap-3">
           {isLocked ? (
-            <div className="space-y-4">
-              <p className="text-xs text-red-400 font-bold uppercase tracking-widest">Action Required</p>
-              <button className="w-full py-4 bg-red-600 hover:bg-red-700 text-text-primary rounded-xl font-black transition-all transform hover:scale-[1.02] shadow-lg shadow-red-600/20">
-                Contact Administrator
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full inline-flex items-center justify-center py-2.5 px-5 rounded-full text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow transition cursor-pointer"
+            >
+              Contact Administrator
+            </button>
           ) : (
-            <button className="w-full py-4 bg-surface-elevated hover:bg-white/20 text-text-primary rounded-xl font-bold transition-all border border-border">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full inline-flex items-center justify-center py-2.5 px-5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover shadow transition cursor-pointer"
+            >
               I Understand, Continue
             </button>
           )}
         </div>
       </div>
-    </div>
+    </ResponsiveModal>
   );
 };
 

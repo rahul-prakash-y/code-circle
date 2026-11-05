@@ -204,41 +204,25 @@ export const AdminMissedEventRequestsModal: React.FC<
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 10 }}
-          transition={{ duration: 0.2 }}
-          className="relative w-full max-w-4xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[92vh]"
-        >
-          {/* Header */}
-          <div className="px-6 py-5 border-b border-white/[0.08] bg-[#1A1A1D] flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
-                  Missed Event Requests & Restriction Control
-                </h2>
-                <p className="text-xs text-[#86868B]">
-                  Review student absence justifications • Rejections enforce academic restrictions
-                </p>
-              </div>
+    <>
+      <ResponsiveModal
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        title={
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+              <ShieldAlert className="w-4 h-4" />
             </div>
-
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <span>Missed Event Requests & Restriction Control</span>
           </div>
+        }
+        description="Review student absence justifications • Rejections enforce academic restrictions"
+        dialogClassName="sm:max-w-4xl p-6"
+      >
+        <div className="space-y-4 pt-2">
 
           {/* Stats Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 px-6 py-3.5 bg-black/[0.01] dark:bg-white/[0.01] border-b border-black/5 dark:border-white/10 shrink-0">
@@ -482,9 +466,10 @@ export const AdminMissedEventRequestsModal: React.FC<
               })
             )}
           </div>
-        </motion.div>
+        </div>
+      </ResponsiveModal>
 
-        {/* Review Action Confirmation Sub-Modal */}
+      {/* Review Action Confirmation Sub-Modal */}
         {reviewingReq && (
           <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
             <motion.div
@@ -599,8 +584,7 @@ export const AdminMissedEventRequestsModal: React.FC<
             </motion.div>
           </div>
         )}
-      </div>
-    </AnimatePresence>
+    </>
   );
 };
 

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Loader2 } from 'lucide-react';
+import ResponsiveModal from '../ui/ResponsiveModal';
+import { Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import useProfileStore from '../../store/useProfileStore';
 import toast from 'react-hot-toast';
 
-const ImageUploadModal = ({ isOpen, onClose }) => {
+export const ImageUploadModal = ({ isOpen, onClose }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const { uploadProfilePic, profileLoading } = useProfileStore();
@@ -25,79 +25,113 @@ const ImageUploadModal = ({ isOpen, onClose }) => {
 
   const handleUpload = async () => {
     if (!selectedFile) return;
-    
+
     const res = await uploadProfilePic(selectedFile);
     if (res.success) {
       toast.success('Profile picture updated!');
+      setSelectedFile(null);
+      setPreview(null);
       onClose();
     } else {
-      toast.error(res.error);
+      toast.error(res.error || 'Failed to upload image');
     }
   };
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-md overflow-hidden bg-surface-elevated border border-border rounded-2xl shadow-2xl"
-          >
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="text-xl font-semibold text-text-primary">Upload Profile Picture</h2>
-              <button 
-                onClick={onClose}
-                className="p-2 text-text-muted hover:text-text-primary transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
+  const handleClear = () => {
+    setSelectedFile(null);
+    setPreview(null);
+  };
 
-            <div className="p-8">
-              {!preview ? (
-                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-indigo-500/50 hover:bg-surface-elevated/50 transition-all group">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <div className="p-4 mb-4 bg-indigo-500/10 rounded-full text-indigo-500 group-hover:scale-110 transition-transform">
-                      <Upload size={24} />
-                    </div>
-                    <p className="mb-2 text-sm text-text-secondary">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
-                    </p>
-                    <p className="text-xs text-text-muted text-center">
-                      PNG, JPG or GIF (MAX. 5MB)
-                    </p>
-                  </div>
-                  <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-                </label>
-              ) : (
-                <div className="flex flex-col items-center gap-6">
-                  <div className="relative w-40 h-40 overflow-hidden rounded-full border-4 border-indigo-500/20 shadow-lg">
-                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex gap-4 w-full">
-                    <button 
-                      onClick={() => { setSelectedFile(null); setPreview(null); }}
-                      className="flex-1 py-2.5 text-sm font-medium text-text-secondary bg-surface-elevated rounded-lg hover:bg-slate-700 transition-colors"
-                    >
-                      Remove
-                    </button>
-                    <button 
-                      onClick={handleUpload}
-                      disabled={profileLoading}
-                      className="flex-2 flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-text-primary bg-indigo-600 rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors shadow-lg shadow-indigo-500/20"
-                    >
-                      {profileLoading ? <Loader2 className="animate-spin" size={18} /> : 'Save Picture'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
+  return (
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          handleClear();
+          onClose();
+        }
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
+            <Upload className="w-4 h-4" />
+          </div>
+          <span>Upload Profile Picture</span>
         </div>
-      )}
-    </AnimatePresence>
+      }
+      description="Choose a high-resolution PNG, JPG, or GIF photo for your student profile."
+      dialogClassName="sm:max-w-md p-6"
+    >
+      <div className="space-y-4 pt-2">
+        {!preview ? (
+          <label className="flex flex-col items-center justify-center w-full h-52 border-2 border-dashed border-separator rounded-2xl cursor-pointer hover:border-accent/50 hover:bg-surface-secondary/50 transition-all group p-4">
+            <div className="flex flex-col items-center justify-center py-4">
+              <div className="p-3.5 mb-3 bg-accent/10 text-accent rounded-2xl group-hover:scale-105 transition-transform">
+                <Upload size={22} />
+              </div>
+              <p className="mb-1 text-xs sm:text-sm font-semibold text-label-primary">
+                Click to upload <span className="text-label-tertiary font-normal">or drag and drop</span>
+              </p>
+              <p className="text-[11px] text-label-tertiary text-center">
+                PNG, JPG or GIF (Max. 5MB)
+              </p>
+            </div>
+            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+          </label>
+        ) : (
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div className="relative w-36 h-36 overflow-hidden rounded-full border-4 border-accent/20 shadow-lg">
+              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+            </div>
+            <p className="text-xs text-label-secondary font-medium">
+              {selectedFile?.name || 'Selected image'}
+            </p>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              handleClear();
+              onClose();
+            }}
+            disabled={profileLoading}
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors"
+          >
+            Cancel
+          </button>
+
+          {preview && (
+            <button
+              type="button"
+              onClick={handleClear}
+              disabled={profileLoading}
+              className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-destructive cursor-pointer transition-colors"
+            >
+              Choose Another
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={!selectedFile || profileLoading}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition cursor-pointer shadow"
+          >
+            {profileLoading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Uploading...</span>
+              </>
+            ) : (
+              <span>Save Picture</span>
+            )}
+          </button>
+        </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

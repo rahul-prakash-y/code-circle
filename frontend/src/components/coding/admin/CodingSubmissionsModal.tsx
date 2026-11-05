@@ -1,3 +1,4 @@
+import ResponsiveModal from '../../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
@@ -170,34 +171,25 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="w-full max-w-5xl my-auto bg-surface border border-separator rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center pb-5 border-b border-separator shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
-              <Users size={22} />
+    <>
+      <ResponsiveModal
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        title={
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <Users className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-label-primary tracking-tight">
-                Submissions Roster: {challengeTitle || 'Coding Assessment'}
-              </h2>
-              <p className="text-xs text-label-secondary">
-                Review student source code, evaluated test cases, and anti-cheating audit trail
-              </p>
-            </div>
+            <span>Submissions Roster: {challengeTitle || 'Coding Assessment'}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
+        }
+        description="Review student source code, evaluated test cases, and anti-cheating audit trail."
+        dialogClassName="sm:max-w-5xl p-6"
+      >
+        <div className="space-y-4 pt-2">
         {/* Quick Metrics Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4 shrink-0">
           <div className="p-3.5 rounded-2xl bg-surface-secondary border border-separator/80">
@@ -452,6 +444,9 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
           </div>
         )}
 
+        </div>
+      </ResponsiveModal>
+
         {/* Action Confirmation Modal Overlay */}
         {confirmAction && (
           <div className="fixed inset-0 z-70 bg-black/85 backdrop-blur-md flex items-center justify-center p-6">
@@ -511,8 +506,7 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </>
   );
 };
 

@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Plus, Trash2, CheckCircle, AlertCircle, Loader2, UserPlus, Sliders } from 'lucide-react';
@@ -120,36 +121,24 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="w-full max-w-lg bg-surface-elevated/90 backdrop-blur-xl border border-border rounded-3xl shadow-2xl overflow-hidden"
-      >
-        {/* Header */}
-        <div className="relative p-6 border-b border-border bg-linear-to-r from-indigo-500/10 to-violet-500/10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-indigo-500/20 rounded-xl text-indigo-400">
-                {isTeamEvent ? <Users size={20} /> : <UserPlus size={20} />}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-text-primary">Event Enrollment</h2>
-                <p className="text-xs text-text-muted mt-0.5">{event.title}</p>
-              </div>
-            </div>
-            <button 
-              onClick={onClose}
-              className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded-full transition-all"
-            >
-              <X size={20} />
-            </button>
+    <ResponsiveModal
+      open={isOpen && Boolean(event)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+            {isTeamEvent ? <Users className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
           </div>
+          <span>Event Enrollment</span>
         </div>
-
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+      }
+      description={event?.title || 'Register for event'}
+      dialogClassName="sm:max-w-lg p-6"
+    >
+      <div className="space-y-4 pt-2">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {event.maxParticipants > 0 && (
             <div
               className={`p-3.5 rounded-2xl flex items-center justify-between text-xs border ${
@@ -348,27 +337,23 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 bg-surface-elevated/50 hover:bg-surface-elevated text-text-secondary rounded-2xl font-semibold transition-all"
+              className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || isFull}
-              className={`flex-2 px-6 py-3 rounded-2xl font-bold shadow-xl transition-all disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2 ${
-                isFull
-                  ? 'bg-surface-elevated text-text-muted border border-border cursor-not-allowed shadow-none'
-                  : 'bg-linear-to-r from-indigo-600 to-violet-600 text-text-primary shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer'
-              }`}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition cursor-pointer shadow"
             >
               {loading ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Processing...
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Processing...</span>
                 </>
               ) : isFull ? (
                 'Registration Full'
@@ -378,15 +363,8 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
             </button>
           </div>
         </form>
-
-        {/* Footer info */}
-        <div className="p-4 bg-surface/50 border-t border-border text-center">
-          <p className="text-[10px] text-text-muted uppercase tracking-widest flex items-center justify-center gap-2">
-            <AlertCircle size={10} /> Limited slots available per event
-          </p>
-        </div>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

@@ -96,94 +96,75 @@ export const EventDetailsModal = ({
 
   return (
     <>
-      <AnimatePresence>
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-hidden">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-black/40 dark:bg-black/75 backdrop-blur-xl"
-        />
-
-        {/* Modal Window */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 16 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 16 }}
-          transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-2xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden z-10 flex flex-col max-h-[85vh] sm:max-h-[88vh]"
-          style={{ backgroundColor: 'var(--surface)', color: 'var(--label-primary)' }}
-        >
-          {/* Header Banner */}
-          <div className="relative p-6 sm:p-7 border-b border-separator bg-canvas/60">
-            <div className="flex items-center justify-between gap-4 mb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-accent-subtle text-accent">
-                  {categoryLabel}
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-separator text-label-secondary">
-                  {formatLabel}
-                </span>
-                {event.registrationType === 'admin_upload' && (
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/25">
-                    Admin Upload Only
-                  </span>
-                )}
-                {event.hasArena && (
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 flex items-center gap-1 shadow-xs">
-                    <Sparkles size={12} />
-                    Event Arena
-                  </span>
-                )}
-                {isLive && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/15 text-destructive border border-red-500/20">
-                    <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                    LIVE NOW
-                  </span>
-                )}
-                {event.status === 'Completed' && (
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-separator text-label-tertiary">
-                    Completed
-                  </span>
-                )}
-                {event.status === 'Cancelled' && (
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-destructive/10 text-destructive">
-                    Cancelled
-                  </span>
-                )}
+      <ResponsiveModal
+        open={isOpen && Boolean(event)}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        title={
+          <div className="flex items-center justify-between w-full pr-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+                <Calendar className="w-4 h-4" />
               </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={handleShare}
-                  className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors"
-                  title="Share Event"
-                >
-                  <Share2 size={16} />
-                </button>
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+              <span>{event?.title || 'Event Details'}</span>
             </div>
-
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight leading-tight font-heading">
-              {event.title}
-            </h1>
-
-            {deadlineCountdown && (
-              <div className="mt-3 flex items-center gap-2 text-xs font-medium text-label-secondary">
-                <Clock size={14} className="text-accent" />
-                <span>{deadlineCountdown}</span>
-              </div>
+            <button
+              onClick={handleShare}
+              className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition-colors"
+              title="Share Event"
+            >
+              <Share2 size={16} />
+            </button>
+          </div>
+        }
+        description={`${categoryLabel} • ${formatLabel} ${event?.venue ? `• ${event.venue}` : ''}`}
+        dialogClassName="sm:max-w-2xl p-6"
+      >
+        <div className="space-y-4 pt-2">
+          {/* Status Badge Strip */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/10 text-accent border border-accent/20">
+              {categoryLabel}
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-secondary border border-separator text-label-secondary">
+              {formatLabel}
+            </span>
+            {event.registrationType === 'admin_upload' && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                Admin Upload Only
+              </span>
+            )}
+            {event.hasArena && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 flex items-center gap-1 shadow-xs">
+                <Sparkles size={12} />
+                Event Arena
+              </span>
+            )}
+            {isLive && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/15 text-rose-500 border border-rose-500/20">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                LIVE NOW
+              </span>
+            )}
+            {event.status === 'Completed' && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-secondary border border-separator text-label-secondary">
+                Completed
+              </span>
+            )}
+            {event.status === 'Cancelled' && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                Cancelled
+              </span>
             )}
           </div>
 
+          {deadlineCountdown && (
+            <div className="p-3 bg-accent/5 rounded-xl border border-accent/15 flex items-center gap-2 text-xs font-medium text-label-secondary">
+              <Clock size={14} className="text-accent" />
+              <span>{deadlineCountdown}</span>
+            </div>
+          )}
           {/* Body Content */}
           <div className="p-6 sm:p-7 space-y-6 overflow-y-auto custom-scrollbar flex-1">
             {/* Quick Metrics Grid */}
@@ -572,9 +553,8 @@ export const EventDetailsModal = ({
               )}
             </div>
           </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        </div>
+      </ResponsiveModal>
 
     {/* Event Arena Admin & Question Hub Modal */}
     {isAdmin && (

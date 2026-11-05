@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -467,69 +468,57 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="w-full max-w-5xl max-h-[92vh] flex flex-col bg-slate-950 text-white rounded-3xl border border-white/10 shadow-2xl overflow-hidden font-sans"
-      >
-        {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/80 shrink-0">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 font-semibold text-sm shrink-0">
-              {studentName.charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight truncate">
-                  {studentName}&apos;s assessment report
-                </h3>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider tabular-nums border ${
-                    submission.passed
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                      : 'bg-red-500/20 text-red-400 border-red-500/30'
-                  }`}
-                >
-                  {submission.passed ? 'PASSED' : 'FAILED'} ({submission.percentage}%)
-                </span>
-              </div>
-              <p className="text-xs text-white/60 truncate mt-0.5 font-normal">
-                {assessment?.title || 'Assessment'} • {studentRoll} • {studentDept} ({studentEmail})
-              </p>
-            </div>
+    <ResponsiveModal
+      open={isOpen && Boolean(submission)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs">
+            {studentName.charAt(0).toUpperCase()}
           </div>
-
-          {/* Action Header Buttons */}
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>{studentName}&apos;s Assessment Report</span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider tabular-nums border ${
+                submission.passed
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+              }`}
+            >
+              {submission.passed ? 'PASSED' : 'FAILED'} ({submission.percentage}%)
+            </span>
+          </div>
+        </div>
+      }
+      description={`${assessment?.title || 'Assessment'} • ${studentRoll} • ${studentDept}`}
+      dialogClassName="sm:max-w-5xl p-6"
+    >
+      <div className="space-y-4 pt-2">
+        {/* Action Header Buttons */}
+        <div className="flex items-center justify-between gap-2 p-3 bg-surface-secondary rounded-2xl border border-separator flex-wrap">
+          <span className="text-xs font-semibold text-label-secondary">Report Actions:</span>
+          <div className="flex items-center gap-2">
             <button
               onClick={handlePrintPdf}
-              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
               title="Print or save PDF report"
             >
-              <Printer size={14} />
+              <Printer size={13} />
               <span>Print / PDF</span>
             </button>
 
             <button
               onClick={handleDownloadCsv}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
               title="Download CSV breakdown"
             >
-              <FileSpreadsheet size={14} />
-              <span className="hidden sm:inline">Export CSV</span>
-            </button>
-
-            <button
-              onClick={onClose}
-              className="p-2 text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-            >
-              <X size={18} />
+              <FileSpreadsheet size={13} />
+              <span>Export CSV</span>
             </button>
           </div>
         </div>
-
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 sm:p-5 border-b border-white/10 bg-slate-900/40 shrink-0">
           <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
@@ -718,17 +707,17 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/10 bg-slate-900/80 flex items-center justify-between text-xs text-white/50 shrink-0">
+        <div className="pt-4 border-t border-separator flex items-center justify-between text-xs text-label-secondary shrink-0">
           <span>Detailed assessment ledger · Student performance audit</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all cursor-pointer"
+            className="px-5 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
           >
-            Close report
+            Close Report
           </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

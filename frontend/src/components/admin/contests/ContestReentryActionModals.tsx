@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import ResponsiveModal from '../../ui/ResponsiveModal';
 import {
-  X,
   UserCheck,
   XCircle,
   Trash2,
   Clock,
   AlertTriangle,
   RotateCcw,
-  Sparkles,
   ShieldCheck,
   CheckCircle2,
   MessageSquare,
+  Loader2,
 } from 'lucide-react';
 import useContestStore, { Contest } from '../../../store/useContestStore';
 
@@ -36,15 +35,14 @@ export const ApproveReentryModal: React.FC<ApproveReentryModalProps> = ({
   const [note, setNote] = useState<string>('Your re-entry request has been approved. You may now resume your contest session.');
   const [submitting, setSubmitting] = useState(false);
 
-  if (!isOpen || !submission || !contest) return null;
-
-  const studentName = submission.userId?.name || 'Student';
-  const studentEmail = submission.userId?.email || '';
-  const studentRoll = submission.userId?.rollNo || 'N/A';
-  const awardedPoints = submission.awardedClubPoints || 0;
+  const studentName = submission?.userId?.name || 'Student';
+  const studentEmail = submission?.userId?.email || '';
+  const studentRoll = submission?.userId?.rollNo || 'N/A';
+  const awardedPoints = submission?.awardedClubPoints || 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!submission || !contest) return;
     setSubmitting(true);
     try {
       const res = await approveReentry(contest._id, submission._id, {
@@ -61,145 +59,131 @@ export const ApproveReentryModal: React.FC<ApproveReentryModalProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-70 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden text-label-primary"
-        >
-          {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-separator bg-surface-secondary flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <UserCheck size={20} />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-extrabold text-label-primary tracking-tight truncate">
-                  Approve Contest Re-entry
-                </h3>
-                <p className="text-xs text-label-tertiary truncate">
-                  Grant re-entry permission and resume student timer
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              disabled={submitting}
-              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer shrink-0"
-            >
-              <X size={18} />
-            </button>
+    <ResponsiveModal
+      open={isOpen && Boolean(submission) && Boolean(contest)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <UserCheck className="w-4 h-4" />
           </div>
+          <span>Approve Contest Re-entry</span>
+        </div>
+      }
+      description="Grant re-entry permission and resume student timer."
+      dialogClassName="sm:max-w-lg p-6"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        {/* Student Info Card */}
+        <div className="p-3.5 bg-surface-secondary rounded-2xl border border-separator space-y-1">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-label-primary">{studentName}</p>
+            <span className="text-xs font-mono font-bold text-label-secondary">{studentRoll}</span>
+          </div>
+          <p className="text-xs text-label-secondary">{studentEmail}</p>
+          <div className="pt-1 flex items-center justify-between text-xs border-t border-separator/60">
+            <span className="text-label-secondary">Current Score:</span>
+            <span className="font-extrabold text-accent">{submission?.totalScore || 0} pts</span>
+          </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
-            {/* Student Info Card */}
-            <div className="p-3.5 bg-surface-secondary rounded-2xl border border-separator space-y-1">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-label-primary">{studentName}</p>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
-                  Roll: {studentRoll}
-                </span>
-              </div>
-              <p className="text-xs text-label-tertiary truncate">{studentEmail}</p>
-              {submission.reentryReason && (
-                <div className="mt-2 pt-2 border-t border-separator/60">
-                  <p className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">
-                    Student's Appeal / Request Reason:
-                  </p>
-                  <p className="text-xs text-label-secondary italic mt-0.5 bg-surface p-2 rounded-xl border border-separator">
-                    "{submission.reentryReason}"
-                  </p>
-                </div>
-              )}
-            </div>
+        {/* Student's Reason */}
+        {submission?.reentryRequest?.reason && (
+          <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-1">
+            <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1">
+              <RotateCcw size={12} />
+              Student's Reason for Request:
+            </span>
+            <p className="text-xs text-label-primary italic">
+              "{submission.reentryRequest.reason}"
+            </p>
+          </div>
+        )}
 
-            {/* Time Allowance Input */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-label-secondary flex items-center gap-1.5">
-                <Clock size={13} className="text-primary" />
-                <span>Active Session Timer for Re-entry (Minutes)</span>
-              </label>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <input
-                  type="number"
-                  min="5"
-                  max="360"
-                  value={durationMinutes}
-                  onChange={(e) => setDurationMinutes(Math.max(5, parseInt(e.target.value) || 0))}
-                  className="w-full sm:flex-1 px-3.5 py-2.5 bg-surface border border-separator rounded-xl text-sm font-mono font-bold text-label-primary focus:outline-none focus:border-primary"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setDurationMinutes(defaultDuration)}
-                  className="w-full sm:w-auto px-3 py-2.5 bg-surface-secondary hover:bg-surface border border-separator rounded-xl text-xs font-bold text-label-secondary transition-colors cursor-pointer text-center"
-                  title="Reset to contest standard duration"
-                >
-                  Standard ({defaultDuration}m)
-                </button>
-              </div>
-              <p className="text-[11px] text-label-tertiary">
-                The student's countdown will start with this duration immediately upon re-entering the arena.
-              </p>
-            </div>
+        {/* Duration Configuration */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1.5">
+            <Clock size={13} className="text-emerald-500" />
+            <span>Time Allowed to Resume (Minutes)</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={5}
+              max={300}
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(Number(e.target.value))}
+              className="w-32 px-4 py-2.5 rounded-xl bg-surface-secondary border border-separator text-sm font-bold text-label-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              required
+            />
+            <span className="text-xs text-label-secondary">minutes remaining for this student</span>
+          </div>
+        </div>
 
-            {/* Admin Note Input */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-label-secondary flex items-center gap-1.5">
-                <MessageSquare size={13} className="text-primary" />
-                <span>Message / Note to Student</span>
-              </label>
-              <textarea
-                rows={2}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Write an encouraging note or instructions..."
-                className="w-full px-3.5 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
-              />
-            </div>
+        {/* Note / Message */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1.5">
+            <MessageSquare size={13} className="text-accent" />
+            <span>Message / Note to Student</span>
+          </label>
+          <textarea
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Write an encouraging note or instructions..."
+            className="w-full px-4 py-2.5 rounded-xl bg-surface-secondary border border-separator text-sm text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
+          />
+        </div>
 
-            {/* Safety & System Explanations */}
-            <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold">
-                <ShieldCheck size={14} className="shrink-0" />
-                <span>Automatic Integrity & Points Safeguards</span>
-              </div>
-              <ul className="list-disc list-inside space-y-0.5 text-[10px] text-label-secondary">
-                {awardedPoints > 0 && (
-                  <li>
-                    Safely refunds {awardedPoints} XP from their profile to prevent double score allocation.
-                  </li>
-                )}
-                <li>Unblocks contest feature access if previously locked by tab-switch warnings.</li>
-                <li>Sends an instant notification alert to the student profile.</li>
-              </ul>
-            </div>
+        {/* Safety & System Explanations */}
+        <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 space-y-1">
+          <div className="flex items-center gap-1.5 font-bold">
+            <ShieldCheck size={14} className="shrink-0" />
+            <span>Automatic Integrity & Points Safeguards</span>
+          </div>
+          <ul className="list-disc list-inside space-y-0.5 text-[10px] text-label-secondary">
+            {awardedPoints > 0 && (
+              <li>
+                Safely refunds {awardedPoints} XP from their profile to prevent duplicate score allocation.
+              </li>
+            )}
+            <li>Unblocks contest feature access if previously locked by tab-switch warnings.</li>
+            <li>Sends an instant notification alert to the student profile.</li>
+          </ul>
+        </div>
 
-            {/* Footer Buttons */}
-            <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={submitting}
-                className="w-full sm:w-auto px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
+        {/* Footer Buttons */}
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+          >
+            {submitting ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                <span>Approving...</span>
+              </>
+            ) : (
+              <>
                 <CheckCircle2 size={14} />
-                <span>{submitting ? 'Approving...' : 'Approve & Allow Re-entry'}</span>
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+                <span>Approve & Allow Re-entry</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </ResponsiveModal>
   );
 };
 
@@ -222,12 +206,11 @@ export const RejectReentryModal: React.FC<RejectReentryModalProps> = ({
   const [note, setNote] = useState<string>('Your re-entry request could not be approved at this time.');
   const [submitting, setSubmitting] = useState(false);
 
-  if (!isOpen || !submission || !contest) return null;
-
-  const studentName = submission.userId?.name || 'Student';
+  const studentName = submission?.userId?.name || 'Student';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!submission || !contest) return;
     setSubmitting(true);
     try {
       const res = await rejectReentry(contest._id, submission._id, note.trim());
@@ -241,81 +224,66 @@ export const RejectReentryModal: React.FC<RejectReentryModalProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-70 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col overflow-hidden text-label-primary"
-        >
-          <div className="p-4 sm:p-6 border-b border-separator bg-surface-secondary flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0">
-                <XCircle size={20} />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-extrabold text-label-primary tracking-tight truncate">
-                  Decline Re-entry Request
-                </h3>
-                <p className="text-xs text-label-tertiary truncate">
-                  Reject request from {studentName}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              disabled={submitting}
-              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer shrink-0"
-            >
-              <X size={18} />
-            </button>
+    <ResponsiveModal
+      open={isOpen && Boolean(submission) && Boolean(contest)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+            <XCircle className="w-4 h-4" />
           </div>
+          <span>Decline Contest Re-entry</span>
+        </div>
+      }
+      description={`Decline re-entry request for ${studentName}.`}
+      dialogClassName="sm:max-w-md p-6"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider block">
+            Reason / Explanation to Student *
+          </label>
+          <textarea
+            rows={3}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Explain why the appeal cannot be accommodated..."
+            className="w-full px-4 py-2.5 rounded-xl bg-surface-secondary border border-separator text-sm text-label-primary focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-none"
+            required
+          />
+        </div>
 
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
-            {submission.reentryReason && (
-              <div className="p-3 bg-surface-secondary rounded-2xl border border-separator">
-                <p className="text-[10px] font-bold text-label-tertiary uppercase">Student Appeal:</p>
-                <p className="text-xs text-label-secondary italic mt-0.5">"{submission.reentryReason}"</p>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-label-secondary">
-                Reason for Rejection (sent to student)
-              </label>
-              <textarea
-                rows={3}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Explain why the re-entry was declined..."
-                className="w-full px-3.5 py-2.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
-                required
-              />
-            </div>
-
-            <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={submitting}
-                className="w-full sm:w-auto px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+          >
+            {submitting ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                <span>Declining...</span>
+              </>
+            ) : (
+              <>
                 <XCircle size={14} />
-                <span>{submitting ? 'Declining...' : 'Decline Request'}</span>
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+                <span>Decline Request</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </ResponsiveModal>
   );
 };
 
@@ -337,13 +305,12 @@ export const DeleteSubmissionModal: React.FC<DeleteSubmissionModalProps> = ({
   const { deleteSubmission } = useContestStore();
   const [submitting, setSubmitting] = useState(false);
 
-  if (!isOpen || !submission || !contest) return null;
-
-  const studentName = submission.userId?.name || 'Student';
-  const studentRoll = submission.userId?.rollNo || submission.userId?.email || 'N/A';
-  const awardedPoints = submission.awardedClubPoints || 0;
+  const studentName = submission?.userId?.name || 'Student';
+  const studentRoll = submission?.userId?.rollNo || submission?.userId?.email || 'N/A';
+  const awardedPoints = submission?.awardedClubPoints || 0;
 
   const handleDelete = async () => {
+    if (!submission || !contest) return;
     setSubmitting(true);
     try {
       const res = await deleteSubmission(contest._id, submission._id);
@@ -357,90 +324,81 @@ export const DeleteSubmissionModal: React.FC<DeleteSubmissionModalProps> = ({
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-70 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-surface border border-rose-500/30 rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col overflow-hidden text-label-primary"
-        >
-          {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-separator bg-rose-500/5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0">
-                <Trash2 size={20} />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-extrabold text-label-primary tracking-tight truncate">
-                  Delete Student Contest Entry
-                </h3>
-                <p className="text-xs text-rose-500 font-semibold truncate">
-                  Permanent removal & participation reset
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              disabled={submitting}
-              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer shrink-0"
-            >
-              <X size={18} />
-            </button>
+    <ResponsiveModal
+      open={isOpen && Boolean(submission) && Boolean(contest)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+            <Trash2 className="w-4 h-4" />
           </div>
-
-          <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
-            <div className="p-4 bg-surface-secondary rounded-2xl border border-separator space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-label-primary">{studentName}</span>
-                <span className="text-xs font-mono font-bold text-label-tertiary">{studentRoll}</span>
-              </div>
-              <div className="text-xs text-label-secondary space-y-1">
-                <p>Contest: <strong className="text-label-primary">{contest.title}</strong></p>
-                <p>Score Earned: <strong className="text-primary font-mono">{submission.totalScore} pts</strong></p>
-                {awardedPoints > 0 && (
-                  <p className="text-rose-500 font-bold">
-                    Profile Club Points to Refund: -{awardedPoints} XP
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-[11px] text-rose-600 dark:text-rose-400 space-y-1">
-              <p className="font-bold flex items-center gap-1.5">
-                <AlertTriangle size={14} className="shrink-0" />
-                <span>What happens when you delete this entry:</span>
+          <span>Delete Student Contest Entry</span>
+        </div>
+      }
+      description="Permanent removal and participation reset."
+      dialogClassName="sm:max-w-md p-6"
+    >
+      <div className="space-y-4 pt-2">
+        <div className="p-4 bg-surface-secondary rounded-2xl border border-separator space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-sm text-label-primary">{studentName}</span>
+            <span className="text-xs font-mono font-bold text-label-secondary">{studentRoll}</span>
+          </div>
+          <div className="text-xs text-label-secondary space-y-1">
+            <p>Contest: <strong className="text-label-primary">{contest?.title}</strong></p>
+            <p>Score Earned: <strong className="text-accent font-mono">{submission?.totalScore} pts</strong></p>
+            {awardedPoints > 0 && (
+              <p className="text-rose-500 font-bold">
+                Profile Club Points to Refund: -{awardedPoints} XP
               </p>
-              <ul className="list-disc list-inside space-y-0.5 text-[10px] text-label-secondary">
-                <li>The submission record is permanently deleted from database and leaderboard.</li>
-                {awardedPoints > 0 && <li>{awardedPoints} XP will be deducted from the student's profile points.</li>}
-                <li>The contest total participant count is decremented by 1.</li>
-                <li>The student will be able to enter fresh if the contest is still active.</li>
-              </ul>
-            </div>
-
-            <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={submitting}
-                className="w-full sm:w-auto px-4 py-2.5 bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={submitting}
-                className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                <Trash2 size={14} />
-                <span>{submitting ? 'Deleting...' : 'Confirm Delete Entry'}</span>
-              </button>
-            </div>
+            )}
           </div>
-        </motion.div>
+        </div>
+
+        <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-[11px] text-rose-600 dark:text-rose-400 space-y-1">
+          <p className="font-bold flex items-center gap-1.5">
+            <AlertTriangle size={14} className="shrink-0" />
+            <span>What happens when you delete this entry:</span>
+          </p>
+          <ul className="list-disc list-inside space-y-0.5 text-[10px] text-label-secondary">
+            <li>The submission record is permanently deleted from database and leaderboard.</li>
+            {awardedPoints > 0 && <li>{awardedPoints} XP will be deducted from the student's profile points.</li>}
+            <li>The contest total participant count is decremented by 1.</li>
+            <li>The student will be able to enter fresh if the contest is still active.</li>
+          </ul>
+        </div>
+
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+          >
+            {submitting ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                <span>Deleting...</span>
+              </>
+            ) : (
+              <>
+                <Trash2 size={14} />
+                <span>Confirm Delete Entry</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
-    </AnimatePresence>
+    </ResponsiveModal>
   );
 };

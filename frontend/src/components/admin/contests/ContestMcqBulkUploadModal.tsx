@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import ResponsiveModal from '../../ui/ResponsiveModal';
 import {
-  X,
   FileSpreadsheet,
   Download,
   Upload,
@@ -9,10 +8,7 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
-  HelpCircle,
-  Layers,
   Trash2,
-  Check,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useContestStore, { MCQQuestion } from '../../../store/useContestStore';
@@ -42,8 +38,6 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
-
   const handleDownloadTemplate = async () => {
     try {
       setIsDownloading(true);
@@ -71,23 +65,29 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
         setParsedQuestions(res.data);
         if (res.errors && res.errors.length > 0) {
           setParseErrors(res.errors);
+          toast.success(
+            `Parsed ${res.data.length} question(s) with ${res.errors.length} non-fatal warning(s)`
+          );
+        } else {
+          toast.success(`Successfully parsed ${res.data.length} MCQ questions!`);
         }
-        toast.success(`Parsed ${res.data.length} questions successfully!`);
       } else {
-        toast.error(res.error || 'Failed to parse questions from file');
-        if (res.errors) setParseErrors(res.errors);
+        const errorMsg = res.message || 'No valid MCQ questions found in the uploaded file.';
+        setParseErrors([errorMsg]);
+        toast.error(errorMsg);
       }
     } catch (err: any) {
-      toast.error(err.message || 'File parsing failed');
+      const msg = err.response?.data?.message || err.message || 'Failed to parse file';
+      setParseErrors([msg]);
+      toast.error(msg);
     } finally {
       setIsParsing(false);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (selected) {
-      processFile(selected);
+    if (e.target.files && e.target.files[0]) {
+      processFile(e.target.files[0]);
     }
   };
 
@@ -103,13 +103,18 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const dropped = e.dataTransfer.files?.[0];
-    if (dropped) {
-      processFile(dropped);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFile(e.dataTransfer.files[0]);
     }
   };
 
-  const handleReset = () => {
+  const handleRemoveParsedQuestion = (index: number) => {
+    const updated = parsedQuestions.filter((_, idx) => idx !== index);
+    setParsedQuestions(updated);
+    toast.success('Question removed from staging');
+  };
+
+  const handleResetFile = () => {
     setFile(null);
     setParsedQuestions([]);
     setParseErrors([]);
@@ -120,13 +125,13 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
 
   const handleConfirmImport = () => {
     if (parsedQuestions.length === 0) {
-      toast.error('No questions parsed to import');
+      toast.error('No valid questions to import');
       return;
     }
 
     onImport(parsedQuestions, importMode);
     toast.success(
-      `Successfully ${importMode === 'append' ? 'appended' : 'imported'} ${parsedQuestions.length} MCQ questions!`
+      `Successfully ${importMode === 'append' ? 'appended' : 'imported'} ${parsedQuestions.length} MCQ(s)!`
     );
     onClose();
   };
@@ -134,266 +139,225 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
   const totalPoints = parsedQuestions.reduce((sum, q) => sum + (Number(q.points) || 10), 0);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 15 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="bg-surface dark:bg-[#121214] rounded-3xl border border-separator dark:border-white/10 max-w-3xl w-full p-5 sm:p-6 space-y-4 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-separator dark:border-white/10 pb-3.5 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0">
-              <FileSpreadsheet size={20} />
-            </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <FileSpreadsheet className="w-4 h-4" />
+          </div>
+          <span>Bulk Upload Contest MCQs</span>
+        </div>
+      }
+      description="Import dozens of multiple-choice questions via Excel spreadsheet or JSON."
+      dialogClassName="sm:max-w-3xl p-6"
+    >
+      <div className="space-y-4 pt-2">
+        {/* Action Row: Download Template */}
+        <div className="flex items-center justify-between p-3.5 bg-purple-500/10 dark:bg-purple-500/15 rounded-2xl border border-purple-500/20">
+          <div className="flex items-center gap-2.5">
+            <Download size={18} className="text-purple-600 dark:text-purple-400 shrink-0" />
             <div>
-              <h3 className="text-base sm:text-lg font-black text-label-primary dark:text-[#F5F5F7] tracking-tight font-heading">
-                Bulk Upload Contest MCQs
-              </h3>
-              <p className="text-xs text-label-secondary dark:text-[#86868B]">
-                Import dozens of multiple-choice questions via Excel spreadsheet or JSON.
-              </p>
+              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] block">
+                Need the Excel Format?
+              </span>
+              <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
+                Download our standardized template with column headers and sample questions.
+              </span>
             </div>
           </div>
           <button
-            onClick={onClose}
-            className="p-1.5 hover:bg-surface-secondary dark:hover:bg-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+            type="button"
+            onClick={handleDownloadTemplate}
+            disabled={isDownloading}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-50"
           >
-            <X size={18} />
+            {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            <span>Download Template</span>
           </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
-          {/* Action Row: Download Template */}
-          <div className="flex items-center justify-between p-3.5 bg-purple-500/10 dark:bg-purple-500/15 rounded-2xl border border-purple-500/20">
-            <div className="flex items-center gap-2.5">
-              <Download size={18} className="text-purple-600 dark:text-purple-400 shrink-0" />
-              <div>
-                <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] block">
-                  Need the Excel Format?
-                </span>
-                <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
-                  Download our pre-structured template with sample questions & instructions.
-                </span>
-              </div>
+        {/* Dropzone */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
+            isDragging
+              ? 'border-purple-500 bg-purple-500/10'
+              : 'border-separator dark:border-white/10 hover:border-purple-500/50 hover:bg-surface-secondary dark:hover:bg-white/5'
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.json"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          {isParsing ? (
+            <div className="flex flex-col items-center justify-center py-4 space-y-2">
+              <Loader2 size={28} className="animate-spin text-purple-500" />
+              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+                Parsing spreadsheet records...
+              </span>
             </div>
-            <button
-              type="button"
-              onClick={handleDownloadTemplate}
-              disabled={isDownloading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-50"
-            >
-              {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-              <span>Download Template</span>
-            </button>
-          </div>
-
-          {/* Dropzone */}
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-              isDragging
-                ? 'border-purple-500 bg-purple-500/10'
-                : 'border-separator dark:border-white/10 hover:border-purple-500/50 hover:bg-surface-secondary dark:hover:bg-white/5'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.json"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            {isParsing ? (
-              <div className="flex flex-col items-center justify-center py-4 space-y-2">
-                <Loader2 size={28} className="animate-spin text-purple-500" />
-                <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
-                  Parsing questions & validating answer keys...
-                </span>
-              </div>
-            ) : file ? (
-              <div className="flex items-center justify-between p-3 bg-surface-secondary dark:bg-[#1C1C1E] rounded-xl border border-separator dark:border-white/10 text-left">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                    <FileSpreadsheet size={18} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] block">
-                      {file.name}
-                    </span>
-                    <span className="text-[10px] text-label-secondary dark:text-[#86868B]">
-                      {(file.size / 1024).toFixed(1)} KB • {parsedQuestions.length} questions parsed
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleReset();
-                  }}
-                  className="p-1.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                  title="Remove file"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-2 space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-surface-secondary dark:bg-white/5 flex items-center justify-center text-label-secondary">
-                  <Upload size={22} />
+          ) : file ? (
+            <div className="flex items-center justify-between p-3 bg-surface-secondary dark:bg-[#1C1C1E] rounded-xl border border-separator dark:border-white/10 text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <FileSpreadsheet size={18} />
                 </div>
                 <div>
                   <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] block">
-                    Click to browse or drag & drop questions file
+                    {file.name}
                   </span>
-                  <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
-                    Supports Microsoft Excel (.xlsx, .xls) and JSON (.json)
+                  <span className="text-[10px] text-label-secondary dark:text-[#86868B]">
+                    {(file.size / 1024).toFixed(1)} KB • {parsedQuestions.length} item(s) parsed
                   </span>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Import Mode Selection */}
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
-              <Layers size={13} className="text-purple-500" />
-              <span>Import Strategy</span>
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setImportMode('append')}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  importMode === 'append'
-                    ? 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/40 shadow-xs'
-                    : 'bg-surface-secondary dark:bg-[#1C1C1E] border-separator dark:border-white/10 opacity-75 hover:opacity-100'
-                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleResetFile();
+                }}
+                className="p-1.5 hover:bg-surface dark:hover:bg-white/10 rounded-lg text-label-secondary hover:text-rose-500 transition-colors cursor-pointer"
+                title="Choose a different file"
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
-                    Append to Current
-                  </span>
-                  {importMode === 'append' && <Check size={14} className="text-purple-500" />}
-                </div>
-                <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
-                  Keep existing {currentQuestionsCount} question(s) and append new questions to the end.
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setImportMode('replace')}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  importMode === 'replace'
-                    ? 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/40 shadow-xs'
-                    : 'bg-surface-secondary dark:bg-[#1C1C1E] border-separator dark:border-white/10 opacity-75 hover:opacity-100'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
-                    Replace All Questions
-                  </span>
-                  {importMode === 'replace' && <Check size={14} className="text-purple-500" />}
-                </div>
-                <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
-                  Clear existing questions and replace entirely with parsed questions from this file.
-                </span>
+                <Trash2 size={16} />
               </button>
             </div>
-          </div>
-
-          {/* Validation Warnings if any */}
-          {parseErrors.length > 0 && (
-            <div className="p-3 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 rounded-2xl space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
-                <AlertCircle size={14} />
-                <span>Notice / Warnings ({parseErrors.length})</span>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-4 space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-1">
+                <Upload size={22} />
               </div>
-              <ul className="text-[11px] text-amber-700 dark:text-amber-300 list-disc list-inside space-y-0.5">
-                {parseErrors.slice(0, 5).map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-                {parseErrors.length > 5 && <li>...and {parseErrors.length - 5} more</li>}
-              </ul>
-            </div>
-          )}
-
-          {/* Parsed Preview Section */}
-          {parsedQuestions.length > 0 && (
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
-                    Questions Preview ({parsedQuestions.length})
-                  </span>
-                  <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg">
-                    +{totalPoints} Total Pts
-                  </span>
-                </div>
-                <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
-                  {importMode === 'append'
-                    ? `Result: ${currentQuestionsCount + parsedQuestions.length} total questions`
-                    : `Result: ${parsedQuestions.length} total questions`}
-                </span>
-              </div>
-
-              <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
-                {parsedQuestions.map((q, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-surface-secondary dark:bg-[#1C1C1E] rounded-xl border border-separator dark:border-white/10 space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-purple-500 font-mono">#{idx + 1}</span>
-                        <span className="text-xs font-semibold text-label-primary dark:text-[#F5F5F7] line-clamp-1">
-                          {q.question}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-bold bg-surface dark:bg-[#121214] px-1.5 py-0.5 rounded text-label-secondary shrink-0">
-                        {q.points || 10} pts
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-                      {q.options.map((opt: string, oIdx: number) => {
-                        const isCorrect = q.correctOptionIndex === oIdx;
-                        return (
-                          <div
-                            key={oIdx}
-                            className={`px-2 py-1 rounded-lg text-[10px] flex items-center gap-1.5 border ${
-                              isCorrect
-                                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-bold'
-                                : 'bg-surface dark:bg-[#121214] border-separator dark:border-white/5 text-label-secondary'
-                            }`}
-                          >
-                            <span className="font-mono">{String.fromCharCode(65 + oIdx)}.</span>
-                            <span className="truncate">{opt}</span>
-                            {isCorrect && <Check size={11} className="ml-auto shrink-0" />}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+                Drag & drop your question sheet here, or <span className="text-purple-500 underline">browse</span>
+              </span>
+              <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
+                Supports Microsoft Excel (.xlsx, .xls) and structured JSON files
+              </span>
             </div>
           )}
         </div>
 
+        {/* Parsing Error Alerts */}
+        {parseErrors.length > 0 && (
+          <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl space-y-1.5">
+            <div className="flex items-center gap-2 text-rose-500 font-bold text-xs">
+              <AlertCircle size={15} />
+              <span>Import Warnings & Validation Errors</span>
+            </div>
+            <ul className="text-[11px] text-rose-600 dark:text-rose-400 list-disc list-inside space-y-0.5 max-h-24 overflow-y-auto">
+              {parseErrors.map((err, idx) => (
+                <li key={idx}>{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Staging & Mode Controls */}
+        {parsedQuestions.length > 0 && (
+          <div className="space-y-3 pt-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-purple-500" />
+                <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+                  Parsed: {parsedQuestions.length} Questions ({totalPoints} total pts)
+                </span>
+              </div>
+
+              {/* Import Mode Radio */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-label-secondary dark:text-[#86868B] text-[11px] font-semibold">
+                  Target Mode:
+                </span>
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary dark:text-[#F5F5F7]">
+                  <input
+                    type="radio"
+                    name="importMode"
+                    value="append"
+                    checked={importMode === 'append'}
+                    onChange={() => setImportMode('append')}
+                    className="accent-purple-600"
+                  />
+                  <span>Append to existing ({currentQuestionsCount})</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary dark:text-[#F5F5F7]">
+                  <input
+                    type="radio"
+                    name="importMode"
+                    value="replace"
+                    checked={importMode === 'replace'}
+                    onChange={() => setImportMode('replace')}
+                    className="accent-purple-600"
+                  />
+                  <span className="text-rose-500 font-bold">Replace All</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Preview Staged List */}
+            <div className="max-h-56 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              {parsedQuestions.map((q, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 bg-surface dark:bg-[#161617] rounded-xl border border-separator dark:border-white/10 flex items-start justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold font-mono text-[10px] text-label-secondary dark:text-[#86868B]">
+                        #{idx + 1}
+                      </span>
+                      <span className="font-bold text-label-primary dark:text-[#F5F5F7] truncate">
+                        {q.question}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-secondary dark:bg-white/10 text-label-secondary dark:text-[#86868B]">
+                        {q.points || 10} pts
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 pt-1">
+                      {q.options?.map((opt: string, optIdx: number) => (
+                        <span
+                          key={optIdx}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] truncate ${
+                            optIdx === q.correctOptionIndex
+                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20'
+                              : 'bg-surface-secondary dark:bg-[#1C1C1E] text-label-secondary dark:text-[#86868B]'
+                          }`}
+                        >
+                          {String.fromCharCode(65 + optIdx)}. {opt}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveParsedQuestion(idx)}
+                    className="p-1.5 hover:bg-rose-500/10 text-label-secondary hover:text-rose-500 rounded-lg transition-colors cursor-pointer shrink-0"
+                    title="Remove this question"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2.5 border-t border-separator dark:border-white/10 pt-3.5 shrink-0">
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface-secondary dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
           >
             Cancel
           </button>
@@ -401,7 +365,7 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
             type="button"
             onClick={handleConfirmImport}
             disabled={parsedQuestions.length === 0}
-            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <CheckCircle2 size={14} />
             <span>
@@ -409,8 +373,8 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
             </span>
           </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

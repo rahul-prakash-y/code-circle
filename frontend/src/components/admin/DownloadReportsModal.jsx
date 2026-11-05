@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Download, FileText, Table, Users, Calendar, CheckSquare, BarChart3, Loader2, Sparkles } from 'lucide-react';
@@ -53,34 +54,23 @@ const DownloadReportsModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-xl glass border border-border p-8 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
-      >
-        {/* Glow ambient light */}
-        <div className="absolute top-0 right-0 w-64 h-64 -mr-20 -mt-20 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
-
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-              <Download size={20} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-text-primary">Export & Download Reports</h2>
-              <p className="text-xs text-text-muted">Generate formatted CSV or high-res PDF intelligence documents</p>
-            </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <Download className="w-4 h-4" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <span>Export & Download Reports</span>
         </div>
+      }
+      description="Generate formatted CSV or high-res PDF intelligence documents."
+      dialogClassName="sm:max-w-xl p-6"
+    >
+      <div className="space-y-4 pt-2">
 
         {/* Report Selection Grid */}
         <div className="space-y-4 mb-6 relative z-10">
@@ -151,34 +141,35 @@ const DownloadReportsModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Download Action */}
-        <div className="pt-2 relative z-10 flex gap-3">
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
           <button
-            onClick={handleDownload}
-            disabled={exporting}
-            className="flex-1 btn-primary flex items-center justify-center gap-2"
-          >
-            {exporting ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Generating & Downloading...
-              </>
-            ) : (
-              <>
-                <Download size={18} />
-                Download {selectedFormat.toUpperCase()} Report
-              </>
-            )}
-          </button>
-
-          <button
+            type="button"
             onClick={onClose}
-            className="btn-secondary px-6 text-xs"
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
           >
             Cancel
           </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+          >
+            {exporting ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Generating & Downloading...</span>
+              </>
+            ) : (
+              <>
+                <Download size={14} />
+                <span>Download {selectedFormat.toUpperCase()} Report</span>
+              </>
+            )}
+          </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Award, ChevronRight, Loader2 } from 'lucide-react';
@@ -77,34 +78,23 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-2xl glass border border-border p-8 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
-      >
-        {/* Glow ambient light */}
-        <div className="absolute top-0 right-0 w-64 h-64 -mr-20 -mt-20 rounded-full bg-purple-500/15 blur-3xl pointer-events-none" />
-
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-              <Award size={20} />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-text-primary tracking-tight">Assessment levels & tracks</h2>
-              <p className="text-xs text-text-muted">Manage coding challenges and knowledge evaluation tiers</p>
-            </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <Award className="w-4 h-4" />
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <span>Assessment Levels & Tracks</span>
         </div>
+      }
+      description="Manage coding challenges and knowledge evaluation tiers."
+      dialogClassName="sm:max-w-2xl p-6"
+    >
+      <div className="space-y-4 pt-2">
 
         {/* Stats strip */}
         <div className="grid grid-cols-3 gap-4 mb-6 relative z-10">
@@ -182,16 +172,16 @@ const AssessmentManagerModal = ({ isOpen, onClose, onOpenAssessments }) => {
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-6 pt-4 border-t border-border flex justify-end gap-3 relative z-10">
+        <div className="pt-4 border-t border-separator flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="btn-primary text-xs font-medium"
+            className="px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition cursor-pointer shadow"
           >
-            Close manager
+            Close Manager
           </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

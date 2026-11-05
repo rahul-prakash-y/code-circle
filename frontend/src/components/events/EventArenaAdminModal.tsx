@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -501,39 +502,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-hidden bg-black/40 dark:bg-black/75 backdrop-blur-xl">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-5xl h-[85vh] sm:h-[92vh] max-h-[85vh] sm:max-h-[92vh] flex flex-col rounded-t-[28px] sm:rounded-3xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-black/5 dark:border-white/10 shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden"
-      >
-        {/* Top Header */}
-        <div className="px-6 py-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-              <Sparkles size={20} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">Event Arena Assessments</h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 uppercase">
-                  Admin Panel
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-0.5 truncate max-w-lg">
-                {event.title} • Multi-Assessment Management & Assigned Admins
-              </p>
-            </div>
+    <ResponsiveModal
+      open={isOpen && Boolean(event)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <Sparkles className="w-4 h-4" />
           </div>
-
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-white/10 transition-colors"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <span>Event Arena Assessments</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+              Admin Panel
+            </span>
+          </div>
         </div>
+      }
+      description={`${event?.title || 'Event'} • Multi-Assessment Management & Assigned Admins`}
+      dialogClassName="sm:max-w-5xl p-6"
+    >
+      <div className="space-y-4 pt-2">
 
         {/* Assessment Switcher Bar */}
         <div className="px-6 py-2.5 border-b border-black/5 dark:border-white/10 bg-white/[0.01] flex items-center justify-between gap-3 overflow-x-auto shrink-0">
@@ -2635,8 +2625,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
             </div>
           )}
         </AnimatePresence>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 
