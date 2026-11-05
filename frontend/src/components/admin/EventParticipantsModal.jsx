@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Users,
@@ -30,7 +31,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import ResponsiveModal from '../ui/ResponsiveModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import toast from 'react-hot-toast';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -355,128 +355,119 @@ export const EventParticipantsModal = ({
   const isParticipantsTab = activeTab === 'participants';
 
   return (
-    <>
-      <ResponsiveModal
-        open={isOpen}
-        onOpenChange={(open) => {
-          if (!open) onClose();
-        }}
-        title={
-          <div className="flex items-center gap-2">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/75 backdrop-blur-xl p-0 sm:p-5 overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-6xl my-auto bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden flex flex-col h-[85vh] sm:h-[90vh] max-h-[85vh] sm:max-h-[90vh]"
+      >
+        {/* ================================================================= */}
+        {/* MODAL HEADER                                                      */}
+        {/* ================================================================= */}
+        <div className="p-5 sm:p-6 border-b border-separator dark:border-white/10 bg-canvas/40 dark:bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3.5">
             <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border shadow-xs transition-all ${
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-xs transition-all ${
                 isParticipantsTab
                   ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
                   : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25'
               }`}
             >
-              {isParticipantsTab ? <UserCheck size={16} /> : <Users size={16} />}
+              {isParticipantsTab ? <UserCheck size={22} /> : <Users size={22} />}
             </div>
-            <span className="truncate">
-              {isParticipantsTab ? 'Event participants directory' : 'Registered students directory'}
-            </span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-medium tabular-nums border transition-colors ${
-                isParticipantsTab
-                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25'
-                  : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25'
-              }`}
-            >
-              {isParticipantsTab
-                ? `${stats.presentStudents} attended`
-                : `${stats.totalStudents} registered`}
-            </span>
-            {event?.registrationType === 'admin_upload' && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 inline-flex items-center gap-1 shadow-xs">
-                <ShieldCheck size={12} />
-                Admin upload roster
-              </span>
-            )}
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-semibold text-label-primary dark:text-[#F5F5F7] tracking-tight">
+                  {isParticipantsTab ? 'Event participants directory' : 'Registered students directory'}
+                </h2>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-medium tabular-nums border transition-colors ${
+                    isParticipantsTab
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25'
+                      : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25'
+                  }`}
+                >
+                  {isParticipantsTab
+                    ? `${stats.presentStudents} attended`
+                    : `${stats.totalStudents} registered`}
+                </span>
+                {event?.registrationType === 'admin_upload' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 inline-flex items-center gap-1 shadow-xs">
+                    <ShieldCheck size={12} />
+                    Admin upload roster
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-label-secondary dark:text-[#86868B] font-normal mt-0.5 truncate max-w-xl">
+                {isParticipantsTab
+                  ? 'Registered students who completed attendance for '
+                  : 'Complete student and team registration roster for '}
+                <strong className="text-label-primary dark:text-white font-medium">{event.title}</strong>
+              </p>
+            </div>
           </div>
-        }
-        description={
-          <span>
-            {isParticipantsTab
-              ? 'Registered students who completed attendance for '
-              : 'Complete student and team registration roster for '}
-            <strong className="text-label-primary dark:text-white font-medium">{event?.title}</strong>
-          </span>
-        }
-        dialogClassName="sm:max-w-6xl p-6"
-        footer={
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full pt-3 border-t border-separator dark:border-white/10 text-xs">
+
+          {/* Action Buttons Toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            {isParticipantsTab && (
+              <>
+                {event.certificateTemplateUrl ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                    <Award size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    <span>Template ready</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25">
+                    <Award size={14} className="text-amber-600 dark:text-amber-400" />
+                    <span>Template missing</span>
+                  </span>
+                )}
+
+                <button
+                  onClick={handleGenerateCertificates}
+                  disabled={generatingCertificates || stats.presentStudents === 0}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-xs py-2 px-3.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                  title="Generate certificates for attended participants"
+                >
+                  {generatingCertificates ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Award size={14} />
+                  )}
+                  <span>Generate certificates</span>
+                </button>
+              </>
+            )}
+
             <button
-              onClick={() => setActiveTab(isParticipantsTab ? 'registered' : 'participants')}
-              className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer flex items-center gap-1"
+              onClick={() => setIsBulkUploadOpen(true)}
+              className="py-2 px-3.5 rounded-xl text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+              title="Upload participants from Excel or CSV"
             >
-              <span>Switch to {isParticipantsTab ? 'Registered students directory' : 'Event participants directory'}</span>
-              <ArrowRight size={13} />
+              <FileSpreadsheet size={14} />
+              <span>Upload Excel</span>
             </button>
+
+            <button
+              onClick={exportCSV}
+              className="py-2 px-3.5 rounded-xl text-xs font-medium text-label-secondary dark:text-[#86868B] hover:text-label-primary bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+              title={isParticipantsTab ? 'Download participants CSV' : 'Download registered students CSV'}
+            >
+              <Download size={14} />
+              <span>{isParticipantsTab ? 'Export participants CSV' : 'Export registered CSV'}</span>
+            </button>
+
             <button
               onClick={onClose}
-              className="py-1.5 px-4 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas dark:hover:bg-white/10 transition-colors cursor-pointer border border-transparent hover:border-separator shrink-0"
+              title="Close modal"
             >
-              Close
+              <X size={18} />
             </button>
           </div>
-        }
-      >
-        <div className="space-y-4 pt-1">
-          {/* Action Buttons Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-surface-secondary/70 border border-separator dark:border-white/10 rounded-2xl">
-            <div className="text-xs font-semibold text-label-secondary">
-              Roster & Certificate Actions
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {isParticipantsTab && (
-                <>
-                  {event.certificateTemplateUrl ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                      <Award size={14} className="text-emerald-600 dark:text-emerald-400" />
-                      <span>Template ready</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25">
-                      <Award size={14} className="text-amber-600 dark:text-amber-400" />
-                      <span>Template missing</span>
-                    </span>
-                  )}
-
-                  <button
-                    onClick={handleGenerateCertificates}
-                    disabled={generatingCertificates || stats.presentStudents === 0}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-xs py-2 px-3.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
-                    title="Generate certificates for attended participants"
-                  >
-                    {generatingCertificates ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Award size={14} />
-                    )}
-                    <span>Generate certificates</span>
-                  </button>
-                </>
-              )}
-
-              <button
-                onClick={() => setIsBulkUploadOpen(true)}
-                className="py-2 px-3.5 rounded-xl text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-                title="Upload participants from Excel or CSV"
-              >
-                <FileSpreadsheet size={14} />
-                <span>Upload Excel</span>
-              </button>
-
-              <button
-                onClick={exportCSV}
-                className="py-2 px-3.5 rounded-xl text-xs font-medium text-label-secondary dark:text-[#86868B] hover:text-label-primary bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
-                title={isParticipantsTab ? 'Download participants CSV' : 'Download registered students CSV'}
-              >
-                <Download size={14} />
-                <span>{isParticipantsTab ? 'Export participants CSV' : 'Export registered CSV'}</span>
-              </button>
-            </div>
-          </div>
+        </div>
 
         {/* ================================================================= */}
         {/* SEGMENTED TAB SWITCHER & CLARITY BANNER                           */}
@@ -1098,9 +1089,23 @@ export const EventParticipantsModal = ({
               </span>
             )}
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setActiveTab(isParticipantsTab ? 'registered' : 'participants')}
+              className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <span>Switch to {isParticipantsTab ? 'Registered students directory' : 'Event participants directory'}</span>
+              <ArrowRight size={13} />
+            </button>
+            <button
+              onClick={onClose}
+              className="py-1.5 px-4 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
-        </div>
-      </ResponsiveModal>
+      </motion.div>
 
       {/* Bulk Upload Modal */}
       <EventBulkUploadModal
@@ -1120,89 +1125,94 @@ export const EventParticipantsModal = ({
       />
 
       {/* DELETE PARTICIPANT CONFIRMATION MODAL */}
-      {confirmDeleteEnrollment && (
-        <ResponsiveModal
-          open={Boolean(confirmDeleteEnrollment)}
-          onOpenChange={(open) => {
-            if (!open) setConfirmDeleteEnrollment(null);
-          }}
-          title={
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center shrink-0">
-                <Trash2 size={16} />
-              </div>
-              <span>Remove participant?</span>
-            </div>
-          }
-          description="Delete student registration from this event"
-          dialogClassName="sm:max-w-md p-6"
-          footer={
-            <div className="flex justify-end gap-2.5 pt-1 w-full">
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => setConfirmDeleteEnrollment(null)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary dark:text-white/70 dark:hover:text-white hover:bg-canvas dark:hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={confirmDelete}
-                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium text-xs shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer transition-all"
-              >
-                {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                <span>{isDeleting ? 'Removing...' : 'Confirm and delete'}</span>
-              </button>
-            </div>
-          }
-        >
-          <div className="space-y-3 pt-2">
-            <div className="p-3.5 rounded-2xl bg-canvas dark:bg-[#1F1F22] border border-separator dark:border-white/10 space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-label-tertiary dark:text-white/50">Student name:</span>
-                <span className="font-semibold text-label-primary dark:text-white">
-                  {confirmDeleteEnrollment.enrolledBy?.name || 'Unknown'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-label-tertiary dark:text-white/50">Roll number:</span>
-                <span className="font-mono font-medium text-label-primary dark:text-white tabular-nums">
-                  {confirmDeleteEnrollment.enrolledBy?.rollNo || 'N/A'}
-                </span>
-              </div>
-              {confirmDeleteEnrollment.teamName && (
-                <div className="flex justify-between">
-                  <span className="text-label-tertiary dark:text-white/50">Team name:</span>
-                  <span className="font-medium text-purple-600 dark:text-purple-400">
-                    {confirmDeleteEnrollment.teamName}
-                  </span>
+      <AnimatePresence>
+        {confirmDeleteEnrollment && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center shrink-0">
+                  <Trash2 size={18} />
                 </div>
-              )}
-              {confirmDeleteEnrollment.members?.length > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-label-tertiary dark:text-white/50">Teammates:</span>
-                  <span className="font-medium text-label-primary dark:text-white tabular-nums">
-                    +{confirmDeleteEnrollment.members.length} member(s)
-                  </span>
+                <div>
+                  <h3 className="text-base font-semibold tracking-tight text-label-primary dark:text-white">
+                    Remove participant?
+                  </h3>
+                  <p className="text-xs text-label-secondary dark:text-white/60">
+                    Delete student registration from this event
+                  </p>
                 </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-label-tertiary dark:text-white/50">Status:</span>
-                <span className={confirmDeleteEnrollment.attendanceStatus ? 'text-emerald-500 font-medium' : 'text-amber-500 font-medium'}>
-                  {confirmDeleteEnrollment.attendanceStatus ? 'Attended (verified)' : 'Registered'}
-                </span>
               </div>
-            </div>
 
-            <p className="text-xs text-red-500/90 dark:text-red-400/90 leading-relaxed bg-red-500/5 p-3 rounded-xl border border-red-500/15">
-              Removing this registration will free up the participant spot. Any certificates or attendance records associated with this enrollment will be removed.
-            </p>
+              <div className="p-3.5 rounded-2xl bg-canvas dark:bg-[#1F1F22] border border-separator dark:border-white/10 space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-label-tertiary dark:text-white/50">Student name:</span>
+                  <span className="font-semibold text-label-primary dark:text-white">
+                    {confirmDeleteEnrollment.enrolledBy?.name || 'Unknown'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-label-tertiary dark:text-white/50">Roll number:</span>
+                  <span className="font-mono font-medium text-label-primary dark:text-white tabular-nums">
+                    {confirmDeleteEnrollment.enrolledBy?.rollNo || 'N/A'}
+                  </span>
+                </div>
+                {confirmDeleteEnrollment.teamName && (
+                  <div className="flex justify-between">
+                    <span className="text-label-tertiary dark:text-white/50">Team name:</span>
+                    <span className="font-medium text-purple-600 dark:text-purple-400">
+                      {confirmDeleteEnrollment.teamName}
+                    </span>
+                  </div>
+                )}
+                {confirmDeleteEnrollment.members?.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-label-tertiary dark:text-white/50">Teammates:</span>
+                    <span className="font-medium text-label-primary dark:text-white tabular-nums">
+                      +{confirmDeleteEnrollment.members.length} member(s)
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-label-tertiary dark:text-white/50">Status:</span>
+                  <span className={confirmDeleteEnrollment.attendanceStatus ? 'text-emerald-500 font-medium' : 'text-amber-500 font-medium'}>
+                    {confirmDeleteEnrollment.attendanceStatus ? 'Attended (verified)' : 'Registered'}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-red-500/90 dark:text-red-400/90 leading-relaxed bg-red-500/5 p-3 rounded-xl border border-red-500/15">
+                Removing this registration will free up the participant spot. Any certificates or attendance records associated with this enrollment will be removed.
+              </p>
+
+              <div className="flex justify-end gap-2.5 pt-1">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setConfirmDeleteEnrollment(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary dark:text-white/70 dark:hover:text-white hover:bg-canvas dark:hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={confirmDelete}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium text-xs shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer transition-all"
+                >
+                  {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  <span>{isDeleting ? 'Removing...' : 'Confirm and delete'}</span>
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </ResponsiveModal>
-      )}
-    </>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

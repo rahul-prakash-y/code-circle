@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   CheckCircle2,
@@ -20,7 +21,6 @@ import {
   UserCheck,
   Trash2,
 } from 'lucide-react';
-import ResponsiveModal from '../../ui/ResponsiveModal';
 import { formatISTDateTime } from '../../../lib/dateUtils';
 
 interface ContestSubmissionDetailModalProps {
@@ -94,51 +94,42 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
   const studentEmail = submission.userId?.email || '';
 
   return (
-    <ResponsiveModal
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-      title={
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <FileCode2 className="w-4 h-4" />
-          </div>
-          <span className="truncate">{isAdminView ? `${studentName}'s Submission` : 'Your Contest Submission'}</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
-            {submission.totalScore || 0} PTS
-          </span>
-          {submission.awardedClubPoints > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              +{submission.awardedClubPoints} Club XP
-            </span>
-          )}
-        </div>
-      }
-      description={`${contestTitle || 'Contest'} ${isAdminView ? `• ${studentRoll} (${studentEmail})` : ''}`}
-      dialogClassName="sm:max-w-4xl p-6"
-      footer={
-        <div className="flex items-center justify-between w-full text-xs">
-          <span className="text-label-tertiary font-medium text-[11px] sm:text-xs truncate">
-            Contest Review Engine • Code Circle
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 sm:px-5 py-2 bg-surface border border-separator hover:bg-surface-secondary rounded-xl font-bold text-label-primary transition-colors cursor-pointer shrink-0"
-          >
-            Close
-          </button>
-        </div>
-      }
-    >
-      <div className="flex flex-col space-y-4 pt-1">
-        {/* Admin Action Toolbar */}
-        {isAdminView && (onApproveReentry || onDeleteSubmission || onAllocatePoints) && (
-          <div className="p-3 bg-surface-secondary/70 border border-separator rounded-2xl flex items-center justify-between gap-2 flex-wrap">
-            <div className="text-xs font-semibold text-label-secondary">Submission Admin Actions</div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {onApproveReentry && (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          className="bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 max-w-4xl w-full max-h-[85vh] sm:max-h-[92vh] flex flex-col overflow-hidden"
+        >
+          {/* Header */}
+          <div className="p-3.5 sm:p-6 border-b border-separator bg-surface-secondary flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                <FileCode2 size={20} className="sm:w-[22px] sm:h-[22px]" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h3 className="text-sm sm:text-lg font-black text-label-primary tracking-tight truncate">
+                    {isAdminView ? `${studentName}'s Submission` : 'Your Contest Submission'}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                    {submission.totalScore || 0} PTS
+                  </span>
+                  {submission.awardedClubPoints > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      +{submission.awardedClubPoints} Club XP
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-label-tertiary truncate">
+                  {contestTitle || 'Contest'} {isAdminView && `• ${studentRoll} (${studentEmail})`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 self-end sm:self-center flex-wrap">
+              {isAdminView && onApproveReentry && (
                 <button
                   type="button"
                   onClick={() => onApproveReentry(submission)}
@@ -146,10 +137,10 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                   title="Approve or grant re-entry"
                 >
                   <UserCheck size={13} />
-                  <span>Allow Re-entry</span>
+                  <span className="hidden sm:inline">Allow Re-entry</span>
                 </button>
               )}
-              {onDeleteSubmission && (
+              {isAdminView && onDeleteSubmission && (
                 <button
                   type="button"
                   onClick={() => onDeleteSubmission(submission)}
@@ -159,19 +150,24 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                   <Trash2 size={14} />
                 </button>
               )}
-              {onAllocatePoints && (
+              {isAdminView && onAllocatePoints && (
                 <button
                   type="button"
                   onClick={() => onAllocatePoints(submission)}
                   className="px-2.5 sm:px-3 py-1.5 bg-primary text-white hover:brightness-110 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-primary/20 cursor-pointer"
                 >
                   <Zap size={13} className="fill-current" />
-                  <span>Allocate Points</span>
+                  <span className="hidden sm:inline">Allocate Points</span>
                 </button>
               )}
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
             </div>
           </div>
-        )}
 
           {/* Re-entry Request Banner if Pending */}
           {submission.reentryStatus === 'PENDING' && (
@@ -687,8 +683,21 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
             )}
           </div>
 
+          {/* Footer */}
+          <div className="p-3.5 sm:p-4 border-t border-separator bg-surface-secondary flex items-center justify-between text-xs gap-2">
+            <span className="text-label-tertiary font-medium text-[11px] sm:text-xs truncate">
+              Contest Review Engine • Code Circle
+            </span>
+            <button
+              onClick={onClose}
+              className="px-4 sm:px-5 py-2 bg-surface border border-separator hover:bg-surface-secondary rounded-xl font-bold text-label-primary transition-colors cursor-pointer shrink-0"
+            >
+              Close
+            </button>
+          </div>
+        </motion.div>
       </div>
-    </ResponsiveModal>
+    </AnimatePresence>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Zap,
@@ -21,7 +22,6 @@ import {
   XCircle,
   AlertTriangle,
 } from 'lucide-react';
-import ResponsiveModal from '../../ui/ResponsiveModal';
 import useContestStore, { Contest } from '../../../store/useContestStore';
 import AllocatePointsModal from './AllocatePointsModal';
 import ContestSubmissionDetailModal from './ContestSubmissionDetailModal';
@@ -129,46 +129,47 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
   };
 
   return (
-    <>
-      <ResponsiveModal
-        open={isOpen}
-        onOpenChange={(open) => {
-          if (!open) onClose();
-        }}
-        title={
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Sliders className="w-4 h-4" />
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          className="bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 w-full sm:w-[min(1152px,96vw)] max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
+        >
+          {/* Header */}
+          <div className="p-4 sm:p-6 border-b border-separator flex items-start sm:items-center justify-between gap-3 bg-surface-secondary">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                <Sliders size={20} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-extrabold text-label-primary tracking-tight break-words">
+                    Submissions & Student Re-entry
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    {contest.pointAllocationMode || 'AUTOMATIC'} MODE
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-label-tertiary truncate max-w-xl">
+                  {contest.title} • Review student submissions, evaluate code, approve re-entry, or delete entries
+                </p>
+              </div>
             </div>
-            <span className="truncate">Submissions & Student Re-entry</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
-              {contest.pointAllocationMode || 'AUTOMATIC'} MODE
-            </span>
-          </div>
-        }
-        description={`${contest.title} • Review student submissions, evaluate code, approve re-entry, or delete entries`}
-        dialogClassName="sm:max-w-6xl p-6"
-        footer={
-          <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-3 pt-3 border-t border-separator text-xs">
-            <span className="text-label-tertiary">
-              Total: {pagination?.total ?? submissions.length} participant{pagination?.total === 1 ? '' : 's'}
-            </span>
-            <div className="flex items-center gap-2">
-              <TutorialButton tutorialId="contests" variant="button" />
+            <div className="flex items-center gap-1.5 shrink-0">
+              <TutorialButton tutorialId="contests" variant="icon" />
               <button
-                type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-surface border border-separator rounded-xl font-bold text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface transition-colors cursor-pointer"
               >
-                Close
+                <X size={18} />
               </button>
             </div>
           </div>
-        }
-      >
-        <div className="flex flex-col space-y-4 pt-1">
+
           {/* Action Toolbar */}
-          <div className="p-3 sm:p-4 border border-separator rounded-2xl bg-surface-secondary/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="p-3 sm:p-4 border-b border-separator bg-surface-secondary/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search & Filter */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
               <div className="relative w-full sm:max-w-xs">
@@ -482,8 +483,10 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
             )}
           </div>
 
-            {pagination && pagination.totalPages > 1 && (
-              <div className="pt-2">
+          {/* Footer & Pagination */}
+          <div className="p-4 border-t border-separator bg-surface-secondary flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary">
+            <div className="w-full sm:w-auto">
+              {pagination && pagination.totalPages > 1 && (
                 <Pagination
                   pagination={pagination}
                   onPageChange={(p) => setPage(p)}
@@ -493,10 +496,22 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                   }}
                   pageSizeOptions={[10, 20, 50]}
                 />
-              </div>
-            )}
-        </div>
-      </ResponsiveModal>
+              )}
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              <span>
+                Total: {pagination?.total ?? submissions.length} participant{pagination?.total === 1 ? '' : 's'}
+              </span>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-surface border border-separator rounded-xl font-bold text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
       {/* Comprehensive Student Submission Review Modal (MCQ + Coding) */}
       <ContestSubmissionDetailModal
@@ -561,7 +576,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
         contest={contest}
         onSuccess={loadData}
       />
-    </>
+    </AnimatePresence>
   );
 };
 

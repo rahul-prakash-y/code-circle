@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, forwardRef } from 'react';
 import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
-import ResponsiveModal from './ResponsiveModal';
 import {
   EMIL_EASE_OUT,
   EMIL_EASE_IN_OUT,
@@ -370,49 +369,86 @@ export const EmilDropdownItem: React.FC<{
 };
 
 /* ══════════════════════════════════════════════════════════════
-   5. EMIL MODAL (Responsive Drawer / Centered Dialog - Create Course Modal Standard)
-   - Desktop: Radix Dialog with Apple elevated card styling
-   - Mobile: Vaul bottom sheet with drag gesture, overscroll contain
+   5. EMIL MODAL (Centered, Backdrop-Blur-Xl, Never scale(0))
+   - Light: bg-[#FFFFFF], shadow-[0_24px_60px_rgba(0,0,0,0.12)]
+   - Dark: bg-[#161617], dark:shadow-none, dark:ring-1 dark:ring-white/10
 ══════════════════════════════════════════════════════════════ */
 
 export interface EmilModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: React.ReactNode;
-  description?: React.ReactNode;
   children: React.ReactNode;
   maxWidth?: string;
   className?: string;
-  footer?: React.ReactNode;
 }
 
 export const EmilModal: React.FC<EmilModalProps> = ({
   isOpen,
   onClose,
   title,
-  description,
   children,
-  maxWidth = 'sm:max-w-lg',
+  maxWidth = 'max-w-lg',
   className = '',
-  footer,
 }) => {
-  const normalizedMax = maxWidth.startsWith('sm:') || maxWidth.startsWith('max-w-')
-    ? (maxWidth.startsWith('sm:') ? maxWidth : `sm:${maxWidth}`)
-    : 'sm:max-w-lg';
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   return (
-    <ResponsiveModal
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-      title={title}
-      description={description}
-      dialogClassName={`${normalizedMax} ${className}`}
-      footer={footer}
-    >
-      {children}
-    </ResponsiveModal>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
+          {/* Backdrop: Liquid glass darkened */}
+          <motion.div
+            variants={emilBackdropVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            onClick={onClose}
+            className="fixed inset-0 bg-black/30 dark:bg-black/75 backdrop-blur-xl"
+          />
+
+          {/* Responsive Bottom Sheet / Centered Dialog */}
+          <motion.div
+            variants={emilModalVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className={`relative z-10 w-full ${maxWidth} rounded-t-[28px] sm:rounded-3xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.12)] dark:shadow-none dark:ring-1 dark:ring-white/10 p-5 sm:p-6 overflow-hidden max-h-[85vh] sm:max-h-[90vh] flex flex-col ${className}`}
+          >
+            {/* Mobile Bottom-sheet Grab Handle */}
+            <div className="w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto mb-3 sm:hidden shrink-0" />
+
+            {title && (
+              <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-black/5 dark:border-white/10 shrink-0">
+                <div className="text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight truncate">
+                  {title}
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 cursor-pointer transition-colors shrink-0"
+                  aria-label="Close dialog"
+                >
+                  ✕
+                </motion.button>
+              </div>
+            )}
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };
 
