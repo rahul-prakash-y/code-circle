@@ -116,13 +116,13 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                   onClick={() => onOpenChange(false)}
-                  className="fixed inset-0 bg-black/40 backdrop-blur-[4px]"
+                  className="fixed inset-0 bg-black/40 backdrop-blur-md"
                 />
                 <motion.div
                   initial={{ x: '100%' }}
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
-                  transition={{ type: 'spring', damping: 32, stiffness: 350 }}
+                  transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
                   className={cn(
                     'relative z-50 h-full w-full max-w-2xl bg-surface text-text-primary shadow-2xl flex flex-col',
                     dialogClassName,

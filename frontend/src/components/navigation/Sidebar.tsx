@@ -32,6 +32,8 @@ import {
   TooltipTrigger,
 } from '../ui/tooltip';
 import { preloadRoute } from '../../lib/routePreload';
+import { EMIL_EASE_OUT, EMIL_EASE_IN_OUT, DURATION_MICRO } from '../../lib/motion';
+import { EmilTooltipGroup, EmilTooltip } from '../ui/emil-ui';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -81,7 +83,7 @@ const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
   </Link>
 );
 
-const EASE_TRANSITION = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const;
+const EASE_TRANSITION = { duration: 0.22, ease: EMIL_EASE_OUT } as const;
 
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse, className = '' }) => {
   const location = useLocation();

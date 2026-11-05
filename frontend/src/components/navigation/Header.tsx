@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { EMIL_EASE_OUT, EMIL_EASE_IN_OUT, DURATION_MICRO, DURATION_DROPDOWN } from '../../lib/motion';
+import { EmilTooltipGroup, EmilTooltip, EmilDropdownRoot, EmilDropdownTrigger, EmilDropdownMenu, EmilDropdownItem, EmilButton } from '../ui/emil-ui';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,7 +47,7 @@ interface HeaderProps {
   className?: string;
 }
 
-const EASE_TRANSITION = { duration: 0.18, ease: [0.16, 1, 0.3, 1] } as const;
+const EASE_TRANSITION = { duration: 0.18, ease: EMIL_EASE_OUT } as const;
 
 const notifIcons = {
   info: { Icon: Info, color: 'var(--accent)' },
@@ -479,7 +481,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                       initial={{ y: '100%' }}
                       animate={{ y: 0 }}
                       exit={{ y: '100%' }}
-                      transition={{ type: 'spring', damping: 32, stiffness: 340 }}
+                      transition={{ duration: 0.22, ease: EMIL_EASE_OUT }}
                       className="relative z-10 w-full rounded-t-[32px] overflow-hidden flex flex-col bg-surface text-text-primary shadow-2xl"
                       style={{
                         height: 'min(75dvh, 600px)',

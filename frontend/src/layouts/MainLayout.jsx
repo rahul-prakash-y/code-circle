@@ -19,7 +19,8 @@ import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import MandatoryChangePasswordModal from '../components/auth/MandatoryChangePasswordModal';
 
-const EASE_TRANSITION = { duration: 0.24, ease: [0.16, 1, 0.3, 1] };
+import { EMIL_EASE_OUT, EMIL_EASE_IN_OUT } from '../lib/motion';
+const EASE_TRANSITION = { duration: 0.22, ease: EMIL_EASE_OUT };
 
 export const MainLayout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -152,8 +153,7 @@ export const MainLayout = ({ children }) => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 z-50 lg:hidden"
-              style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)' }}
+              className="fixed inset-0 z-50 lg:hidden backdrop-blur-md" style={{ background: 'rgba(0,0,0,0.5)' }}
             />
             <motion.div
               initial={{ x: '-100%' }}
@@ -189,7 +189,7 @@ export const MainLayout = ({ children }) => {
                 {/* 44×44 close button per iOS touch target spec */}
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center rounded-xl active:scale-95 transition-transform cursor-pointer"
+                  className="flex items-center justify-center rounded-xl emil-press cursor-pointer"
                   style={{ color: 'var(--label-secondary)', minWidth: 44, minHeight: 44 }}
                   aria-label="Close menu"
                 >
