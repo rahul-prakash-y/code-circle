@@ -14,6 +14,8 @@ import DomainEnrollment from '../models/domainEnrollmentModel';
 import rceService from '../services/rceService';
 import { ApiError } from '../utils/ApiError';
 import * as XLSX from 'xlsx';
+import PointTransaction from '../models/pointTransactionModel';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 // Maximum public test cases to execute on Run Code
 const MAX_PUBLIC_TESTCASES_PER_REQUEST = 10;
@@ -216,6 +218,14 @@ export const listCodingChallenges = async (request: FastifyRequest, reply: Fasti
   const isPrivileged =
     user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.role === 'Faculty';
 
+  const query = request.query as any;
+  const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+    defaultLimit: 20,
+    maxLimit: 100,
+    defaultSortBy: 'createdAt',
+    allowedSortFields: ['createdAt', 'title', 'difficulty'],
+  });
+
   const linkedChallengeIds = await getCourseLinkedChallengeIds();
 
   const filter: any = {
@@ -227,16 +237,42 @@ export const listCodingChallenges = async (request: FastifyRequest, reply: Fasti
     filter.isPublished = true;
   }
 
-  const challenges = await CodingChallenge.find(filter)
-    .select('title description difficulty allowedLanguages timeLimitMinutes isPublished createdAt')
-    .sort({ createdAt: -1 });
+  if (query?.difficulty && ['Easy', 'Medium', 'Hard'].includes(query.difficulty)) {
+    filter.difficulty = query.difficulty;
+  }
 
-  // Attach student's own submission state if authenticated
-  let userSubmissionsMap = new Map<string, any>();
-  if (user?.id) {
+  if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+    filter.$or = [
+      { title: { $regex: query.search.trim(), $options: 'i' } },
+      { description: { $regex: query.search.trim(), $options: 'i' } },
+    ];
+  }
+
+  const sortObj: any = {};
+  sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  sortObj._id = -1;
+
+  const [total, challenges] = await Promise.all([
+    CodingChallenge.countDocuments(filter),
+    CodingChallenge.find(filter)
+      .select('title description difficulty allowedLanguages timeLimitMinutes isPublished createdAt')
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  // Attach student's own submission state only for challenges on current page
+  const pageChallengeIds = challenges.map((c: any) => c._id);
+  const userSubmissionsMap = new Map<string, any>();
+
+  if (user?.id && pageChallengeIds.length > 0) {
     const subs = await CodingSubmission.find({
       student: new mongoose.Types.ObjectId(user.id),
-    }).sort({ createdAt: -1 });
+      challenge: { $in: pageChallengeIds },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
     for (const s of subs) {
       const cId = s.challenge.toString();
@@ -253,7 +289,7 @@ export const listCodingChallenges = async (request: FastifyRequest, reply: Fasti
     }
   }
 
-  const enrichedChallenges = challenges.map((c) => ({
+  const enrichedChallenges = challenges.map((c: any) => ({
     _id: c._id.toString(),
     title: c.title,
     description: c.description,
@@ -265,8 +301,12 @@ export const listCodingChallenges = async (request: FastifyRequest, reply: Fasti
     submission: userSubmissionsMap.get(c._id.toString()) || null,
   }));
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return reply.send({
     success: true,
+    count: enrichedChallenges.length,
+    pagination,
     data: enrichedChallenges,
   });
 };
@@ -544,15 +584,31 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
   let pointsAwarded = 0;
 
   if (submissionStatus === 'passed') {
-    // 1. Mark coding challenge as completed in student progress
-    await StudentProgress.findOneAndUpdate(
-      { userId: new mongoose.Types.ObjectId(user.id) },
-      { $addToSet: { completedCodingChallenges: challenge._id } },
-      { upsert: true }
-    );
+    // 1. Check if user previously had a passing submission for this challenge to prevent duplicate awards
+    const priorPassing = await CodingSubmission.findOne({
+      challenge: challenge._id,
+      student: new mongoose.Types.ObjectId(user.id),
+      status: 'passed',
+      _id: { $ne: submission._id },
+    });
 
-    // 2. Find any domain levels where this challenge is mapped
-    const linkedLevels = await Level.find({ codingChallengeId: challenge._id }).lean();
+    const isFirstTimePass = !priorPassing;
+
+    // 2. Fetch existing student progress
+    const existingProgress = await StudentProgress.findOne({
+      userId: new mongoose.Types.ObjectId(user.id),
+    }).lean();
+
+    // 3. Find any domain levels where this challenge is mapped (via codingChallengeId, codingChallengePool, or levelId)
+    const linkedLevels = await Level.find({
+      $or: [
+        { codingChallengeId: challenge._id },
+        { codingChallengePool: challenge._id },
+        ...(challenge.levelId && mongoose.Types.ObjectId.isValid(challenge.levelId)
+          ? [{ _id: new mongoose.Types.ObjectId(challenge.levelId) }]
+          : []),
+      ],
+    }).lean();
     if (linkedLevels.length > 0) {
       levelCompleted = true;
       const linkedLevelIds = linkedLevels.map((lvl) => lvl._id);
@@ -561,30 +617,48 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
         .map((lvl) => lvl.assessmentId);
 
       // Check which levels are newly completed to award points
-      const existingProgress = await StudentProgress.findOne({
-        userId: new mongoose.Types.ObjectId(user.id),
-      }).lean();
       const existingCompleted = new Set(
-        (existingProgress?.completedLevels || []).map((id) => id.toString())
+        (existingProgress?.completedLevels || []).map((id: any) => id.toString())
       );
 
       for (const lvl of linkedLevels) {
         if (!existingCompleted.has(lvl._id.toString())) {
-          const pts =
-            typeof lvl.points === 'number' && lvl.points >= 0
+          const totalLevelPts =
+            typeof lvl.points === 'number' && lvl.points > 50
               ? lvl.points
-              : getDefaultPointsForLevel(lvl.levelNumber);
+              : (lvl.levelNumber === 3 ? 250 : 150);
+          const remainingCodingPts = Math.max(0, totalLevelPts - 50);
+          const pts =
+            typeof challenge.customPoints === 'number' && challenge.customPoints > 0
+              ? challenge.customPoints
+              : Math.max(50, Math.round(remainingCodingPts / 2));
           pointsAwarded += pts;
         }
       }
 
       if (pointsAwarded > 0) {
         await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
+        try {
+          const firstLinked = linkedLevels[0];
+          await PointTransaction.create({
+            user: new mongoose.Types.ObjectId(user.id),
+            amount: pointsAwarded,
+            category: 'Coding',
+            title: `Completed Coding Assessment: ${firstLinked ? firstLinked.title : challenge.title}`,
+            description: `Passed all test cases for Level ${firstLinked ? firstLinked.levelNumber : ''} coding assessment`,
+            referenceId: challenge._id.toString(),
+            referenceModel: 'CodingChallenge',
+            timestamp: new Date(),
+          });
+        } catch (txErr) {
+          console.warn('[CodingAssessmentController] Could not log PointTransaction:', txErr);
+        }
       }
 
       const updateOp: any = {
         $addToSet: {
           completedLevels: { $each: linkedLevelIds },
+          completedCodingChallenges: challenge._id,
         },
       };
 
@@ -629,6 +703,38 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
         }
         await domainEnrollment.save();
       }
+    } else {
+      // Standalone coding challenge / assessment: check if newly completed to award custom points
+      if (isFirstTimePass) {
+        const pts =
+          typeof challenge.customPoints === 'number' && challenge.customPoints >= 0
+            ? challenge.customPoints
+            : 50;
+        pointsAwarded = pts;
+        if (pointsAwarded > 0) {
+          await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
+          try {
+            await PointTransaction.create({
+              user: new mongoose.Types.ObjectId(user.id),
+              amount: pointsAwarded,
+              category: 'Coding',
+              title: `Completed Coding Assessment: ${challenge.title}`,
+              description: `Passed all test cases for coding assessment "${challenge.title}"`,
+              referenceId: challenge._id.toString(),
+              referenceModel: 'CodingChallenge',
+              timestamp: new Date(),
+            });
+          } catch (txErr) {
+            console.warn('[CodingAssessmentController] Could not log PointTransaction:', txErr);
+          }
+        }
+      }
+
+      await StudentProgress.findOneAndUpdate(
+        { userId: new mongoose.Types.ObjectId(user.id) },
+        { $addToSet: { completedCodingChallenges: challenge._id } },
+        { upsert: true }
+      );
     }
   }
 
@@ -641,6 +747,7 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
     status: submissionStatus,
     levelCompleted,
     pointsAwarded,
+    customPoints: challenge.customPoints !== undefined ? challenge.customPoints : 50,
     unlockedNextLevel,
     nextLevelId,
     domainId,
@@ -675,9 +782,24 @@ export const recordIntegrityEvent = async (request: FastifyRequest, reply: Fasti
     'Assessment integrity event logged'
   );
 
+  let restricted = false;
+  if (warningNumber && Number(warningNumber) >= 3) {
+    await User.findByIdAndUpdate(user.id, {
+      isRestricted: true,
+      restrictionReason: 'Exceeded 3 tab switch warnings in an assessment session. Workspace locked.',
+      restrictedAt: new Date(),
+      restrictedFeatures: ['assessments', 'contests'],
+    });
+    restricted = true;
+  }
+
   return reply.send({
     success: true,
     logged: true,
+    restricted,
+    message: restricted
+      ? 'Account restricted from assessments and contests due to reaching 3 tab switch warnings. An administrator must unblock your account.'
+      : 'Integrity event logged',
   });
 };
 
@@ -691,14 +813,31 @@ export const getMySubmissions = async (request: FastifyRequest, reply: FastifyRe
     throw ApiError.unauthorized('Authentication required');
   }
 
-  const submissions = await CodingSubmission.find({
-    student: new mongoose.Types.ObjectId(user.id),
-  })
-    .populate('challenge', 'title difficulty allowedLanguages timeLimitMinutes')
-    .sort({ createdAt: -1 });
+  const { page, limit, skip } = parsePaginationParams(request.query, {
+    defaultLimit: 20,
+    maxLimit: 100,
+    defaultSortBy: 'createdAt',
+    allowedSortFields: ['createdAt', 'score', 'status'],
+  });
+
+  const filter = { student: new mongoose.Types.ObjectId(user.id) };
+
+  const [total, submissions] = await Promise.all([
+    CodingSubmission.countDocuments(filter),
+    CodingSubmission.find(filter)
+      .populate('challenge', 'title difficulty allowedLanguages timeLimitMinutes')
+      .sort({ createdAt: -1, _id: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const pagination = buildPaginationMeta(total, page, limit);
 
   return reply.send({
     success: true,
+    count: submissions.length,
+    pagination,
     data: submissions,
   });
 };
@@ -709,6 +848,14 @@ export const getMySubmissions = async (request: FastifyRequest, reply: FastifyRe
  * Excludes coding challenges linked to course levels.
  */
 export const listAdminCodingChallenges = async (request: FastifyRequest, reply: FastifyReply) => {
+  const query = request.query as any;
+  const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+    defaultLimit: 20,
+    maxLimit: 100,
+    defaultSortBy: 'createdAt',
+    allowedSortFields: ['createdAt', 'title', 'difficulty'],
+  });
+
   const linkedChallengeIds = await getCourseLinkedChallengeIds();
 
   const filter: any = {
@@ -716,28 +863,56 @@ export const listAdminCodingChallenges = async (request: FastifyRequest, reply: 
     _id: { $nin: linkedChallengeIds },
   };
 
-  const challenges = await CodingChallenge.find(filter).sort({ createdAt: -1 });
+  if (query?.difficulty && ['Easy', 'Medium', 'Hard'].includes(query.difficulty)) {
+    filter.difficulty = query.difficulty;
+  }
 
-  // Compute submission statistics per challenge
-  const metrics = await CodingSubmission.aggregate([
-    {
-      $group: {
-        _id: '$challenge',
-        totalSubmissions: { $sum: 1 },
-        passedSubmissions: {
-          $sum: { $cond: [{ $eq: ['$status', 'passed'] }, 1, 0] },
-        },
-        avgScore: { $avg: '$score' },
-      },
-    },
+  if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+    filter.$or = [
+      { title: { $regex: query.search.trim(), $options: 'i' } },
+      { description: { $regex: query.search.trim(), $options: 'i' } },
+    ];
+  }
+
+  const sortObj: any = {};
+  sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  sortObj._id = -1;
+
+  const [total, challenges] = await Promise.all([
+    CodingChallenge.countDocuments(filter),
+    CodingChallenge.find(filter)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
   ]);
+
+  const pageChallengeIds = challenges.map((c: any) => c._id);
+
+  // Compute submission statistics scoped ONLY to the current page's challenges
+  const metrics =
+    pageChallengeIds.length > 0
+      ? await CodingSubmission.aggregate([
+          { $match: { challenge: { $in: pageChallengeIds } } },
+          {
+            $group: {
+              _id: '$challenge',
+              totalSubmissions: { $sum: 1 },
+              passedSubmissions: {
+                $sum: { $cond: [{ $eq: ['$status', 'passed'] }, 1, 0] },
+              },
+              avgScore: { $avg: '$score' },
+            },
+          },
+        ])
+      : [];
 
   const metricsMap = new Map<string, any>();
   metrics.forEach((m) => {
     metricsMap.set(m._id.toString(), m);
   });
 
-  const data = challenges.map((c) => {
+  const data = challenges.map((c: any) => {
     const m = metricsMap.get(c._id.toString()) || {
       totalSubmissions: 0,
       passedSubmissions: 0,
@@ -751,11 +926,12 @@ export const listAdminCodingChallenges = async (request: FastifyRequest, reply: 
       difficulty: c.difficulty,
       allowedLanguages: c.allowedLanguages,
       timeLimitMinutes: c.timeLimitMinutes,
+      customPoints: c.customPoints !== undefined ? c.customPoints : 50,
       isPublished: c.isPublished,
       singleSubmissionOnly: c.singleSubmissionOnly,
-      testCasesCount: c.testCases.length,
-      visibleTestCasesCount: c.testCases.filter((t) => !t.isHidden).length,
-      hiddenTestCasesCount: c.testCases.filter((t) => t.isHidden).length,
+      testCasesCount: c.testCases?.length || 0,
+      visibleTestCasesCount: (c.testCases || []).filter((t: any) => !t.isHidden).length,
+      hiddenTestCasesCount: (c.testCases || []).filter((t: any) => t.isHidden).length,
       createdAt: c.createdAt,
       totalSubmissions: m.totalSubmissions,
       passedSubmissions: m.passedSubmissions,
@@ -767,8 +943,12 @@ export const listAdminCodingChallenges = async (request: FastifyRequest, reply: 
     };
   });
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return reply.send({
     success: true,
+    count: data.length,
+    pagination,
     data,
   });
 };
@@ -819,6 +999,7 @@ export const createCodingChallenge = async (request: FastifyRequest, reply: Fast
 
   const challenge = new CodingChallenge({
     ...body,
+    customPoints: body.customPoints !== undefined ? Math.max(0, Number(body.customPoints)) : 50,
     createdBy: user?.id ? new mongoose.Types.ObjectId(user.id) : null,
   });
 
@@ -857,6 +1038,7 @@ export const updateCodingChallenge = async (request: FastifyRequest, reply: Fast
   if (body.difficulty) challenge.difficulty = body.difficulty;
   if (body.allowedLanguages) challenge.allowedLanguages = body.allowedLanguages;
   if (body.timeLimitMinutes) challenge.timeLimitMinutes = body.timeLimitMinutes;
+  if (body.customPoints !== undefined) challenge.customPoints = Math.max(0, Number(body.customPoints));
   if (body.singleSubmissionOnly !== undefined) challenge.singleSubmissionOnly = body.singleSubmissionOnly;
   if (body.isPublished !== undefined) challenge.isPublished = body.isPublished;
 
@@ -915,15 +1097,145 @@ export const getCodingChallengeSubmissions = async (
     throw ApiError.badRequest('Invalid challenge ID');
   }
 
-  const submissions = await CodingSubmission.find({
-    challenge: new mongoose.Types.ObjectId(id),
-  })
-    .populate('student', 'name email rollNo department profilePicUrl')
-    .sort({ createdAt: -1 });
+  const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(request.query, {
+    defaultLimit: 25,
+    maxLimit: 100,
+    defaultSortBy: 'createdAt',
+    allowedSortFields: ['createdAt', 'score', 'status'],
+  });
+
+  const filter = { challenge: new mongoose.Types.ObjectId(id) };
+
+  const sortObj: any = {};
+  if (sortBy === 'score') {
+    sortObj.score = sortOrder === 'asc' ? 1 : -1;
+    sortObj.createdAt = -1;
+  } else {
+    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  }
+  sortObj._id = -1;
+
+  const [total, submissions] = await Promise.all([
+    CodingSubmission.countDocuments(filter),
+    CodingSubmission.find(filter)
+      .populate('student', 'name email rollNo department profilePicUrl')
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const pagination = buildPaginationMeta(total, page, limit);
 
   return reply.send({
     success: true,
+    count: submissions.length,
+    pagination,
     data: submissions,
+  });
+};
+
+/**
+ * DELETE /api/assessments/code/challenges/:id/submissions/:submissionId
+ * Delete a specific coding challenge submission attempt/retry.
+ */
+export const deleteCodingSubmission = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const user = request.user;
+  if (!user) {
+    throw ApiError.unauthorized('Unauthorized');
+  }
+
+  const { id, submissionId } = request.params as { id: string; submissionId: string };
+
+  if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(submissionId)) {
+    throw ApiError.badRequest('Invalid challenge or submission ID');
+  }
+
+  const submission = await CodingSubmission.findOne({
+    _id: submissionId,
+    challenge: id,
+  });
+
+  if (!submission) {
+    throw ApiError.notFound('Coding submission not found');
+  }
+
+  const isAdmin =
+    user.role === 'Admin' ||
+    user.role === 'SuperAdmin' ||
+    user.role === 'Faculty' ||
+    user.role === 'Committee';
+
+  if (!isAdmin && submission.student.toString() !== user.id) {
+    throw ApiError.forbidden('Permission denied to delete this retry');
+  }
+
+  await CodingSubmission.findByIdAndDelete(submissionId);
+
+  return reply.send({
+    success: true,
+    message: 'Coding submission retry deleted successfully',
+    deletedSubmissionId: submissionId,
+  });
+};
+
+/**
+ * POST /api/assessments/code/challenges/:id/reappear/:studentId (Admin / Faculty)
+ * Clear all submissions for student on this challenge so they can reappear cleanly.
+ */
+export const allowStudentCodingReappear = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { id, studentId } = request.params as { id: string; studentId: string };
+
+  if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(studentId)) {
+    throw ApiError.badRequest('Invalid challenge or student ID');
+  }
+
+  const deleteResult = await CodingSubmission.deleteMany({
+    challenge: id,
+    student: studentId,
+  });
+
+  return reply.send({
+    success: true,
+    message: 'Student coding retry attempts cleared. Student may now reappear.',
+    deletedCount: deleteResult.deletedCount,
+  });
+};
+
+/**
+ * DELETE /api/assessments/code/challenges/:id/my-submission (Student)
+ * Delete current student's retry submission so they can reappear and re-attempt.
+ */
+export const resetMyCodingSubmission = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const user = request.user;
+  if (!user) {
+    throw ApiError.unauthorized('Unauthorized');
+  }
+
+  const { id } = request.params as { id: string };
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw ApiError.badRequest('Invalid challenge ID');
+  }
+
+  const deleteResult = await CodingSubmission.deleteMany({
+    challenge: id,
+    student: user.id,
+  });
+
+  return reply.send({
+    success: true,
+    message: 'Coding challenge retry reset successfully. You can now reappear.',
+    deletedCount: deleteResult.deletedCount,
   });
 };
 
@@ -942,6 +1254,7 @@ export const generateSampleExcelTemplate = (): Buffer => {
       'Description': 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. Each input has exactly one solution.',
       'Difficulty': 'Easy',
       'TimeLimitMinutes': 60,
+      'CustomPoints': 50,
       'AllowedLanguages': 'c, cpp, python, java, javascript',
       'InputFormat': 'First line contains N. Second line contains N integers. Third line contains target integer.',
       'OutputFormat': 'Output the two 0-based indices separated by a space.',
@@ -971,6 +1284,7 @@ export const generateSampleExcelTemplate = (): Buffer => {
       'Description': 'Determine if a given string s is a palindrome after converting all letters to lowercase and removing all non-alphanumeric characters.',
       'Difficulty': 'Easy',
       'TimeLimitMinutes': 60,
+      'CustomPoints': 50,
       'AllowedLanguages': 'c, cpp, python, java, javascript',
       'InputFormat': 'A single line containing the string s.',
       'OutputFormat': 'Print "true" if palindrome, otherwise "false".',
@@ -1000,6 +1314,7 @@ export const generateSampleExcelTemplate = (): Buffer => {
       'Description': 'Find the subarray within an array of integers with the largest sum and output that sum (Kadane Algorithm).',
       'Difficulty': 'Medium',
       'TimeLimitMinutes': 60,
+      'CustomPoints': 75,
       'AllowedLanguages': 'c, cpp, python, java, javascript',
       'InputFormat': 'First line contains integer N. Second line contains N integers.',
       'OutputFormat': 'Output a single integer representing the maximum subarray sum.',
@@ -1035,6 +1350,7 @@ export const generateSampleExcelTemplate = (): Buffer => {
     { 'Column': 'Description', 'Required': 'YES', 'Description': 'Full problem description and requirements' },
     { 'Column': 'Difficulty', 'Required': 'NO', 'Description': 'Easy, Medium, or Hard (defaults to Medium)' },
     { 'Column': 'TimeLimitMinutes', 'Required': 'NO', 'Description': 'Time limit in minutes (default: 60)' },
+    { 'Column': 'CustomPoints', 'Required': 'NO', 'Description': 'Custom reward points awarded to student upon passing (default: 50)' },
     { 'Column': 'AllowedLanguages', 'Required': 'NO', 'Description': 'Comma-separated: c, cpp, python, java, javascript' },
     { 'Column': 'InputFormat', 'Required': 'NO', 'Description': 'Input format description' },
     { 'Column': 'OutputFormat', 'Required': 'NO', 'Description': 'Expected output specification' },
@@ -1189,6 +1505,15 @@ export const bulkUploadCodingChallenges = async (
     // Time Limit
     const timeLimitMinutes = Number(normalizedRow['timelimitminutes']) || (targetLevel ? 60 : 45);
 
+    // Custom completion points
+    const customPoints =
+      Number(
+        normalizedRow['custompoints'] ||
+        normalizedRow['pointreward'] ||
+        normalizedRow['pointsreward'] ||
+        normalizedRow['points']
+      ) || 50;
+
     // Allowed Languages
     let allowedLanguages: SupportedLanguage[] = ['c', 'cpp', 'python', 'java', 'javascript'];
     const langsRaw = String(normalizedRow['allowedlanguages'] || '').toLowerCase();
@@ -1284,6 +1609,7 @@ export const bulkUploadCodingChallenges = async (
       starterCode: starterCodeMap,
       testCases,
       timeLimitMinutes,
+      customPoints: Math.max(0, customPoints),
       singleSubmissionOnly: true,
       isPublished: true,
       createdBy: user?.id ? new mongoose.Types.ObjectId(user.id) : null,
@@ -1518,6 +1844,18 @@ export const getLevelAssessmentSession = async (
     const startTime = new Date();
     const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
 
+    const priorPassedSubmissions = await CodingSubmission.find({
+      student: userId,
+      challenge: { $in: assignedIds },
+      status: 'passed',
+    }).sort({ submittedAt: -1 }).lean();
+    const priorPassedMap = new Map<string, any>();
+    priorPassedSubmissions.forEach((s) => {
+      if (!priorPassedMap.has(s.challenge.toString())) {
+        priorPassedMap.set(s.challenge.toString(), s);
+      }
+    });
+
     session = new LevelAssessmentSession({
       student: userId,
       level: level._id,
@@ -1532,16 +1870,20 @@ export const getLevelAssessmentSession = async (
       expiresAt,
       isCompleted: false,
       verdict: 'in_progress',
-      submissions: assignedIds.map((id) => ({
-        challengeId: id,
-        language: 'python',
-        code: '',
-        status: 'unattempted',
-        score: 0,
-        passed: 0,
-        total: 0,
-        submittedAt: null,
-      })),
+      submissions: assignedIds.map((id) => {
+        const prior = priorPassedMap.get(id.toString());
+        return {
+          challengeId: id,
+          submissionId: prior?._id || null,
+          language: prior?.language || 'python',
+          code: prior?.code || '',
+          status: prior ? 'passed' : 'unattempted',
+          score: prior ? prior.score : 0,
+          passed: prior ? prior.passed : 0,
+          total: prior ? prior.total : 0,
+          submittedAt: prior?.submittedAt || null,
+        };
+      }),
     });
 
     await session.save();
@@ -1906,22 +2248,99 @@ export const submitLevelAssessmentCode = async (
     session.submissions.push(subRecord);
   }
 
-  // Check if all assigned questions are passed (must have at least 2 questions)
+  const levelDoc = await Level.findById(levelId);
+  let pointsAwarded = 0;
+
+  // Immediately persist passed challenge and award points for this coding question separately
+  if (submissionStatus === 'passed') {
+    await StudentProgress.findOneAndUpdate(
+      { userId },
+      { $addToSet: { completedCodingChallenges: challenge._id } },
+      { upsert: true }
+    );
+
+    // Check if student already received points for this specific challenge
+    const existingChallengeTx = await PointTransaction.findOne({
+      user: new mongoose.Types.ObjectId(userId),
+      category: 'Coding',
+      referenceId: challenge._id.toString(),
+    });
+
+    // Also check if student has a legacy level-wide transaction covering this level
+    const existingLevelTx = levelDoc
+      ? await PointTransaction.findOne({
+          user: new mongoose.Types.ObjectId(userId),
+          category: 'Coding',
+          referenceId: levelDoc._id.toString(),
+          referenceModel: 'Level',
+        })
+      : null;
+
+    if (!existingChallengeTx && !existingLevelTx) {
+      // Quests have 50 points; remaining points for the level are divided across assigned coding questions
+      const totalLevelPoints =
+        typeof levelDoc?.points === 'number' && levelDoc.points > 50
+          ? levelDoc.points
+          : (levelDoc?.levelNumber === 3 ? 250 : 150);
+      const remainingPoints = Math.max(0, totalLevelPoints - 50);
+      const questionsCount = Math.max(1, session.assignedQuestions.length || 2);
+      let questionPoints = Math.round(remainingPoints / questionsCount);
+
+      if (typeof challenge.customPoints === 'number' && challenge.customPoints > 0) {
+        questionPoints = challenge.customPoints;
+      } else if (questionPoints <= 0) {
+        questionPoints = 50;
+      }
+
+      const attemptNumber = session.attemptNumber || 1;
+      const deductionFraction = Math.min(1.0, (attemptNumber - 1) * 0.10);
+      const finalQuestionPoints = Math.max(0, Math.round(questionPoints * (1 - deductionFraction)));
+
+      if (finalQuestionPoints > 0) {
+        pointsAwarded = finalQuestionPoints;
+        session.pointsAwarded = (session.pointsAwarded || 0) + finalQuestionPoints;
+        await User.findByIdAndUpdate(userId, { $inc: { points: finalQuestionPoints } });
+        try {
+          await PointTransaction.create({
+            user: new mongoose.Types.ObjectId(userId),
+            amount: finalQuestionPoints,
+            category: 'Coding',
+            title: `Completed Coding Assessment: ${challenge.title}`,
+            description: `Passed all test cases for coding challenge "${challenge.title}" in Level ${levelDoc?.levelNumber || ''}`,
+            referenceId: challenge._id.toString(),
+            referenceModel: 'CodingChallenge',
+            timestamp: new Date(),
+          });
+        } catch (txErr) {
+          console.warn('[CodingAssessmentController] Could not log PointTransaction for challenge:', txErr);
+        }
+      }
+    }
+  }
+
+  // Check if all assigned questions are passed (including any passed in earlier sessions/attempts)
+  const priorPassedSubs = await CodingSubmission.find({
+    student: userId,
+    challenge: { $in: session.assignedQuestions },
+    status: 'passed',
+  }).select('challenge').lean();
+  const passedChallengeSet = new Set<string>([
+    ...priorPassedSubs.map((c) => c.challenge.toString()),
+    ...(submissionStatus === 'passed' ? [challenge._id.toString()] : []),
+  ]);
+
   const allPassed =
-    session.assignedQuestions.length >= 2 &&
+    session.assignedQuestions.length > 0 &&
     session.assignedQuestions.every((qId) => {
       const sub = session.submissions.find(
         (s) => s.challengeId.toString() === qId.toString()
       );
-      return sub && sub.status === 'passed';
+      return (sub && sub.status === 'passed') || passedChallengeSet.has(qId.toString());
     });
 
   let levelCompleted = false;
   let unlockedNextLevel = false;
   let nextLevelId: string | null = null;
-  let pointsAwarded = 0;
-
-  const levelDoc = await Level.findById(levelId);
 
   if (allPassed) {
     session.isCompleted = true;
@@ -1930,29 +2349,6 @@ export const submitLevelAssessmentCode = async (
     levelCompleted = true;
 
     if (levelDoc) {
-      // 1. Mark completed in student progress
-      const existingProgress = await StudentProgress.findOne({ userId }).lean();
-      const existingCompleted = new Set(
-        (existingProgress?.completedLevels || []).map((id) => id.toString())
-      );
-
-      if (!existingCompleted.has(levelDoc._id.toString())) {
-        const initialPoints =
-          typeof levelDoc.points === 'number' && levelDoc.points >= 0
-            ? levelDoc.points
-            : getDefaultPointsForLevel(levelDoc.levelNumber);
-
-        const attemptNumber = session.attemptNumber || 1;
-        // Deduct 10% of initial points for each attempt after attempt 1
-        const deductionFraction = Math.min(1.0, (attemptNumber - 1) * 0.10);
-        pointsAwarded = Math.max(0, Math.round(initialPoints * (1 - deductionFraction)));
-        session.pointsAwarded = pointsAwarded;
-
-        if (pointsAwarded > 0) {
-          await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
-        }
-      }
-
       const updateOp: any = {
         $addToSet: {
           completedLevels: levelDoc._id,
@@ -1977,10 +2373,20 @@ export const submitLevelAssessmentCode = async (
         nextLevelId = nextLevel._id.toString();
       }
 
-      // Update enrollment
+      // Update enrollment status
+      const allDomainLevels = await Level.find({ domainId: levelDoc.domainId }).select('_id').lean();
+      const updatedProgress = await StudentProgress.findOne({ userId }).lean();
+      const doneSet = new Set((updatedProgress?.completedLevels || []).map((id) => id.toString()));
+      doneSet.add(levelDoc._id.toString());
+      const isCourseCompleted = allDomainLevels.length > 0 && allDomainLevels.every((l) => doneSet.has(l._id.toString()));
+
       await DomainEnrollment.findOneAndUpdate(
         { userId, domainId: levelDoc.domainId },
-        { status: 'in_progress', updatedAt: new Date() },
+        {
+          status: isCourseCompleted ? 'completed' : 'in_progress',
+          ...(isCourseCompleted ? { completedAt: new Date() } : {}),
+          updatedAt: new Date(),
+        },
         { upsert: true }
       );
     }
@@ -2126,6 +2532,9 @@ export default {
   updateCodingChallenge,
   deleteCodingChallenge,
   getCodingChallengeSubmissions,
+  deleteCodingSubmission,
+  allowStudentCodingReappear,
+  resetMyCodingSubmission,
   downloadSampleTemplate,
   bulkUploadCodingChallenges,
   getLevelAssessmentSession,

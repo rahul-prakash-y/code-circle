@@ -1,7 +1,29 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export type CertificateType = 'EVENT' | 'COURSE' | 'ASSESSMENT' | 'CUSTOM' | 'HACKATHON';
-export type CertificateTheme = 'modern-blue' | 'executive-gold' | 'cyber-dark' | 'emerald-minimal' | 'ruby-elegance';
+export type CertificateTheme =
+  | 'classic-ivory'
+  | 'imperial-gold'
+  | 'royal-sapphire'
+  | 'emerald-merit'
+  | 'ruby-excellence'
+  | 'amethyst-prestige'
+  | 'monochrome-executive'
+  | 'ocean-azure'
+  | 'crimson-collegiate'
+  | 'nordic-frost'
+  | 'champagne-vintage'
+  | 'sunset-topaz'
+  | 'rose-elegance'
+  | 'corporate-steel'
+  | 'botanical-sage'
+  | 'modern-blue'
+  | 'executive-gold'
+  | 'cyber-dark'
+  | 'emerald-minimal'
+  | 'ruby-elegance'
+  | 'cyber-emerald'
+  | 'luxury-amethyst';
 export type CertificateOrientation = 'landscape' | 'portrait';
 export type CertificateStatus = 'ACTIVE' | 'REVOKED';
 
@@ -20,6 +42,8 @@ export interface ICertificateTemplate extends Document {
   signatoryOrganization: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  tertiarySignatoryName?: string;
+  tertiarySignatoryTitle?: string;
   primaryColor: string;
   accentColor: string;
   associatedEventId?: mongoose.Types.ObjectId;
@@ -48,6 +72,8 @@ export interface IIssuedCertificate extends Document {
   signatoryTitle: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  tertiarySignatoryName?: string;
+  tertiarySignatoryTitle?: string;
   issueDate: Date;
   status: CertificateStatus;
   revocationReason?: string;
@@ -84,8 +110,31 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     theme: {
       type: String,
-      enum: ['modern-blue', 'executive-gold', 'cyber-dark', 'emerald-minimal', 'ruby-elegance'],
-      default: 'modern-blue',
+      enum: [
+        'classic-ivory',
+        'imperial-gold',
+        'royal-sapphire',
+        'emerald-merit',
+        'ruby-excellence',
+        'amethyst-prestige',
+        'monochrome-executive',
+        'ocean-azure',
+        'crimson-collegiate',
+        'nordic-frost',
+        'champagne-vintage',
+        'sunset-topaz',
+        'rose-elegance',
+        'corporate-steel',
+        'botanical-sage',
+        'modern-blue',
+        'executive-gold',
+        'cyber-dark',
+        'emerald-minimal',
+        'ruby-elegance',
+        'cyber-emerald',
+        'luxury-amethyst',
+      ],
+      default: 'classic-ivory',
     },
     orientation: {
       type: String,
@@ -111,7 +160,7 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     signatoryTitle: {
       type: String,
-      default: 'Faculty Coordinator & Club Advisor',
+      default: 'Faculty Coordinator',
       trim: true,
     },
     signatoryOrganization: {
@@ -121,12 +170,22 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     secondarySignatoryName: {
       type: String,
-      default: 'President, Code Circle',
+      default: 'Dr. P. Balasubramanie',
       trim: true,
     },
     secondarySignatoryTitle: {
       type: String,
-      default: 'Technical Club Executive Board',
+      default: 'Faculty Coordinator',
+      trim: true,
+    },
+    tertiarySignatoryName: {
+      type: String,
+      default: 'Dr. C. Palanisamy',
+      trim: true,
+    },
+    tertiarySignatoryTitle: {
+      type: String,
+      default: 'Faculty Coordinator',
       trim: true,
     },
     primaryColor: {
@@ -239,7 +298,7 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
     },
     signatoryTitle: {
       type: String,
-      default: 'Code Circle Executive Committee',
+      default: 'Faculty Coordinator',
     },
     secondarySignatoryName: {
       type: String,
@@ -247,7 +306,15 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
     },
     secondarySignatoryTitle: {
       type: String,
+      default: 'Faculty Coordinator',
+    },
+    tertiarySignatoryName: {
+      type: String,
       default: '',
+    },
+    tertiarySignatoryTitle: {
+      type: String,
+      default: 'Faculty Coordinator',
     },
     issueDate: {
       type: Date,
@@ -292,6 +359,9 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
 // Compound indexes for rapid lookups
 issuedCertificateSchema.index({ recipientUser: 1, associatedEventId: 1 });
 issuedCertificateSchema.index({ recipientUser: 1, associatedDomainId: 1 });
+issuedCertificateSchema.index({ recipientUser: 1, status: 1, issueDate: -1 });
+issuedCertificateSchema.index({ status: 1, createdAt: -1 });
+issuedCertificateSchema.index({ templateId: 1, createdAt: -1 });
 
 export const CertificateTemplate: Model<ICertificateTemplate> =
   mongoose.models.CertificateTemplate ||

@@ -33,6 +33,9 @@ export interface User {
   socialLinks?: SocialLinks;
   profilePicUrl?: string;
   isBlocked?: boolean;
+  isRestricted?: boolean;
+  restrictionReason?: string;
+  restrictedFeatures?: string[];
   activeSessionId?: string | null;
   createdAt?: string;
   updatedAt?: string;

@@ -4,13 +4,15 @@ import {
   X, Calendar, MapPin, Users, Type, AlignLeft, Info, 
   Layers, Activity, CheckCircle2, Loader2, Eye,
   Award, Upload, Trash2, ExternalLink, Sliders, Plus,
-  Sparkles, Hash, CheckSquare, ChevronUp, ChevronDown, ListPlus
+  Sparkles, Hash, CheckSquare, ChevronUp, ChevronDown, ListPlus,
+  UserCheck
 } from 'lucide-react';
 import useEventStore from '../../store/useEventStore';
 import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
+import { formatDateToISTDateInput } from '../../lib/dateUtils';
 
-const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop'];
+const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];
 const EVENT_STATUSES = ['Upcoming', 'Live', 'Completed', 'Cancelled'];
 
@@ -313,6 +315,7 @@ export const EventModal = ({
     venueOrLink: '',
     type: 'Technical',
     format: 'Individual',
+    registrationType: 'open',
     status: 'Upcoming',
     maxParticipants: 0,
     maxTeamSize: 4,
@@ -324,10 +327,10 @@ export const EventModal = ({
   useEffect(() => {
     if (eventToEdit) {
       const effectiveDate = eventToEdit.startDate
-        ? eventToEdit.startDate.split('T')[0]
-        : (eventToEdit.date ? eventToEdit.date.split('T')[0] : '');
+        ? formatDateToISTDateInput(eventToEdit.startDate)
+        : (eventToEdit.date ? formatDateToISTDateInput(eventToEdit.date) : '');
       const effectiveEndDate = eventToEdit.endDate
-        ? eventToEdit.endDate.split('T')[0]
+        ? formatDateToISTDateInput(eventToEdit.endDate)
         : effectiveDate;
 
       setFormData({
@@ -340,11 +343,12 @@ export const EventModal = ({
         venueOrLink: eventToEdit.venueOrLink || '',
         type: eventToEdit.type === 'Individual' || eventToEdit.type === 'Team' ? 'Technical' : (eventToEdit.type || 'Technical'),
         format: eventToEdit.format || (eventToEdit.type === 'Team' ? 'Team' : 'Individual'),
+        registrationType: eventToEdit.registrationType || 'open',
         status: eventToEdit.status || 'Upcoming',
         maxParticipants: eventToEdit.maxParticipants !== undefined ? eventToEdit.maxParticipants : 0,
         maxTeamSize: eventToEdit.maxTeamSize || 4,
         registrationDeadline: eventToEdit.registrationDeadline
-          ? eventToEdit.registrationDeadline.split('T')[0]
+          ? formatDateToISTDateInput(eventToEdit.registrationDeadline)
           : effectiveDate,
         certificateTemplateUrl: eventToEdit.certificateTemplateUrl || '',
         customFields: Array.isArray(eventToEdit.customFields)
@@ -362,6 +366,7 @@ export const EventModal = ({
         venueOrLink: 'Campus / Online',
         type: 'Technical',
         format: 'Individual',
+        registrationType: 'open',
         status: 'Upcoming',
         maxParticipants: 0,
         maxTeamSize: 4,
@@ -491,10 +496,11 @@ export const EventModal = ({
 
       const payload = {
         ...formData,
+        registrationType: formData.registrationType === 'admin_upload' ? 'admin_upload' : 'open',
         date: effectiveStartDate,
         startDate: effectiveStartDate,
         endDate: effectiveEndDate,
-        hourlyPoints: Math.max(0, Number(formData.hourlyPoints) !== undefined && !isNaN(Number(formData.hourlyPoints)) ? Number(formData.hourlyPoints) : 50),
+        hourlyPoints: Math.max(0, !isNaN(Number(formData.hourlyPoints)) ? Number(formData.hourlyPoints) : 50),
         maxParticipants: Math.max(0, Number(formData.maxParticipants) || 0),
         maxTeamSize: formData.format === 'Duo' ? 2 : (Number(formData.maxTeamSize) || 4),
         registrationDeadline: formData.registrationDeadline || effectiveStartDate,
@@ -597,7 +603,7 @@ export const EventModal = ({
                 <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                   <Layers size={14} className="text-accent" /> Event Type
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                   {EVENT_TYPES.map((t) => (
                     <button
                       type="button"
@@ -662,6 +668,73 @@ export const EventModal = ({
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Enrollment & Registration Mode Selector */}
+              <div className="space-y-2 p-4 rounded-2xl bg-surface-elevated/80 border border-border">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
+                    <UserCheck size={15} className="text-accent" /> Enrollment & Registration Mode *
+                  </label>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                    formData.registrationType === 'admin_upload'
+                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                      : 'bg-accent/10 text-accent border-accent/30'
+                  }`}>
+                    {formData.registrationType === 'admin_upload' ? 'Admin Upload Only' : 'Student Self-Registration'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Define whether students can register directly on the portal, or if the participants list must be uploaded by an administrator.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, registrationType: 'open' }))}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                      formData.registrationType !== 'admin_upload'
+                        ? 'bg-accent/10 border-accent text-text-primary ring-1 ring-accent/30 shadow-xs'
+                        : 'bg-surface border-border text-text-secondary hover:border-accent/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users size={16} className={formData.registrationType !== 'admin_upload' ? 'text-accent' : 'text-text-muted'} />
+                        <span className="text-xs font-bold text-text-primary">Student Self-Registration</span>
+                      </div>
+                      {formData.registrationType !== 'admin_upload' && (
+                        <CheckCircle2 size={15} className="text-accent" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-text-muted leading-snug">
+                      Students can freely register for this event until the deadline or capacity is reached.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, registrationType: 'admin_upload' }))}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                      formData.registrationType === 'admin_upload'
+                        ? 'bg-amber-500/10 border-amber-500/50 text-text-primary ring-1 ring-amber-500/30 shadow-xs'
+                        : 'bg-surface border-border text-text-secondary hover:border-amber-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Upload size={16} className={formData.registrationType === 'admin_upload' ? 'text-amber-500' : 'text-text-muted'} />
+                        <span className="text-xs font-bold text-text-primary">Admin Upload Only</span>
+                      </div>
+                      {formData.registrationType === 'admin_upload' && (
+                        <CheckCircle2 size={15} className="text-amber-500" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-text-muted leading-snug">
+                      Students cannot self-register. The participants list must be uploaded by the Admin via Excel.
+                    </p>
+                  </button>
                 </div>
               </div>
 

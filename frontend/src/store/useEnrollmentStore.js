@@ -26,6 +26,12 @@ const useEnrollmentStore = create((set, get) => ({
     }
   },
 
+  removeEnrolledEvent: (eventId) => {
+    set((state) => ({
+      myEnrolledEventIds: (state.myEnrolledEventIds || []).filter((id) => id !== eventId),
+    }));
+  },
+
   enrollInEvent: async (enrollmentData) => {
     set({ loading: true, error: null, success: false });
     try {
@@ -52,15 +58,49 @@ const useEnrollmentStore = create((set, get) => ({
     }
   },
 
-  fetchEventEnrollments: async (eventId) => {
+  fetchEventEnrollments: async (eventId, options = {}) => {
     set({ loading: true, error: null });
     try {
-      const response = await api.get(`/enrollments/event/${eventId}`);
+      const params = new URLSearchParams();
+      if (options.participantsOnly) params.append('participantsOnly', 'true');
+      if (options.status) params.append('status', options.status);
+      const queryStr = params.toString() ? `?${params.toString()}` : '';
+      const response = await api.get(`/enrollments/event/${eventId}${queryStr}`);
       set({ loading: false });
       return response.data;
     } catch (error) {
       set({ 
         error: error.response?.data?.error || 'Failed to fetch enrollments', 
+        loading: false 
+      });
+      throw error;
+    }
+  },
+
+  fetchEventParticipants: async (eventId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get(`/enrollments/event/${eventId}/participants`);
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.error || 'Failed to fetch event participants', 
+        loading: false 
+      });
+      throw error;
+    }
+  },
+
+  fetchEventRegistered: async (eventId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get(`/enrollments/event/${eventId}/registered`);
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.error || 'Failed to fetch registered students', 
         loading: false 
       });
       throw error;
@@ -105,6 +145,60 @@ const useEnrollmentStore = create((set, get) => ({
         loading: false 
       });
       throw error;
+    }
+  },
+
+  bulkUploadParticipants: async (eventId, file, options = {}) => {
+    set({ loading: true, error: null });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (options.markAttendance) {
+        formData.append('markAttendance', 'true');
+      }
+
+      const response = await api.post(`/enrollments/event/${eventId}/bulk-upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to upload participants list';
+      set({ error: msg, loading: false });
+      throw new Error(msg);
+    }
+  },
+
+  downloadParticipantsTemplate: async (eventId) => {
+    try {
+      const response = await api.get(`/enrollments/event/${eventId}/sample-template`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'event_participants_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      return { success: true };
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to download template';
+      throw new Error(msg);
+    }
+  },
+
+  deleteParticipantEnrollment: async (enrollmentId) => {
+    try {
+      const response = await api.delete(`/enrollments/${enrollmentId}`);
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to delete participant enrollment';
+      throw new Error(msg);
     }
   },
 

@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Team, { TeamStatus } from '../models/teamModel';
 import User from '../models/userModel';
 import Event from '../models/eventModel';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 export interface CreateTeamBody {
   name: string;
@@ -121,6 +122,14 @@ export const getTeams = async (
   reply: FastifyReply
 ) => {
   try {
+    const { page, limit, skip, sort } = parsePaginationParams(request.query as any, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+      allowedSortFields: ['createdAt', 'name', 'status'],
+    });
+
     const { status, eventId, search, studentId } = request.query;
     const query: any = {};
 
@@ -141,17 +150,27 @@ export const getTeams = async (
       query.$or = [{ name: regex }, { description: regex }];
     }
 
-    const teams = await Team.find(query)
-      .sort({ createdAt: -1 })
-      .populate('leader', 'name rollNo email department profilePicUrl')
-      .populate('members', 'name rollNo email department profilePicUrl')
-      .populate('event', 'title date type format status')
-      .populate('createdBy', 'name email role');
+    const [teams, total] = await Promise.all([
+      Team.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate('leader', 'name rollNo email department profilePicUrl')
+        .populate('members', 'name rollNo email department profilePicUrl')
+        .populate('event', 'title date type format status')
+        .populate('createdBy', 'name email role')
+        .lean(),
+      Team.countDocuments(query),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
       count: teams.length,
       teams,
+      data: teams,
+      pagination,
     });
   } catch (error: any) {
     request.log.error(error);

@@ -1,4 +1,22 @@
-const Event = require('../models/eventModel');
+const rawEvent = require('../models/eventModel');
+const Event = rawEvent.default || rawEvent;
+const rawEnrollment = require('../models/enrollmentModel');
+const Enrollment = rawEnrollment.default || rawEnrollment;
+const rawAttendanceSession = require('../models/attendanceSessionModel');
+const AttendanceSession = rawAttendanceSession.default || rawAttendanceSession;
+const rawAttendanceRecord = require('../models/attendanceRecordModel');
+const AttendanceRecord = rawAttendanceRecord.default || rawAttendanceRecord;
+const rawAttendance = require('../models/attendanceModel');
+const Attendance = rawAttendance.default || rawAttendance;
+const rawTeam = require('../models/teamModel');
+const Team = rawTeam.default || rawTeam;
+const rawFeedback = require('../models/feedbackModel');
+const Feedback = rawFeedback.default || rawFeedback;
+const rawMissedEventRequest = require('../models/missedEventRequestModel');
+const MissedEventRequest = rawMissedEventRequest.default || rawMissedEventRequest;
+const { IssuedCertificate } = require('../models/certificateModel');
+const rawAssessment = require('../models/assessmentModel');
+const Assessment = rawAssessment.default || rawAssessment;
 
 const createEvent = async (request, reply) => {
   try {
@@ -103,7 +121,31 @@ const getEvents = async (request, reply) => {
       .sort({ date: 1 })
       .populate('createdBy', 'name email profilePicUrl');
 
-    return reply.send(events);
+    const rawEnrollment = require('../models/enrollmentModel');
+    const Enrollment = rawEnrollment.default || rawEnrollment;
+    const eventIds = events.map((e) => e._id);
+    const enrollments = await Enrollment.find({ event: { $in: eventIds } });
+    const countMap = {};
+    const participantCountMap = {};
+    for (const enr of enrollments) {
+      const evId = enr.event.toString();
+      const count = 1 + (enr.members?.length || 0);
+      if (!enr.isWalkIn) {
+        countMap[evId] = (countMap[evId] || 0) + count;
+      }
+      if (enr.attendanceStatus) {
+        participantCountMap[evId] = (participantCountMap[evId] || 0) + count;
+      }
+    }
+
+    const eventsWithCounts = events.map((e) => {
+      const obj = e.toObject ? e.toObject() : { ...e };
+      obj.enrolledCount = countMap[e._id.toString()] || 0;
+      obj.participantsCount = participantCountMap[e._id.toString()] || 0;
+      return obj;
+    });
+
+    return reply.send(eventsWithCounts);
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Failed to fetch events' });
@@ -148,7 +190,28 @@ const deleteEvent = async (request, reply) => {
       return reply.status(404).send({ error: 'Event not found' });
     }
 
-    return reply.send({ message: 'Event deleted successfully' });
+    // Cascade delete related records across the system
+    await Enrollment.deleteMany({ event: id });
+
+    const sessions = await AttendanceSession.find({ event: id }).select('_id').lean();
+    const sessionIds = sessions.map((s) => s._id);
+    if (sessionIds.length > 0) {
+      await AttendanceRecord.deleteMany({ session: { $in: sessionIds } });
+      await AttendanceSession.deleteMany({ _id: { $in: sessionIds } });
+    }
+
+    await Attendance.deleteMany({ $or: [{ event: id }, { eventId: String(id) }] });
+    await Team.deleteMany({ event: id });
+    await Feedback.deleteMany({ event: id });
+    await MissedEventRequest.deleteMany({ event: id });
+    if (IssuedCertificate) {
+      await IssuedCertificate.deleteMany({ associatedEventId: id });
+    }
+    if (Assessment) {
+      await Assessment.updateMany({ eventId: id }, { $set: { eventId: null } });
+    }
+
+    return reply.send({ success: true, message: 'Event and associated enrollment records deleted successfully' });
   } catch (error) {
     request.log.error(error);
     return reply.status(500).send({ error: 'Failed to delete event' });

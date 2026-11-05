@@ -157,6 +157,8 @@ const contestSchema = new Schema<IContest>(
   { timestamps: true }
 );
 
+contestSchema.index({ isPublished: 1, startTime: -1, _id: -1 });
+
 export const Contest: Model<IContest> =
   mongoose.models.Contest || mongoose.model<IContest>('Contest', contestSchema);
 

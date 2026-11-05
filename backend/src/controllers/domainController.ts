@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
+import * as XLSX from 'xlsx';
 import Domain, { IDomain } from '../models/domainModel';
 import Level, { ILevel, IQuestQuestion, getDefaultPointsForLevel } from '../models/levelModel';
 import StudentProgress from '../models/studentProgressModel';
@@ -8,6 +9,12 @@ import DomainEnrollment from '../models/domainEnrollmentModel';
 import User from '../models/userModel';
 import CourseConfig from '../models/courseConfigModel';
 import CodingChallenge from '../models/codingChallengeModel';
+import PointTransaction from '../models/pointTransactionModel';
+import LevelAssessmentSession from '../models/levelAssessmentSessionModel';
+import CodingSubmission from '../models/codingSubmissionModel';
+import LevelQuestSubmission from '../models/levelQuestSubmissionModel';
+import AssessmentSubmission from '../models/assessmentSubmissionModel';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 // Interface for submitting answers
 export interface SubmitQuestBody {
@@ -371,7 +378,30 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
     // Seed initial domains if database has none
     // await ensureSeedData(request.user?.id);
 
-    const domains = await Domain.find().sort({ createdAt: 1 }).lean();
+    const query = request.query as any;
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'createdAt',
+      allowedSortFields: ['createdAt', 'name'],
+    });
+
+    const filter: any = {};
+    if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+      filter.$or = [
+        { name: { $regex: query.search.trim(), $options: 'i' } },
+        { description: { $regex: query.search.trim(), $options: 'i' } },
+      ];
+    }
+
+    const sortObj: any = {};
+    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sortObj._id = 1;
+
+    const [total, domains] = await Promise.all([
+      Domain.countDocuments(filter),
+      Domain.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+    ]);
 
     // Check user progress if user is authenticated
     const userId = request.user?.id || (request.user as any)?._id;
@@ -419,47 +449,72 @@ export const getDomains = async (request: FastifyRequest, reply: FastifyReply) =
       userEnrollments.forEach((e) => userEnrolledDomainIds.add(e.domainId.toString()));
     }
 
-    // Aggregate enrollment counts across all domains
-    const enrollmentCounts = await DomainEnrollment.aggregate([
-      { $group: { _id: '$domainId', count: { $sum: 1 } } },
-    ]);
+    const pageDomainIds = domains.map((d: any) => d._id);
+
+    // Batch-query levels for only domains on the current page (eliminates N+1 queries)
+    const pageLevels =
+      pageDomainIds.length > 0
+        ? await Level.find({ domainId: { $in: pageDomainIds } })
+            .select('_id domainId levelNumber')
+            .lean()
+        : [];
+
+    const domainLevelsMap = new Map<string, any[]>();
+    pageLevels.forEach((lvl: any) => {
+      const dId = lvl.domainId.toString();
+      if (!domainLevelsMap.has(dId)) {
+        domainLevelsMap.set(dId, []);
+      }
+      domainLevelsMap.get(dId)!.push(lvl);
+    });
+
+    // Aggregate enrollment counts scoped ONLY to the current page's domains
+    const enrollmentCounts =
+      pageDomainIds.length > 0
+        ? await DomainEnrollment.aggregate([
+            { $match: { domainId: { $in: pageDomainIds } } },
+            { $group: { _id: '$domainId', count: { $sum: 1 } } },
+          ])
+        : [];
     const enrollmentCountMap = new Map<string, number>();
-    enrollmentCounts.forEach((ec) => {
+    enrollmentCounts.forEach((ec: any) => {
       enrollmentCountMap.set(ec._id.toString(), ec.count);
     });
 
-    // Enrich each domain with total levels, completed levels, and lock status
-    const enrichedDomains = await Promise.all(
-      domains.map(async (domain) => {
-        const levels = await Level.find({ domainId: domain._id }).select('_id levelNumber').lean();
-        const totalLevels = levels.length;
-        const completedLevelsCount = levels.filter((lvl) =>
-          completedLevelIds.includes(lvl._id.toString())
-        ).length;
+    // Enrich each domain with total levels, completed levels, and lock status without N+1 queries
+    const enrichedDomains = domains.map((domain: any) => {
+      const levels = domainLevelsMap.get(domain._id.toString()) || [];
+      const totalLevels = levels.length;
+      const completedLevelsCount = levels.filter((lvl: any) =>
+        completedLevelIds.includes(lvl._id.toString())
+      ).length;
 
-        const progressPercentage =
-          totalLevels > 0 ? Math.round((completedLevelsCount / totalLevels) * 100) : 0;
+      const progressPercentage =
+        totalLevels > 0 ? Math.round((completedLevelsCount / totalLevels) * 100) : 0;
 
-        const isDomainApproved = !domain.isLocked || unlockedDomainIds.includes(domain._id.toString());
-        const isLockedForStudent = !isAdmin && !isDomainApproved;
-        const enrolledStudentsCount = enrollmentCountMap.get(domain._id.toString()) || 0;
-        const isEnrolled = isAdmin || userEnrolledDomainIds.has(domain._id.toString());
+      const isDomainApproved = !domain.isLocked || unlockedDomainIds.includes(domain._id.toString());
+      const isLockedForStudent = !isAdmin && !isDomainApproved;
+      const enrolledStudentsCount = enrollmentCountMap.get(domain._id.toString()) || 0;
+      const isEnrolled = isAdmin || userEnrolledDomainIds.has(domain._id.toString());
 
-        return {
-          ...domain,
-          totalLevels,
-          completedLevelsCount,
-          progressPercentage,
-          isLocked: Boolean(domain.isLocked),
-          isLockedForStudent,
-          enrolledStudentsCount,
-          isEnrolled,
-        };
-      })
-    );
+      return {
+        ...domain,
+        totalLevels,
+        completedLevelsCount,
+        progressPercentage,
+        isLocked: Boolean(domain.isLocked),
+        isLockedForStudent,
+        enrolledStudentsCount,
+        isEnrolled,
+      };
+    });
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.status(200).send({
       success: true,
+      count: enrichedDomains.length,
+      pagination,
       isComingSoon: false,
       hasAccess: true,
       isEarlyAccess: !isAdmin && !courseConfig.coursesVisibleToAll && isStudentAllowed,
@@ -600,6 +655,40 @@ export const getDomainLevels = async (
         progress.unlockedCodingChallenges?.forEach((cId) => unlockedCodingChallengesSet.add(cId.toString()));
         progress.completedCodingChallenges?.forEach((cId) => completedCodingChallengesSet.add(cId.toString()));
       }
+
+      // Check passed level assessment sessions for auto-healing
+      const passedSessions = await LevelAssessmentSession.find({
+        student: userId,
+        level: { $in: levels.map((lvl) => lvl._id) },
+        $or: [{ isCompleted: true }, { verdict: 'passed' }],
+      }).select('level').lean();
+
+      passedSessions.forEach((s) => {
+        if (s.level) completedLevelsSet.add(s.level.toString());
+      });
+
+      // Also check if any level coding challenges were passed via CodingSubmission
+      const allLevelPoolIds = levels.flatMap((lvl) => {
+        const pool = Array.isArray(lvl.codingChallengePool) ? lvl.codingChallengePool : [];
+        const poolIds = pool.map((p: any) => (p?._id ? p._id.toString() : p?.toString())).filter(Boolean);
+        const single = (lvl.codingChallengeId as any)?._id
+          ? (lvl.codingChallengeId as any)._id.toString()
+          : lvl.codingChallengeId
+          ? lvl.codingChallengeId.toString()
+          : null;
+        return [...poolIds, ...(single ? [single] : [])];
+      });
+
+      if (allLevelPoolIds.length > 0) {
+        const passedSubs = await CodingSubmission.find({
+          student: userId,
+          challenge: { $in: allLevelPoolIds.map((id) => new mongoose.Types.ObjectId(id)) },
+          status: 'passed',
+        }).select('challenge').lean();
+        passedSubs.forEach((sub) => {
+          completedCodingChallengesSet.add(sub.challenge.toString());
+        });
+      }
     }
 
     const isDomainApproved = !domain.isLocked || unlockedDomainsSet.has(domain._id.toString());
@@ -607,25 +696,36 @@ export const getDomainLevels = async (
 
     // Map levels: each level unlocks strictly on completion of previous level, IF student is registered (or admin)
     const mappedLevels = levels.map((lvl, index) => {
-      const isCompleted = completedLevelsSet.has(lvl._id.toString());
-      const previousLevel = index > 0 ? levels[index - 1] : null;
-      const previousLevelDone = index === 0 || (previousLevel ? completedLevelsSet.has(previousLevel._id.toString()) : false);
-      const requiresRegistration = !isAdmin && !isEnrolled;
-      const isUnlocked = isAdmin || (isEnrolled && !isDomainLockedForStudent && previousLevelDone);
-      const requiresPreviousLevel = index > 0 ? (previousLevel?.levelNumber || (lvl.levelNumber - 1)) : null;
-
-      const isQuestCompleted = completedQuestsSet.has(lvl._id.toString()) || isCompleted;
       const codingChallenge = lvl.codingChallengeId as any;
       const codingChallengeIdStr = codingChallenge?._id
         ? codingChallenge._id.toString()
         : codingChallenge
         ? codingChallenge.toString()
         : null;
-      const poolLength = Array.isArray(lvl.codingChallengePool) ? lvl.codingChallengePool.length : 0;
-      const hasCodingAssessment = Boolean(codingChallengeIdStr || poolLength > 0);
+      const pool = Array.isArray(lvl.codingChallengePool) ? lvl.codingChallengePool : [];
+      const poolIds = pool.map((p: any) => (p?._id ? p._id.toString() : p?.toString())).filter(Boolean);
+      const hasCodingAssessment = Boolean(codingChallengeIdStr || poolIds.length > 0);
+
       const isCodingChallengeCompleted = hasCodingAssessment
-        ? isCompleted || Boolean(codingChallengeIdStr && completedCodingChallengesSet.has(codingChallengeIdStr))
+        ? completedLevelsSet.has(lvl._id.toString()) ||
+          Boolean(codingChallengeIdStr && completedCodingChallengesSet.has(codingChallengeIdStr)) ||
+          poolIds.some((pid: string) => completedCodingChallengesSet.has(pid))
         : false;
+
+      const isQuestCompleted = completedQuestsSet.has(lvl._id.toString()) || completedLevelsSet.has(lvl._id.toString());
+
+      // Auto-heal / sync: if quest is completed AND (coding challenge is passed OR no coding challenge required), the level is completed!
+      if (isQuestCompleted && (isCodingChallengeCompleted || !hasCodingAssessment)) {
+        completedLevelsSet.add(lvl._id.toString());
+      }
+      const isCompleted = completedLevelsSet.has(lvl._id.toString());
+
+      const previousLevel = index > 0 ? levels[index - 1] : null;
+      const previousLevelDone = index === 0 || (previousLevel ? completedLevelsSet.has(previousLevel._id.toString()) : false);
+      const requiresRegistration = !isAdmin && !isEnrolled;
+      const isUnlocked = isAdmin || (isEnrolled && !isDomainLockedForStudent && previousLevelDone);
+      const requiresPreviousLevel = index > 0 ? (previousLevel?.levelNumber || (lvl.levelNumber - 1)) : null;
+
       // The coding assessment is opened only if the MCQ quest is completed (70% threshold):
       const isCodingChallengeUnlocked =
         isAdmin || (isQuestCompleted && hasCodingAssessment);
@@ -706,6 +806,38 @@ export const getDomainLevels = async (
     });
 
     const enrolledStudentsCount = await DomainEnrollment.countDocuments({ domainId });
+
+    // Background auto-heal in database if newly completed levels or coding challenges were found
+    if (userId && !isAdmin) {
+      const newlyCompleted = Array.from(completedLevelsSet).map((id) => new mongoose.Types.ObjectId(id));
+      const newlyPassedChallenges = Array.from(completedCodingChallengesSet).map((id) => new mongoose.Types.ObjectId(id));
+      if (newlyCompleted.length > 0 || newlyPassedChallenges.length > 0) {
+        StudentProgress.updateOne(
+          { userId },
+          {
+            $addToSet: {
+              ...(newlyCompleted.length > 0 ? { completedLevels: { $each: newlyCompleted } } : {}),
+              ...(newlyPassedChallenges.length > 0 ? { completedCodingChallenges: { $each: newlyPassedChallenges } } : {}),
+            },
+          },
+          { upsert: true }
+        ).catch((err) => console.warn('[DomainController] Auto-healing progress error:', err));
+
+        if (newlyCompleted.length > 0) {
+          const isAllCompleted = levels.length > 0 && levels.every((lvl) => completedLevelsSet.has(lvl._id.toString()));
+          DomainEnrollment.updateOne(
+            { userId, domainId },
+            {
+              $set: {
+                status: isAllCompleted ? 'completed' : 'in_progress',
+                updatedAt: new Date(),
+                ...(isAllCompleted ? { completedAt: new Date() } : {}),
+              },
+            }
+          ).catch((err) => console.warn('[DomainController] Auto-healing enrollment error:', err));
+        }
+      }
+    }
 
     return reply.status(200).send({
       success: true,
@@ -859,6 +991,26 @@ export const submitLevelQuest = async (
     // 70% pass threshold required to pass the quest and unlock coding assessment
     const passed = passRate >= 70;
 
+    // Persist quest submission for administrative inspection and report tracking
+    try {
+      await LevelQuestSubmission.findOneAndUpdate(
+        { level: level._id, student: new mongoose.Types.ObjectId(userId) },
+        {
+          domain: level.domainId,
+          answers: userAnswers.map((ans, idx) => ({ questionIndex: idx, selectedOption: ans })),
+          detailedResults: questionFeedback,
+          score: correctCount,
+          total: totalQuestions,
+          passRate: Math.round(passRate),
+          passed,
+          submittedAt: new Date(),
+        },
+        { upsert: true, new: true }
+      );
+    } catch (saveErr) {
+      console.warn('[DomainController] Could not persist LevelQuestSubmission:', saveErr);
+    }
+
     let unlockedAssessmentId: string | null = null;
     let unlockedCodingChallengeId: string | null = null;
     let nextLevelId: string | null = null;
@@ -877,6 +1029,32 @@ export const submitLevelQuest = async (
         },
       };
 
+      // Award 50 points for clearing the quest (if not already awarded for this level quest)
+      const existingQuestTx = await PointTransaction.findOne({
+        user: new mongoose.Types.ObjectId(userId),
+        category: 'Course',
+        referenceId: level._id.toString(),
+      });
+
+      if (!existingQuestTx) {
+        pointsAwarded = 50;
+        await User.findByIdAndUpdate(userId, { $inc: { points: 50 } });
+        try {
+          await PointTransaction.create({
+            user: new mongoose.Types.ObjectId(userId),
+            amount: 50,
+            category: 'Course',
+            title: `Completed Quest: Level ${level.levelNumber} - ${level.title}`,
+            description: `Successfully cleared Level ${level.levelNumber} verification quest`,
+            referenceId: level._id.toString(),
+            referenceModel: 'Level',
+            timestamp: new Date(),
+          });
+        } catch (txErr) {
+          console.warn('[DomainController] Could not log PointTransaction for quest:', txErr);
+        }
+      }
+
       if (hasCodingChallenge) {
         // Coding assessment is mapped (pool or individual):
         // Unlock coding assessment, but do NOT complete level or unlock next level yet!
@@ -890,7 +1068,7 @@ export const submitLevelQuest = async (
         // Complete level directly and unlock next level
         updateOperations.$addToSet.completedLevels = level._id;
 
-        // Award points if completing this level for the first time
+        // Check if level has remaining points beyond the 50 quest points
         const currentProgress = await StudentProgress.findOne({
           userId: new mongoose.Types.ObjectId(userId),
         }).lean();
@@ -898,13 +1076,28 @@ export const submitLevelQuest = async (
           currentProgress?.completedLevels?.some((l: any) => l.toString() === level._id.toString())
         );
         if (!alreadyCompleted) {
-          const levelPoints =
+          const totalLevelPoints =
             typeof level.points === 'number' && level.points >= 0
               ? level.points
               : getDefaultPointsForLevel(level.levelNumber);
-          pointsAwarded = levelPoints;
-          if (pointsAwarded > 0) {
-            await User.findByIdAndUpdate(userId, { $inc: { points: pointsAwarded } });
+          const bonusLevelPoints = Math.max(0, totalLevelPoints - 50);
+          if (bonusLevelPoints > 0) {
+            pointsAwarded += bonusLevelPoints;
+            await User.findByIdAndUpdate(userId, { $inc: { points: bonusLevelPoints } });
+            try {
+              await PointTransaction.create({
+                user: new mongoose.Types.ObjectId(userId),
+                amount: bonusLevelPoints,
+                category: 'Course',
+                title: `Completed Level: Level ${level.levelNumber} - ${level.title}`,
+                description: `Successfully completed Level ${level.levelNumber}`,
+                referenceId: level._id.toString(),
+                referenceModel: 'Level',
+                timestamp: new Date(),
+              });
+            } catch (txErr) {
+              console.warn('[DomainController] Could not log PointTransaction:', txErr);
+            }
           }
         }
 
@@ -1467,12 +1660,13 @@ export const registerForDomain = async (
  * View list of registered students for a course track with their progress metrics.
  */
 export const getEnrolledStudents = async (
-  request: FastifyRequest<{ Params: { id: string }; Querystring: { search?: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Querystring: { search?: string; page?: string; limit?: string } }>,
   reply: FastifyReply
 ) => {
   try {
     const { id: domainId } = request.params;
-    const { search } = (request.query || {}) as any;
+    const query = (request.query || {}) as any;
+    const { search } = query;
 
     if (!mongoose.Types.ObjectId.isValid(domainId)) {
       return reply.status(400).send({ success: false, error: 'Invalid course ID' });
@@ -1483,20 +1677,49 @@ export const getEnrolledStudents = async (
       return reply.status(404).send({ success: false, error: 'Course not found' });
     }
 
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 25,
+      maxLimit: 100,
+      defaultSortBy: 'enrolledAt',
+      allowedSortFields: ['enrolledAt', 'createdAt'],
+    });
+
+    const filter: any = { domainId: new mongoose.Types.ObjectId(domainId) };
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      const matchingUsers = await User.find({
+        $or: [
+          { name: searchRegex },
+          { rollNo: searchRegex },
+          { email: searchRegex },
+          { department: searchRegex },
+        ],
+      })
+        .select('_id')
+        .lean();
+      filter.userId = { $in: matchingUsers.map((u) => u._id) };
+    }
+
     // Get all levels for this domain
     const levels = await Level.find({ domainId }).select('_id levelNumber').lean();
     const totalLevels = levels.length;
     const levelIdStrings = new Set(levels.map((lvl) => lvl._id.toString()));
 
-    // Fetch enrollments populated with user info
-    const enrollments = await DomainEnrollment.find({ domainId })
-      .populate('userId', 'name rollNo email department year college profilePicUrl role')
-      .sort({ enrolledAt: -1 })
-      .lean();
+    const [total, enrollments] = await Promise.all([
+      DomainEnrollment.countDocuments(filter),
+      DomainEnrollment.find(filter)
+        .populate('userId', 'name rollNo email department year college profilePicUrl role')
+        .sort({ enrolledAt: sortOrder === 'asc' ? 1 : -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
-    // Batch fetch student progress
+    // Batch fetch student progress only for current page's students
     const userIds = enrollments.map((e) => (e.userId as any)?._id).filter(Boolean);
-    const progressDocs = await StudentProgress.find({ userId: { $in: userIds } }).lean();
+    const progressDocs =
+      userIds.length > 0 ? await StudentProgress.find({ userId: { $in: userIds } }).lean() : [];
     const progressMap = new Map<string, string[]>();
     progressDocs.forEach((doc) => {
       progressMap.set(
@@ -1505,7 +1728,31 @@ export const getEnrolledStudents = async (
       );
     });
 
-    let enrolledStudents = enrollments
+    // Check passed sessions only for current page's students
+    const passedSessions =
+      userIds.length > 0
+        ? await LevelAssessmentSession.find({
+            student: { $in: userIds },
+            level: { $in: Array.from(levelIdStrings).map((id) => new mongoose.Types.ObjectId(id)) },
+            $or: [{ isCompleted: true }, { verdict: 'passed' }],
+          })
+            .select('student level')
+            .lean()
+        : [];
+
+    passedSessions.forEach((s) => {
+      if (s.student && s.level) {
+        const studentIdStr = s.student.toString();
+        const levelIdStr = s.level.toString();
+        const currentList = progressMap.get(studentIdStr) || [];
+        if (!currentList.includes(levelIdStr)) {
+          currentList.push(levelIdStr);
+          progressMap.set(studentIdStr, currentList);
+        }
+      }
+    });
+
+    const enrolledStudents = enrollments
       .filter((e) => e.userId != null)
       .map((e) => {
         const u = e.userId as any;
@@ -1544,20 +1791,11 @@ export const getEnrolledStudents = async (
         };
       });
 
-    // Optional query filter
-    if (search && typeof search === 'string' && search.trim()) {
-      const q = search.trim().toLowerCase();
-      enrolledStudents = enrolledStudents.filter(
-        (s) =>
-          s.user.name?.toLowerCase().includes(q) ||
-          s.user.rollNo?.toLowerCase().includes(q) ||
-          s.user.email?.toLowerCase().includes(q) ||
-          s.user.department?.toLowerCase().includes(q)
-      );
-    }
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.status(200).send({
       success: true,
+      pagination,
       data: {
         domain: {
           _id: domain._id,
@@ -1565,7 +1803,8 @@ export const getEnrolledStudents = async (
           description: domain.description,
           totalLevels,
         },
-        totalStudents: enrolledStudents.length,
+        totalStudents: total,
+        pagination,
         students: enrolledStudents,
       },
     });
@@ -1857,6 +2096,1050 @@ export const getStudentsWithCourseAccess = async (
   }
 };
 
+/**
+ * Helper to generate default verification quest questions if none provided in Excel
+ */
+const createDefaultVerificationQuestions = (levelTitle: string): IQuestQuestion[] => [
+  {
+    question: `What is the core conceptual foundation covered in "${levelTitle}"?`,
+    options: ['Core architectural foundation', 'Secondary side-effect', 'Legacy syntax', 'Deprecated runtime rule'],
+    correctOption: 0,
+  },
+  {
+    question: 'Which method or approach yields optimal runtime performance and scalability?',
+    options: ['Synchronous blocking loop', 'Asynchronous non-blocking architecture', 'Thread sleep polling', 'Manual memory deallocation'],
+    correctOption: 1,
+  },
+  {
+    question: 'How should data flow and state changes be structured across modules?',
+    options: ['Direct DOM alteration', 'Declarative state flow and strict immutability', 'Global window variables', 'Unchecked event dispatchers'],
+    correctOption: 1,
+  },
+  {
+    question: 'What architectural safeguard prevents production regressions?',
+    options: ['Automated verification suites and strict type validation', 'Disabling strict mode', 'Suppressing all error logs', 'Hardcoding secret credentials'],
+    correctOption: 0,
+  },
+  {
+    question: 'What is the recommended production deployment practice for modern services?',
+    options: ['Unminified single server scripts', 'Containerized multi-stage image orchestration', 'Manual FTP copy over HTTP', 'Direct root server access'],
+    correctOption: 1,
+  },
+];
+
+/**
+ * Clean and extract YouTube 11-char Video ID
+ */
+const cleanYouTubeVideoId = (input: string): string => {
+  if (!input) return 'aircAruvnKk';
+  const trimmed = String(input).trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  const match = trimmed.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/
+  );
+  return match ? match[1] : trimmed.slice(0, 11) || 'aircAruvnKk';
+};
+
+/**
+ * GET /api/domains/admin/template or /api/courses/admin/template
+ * Download comprehensive sample Excel template for Courses & Levels bulk upload.
+ */
+export const downloadCourseLevelsTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Courses
+  const sampleCourses = [
+    {
+      CourseName: 'Full Stack Web Engineering',
+      Description: 'Master modern frontend with React/Next.js, high-throughput Fastify APIs, MongoDB architecture, and scalable cloud deployments.',
+      CoverImageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+      IsLocked: 'No',
+    },
+    {
+      CourseName: 'Algorithms & Competitive Programming',
+      Description: 'Deep dive into computational complexity, dynamic programming, graph traversal, and technical interview mastery.',
+      CoverImageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
+      IsLocked: 'No',
+    },
+  ];
+  const wsCourses = XLSX.utils.json_to_sheet(sampleCourses);
+  XLSX.utils.book_append_sheet(wb, wsCourses, 'Courses');
+
+  // Sheet 2: Levels
+  const sampleLevels = [
+    {
+      CourseName: 'Full Stack Web Engineering',
+      LevelNumber: 1,
+      Title: 'Modern JavaScript & Async Foundations',
+      YouTubeVideo: 'https://www.youtube.com/watch?v=aircAruvnKk',
+      Points: 50,
+      StudyMaterialTitle: 'Modern JS Cheatsheet',
+      StudyMaterialContent: 'Key takeaways: Event loop, Promises, Microtasks, and non-blocking asynchronous architecture.',
+      StudyMaterialUrl: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript',
+      QuestQuestion: 'What Linux kernel primitives form the bedrock of container isolation in modern cloud infrastructure?',
+      OptionA: 'Namespaces and Control Groups (cgroups)',
+      OptionB: 'IPTables and Syscall hooks only',
+      OptionC: 'Cron daemons and Systemd services',
+      OptionD: 'Swap files and ext4 partitions',
+      CorrectOption: 'A',
+      LinkedAssessment: 'Full Stack Engineering Qualification',
+    },
+    {
+      CourseName: 'Full Stack Web Engineering',
+      LevelNumber: 1,
+      Title: 'Modern JavaScript & Async Foundations',
+      YouTubeVideo: 'https://www.youtube.com/watch?v=aircAruvnKk',
+      Points: 50,
+      StudyMaterialTitle: '',
+      StudyMaterialContent: '',
+      StudyMaterialUrl: '',
+      QuestQuestion: 'Which method or approach yields optimal runtime performance in high-throughput Node.js microservices?',
+      OptionA: 'Synchronous blocking loop',
+      OptionB: 'Asynchronous non-blocking architecture',
+      OptionC: 'Thread sleep polling',
+      OptionD: 'Manual memory deallocation',
+      CorrectOption: 'B',
+      LinkedAssessment: '',
+    },
+    {
+      CourseName: 'Full Stack Web Engineering',
+      LevelNumber: 2,
+      Title: 'High-Throughput Fastify API Architecture',
+      YouTubeVideo: 'https://www.youtube.com/watch?v=X48VuDVv0do',
+      Points: 50,
+      StudyMaterialTitle: 'Fastify Architecture Guide',
+      StudyMaterialContent: 'Schema-based JSON compilation, route encapsulation, and Fastify plugin ecosystem.',
+      StudyMaterialUrl: 'https://fastify.dev/docs/latest/',
+      QuestQuestion: 'What is the primary benefit of Fastify over traditional frameworks in high-throughput node services?',
+      OptionA: 'Built-in GUI dashboard',
+      OptionB: 'Low-overhead JSON serialization and fast routing',
+      OptionC: 'Mandatory Python interoperability',
+      OptionD: 'Automatic client bundling',
+      CorrectOption: 'B',
+      LinkedAssessment: '',
+    },
+    {
+      CourseName: 'Algorithms & Competitive Programming',
+      LevelNumber: 1,
+      Title: 'Time Complexity & Asymptotic Analysis',
+      YouTubeVideo: 'https://www.youtube.com/watch?v=8hly31xKli0',
+      Points: 25,
+      StudyMaterialTitle: 'Big O Quick Reference',
+      StudyMaterialContent: 'Time and space complexity cheat sheet covering O(1), O(log n), O(n), O(n log n), and O(n^2).',
+      StudyMaterialUrl: 'https://en.wikipedia.org/wiki/Big_O_notation',
+      QuestQuestion: 'What is the average time complexity of searching in a well-balanced Hash Table?',
+      OptionA: 'O(1)',
+      OptionB: 'O(n)',
+      OptionC: 'O(log n)',
+      OptionD: 'O(n^2)',
+      CorrectOption: 'A',
+      LinkedAssessment: 'Data Structures & Algorithms MCQ Exam',
+    },
+  ];
+  const wsLevels = XLSX.utils.json_to_sheet(sampleLevels);
+  XLSX.utils.book_append_sheet(wb, wsLevels, 'Levels');
+
+  // Sheet 3: Instructions
+  const instructions = [
+    {
+      Sheet: 'Courses',
+      Column: 'CourseName',
+      Required: 'YES',
+      Description: 'Unique name of the course track (e.g. Full Stack Web Engineering)',
+    },
+    {
+      Sheet: 'Courses',
+      Column: 'Description',
+      Required: 'YES',
+      Description: 'Detailed overview of the track and curriculum goals',
+    },
+    {
+      Sheet: 'Courses',
+      Column: 'CoverImageUrl',
+      Required: 'NO',
+      Description: 'Image URL for course cover card (defaults to a high-res Unsplash banner if omitted)',
+    },
+    {
+      Sheet: 'Courses',
+      Column: 'IsLocked',
+      Required: 'NO',
+      Description: 'Yes / No. Whether the course is locked pending approval (defaults to No)',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'CourseName',
+      Required: 'YES',
+      Description: 'Course to attach this level to (must match a CourseName from Courses sheet, or existing course)',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'LevelNumber',
+      Required: 'YES',
+      Description: 'Progression sequence number (1, 2, 3...)',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'Title',
+      Required: 'YES',
+      Description: 'Title of the level / lesson',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'YouTubeVideo',
+      Required: 'YES',
+      Description: 'YouTube Video ID (11 chars) or full URL (e.g. https://www.youtube.com/watch?v=aircAruvnKk)',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'Points',
+      Required: 'NO',
+      Description: 'Custom points awarded to student upon completing this level (defaults to 50)',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'StudyMaterialTitle',
+      Required: 'NO',
+      Description: 'Title of reading material or notes',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'StudyMaterialContent',
+      Required: 'NO',
+      Description: 'Summary notes, markdown takeaways, or description',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'StudyMaterialUrl',
+      Required: 'NO',
+      Description: 'Documentation link or article reference URL',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'QuestQuestion',
+      Required: 'NO',
+      Description: 'Verification question prompt. Multiple rows with the same LevelNumber add multiple questions to that level!',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'OptionA',
+      Required: 'YES (if QuestQuestion present)',
+      Description: 'First answer choice',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'OptionB',
+      Required: 'YES (if QuestQuestion present)',
+      Description: 'Second answer choice',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'OptionC',
+      Required: 'NO',
+      Description: 'Third answer choice',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'OptionD',
+      Required: 'NO',
+      Description: 'Fourth answer choice',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'CorrectOption',
+      Required: 'YES (if QuestQuestion present)',
+      Description: 'Correct option: A, B, C, or D (or 1, 2, 3, 4)',
+    },
+    {
+      Sheet: 'Levels',
+      Column: 'LinkedAssessment',
+      Required: 'NO',
+      Description: 'Title or ID of an existing MCQ Assessment to link to this level',
+    },
+  ];
+  const wsInstructions = XLSX.utils.json_to_sheet(instructions);
+  XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions');
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  return reply
+    .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .header('Content-Disposition', 'attachment; filename="course_levels_sample_template.xlsx"')
+    .send(buffer);
+};
+
+/**
+ * POST /api/domains/admin/bulk-upload or /api/courses/admin/bulk-upload
+ * Bulk upload courses and levels from an Excel file (.xlsx / .xls).
+ * Supports:
+ * - Creating or updating multiple Courses
+ * - Creating or updating sequential Levels for each Course
+ * - Custom Points for each Level
+ * - Multi-question quest parsing per level
+ * - Target Course mode (appending levels directly to an existing course)
+ */
+export const bulkUploadCoursesAndLevels = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const query = request.query as any;
+    let targetDomainId: string | null = query?.domainId || query?.courseId ? String(query.domainId || query.courseId).trim() : null;
+
+    let data: any = null;
+    try {
+      data = await request.file();
+    } catch (err: any) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Failed to read upload file stream: ' + (err.message || 'Stream error'),
+      });
+    }
+
+    if (!data) {
+      return reply.status(400).send({ success: false, error: 'No Excel file uploaded' });
+    }
+
+    const filename = (data.filename || '').toLowerCase();
+    if (!filename.endsWith('.xlsx') && !filename.endsWith('.xls')) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Only .xlsx and .xls Excel files are supported',
+      });
+    }
+
+    if (data.fields?.domainId) {
+      const val = typeof data.fields.domainId === 'object' && 'value' in data.fields.domainId
+        ? (data.fields.domainId as any).value
+        : data.fields.domainId;
+      if (val && String(val).trim()) targetDomainId = String(val).trim();
+    } else if (data.fields?.courseId) {
+      const val = typeof data.fields.courseId === 'object' && 'value' in data.fields.courseId
+        ? (data.fields.courseId as any).value
+        : data.fields.courseId;
+      if (val && String(val).trim()) targetDomainId = String(val).trim();
+    }
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of data.file) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    if (buffer.length === 0) {
+      return reply.status(400).send({ success: false, error: 'Uploaded Excel file is empty' });
+    }
+
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+      return reply.status(400).send({ success: false, error: 'Excel file has no valid sheets' });
+    }
+
+    // Helper to find value from row case-insensitively
+    const getVal = (row: any, ...keys: string[]): string => {
+      const rowKeys = Object.keys(row);
+      for (const k of keys) {
+        const target = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const matchedKey = rowKeys.find(
+          (rk) => rk.toLowerCase().replace(/[^a-z0-9]/g, '') === target
+        );
+        if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) {
+          return String(row[matchedKey]).trim();
+        }
+      }
+      return '';
+    };
+
+    const errors: string[] = [];
+    let coursesCreated = 0;
+    let coursesUpdated = 0;
+    let levelsCreated = 0;
+    let levelsUpdated = 0;
+
+    // Detect target domain if specified
+    let targetDomainDoc: any = null;
+    if (targetDomainId && mongoose.Types.ObjectId.isValid(targetDomainId)) {
+      targetDomainDoc = await Domain.findById(targetDomainId);
+      if (!targetDomainDoc) {
+        return reply.status(404).send({ success: false, error: 'Target course not found' });
+      }
+    }
+
+    const domainCache = new Map<string, any>();
+    if (targetDomainDoc) {
+      domainCache.set(targetDomainDoc.name.toLowerCase().trim(), targetDomainDoc);
+    }
+
+    // Look for Courses sheet
+    const coursesSheetName = workbook.SheetNames.find(
+      (s) => s.toLowerCase() === 'courses' || s.toLowerCase() === 'course' || s.toLowerCase() === 'domains'
+    );
+
+    if (coursesSheetName) {
+      const courseRows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[coursesSheetName], { defval: '' });
+      for (let idx = 0; idx < courseRows.length; idx++) {
+        const row = courseRows[idx];
+        const rowNum = idx + 2;
+        const name = getVal(row, 'CourseName', 'Name', 'Title', 'DomainName', 'Domain');
+        if (!name) continue;
+
+        const description =
+          getVal(row, 'Description', 'Desc', 'Overview') ||
+          `Master core architecture, verified quest milestones, and assessments in ${name}.`;
+        const coverImageUrl =
+          getVal(row, 'CoverImageUrl', 'CoverImage', 'Image', 'Cover') ||
+          'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
+        const isLockedRaw = getVal(row, 'IsLocked', 'Locked');
+        const isLocked = isLockedRaw.toLowerCase() === 'yes' || isLockedRaw.toLowerCase() === 'true';
+
+        try {
+          const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          let existingDomain = await Domain.findOne({
+            name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
+          });
+
+          if (existingDomain) {
+            existingDomain.description = description;
+            if (coverImageUrl) existingDomain.coverImageUrl = coverImageUrl;
+            existingDomain.isLocked = isLocked;
+            await existingDomain.save();
+            coursesUpdated++;
+            domainCache.set(name.toLowerCase().trim(), existingDomain);
+          } else {
+            const newDomain = await Domain.create({
+              name: name.trim(),
+              description: description.trim(),
+              coverImageUrl: coverImageUrl.trim(),
+              isLocked,
+              approvedBy: new mongoose.Types.ObjectId(user.id),
+              approvedAt: new Date(),
+            });
+            coursesCreated++;
+            domainCache.set(name.toLowerCase().trim(), newDomain);
+          }
+        } catch (domErr: any) {
+          errors.push(`Courses Sheet Row #${rowNum} ("${name}"): ${domErr.message || 'Failed to save course'}`);
+        }
+      }
+    }
+
+    // Look for Levels sheet, or fall back to any sheet not named Instructions
+    const levelsSheetName =
+      workbook.SheetNames.find(
+        (s) =>
+          s.toLowerCase() === 'levels' ||
+          s.toLowerCase() === 'level' ||
+          s.toLowerCase() === 'quests' ||
+          s.toLowerCase() === 'curriculum'
+      ) ||
+      workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct') && s !== coursesSheetName) ||
+      workbook.SheetNames[0];
+
+    const levelRows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[levelsSheetName], { defval: '' });
+
+    // Group level rows by (CourseName, LevelNumber)
+    interface ILevelGroup {
+      courseName: string;
+      levelNumber: number;
+      title: string;
+      youtubeVideo: string;
+      points: number;
+      studyMaterials: Array<{ title: string; content?: string; url?: string; type: 'notes' | 'link' | 'article' }>;
+      questQuestions: IQuestQuestion[];
+      linkedAssessmentTitle: string;
+      firstRow: number;
+    }
+
+    const levelGroups = new Map<string, ILevelGroup>();
+
+    levelRows.forEach((row, idx) => {
+      const rowNum = idx + 2;
+      let courseName = getVal(row, 'CourseName', 'Course', 'DomainName', 'Domain', 'Track');
+      if (!courseName && targetDomainDoc) {
+        courseName = targetDomainDoc.name;
+      }
+      if (!courseName) {
+        const hasData = Object.values(row).some((v) => String(v).trim().length > 0);
+        if (hasData) {
+          errors.push(`Levels Sheet Row #${rowNum}: Missing CourseName`);
+        }
+        return;
+      }
+
+      const rawLvlNum = getVal(row, 'LevelNumber', 'Level', 'Lvl', 'Number');
+      const levelNumber = Math.max(1, parseInt(rawLvlNum, 10) || 1);
+      const title = getVal(row, 'Title', 'LevelTitle', 'LessonTitle', 'Topic') || `Level ${levelNumber}`;
+      const youtubeVideo = getVal(row, 'YouTubeVideo', 'VideoUrl', 'Video', 'YouTube', 'YouTubeId');
+      const pointsVal = Number(getVal(row, 'Points', 'CustomPoints', 'PointsReward', 'Score')) || getDefaultPointsForLevel(levelNumber);
+      const linkedAssessment = getVal(row, 'LinkedAssessment', 'Assessment', 'AssessmentTitle');
+
+      const groupKey = `${courseName.toLowerCase().trim()}:::${levelNumber}`;
+      if (!levelGroups.has(groupKey)) {
+        levelGroups.set(groupKey, {
+          courseName: courseName.trim(),
+          levelNumber,
+          title,
+          youtubeVideo,
+          points: Math.max(0, pointsVal),
+          studyMaterials: [],
+          questQuestions: [],
+          linkedAssessmentTitle: linkedAssessment,
+          firstRow: rowNum,
+        });
+      }
+
+      const group = levelGroups.get(groupKey)!;
+      if (title && group.title === `Level ${levelNumber}`) group.title = title;
+      if (youtubeVideo && !group.youtubeVideo) group.youtubeVideo = youtubeVideo;
+      if (pointsVal && group.points === getDefaultPointsForLevel(levelNumber)) group.points = pointsVal;
+      if (linkedAssessment && !group.linkedAssessmentTitle) group.linkedAssessmentTitle = linkedAssessment;
+
+      // Extract Study Material if present on this row
+      const smTitle = getVal(row, 'StudyMaterialTitle', 'MaterialTitle', 'ReadingTitle');
+      const smContent = getVal(row, 'StudyMaterialContent', 'Notes', 'Content', 'MaterialContent');
+      const smUrl = getVal(row, 'StudyMaterialUrl', 'MaterialUrl', 'Url', 'DocUrl');
+      if (smTitle || smContent || smUrl) {
+        const matTitle = smTitle || `${group.title} Reference Notes`;
+        if (!group.studyMaterials.some((m) => m.title.toLowerCase() === matTitle.toLowerCase())) {
+          group.studyMaterials.push({
+            title: matTitle,
+            content: smContent || 'Key concepts and architectural rules for this level.',
+            url: smUrl || '',
+            type: smUrl ? 'link' : 'notes',
+          });
+        }
+      }
+
+      // Extract Quest Question if present on this row
+      const questionText = getVal(row, 'QuestQuestion', 'QuestionText', 'Question', 'QuestionPrompt');
+      if (questionText) {
+        const optA = getVal(row, 'OptionA', 'Option1', 'A');
+        const optB = getVal(row, 'OptionB', 'Option2', 'B');
+        const optC = getVal(row, 'OptionC', 'Option3', 'C');
+        const optD = getVal(row, 'OptionD', 'Option4', 'D');
+
+        const options = [optA, optB, optC, optD].filter((opt) => opt.length > 0);
+        if (options.length < 2) {
+          errors.push(
+            `Row #${rowNum} (Quest Question "${questionText.slice(0, 30)}..."): At least 2 options (OptionA and OptionB) are required`
+          );
+        } else {
+          const rawCorrect = getVal(row, 'CorrectOption', 'CorrectAnswer', 'Answer', 'Correct');
+          let correctOptionIndex = 0;
+          const upper = (rawCorrect || '').toUpperCase().trim();
+          if (upper === 'A' || upper === '1' || upper === 'OPTION A' || upper === 'OPTION 1') {
+            correctOptionIndex = 0;
+          } else if (upper === 'B' || upper === '2' || upper === 'OPTION B' || upper === 'OPTION 2') {
+            correctOptionIndex = 1;
+          } else if (upper === 'C' || upper === '3' || upper === 'OPTION C' || upper === 'OPTION 3') {
+            correctOptionIndex = 2;
+          } else if (upper === 'D' || upper === '4' || upper === 'OPTION D' || upper === 'OPTION 4') {
+            correctOptionIndex = 3;
+          } else {
+            const matchIdx = options.findIndex((o) => o.toLowerCase() === (rawCorrect || '').toLowerCase());
+            if (matchIdx !== -1) correctOptionIndex = matchIdx;
+          }
+
+          if (correctOptionIndex >= options.length) correctOptionIndex = 0;
+
+          group.questQuestions.push({
+            question: questionText,
+            options,
+            correctOption: correctOptionIndex,
+          });
+        }
+      }
+    });
+
+    if (levelGroups.size === 0 && !coursesSheetName) {
+      return reply.status(400).send({
+        success: false,
+        error: errors.length > 0 ? errors.slice(0, 5).join(' | ') : 'No valid course or level data found in Excel sheet',
+        errors,
+      });
+    }
+
+    // Process Level Groups
+    for (const group of levelGroups.values()) {
+      const courseKey = group.courseName.toLowerCase().trim();
+      let domain = domainCache.get(courseKey);
+
+      if (!domain) {
+        const escaped = group.courseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        domain = await Domain.findOne({
+          name: { $regex: new RegExp(`^${escaped}$`, 'i') },
+        });
+
+        if (!domain) {
+          // Create course if not already present
+          try {
+            domain = await Domain.create({
+              name: group.courseName,
+              description: `Master core architectural principles and verification quests in ${group.courseName}.`,
+              coverImageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+              isLocked: false,
+              approvedBy: new mongoose.Types.ObjectId(user.id),
+              approvedAt: new Date(),
+            });
+            coursesCreated++;
+          } catch (createDomErr: any) {
+            errors.push(`Course "${group.courseName}": Failed to auto-create parent course: ${createDomErr.message}`);
+            continue;
+          }
+        }
+        domainCache.set(courseKey, domain);
+      }
+
+      // Resolve linked assessment if provided
+      let linkedAssessmentId: mongoose.Types.ObjectId | null = null;
+      if (group.linkedAssessmentTitle) {
+        const titleOrId = group.linkedAssessmentTitle.trim();
+        if (mongoose.Types.ObjectId.isValid(titleOrId)) {
+          linkedAssessmentId = new mongoose.Types.ObjectId(titleOrId);
+        } else {
+          const escapedAss = titleOrId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const foundAss = await Assessment.findOne({
+            title: { $regex: new RegExp(`^${escapedAss}$`, 'i') },
+          }).select('_id');
+          if (foundAss) {
+            linkedAssessmentId = foundAss._id as mongoose.Types.ObjectId;
+          }
+        }
+      }
+
+      // Clean YouTube ID
+      const cleanedVideoId = cleanYouTubeVideoId(group.youtubeVideo);
+
+      // Default quest questions if none provided in sheet
+      const questQuestions =
+        group.questQuestions.length > 0
+          ? group.questQuestions
+          : createDefaultVerificationQuestions(group.title);
+
+      // Default study materials if none provided
+      const studyMaterials =
+        group.studyMaterials.length > 0
+          ? group.studyMaterials
+          : [
+              {
+                title: `${group.title} - Core Study Notes`,
+                type: 'notes' as const,
+                content: `Key study takeaways for Level ${group.levelNumber}:\n• Carefully watch the lecture video before starting the verification quest.\n• Answer all questions correctly to unlock further milestones.\n• Pay special attention to algorithmic complexity, best practices, and runtime architecture.`,
+              },
+              {
+                title: 'Curated Documentation & References',
+                type: 'link' as const,
+                url: 'https://developer.mozilla.org',
+                content: 'Comprehensive technical documentation and API reference for deeper architectural context.',
+              },
+            ];
+
+      try {
+        const existingLevel = await Level.findOne({
+          domainId: domain._id,
+          levelNumber: group.levelNumber,
+        });
+
+        if (existingLevel) {
+          existingLevel.title = group.title;
+          existingLevel.youtubeVideoId = cleanedVideoId;
+          existingLevel.points = group.points;
+          existingLevel.questQuestions = questQuestions;
+          existingLevel.studyMaterials = studyMaterials;
+          if (linkedAssessmentId) existingLevel.assessmentId = linkedAssessmentId;
+          await existingLevel.save();
+          levelsUpdated++;
+        } else {
+          await Level.create({
+            domainId: domain._id,
+            levelNumber: group.levelNumber,
+            title: group.title,
+            youtubeVideoId: cleanedVideoId,
+            points: group.points,
+            questQuestions,
+            studyMaterials,
+            assessmentId: linkedAssessmentId || null,
+          });
+          levelsCreated++;
+        }
+      } catch (lvlErr: any) {
+        errors.push(
+          `Level #${group.levelNumber} ("${group.title}") in Course "${group.courseName}": ${lvlErr.message || 'Failed to save level'}`
+        );
+      }
+    }
+
+    const totalProcessed = levelsCreated + levelsUpdated + coursesCreated + coursesUpdated;
+    if (totalProcessed === 0 && errors.length > 0) {
+      return reply.status(400).send({
+        success: false,
+        error: errors.slice(0, 5).join(' | '),
+        errors,
+      });
+    }
+
+    return reply.send({
+      success: true,
+      message: `Bulk upload completed successfully! ${coursesCreated} course(s) created, ${coursesUpdated} updated. ${levelsCreated} level(s) created, ${levelsUpdated} updated.`,
+      coursesCreated,
+      coursesUpdated,
+      levelsCreated,
+      levelsUpdated,
+      errors: errors.length ? errors : undefined,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Bulk upload failed: ' + (error.message || 'Server error'),
+    });
+  }
+};
+
+/**
+ * Get all student submissions for a specific course level (Admin/Faculty).
+ * Consolidates LevelAssessmentSession records, CodingSubmissions, and Quest completions.
+ */
+export const getLevelSubmissions = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id: levelId } = request.params as { id: string };
+
+    if (!mongoose.Types.ObjectId.isValid(levelId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid level ID' });
+    }
+
+    const level = await Level.findById(levelId)
+      .populate('domainId', 'name description')
+      .populate('codingChallengeId', 'title slug difficulty marks')
+      .populate('assessmentId', 'title description category passingScorePercentage timeLimitMinutes questions');
+
+    if (!level) {
+      return reply.status(404).send({ success: false, error: 'Level not found' });
+    }
+
+    // 1. Fetch all LevelAssessmentSessions for this level
+    const sessions = await LevelAssessmentSession.find({ level: levelId })
+      .populate('student', 'name email rollNo department avatar studentId')
+      .populate('submissions.challengeId', 'title slug difficulty marks')
+      .populate('submissions.submissionId')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    // 2. Fetch students who completed quest or level from StudentProgress
+    const progressRecords = await StudentProgress.find({
+      $or: [{ completedLevels: levelId }, { completedQuests: levelId }],
+    })
+      .populate('userId', 'name email rollNo department avatar studentId')
+      .lean();
+
+    // 3. Fetch direct CodingSubmissions if challenge exists
+    let directSubmissions: any[] = [];
+    if (level.codingChallengeId) {
+      const challengeId = (level.codingChallengeId as any)._id || level.codingChallengeId;
+      directSubmissions = await CodingSubmission.find({ challenge: challengeId })
+        .populate('student', 'name email rollNo department avatar studentId')
+        .sort({ createdAt: -1 })
+        .lean();
+    }
+
+    // 4. Fetch stored QuestSubmissions with full question results
+    const questSubmissions = await LevelQuestSubmission.find({ level: levelId })
+      .populate('student', 'name email rollNo department avatar studentId')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    // 5. Fetch AssessmentSubmissions if an assessment is mapped to this level
+    let assessmentSubmissions: any[] = [];
+    if (level.assessmentId) {
+      const assessmentRefId = (level.assessmentId as any)._id || level.assessmentId;
+      assessmentSubmissions = await AssessmentSubmission.find({ assessment: assessmentRefId })
+        .populate('user', 'name email rollNo department avatar profilePicUrl')
+        .sort({ createdAt: -1 })
+        .lean();
+    }
+
+    // Consolidate submissions by student
+    const studentMap = new Map<string, any>();
+
+    // Process sessions
+    for (const s of sessions) {
+      const student = s.student as any;
+      if (!student || !student._id) continue;
+      const sId = student._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: student._id,
+            name: student.name || 'Anonymous Student',
+            email: student.email,
+            rollNo: student.rollNo || student.studentId || '',
+            department: student.department || '',
+            avatar: student.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: false,
+          sessions: [],
+          submissions: [],
+          bestScore: 0,
+          verdict: s.verdict || 'unattempted',
+          totalAttempts: 0,
+          lastActivityAt: s.updatedAt || s.createdAt,
+        });
+      }
+
+      const rec = studentMap.get(sId)!;
+      rec.totalAttempts += 1;
+      rec.sessions.push({
+        _id: s._id,
+        attemptNumber: s.attemptNumber,
+        isCompleted: s.isCompleted,
+        verdict: s.verdict,
+        score: s.pointsAwarded || 0,
+        startTime: s.startTime,
+        completedAt: s.completedAt,
+        submissions: s.submissions || [],
+      });
+
+      if (s.pointsAwarded && s.pointsAwarded > rec.bestScore) {
+        rec.bestScore = s.pointsAwarded;
+      }
+      if (s.verdict === 'passed') {
+        rec.verdict = 'passed';
+      } else if (rec.verdict !== 'passed' && s.verdict) {
+        rec.verdict = s.verdict;
+      }
+
+      // Collect code submissions
+      if (Array.isArray(s.submissions)) {
+        for (const sub of s.submissions) {
+          rec.submissions.push({
+            challengeTitle: (sub.challengeId as any)?.title || 'Coding Challenge',
+            language: sub.language,
+            code: sub.code,
+            status: sub.status,
+            score: sub.score,
+            passed: sub.passed,
+            total: sub.total,
+            submittedAt: sub.submittedAt,
+            details: sub.submissionId || null,
+          });
+        }
+      }
+    }
+
+    // Process direct submissions
+    for (const d of directSubmissions) {
+      const student = d.student as any;
+      if (!student || !student._id) continue;
+      const sId = student._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: student._id,
+            name: student.name || 'Anonymous Student',
+            email: student.email,
+            rollNo: student.rollNo || student.studentId || '',
+            department: student.department || '',
+            avatar: student.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: false,
+          sessions: [],
+          submissions: [],
+          bestScore: 0,
+          verdict: d.status === 'passed' ? 'passed' : 'failed',
+          totalAttempts: 1,
+          lastActivityAt: d.createdAt,
+        });
+      }
+
+      const rec = studentMap.get(sId)!;
+      const exists = rec.submissions.some((sub: any) => sub.details?._id?.toString() === d._id.toString());
+      if (!exists) {
+        rec.submissions.push({
+          challengeTitle: (level.codingChallengeId as any)?.title || 'Coding Challenge',
+          language: d.language,
+          code: d.code,
+          status: d.status,
+          score: d.score,
+          passed: d.testCasesPassed,
+          total: d.totalTestCases,
+          submittedAt: d.createdAt,
+          details: {
+            executionTime: d.executionTime,
+            memory: d.memory,
+            error: d.error,
+            testCasesPassed: d.testCasesPassed,
+            totalTestCases: d.totalTestCases,
+          },
+        });
+        if (d.status === 'passed') rec.verdict = 'passed';
+        if (d.score > rec.bestScore) rec.bestScore = d.score;
+      }
+    }
+
+    // Process progress records for quest and level completion flags
+    for (const prog of progressRecords) {
+      const user = prog.userId as any;
+      if (!user || !user._id) continue;
+      const sId = user._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: user._id,
+            name: user.name || 'Anonymous Student',
+            email: user.email,
+            rollNo: user.rollNo || user.studentId || '',
+            department: user.department || '',
+            avatar: user.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: false,
+          sessions: [],
+          submissions: [],
+          bestScore: 0,
+          verdict: 'unattempted',
+          totalAttempts: 0,
+          lastActivityAt: prog.updatedAt || prog.createdAt,
+        });
+      }
+
+      const rec = studentMap.get(sId)!;
+      const completedLevels = (prog.completedLevels || []).map((l: any) => l.toString());
+      const completedQuests = (prog.completedQuests || []).map((q: any) => q.toString());
+
+      if (completedLevels.includes(levelId)) {
+        rec.levelCompleted = true;
+        rec.verdict = 'passed';
+      }
+      if (completedQuests.includes(levelId)) {
+        rec.questCompleted = true;
+      }
+    }
+
+    // Process quest submissions with questions & answers
+    for (const q of questSubmissions) {
+      const student = q.student as any;
+      if (!student || !student._id) continue;
+      const sId = student._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: student._id,
+            name: student.name || 'Anonymous Student',
+            email: student.email,
+            rollNo: student.rollNo || student.studentId || '',
+            department: student.department || '',
+            avatar: student.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: q.passed,
+          questSubmission: q,
+          sessions: [],
+          submissions: [],
+          bestScore: q.score || 0,
+          verdict: q.passed ? 'passed' : 'in_progress',
+          totalAttempts: 1,
+          lastActivityAt: q.submittedAt || (q as any).createdAt,
+        });
+      } else {
+        const rec = studentMap.get(sId)!;
+        rec.questSubmission = q;
+        if (q.passed) rec.questCompleted = true;
+        if (q.score > rec.bestScore) rec.bestScore = q.score;
+        if (q.passed && rec.verdict === 'unattempted') rec.verdict = 'passed';
+      }
+    }
+
+    // Process assessment submissions if any
+    for (const a of assessmentSubmissions) {
+      const student = a.user as any;
+      if (!student || !student._id) continue;
+      const sId = student._id.toString();
+
+      if (!studentMap.has(sId)) {
+        studentMap.set(sId, {
+          student: {
+            _id: student._id,
+            name: student.name || 'Anonymous Student',
+            email: student.email,
+            rollNo: student.rollNo || '',
+            department: student.department || '',
+            avatar: student.avatar || '',
+          },
+          levelCompleted: false,
+          questCompleted: false,
+          assessmentSubmission: a,
+          sessions: [],
+          submissions: [],
+          bestScore: a.score || 0,
+          verdict: a.passed ? 'passed' : 'failed',
+          totalAttempts: 1,
+          lastActivityAt: a.createdAt,
+        });
+      } else {
+        const rec = studentMap.get(sId)!;
+        rec.assessmentSubmission = a;
+        if (a.score > rec.bestScore) rec.bestScore = a.score;
+        if (a.passed && rec.verdict !== 'passed') rec.verdict = 'passed';
+      }
+    }
+
+    // Synthesize quest submission report for legacy records marked completedQuests without LevelQuestSubmission doc
+    for (const rec of studentMap.values()) {
+      if (rec.questCompleted && !rec.questSubmission && Array.isArray(level.questQuestions) && level.questQuestions.length > 0) {
+        rec.questSubmission = {
+          score: level.questQuestions.length,
+          total: level.questQuestions.length,
+          passRate: 100,
+          passed: true,
+          submittedAt: rec.lastActivityAt,
+          detailedResults: level.questQuestions.map((q: any, idx: number) => ({
+            questionIndex: idx,
+            question: q.question,
+            selectedOption: q.correctOption,
+            correctOption: q.correctOption,
+            isCorrect: true,
+          })),
+        };
+      }
+    }
+
+    const students = Array.from(studentMap.values()).sort((a, b) => {
+      if (a.verdict === 'passed' && b.verdict !== 'passed') return -1;
+      if (b.verdict === 'passed' && a.verdict !== 'passed') return 1;
+      return new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime();
+    });
+
+    return reply.send({
+      success: true,
+      level: {
+        _id: level._id,
+        levelNumber: level.levelNumber,
+        title: level.title,
+        domain: level.domainId,
+        codingChallenge: level.codingChallengeId,
+        questQuestions: level.questQuestions || [],
+        points: level.points,
+        assessment: level.assessmentId || null,
+      },
+      totalStudents: students.length,
+      passedCount: students.filter((s) => s.verdict === 'passed' || s.levelCompleted).length,
+      students,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to fetch level submissions: ' + (error.message || 'Server error'),
+    });
+  }
+};
+
 export default {
   getDomains,
   getDomainById,
@@ -1870,6 +3153,7 @@ export default {
   getLevelById,
   updateLevel,
   deleteLevel,
+  getLevelSubmissions,
   registerForDomain,
   getEnrolledStudents,
   getCourseAccessConfig,
@@ -1877,4 +3161,7 @@ export default {
   setStudentCourseAccess,
   batchSetCourseAccess,
   getStudentsWithCourseAccess,
+  downloadCourseLevelsTemplate,
+  bulkUploadCoursesAndLevels,
 };
+

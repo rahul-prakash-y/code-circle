@@ -47,6 +47,7 @@ const domainEnrollmentSchema = new Schema<IDomainEnrollment>(
 
 // Unique compound index so a student cannot register twice for the same domain / course
 domainEnrollmentSchema.index({ userId: 1, domainId: 1 }, { unique: true });
+domainEnrollmentSchema.index({ domainId: 1, enrolledAt: -1 });
 
 const DomainEnrollment: Model<IDomainEnrollment> =
   mongoose.models.DomainEnrollment ||

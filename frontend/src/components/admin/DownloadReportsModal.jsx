@@ -47,7 +47,7 @@ const DownloadReportsModal = ({ isOpen, onClose }) => {
       const res = await downloadReport(selectedType, selectedFormat);
       toast.success(`Exported ${res.filename} successfully!`);
       onClose();
-    } catch (err) {
+    } catch {
       toast.error('Failed to export report. Please try again.');
     }
   };

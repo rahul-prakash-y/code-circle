@@ -10,6 +10,7 @@ import { authRoutes } from './routes/authRoutes';
 import { userRoutes } from './routes/userRoutes';
 import { newsRoutes } from './routes/newsRoutes';
 import { eventRoutes } from './routes/eventRoutes';
+import { eventArenaRoutes } from './routes/eventArenaRoutes';
 import { teamRoutes } from './routes/teamRoutes';
 import { attendanceRoutes } from './routes/attendanceRoutes';
 import { attendanceBufferRoutes } from './routes/attendance';
@@ -24,6 +25,8 @@ import { levelRoutes } from './routes/levelRoutes';
 import { certificateRoutes } from './routes/certificateRoutes';
 import { diagnosticsRoutes } from './routes/diagnosticsRoutes';
 import { contestRoutes } from './routes/contestRoutes';
+import { pointsRoutes } from './routes/pointsRoutes';
+import { missedEventRequestRoutes } from './routes/missedEventRequestRoutes';
 import path from 'path';
 import fs from 'fs';
 import fastifyStatic from '@fastify/static';
@@ -58,6 +61,7 @@ server.register(authRoutes, { prefix: '/api/auth' });
 server.register(userRoutes, { prefix: '/api/users' });
 server.register(adminRoutes, { prefix: '/api/admin' });
 server.register(eventRoutes, { prefix: '/api/events' });
+server.register(eventArenaRoutes, { prefix: '/api/events' });
 server.register(teamRoutes, { prefix: '/api/teams' });
 server.register(attendanceRoutes, { prefix: '/api/attendance' });
 server.register(attendanceBufferRoutes, { prefix: '/api' });
@@ -65,6 +69,7 @@ server.register(newsRoutes, { prefix: '/api/news' });
 server.register(assessmentRoutes, { prefix: '/api/assessments' });
 server.register(feedbackRoutes, { prefix: '/api/feedback' });
 server.register(require('./routes/health'), { prefix: '/api' });
+server.register(require('./routes/health'), { prefix: '/' });
 server.register(require('./routes/uploadRoutes'), { prefix: '/api/upload' });
 server.register(require('./routes/enrollmentRoutes'), { prefix: '/api/enrollments' });
 server.register(require('./routes/problemRoutes'), { prefix: '/api/problems' });
@@ -79,6 +84,8 @@ server.register(levelRoutes, { prefix: '/api/levels' });
 server.register(certificateRoutes, { prefix: '/api/certificates' });
 server.register(diagnosticsRoutes, { prefix: '/api/admin/diagnostics' });
 server.register(contestRoutes, { prefix: '/api/contests' });
+server.register(pointsRoutes, { prefix: '/api/points' });
+server.register(missedEventRequestRoutes, { prefix: '/api/missed-event-requests' });
 
 // API 404 Handler
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
@@ -101,52 +108,63 @@ if (fs.existsSync(frontendDistPath)) {
 // Server Initialization
 export const start = async (): Promise<void> => {
   try {
-    await connectDB();
-
-    // Ensure existing level-linked challenges are flagged as isCourseChallenge: true
-    try {
-      const Level = (await import('./models/levelModel')).default;
-      const CodingChallenge = (await import('./models/codingChallengeModel')).default;
-      const levels = await Level.find({
-        $or: [
-          { codingChallengeId: { $ne: null } },
-          { codingChallengePool: { $exists: true, $ne: [] } },
-        ],
-      });
-      const linkedIds = new Set<string>();
-      for (const lvl of levels) {
-        let changed = false;
-        if (!Array.isArray(lvl.codingChallengePool)) {
-          lvl.codingChallengePool = [];
-          changed = true;
-        }
-        if (lvl.codingChallengeId) {
-          const cId = lvl.codingChallengeId.toString();
-          linkedIds.add(cId);
-          if (!lvl.codingChallengePool.some((p: any) => p && p.toString() === cId)) {
-            lvl.codingChallengePool.push(lvl.codingChallengeId);
-            changed = true;
-          }
-        }
-        if (changed) {
-          await lvl.save();
-        }
-      }
-      if (linkedIds.size > 0) {
-        await CodingChallenge.updateMany(
-          { _id: { $in: Array.from(linkedIds) } },
-          { $set: { isCourseChallenge: true } }
-        );
-      }
-    } catch (syncErr) {
-      console.warn('[Server] Level challenge sync skipped:', syncErr);
-    }
-
     const port = Number(process.env.PORT) || 5000;
     const host = '0.0.0.0';
 
     await server.listen({ port, host });
     console.log(`[Server] Fastify server listening on http://${host}:${port}`);
+
+    await connectDB();
+
+    // Asynchronous background migrations & sync (non-blocking)
+    (async () => {
+      // Ensure existing level-linked challenges are flagged as isCourseChallenge: true
+      try {
+        const Level = (await import('./models/levelModel')).default;
+        const CodingChallenge = (await import('./models/codingChallengeModel')).default;
+        const levels = await Level.find({
+          $or: [
+            { codingChallengeId: { $ne: null } },
+            { codingChallengePool: { $exists: true, $ne: [] } },
+          ],
+        });
+        const linkedIds = new Set<string>();
+        for (const lvl of levels) {
+          let changed = false;
+          if (!Array.isArray(lvl.codingChallengePool)) {
+            lvl.codingChallengePool = [];
+            changed = true;
+          }
+          if (lvl.codingChallengeId) {
+            const cId = lvl.codingChallengeId.toString();
+            linkedIds.add(cId);
+            if (!lvl.codingChallengePool.some((p: any) => p && p.toString() === cId)) {
+              lvl.codingChallengePool.push(lvl.codingChallengeId);
+              changed = true;
+            }
+          }
+          if (changed) {
+            await lvl.save();
+          }
+        }
+        if (linkedIds.size > 0) {
+          await CodingChallenge.updateMany(
+            { _id: { $in: Array.from(linkedIds) } },
+            { $set: { isCourseChallenge: true } }
+          );
+        }
+      } catch (syncErr) {
+        console.warn('[Server] Level challenge sync skipped:', syncErr);
+      }
+
+      // Sync passing MCQ assessment submissions for missing points
+      try {
+        const { syncAssessmentPoints } = await import('./scripts/syncAssessmentPoints');
+        await syncAssessmentPoints();
+      } catch (assSyncErr) {
+        console.warn('[Server] Assessment points sync skipped:', assSyncErr);
+      }
+    })().catch((err) => console.warn('[Server] Background sync warning:', err));
   } catch (err) {
     server.log.error(err);
     process.exit(1);

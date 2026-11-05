@@ -20,6 +20,8 @@ import {
   UserCheck,
   Activity,
   Flame,
+  Sparkles,
+  KeyRound,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -29,6 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
+import { preloadRoute } from '../../lib/routePreload';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -140,6 +143,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       match: (loc) => loc.pathname === '/leaderboard',
     },
     {
+      to: '/points',
+      label: 'My Points',
+      icon: Sparkles,
+      match: (loc) => loc.pathname === '/points' || loc.pathname === '/my-points',
+    },
+    {
       to: '/passport',
       label: 'Registrations',
       icon: Ticket,
@@ -195,6 +204,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       match: (loc) => loc.pathname === '/users' || loc.pathname === '/students',
     },
     {
+      to: '/password-resets',
+      label: 'Password Resets',
+      icon: KeyRound,
+      match: (loc) => loc.pathname === '/password-resets' || loc.pathname === '/admin/password-resets',
+    },
+    {
       to: '/tracking',
       label: 'Student Tracking',
       icon: UserCheck,
@@ -206,6 +221,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       icon: BarChart3,
       match: (loc) => loc.pathname === '/analytics',
     },
+    {
+      to: '/points',
+      label: 'Points Console',
+      icon: Sparkles,
+      match: (loc) => loc.pathname === '/points' || loc.pathname === '/admin/points',
+    },
   ];
 
   const renderLink = (item: NavItem) => {
@@ -213,7 +234,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
     const Icon = item.icon;
 
     const inner = (
-      <Link to={item.to} className="block w-full outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-xl">
+      <Link
+        to={item.to}
+        onMouseEnter={() => preloadRoute(item.to)}
+        onFocus={() => preloadRoute(item.to)}
+        className="block w-full outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-xl"
+      >
         <div className="relative">
           {/* Floating active pill — Apple-style, no borders */}
           {isActive && (

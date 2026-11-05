@@ -11,6 +11,7 @@ export interface IDetailedQuestionResult {
   selectedOption: number;
   correctOptionIndex: number;
   isCorrect: boolean;
+  points?: number;
   explanation?: string;
 }
 
@@ -22,6 +23,7 @@ export interface IAssessmentSubmission extends Document {
   totalPoints: number;
   percentage: number;
   passed: boolean;
+  pointsAwarded?: number;
   timeSpentSeconds: number;
   detailedResults: IDetailedQuestionResult[];
   createdAt: Date;
@@ -43,6 +45,7 @@ const detailedQuestionResultSchema = new Schema<IDetailedQuestionResult>(
     selectedOption: { type: Number, required: true },
     correctOptionIndex: { type: Number, required: true },
     isCorrect: { type: Boolean, required: true },
+    points: { type: Number, default: 1 },
     explanation: { type: String, default: '' },
   },
   { _id: false }
@@ -86,6 +89,10 @@ const assessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
       required: true,
       default: false,
     },
+    pointsAwarded: {
+      type: Number,
+      default: 0,
+    },
     timeSpentSeconds: {
       type: Number,
       default: 0,
@@ -102,6 +109,7 @@ const assessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
 
 assessmentSubmissionSchema.index({ assessment: 1, user: 1 });
 assessmentSubmissionSchema.index({ user: 1, createdAt: -1 });
+assessmentSubmissionSchema.index({ assessment: 1, score: -1, createdAt: -1 });
 
 const AssessmentSubmission: Model<IAssessmentSubmission> =
   mongoose.models.AssessmentSubmission ||

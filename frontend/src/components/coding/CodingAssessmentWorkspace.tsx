@@ -8,6 +8,7 @@ import {
   Send,
   Clock,
   ShieldAlert,
+  ShieldCheck,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -29,6 +30,7 @@ import {
 import api from '../../lib/axios';
 import { useVisibilityChange, IntegrityEvent } from '../../hooks/useVisibilityChange';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import useAuthStore from '../../store/useAuthStore';
 
 export interface TestCaseSummary {
   testCaseIndex: number;
@@ -84,6 +86,8 @@ export interface SubmissionResponseData {
   total: number;
   status: 'passed' | 'failed' | 'compilation_error' | 'runtime_error' | 'timeout';
   levelCompleted?: boolean;
+  pointsAwarded?: number;
+  customPoints?: number;
   unlockedNextLevel?: boolean;
   nextLevelId?: string | null;
   domainId?: string | null;
@@ -226,6 +230,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
     warnings,
     isLocked: antiCheatLocked,
     integrityEvents,
+    isMobileProtected,
     manuallyLock,
   } = useVisibilityChange({
     maxWarnings: 3,
@@ -679,10 +684,17 @@ export const CodingAssessmentWorkspace: React.FC = () => {
             pointsAwarded: data.pointsAwarded,
           });
           manuallyLock();
-          toast.success('🎉 Both questions solved! Level completed successfully!', {
-            id: 'submit-assessment',
-            duration: 7000,
-          });
+          toast.success(
+            data.pointsAwarded && data.pointsAwarded > 0
+              ? `🎉 Level completed! +${data.pointsAwarded} points awarded!`
+              : '🎉 Level completed successfully!',
+            {
+              id: 'submit-assessment',
+              duration: 7000,
+            }
+          );
+          // Refresh auth/points in state
+          useAuthStore.getState().checkAuth?.();
         } else if (problemResult.status === 'passed') {
           const otherIdx = activeQuestionIdx === 0 ? 1 : 0;
           const otherTitle = levelQuestions[otherIdx]?.title || 'Question 2';
@@ -711,6 +723,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           unlockedNextLevel: data.unlockedNextLevel,
           nextLevelId: data.nextLevelId,
           domainId: levelMeta?.domainId || queryDomainId,
+          pointsAwarded: data.pointsAwarded,
         });
       } else {
         // Standalone Assessment Submission
@@ -726,10 +739,20 @@ export const CodingAssessmentWorkspace: React.FC = () => {
         manuallyLock();
 
         if (verdict.status === 'passed') {
-          toast.success(`Submission Accepted! Score: ${verdict.score}%`, {
-            id: 'submit-assessment',
-            duration: 6000,
-          });
+          const ptsEarned = verdict.pointsAwarded ?? 0;
+          if (ptsEarned > 0) {
+            toast.success(`🎉 Submission Accepted! +${ptsEarned} points awarded!`, {
+              id: 'submit-assessment',
+              duration: 7000,
+            });
+          } else {
+            toast.success(`Submission Accepted! Score: ${verdict.score}%`, {
+              id: 'submit-assessment',
+              duration: 6000,
+            });
+          }
+          // Refresh user profile/points in state
+          useAuthStore.getState().checkAuth?.();
         } else {
           toast(
             `Assessment Submitted. Score: ${verdict.score}% (${verdict.passed}/${verdict.total} passed)`,
@@ -945,7 +968,9 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           {/* Anti-Cheat Deterrent Warning Badge */}
           <div
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-              warnings === 0
+              isMobileProtected || isMobile
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : warnings === 0
                 ? 'bg-white/[0.04] text-neutral-400 border border-white/[0.06]'
                 : warnings === 1
                 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
@@ -953,14 +978,27 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 animate-pulse'
                 : 'bg-red-500/25 text-red-300 border border-red-500/50'
             }`}
-            title="Integrity Deterrent: Leaving assessment window counts warnings"
+            title={
+              isMobileProtected || isMobile
+                ? 'Mobile Call Protection Active: Phone calls and incoming interruptions will not increase warnings'
+                : 'Integrity Deterrent: Leaving assessment window counts warnings'
+            }
           >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span className="text-[11px]">
-              {isWorkspaceLocked
-                ? 'Locked'
-                : `Warnings: ${warnings}/3`}
-            </span>
+            {isMobileProtected || isMobile ? (
+              <>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="text-[11px]">Call Protected</span>
+              </>
+            ) : (
+              <>
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span className="text-[11px]">
+                  {isWorkspaceLocked
+                    ? 'Locked'
+                    : `Warnings: ${warnings}/3`}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -1252,10 +1290,12 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                           <Lock className="w-6 h-6 text-neutral-300" />
                         </div>
                         <h3 className="text-base font-semibold text-white tracking-tight mb-1">
-                          Assessment Locked
+                          {antiCheatLocked ? 'Account Restricted & Workspace Locked' : 'Assessment Locked'}
                         </h3>
                         <p className="text-xs text-neutral-400 max-w-sm leading-relaxed mb-4">
-                          {submissionVerdict
+                          {antiCheatLocked
+                            ? 'You reached 3 tab switch warnings. Your account is restricted from attending assessments and contests until an administrator unblocks your restrictions.'
+                            : submissionVerdict
                             ? 'Your official assessment code has been submitted and locked for grading.'
                             : 'Assessment editor is disabled. Your submission is finalized.'}
                         </p>
@@ -1464,16 +1504,31 @@ export const CodingAssessmentWorkspace: React.FC = () => {
               {/* Anti-Cheat Warning Badge */}
               <div
                 className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium shrink-0 ${
-                  warnings === 0
+                  isMobileProtected || isMobile
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : warnings === 0
                     ? 'bg-white/[0.04] text-neutral-400 border border-white/[0.06]'
                     : warnings === 1
                     ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
                     : 'bg-red-500/25 text-red-300 border border-red-500/50 animate-pulse'
                 }`}
-                title={`Anti-Cheat Warnings: ${warnings}/3`}
+                title={
+                  isMobileProtected || isMobile
+                    ? 'Mobile Call Protection Active: Phone calls and incoming interruptions will not increase warnings'
+                    : `Anti-Cheat Warnings: ${warnings}/3`
+                }
               >
-                <ShieldAlert className="w-3 h-3" />
-                <span>{warnings}/3</span>
+                {isMobileProtected || isMobile ? (
+                  <>
+                    <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                    <span className="text-emerald-400">Call Protected</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="w-3 h-3" />
+                    <span>{warnings}/3</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -1770,9 +1825,13 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                     <div className="w-10 h-10 rounded-2xl bg-neutral-800/80 border border-white/10 flex items-center justify-center mb-2">
                       <Lock className="w-5 h-5 text-neutral-300" />
                     </div>
-                    <h3 className="text-sm font-semibold text-white">Editor Locked</h3>
+                    <h3 className="text-sm font-semibold text-white">
+                      {antiCheatLocked ? 'Account Restricted' : 'Editor Locked'}
+                    </h3>
                     <p className="text-[11px] text-neutral-400 mt-1 max-w-xs">
-                      {submissionVerdict
+                      {antiCheatLocked
+                        ? '3 tab switches reached. Restricted until unblocked by an admin.'
+                        : submissionVerdict
                         ? 'Assessment submitted and locked for grading.'
                         : 'Assessment editor is disabled.'}
                     </p>

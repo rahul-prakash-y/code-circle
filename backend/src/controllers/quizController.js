@@ -12,7 +12,38 @@ const createQuiz = async (req, reply) => {
 
 const getQuizzes = async (req, reply) => {
   try {
-    const quizzes = await Quiz.find({});
+    const isPaginated = req.query && req.query.page !== undefined;
+    const page = Math.max(1, parseInt(req.query?.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query?.limit, 10) || (isPaginated ? 20 : 100)));
+    const skip = (page - 1) * limit;
+
+    const [quizzes, total] = await Promise.all([
+      Quiz.find({})
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Quiz.countDocuments({}),
+    ]);
+
+    if (isPaginated) {
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      return reply.send({
+        success: true,
+        quizzes,
+        data: quizzes,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          pages: totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      });
+    }
+
     return reply.send(quizzes);
   } catch (error) {
     return reply.code(500).send({ message: error.message });

@@ -8,7 +8,30 @@ export interface CertificateTemplate {
   subtitle: string;
   description: string;
   type: 'EVENT' | 'COURSE' | 'ASSESSMENT' | 'CUSTOM' | 'HACKATHON';
-  theme: 'modern-blue' | 'executive-gold' | 'cyber-dark' | 'emerald-minimal' | 'ruby-elegance';
+  theme:
+    | 'classic-ivory'
+    | 'imperial-gold'
+    | 'royal-sapphire'
+    | 'emerald-merit'
+    | 'ruby-excellence'
+    | 'amethyst-prestige'
+    | 'monochrome-executive'
+    | 'ocean-azure'
+    | 'crimson-collegiate'
+    | 'nordic-frost'
+    | 'champagne-vintage'
+    | 'sunset-topaz'
+    | 'rose-elegance'
+    | 'corporate-steel'
+    | 'botanical-sage'
+    | 'modern-blue'
+    | 'executive-gold'
+    | 'cyber-dark'
+    | 'emerald-minimal'
+    | 'ruby-elegance'
+    | 'cyber-emerald'
+    | 'luxury-amethyst'
+    | string;
   orientation: 'landscape' | 'portrait';
   bgImageUrl?: string;
   badgeUrl?: string;
@@ -18,6 +41,8 @@ export interface CertificateTemplate {
   signatoryOrganization: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  tertiarySignatoryName?: string;
+  tertiarySignatoryTitle?: string;
   primaryColor: string;
   accentColor: string;
   associatedEventId?: any;
@@ -43,6 +68,10 @@ export interface IssuedCertificate {
   issuerOrganization: string;
   signatoryName: string;
   signatoryTitle: string;
+  secondarySignatoryName?: string;
+  secondarySignatoryTitle?: string;
+  tertiarySignatoryName?: string;
+  tertiarySignatoryTitle?: string;
   issueDate: string;
   status: 'ACTIVE' | 'REVOKED';
   revocationReason?: string;
@@ -77,6 +106,7 @@ interface CertificateState {
     customTitle?: string;
     customDescription?: string;
     issueDate?: string;
+    completedOnly?: boolean;
   }) => Promise<{ success: boolean; count?: number }>;
 
   fetchIssuedCertificates: (params?: {
@@ -90,6 +120,7 @@ interface CertificateState {
   revokeCertificate: (id: string, reason?: string) => Promise<boolean>;
   fetchMyCertificates: () => Promise<void>;
   downloadCertificatePdf: (id: string, filename?: string) => Promise<void>;
+  claimCourseCertificate: (domainId: string) => Promise<{ success: boolean; data?: any; message?: string }>;
 }
 
 export const useCertificateStore = create<CertificateState>((set, get) => ({
@@ -255,6 +286,22 @@ export const useCertificateStore = create<CertificateState>((set, get) => ({
       toast.success('Certificate downloaded successfully!', { id: toastId });
     } catch (err: any) {
       toast.error('Failed to download certificate PDF');
+    }
+  },
+
+  claimCourseCertificate: async (domainId: string) => {
+    try {
+      const res = await api.post(`/certificates/claim-course/${domainId}`);
+      if (res.data.success) {
+        toast.success(res.data.message || 'Course certificate claimed successfully!');
+        get().fetchMyCertificates();
+        return { success: true, data: res.data.data, message: res.data.message };
+      }
+      return { success: false, message: res.data.error || 'Failed to claim course certificate' };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to claim course certificate';
+      toast.error(msg);
+      return { success: false, message: msg };
     }
   },
 }));

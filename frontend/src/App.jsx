@@ -20,6 +20,7 @@ const AttendancePage = lazy(() => import('./pages/AttendancePage'));
 const CertificatesPage = lazy(() => import('./pages/CertificatesPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const PassportPage = lazy(() => import('./pages/PassportPage'));
+const PointsPage = lazy(() => import('./pages/PointsPage'));
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -35,6 +36,10 @@ const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'));
 const ContestsPage = lazy(() => import('./pages/ContestsPage'));
 const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
+const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
+const EventArenaPage = lazy(() => import('./pages/EventArenaPage'));
+
+import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -115,6 +120,7 @@ function App() {
           },
         }}
       />
+      <TutorialModal />
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
           {/* Public Auth Routes */}
@@ -179,6 +185,17 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Fullscreen Event Arena without App Shell */}
+          <Route
+            path="/events/:id/arena"
+            element={
+              <ProtectedRoute>
+                <EventArenaPage />
+              </ProtectedRoute>
+            }
+          />
+
 
 
           {/* Persistent App Shell Layout Route */}
@@ -292,6 +309,7 @@ function App() {
               }
             />
 
+
             <Route
               path="/certificates"
               element={
@@ -309,6 +327,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/points"
+              element={
+                <ProtectedRoute>
+                  <PointsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/my-points" element={<Navigate to="/points" replace />} />
+            <Route path="/admin/points" element={<Navigate to="/points" replace />} />
 
             <Route
               path="/passport"
@@ -391,6 +420,24 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
                   <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Password Reset Link Dispatcher Module */}
+            <Route
+              path="/password-resets"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                  <AdminPasswordResets />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/password-resets"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                  <AdminPasswordResets />
                 </ProtectedRoute>
               }
             />

@@ -105,7 +105,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
       )}
 
       {/* Top Header Pills */}
-      <div className="absolute top-5 left-5 right-5 flex items-center justify-between pointer-events-none z-10">
+      <div className="absolute top-4 sm:top-5 left-4 sm:left-5 right-4 sm:right-5 flex items-center justify-between pointer-events-none z-10">
         <div
           className={`px-3 py-1 rounded-full text-[10.5px] font-medium tracking-tight flex items-center gap-1.5 shadow-sm backdrop-blur-md ${
             hasPhoto
@@ -124,11 +124,12 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             title={`Connect with ${bearer.name} on LinkedIn`}
-            className={`pointer-events-auto w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shadow-sm backdrop-blur-md ${
+            className={`pointer-events-auto w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shadow-sm backdrop-blur-md ${
               hasPhoto
                 ? 'bg-black/40 text-white/85 hover:text-white border border-white/15'
                 : 'bg-surface/85 dark:bg-white/10 text-label-secondary hover:text-label-primary border border-separator'
             }`}
+            aria-label={`Connect with ${bearer.name} on LinkedIn`}
           >
             <Linkedin size={14} strokeWidth={1.8} />
           </a>
@@ -136,7 +137,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
       </div>
 
       {/* Bottom Content Area: Name, Position, Bio */}
-      <div className="relative z-10 p-6 sm:p-7 flex flex-col justify-end space-y-2.5">
+      <div className="relative z-10 p-5 sm:p-7 flex flex-col justify-end space-y-2.5">
         {/* Position Badge */}
         <div className="self-start">
           <div
@@ -193,7 +194,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium transition-colors duration-200 group/link ${
+              className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium transition-colors duration-200 group/link min-h-[32px] ${
                 hasPhoto
                   ? 'text-white/70 hover:text-white'
                   : 'text-accent hover:underline'

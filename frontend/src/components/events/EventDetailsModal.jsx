@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -14,9 +15,13 @@ import {
   UserCheck,
   Award,
   Sliders,
+  FileSpreadsheet,
+  Upload,
+  Sparkles,
 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import toast from 'react-hot-toast';
+import EventArenaAdminModal from './EventArenaAdminModal';
 
 export const EventDetailsModal = ({
   isOpen,
@@ -27,7 +32,11 @@ export const EventDetailsModal = ({
   onEnroll,
   onEdit,
   onViewParticipants,
+  onViewRegistered,
+  onUploadParticipants,
 }) => {
+  const navigate = useNavigate();
+  const [isArenaAdminOpen, setIsArenaAdminOpen] = useState(false);
   if (!isOpen || !event) return null;
 
   const eventDate = event.date ? new Date(event.date) : null;
@@ -85,8 +94,9 @@ export const EventDetailsModal = ({
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <>
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -115,6 +125,17 @@ export const EventDetailsModal = ({
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-separator text-label-secondary">
                   {formatLabel}
                 </span>
+                {event.registrationType === 'admin_upload' && (
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                    Admin Upload Only
+                  </span>
+                )}
+                {event.hasArena && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 flex items-center gap-1 shadow-xs">
+                    <Sparkles size={12} />
+                    Event Arena
+                  </span>
+                )}
                 {isLive && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/15 text-destructive border border-red-500/20">
                     <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
@@ -254,6 +275,11 @@ export const EventDetailsModal = ({
                       {(event.enrolledCount || 0) >= event.maxParticipants && (
                         <span className="text-xs text-rose-500 font-semibold">(Full)</span>
                       )}
+                      {Boolean(event.participantsCount) && (
+                        <span className="text-xs text-emerald-400 font-semibold ml-1.5">
+                          • {event.participantsCount} Attended
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -372,6 +398,31 @@ export const EventDetailsModal = ({
               )}
             </div>
 
+            {/* Event Arena Highlight Box */}
+            {event.hasArena && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-pink-500/10 border border-indigo-500/20 space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-indigo-400" />
+                    <h3 className="text-xs uppercase font-bold text-indigo-400 tracking-wider">
+                      Event Arena Assessments
+                    </h3>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                    {event.arenaType || 'HYBRID'}
+                  </span>
+                </div>
+                <p className="text-xs text-label-secondary leading-relaxed">
+                  This event features an online assessment arena where participants solve coding challenges and MCQ assessments under timed conditions.
+                </p>
+                <div className="flex items-center gap-4 text-xs font-semibold text-label-secondary pt-1">
+                  <span>Duration: <strong className="text-label-primary dark:text-white">{event.arenaDurationMinutes || 60} mins</strong></span>
+                  <span>•</span>
+                  <span>Total Points: <strong className="text-label-primary dark:text-white">{event.arenaTotalPoints || 100} pts</strong></span>
+                </div>
+              </div>
+            )}
+
             {/* Registration status / info banner */}
             {isEnrolled && (
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-500">
@@ -380,6 +431,19 @@ export const EventDetailsModal = ({
                   <p className="font-bold">You are enrolled in this event</p>
                   <p className="text-emerald-500/80 mt-0.5">
                     Your registration has been confirmed. Check your Registrations passport for details.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Registration Mode Explanatory Notice */}
+            {event.registrationType === 'admin_upload' && !isEnrolled && !isAdmin && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-700 dark:text-amber-300">
+                <Upload size={20} className="shrink-0 text-amber-500" />
+                <div className="text-xs">
+                  <p className="font-bold">Participant Roster Upload by Administrator</p>
+                  <p className="opacity-90 mt-0.5">
+                    Self-registration is disabled for this event. Organizers will upload the confirmed participant roster directly via spreadsheet.
                   </p>
                 </div>
               </div>
@@ -395,18 +459,50 @@ export const EventDetailsModal = ({
               Close
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {isAdmin && (
                 <>
                   <button
                     onClick={() => {
                       onClose();
-                      if (onViewParticipants) onViewParticipants(event);
+                      if (onUploadParticipants) onUploadParticipants(event);
                     }}
-                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-accent"
+                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-emerald-500 hover:text-emerald-400 border border-emerald-500/25"
+                    title="Upload Participants from Excel"
                   >
-                    <UserCheck size={15} />
-                    <span>Participants</span>
+                    <FileSpreadsheet size={14} />
+                    <span>Upload Participants</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      if (onViewRegistered) onViewRegistered(event);
+                      else if (onViewParticipants) onViewParticipants(event, 'registered');
+                    }}
+                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-label-primary hover:text-accent"
+                    title="View Full Registered Students Roster"
+                  >
+                    <Users size={14} />
+                    <span>Registered ({event.enrolledCount || 0})</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      if (onViewParticipants) onViewParticipants(event, 'participants');
+                    }}
+                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-emerald-400 hover:text-emerald-300 border-emerald-500/20"
+                    title="View Verified Event Participants (Attended)"
+                  >
+                    <UserCheck size={14} />
+                    <span>Participants ({event.participantsCount || 0})</span>
+                  </button>
+                  <button
+                    onClick={() => setIsArenaAdminOpen(true)}
+                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-indigo-500 hover:text-indigo-400 border border-indigo-500/25"
+                    title="Manage Arena Configuration and Questions"
+                  >
+                    <Sparkles size={14} />
+                    <span>Arena Hub</span>
                   </button>
                   <button
                     onClick={() => {
@@ -420,38 +516,74 @@ export const EventDetailsModal = ({
                 </>
               )}
 
-              {!isAdmin && (
+              {/* Enter Arena button - Only for Enrolled Students or Admins */}
+              {event.hasArena && (isEnrolled || isAdmin) && (
                 <button
                   onClick={() => {
                     onClose();
-                    if (!isEnrolled && onEnroll) onEnroll(event);
+                    navigate(`/events/${event._id}/arena`);
                   }}
-                  disabled={isEnrolled || isDeadlinePassed || isPast}
-                  className={
-                    isEnrolled
-                      ? 'btn-secondary text-xs py-2 px-5 opacity-90 cursor-default'
-                      : 'btn-primary text-xs py-2 px-5 flex items-center gap-2 cursor-pointer'
-                  }
+                  className="btn-primary flex items-center gap-1.5 text-xs py-2 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md shadow-indigo-600/20 cursor-pointer"
+                  title="Enter Event Arena to take assessments"
                 >
-                  <span>
-                    {isEnrolled
-                      ? 'Enrolled'
-                      : isPast
-                      ? 'Event Concluded'
-                      : isDeadlinePassed
-                      ? 'Registration Closed'
-                      : 'Enroll Now'}
-                  </span>
-                  {!isEnrolled && !isDeadlinePassed && !isPast && (
-                    <ArrowUpRight size={14} />
-                  )}
+                  <Sparkles size={14} />
+                  <span>Enter Arena</span>
                 </button>
+              )}
+
+              {!isAdmin && (
+                event.registrationType === 'admin_upload' && !isEnrolled ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-secondary text-xs py-2 px-5 opacity-80 cursor-not-allowed text-amber-500 border border-amber-500/25"
+                    title="Registration for this event is managed directly by administrators."
+                  >
+                    <span>Admin Upload Only</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      if (!isEnrolled && onEnroll) onEnroll(event);
+                    }}
+                    disabled={isEnrolled || isDeadlinePassed || isPast}
+                    className={
+                      isEnrolled
+                        ? 'btn-secondary text-xs py-2 px-5 opacity-90 cursor-default'
+                        : 'btn-primary text-xs py-2 px-5 flex items-center gap-2 cursor-pointer'
+                    }
+                  >
+                    <span>
+                      {isEnrolled
+                        ? 'Enrolled'
+                        : isPast
+                        ? 'Event Concluded'
+                        : isDeadlinePassed
+                        ? 'Registration Closed'
+                        : 'Enroll Now'}
+                    </span>
+                    {!isEnrolled && !isDeadlinePassed && !isPast && (
+                      <ArrowUpRight size={14} />
+                    )}
+                  </button>
+                )
               )}
             </div>
           </div>
         </motion.div>
       </div>
     </AnimatePresence>
+
+    {/* Event Arena Admin & Question Hub Modal */}
+    {isAdmin && (
+      <EventArenaAdminModal
+        isOpen={isArenaAdminOpen}
+        onClose={() => setIsArenaAdminOpen(false)}
+        event={event}
+      />
+    )}
+  </>
   );
 };
 

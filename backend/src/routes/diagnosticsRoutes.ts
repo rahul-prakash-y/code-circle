@@ -8,6 +8,7 @@ import {
   updateCollectionDocument,
   deleteCollectionDocument,
   batchDeleteDocuments,
+  lookupUsers,
 } from '../controllers/diagnosticsController';
 import { verifyToken, requireSuperAdmin } from '../middleware/authMiddleware';
 
@@ -28,6 +29,10 @@ export async function diagnosticsRoutes(fastify: FastifyInstance) {
   fastify.patch('/database/collections/:collection/:id', updateCollectionDocument);
   fastify.delete('/database/collections/:collection/:id', deleteCollectionDocument);
   fastify.post('/database/collections/:collection/batch-delete', batchDeleteDocuments);
+
+  // Users Lookup for Form User Selector Autocomplete
+  fastify.get('/users/lookup', lookupUsers);
+  fastify.get('/database/users-lookup', lookupUsers);
 }
 
 export default diagnosticsRoutes;

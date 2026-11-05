@@ -87,6 +87,14 @@ export interface ContestSession {
   timeTakenSeconds: number;
   pointsAwarded?: boolean;
   awardedClubPoints?: number;
+  reentryRequested?: boolean;
+  reentryReason?: string;
+  reentryStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  reentryRequestedAt?: string | null;
+  reentryApprovedAt?: string | null;
+  reentryApprovedBy?: any;
+  reentryReviewNote?: string;
+  reentryCount?: number;
 }
 
 export interface LeaderboardEntry {
@@ -114,17 +122,27 @@ export interface LeaderboardEntry {
   submittedAt?: string;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 interface ContestState {
   contests: Contest[];
   activeContest: Contest | null;
   activeSession: ContestSession | null;
   leaderboard: LeaderboardEntry[];
+  leaderboardPagination: PaginationMeta | null;
   loading: boolean;
   executing: boolean;
   submitting: boolean;
   error: string | null;
 
-  fetchContests: () => Promise<void>;
+  fetchContests: (params?: { page?: number; limit?: number; type?: string; search?: string }) => Promise<void>;
   fetchContestById: (id: string) => Promise<Contest | null>;
   startSession: (contestId: string) => Promise<ContestSession | null>;
   runCode: (
@@ -144,7 +162,7 @@ interface ContestState {
     contestId: string,
     mcqAnswers: Array<{ questionId: string; selectedOption: number }>
   ) => Promise<any>;
-  fetchLeaderboard: (contestId: string) => Promise<void>;
+  fetchLeaderboard: (contestId: string, params?: { page?: number; limit?: number }) => Promise<void>;
   createContest: (data: Partial<Contest>) => Promise<boolean>;
   updateContest: (id: string, data: Partial<Contest>) => Promise<boolean>;
   deleteContest: (id: string) => Promise<boolean>;
@@ -158,8 +176,38 @@ interface ContestState {
     payload: { preset?: string; bonusPoints?: number; reason?: string; allocations?: any[] }
   ) => Promise<boolean>;
   fetchContestSubmissions: (
+    contestId: string,
+    params?: { page?: number; limit?: number; search?: string; filterMode?: string }
+  ) => Promise<{ success: boolean; data?: any[]; pagination?: PaginationMeta; contest?: any; error?: string }>;
+  fetchMyContestSubmission: (
     contestId: string
-  ) => Promise<{ success: boolean; data?: any[]; contest?: any; error?: string }>;
+  ) => Promise<{ success: boolean; data?: any; contest?: any; error?: string }>;
+  fetchSingleSubmissionForAdmin: (
+    contestId: string,
+    submissionId: string
+  ) => Promise<{ success: boolean; data?: any; contest?: any; error?: string }>;
+  requestReentry: (
+    contestId: string,
+    reason: string
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
+  approveReentry: (
+    contestId: string,
+    submissionId: string,
+    data?: { durationMinutes?: number; note?: string }
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
+  rejectReentry: (
+    contestId: string,
+    submissionId: string,
+    note?: string
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
+  deleteSubmission: (
+    contestId: string,
+    submissionId: string
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
+  downloadContestMcqTemplate: () => Promise<void>;
+  downloadContestCodingTemplate: () => Promise<void>;
+  parseContestMcqUpload: (file: File) => Promise<{ success: boolean; data?: MCQQuestion[]; count?: number; error?: string; errors?: string[] }>;
+  parseContestCodingUpload: (file: File) => Promise<{ success: boolean; data?: CodingProblem[]; count?: number; error?: string; errors?: string[] }>;
 }
 
 export const useContestStore = create<ContestState>((set, get) => ({
@@ -167,15 +215,16 @@ export const useContestStore = create<ContestState>((set, get) => ({
   activeContest: null,
   activeSession: null,
   leaderboard: [],
+  leaderboardPagination: null,
   loading: false,
   executing: false,
   submitting: false,
   error: null,
 
-  fetchContests: async () => {
+  fetchContests: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await api.get('/contests');
+      const res = await api.get('/contests', { params });
       set({ contests: res.data.data || [], loading: false });
     } catch (err: any) {
       set({ loading: false, error: err.response?.data?.error || 'Failed to load contests' });
@@ -243,6 +292,34 @@ export const useContestStore = create<ContestState>((set, get) => ({
       });
       set({ executing: false });
       const data = res.data.data;
+      if (get().activeSession) {
+        const sess = get().activeSession!;
+        const updatedSubs = [...(sess.codingSubmissions || [])];
+        const idx = updatedSubs.findIndex(
+          (cs) => cs.problemId?.toString() === problemId.toString()
+        );
+        const newRecord = {
+          problemId,
+          code,
+          language,
+          passedTestCases: data.passedCount,
+          totalTestCases: data.totalTests,
+          status: data.status,
+          pointsEarned: data.pointsEarned,
+          submittedAt: new Date().toISOString(),
+        };
+        if (idx >= 0) {
+          updatedSubs[idx] = newRecord;
+        } else {
+          updatedSubs.push(newRecord);
+        }
+        set({
+          activeSession: {
+            ...sess,
+            codingSubmissions: updatedSubs,
+          },
+        });
+      }
       if (data.status === 'ACCEPTED') {
         toast.success(`Accepted! All ${data.passedCount}/${data.totalTests} test cases passed! +${data.pointsEarned} pts`);
       } else {
@@ -270,11 +347,15 @@ export const useContestStore = create<ContestState>((set, get) => ({
     }
   },
 
-  fetchLeaderboard: async (contestId) => {
+  fetchLeaderboard: async (contestId, params) => {
     set({ loading: true });
     try {
-      const res = await api.get(`/contests/${contestId}/leaderboard`);
-      set({ leaderboard: res.data.data || [], loading: false });
+      const res = await api.get(`/contests/${contestId}/leaderboard`, { params });
+      set({
+        leaderboard: res.data.data || [],
+        leaderboardPagination: res.data.pagination || null,
+        loading: false,
+      });
     } catch (err: any) {
       set({ loading: false });
     }
@@ -350,14 +431,180 @@ export const useContestStore = create<ContestState>((set, get) => ({
     }
   },
 
-  fetchContestSubmissions: async (contestId) => {
+  fetchContestSubmissions: async (contestId, params) => {
     try {
-      const res = await api.get(`/contests/${contestId}/submissions`);
-      return { success: true, data: res.data.data, contest: res.data.contest };
+      const res = await api.get(`/contests/${contestId}/submissions`, { params });
+      return {
+        success: true,
+        data: res.data.data,
+        pagination: res.data.pagination,
+        contest: res.data.contest,
+      };
     } catch (err: any) {
       return { success: false, error: err.response?.data?.error || 'Failed to load submissions' };
+    }
+  },
+
+  fetchMyContestSubmission: async (contestId) => {
+    try {
+      const res = await api.get(`/contests/${contestId}/my-submission`);
+      return { success: true, data: res.data.data, contest: res.data.contest };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to load your contest submission',
+      };
+    }
+  },
+
+  fetchSingleSubmissionForAdmin: async (contestId, submissionId) => {
+    try {
+      const res = await api.get(`/contests/${contestId}/submissions/${submissionId}`);
+      return { success: true, data: res.data.data, contest: res.data.contest };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to load submission details',
+      };
+    }
+  },
+
+  downloadContestMcqTemplate: async () => {
+    try {
+      const res = await api.get('/contests/admin/mcq-template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'contest_mcq_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Contest MCQ sample template downloaded!');
+    } catch (err: any) {
+      toast.error('Failed to download MCQ template');
+    }
+  },
+
+  downloadContestCodingTemplate: async () => {
+    try {
+      const res = await api.get('/contests/admin/coding-template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'contest_coding_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Contest Coding sample template downloaded!');
+    } catch (err: any) {
+      toast.error('Failed to download Coding template');
+    }
+  },
+
+  parseContestMcqUpload: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/contests/admin/parse-mcq-upload', formData);
+      return {
+        success: true,
+        count: res.data.count,
+        data: res.data.data,
+        errors: res.data.errors,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || err.message || 'Failed to parse MCQ file',
+        errors: err.response?.data?.errors,
+      };
+    }
+  },
+
+  parseContestCodingUpload: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/contests/admin/parse-coding-upload', formData);
+      return {
+        success: true,
+        count: res.data.count,
+        data: res.data.data,
+        errors: res.data.errors,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || err.message || 'Failed to parse Coding file',
+        errors: err.response?.data?.errors,
+      };
+    }
+  },
+
+  requestReentry: async (contestId, reason) => {
+    try {
+      const res = await api.post(`/contests/${contestId}/request-reentry`, { reason });
+      toast.success(res.data.message || 'Re-entry request submitted successfully!');
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to submit re-entry request';
+      toast.error(msg);
+      return { success: false, error: msg };
+    }
+  },
+
+  approveReentry: async (contestId, submissionId, data) => {
+    try {
+      const res = await api.post(
+        `/contests/${contestId}/submissions/${submissionId}/approve-reentry`,
+        data || {}
+      );
+      toast.success(res.data.message || 'Contest re-entry approved!');
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to approve re-entry';
+      toast.error(msg);
+      return { success: false, error: msg };
+    }
+  },
+
+  rejectReentry: async (contestId, submissionId, note) => {
+    try {
+      const res = await api.post(
+        `/contests/${contestId}/submissions/${submissionId}/reject-reentry`,
+        { note }
+      );
+      toast.success(res.data.message || 'Re-entry request declined');
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to decline re-entry';
+      toast.error(msg);
+      return { success: false, error: msg };
+    }
+  },
+
+  deleteSubmission: async (contestId, submissionId) => {
+    try {
+      const res = await api.delete(`/contests/${contestId}/submissions/${submissionId}`);
+      toast.success(res.data.message || 'Student contest entry deleted successfully');
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to delete student entry';
+      toast.error(msg);
+      return { success: false, error: msg };
     }
   },
 }));
 
 export default useContestStore;
+

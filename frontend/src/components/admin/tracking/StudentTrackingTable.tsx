@@ -18,6 +18,7 @@ import {
   Loader2,
   CheckCircle2,
   FileText,
+  ShieldAlert,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/axios';
@@ -39,6 +40,9 @@ export interface StudentSummary {
   profilePicUrl?: string;
   isOnboarded: boolean;
   isBlocked: boolean;
+  isRestricted?: boolean;
+  restrictionReason?: string;
+  restrictedFeatures?: string[];
   totalEventsAttended: number;
   questsCompleted: number;
   levelsCompleted: number;
@@ -172,27 +176,27 @@ export const StudentTrackingTable: React.FC = () => {
 
   return (
     <div className="space-y-6 w-full">
-      {/* ── Table Top Bar & Apple Minimal Actions ── */}
-      <div className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] space-y-5">
+      {/* ── Table Top Bar & Minimal Actions ── */}
+      <div className="surface p-5 sm:p-6 rounded-3xl border border-separator shadow-card space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-accent/10 text-accent border border-accent/20">
                 SuperAdmin Analytics
               </span>
-              <span className="text-xs text-neutral-400 font-mono">
+              <span className="text-xs text-text-muted font-mono">
                 {totalStudents.toLocaleString()} Students Enrolled
               </span>
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
+            <h2 className="text-2xl font-extrabold tracking-tight text-text-primary">
               Student Tracking System
             </h2>
-            <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs sm:text-sm text-text-secondary">
               Aggregated real-time metrics across attendance, domain quests, and knowledge assessments.
             </p>
           </div>
 
-          {/* Action Header Button: Apple Minimal Ghost Export Button */}
+          {/* Action Header Button: Ghost Export Button */}
           <div className="flex items-center gap-3 shrink-0">
             <ExportReportButton />
           </div>
@@ -202,19 +206,20 @@ export const StudentTrackingTable: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
           {/* Real-time search with useDebounce */}
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search student by name, roll number, or email..."
-              className="w-full pl-10 pr-10 py-2.5 bg-[#F5F5F7] dark:bg-[#161617] rounded-full text-sm text-neutral-900 dark:text-white placeholder-neutral-400 outline-none focus:ring-2 focus:ring-blue-500/40 transition-shadow"
+              className="w-full pl-10 pr-10 py-2.5 min-h-[44px] bg-canvas rounded-full text-xs sm:text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent/40 border border-separator transition-shadow"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={() => setSearchInput('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1"
+                aria-label="Clear search"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -226,29 +231,29 @@ export const StudentTrackingTable: React.FC = () => {
             <select
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              className="appearance-none bg-[#F5F5F7] dark:bg-[#161617] text-neutral-800 dark:text-neutral-200 text-xs sm:text-sm font-medium rounded-full px-4 py-2.5 pr-8 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500/40 transition-shadow"
+              className="appearance-none bg-canvas text-text-primary text-xs sm:text-sm font-medium rounded-full px-4 py-2.5 pr-8 min-h-[44px] outline-none cursor-pointer border border-separator focus:ring-2 focus:ring-accent/40 transition-shadow"
             >
               {departmentsList.map((dep) => (
-                <option key={dep.value} value={dep.value} className="bg-white dark:bg-[#1E1E1F]">
+                <option key={dep.value} value={dep.value} className="bg-surface text-text-primary">
                   {dep.label}
                 </option>
               ))}
             </select>
-            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
           </div>
         </div>
       </div>
 
       {/* ── Master Tracking Data Table ── */}
-      <div className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      <div className="surface rounded-3xl border border-separator shadow-card overflow-hidden">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full min-w-[720px] text-left border-collapse">
             <thead>
-              <tr className="bg-[#F5F5F7]/80 dark:bg-[#161617]/80 text-[11px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400 border-b border-neutral-200/50 dark:border-neutral-800/50">
-                <th className="py-3.5 px-6 font-semibold">
+              <tr className="bg-surface-elevated/70 text-[11px] uppercase tracking-wider text-text-muted border-b border-separator">
+                <th className="py-3.5 px-4 sm:px-6 font-semibold">
                   <button
                     onClick={() => handleSort('name')}
-                    className="flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white"
+                    className="flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Student</span>
                     <ArrowUpDown className="w-3 h-3" />
@@ -257,7 +262,7 @@ export const StudentTrackingTable: React.FC = () => {
                 <th className="py-3.5 px-4 font-semibold">
                   <button
                     onClick={() => handleSort('department')}
-                    className="flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white"
+                    className="flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Dept / Year</span>
                     <ArrowUpDown className="w-3 h-3" />
@@ -266,7 +271,7 @@ export const StudentTrackingTable: React.FC = () => {
                 <th className="py-3.5 px-4 font-semibold text-center">
                   <button
                     onClick={() => handleSort('totalEventsAttended')}
-                    className="inline-flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white"
+                    className="inline-flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Events Attended</span>
                     <ArrowUpDown className="w-3 h-3" />
@@ -275,7 +280,7 @@ export const StudentTrackingTable: React.FC = () => {
                 <th className="py-3.5 px-4 font-semibold text-center">
                   <button
                     onClick={() => handleSort('questsCompleted')}
-                    className="inline-flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white"
+                    className="inline-flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Quests Done</span>
                     <ArrowUpDown className="w-3 h-3" />
@@ -284,7 +289,7 @@ export const StudentTrackingTable: React.FC = () => {
                 <th className="py-3.5 px-4 font-semibold text-center">
                   <button
                     onClick={() => handleSort('averageAssessmentScore')}
-                    className="inline-flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white"
+                    className="inline-flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Avg Score</span>
                     <ArrowUpDown className="w-3 h-3" />
@@ -293,56 +298,56 @@ export const StudentTrackingTable: React.FC = () => {
                 <th className="py-3.5 px-4 font-semibold text-center">
                   <button
                     onClick={() => handleSort('points')}
-                    className="inline-flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white"
+                    className="inline-flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Club Points</span>
                     <ArrowUpDown className="w-3 h-3" />
                   </button>
                 </th>
-                <th className="py-3.5 px-6 font-semibold text-right">Action</th>
+                <th className="py-3.5 px-4 sm:px-6 font-semibold text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/60 text-sm">
+            <tbody className="divide-y divide-separator/60 text-sm">
               {loading ? (
                 // Shimmer Skeleton Rows
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={`skeleton-${i}`} className="animate-pulse">
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 sm:px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-neutral-200 dark:bg-neutral-800" />
+                        <div className="w-9 h-9 rounded-full bg-surface-elevated" />
                         <div className="space-y-1.5">
-                          <div className="w-32 h-3.5 bg-neutral-200 dark:bg-neutral-800 rounded" />
-                          <div className="w-20 h-2.5 bg-neutral-200 dark:bg-neutral-800 rounded" />
+                          <div className="w-32 h-3.5 bg-surface-elevated rounded" />
+                          <div className="w-20 h-2.5 bg-surface-elevated rounded" />
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="w-24 h-3 bg-neutral-200 dark:bg-neutral-800 rounded" />
+                      <div className="w-24 h-3 bg-surface-elevated rounded" />
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <div className="w-12 h-6 mx-auto bg-neutral-200 dark:bg-neutral-800 rounded-full" />
+                      <div className="w-12 h-6 mx-auto bg-surface-elevated rounded-full" />
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <div className="w-12 h-6 mx-auto bg-neutral-200 dark:bg-neutral-800 rounded-full" />
+                      <div className="w-12 h-6 mx-auto bg-surface-elevated rounded-full" />
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <div className="w-16 h-6 mx-auto bg-neutral-200 dark:bg-neutral-800 rounded-full" />
+                      <div className="w-16 h-6 mx-auto bg-surface-elevated rounded-full" />
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <div className="w-12 h-6 mx-auto bg-neutral-200 dark:bg-neutral-800 rounded-full" />
+                      <div className="w-12 h-6 mx-auto bg-surface-elevated rounded-full" />
                     </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="w-6 h-6 ml-auto bg-neutral-200 dark:bg-neutral-800 rounded" />
+                    <td className="py-4 px-4 sm:px-6 text-right">
+                      <div className="w-6 h-6 ml-auto bg-surface-elevated rounded" />
                     </td>
                   </tr>
                 ))
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-neutral-400">
+                  <td colSpan={7} className="py-16 text-center text-text-muted">
                     <div className="max-w-xs mx-auto space-y-2">
-                      <User className="w-8 h-8 mx-auto text-neutral-300 dark:text-neutral-600" />
+                      <User className="w-8 h-8 mx-auto text-text-muted opacity-40" />
                       <p className="text-sm font-medium">No students match your criteria.</p>
-                      <p className="text-xs text-neutral-400">
+                      <p className="text-xs text-text-muted">
                         Try clearing search terms or selecting a different department filter.
                       </p>
                     </div>
@@ -358,25 +363,30 @@ export const StudentTrackingTable: React.FC = () => {
                       ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                       : score > 0
                       ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                      : 'bg-neutral-200/50 dark:bg-neutral-800 text-neutral-400';
+                      : 'bg-surface-elevated text-text-muted';
 
                   return (
                     <tr
                       key={student._id}
                       onClick={() => handleRowClick(student._id)}
-                      className="group hover:bg-[#F5F5F7]/80 dark:hover:bg-[#161617]/80 cursor-pointer transition-colors"
+                      className="group hover:bg-surface-elevated/50 cursor-pointer transition-colors"
                     >
                       {/* Student identity */}
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0 shadow-sm">
                             {student.name.charAt(0)}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-neutral-900 dark:text-white truncate group-hover:text-blue-500 transition-colors">
-                              {student.name}
+                            <div className="font-semibold text-text-primary truncate group-hover:text-accent transition-colors flex items-center gap-1.5">
+                              <span className="truncate">{student.name}</span>
+                              {student.isRestricted && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30 shrink-0">
+                                  Restricted
+                                </span>
+                              )}
                             </div>
-                            <div className="text-xs font-mono text-neutral-400 dark:text-neutral-500 truncate">
+                            <div className="text-xs font-mono text-text-muted truncate">
                               {student.rollNo}
                             </div>
                           </div>
@@ -385,18 +395,18 @@ export const StudentTrackingTable: React.FC = () => {
 
                       {/* Department / Year */}
                       <td className="py-4 px-4 text-xs">
-                        <div className="text-neutral-700 dark:text-neutral-300 font-medium truncate max-w-[170px]">
+                        <div className="text-text-primary font-medium truncate max-w-[170px]">
                           {student.department || 'Unassigned'}
                         </div>
-                        <div className="text-[11px] text-neutral-400">
+                        <div className="text-[11px] text-text-muted">
                           {student.year || 'Student'}
                         </div>
                       </td>
 
                       {/* Summary Metric 1: Total Events Attended */}
                       <td className="py-4 px-4 text-center">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
-                          <Calendar className="w-3 h-3 text-neutral-400" />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-surface-elevated text-text-primary">
+                          <Calendar className="w-3 h-3 text-text-muted" />
                           {student.totalEventsAttended}
                         </span>
                       </td>
@@ -421,23 +431,24 @@ export const StudentTrackingTable: React.FC = () => {
 
                       {/* Club Points */}
                       <td className="py-4 px-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-text-primary">
                           {student.points || 0} pts
                         </span>
                       </td>
 
                       {/* Row action: PDF report & chevron */}
-                      <td className="py-4 px-6 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-4 px-4 sm:px-6 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             title="Download Student PDF Report"
                             onClick={(e) => handleDownloadStudentPdf(e, student._id, student.rollNo, student.name)}
                             disabled={generatingPdfId === student._id}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-full text-neutral-400 hover:text-blue-600 hover:bg-blue-500/10 transition-colors"
+                            className="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full text-text-muted hover:text-accent hover:bg-accent/10 transition-colors"
+                            aria-label={`Download PDF report for ${student.name}`}
                           >
                             {generatingPdfId === student._id ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                              <Loader2 className="w-4 h-4 animate-spin text-accent" />
                             ) : (
                               <FileText className="w-4 h-4" />
                             )}
@@ -446,7 +457,8 @@ export const StudentTrackingTable: React.FC = () => {
                             type="button"
                             title="View Student 360 Profile"
                             onClick={() => handleRowClick(student._id)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-full text-neutral-400 group-hover:text-blue-500 group-hover:bg-blue-500/10 transition-colors"
+                            className="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full text-text-muted group-hover:text-accent group-hover:bg-accent/10 transition-colors"
+                            aria-label={`View 360 profile for ${student.name}`}
                           >
                             <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                           </button>
@@ -461,10 +473,10 @@ export const StudentTrackingTable: React.FC = () => {
         </div>
 
         {/* ── Pagination Footer ── */}
-        <div className="flex flex-col sm:flex-row items-center justify-between p-4 px-6 bg-[#F5F5F7]/40 dark:bg-[#161617]/40 border-t border-neutral-100 dark:border-neutral-800/60 text-xs text-neutral-500 gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between p-4 px-4 sm:px-6 bg-surface-elevated/40 border-t border-separator text-xs text-text-muted gap-3">
           <div>
-            Showing <span className="font-semibold">{students.length}</span> of{' '}
-            <span className="font-semibold">{totalStudents}</span> students
+            Showing <span className="font-semibold text-text-primary">{students.length}</span> of{' '}
+            <span className="font-semibold text-text-primary">{totalStudents}</span> students
           </div>
 
           <div className="flex items-center gap-2">
@@ -472,13 +484,13 @@ export const StudentTrackingTable: React.FC = () => {
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1 || loading}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white dark:bg-[#202022] shadow-sm disabled:opacity-40 disabled:pointer-events-none hover:bg-neutral-100 dark:hover:bg-[#262628] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full surface border border-separator shadow-xs disabled:opacity-40 disabled:pointer-events-none hover:bg-surface-elevated transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               <span>Previous</span>
             </button>
 
-            <span className="px-3 py-1 font-mono text-neutral-600 dark:text-neutral-400">
+            <span className="px-3 py-1 font-mono text-text-primary">
               Page {page} of {totalPages}
             </span>
 
@@ -486,7 +498,7 @@ export const StudentTrackingTable: React.FC = () => {
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages || loading}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white dark:bg-[#202022] shadow-sm disabled:opacity-40 disabled:pointer-events-none hover:bg-neutral-100 dark:hover:bg-[#262628] transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full surface border border-separator shadow-xs disabled:opacity-40 disabled:pointer-events-none hover:bg-surface-elevated transition-colors cursor-pointer"
             >
               <span>Next</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -495,7 +507,7 @@ export const StudentTrackingTable: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Apple 360 Detail View in ResponsiveModal (Drawer on mobile, Slide-over on desktop) ── */}
+      {/* ── 360 Detail View in ResponsiveModal (Drawer on mobile, Slide-over on desktop) ── */}
       <ResponsiveModal
         open={isProfileModalOpen}
         onOpenChange={setIsProfileModalOpen}
@@ -503,7 +515,7 @@ export const StudentTrackingTable: React.FC = () => {
         title="Student 360° Profile"
         description="Comprehensive performance, attendance logs, and learning journey"
         dialogClassName="max-w-2xl lg:max-w-3xl"
-        contentClassName="p-0 bg-[#F5F5F7] dark:bg-[#161617]"
+        contentClassName="p-0 bg-canvas"
       >
         {selectedStudentId && (
           <Student360Profile

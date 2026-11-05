@@ -17,6 +17,7 @@ export interface IAssessment extends Document {
   timeLimitMinutes: number;
   passingScorePercentage: number;
   questions: IAssessmentQuestion[];
+  customPoints?: number;
   isPublished: boolean;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -97,6 +98,11 @@ const assessmentSchema = new Schema<IAssessment>(
       type: [assessmentQuestionSchema],
       default: [],
     },
+    customPoints: {
+      type: Number,
+      default: 50,
+      min: [0, 'Custom points cannot be negative'],
+    },
     isPublished: {
       type: Boolean,
       default: true,
@@ -116,6 +122,7 @@ const assessmentSchema = new Schema<IAssessment>(
 
 assessmentSchema.index({ eventId: 1, isPublished: 1 });
 assessmentSchema.index({ category: 1, isPublished: 1 });
+assessmentSchema.index({ isPublished: 1, createdAt: -1 });
 
 const Assessment: Model<IAssessment> =
   mongoose.models.Assessment || mongoose.model<IAssessment>('Assessment', assessmentSchema);

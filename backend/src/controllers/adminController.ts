@@ -1,13 +1,58 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import mongoose from 'mongoose';
 import User from '../models/userModel';
 import bcrypt from 'bcryptjs';
 
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+
 export const getAllStudents = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const students = await User.find({ 
-      role: { $in: ['Student', 'Member', 'Committee'] } 
-    }).select('-password -resetPasswordToken -resetPasswordExpires').sort({ createdAt: -1 });
-    return reply.send(students);
+    const query = (request.query || {}) as any;
+    const { page, limit, skip, sort } = parsePaginationParams(query, {
+      defaultPage: 1,
+      defaultLimit: 20,
+      maxLimit: 100,
+      allowedSortFields: ['name', 'rollNo', 'email', 'department', 'points', 'createdAt'],
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+    });
+
+    const filter: any = {
+      role: { $in: ['Student', 'Member', 'Committee'] },
+    };
+
+    if (query.department && query.department !== 'all') {
+      filter.department = query.department;
+    }
+
+    if (query.search && query.search.trim()) {
+      const searchRegex = new RegExp(query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { rollNo: searchRegex },
+        { email: searchRegex },
+        { department: searchRegex },
+      ];
+    }
+
+    const [total, students] = await Promise.all([
+      User.countDocuments(filter),
+      User.find(filter)
+        .select('-password -resetPasswordToken -resetPasswordExpires')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      data: students,
+      students,
+      pagination,
+    });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to fetch students' });
@@ -62,16 +107,121 @@ export const toggleBlockStudent = async (request: FastifyRequest, reply: Fastify
 export const deleteStudent = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = request.params as any;
-    const user = await User.findByIdAndDelete(id);
+    const callerId = request.user?.id;
+    const callerRole = request.user?.role;
 
-    if (!user) {
+    if (callerId === id) {
+      return reply.status(400).send({ success: false, error: 'Cannot delete your own administrator account' });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
       return reply.status(404).send({ success: false, error: 'Student not found' });
     }
 
-    return reply.send({ success: true, message: 'Student deleted successfully' });
+    if (targetUser.role === 'SuperAdmin' || targetUser.role === 'Admin') {
+      if (callerRole !== 'SuperAdmin') {
+        return reply.status(403).send({ success: false, error: 'Only SuperAdmin can delete an administrator account' });
+      }
+    }
+
+    await User.findByIdAndDelete(id);
+
+    // Clean up any pending password reset requests for this user
+    try {
+      const PasswordResetRequest = (await import('../models/passwordResetRequestModel')).default;
+      await PasswordResetRequest.deleteMany({ userId: id });
+    } catch {}
+
+    return reply.send({ success: true, message: `Student ${targetUser.name} deleted successfully` });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to delete student' });
+  }
+};
+
+/**
+ * Bulk delete students who are in 'Pending Initial Login' status (mustChangePassword === true)
+ * Body: { allPending?: boolean, studentIds?: string[], department?: string }
+ */
+export const bulkDeletePendingStudents = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const callerId = request.user?.id;
+    const { allPending, studentIds, department } = (request.body || {}) as {
+      allPending?: boolean;
+      studentIds?: string[];
+      department?: string;
+    };
+
+    if (!allPending && (!Array.isArray(studentIds) || studentIds.length === 0)) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Please specify allPending: true or provide studentIds array to delete',
+      });
+    }
+
+    const filter: any = {
+      role: { $in: ['Student', 'Member', 'Committee', 'Guest'] }, // Safeguard: Never delete Admin or SuperAdmin
+      mustChangePassword: true, // Safeguard: ONLY delete Pending Initial Login students!
+    };
+
+    if (callerId && mongoose.Types.ObjectId.isValid(callerId)) {
+      filter._id = { $ne: new mongoose.Types.ObjectId(callerId) };
+    }
+
+    if (allPending) {
+      if (department && department !== 'all') {
+        filter.department = new RegExp(`^${department.trim()}$`, 'i');
+      }
+    } else if (studentIds && studentIds.length > 0) {
+      const validIds = studentIds
+        .filter((id) => typeof id === 'string' && mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+
+      if (validIds.length === 0) {
+        return reply.status(400).send({ success: false, error: 'No valid student IDs provided' });
+      }
+
+      filter._id = { $in: validIds };
+      if (callerId && mongoose.Types.ObjectId.isValid(callerId)) {
+        filter._id.$ne = new mongoose.Types.ObjectId(callerId);
+      }
+    }
+
+    // Find all matching users first so we can return their names and clean up requests
+    const matchingUsers = await User.find(filter).select('_id name email rollNo');
+    const userIds = matchingUsers.map((u) => u._id);
+
+    if (userIds.length === 0) {
+      return reply.send({
+        success: true,
+        message: 'No pending initial login student accounts found matching the criteria to delete.',
+        deletedCount: 0,
+        deletedStudents: [],
+      });
+    }
+
+    const deleteResult = await User.deleteMany({ _id: { $in: userIds } });
+
+    // Clean up associated password reset requests
+    try {
+      const PasswordResetRequest = (await import('../models/passwordResetRequestModel')).default;
+      await PasswordResetRequest.deleteMany({ userId: { $in: userIds } });
+    } catch {}
+
+    return reply.send({
+      success: true,
+      message: `Successfully deleted ${deleteResult.deletedCount} pending student user account(s)`,
+      deletedCount: deleteResult.deletedCount,
+      deletedStudents: matchingUsers.map((u) => ({ id: u._id, name: u.name, rollNo: u.rollNo })),
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to bulk delete pending students',
+      details: error.message,
+    });
   }
 };
 
@@ -239,14 +389,22 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
       ];
     }
 
-    const limit = query.limit ? Math.min(parseInt(query.limit, 10), 5000) : 2000;
+    const page = Math.max(1, parseInt((query as any).page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit as any, 10) || 50));
+    const skip = (page - 1) * limit;
 
     // Fetch students list (Not Onboarded / mustChangePassword: true first by default)
-    const students = await User.find(studentListFilter)
-      .select('name rollNo email department college year mustChangePassword isBlocked createdAt')
-      .sort({ mustChangePassword: -1, createdAt: -1 })
-      .limit(limit)
-      .lean();
+    const [totalMatchingStudents, students] = await Promise.all([
+      User.countDocuments(studentListFilter),
+      User.find(studentListFilter)
+        .select('name rollNo email department college year mustChangePassword isBlocked createdAt')
+        .sort({ mustChangePassword: -1, createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const pagination = buildPaginationMeta(totalMatchingStudents, page, limit);
 
     const formattedStudents = students.map((s: any) => {
       const isMustChange = Boolean(s.mustChangePassword);
@@ -290,9 +448,11 @@ export const getOnboardingStats = async (request: FastifyRequest, reply: Fastify
       success: true,
       stats: statsPayload,
       students: formattedStudents,
+      pagination,
       data: {
         stats: statsPayload,
         students: formattedStudents,
+        pagination,
       },
     });
   } catch (error: any) {
@@ -423,6 +583,7 @@ export default {
   updateStudentPassword,
   toggleBlockStudent,
   deleteStudent,
+  bulkDeletePendingStudents,
   forceLogoutStudent,
   getOnboardingStats,
   sendOnboardingReminder,

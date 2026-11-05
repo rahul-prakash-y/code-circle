@@ -30,9 +30,22 @@ import useUserStore from '../../store/useUserStore';
 import GenerateOtpModal from './GenerateOtpModal';
 import ManualAttendanceModal from './ManualAttendanceModal';
 import { format } from 'date-fns';
+import { formatISTDateTime } from '../../lib/dateUtils';
 import toast from 'react-hot-toast';
-import { getStudentCollege, getStudentYear } from './EventParticipantsModal';
+import { getStudentCollege, getStudentYear } from '../../utils/studentUtils';
 import { useDebounce } from '../../hooks/useDebounce';
+import api from '../../lib/axios';
+
+const formatSafeDate = (d: any, fmt: string = 'MMM dd, yyyy') => {
+  if (!d) return '—';
+  try {
+    const dateObj = new Date(d);
+    if (isNaN(dateObj.getTime())) return '—';
+    return format(dateObj, fmt);
+  } catch {
+    return '—';
+  }
+};
 
 const AttendanceRecordsView: React.FC = () => {
   const {
@@ -55,9 +68,18 @@ const AttendanceRecordsView: React.FC = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>('');
   const debouncedStudentSearch = useDebounce<string>(studentSearchTerm, 350);
-  // Table search with debouncing
+
+  // Student directory search states
+  const [studentsList, setStudentsList] = useState<any[]>([]);
+  const [isSearchingStudents, setIsSearchingStudents] = useState<boolean>(false);
+
+  // Table search with debouncing for Event mode
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearch = useDebounce<string>(searchTerm, 400);
+
+  // Table search with debouncing for Student mode
+  const [studentRecordsSearch, setStudentRecordsSearch] = useState<string>('');
+  const debouncedStudentRecordsSearch = useDebounce<string>(studentRecordsSearch, 400);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -71,14 +93,32 @@ const AttendanceRecordsView: React.FC = () => {
   const [copiedOtp, setCopiedOtp] = useState(false);
   const [remainingSecs, setRemainingSecs] = useState<number>(0);
 
+  // Mode switcher
+  const handleModeChange = (mode: 'event' | 'student') => {
+    setFilterMode(mode);
+    setCurrentPage(1);
+    if (mode === 'student' && studentsList.length > 0 && !selectedStudentId) {
+      setSelectedStudentId(studentsList[0]._id || studentsList[0].id);
+    }
+  };
+
   // Helper to re-fetch attendance records
   const refreshRecords = () => {
-    setCurrentPage(1);
     if (filterMode === 'event' && selectedEventId) {
-      fetchAttendanceRecords({ eventId: selectedEventId, search: debouncedSearch, all: true });
+      fetchAttendanceRecords({
+        eventId: selectedEventId,
+        search: debouncedSearch,
+        page: currentPage,
+        limit: pageSize,
+      });
       fetchActiveSession(selectedEventId);
     } else if (filterMode === 'student' && selectedStudentId) {
-      fetchAttendanceRecords({ studentId: selectedStudentId, search: debouncedSearch, all: true });
+      fetchAttendanceRecords({
+        studentId: selectedStudentId,
+        search: debouncedStudentRecordsSearch,
+        page: currentPage,
+        limit: pageSize,
+      });
     }
   };
 
@@ -104,6 +144,41 @@ const AttendanceRecordsView: React.FC = () => {
     fetchUsers();
   }, [fetchEvents, fetchUsers]);
 
+  // Live debounced search & initial load for students directory
+  useEffect(() => {
+    let isCancelled = false;
+    const fetchStudents = async () => {
+      setIsSearchingStudents(true);
+      try {
+        const query = debouncedStudentSearch.trim();
+        const url = query
+          ? `/users?search=${encodeURIComponent(query)}&limit=40`
+          : `/users?role=student&limit=50`;
+        const res = await api.get(url);
+        const fetched = res.data?.data?.users || res.data?.users || [];
+        if (!isCancelled) {
+          if (!query && fetched.length === 0) {
+            const fallbackRes = await api.get('/users?limit=50');
+            setStudentsList(fallbackRes.data?.data?.users || fallbackRes.data?.users || []);
+          } else {
+            setStudentsList(fetched);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load students directory:', err);
+      } finally {
+        if (!isCancelled) {
+          setIsSearchingStudents(false);
+        }
+      }
+    };
+
+    fetchStudents();
+    return () => {
+      isCancelled = true;
+    };
+  }, [debouncedStudentSearch]);
+
   // Default select first event if available
   useEffect(() => {
     if (events && events.length > 0 && !selectedEventId) {
@@ -111,20 +186,47 @@ const AttendanceRecordsView: React.FC = () => {
     }
   }, [events, selectedEventId]);
 
+  // Default select first student if available and in student mode
+  useEffect(() => {
+    if (filterMode === 'student' && studentsList.length > 0 && !selectedStudentId) {
+      setSelectedStudentId(studentsList[0]._id || studentsList[0].id);
+    }
+  }, [filterMode, studentsList, selectedStudentId]);
+
   // Reset pagination on filter or search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterMode, selectedEventId, selectedStudentId, debouncedSearch, pageSize]);
+  }, [filterMode, selectedEventId, selectedStudentId, debouncedSearch, debouncedStudentRecordsSearch, pageSize]);
 
-  // Fetch records whenever selection or debounced search changes
+  // Fetch records whenever selection, search, page or pageSize changes
   useEffect(() => {
     if (filterMode === 'event' && selectedEventId) {
-      fetchAttendanceRecords({ eventId: selectedEventId, search: debouncedSearch, all: true });
+      fetchAttendanceRecords({
+        eventId: selectedEventId,
+        search: debouncedSearch,
+        page: currentPage,
+        limit: pageSize,
+      });
       fetchActiveSession(selectedEventId);
     } else if (filterMode === 'student' && selectedStudentId) {
-      fetchAttendanceRecords({ studentId: selectedStudentId, search: debouncedSearch, all: true });
+      fetchAttendanceRecords({
+        studentId: selectedStudentId,
+        search: debouncedStudentRecordsSearch,
+        page: currentPage,
+        limit: pageSize,
+      });
     }
-  }, [filterMode, selectedEventId, selectedStudentId, debouncedSearch, fetchAttendanceRecords, fetchActiveSession]);
+  }, [
+    filterMode,
+    selectedEventId,
+    selectedStudentId,
+    debouncedSearch,
+    debouncedStudentRecordsSearch,
+    currentPage,
+    pageSize,
+    fetchAttendanceRecords,
+    fetchActiveSession,
+  ]);
 
   // Countdown timer for active OTP session
   useEffect(() => {
@@ -172,49 +274,21 @@ const AttendanceRecordsView: React.FC = () => {
     return [1, '...', current - 1, current, current + 1, '...', total];
   };
 
-  // Filtered and paginated records in Event mode
-  const allEventRecords = useMemo(() => recordsData?.records || [], [recordsData]);
-  const filteredEventRecords = useMemo(() => {
-    if (!debouncedSearch.trim()) return allEventRecords;
-    const term = debouncedSearch.toLowerCase();
-    return allEventRecords.filter((r: any) => {
-      const user = r.user;
-      return (
-        user?.name?.toLowerCase().includes(term) ||
-        user?.rollNo?.toLowerCase().includes(term) ||
-        user?.email?.toLowerCase().includes(term) ||
-        user?.department?.toLowerCase().includes(term) ||
-        r.session?.sessionName?.toLowerCase().includes(term)
-      );
-    });
-  }, [allEventRecords, debouncedSearch]);
+  // Event mode records & total counts (from backend pagination)
+  const isEventMode = recordsData?.mode === 'event';
+  const eventRecords = useMemo(() => (isEventMode ? recordsData?.records || [] : []), [recordsData, isEventMode]);
+  const totalEventRecords = isEventMode ? (recordsData?.pagination?.total ?? recordsData?.total ?? 0) : 0;
+  const totalEventPages = isEventMode
+    ? (recordsData?.pagination?.totalPages ?? recordsData?.totalPages ?? Math.max(1, Math.ceil(totalEventRecords / pageSize)))
+    : 1;
 
-  const totalEventPages = Math.max(1, Math.ceil(filteredEventRecords.length / pageSize));
-  const paginatedEventRecords = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredEventRecords.slice(start, start + pageSize);
-  }, [filteredEventRecords, currentPage, pageSize]);
-
-  // Filtered and paginated records in Student mode
-  const allStudentRecords = useMemo(() => recordsData?.records || [], [recordsData]);
-  const filteredStudentRecords = useMemo(() => {
-    if (!debouncedSearch.trim()) return allStudentRecords;
-    const term = debouncedSearch.toLowerCase();
-    return allStudentRecords.filter((r: any) => {
-      return (
-        r.event?.title?.toLowerCase().includes(term) ||
-        r.sessionName?.toLowerCase().includes(term) ||
-        r.event?.type?.toLowerCase().includes(term) ||
-        r.event?.format?.toLowerCase().includes(term)
-      );
-    });
-  }, [allStudentRecords, debouncedSearch]);
-
-  const totalStudentPages = Math.max(1, Math.ceil(filteredStudentRecords.length / pageSize));
-  const paginatedStudentRecords = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredStudentRecords.slice(start, start + pageSize);
-  }, [filteredStudentRecords, currentPage, pageSize]);
+  // Student mode records & total counts (from backend pagination)
+  const isStudentMode = recordsData?.mode === 'student';
+  const studentRecords = useMemo(() => (isStudentMode ? recordsData?.records || [] : []), [recordsData, isStudentMode]);
+  const totalStudentRecords = isStudentMode ? (recordsData?.pagination?.total ?? recordsData?.total ?? 0) : 0;
+  const totalStudentPages = isStudentMode
+    ? (recordsData?.pagination?.totalPages ?? recordsData?.totalPages ?? Math.max(1, Math.ceil(totalStudentRecords / pageSize)))
+    : 1;
 
   // Export Attendance CSV: Always downloads ALL attendance entries across the selected scope!
   const handleExportCsv = async () => {
@@ -233,7 +307,7 @@ const AttendanceRecordsView: React.FC = () => {
 
         // Fetch ALL attendance records for this event from backend
         const allData = await fetchAllAttendanceRecords({ eventId: selectedEventId });
-        recordsToExport = allData?.records || allEventRecords;
+        recordsToExport = allData?.records || eventRecords;
         if (allData?.event?.title) currentEventTitle = allData.event.title;
       } else {
         if (!selectedStudentId) {
@@ -244,7 +318,7 @@ const AttendanceRecordsView: React.FC = () => {
 
         // Fetch ALL attendance records for this student from backend
         const allData = await fetchAllAttendanceRecords({ studentId: selectedStudentId });
-        recordsToExport = allData?.records || allStudentRecords;
+        recordsToExport = allData?.records || studentRecords;
         if (allData?.student?.name) currentStudentName = allData.student.name;
       }
 
@@ -284,11 +358,11 @@ const AttendanceRecordsView: React.FC = () => {
 
         recordsToExport.forEach((r: any) => {
           const formattedDate = r.timestamp
-            ? format(new Date(r.timestamp), 'yyyy-MM-dd hh:mm:ss a')
+            ? formatISTDateTime(r.timestamp, { showSeconds: true })
             : '';
           const row = [
             currentEventTitle,
-            recordsData?.event?.date ? format(new Date(recordsData.event.date), 'yyyy-MM-dd') : '',
+            recordsData?.event?.date ? formatSafeDate(recordsData.event.date, 'yyyy-MM-dd') : '',
             recordsData?.event?.type || '',
             recordsData?.event?.format || '',
             r.user?.name || '',
@@ -325,8 +399,10 @@ const AttendanceRecordsView: React.FC = () => {
 
         recordsToExport.forEach((r: any) => {
           const formattedDate = r.timestamp
-            ? format(new Date(r.timestamp), 'yyyy-MM-dd hh:mm:ss a')
+            ? formatISTDateTime(r.timestamp, { showSeconds: true })
             : '';
+          const eventDateVal = r.event?.date || r.event?.startDate;
+          const formattedEventDate = formatSafeDate(eventDateVal, 'yyyy-MM-dd');
           const row = [
             currentStudentName,
             recordsData?.student?.rollNo || '',
@@ -334,8 +410,8 @@ const AttendanceRecordsView: React.FC = () => {
             getStudentYear(recordsData?.student),
             recordsData?.student?.email || '',
             recordsData?.student?.department || '',
-            r.event?.title || '',
-            r.event?.date ? format(new Date(r.event.date), 'yyyy-MM-dd') : '',
+            r.event?.title || r.sessionName || 'General Session',
+            formattedEventDate === '—' ? '' : formattedEventDate,
             r.event?.type || '',
             r.event?.format || '',
             r.sessionName || 'General Session',
@@ -372,19 +448,6 @@ const AttendanceRecordsView: React.FC = () => {
       setIsExportingCsv(false);
     }
   };
-
-  // Filtered student candidates for student mode search
-  const studentCandidates = useMemo(() => {
-    if (!debouncedStudentSearch.trim()) return users.slice(0, 8);
-    const q = debouncedStudentSearch.toLowerCase();
-    return users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.rollNo.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        (u.department && u.department.toLowerCase().includes(q))
-    );
-  }, [users, debouncedStudentSearch]);
 
   return (
     <div className="space-y-4 sm:space-y-6 py-2 max-w-7xl mx-auto">
@@ -423,7 +486,7 @@ const AttendanceRecordsView: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 surface rounded-2xl border border-separator shadow-card">
         <div className="flex items-center gap-1 bg-surface-elevated p-1 rounded-xl border border-separator">
           <button
-            onClick={() => setFilterMode('event')}
+            onClick={() => handleModeChange('event')}
             className={`flex items-center gap-2 px-4 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               filterMode === 'event'
                 ? 'bg-text-primary text-surface font-semibold shadow-xs'
@@ -436,7 +499,7 @@ const AttendanceRecordsView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setFilterMode('student')}
+            onClick={() => handleModeChange('student')}
             className={`flex items-center gap-2 px-4 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               filterMode === 'student'
                 ? 'bg-text-primary text-surface font-semibold shadow-xs'
@@ -483,7 +546,7 @@ const AttendanceRecordsView: React.FC = () => {
                 >
                   {events.map((ev:any) => (
                     <option key={ev._id} value={ev._id}>
-                      {ev.title} ({format(new Date(ev.date), 'MMM dd, yyyy')}) — {ev.type}
+                      {ev.title} ({formatSafeDate(ev.date || ev.startDate, 'MMM dd, yyyy')}) — {ev.type}
                     </option>
                   ))}
                 </select>
@@ -559,7 +622,7 @@ const AttendanceRecordsView: React.FC = () => {
                   <span>•</span>
                   <span>Status: <strong className="text-text-primary font-medium">{recordsData.event.status}</strong></span>
                   <span>•</span>
-                  <span>Total Present: <strong className="text-text-primary font-semibold">{filteredEventRecords.length}</strong></span>
+                  <span>Total Present: <strong className="text-text-primary font-semibold">{totalEventRecords}</strong></span>
                 </div>
                 <button
                   type="button"
@@ -589,7 +652,7 @@ const AttendanceRecordsView: React.FC = () => {
                 </div>
               </div>
               <span className="text-xs font-mono text-text-muted">
-                {filteredEventRecords.length} verified
+                {totalEventRecords} verified
               </span>
             </div>
 
@@ -611,8 +674,8 @@ const AttendanceRecordsView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-separator">
-                  {paginatedEventRecords.length > 0 ? (
-                    paginatedEventRecords.map((r: any) => (
+                  {eventRecords.length > 0 ? (
+                    eventRecords.map((r: any) => (
                       <tr key={r._id} className="hover:bg-surface-elevated transition-colors">
                         <td className="px-4 sm:px-6 py-3.5">
                           <div className="flex items-center gap-3">
@@ -668,7 +731,7 @@ const AttendanceRecordsView: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
-                          {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
+                          {r.timestamp ? formatISTDateTime(r.timestamp) : '—'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-2 justify-end">
@@ -722,21 +785,21 @@ const AttendanceRecordsView: React.FC = () => {
             </div>
 
             {/* Pagination Controls Bar */}
-            {filteredEventRecords.length > 0 && (
+            {totalEventRecords > 0 && (
               <div className="px-6 py-4 border-t border-separator bg-canvas flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3 text-xs text-text-muted">
                   <span>
                     Showing{' '}
                     <strong className="text-text-primary font-semibold">
-                      {(currentPage - 1) * pageSize + 1}
+                      {totalEventRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1}
                     </strong>{' '}
                     to{' '}
                     <strong className="text-text-primary font-semibold">
-                      {Math.min(currentPage * pageSize, filteredEventRecords.length)}
+                      {Math.min(currentPage * pageSize, totalEventRecords)}
                     </strong>{' '}
                     of{' '}
                     <strong className="text-text-primary font-semibold">
-                      {filteredEventRecords.length}
+                      {totalEventRecords}
                     </strong>{' '}
                     verified attendees
                   </span>
@@ -814,43 +877,97 @@ const AttendanceRecordsView: React.FC = () => {
       {filterMode === 'student' && (
         <div className="space-y-6">
           {/* Student Picker & Directory Search */}
-          <div className="surface p-6 rounded-[18px] border border-separator shadow-card space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
-                <Users size={13} className="text-text-muted" /> Search & Select Student
-              </label>
-              <div className="relative">
+          <div className="surface p-6 rounded-[18px] border border-separator shadow-card space-y-5">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 justify-between">
+              {/* Dropdown Selector */}
+              <div className="flex-1 space-y-1.5 max-w-md">
+                <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
+                  <Users size={13} className="text-text-muted" /> Select Student
+                </label>
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  className="input-field py-2 text-xs"
+                >
+                  <option value="" disabled>-- Select a student from directory --</option>
+                  {studentsList.map((stu: any) => {
+                    const stuId = stu._id || stu.id;
+                    return (
+                      <option key={stuId} value={stuId}>
+                        {stu.name} {stu.rollNo ? `(${stu.rollNo})` : ''} — {stu.department || 'General'}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Student Directory Live Search Input */}
+              <div className="relative flex-1 max-w-sm self-end">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                 <input
                   type="text"
                   value={studentSearchTerm}
                   onChange={(e) => setStudentSearchTerm(e.target.value)}
-                  placeholder="Type student name, roll number, or department..."
-                  className="input-field pl-9 text-xs"
+                  placeholder="Search student by name, roll no, dept..."
+                  className="input-field pl-9 pr-8 text-xs"
                 />
+                {isSearchingStudents && (
+                  <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 text-accent animate-spin" size={13} />
+                )}
               </div>
             </div>
 
             {/* Quick Select Candidates Chips */}
-            <div className="flex flex-wrap gap-2 pt-1 max-h-24 overflow-y-auto custom-scrollbar">
-              {studentCandidates.map((stu) => (
-                <button
-                  key={stu._id}
-                  onClick={() => setSelectedStudentId(stu._id)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${
-                    selectedStudentId === stu._id
-                      ? 'bg-text-primary text-surface border-text-primary shadow-xs font-semibold'
-                      : 'bg-canvas text-text-secondary border-separator hover:bg-surface-elevated hover:text-text-primary'
-                  }`}
-                >
-                  <span>{stu.name}</span>
-                  <span className="text-[10px] opacity-70 font-mono">({stu.rollNo})</span>
-                </button>
-              ))}
-            </div>
+            {studentsList.length > 0 ? (
+              <div className="space-y-1.5 pt-1 border-t border-separator">
+                <div className="flex items-center justify-between text-[11px] text-text-muted">
+                  <span>Directory Students ({studentsList.length} candidate{studentsList.length > 1 ? 's' : ''}):</span>
+                  {studentSearchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setStudentSearchTerm('')}
+                      className="text-[10px] text-accent hover:underline cursor-pointer"
+                    >
+                      Clear search
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto custom-scrollbar pt-0.5">
+                  {studentsList.slice(0, 16).map((stu: any) => {
+                    const stuId = stu._id || stu.id;
+                    const isSelected = selectedStudentId === stuId;
+                    return (
+                      <button
+                        key={stuId}
+                        onClick={() => setSelectedStudentId(stuId)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                          isSelected
+                            ? 'bg-text-primary text-surface border-text-primary shadow-xs font-semibold'
+                            : 'bg-canvas text-text-secondary border-separator hover:bg-surface-elevated hover:text-text-primary'
+                        }`}
+                      >
+                        <span>{stu.name}</span>
+                        {stu.rollNo && (
+                          <span className="text-[10px] opacity-70 font-mono">({stu.rollNo})</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : isSearchingStudents ? (
+              <div className="pt-2 text-center text-xs text-text-muted flex items-center justify-center gap-2">
+                <RefreshCw size={13} className="animate-spin text-accent" />
+                <span>Searching student directory...</span>
+              </div>
+            ) : studentSearchTerm ? (
+              <p className="pt-1 text-xs text-text-muted italic">
+                No students found matching &quot;{studentSearchTerm}&quot;. Try roll number or another spelling.
+              </p>
+            ) : null}
 
             {/* Selected Student Profile Banner */}
-            {recordsData?.student && (
+            {recordsData?.student && isStudentMode ? (
               <div className="p-4 rounded-xl bg-canvas border border-separator flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-surface-elevated text-text-primary font-bold flex items-center justify-center border border-separator text-sm">
@@ -859,7 +976,7 @@ const AttendanceRecordsView: React.FC = () => {
                   <div>
                     <h4 className="text-base font-bold text-text-primary">{recordsData.student.name}</h4>
                     <p className="text-xs text-text-muted font-mono flex items-center gap-2 flex-wrap mt-0.5">
-                      <span>Roll: <strong className="text-text-primary">{recordsData.student.rollNo}</strong></span>
+                      <span>Roll: <strong className="text-text-primary">{recordsData.student.rollNo || '—'}</strong></span>
                       <span>•</span>
                       <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-accent/10 text-accent border border-accent/20">
                         {getStudentCollege(recordsData.student)}
@@ -869,35 +986,59 @@ const AttendanceRecordsView: React.FC = () => {
                       </span>
                       <span>•</span>
                       <span>Dept: <strong className="text-text-secondary">{recordsData.student.department || 'General'}</strong></span>
+                      {recordsData.student.email && (
+                        <>
+                          <span>•</span>
+                          <span className="text-text-muted">{recordsData.student.email}</span>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
 
                 <div className="text-center sm:text-right">
-                  <span className="text-xl font-bold text-text-primary">{filteredStudentRecords.length}</span>
+                  <span className="text-xl font-bold text-text-primary">{totalStudentRecords}</span>
                   <p className="text-[10px] uppercase tracking-wider text-text-muted">
                     Sessions Attended
                   </p>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Student's Attended Events Table */}
           <div className="surface rounded-[18px] border border-separator shadow-card overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-separator flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-separator text-text-secondary flex items-center justify-center">
                   <Calendar size={16} />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-text-primary">Student Attendance Record</h3>
-                  <p className="text-xs text-text-muted">All verified events attended by this student</p>
+                  <p className="text-xs text-text-muted">
+                    {recordsData?.student?.name
+                      ? `All verified events attended by ${recordsData.student.name}`
+                      : 'All verified events attended by this student'}
+                  </p>
                 </div>
               </div>
-              <span className="text-xs font-mono text-text-muted">
-                {filteredStudentRecords.length} verified sessions
-              </span>
+
+              {/* Table search filter for attended events/sessions */}
+              <div className="flex items-center gap-3">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={13} />
+                  <input
+                    type="text"
+                    placeholder="Filter events or sessions..."
+                    value={studentRecordsSearch}
+                    onChange={(e) => setStudentRecordsSearch(e.target.value)}
+                    className="input-field pl-9 text-xs py-1.5"
+                  />
+                </div>
+                <span className="text-xs font-mono text-text-muted whitespace-nowrap hidden sm:inline">
+                  {totalStudentRecords} verified
+                </span>
+              </div>
             </div>
 
             {/* Table with mobile horizontal scroll + right-fade hint */}
@@ -916,18 +1057,18 @@ const AttendanceRecordsView: React.FC = () => {
                     </tr>
                   </thead>
                 <tbody className="divide-y divide-separator">
-                  {paginatedStudentRecords.length > 0 ? (
-                    paginatedStudentRecords.map((r: any) => (
+                  {studentRecords.length > 0 ? (
+                    studentRecords.map((r: any) => (
                       <tr key={r._id} className="hover:bg-surface-elevated transition-colors">
                         <td className="px-4 sm:px-6 py-3.5 font-semibold text-text-primary text-xs whitespace-nowrap">
-                          {r.event?.title || 'Event Session'}
+                          {r.event?.title || r.sessionName || 'Event Session'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted whitespace-nowrap">
                           <span>{r.event?.type || 'Technical'}</span> •{' '}
                           <span>{r.event?.format || 'Individual'}</span>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-secondary whitespace-nowrap">
-                          {r.event?.date ? format(new Date(r.event.date), 'MMM dd, yyyy') : '—'}
+                          {formatSafeDate(r.event?.date || r.event?.startDate || r.timestamp)}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-secondary whitespace-nowrap">
                           <div className="flex flex-col">
@@ -946,7 +1087,7 @@ const AttendanceRecordsView: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
-                          {r.timestamp ? format(new Date(r.timestamp), 'MMM dd, yyyy • hh:mm a') : '—'}
+                          {r.timestamp ? formatISTDateTime(r.timestamp) : '—'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-2 justify-end">
@@ -976,12 +1117,18 @@ const AttendanceRecordsView: React.FC = () => {
                         <div className="max-w-sm mx-auto space-y-1.5">
                           <ShieldCheck className="w-9 h-9 text-text-muted mx-auto opacity-30" />
                           <p className="text-text-primary font-medium text-sm">
-                            {searchTerm ? 'No matching records found' : 'No attendance records for this student'}
+                            {studentRecordsSearch
+                              ? 'No matching records found'
+                              : !selectedStudentId
+                              ? 'No student selected'
+                              : 'No attendance records for this student'}
                           </p>
                           <p className="text-text-muted text-xs">
-                            {searchTerm
+                            {studentRecordsSearch
                               ? 'Try searching with a different event name or session.'
-                              : 'Select a student from the directory above to view their event attendance history.'}
+                              : !selectedStudentId
+                              ? 'Select a student from the directory above to view their event attendance history.'
+                              : 'This student has not yet verified attendance for any sessions.'}
                           </p>
                         </div>
                       </td>
@@ -1000,21 +1147,21 @@ const AttendanceRecordsView: React.FC = () => {
             </div>
 
             {/* Pagination Controls Bar for Student Mode */}
-            {filteredStudentRecords.length > 0 && (
+            {totalStudentRecords > 0 && (
               <div className="px-6 py-4 border-t border-separator bg-canvas flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3 text-xs text-text-muted">
                   <span>
                     Showing{' '}
                     <strong className="text-text-primary font-semibold">
-                      {(currentPage - 1) * pageSize + 1}
+                      {totalStudentRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1}
                     </strong>{' '}
                     to{' '}
                     <strong className="text-text-primary font-semibold">
-                      {Math.min(currentPage * pageSize, filteredStudentRecords.length)}
+                      {Math.min(currentPage * pageSize, totalStudentRecords)}
                     </strong>{' '}
                     of{' '}
                     <strong className="text-text-primary font-semibold">
-                      {filteredStudentRecords.length}
+                      {totalStudentRecords}
                     </strong>{' '}
                     attended sessions
                   </span>

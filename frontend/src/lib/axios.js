@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  timeout: 15000,
+  timeout: 60000, // 60s timeout to allow SMTP email dispatch and server response without premature cancellation
 });
 
 // Request interceptor: attach bearer token and session id
@@ -28,7 +28,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
+      const isAuthEndpoint =
+        error.config?.url?.includes('/auth/login') ||
+        error.config?.url?.includes('/auth/register') ||
+        error.config?.url?.includes('/auth/request-reset') ||
+        error.config?.url?.includes('/auth/reset-password');
       
       if (!isAuthEndpoint) {
         localStorage.removeItem('token');

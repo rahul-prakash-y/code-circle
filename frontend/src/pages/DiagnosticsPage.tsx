@@ -23,9 +23,18 @@ import {
   Layers,
   Clock,
   Terminal,
+  User,
+  Copy,
+  Check,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useDiagnosticsStore, { CollectionStat } from '../store/useDiagnosticsStore';
+import { UserBadge } from '../components/admin/diagnostics/UserBadge';
+import { RecordFormModal } from '../components/admin/diagnostics/RecordFormModal';
+import { DeleteConfirmModal } from '../components/admin/diagnostics/DeleteConfirmModal';
+import { ViewDocModal } from '../components/admin/diagnostics/ViewDocModal';
 
 export const DiagnosticsPage: React.FC = () => {
   const {
@@ -36,6 +45,8 @@ export const DiagnosticsPage: React.FC = () => {
     selectedCollection,
     collectionDocs,
     collectionPagination,
+    userMap,
+    schemaFields,
     loadingHealth,
     loadingDb,
     loadingDocs,
@@ -47,18 +58,21 @@ export const DiagnosticsPage: React.FC = () => {
     createDocument,
     updateDocument,
     deleteDocument,
+    batchDeleteDocuments,
   } = useDiagnosticsStore();
 
   const [activeTab, setActiveTab] = useState<'health' | 'database'>('health');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [docSearch, setDocSearch] = useState('');
 
-  // Modals
+  // Modals & Selection state
   const [viewDoc, setViewDoc] = useState<any | null>(null);
   const [editDoc, setEditDoc] = useState<any | null>(null);
-  const [editDocJson, setEditDocJson] = useState('');
+  const [deleteDoc, setDeleteDoc] = useState<any | null>(null);
   const [isNewDocModalOpen, setIsNewDocModalOpen] = useState(false);
-  const [newDocJson, setNewDocJson] = useState('{\n  \n}');
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHealth();
@@ -75,32 +89,126 @@ export const DiagnosticsPage: React.FC = () => {
   }, [autoRefresh, activeTab]);
 
   const handleSelectCollection = (colName: string) => {
+    setSelectedRowIds([]);
     fetchCollectionDocuments(colName, 1, 20);
   };
 
-  const handleSaveEditDoc = async () => {
-    if (!selectedCollection || !editDoc) return;
-    try {
-      const parsed = JSON.parse(editDocJson);
-      const ok = await updateDocument(selectedCollection, editDoc._id, parsed);
-      if (ok) setEditDoc(null);
-    } catch (err: any) {
-      toast.error('Invalid JSON format: ' + err.message);
+  const handleCopyId = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const handleSaveEditDoc = async (payload: any) => {
+    if (!selectedCollection || !editDoc) return false;
+    const ok = await updateDocument(selectedCollection, editDoc._id, payload);
+    if (ok) setEditDoc(null);
+    return ok;
+  };
+
+  const handleSaveNewDoc = async (payload: any) => {
+    if (!selectedCollection) return false;
+    const ok = await createDocument(selectedCollection, payload);
+    if (ok) setIsNewDocModalOpen(false);
+    return ok;
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedCollection || !deleteDoc) return;
+    await deleteDocument(selectedCollection, deleteDoc._id);
+    setDeleteDoc(null);
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedRowIds.length === collectionDocs.length) {
+      setSelectedRowIds([]);
+    } else {
+      setSelectedRowIds(collectionDocs.map((d: any) => d._id));
     }
   };
 
-  const handleSaveNewDoc = async () => {
-    if (!selectedCollection) return;
-    try {
-      const parsed = JSON.parse(newDocJson);
-      const ok = await createDocument(selectedCollection, parsed);
-      if (ok) {
-        setIsNewDocModalOpen(false);
-        setNewDocJson('{\n  \n}');
-      }
-    } catch (err: any) {
-      toast.error('Invalid JSON format: ' + err.message);
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedRowIds((prev) =>
+      prev.includes(id) ? prev.filter((rId) => rId !== id) : [...prev, id]
+    );
+  };
+
+  const handleBatchDelete = async () => {
+    if (!selectedCollection || selectedRowIds.length === 0) return;
+    if (
+      confirm(
+        `Permanently delete ${selectedRowIds.length} selected record(s) from '${selectedCollection}'?`
+      )
+    ) {
+      setBatchDeleting(true);
+      const ok = await batchDeleteDocuments(selectedCollection, selectedRowIds);
+      setBatchDeleting(false);
+      if (ok) setSelectedRowIds([]);
     }
+  };
+
+  const getDocAssociatedUserId = (doc: any, collection: string): string | null => {
+    if (collection === 'users') return doc._id;
+    const userKeys = [
+      'userId',
+      'user',
+      'studentId',
+      'student',
+      'createdBy',
+      'updatedBy',
+      'author',
+      'instructor',
+      'unblockedBy',
+      'memberId',
+    ];
+    for (const k of userKeys) {
+      if (doc[k]) {
+        if (typeof doc[k] === 'object' && doc[k]._id) return String(doc[k]._id);
+        return String(doc[k]);
+      }
+    }
+    return null;
+  };
+
+  const renderKeyPreview = (doc: any, collection: string) => {
+    if (collection === 'users') {
+      return (
+        <div className="flex items-center gap-1.5 text-xs text-label-secondary">
+          <span className="font-semibold">{doc.department || 'General'}</span>
+          {doc.year && <span>· Year {doc.year}</span>}
+          {doc.college && <span className="text-label-tertiary">({doc.college})</span>}
+        </div>
+      );
+    }
+    const previewText =
+      doc.title ||
+      doc.name ||
+      doc.code ||
+      doc.eventName ||
+      doc.sessionId ||
+      doc.subject ||
+      doc.type ||
+      doc.reason;
+    if (previewText) {
+      return (
+        <span className="font-semibold text-xs text-label-primary truncate max-w-xs block">
+          {previewText}
+        </span>
+      );
+    }
+
+    let snippet = JSON.stringify(doc);
+    Object.entries(userMap).forEach(([uid, uObj]) => {
+      if (snippet.includes(uid)) {
+        snippet = snippet.replaceAll(`"${uid}"`, `"${uObj.name}"`);
+      }
+    });
+    return (
+      <span className="font-mono text-[11px] text-label-tertiary truncate max-w-xs block">
+        {snippet.slice(0, 80)}
+      </span>
+    );
   };
 
   const formatUptime = (seconds: number) => {
@@ -112,15 +220,15 @@ export const DiagnosticsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto py-2 sm:py-6 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-separator pb-5 sm:pb-6">
         <div>
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-1">
             <Server size={16} />
             <span>SuperAdmin Mission Control</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-extrabold text-label-primary tracking-tight">
             System Diagnostics & Database Manager
           </h1>
           <p className="text-xs text-label-tertiary mt-1">
@@ -128,12 +236,12 @@ export const DiagnosticsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Tabs */}
-          <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
             <button
               onClick={() => setActiveTab('health')}
-              className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'health'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -144,7 +252,7 @@ export const DiagnosticsPage: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('database')}
-              className={`flex items-center whitespace-nowrap gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'database'
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -159,7 +267,7 @@ export const DiagnosticsPage: React.FC = () => {
 
       {/* --- TAB 1: SYSTEM HEALTH --- */}
       {activeTab === 'health' && (
-        <div className="space-y-8 animate-in fade-in duration-300">
+        <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
           {/* Telemetry KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Memory */}
@@ -193,108 +301,103 @@ export const DiagnosticsPage: React.FC = () => {
                   }}
                 />
               </div>
+              <span className="text-[10px] text-label-tertiary block font-mono">
+                Heap Total: {healthData?.memory.heapTotalMB || 0} MB
+              </span>
             </div>
 
-            {/* KPI 2: Event Loop Lag */}
+            {/* KPI 2: Node Runtime */}
             <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
-                  Event Loop Latency
+                  Node Engine
                 </span>
                 <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl">
-                  <Zap size={18} />
+                  <Server size={18} />
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-label-primary">
-                  {healthData?.eventLoopLagMs || 0} ms
-                </span>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  Sub-5ms
+                <span className="text-xl sm:text-2xl font-black text-label-primary">
+                  {healthData?.nodeVersion || 'v20.x'}
                 </span>
               </div>
-              <p className="text-[11px] text-label-tertiary">Real-time Node.js I/O loop responsiveness</p>
+              <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                <CheckCircle2 size={13} />
+                <span>NodeJS Production Runtime</span>
+              </div>
+              <span className="text-[10px] text-label-tertiary block font-mono">
+                PID: {healthData?.processId || '—'}
+              </span>
             </div>
 
-            {/* KPI 3: Process Uptime */}
+            {/* KPI 3: Server Uptime */}
             <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
-                  Process Uptime
+                  Continuous Uptime
                 </span>
                 <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl">
                   <Clock size={18} />
                 </div>
               </div>
-              <div className="text-xl font-black text-label-primary font-mono truncate">
-                {formatUptime(healthData?.uptimeSeconds || 0)}
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl sm:text-2xl font-black text-label-primary">
+                  {healthData?.uptimeSeconds ? formatUptime(healthData.uptimeSeconds) : '0s'}
+                </span>
               </div>
-              <p className="text-[11px] text-label-tertiary font-mono">
-                Node {healthData?.nodeVersion || 'v20'} · {healthData?.platform || 'Node'}
-              </p>
+              <div className="flex items-center gap-1.5 text-xs text-label-tertiary">
+                <ShieldCheck size={13} className="text-primary" />
+                <span>Zero Downtime Target</span>
+              </div>
+              <span className="text-[10px] text-label-tertiary block font-mono">
+                Started: {healthData?.serverTime ? new Date(healthData.serverTime).toLocaleTimeString() : '—'}
+              </span>
             </div>
 
-            {/* KPI 4: Database Pool */}
-            <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
-                  MongoDB Status
-                </span>
-                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl">
-                  <Database size={18} />
+            {/* KPI 4: Cache & Telemetry Refresh */}
+            <div className="bg-surface p-5 rounded-2xl border border-separator shadow-sm space-y-2 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
+                    Cache & Telemetry
+                  </span>
+                  <div className="p-2 bg-primary/10 text-primary rounded-xl">
+                    <Zap size={18} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    Live Polling (10s)
+                  </span>
                 </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                  {healthData?.database.status || 'Connected'}
-                </span>
-              </div>
-              <p className="text-[11px] text-label-tertiary font-mono truncate">
-                {healthData?.database.name || 'code_circle'} ({healthData?.database.modelsRegistered || 0} schemas)
-              </p>
-            </div>
-          </div>
 
-          {/* Sync & Buffer Control Panel */}
-          <div className="bg-surface rounded-3xl border border-separator p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Zap size={24} />
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchHealth}
+                  disabled={loadingHealth}
+                  className="flex-1 py-1.5 px-3 min-h-[38px] bg-surface-secondary hover:bg-surface border border-separator text-xs font-bold text-label-primary rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw size={12} className={loadingHealth ? 'animate-spin' : ''} />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={syncCache}
+                  disabled={syncing}
+                  className="flex-1 py-1.5 px-3 min-h-[38px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <Zap size={12} className={syncing ? 'animate-spin' : ''} />
+                  <span>Sync Cache</span>
+                </button>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-label-primary">
-                  Cluster Cache & Write-Buffer Synchronization
-                </h3>
-                <p className="text-xs text-label-tertiary mt-0.5">
-                  Forces an immediate flush of high-throughput in-memory attendance queues to MongoDB Atlas and triggers cache hydration.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                className={`px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all ${
-                  autoRefresh
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-surface-secondary border-separator text-label-secondary hover:text-label-primary'
-                }`}
-              >
-                Auto-Refresh {autoRefresh ? 'ON (10s)' : 'OFF'}
-              </button>
-              <button
-                onClick={syncCache}
-                disabled={syncing}
-                className="px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
-              >
-                <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
-                <span>{syncing ? 'Flushing Buffers...' : 'Sync Buffers Now'}</span>
-              </button>
             </div>
           </div>
 
           {/* Infrastructure Services Grid */}
-          <div className="bg-surface rounded-3xl border border-separator p-6 shadow-sm space-y-4">
+          <div className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-label-secondary uppercase tracking-wider">
               Core Microservices & Integration Grid
             </h3>
@@ -354,19 +457,19 @@ export const DiagnosticsPage: React.FC = () => {
               </span>
               <button
                 onClick={fetchDatabaseStats}
-                className="p-1.5 text-label-secondary hover:text-label-primary transition-colors"
+                className="p-2 min-w-[34px] min-h-[34px] text-label-secondary hover:text-label-primary transition-colors inline-flex items-center justify-center cursor-pointer"
                 title="Refresh Collections"
               >
                 <RefreshCw size={14} className={loadingDb ? 'animate-spin' : ''} />
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
               {databaseStats.map((col) => (
                 <button
                   key={col.name}
                   onClick={() => handleSelectCollection(col.name)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 ${
+                  className={`px-3.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ${
                     selectedCollection === col.name
                       ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
                       : 'bg-surface-secondary border-separator text-label-primary hover:border-primary/40 hover:bg-surface'
@@ -390,7 +493,7 @@ export const DiagnosticsPage: React.FC = () => {
 
           {/* Document Explorer Grid */}
           {selectedCollection ? (
-            <div className="bg-surface rounded-3xl border border-separator shadow-sm p-6 space-y-4">
+            <div className="bg-surface rounded-3xl border border-separator shadow-sm p-4 sm:p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
@@ -402,9 +505,9 @@ export const DiagnosticsPage: React.FC = () => {
                   </h3>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-52">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary pointer-events-none" />
                     <input
                       type="text"
                       value={docSearch}
@@ -412,14 +515,14 @@ export const DiagnosticsPage: React.FC = () => {
                         setDocSearch(e.target.value);
                         fetchCollectionDocuments(selectedCollection, 1, 20, e.target.value);
                       }}
-                      placeholder="Search collection records..."
-                      className="pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface w-52"
+                      placeholder="Search records..."
+                      className="w-full pl-8 pr-3 py-2 min-h-[38px] text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface"
                     />
                   </div>
 
                   <button
                     onClick={() => setIsNewDocModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all shrink-0"
+                    className="flex items-center gap-1.5 px-3.5 py-2 min-h-[38px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all shrink-0 cursor-pointer"
                   >
                     <Plus size={14} />
                     <span>Insert Doc</span>
@@ -427,79 +530,283 @@ export const DiagnosticsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Selected records bulk actions bar */}
+              {selectedRowIds.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-primary/10 border border-primary/20 rounded-2xl animate-in fade-in duration-200">
+                  <span className="text-xs font-bold text-primary">
+                    {selectedRowIds.length} document(s) selected
+                  </span>
+                  <button
+                    onClick={handleBatchDelete}
+                    disabled={batchDeleting}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] bg-destructive text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    <Trash2 size={13} className={batchDeleting ? 'animate-spin' : ''} />
+                    <span>{batchDeleting ? 'Deleting...' : 'Delete Selected'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Table of Records */}
-              <div className="overflow-x-auto border border-separator rounded-2xl">
-                <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto border border-separator rounded-2xl custom-scrollbar touch-pan-x">
+                <table className="w-full text-left text-xs min-w-[760px]">
                   <thead className="bg-surface-secondary border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-3 px-4">_id</th>
-                      <th className="py-3 px-4">Key Preview</th>
-                      <th className="py-3 px-4">Created At</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
+                    {selectedCollection === 'users' ? (
+                      <tr>
+                        <th className="py-3 px-3 w-10 text-center">
+                          <button
+                            type="button"
+                            onClick={handleToggleSelectAll}
+                            className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
+                          >
+                            {selectedRowIds.length === collectionDocs.length &&
+                            collectionDocs.length > 0 ? (
+                              <CheckSquare size={15} className="text-primary" />
+                            ) : (
+                              <Square size={15} />
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-3 px-4">User Name & Account</th>
+                        <th className="py-3 px-4">Role & Status</th>
+                        <th className="py-3 px-4">_id</th>
+                        <th className="py-3 px-4">Created At</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    ) : (
+                      <tr>
+                        <th className="py-3 px-3 w-10 text-center">
+                          <button
+                            type="button"
+                            onClick={handleToggleSelectAll}
+                            className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
+                          >
+                            {selectedRowIds.length === collectionDocs.length &&
+                            collectionDocs.length > 0 ? (
+                              <CheckSquare size={15} className="text-primary" />
+                            ) : (
+                              <Square size={15} />
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-3 px-4">_id</th>
+                        <th className="py-3 px-4">User Name</th>
+                        <th className="py-3 px-4">Record Details</th>
+                        <th className="py-3 px-4">Created At</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    )}
                   </thead>
                   <tbody className="divide-y divide-separator text-label-primary font-medium">
                     {loadingDocs ? (
                       <tr>
-                        <td colSpan={4} className="py-12 text-center text-label-tertiary animate-pulse">
+                        <td colSpan={6} className="py-12 text-center text-label-tertiary animate-pulse">
                           Fetching documents from {selectedCollection}...
                         </td>
                       </tr>
                     ) : collectionDocs.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-12 text-center text-label-tertiary">
+                        <td colSpan={6} className="py-12 text-center text-label-tertiary">
                           No documents found in this collection.
                         </td>
                       </tr>
+                    ) : selectedCollection === 'users' ? (
+                      collectionDocs.map((doc: any) => {
+                        const isSelected = selectedRowIds.includes(doc._id);
+                        return (
+                          <tr
+                            key={doc._id}
+                            className={`hover:bg-surface-secondary/70 transition-colors ${
+                              isSelected ? 'bg-primary/5' : ''
+                            }`}
+                          >
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSelectRow(doc._id)}
+                                className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
+                              >
+                                {isSelected ? (
+                                  <CheckSquare size={15} className="text-primary" />
+                                ) : (
+                                  <Square size={15} />
+                                )}
+                              </button>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                                  {doc.name ? doc.name.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-bold text-xs text-label-primary truncate">
+                                    {doc.name || 'Unnamed User'}
+                                  </span>
+                                  <div className="flex items-center gap-1.5 text-[11px] text-label-tertiary font-mono">
+                                    {doc.rollNo && <span>{doc.rollNo}</span>}
+                                    {doc.rollNo && doc.email && <span>·</span>}
+                                    <span className="truncate">{doc.email}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                  {doc.role || 'Student'}
+                                </span>
+                                {doc.isBlocked && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20">
+                                    Blocked
+                                  </span>
+                                )}
+                                {doc.isRestricted && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                    Restricted
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-primary font-bold text-[11px]">
+                                  {doc._id.slice(0, 10)}...
+                                </span>
+                                <button
+                                  onClick={(e) => handleCopyId(doc._id, e)}
+                                  className="text-label-tertiary hover:text-label-primary p-1.5 rounded-md min-w-[28px] min-h-[28px] inline-flex items-center justify-center cursor-pointer"
+                                  title="Copy ObjectId"
+                                >
+                                  {copiedId === doc._id ? (
+                                    <Check size={12} className="text-emerald-500" />
+                                  ) : (
+                                    <Copy size={12} />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
+                              {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => setViewDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors cursor-pointer"
+                                  title="Inspect Document"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setEditDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Form"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-destructive/10 text-destructive rounded-lg transition-colors cursor-pointer"
+                                  title="Delete Record"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
-                      collectionDocs.map((doc: any) => (
-                        <tr key={doc._id} className="hover:bg-surface-secondary/70 transition-colors">
-                          <td className="py-3 px-4 font-mono text-primary font-bold">{doc._id}</td>
-                          <td className="py-3 px-4 max-w-md truncate font-mono text-[11px] text-label-secondary">
-                            {doc.title || doc.name || doc.email || doc.username || JSON.stringify(doc).slice(0, 80)}
-                          </td>
-                          <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
-                            {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}
-                          </td>
-                          <td className="py-3 px-4 text-right space-x-1.5">
-                            <button
-                              onClick={() => setViewDoc(doc)}
-                              className="p-1.5 hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors"
-                              title="Inspect JSON"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditDoc(doc);
-                                setEditDocJson(JSON.stringify(doc, null, 2));
-                              }}
-                              className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
-                              title="Edit Document"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Delete document ${doc._id}?`)) {
-                                  deleteDocument(selectedCollection, doc._id);
-                                }
-                              }}
-                              className="p-1.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      collectionDocs.map((doc: any) => {
+                        const isSelected = selectedRowIds.includes(doc._id);
+                        const associatedUserId = getDocAssociatedUserId(doc, selectedCollection);
+
+                        return (
+                          <tr
+                            key={doc._id}
+                            className={`hover:bg-surface-secondary/70 transition-colors ${
+                              isSelected ? 'bg-primary/5' : ''
+                            }`}
+                          >
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSelectRow(doc._id)}
+                                className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
+                              >
+                                {isSelected ? (
+                                  <CheckSquare size={15} className="text-primary" />
+                                ) : (
+                                  <Square size={15} />
+                                )}
+                              </button>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-primary font-bold text-[11px]">
+                                  {doc._id.slice(0, 10)}...
+                                </span>
+                                <button
+                                  onClick={(e) => handleCopyId(doc._id, e)}
+                                  className="text-label-tertiary hover:text-label-primary p-1.5 rounded-md min-w-[28px] min-h-[28px] inline-flex items-center justify-center cursor-pointer"
+                                  title="Copy ObjectId"
+                                >
+                                  {copiedId === doc._id ? (
+                                    <Check size={12} className="text-emerald-500" />
+                                  ) : (
+                                    <Copy size={12} />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              {associatedUserId ? (
+                                <UserBadge userId={associatedUserId} userMap={userMap} />
+                              ) : (
+                                <span className="text-label-tertiary text-xs italic">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 max-w-sm">
+                              {renderKeyPreview(doc, selectedCollection)}
+                            </td>
+                            <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
+                              {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="inline-flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => setViewDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors cursor-pointer"
+                                  title="Inspect Document"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setEditDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Form"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteDoc(doc)}
+                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-destructive/10 text-destructive rounded-lg transition-colors cursor-pointer"
+                                  title="Delete Record"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between text-xs text-label-secondary pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary pt-2">
                 <span>
                   Page {collectionPagination.page} of {collectionPagination.pages || 1}
                 </span>
@@ -514,7 +821,7 @@ export const DiagnosticsPage: React.FC = () => {
                         docSearch
                       )
                     }
-                    className="p-1.5 bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors"
+                    className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors cursor-pointer"
                   >
                     <ChevronLeft size={16} />
                   </button>
@@ -528,7 +835,7 @@ export const DiagnosticsPage: React.FC = () => {
                         docSearch
                       )
                     }
-                    className="p-1.5 bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors"
+                    className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors cursor-pointer"
                   >
                     <ChevronRight size={16} />
                   </button>
@@ -547,134 +854,51 @@ export const DiagnosticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* View Document Modal */}
-      <AnimatePresence>
-        {viewDoc && (
-          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-2xl border border-separator max-w-2xl w-full p-6 space-y-4 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              <div className="flex items-center justify-between border-b border-separator pb-3">
-                <h3 className="text-sm font-bold text-label-primary font-mono">
-                  Inspect Document: {viewDoc._id}
-                </h3>
-                <button
-                  onClick={() => setViewDoc(null)}
-                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <pre className="flex-1 overflow-auto bg-surface-secondary dark:bg-zinc-950 p-4 rounded-xl text-xs font-mono text-label-primary dark:text-emerald-400 border border-separator">
-                {JSON.stringify(viewDoc, null, 2)}
-              </pre>
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={() => setViewDoc(null)}
-                  className="px-4 py-2 bg-surface-secondary text-label-primary text-xs font-bold rounded-xl border border-separator hover:bg-surface transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* View Document Modal (Details Form & Raw JSON) */}
+      <ViewDocModal
+        isOpen={Boolean(viewDoc)}
+        collectionName={selectedCollection || ''}
+        doc={viewDoc}
+        userMap={userMap}
+        onClose={() => setViewDoc(null)}
+        onEdit={() => {
+          setEditDoc(viewDoc);
+          setViewDoc(null);
+        }}
+      />
 
-      {/* Edit Document Modal */}
-      <AnimatePresence>
-        {editDoc && (
-          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-2xl border border-separator max-w-2xl w-full p-6 space-y-4 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              <div className="flex items-center justify-between border-b border-separator pb-3">
-                <h3 className="text-sm font-bold text-label-primary font-mono">
-                  Edit Document ({editDoc._id})
-                </h3>
-                <button
-                  onClick={() => setEditDoc(null)}
-                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <textarea
-                rows={14}
-                value={editDocJson}
-                onChange={(e) => setEditDocJson(e.target.value)}
-                className="w-full flex-1 font-mono text-xs p-4 bg-surface-secondary dark:bg-zinc-950 border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
-              />
-              <div className="flex justify-end gap-2 pt-2 border-t border-separator">
-                <button
-                  onClick={() => setEditDoc(null)}
-                  className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveEditDoc}
-                  className="px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Edit Document Modal (Form Component) */}
+      <RecordFormModal
+        isOpen={Boolean(editDoc)}
+        mode="edit"
+        collectionName={selectedCollection || ''}
+        initialData={editDoc}
+        schemaFields={schemaFields}
+        userMap={userMap}
+        onClose={() => setEditDoc(null)}
+        onSave={handleSaveEditDoc}
+      />
 
-      {/* Insert Document Modal */}
-      <AnimatePresence>
-        {isNewDocModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-2xl border border-separator max-w-2xl w-full p-6 space-y-4 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              <div className="flex items-center justify-between border-b border-separator pb-3">
-                <h3 className="text-sm font-bold text-label-primary font-mono">
-                  Insert Document into '{selectedCollection}'
-                </h3>
-                <button
-                  onClick={() => setIsNewDocModalOpen(false)}
-                  className="p-1 hover:bg-surface-secondary rounded-lg text-label-tertiary hover:text-label-primary"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <textarea
-                rows={12}
-                value={newDocJson}
-                onChange={(e) => setNewDocJson(e.target.value)}
-                className="w-full flex-1 font-mono text-xs p-4 bg-surface-secondary dark:bg-zinc-950 border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
-              />
-              <div className="flex justify-end gap-2 pt-2 border-t border-separator">
-                <button
-                  onClick={() => setIsNewDocModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveNewDoc}
-                  className="px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all"
-                >
-                  Insert Document
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Insert Document Modal (Form Component) */}
+      <RecordFormModal
+        isOpen={isNewDocModalOpen}
+        mode="create"
+        collectionName={selectedCollection || ''}
+        schemaFields={schemaFields}
+        userMap={userMap}
+        onClose={() => setIsNewDocModalOpen(false)}
+        onSave={handleSaveNewDoc}
+      />
+
+      {/* Delete Record Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(deleteDoc)}
+        collectionName={selectedCollection || ''}
+        doc={deleteDoc}
+        userMap={userMap}
+        onClose={() => setDeleteDoc(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import api from '../lib/axios';
 
-const useMetricsStore = create((set, get) => ({
+const useMetricsStore = create((set) => ({
   metrics: null,
   isCached: false,
   cachedAt: null,

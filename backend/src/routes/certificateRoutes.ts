@@ -11,8 +11,9 @@ import {
   getMyCertificates,
   verifyCertificate,
   downloadCertificatePdf,
+  claimCourseCertificate,
 } from '../controllers/certificateController';
-import { verifyToken, isAdmin } from '../middleware/authMiddleware';
+import { verifyToken, isAdminOrFaculty } from '../middleware/authMiddleware';
 
 export async function certificateRoutes(fastify: FastifyInstance) {
   // Public Verification & Direct PDF Download Endpoints (No Auth Needed)
@@ -23,12 +24,13 @@ export async function certificateRoutes(fastify: FastifyInstance) {
   fastify.register(async (studentGroup) => {
     studentGroup.addHook('preHandler', verifyToken);
     studentGroup.get('/my-certificates', getMyCertificates);
+    studentGroup.post('/claim-course/:domainId', claimCourseCertificate);
   });
 
   // Admin / Faculty / SuperAdmin Endpoints
   fastify.register(async (adminGroup) => {
     adminGroup.addHook('preHandler', verifyToken);
-    adminGroup.addHook('preHandler', isAdmin);
+    adminGroup.addHook('preHandler', isAdminOrFaculty);
 
     // Template Studio CRUD
     adminGroup.get('/templates', getTemplates);

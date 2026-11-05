@@ -18,6 +18,7 @@ import {
   Shield,
   Layers,
 } from 'lucide-react';
+import Pagination from '../common/Pagination';
 
 interface RegisteredStudentsModalProps {
   isOpen: boolean;
@@ -30,15 +31,19 @@ export const RegisteredStudentsModal: React.FC<RegisteredStudentsModalProps> = (
   domain,
   onClose,
 }) => {
-  const { fetchEnrolledStudents, enrolledStudents, loadingStudents } = useDomainStore();
+  const { fetchEnrolledStudents, enrolledStudents, enrolledStudentsPagination, loadingStudents } = useDomainStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
   const [filterStatus, setFilterStatus] = useState<'all' | 'enrolled' | 'in_progress' | 'completed'>('all');
 
   useEffect(() => {
     if (isOpen && domain?._id) {
-      fetchEnrolledStudents(domain._id);
+      const timer = setTimeout(() => {
+        fetchEnrolledStudents(domain._id, searchQuery, page);
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen, domain?._id, fetchEnrolledStudents]);
+  }, [isOpen, domain?._id, page, searchQuery, fetchEnrolledStudents]);
 
   // Client-side filtering for immediate snappy responsiveness
   const filteredStudents = useMemo(() => {
@@ -58,7 +63,7 @@ export const RegisteredStudentsModal: React.FC<RegisteredStudentsModalProps> = (
   }, [enrolledStudents, searchQuery, filterStatus]);
 
   // Aggregate stats
-  const totalEnrolled = enrolledStudents.length;
+  const totalEnrolled = enrolledStudentsPagination?.total ?? enrolledStudents.length;
   const totalCompleted = enrolledStudents.filter((s) => s.status === 'completed' || s.progressPercentage === 100).length;
   const totalInProgress = enrolledStudents.filter((s) => s.status === 'in_progress').length;
 
@@ -168,7 +173,10 @@ export const RegisteredStudentsModal: React.FC<RegisteredStudentsModalProps> = (
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
               placeholder="Filter by name, roll number, email, or dept..."
               className="w-full pl-9 pr-4 py-2 rounded-xl bg-surface border border-separator/80 text-xs text-label-primary placeholder:text-label-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
             />
@@ -334,6 +342,19 @@ export const RegisteredStudentsModal: React.FC<RegisteredStudentsModalProps> = (
             })
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {enrolledStudentsPagination && enrolledStudentsPagination.totalPages > 1 && (
+          <div className="pt-2 border-t border-separator/60">
+            <Pagination
+              currentPage={enrolledStudentsPagination.page}
+              totalPages={enrolledStudentsPagination.totalPages}
+              totalItems={enrolledStudentsPagination.total}
+              itemsPerPage={enrolledStudentsPagination.limit}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
+          </div>
+        )}
       </div>
     </ResponsiveModal>
   );

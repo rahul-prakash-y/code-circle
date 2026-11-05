@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   User as UserIcon, 
   Mail, 
@@ -24,7 +24,10 @@ import {
   GraduationCap,
   FileText,
   Instagram,
-  Sparkles
+  Sparkles,
+  Home,
+  Bus,
+  Building
 } from 'lucide-react';
 import useProfileStore from '../store/useProfileStore';
 import useAuthStore from '../store/useAuthStore';
@@ -55,7 +58,7 @@ const formatDob = (dobStr) => {
 
 const Profile = () => {
   const { profile, updateProfile, profileLoading } = useProfileStore();
-  const { user, logout, changePassword } = useAuthStore();
+  const { logout, changePassword } = useAuthStore();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -111,51 +114,38 @@ const Profile = () => {
     }
   };
 
-  const [formData, setFormData] = useState({
-    name: '',
-    department: '',
-    rollNo: '',
-    phone: '',
-    dob: '',
-    gender: '',
-    year: '',
-    college: '',
-    bio: '',
+  const createInitialFormData = (p) => ({
+    name: p?.name || '',
+    department: p?.department || '',
+    rollNo: p?.rollNo || '',
+    phone: p?.phone || p?.phoneNumber || '',
+    dob: (p?.dob || p?.dateOfBirth) ? String(p?.dob || p?.dateOfBirth).substring(0, 10) : '',
+    gender: p?.gender || '',
+    year: p?.year || '',
+    college: p?.college || 'BIT',
+    residenceType: p?.residenceType || '',
+    bio: p?.bio || '',
     socialLinks: {
-      github: '',
-      linkedin: '',
-      leetcode: '',
-      hackerrank: '',
-      instagram: '',
+      github: p?.socialLinks?.github || '',
+      linkedin: p?.socialLinks?.linkedin || '',
+      leetcode: p?.socialLinks?.leetcode || '',
+      hackerrank: p?.socialLinks?.hackerrank || '',
+      instagram: p?.socialLinks?.instagram || '',
     },
-    skills: []
+    skills: p?.skills || []
   });
+
+  const [formData, setFormData] = useState(() => createInitialFormData(profile));
+  const [prevProfile, setPrevProfile] = useState(profile);
   const [skillInput, setSkillInput] = useState('');
 
-  // Synchronize local form state only when profile from store changes
-  useEffect(() => {
+  // Synchronize local form state during render when profile from store changes
+  if (profile !== prevProfile) {
+    setPrevProfile(profile);
     if (profile) {
-      setFormData({
-        name: profile.name || '',
-        department: profile.department || '',
-        rollNo: profile.rollNo || '',
-        phone: profile.phone || profile.phoneNumber || '',
-        dob: (profile.dob || profile.dateOfBirth) ? String(profile.dob || profile.dateOfBirth).substring(0, 10) : '',
-        gender: profile.gender || '',
-        year: profile.year || '',
-        college: profile.college || 'BIT',
-        bio: profile.bio || '',
-        socialLinks: {
-          github: profile.socialLinks?.github || '',
-          linkedin: profile.socialLinks?.linkedin || '',
-          leetcode: profile.socialLinks?.leetcode || '',
-          hackerrank: profile.socialLinks?.hackerrank || '',
-          instagram: profile.socialLinks?.instagram || '',
-        },
-        skills: profile.skills || []
-      });
+      setFormData(createInitialFormData(profile));
     }
-  }, [profile]);
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -216,7 +206,7 @@ const Profile = () => {
   if (!profile) return <ProfileSkeleton />;
 
   return (
-    <div className="max-w-4xl mx-auto py-6 sm:py-10 px-4 sm:px-6 space-y-6 sm:space-y-10">
+    <div className="max-w-4xl mx-auto py-2 sm:py-6 px-0 space-y-6 sm:space-y-10">
       {/* Identity Header Card */}
       <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card relative">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
@@ -290,6 +280,12 @@ const Profile = () => {
               {profile.gender && (
                 <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-text-secondary">
                   {profile.gender}
+                </span>
+              )}
+              {profile.residenceType && (
+                <span className="bg-canvas px-2.5 py-1 rounded-md border border-separator text-accent flex items-center gap-1.5 font-medium">
+                  {profile.residenceType === 'Hosteller' ? <Building size={12} className="opacity-80" /> : <Bus size={12} className="opacity-80" />}
+                  {profile.residenceType}
                 </span>
               )}
             </div>
@@ -447,6 +443,40 @@ const Profile = () => {
                     <option value="4th Year">4th Year</option>
                     <option value="Post Graduate">Post Graduate</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Residence Type (Hosteller or Day Scholar) */}
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+                  <Home size={13} className="text-text-muted" />
+                  <span>Accommodation / Residence</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Hosteller' ? '' : 'Hosteller' }))}
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      formData.residenceType === 'Hosteller'
+                        ? 'bg-accent/15 border-accent text-accent font-semibold shadow-sm'
+                        : 'border-separator hover:border-separator-hover text-text-secondary bg-surface'
+                    }`}
+                  >
+                    <Building size={14} />
+                    <span>Hosteller</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Day Scholar' ? '' : 'Day Scholar' }))}
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      formData.residenceType === 'Day Scholar'
+                        ? 'bg-accent/15 border-accent text-accent font-semibold shadow-sm'
+                        : 'border-separator hover:border-separator-hover text-text-secondary bg-surface'
+                    }`}
+                  >
+                    <Bus size={14} />
+                    <span>Day Scholar</span>
+                  </button>
                 </div>
               </div>
 

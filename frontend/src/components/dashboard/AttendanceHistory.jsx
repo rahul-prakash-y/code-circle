@@ -30,17 +30,17 @@ const AttendanceHistory = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto py-4">
+    <div className="space-y-6 sm:space-y-8 max-w-4xl mx-auto py-2 sm:py-4">
       {/* OTP Input Section */}
-      <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card">
-        <div className="max-w-md space-y-2 mb-6">
-          <h2 className="text-xl font-bold text-text-primary tracking-tight">Mark Attendance</h2>
+      <div className="surface rounded-2xl sm:rounded-[18px] p-4 sm:p-7 lg:p-8 border border-separator shadow-card">
+        <div className="max-w-md space-y-1.5 mb-5 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight">Mark Attendance</h2>
           <p className="text-xs text-text-muted leading-relaxed">
             Enter the 6-digit session OTP provided during your event or lecture to verify your presence.
           </p>
         </div>
         
-        <form onSubmit={handleMarkAttendance} className="flex flex-col sm:flex-row gap-3 max-w-md">
+        <form onSubmit={handleMarkAttendance} className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 max-w-md">
           <div className="flex-1 relative">
             <input
               type="text"
@@ -48,7 +48,7 @@ const AttendanceHistory = () => {
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="000000"
               maxLength={6}
-              className="input-field text-lg font-mono tracking-[0.3em] text-center"
+              className="input-field text-lg font-mono tracking-[0.3em] text-center min-h-[46px]"
             />
             {otp.length === 6 && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-accent">
@@ -59,7 +59,7 @@ const AttendanceHistory = () => {
           <button
             type="submit"
             disabled={otp.length !== 6 || isMarking}
-            className="btn-primary py-2.5 px-6 text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="btn-primary py-2.5 px-6 min-h-[46px] text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-md shadow-accent/15"
           >
             {isMarking ? <Loader2 className="animate-spin" size={15} /> : <ArrowRight size={15} />}
             <span>Verify</span>
@@ -68,71 +68,93 @@ const AttendanceHistory = () => {
       </div>
 
       {/* History Table */}
-      <div className="surface rounded-[18px] border border-separator shadow-card overflow-hidden">
+      <div className="surface rounded-2xl sm:rounded-[18px] border border-separator shadow-card overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-separator flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-separator text-text-secondary flex items-center justify-center">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-separator text-text-secondary flex items-center justify-center shrink-0">
               <Clock size={16} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-text-primary">Attendance History</h3>
-              <p className="text-xs text-text-muted">Your verified session presence</p>
+              <h3 className="text-xs sm:text-sm font-semibold text-text-primary">Attendance History</h3>
+              <p className="text-[11px] sm:text-xs text-text-muted">Your verified session presence</p>
             </div>
           </div>
-          <span className="text-xs font-mono text-text-muted">
+          <span className="text-[11px] sm:text-xs font-mono text-text-muted">
             {history.length} session{history.length === 1 ? '' : 's'}
           </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[650px]">
             <thead>
               <tr className="border-b border-separator text-[11px] font-medium text-text-muted bg-canvas">
-                <th className="px-6 py-3.5">Event & Session</th>
-                <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5 text-right">Date & Time</th>
+                <th className="px-5 py-3.5">Event & Session</th>
+                <th className="px-5 py-3.5">Club Hours</th>
+                <th className="px-5 py-3.5">Points</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5 text-right">Date & Time</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-separator">
-              {history.map((record) => (
-                <tr key={record._id} className="hover:bg-surface-elevated transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-surface-elevated border border-separator overflow-hidden shrink-0 flex items-center justify-center text-text-muted">
-                        {record.session?.event?.thumbnail ? (
-                          <img src={record.session.event.thumbnail} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <Calendar size={16} />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-text-primary truncate">
-                          {record.session?.event?.title || 'Event Session'}
+              {history.map((record) => {
+                const hours = record.classHours || record.session?.classHours || [];
+                const hoursText =
+                  hours.length > 0
+                    ? `Hours ${hours.join(', ')} (${hours.length} hr${hours.length > 1 ? 's' : ''})`
+                    : '1 Period';
+                const pts = record.pointsAwarded ?? record.session?.totalPoints ?? 50;
+
+                return (
+                  <tr key={record._id} className="hover:bg-surface-elevated transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-surface-elevated border border-separator overflow-hidden shrink-0 flex items-center justify-center text-text-muted">
+                          {record.session?.event?.thumbnail ? (
+                            <img src={record.session.event.thumbnail} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Calendar size={16} />
+                          )}
                         </div>
-                        <div className="text-[11px] text-text-muted truncate">
-                          {record.session?.sessionName || 'General Session'}
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-text-primary truncate">
+                            {record.session?.event?.title || record.event?.title || 'Event Session'}
+                          </div>
+                          <div className="text-[11px] text-text-muted truncate">
+                            {record.session?.sessionName || record.sessionName || 'General Session'}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
-                      Verified Present
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="text-xs font-medium text-text-primary">
-                      {record.timestamp ? format(new Date(record.timestamp), 'MMM dd, yyyy') : '—'}
-                    </div>
-                    <div className="text-[10px] text-text-muted font-mono">
-                      {record.timestamp ? format(new Date(record.timestamp), 'hh:mm a') : ''}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-1 font-mono font-bold text-xs px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        <Clock size={12} />
+                        <span>{hoursText}</span>
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        +{pts} pts
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
+                        Verified Present
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="text-xs font-medium text-text-primary">
+                        {record.timestamp ? format(new Date(record.timestamp), 'MMM dd, yyyy') : '—'}
+                      </div>
+                      <div className="text-[10px] text-text-muted font-mono">
+                        {record.timestamp ? format(new Date(record.timestamp), 'hh:mm a') : ''}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {history.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="3" className="px-6 py-14 text-center">
+                  <td colSpan="5" className="px-6 py-14 text-center">
                     <div className="max-w-xs mx-auto space-y-2">
                       <div className="w-10 h-10 bg-surface-elevated rounded-xl border border-separator flex items-center justify-center mx-auto text-text-muted">
                         <ShieldCheck size={20} />
@@ -154,4 +176,3 @@ const AttendanceHistory = () => {
 };
 
 export default AttendanceHistory;
-

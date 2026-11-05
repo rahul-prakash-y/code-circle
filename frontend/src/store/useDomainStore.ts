@@ -18,7 +18,9 @@ interface DomainState {
   levels: ILevel[];
   activeLevel: ILevel | null;
   userProgress: IStudentProgress;
+  domainsPagination?: any;
   enrolledStudents: IEnrolledStudent[];
+  enrolledStudentsPagination?: any;
   loadingStudents: boolean;
   loading: boolean;
   submittingQuest: boolean;
@@ -36,7 +38,8 @@ interface DomainState {
   isEarlyAccess: boolean;
 
   // Actions
-  fetchDomains: () => Promise<void>;
+  setCurrentDomain: (domain: IDomain | null) => void;
+  fetchDomains: (params?: { page?: number; limit?: number; search?: string }) => Promise<void>;
   fetchDomainLevels: (domainId: string) => Promise<void>;
   setActiveLevel: (level: ILevel | null) => void;
   openQuestModal: () => void;
@@ -44,7 +47,7 @@ interface DomainState {
   resetQuestResult: () => void;
   submitQuest: (levelId: string, answers: number[]) => Promise<IQuestSubmitResult | null>;
   registerForDomain: (domainId: string) => Promise<boolean>;
-  fetchEnrolledStudents: (domainId: string, search?: string) => Promise<IEnrolledStudent[]>;
+  fetchEnrolledStudents: (domainId: string, search?: string, page?: number, limit?: number) => Promise<IEnrolledStudent[]>;
 
   // SuperAdmin Access Control Actions
   fetchCourseAccessConfig: () => Promise<void>;
@@ -66,6 +69,17 @@ interface DomainState {
   createLevel: (domainId: string, payload: Partial<ILevel>) => Promise<boolean>;
   updateLevel: (id: string, payload: Partial<ILevel>) => Promise<boolean>;
   deleteLevel: (id: string) => Promise<boolean>;
+  downloadSampleTemplate: () => Promise<void>;
+  bulkUploadCoursesAndLevels: (file: File, domainId?: string) => Promise<{
+    success: boolean;
+    coursesCreated?: number;
+    coursesUpdated?: number;
+    levelsCreated?: number;
+    levelsUpdated?: number;
+    message?: string;
+    errors?: string[];
+    error?: string;
+  }>;
 }
 
 export const useDomainStore = create<DomainState>((set, get) => ({
@@ -100,16 +114,21 @@ export const useDomainStore = create<DomainState>((set, get) => ({
   hasCourseAccess: true,
   isEarlyAccess: false,
 
-  fetchDomains: async () => {
+  setCurrentDomain: (domain: IDomain | null) => {
+    set({ currentDomain: domain });
+  },
+
+  fetchDomains: async (params) => {
     try {
       set({ loading: true, error: null });
-      const res = await api.get('/courses');
+      const res = await api.get('/courses', { params });
       if (res.data?.success) {
         const isComingSoon = Boolean(res.data.isComingSoon);
         const hasAccess = res.data.hasAccess !== false;
         const isEarlyAccess = Boolean(res.data.isEarlyAccess);
         set({
           domains: res.data.data || [],
+          domainsPagination: res.data.pagination || null,
           isComingSoon,
           hasCourseAccess: hasAccess,
           isEarlyAccess,
@@ -231,14 +250,21 @@ export const useDomainStore = create<DomainState>((set, get) => ({
     }
   },
 
-  fetchEnrolledStudents: async (domainId: string, search?: string) => {
+  fetchEnrolledStudents: async (domainId: string, search?: string, page?: number, limit?: number) => {
     try {
       set({ loadingStudents: true });
-      const params = search ? { search } : {};
+      const params: any = {};
+      if (search) params.search = search;
+      if (page) params.page = page;
+      if (limit) params.limit = limit;
       const res = await api.get(`/domains/${domainId}/students`, { params });
       if (res.data?.success) {
         const students = res.data.data?.students || [];
-        set({ enrolledStudents: students, loadingStudents: false });
+        set({
+          enrolledStudents: students,
+          enrolledStudentsPagination: res.data.pagination || null,
+          loadingStudents: false,
+        });
         return students;
       }
       set({ loadingStudents: false });
@@ -524,6 +550,64 @@ export const useDomainStore = create<DomainState>((set, get) => ({
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to batch update student access');
       return false;
+    }
+  },
+
+  downloadSampleTemplate: async () => {
+    try {
+      const res = await api.get('/courses/admin/template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'course_levels_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Course & levels sample template downloaded!');
+    } catch (err: any) {
+      toast.error('Failed to download course Excel template');
+    }
+  },
+
+  bulkUploadCoursesAndLevels: async (file: File, domainId?: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (domainId) {
+        formData.append('domainId', domainId);
+      }
+
+      const queryParams = new URLSearchParams();
+      if (domainId) queryParams.set('domainId', domainId);
+      const url = `/courses/admin/bulk-upload${
+        queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
+
+      const res = await api.post(url, formData);
+      await get().fetchDomains();
+      if (domainId) {
+        await get().fetchDomainLevels(domainId);
+      }
+      return {
+        success: true,
+        coursesCreated: res.data.coursesCreated,
+        coursesUpdated: res.data.coursesUpdated,
+        levelsCreated: res.data.levelsCreated,
+        levelsUpdated: res.data.levelsUpdated,
+        message: res.data.message,
+        errors: res.data.errors,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Bulk upload failed',
+        errors: err.response?.data?.errors,
+      };
     }
   },
 }));

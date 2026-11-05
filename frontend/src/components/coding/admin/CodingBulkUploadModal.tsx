@@ -16,6 +16,7 @@ import {
   FileText,
   Sparkles,
 } from 'lucide-react';
+import TutorialButton from '../../common/TutorialButton';
 
 interface CodingBulkUploadModalProps {
   isOpen?: boolean;
@@ -260,8 +261,19 @@ export const CodingBulkUploadModal: React.FC<CodingBulkUploadModalProps> = ({
         if (!nextOpen) onClose();
       }}
       onClose={onClose}
-      title="Bulk Upload Coding Questions"
-      description="Upload multiple coding challenges via Excel to populate course level question pools or standalone assessments."
+      title={
+        <div className="flex items-center justify-between w-full pr-6 gap-3">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-label-primary">
+              Bulk Upload Coding Questions
+            </h3>
+            <p className="text-xs text-label-secondary font-normal mt-0.5">
+              Upload multiple coding challenges via Excel with custom points to question pools
+            </p>
+          </div>
+          <TutorialButton tutorialId="coding-bulk-upload" variant="icon" />
+        </div>
+      }
       dialogClassName="sm:max-w-2xl p-6 z-[70]"
     >
       <div className="space-y-5 py-1">

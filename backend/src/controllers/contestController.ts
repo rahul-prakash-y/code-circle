@@ -1,9 +1,12 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
+import * as XLSX from 'xlsx';
 import Contest, { IContest } from '../models/contestModel';
 import ContestSubmission from '../models/contestSubmissionModel';
 import User from '../models/userModel';
+import Notification from '../models/notificationModel';
 import rceService from '../services/rceService';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 interface AuthUser {
   userId?: string;
@@ -30,53 +33,157 @@ function normalizeOutput(output: string): string {
     .trim();
 }
 
-// 1. Get All Contests (Split by Status)
+/**
+ * Enriches a contest submission with question prompts, options, correct answers,
+ * and coding problem details so students and administrators can review full solutions.
+ */
+export function enrichSubmissionWithContestDetails(submission: any, contest: any) {
+  if (!submission) return null;
+
+  const mcqQuestions = contest?.mcqQuestions || [];
+  const codingProblems = contest?.codingProblems || [];
+
+  const mcqDetails = (submission.mcqAnswers || []).map((ans: any) => {
+    const q = mcqQuestions.find(
+      (item: any) => item._id?.toString() === ans.questionId?.toString()
+    );
+    const selectedIdx = typeof ans.selectedOption === 'number' ? ans.selectedOption : -1;
+    const correctIdx = typeof q?.correctOptionIndex === 'number' ? q.correctOptionIndex : -1;
+    return {
+      questionId: ans.questionId,
+      questionText: q?.question || 'Question prompt not found',
+      options: q?.options || [],
+      correctOptionIndex: correctIdx,
+      selectedOption: selectedIdx,
+      selectedOptionText:
+        selectedIdx >= 0 && q?.options?.[selectedIdx]
+          ? q.options[selectedIdx]
+          : selectedIdx >= 0
+          ? `Option ${selectedIdx}`
+          : 'Not answered',
+      correctOptionText: correctIdx >= 0 && q?.options?.[correctIdx] ? q.options[correctIdx] : '',
+      isCorrect: ans.isCorrect ?? (selectedIdx >= 0 && selectedIdx === correctIdx),
+      pointsEarned: ans.pointsEarned ?? 0,
+      maxPoints: q?.points || 10,
+      explanation: q?.explanation || '',
+    };
+  });
+
+  const codingDetails = (submission.codingSubmissions || []).map((cs: any) => {
+    const prob = codingProblems.find(
+      (item: any) => item._id?.toString() === cs.problemId?.toString()
+    );
+    return {
+      problemId: cs.problemId,
+      problemTitle: prob?.title || 'Coding Problem',
+      problemDifficulty: prob?.difficulty || 'Medium',
+      problemDescription: prob?.description || '',
+      maxPoints: prob?.points || 30,
+      code: cs.code || '',
+      language: cs.language || 'python',
+      passedTestCases: cs.passedTestCases || 0,
+      totalTestCases: cs.totalTestCases || 0,
+      status: cs.status || 'PENDING',
+      pointsEarned: cs.pointsEarned || 0,
+      submittedAt: cs.submittedAt,
+    };
+  });
+
+  return {
+    ...submission,
+    mcqAnswers: mcqDetails,
+    codingSubmissions: codingDetails,
+  };
+}
+
+// 1. Get All Contests (Split by Status) with Pagination & Batch Lookup
 export const getContests = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const userId = getUserId(req);
+    const query = req.query as any;
     const now = new Date();
 
-    const contests = await Contest.find({ isPublished: true })
-      .sort({ startTime: -1 })
-      .lean();
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'startTime',
+      allowedSortFields: ['startTime', 'createdAt', 'title', 'totalPoints'],
+    });
+
+    const filter: any = { isPublished: true };
+    if (query?.type && ['CODING', 'MCQ', 'HYBRID'].includes(query.type)) {
+      filter.type = query.type;
+    }
+    if (query?.difficulty && ['Beginner', 'Intermediate', 'Advanced', 'All Levels'].includes(query.difficulty)) {
+      filter.difficulty = query.difficulty;
+    }
+    if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+      filter.title = { $regex: query.search.trim(), $options: 'i' };
+    }
+
+    const sortObj: any = {};
+    sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sortObj._id = -1;
+
+    const [total, contests] = await Promise.all([
+      Contest.countDocuments(filter),
+      Contest.find(filter)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    // Batch-fetch submissions for all contests in this page (eliminating N+1 queries)
+    const contestIds = contests.map((c: any) => c._id);
+    const submissionMap = new Map<string, any>();
+
+    if (userId && contestIds.length > 0) {
+      const userSubs = await ContestSubmission.find({
+        contestId: { $in: contestIds },
+        userId,
+      })
+        .select('contestId status totalScore startedAt submittedAt expiresAt timeTakenSeconds awardedClubPoints pointsAwarded')
+        .lean();
+
+      userSubs.forEach((sub: any) => {
+        submissionMap.set(sub.contestId.toString(), sub);
+      });
+    }
 
     // Map dynamic status based on time
-    const updatedContests = await Promise.all(
-      contests.map(async (c) => {
-        let dynamicStatus = c.status;
-        if (now < new Date(c.startTime)) {
-          dynamicStatus = 'UPCOMING';
-        } else if (now >= new Date(c.startTime) && now <= new Date(c.endTime)) {
-          dynamicStatus = 'LIVE';
-        } else {
-          dynamicStatus = 'ENDED';
-        }
+    const updatedContests = contests.map((c: any) => {
+      let dynamicStatus = c.status;
+      if (now < new Date(c.startTime)) {
+        dynamicStatus = 'UPCOMING';
+      } else if (now >= new Date(c.startTime) && now <= new Date(c.endTime)) {
+        dynamicStatus = 'LIVE';
+      } else {
+        dynamicStatus = 'ENDED';
+      }
 
-        // Check if current user has a submission
-        let mySubmission: any = null;
-        if (userId) {
-          mySubmission = await ContestSubmission.findOne({
-            contestId: c._id,
-            userId,
-          })
-            .select('status totalScore startedAt submittedAt expiresAt')
-            .lean();
-        }
+      const mySubmission = submissionMap.get(c._id.toString()) || null;
 
-        return {
-          ...c,
-          status: dynamicStatus,
-          mySubmission,
-          mcqCount: c.mcqQuestions?.length || 0,
-          codingCount: c.codingProblems?.length || 0,
-          // Redact questions list in overview to save bandwidth
-          mcqQuestions: undefined,
-          codingProblems: undefined,
-        };
-      })
-    );
+      return {
+        ...c,
+        status: dynamicStatus,
+        mySubmission,
+        mcqCount: c.mcqQuestions?.length || 0,
+        codingCount: c.codingProblems?.length || 0,
+        // Redact questions list in overview to save bandwidth
+        mcqQuestions: undefined,
+        codingProblems: undefined,
+      };
+    });
 
-    return reply.send({ success: true, count: updatedContests.length, data: updatedContests });
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      count: updatedContests.length,
+      pagination,
+      data: updatedContests,
+    });
   } catch (error: any) {
     req.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to fetch contests' });
@@ -116,6 +223,9 @@ export const getContestById = async (req: FastifyRequest, reply: FastifyReply) =
         contestId: contest._id,
         userId,
       }).lean();
+      if (mySubmission) {
+        mySubmission = enrichSubmissionWithContestDetails(mySubmission, contest);
+      }
     }
 
     // If student and contest not ended, redact correctOptionIndex and hidden test cases
@@ -180,11 +290,6 @@ export const startContestSession = async (req: FastifyRequest, reply: FastifyRep
       return reply.status(404).send({ success: false, error: 'Contest not found' });
     }
 
-    const now = new Date();
-    if (now > new Date(contest.endTime)) {
-      return reply.status(400).send({ success: false, error: 'This contest has already ended.' });
-    }
-
     // Existing session check
     let submission = await ContestSubmission.findOne({ contestId: contest._id, userId });
     if (submission) {
@@ -196,6 +301,11 @@ export const startContestSession = async (req: FastifyRequest, reply: FastifyRep
         });
       }
       return reply.send({ success: true, message: 'Resuming active session', submission });
+    }
+
+    const now = new Date();
+    if (now > new Date(contest.endTime)) {
+      return reply.status(400).send({ success: false, error: 'This contest has already ended.' });
     }
 
     // Initialize session with strict duration
@@ -516,26 +626,39 @@ export const submitContest = async (req: FastifyRequest, reply: FastifyReply) =>
   }
 };
 
-// 7. Get Contest Leaderboard
+// 7. Get Contest Leaderboard (Paginated with Global Ranks)
 export const getContestLeaderboard = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = req.params as { id: string };
+    const query = req.query as any;
 
     const contest = await Contest.findOne({
       $or: [{ _id: mongoose.isValidObjectId(id) ? id : null }, { slug: id.toLowerCase() }],
-    });
+    }).lean();
 
     if (!contest) {
       return reply.status(404).send({ success: false, error: 'Contest not found' });
     }
 
-    const submissions = await ContestSubmission.find({ contestId: contest._id })
-      .sort({ totalScore: -1, timeTakenSeconds: 1 })
-      .populate('userId', 'name rollNo email profilePicUrl avatar department points')
-      .lean();
+    const { page, limit, skip } = parsePaginationParams(query, {
+      defaultLimit: 50,
+      maxLimit: 100,
+      defaultSortBy: 'totalScore',
+      allowedSortFields: ['totalScore', 'timeTakenSeconds', 'submittedAt'],
+    });
+
+    const [total, submissions] = await Promise.all([
+      ContestSubmission.countDocuments({ contestId: contest._id }),
+      ContestSubmission.find({ contestId: contest._id })
+        .sort({ totalScore: -1, timeTakenSeconds: 1, _id: 1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name rollNo email profilePicUrl avatar department points')
+        .lean(),
+    ]);
 
     const leaderboard = submissions.map((s: any, idx: number) => ({
-      rank: idx + 1,
+      rank: skip + idx + 1,
       submissionId: s._id,
       user: s.userId,
       totalScore: s.totalScore,
@@ -551,11 +674,14 @@ export const getContestLeaderboard = async (req: FastifyRequest, reply: FastifyR
       submittedAt: s.submittedAt,
     }));
 
+    const pagination = buildPaginationMeta(total, page, limit);
+
     return reply.send({
       success: true,
       contestTitle: contest.title,
       pointAllocationMode: contest.pointAllocationMode || 'AUTOMATIC',
-      totalParticipants: leaderboard.length,
+      totalParticipants: total,
+      pagination,
       data: leaderboard,
     });
   } catch (error: any) {
@@ -806,21 +932,76 @@ export const bulkAllocateContestPoints = async (req: FastifyRequest, reply: Fast
   }
 };
 
-// 13. Admin: Get Detailed Contest Submissions for Evaluation
+// 13. Admin: Get Detailed Contest Submissions for Evaluation (Paginated)
 export const getContestSubmissionsForAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const { id } = req.params as { id: string };
+    const query = req.query as any;
 
     const contest = await Contest.findById(id).lean();
     if (!contest) {
       return reply.status(404).send({ success: false, error: 'Contest not found' });
     }
 
-    const submissions = await ContestSubmission.find({ contestId: contest._id })
-      .sort({ totalScore: -1, timeTakenSeconds: 1 })
-      .populate('userId', 'name rollNo email profilePicUrl avatar department points')
-      .populate('manualAllocatedBy', 'name email')
-      .lean();
+    const { page, limit, skip, sortBy, sortOrder } = parsePaginationParams(query, {
+      defaultLimit: 20,
+      maxLimit: 100,
+      defaultSortBy: 'totalScore',
+      allowedSortFields: ['totalScore', 'timeTakenSeconds', 'submittedAt', 'createdAt'],
+    });
+
+    const filter: any = { contestId: contest._id };
+
+    if (query?.filterMode === 'REENTRY_REQUESTS') {
+      filter.reentryStatus = 'PENDING';
+    } else if (query?.filterMode === 'ALLOCATED') {
+      filter.pointsAwarded = true;
+      filter.awardedClubPoints = { $gt: 0 };
+    } else if (query?.filterMode === 'PENDING') {
+      filter.$or = [{ pointsAwarded: false }, { awardedClubPoints: 0 }];
+    }
+
+    if (query?.search && typeof query.search === 'string' && query.search.trim()) {
+      const searchRegex = new RegExp(query.search.trim(), 'i');
+      const matchingUsers = await User.find({
+        $or: [
+          { name: searchRegex },
+          { rollNo: searchRegex },
+          { email: searchRegex },
+        ],
+      })
+        .select('_id')
+        .lean();
+      filter.userId = { $in: matchingUsers.map((u) => u._id) };
+    }
+
+    const sortObj: any = {};
+    if (sortBy === 'totalScore') {
+      sortObj.totalScore = sortOrder === 'asc' ? 1 : -1;
+      sortObj.timeTakenSeconds = 1;
+    } else {
+      sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    }
+    sortObj._id = 1;
+
+    const [total, submissions] = await Promise.all([
+      ContestSubmission.countDocuments(filter),
+      ContestSubmission.find(filter)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name rollNo email profilePicUrl avatar department points')
+        .populate('manualAllocatedBy', 'name email')
+        .populate('reentryApprovedBy', 'name email')
+        .lean(),
+    ]);
+
+    // Enrich only the current page of submissions (drastic performance & memory saving)
+    const enrichedSubmissions = submissions.map((s: any) =>
+      enrichSubmissionWithContestDetails(s, contest)
+    );
+
+    const pagination = buildPaginationMeta(total, page, limit);
 
     return reply.send({
       success: true,
@@ -828,14 +1009,934 @@ export const getContestSubmissionsForAdmin = async (req: FastifyRequest, reply: 
         _id: contest._id,
         title: contest.title,
         type: contest.type,
+        difficulty: contest.difficulty,
         totalPoints: contest.totalPoints,
         pointAllocationMode: contest.pointAllocationMode || 'AUTOMATIC',
+        mcqCount: contest.mcqQuestions?.length || 0,
+        codingCount: contest.codingProblems?.length || 0,
       },
-      count: submissions.length,
-      data: submissions,
+      count: enrichedSubmissions.length,
+      pagination,
+      data: enrichedSubmissions,
     });
   } catch (error: any) {
     req.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to fetch contest submissions' });
   }
 };
+
+// 13b. Admin: Get Single Student Contest Submission with Detailed Review
+export const getSingleContestSubmissionForAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id, submissionId } = req.params as { id: string; submissionId: string };
+
+    const contest = await Contest.findById(id).lean();
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findById(submissionId)
+      .populate('userId', 'name rollNo email profilePicUrl avatar department points')
+      .populate('manualAllocatedBy', 'name email')
+      .populate('reentryApprovedBy', 'name email')
+      .lean();
+
+    if (!submission) {
+      return reply.status(404).send({ success: false, error: 'Contest submission not found' });
+    }
+
+    const enriched = enrichSubmissionWithContestDetails(submission, contest);
+
+    return reply.send({
+      success: true,
+      contest: {
+        _id: contest._id,
+        title: contest.title,
+        type: contest.type,
+        difficulty: contest.difficulty,
+        totalPoints: contest.totalPoints,
+        durationMinutes: contest.durationMinutes,
+      },
+      data: enriched,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to fetch contest submission details' });
+  }
+};
+
+// 13c. Student: Get My Contest Submission with MCQ & Coding Breakdown
+export const getMyContestSubmission = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const userId = getUserId(req);
+
+    const contest = await Contest.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(id) ? id : null }, { slug: id.toLowerCase() }],
+    }).lean();
+
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findOne({ contestId: contest._id, userId })
+      .populate('userId', 'name rollNo email profilePicUrl avatar department points')
+      .populate('manualAllocatedBy', 'name email')
+      .lean();
+
+    if (!submission) {
+      return reply.status(404).send({ success: false, error: 'No submission found for this contest' });
+    }
+
+    const enriched = enrichSubmissionWithContestDetails(submission, contest);
+
+    return reply.send({
+      success: true,
+      contest: {
+        _id: contest._id,
+        title: contest.title,
+        type: contest.type,
+        difficulty: contest.difficulty,
+        totalPoints: contest.totalPoints,
+        durationMinutes: contest.durationMinutes,
+        status: contest.status,
+      },
+      data: enriched,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to fetch your contest submission' });
+  }
+};
+
+// 14. Admin: Download Sample Excel Template for Contest MCQ Questions
+export const downloadContestMcqTemplate = async (_req: FastifyRequest, reply: FastifyReply) => {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Sample MCQ Questions
+  const sampleData = [
+    {
+      'Question': 'What is the time complexity of searching in a balanced Binary Search Tree?',
+      'OptionA': 'O(1)',
+      'OptionB': 'O(n)',
+      'OptionC': 'O(log n)',
+      'OptionD': 'O(n log n)',
+      'CorrectOption': 'C',
+      'Points': 10,
+      'Explanation': 'In a balanced BST, tree height is log2(n), giving O(log n) search operations.',
+    },
+    {
+      'Question': 'Which data structure follows the First-In-First-Out (FIFO) principle?',
+      'OptionA': 'Stack',
+      'OptionB': 'Queue',
+      'OptionC': 'Priority Queue',
+      'OptionD': 'Binary Heap',
+      'CorrectOption': 'B',
+      'Points': 10,
+      'Explanation': 'Queues process elements strictly in FIFO order.',
+    },
+    {
+      'Question': 'What is the space complexity of an iterative binary search algorithm?',
+      'OptionA': 'O(1)',
+      'OptionB': 'O(log n)',
+      'OptionC': 'O(n)',
+      'OptionD': 'O(n^2)',
+      'CorrectOption': 'A',
+      'Points': 10,
+      'Explanation': 'Iterative binary search uses constant additional memory.',
+    },
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(sampleData);
+  XLSX.utils.book_append_sheet(wb, ws, 'MCQ Questions');
+
+  // Sheet 2: Instructions
+  const instructions = [
+    { 'Column': 'Question', 'Required': 'YES', 'Description': 'The full text of the multiple choice question statement.' },
+    { 'Column': 'OptionA', 'Required': 'YES', 'Description': 'Choice A text.' },
+    { 'Column': 'OptionB', 'Required': 'YES', 'Description': 'Choice B text.' },
+    { 'Column': 'OptionC', 'Required': 'NO', 'Description': 'Choice C text (optional if only 2 choices).' },
+    { 'Column': 'OptionD', 'Required': 'NO', 'Description': 'Choice D text (optional).' },
+    { 'Column': 'CorrectOption', 'Required': 'YES', 'Description': 'Correct answer key: A, B, C, D (or 1, 2, 3, 4, or exact option text).' },
+    { 'Column': 'Points', 'Required': 'NO', 'Description': 'Points awarded for answering correctly (default: 10).' },
+    { 'Column': 'Explanation', 'Required': 'NO', 'Description': 'Explanation shown to students in review after submission.' },
+  ];
+  const wsInstr = XLSX.utils.json_to_sheet(instructions);
+  XLSX.utils.book_append_sheet(wb, wsInstr, 'Instructions');
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  return reply
+    .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .header('Content-Disposition', 'attachment; filename="contest_mcq_sample_template.xlsx"')
+    .send(buffer);
+};
+
+// 15. Admin: Download Sample Excel Template for Contest Coding Challenges
+export const downloadContestCodingTemplate = async (_req: FastifyRequest, reply: FastifyReply) => {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Sample Coding Challenges
+  const sampleData = [
+    {
+      'Title': 'Two Sum Variant',
+      'Description': 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. Output indices space-separated on a single line.',
+      'Difficulty': 'Easy',
+      'Points': 30,
+      'AllowedLanguages': 'python, javascript, cpp, java, c',
+      'InputFormat': 'First line contains integer N. Second line contains N integers. Third line contains target integer.',
+      'OutputFormat': 'Output two space-separated 0-based indices.',
+      'Constraints': '2 <= nums.length <= 10^4, -10^9 <= nums[i] <= 10^9',
+      'SampleInput': '4\n2 7 11 15\n9',
+      'SampleOutput': '0 1',
+      'StarterCode_Python': '# Write your Python code here\n',
+      'StarterCode_JavaScript': '// Write your JavaScript code here\n',
+      'StarterCode_Cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    return 0;\n}\n',
+      'StarterCode_Java': 'import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n    }\n}\n',
+      'StarterCode_C': '#include <stdio.h>\n\nint main() {\n    return 0;\n}\n',
+      'TestCase1_Input': '4\n2 7 11 15\n9',
+      'TestCase1_ExpectedOutput': '0 1',
+      'TestCase1_IsHidden': 'FALSE',
+      'TestCase2_Input': '3\n3 2 4\n6',
+      'TestCase2_ExpectedOutput': '1 2',
+      'TestCase2_IsHidden': 'FALSE',
+      'TestCase3_Input': '2\n3 3\n6',
+      'TestCase3_ExpectedOutput': '0 1',
+      'TestCase3_IsHidden': 'TRUE',
+    },
+    {
+      'Title': 'Valid Palindrome',
+      'Description': 'Determine if a given string is a palindrome considering only alphanumeric characters and ignoring cases. Output "true" or "false".',
+      'Difficulty': 'Medium',
+      'Points': 40,
+      'AllowedLanguages': 'python, javascript, cpp, java, c',
+      'InputFormat': 'A single line containing string S.',
+      'OutputFormat': 'Output "true" if palindrome, else "false".',
+      'Constraints': '1 <= S.length <= 2 * 10^5',
+      'SampleInput': 'A man, a plan, a canal: Panama',
+      'SampleOutput': 'true',
+      'StarterCode_Python': '# Write your Python code here\n',
+      'StarterCode_JavaScript': '// Write your JavaScript code here\n',
+      'TestCase1_Input': 'A man, a plan, a canal: Panama',
+      'TestCase1_ExpectedOutput': 'true',
+      'TestCase1_IsHidden': 'FALSE',
+      'TestCase2_Input': 'race a car',
+      'TestCase2_ExpectedOutput': 'false',
+      'TestCase2_IsHidden': 'TRUE',
+    },
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(sampleData);
+  XLSX.utils.book_append_sheet(wb, ws, 'Coding Challenges');
+
+  // Sheet 2: Instructions
+  const instructions = [
+    { 'Column': 'Title', 'Required': 'YES', 'Description': 'Problem headline/title.' },
+    { 'Column': 'Description', 'Required': 'YES', 'Description': 'Full problem statement, objective and explanation.' },
+    { 'Column': 'Difficulty', 'Required': 'NO', 'Description': 'Easy, Medium, or Hard (defaults to Medium).' },
+    { 'Column': 'Points', 'Required': 'NO', 'Description': 'Points awarded for completing this challenge (defaults to 30).' },
+    { 'Column': 'AllowedLanguages', 'Required': 'NO', 'Description': 'Comma-separated: python, javascript, cpp, java, c.' },
+    { 'Column': 'InputFormat', 'Required': 'NO', 'Description': 'Input structure specification.' },
+    { 'Column': 'OutputFormat', 'Required': 'NO', 'Description': 'Output structure specification.' },
+    { 'Column': 'Constraints', 'Required': 'NO', 'Description': 'Time, space, and value bounds.' },
+    { 'Column': 'SampleInput', 'Required': 'NO', 'Description': 'Example public input.' },
+    { 'Column': 'SampleOutput', 'Required': 'NO', 'Description': 'Example public output.' },
+    { 'Column': 'StarterCode_<Lang>', 'Required': 'NO', 'Description': 'Starter boilerplate for Python, JavaScript, Cpp, Java, C.' },
+    { 'Column': 'TestCase{N}_Input', 'Required': 'YES (>= 1)', 'Description': 'Input data for test case N.' },
+    { 'Column': 'TestCase{N}_ExpectedOutput', 'Required': 'YES (>= 1)', 'Description': 'Expected stdout for test case N.' },
+    { 'Column': 'TestCase{N}_IsHidden', 'Required': 'NO', 'Description': 'TRUE for hidden anti-cheat grading test case, FALSE for public.' },
+  ];
+  const wsInstr = XLSX.utils.json_to_sheet(instructions);
+  XLSX.utils.book_append_sheet(wb, wsInstr, 'Instructions');
+
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  return reply
+    .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .header('Content-Disposition', 'attachment; filename="contest_coding_sample_template.xlsx"')
+    .send(buffer);
+};
+
+// 16. Admin: Parse Uploaded Contest MCQ Questions (Excel or JSON)
+export const parseContestMcqUpload = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    let fileBuffer: Buffer | null = null;
+    let filename = '';
+
+    // Check multipart file
+    let fileData: any = null;
+    try {
+      fileData = await req.file();
+    } catch (err: any) {
+      // Ignore if not multipart
+    }
+
+    if (fileData) {
+      filename = (fileData.filename || '').toLowerCase();
+      const chunks: Buffer[] = [];
+      for await (const chunk of fileData.file) {
+        chunks.push(chunk);
+      }
+      fileBuffer = Buffer.concat(chunks);
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
+      // Check if sent in request body as JSON array
+      const body = req.body as any;
+      if (Array.isArray(body?.questions)) {
+        return reply.send({
+          success: true,
+          count: body.questions.length,
+          data: body.questions,
+          errors: [],
+        });
+      }
+      return reply.status(400).send({ success: false, error: 'No Excel or JSON file uploaded' });
+    }
+
+    const errors: string[] = [];
+    const parsedQuestions: any[] = [];
+
+    if (filename.endsWith('.json')) {
+      try {
+        const jsonContent = JSON.parse(fileBuffer.toString('utf-8'));
+        const list = Array.isArray(jsonContent) ? jsonContent : jsonContent.questions || [];
+        for (let i = 0; i < list.length; i++) {
+          const item = list[i];
+          if (!item.question || !Array.isArray(item.options) || item.options.length < 2) {
+            errors.push(`Question #${i + 1} is missing valid question statement or at least 2 options.`);
+            continue;
+          }
+          parsedQuestions.push({
+            question: String(item.question).trim(),
+            options: item.options.map((o: any) => String(o).trim()),
+            correctOptionIndex: typeof item.correctOptionIndex === 'number' ? item.correctOptionIndex : 0,
+            points: Number(item.points) > 0 ? Number(item.points) : 10,
+            explanation: String(item.explanation || '').trim(),
+          });
+        }
+      } catch (jsonErr: any) {
+        return reply.status(400).send({ success: false, error: 'Invalid JSON file format: ' + jsonErr.message });
+      }
+    } else {
+      // Parse with XLSX
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const sheetName =
+        workbook.SheetNames.find(
+          (s) =>
+            s.toLowerCase().includes('mcq') ||
+            s.toLowerCase().includes('question') ||
+            s.toLowerCase().includes('contest')
+        ) ||
+        workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct')) ||
+        workbook.SheetNames[0];
+
+      if (!sheetName) {
+        return reply.status(400).send({ success: false, error: 'Workbook contains no valid worksheets' });
+      }
+
+      const rows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+      if (!rows.length) {
+        return reply.status(400).send({ success: false, error: 'The uploaded sheet contains no question rows' });
+      }
+
+      const getRowValue = (row: any, ...keys: string[]) => {
+        for (const k of keys) {
+          const direct = row[k];
+          if (direct !== undefined && direct !== null && String(direct).trim() !== '') {
+            return String(direct).trim();
+          }
+          const lowerKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          for (const rowKey of Object.keys(row)) {
+            if (rowKey.toLowerCase().replace(/[^a-z0-9]/g, '') === lowerKey) {
+              const val = row[rowKey];
+              if (val !== undefined && val !== null && String(val).trim() !== '') {
+                return String(val).trim();
+              }
+            }
+          }
+        }
+        return '';
+      };
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNum = i + 2;
+
+        const question = getRowValue(row, 'Question', 'QuestionText', 'Statement', 'Title');
+        if (!question) {
+          // Skip completely empty spacer rows
+          const hasAny = Object.values(row).some((v) => String(v).trim());
+          if (hasAny) {
+            errors.push(`Row #${rowNum}: Question statement is missing.`);
+          }
+          continue;
+        }
+
+        const optA = getRowValue(row, 'OptionA', 'Option1', 'ChoiceA', 'A');
+        const optB = getRowValue(row, 'OptionB', 'Option2', 'ChoiceB', 'B');
+        const optC = getRowValue(row, 'OptionC', 'Option3', 'ChoiceC', 'C');
+        const optD = getRowValue(row, 'OptionD', 'Option4', 'ChoiceD', 'D');
+
+        const rawOptions = [optA, optB, optC, optD].filter((opt) => opt !== '');
+        if (rawOptions.length < 2) {
+          errors.push(`Row #${rowNum} ("${question.slice(0, 30)}..."): Must have at least 2 valid options.`);
+          continue;
+        }
+
+        const rawCorrect = getRowValue(row, 'CorrectOption', 'CorrectAnswer', 'Answer', 'Key');
+        let correctOptionIndex = 0;
+        const normalized = rawCorrect.toUpperCase();
+
+        if (normalized === 'A' || normalized === '1' || normalized === '0') {
+          correctOptionIndex = 0;
+        } else if (normalized === 'B' || normalized === '2') {
+          correctOptionIndex = 1;
+        } else if (normalized === 'C' || normalized === '3') {
+          correctOptionIndex = 2;
+        } else if (normalized === 'D' || normalized === '4') {
+          correctOptionIndex = 3;
+        } else {
+          // Direct text match
+          const foundIdx = rawOptions.findIndex((o) => o.toLowerCase() === rawCorrect.toLowerCase());
+          if (foundIdx >= 0) {
+            correctOptionIndex = foundIdx;
+          } else {
+            const numVal = parseInt(rawCorrect, 10);
+            if (!isNaN(numVal) && numVal >= 1 && numVal <= rawOptions.length) {
+              correctOptionIndex = numVal - 1;
+            } else if (!isNaN(numVal) && numVal >= 0 && numVal < rawOptions.length) {
+              correctOptionIndex = numVal;
+            }
+          }
+        }
+
+        if (correctOptionIndex < 0 || correctOptionIndex >= rawOptions.length) {
+          correctOptionIndex = 0;
+        }
+
+        const points = Math.max(1, parseInt(getRowValue(row, 'Points', 'Score', 'Marks'), 10) || 10);
+        const explanation = getRowValue(row, 'Explanation', 'Reason', 'Description');
+
+        parsedQuestions.push({
+          question,
+          options: rawOptions,
+          correctOptionIndex,
+          points,
+          explanation,
+        });
+      }
+    }
+
+    if (parsedQuestions.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error: 'No valid MCQ questions could be parsed from the file.',
+        errors,
+      });
+    }
+
+    return reply.send({
+      success: true,
+      count: parsedQuestions.length,
+      data: parsedQuestions,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to parse MCQ file: ' + error.message });
+  }
+};
+
+// 17. Admin: Parse Uploaded Contest Coding Challenges (Excel or JSON)
+export const parseContestCodingUpload = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    let fileBuffer: Buffer | null = null;
+    let filename = '';
+
+    let fileData: any = null;
+    try {
+      fileData = await req.file();
+    } catch (err: any) {
+      // Ignore if not multipart
+    }
+
+    if (fileData) {
+      filename = (fileData.filename || '').toLowerCase();
+      const chunks: Buffer[] = [];
+      for await (const chunk of fileData.file) {
+        chunks.push(chunk);
+      }
+      fileBuffer = Buffer.concat(chunks);
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
+      const body = req.body as any;
+      if (Array.isArray(body?.problems)) {
+        return reply.send({
+          success: true,
+          count: body.problems.length,
+          data: body.problems,
+          errors: [],
+        });
+      }
+      return reply.status(400).send({ success: false, error: 'No Excel or JSON file uploaded' });
+    }
+
+    const errors: string[] = [];
+    const parsedProblems: any[] = [];
+
+    const defaultStarterCode = {
+      python: '# Write your code here\n',
+      javascript: '// Write your code here\n',
+      cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    return 0;\n}\n',
+      java: 'import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        // Write your code here\n    }\n}\n',
+      c: '#include <stdio.h>\n\nint main() {\n    // Write your code here\n    return 0;\n}\n',
+    };
+
+    if (filename.endsWith('.json')) {
+      try {
+        const jsonContent = JSON.parse(fileBuffer.toString('utf-8'));
+        const list = Array.isArray(jsonContent) ? jsonContent : jsonContent.problems || [];
+        for (let i = 0; i < list.length; i++) {
+          const item = list[i];
+          if (!item.title || !item.description) {
+            errors.push(`Problem #${i + 1} is missing title or description.`);
+            continue;
+          }
+          const testCases = Array.isArray(item.testCases) ? item.testCases : [];
+          if (testCases.length === 0 && (item.sampleInput || item.sampleOutput)) {
+            testCases.push({ input: item.sampleInput || '', expectedOutput: item.sampleOutput || '', isHidden: false });
+          }
+          parsedProblems.push({
+            title: String(item.title).trim(),
+            description: String(item.description).trim(),
+            difficulty: ['Easy', 'Medium', 'Hard'].includes(item.difficulty) ? item.difficulty : 'Medium',
+            points: Number(item.points) > 0 ? Number(item.points) : 30,
+            allowedLanguages: Array.isArray(item.allowedLanguages) && item.allowedLanguages.length > 0
+              ? item.allowedLanguages
+              : ['python', 'javascript', 'cpp', 'java', 'c'],
+            starterCode: item.starterCode || defaultStarterCode,
+            inputFormat: String(item.inputFormat || '').trim(),
+            outputFormat: String(item.outputFormat || '').trim(),
+            constraints: String(item.constraints || '').trim(),
+            sampleInput: String(item.sampleInput || '').trim(),
+            sampleOutput: String(item.sampleOutput || '').trim(),
+            testCases: testCases.map((tc: any) => ({
+              input: String(tc.input ?? ''),
+              expectedOutput: String(tc.expectedOutput ?? ''),
+              isHidden: Boolean(tc.isHidden),
+            })),
+          });
+        }
+      } catch (jsonErr: any) {
+        return reply.status(400).send({ success: false, error: 'Invalid JSON file: ' + jsonErr.message });
+      }
+    } else {
+      const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      const sheetName =
+        workbook.SheetNames.find(
+          (s) =>
+            s.toLowerCase().includes('coding') ||
+            s.toLowerCase().includes('problem') ||
+            s.toLowerCase().includes('challenge')
+        ) ||
+        workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct')) ||
+        workbook.SheetNames[0];
+
+      if (!sheetName) {
+        return reply.status(400).send({ success: false, error: 'Workbook contains no valid worksheets' });
+      }
+
+      const rows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+      if (!rows.length) {
+        return reply.status(400).send({ success: false, error: 'The uploaded sheet contains no problem rows' });
+      }
+
+      const getRowValue = (row: any, ...keys: string[]) => {
+        for (const k of keys) {
+          const direct = row[k];
+          if (direct !== undefined && direct !== null && String(direct).trim() !== '') {
+            return String(direct).trim();
+          }
+          const lowerKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          for (const rowKey of Object.keys(row)) {
+            if (rowKey.toLowerCase().replace(/[^a-z0-9]/g, '') === lowerKey) {
+              const val = row[rowKey];
+              if (val !== undefined && val !== null && String(val).trim() !== '') {
+                return String(val).trim();
+              }
+            }
+          }
+        }
+        return '';
+      };
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNum = i + 2;
+
+        const title = getRowValue(row, 'Title', 'ProblemTitle', 'Name');
+        const description = getRowValue(row, 'Description', 'Statement', 'ProblemDescription');
+
+        if (!title && !description) {
+          continue; // Empty spacer row
+        }
+
+        if (!title) {
+          errors.push(`Row #${rowNum}: Problem title is required.`);
+          continue;
+        }
+
+        if (!description) {
+          errors.push(`Row #${rowNum} ("${title}"): Problem description is required.`);
+          continue;
+        }
+
+        const rawDiff = getRowValue(row, 'Difficulty', 'Level');
+        let difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium';
+        if (rawDiff.toLowerCase().includes('easy')) difficulty = 'Easy';
+        else if (rawDiff.toLowerCase().includes('hard')) difficulty = 'Hard';
+
+        const points = Math.max(1, parseInt(getRowValue(row, 'Points', 'CustomPoints', 'Score'), 10) || 30);
+
+        const rawLangs = getRowValue(row, 'AllowedLanguages', 'Languages');
+        const allowedLanguages = rawLangs
+          ? rawLangs
+              .toLowerCase()
+              .split(/[,|\s]+/)
+              .map((l) => l.trim())
+              .filter(Boolean)
+          : ['python', 'javascript', 'cpp', 'java', 'c'];
+
+        const inputFormat = getRowValue(row, 'InputFormat', 'Input Format');
+        const outputFormat = getRowValue(row, 'OutputFormat', 'Output Format');
+        const constraints = getRowValue(row, 'Constraints');
+        const sampleInput = getRowValue(row, 'SampleInput', 'Sample Input');
+        const sampleOutput = getRowValue(row, 'SampleOutput', 'Sample Output');
+
+        const starterCode = {
+          python: getRowValue(row, 'StarterCode_Python', 'StarterCode_python') || defaultStarterCode.python,
+          javascript: getRowValue(row, 'StarterCode_JavaScript', 'StarterCode_javascript') || defaultStarterCode.javascript,
+          cpp: getRowValue(row, 'StarterCode_Cpp', 'StarterCode_cpp') || defaultStarterCode.cpp,
+          java: getRowValue(row, 'StarterCode_Java', 'StarterCode_java') || defaultStarterCode.java,
+          c: getRowValue(row, 'StarterCode_C', 'StarterCode_c') || defaultStarterCode.c,
+        };
+
+        // Extract test cases up to 20
+        const testCases: any[] = [];
+        for (let tcIdx = 1; tcIdx <= 20; tcIdx++) {
+          const input = getRowValue(row, `TestCase${tcIdx}_Input`, `TC${tcIdx}_Input`);
+          const expectedOutput = getRowValue(row, `TestCase${tcIdx}_ExpectedOutput`, `TC${tcIdx}_ExpectedOutput`, `TestCase${tcIdx}_Output`);
+          const rawHidden = getRowValue(row, `TestCase${tcIdx}_IsHidden`, `TC${tcIdx}_IsHidden`, `TestCase${tcIdx}_Hidden`);
+
+          if (expectedOutput) {
+            testCases.push({
+              input,
+              expectedOutput,
+              isHidden: rawHidden.toUpperCase() === 'TRUE' || rawHidden === '1',
+            });
+          }
+        }
+
+        // Fallback: If no explicit test cases column, check if SampleInput/SampleOutput provided
+        if (testCases.length === 0) {
+          if (sampleInput || sampleOutput) {
+            testCases.push({
+              input: sampleInput || '',
+              expectedOutput: sampleOutput || '',
+              isHidden: false,
+            });
+            testCases.push({
+              input: sampleInput || '',
+              expectedOutput: sampleOutput || '',
+              isHidden: true,
+            });
+          } else {
+            errors.push(`Row #${rowNum} ("${title}"): No test cases or sample output found. At least 1 test case with Expected Output is required.`);
+            continue;
+          }
+        }
+
+        parsedProblems.push({
+          title,
+          description,
+          difficulty,
+          points,
+          allowedLanguages,
+          starterCode,
+          inputFormat,
+          outputFormat,
+          constraints,
+          sampleInput,
+          sampleOutput,
+          testCases,
+        });
+      }
+    }
+
+    if (parsedProblems.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error: 'No valid coding challenges could be parsed from the file.',
+        errors,
+      });
+    }
+
+    return reply.send({
+      success: true,
+      count: parsedProblems.length,
+      data: parsedProblems,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to parse coding file: ' + error.message });
+  }
+};
+
+// 18. Student: Request Re-entry to Contest
+export const requestContestReentry = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id } = req.params as { id: string };
+    const userId = getUserId(req);
+    const { reason = '' } = (req.body || {}) as { reason?: string };
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findOne({ contestId: contest._id, userId });
+    if (!submission) {
+      return reply.status(400).send({
+        success: false,
+        error: 'No active or past contest session found to request re-entry for.',
+      });
+    }
+
+    if (submission.reentryStatus === 'PENDING') {
+      return reply.status(400).send({
+        success: false,
+        error: 'A re-entry request is already pending review by an administrator.',
+        submission,
+      });
+    }
+
+    submission.reentryRequested = true;
+    submission.reentryReason = reason.trim() || 'Student requested re-entry to contest';
+    submission.reentryStatus = 'PENDING';
+    submission.reentryRequestedAt = new Date();
+
+    await submission.save();
+
+    return reply.send({
+      success: true,
+      message: 'Re-entry request submitted successfully. An administrator will review your request.',
+      submission,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to request contest re-entry' });
+  }
+};
+
+// 19. Admin: Approve Contest Re-entry
+export const approveContestReentry = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id, submissionId } = req.params as { id: string; submissionId: string };
+    const adminUserId = getUserId(req);
+    const { durationMinutes, note = '' } = (req.body || {}) as {
+      durationMinutes?: number;
+      note?: string;
+    };
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findById(submissionId);
+    if (!submission || submission.contestId.toString() !== contest._id.toString()) {
+      return reply.status(404).send({ success: false, error: 'Contest submission not found' });
+    }
+
+    // Revert awarded points if points were already credited to prevent double allocation
+    if (submission.pointsAwarded && (submission.awardedClubPoints || 0) > 0) {
+      const pointsToDeduct = submission.awardedClubPoints;
+      await User.findByIdAndUpdate(submission.userId, { $inc: { points: -pointsToDeduct } });
+      submission.pointsAwarded = false;
+      submission.awardedClubPoints = 0;
+      submission.manualPointsAdjustment = (submission.manualPointsAdjustment || 0) - pointsToDeduct;
+    }
+
+    // Determine additional duration
+    const additionalMins =
+      typeof durationMinutes === 'number' && durationMinutes > 0
+        ? durationMinutes
+        : contest.durationMinutes || 60;
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + additionalMins * 60000);
+
+    submission.status = 'IN_PROGRESS';
+    submission.submittedAt = null as any;
+    submission.expiresAt = expiresAt;
+    submission.reentryRequested = false;
+    submission.reentryStatus = 'APPROVED';
+    submission.reentryApprovedAt = now;
+    if (adminUserId && mongoose.isValidObjectId(adminUserId)) {
+      submission.reentryApprovedBy = new mongoose.Types.ObjectId(adminUserId);
+    }
+    submission.reentryReviewNote = note.trim() || 'Admin approved re-entry';
+    submission.reentryCount = (submission.reentryCount || 0) + 1;
+
+    await submission.save();
+
+    // Check student account and remove 'contests' restriction if restricted
+    const studentUser = await User.findById(submission.userId);
+    if (studentUser) {
+      if (studentUser.restrictedFeatures && studentUser.restrictedFeatures.includes('contests')) {
+        const remainingFeatures = studentUser.restrictedFeatures.filter((f: string) => f !== 'contests');
+        studentUser.restrictedFeatures = remainingFeatures as any;
+        if (remainingFeatures.length === 0) {
+          studentUser.isRestricted = false;
+          studentUser.restrictionReason = '';
+        }
+        await studentUser.save();
+      }
+    }
+
+    // Notify student
+    try {
+      if (adminUserId && mongoose.isValidObjectId(adminUserId)) {
+        await Notification.create({
+          title: 'Contest Re-entry Approved! 🚀',
+          message: `Your re-entry for contest "${contest.title}" has been approved! You have ${additionalMins} minutes to complete your session.`,
+          type: 'success',
+          targetRole: 'Student',
+          link: `/contests/${contest._id}/arena`,
+          createdBy: new mongoose.Types.ObjectId(adminUserId),
+        });
+      }
+    } catch (notifErr) {
+      req.log.warn(notifErr, 'Failed to create notification for contest re-entry approval');
+    }
+
+    return reply.send({
+      success: true,
+      message: `Re-entry approved! Student granted ${additionalMins} minutes to resume contest.`,
+      submission,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to approve contest re-entry' });
+  }
+};
+
+// 20. Admin: Reject Contest Re-entry
+export const rejectContestReentry = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id, submissionId } = req.params as { id: string; submissionId: string };
+    const adminUserId = getUserId(req);
+    const { note = '' } = (req.body || {}) as { note?: string };
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findById(submissionId);
+    if (!submission || submission.contestId.toString() !== contest._id.toString()) {
+      return reply.status(404).send({ success: false, error: 'Contest submission not found' });
+    }
+
+    submission.reentryRequested = false;
+    submission.reentryStatus = 'REJECTED';
+    submission.reentryReviewNote = note.trim() || 'Re-entry request declined by administrator';
+    submission.reentryApprovedAt = new Date();
+    if (adminUserId && mongoose.isValidObjectId(adminUserId)) {
+      submission.reentryApprovedBy = new mongoose.Types.ObjectId(adminUserId);
+    }
+
+    await submission.save();
+
+    try {
+      if (adminUserId && mongoose.isValidObjectId(adminUserId)) {
+        await Notification.create({
+          title: 'Contest Re-entry Declined',
+          message: `Your re-entry request for contest "${contest.title}" was declined. Note: ${submission.reentryReviewNote}`,
+          type: 'warning',
+          targetRole: 'Student',
+          link: `/contests/${contest._id}`,
+          createdBy: new mongoose.Types.ObjectId(adminUserId),
+        });
+      }
+    } catch (notifErr) {
+      req.log.warn(notifErr, 'Failed to create notification for contest re-entry decline');
+    }
+
+    return reply.send({
+      success: true,
+      message: 'Re-entry request has been rejected.',
+      submission,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to reject contest re-entry' });
+  }
+};
+
+// 21. Admin: Delete Student Contest Submission / Participation Entry
+export const deleteContestSubmission = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { id, submissionId } = req.params as { id: string; submissionId: string };
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return reply.status(404).send({ success: false, error: 'Contest not found' });
+    }
+
+    const submission = await ContestSubmission.findById(submissionId);
+    if (!submission || submission.contestId.toString() !== contest._id.toString()) {
+      return reply.status(404).send({ success: false, error: 'Contest submission not found' });
+    }
+
+    // Revert awarded points if any
+    if (submission.pointsAwarded && (submission.awardedClubPoints || 0) > 0) {
+      await User.findByIdAndUpdate(submission.userId, {
+        $inc: { points: -submission.awardedClubPoints },
+      });
+    }
+
+    // Remove contest restriction if student was restricted from contests
+    const studentUser = await User.findById(submission.userId);
+    if (studentUser && studentUser.restrictedFeatures && studentUser.restrictedFeatures.includes('contests')) {
+      const remainingFeatures = studentUser.restrictedFeatures.filter((f: string) => f !== 'contests');
+      studentUser.restrictedFeatures = remainingFeatures as any;
+      if (remainingFeatures.length === 0) {
+        studentUser.isRestricted = false;
+        studentUser.restrictionReason = '';
+      }
+      await studentUser.save();
+    }
+
+    // Decrement contest participants count
+    if ((contest.participantsCount || 0) > 0) {
+      await Contest.findByIdAndUpdate(contest._id, { $inc: { participantsCount: -1 } });
+    }
+
+    // Delete submission
+    await ContestSubmission.findByIdAndDelete(submissionId);
+
+    return reply.send({
+      success: true,
+      message: 'Student contest submission successfully deleted and entry removed.',
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to delete contest submission' });
+  }
+};
+
+

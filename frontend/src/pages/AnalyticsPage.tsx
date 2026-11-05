@@ -7,7 +7,7 @@ export const AnalyticsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'onboarding' | 'analytics'>('onboarding');
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 py-2 sm:py-6">
       {/* Page Header */}
       <div className="flex flex-col gap-4 border-b border-separator pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -19,10 +19,10 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* View Toggle Tabs */}
-        <div className="flex items-center rounded-2xl border border-separator/80 bg-surface-secondary p-1">
+        <div className="flex items-center rounded-2xl border border-separator/80 bg-surface-secondary p-1 overflow-x-auto no-scrollbar touch-pan-x max-w-full">
           <button
             onClick={() => setActiveTab('onboarding')}
-            className={`flex items-center whitespace-nowrap gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+            className={`flex items-center whitespace-nowrap gap-2 rounded-xl px-4 py-2 min-h-[40px] text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'onboarding'
                 ? 'bg-surface text-label-primary shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
@@ -34,7 +34,7 @@ export const AnalyticsPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`flex items-center whitespace-nowrap gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+            className={`flex items-center whitespace-nowrap gap-2 rounded-xl px-4 py-2 min-h-[40px] text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'analytics'
                 ? 'bg-surface text-label-primary shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
@@ -59,4 +59,3 @@ export const AnalyticsPage: React.FC = () => {
 };
 
 export default AnalyticsPage;
-

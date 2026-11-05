@@ -13,8 +13,8 @@ export interface PageTransitionWrapperProps extends HTMLMotionProps<'div'> {
 export const iosPageTransitionVariants = {
   initial: {
     opacity: 0,
-    scale: 0.98,
-    y: 10,
+    scale: 0.99,
+    y: 8,
   },
   animate: {
     opacity: 1,
@@ -23,8 +23,12 @@ export const iosPageTransitionVariants = {
   },
   exit: {
     opacity: 0,
-    scale: 0.98,
-    y: -10,
+    scale: 0.99,
+    y: -6,
+    transition: {
+      duration: 0.12,
+      ease: [0.32, 0, 0.67, 0],
+    },
   },
 };
 

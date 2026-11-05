@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import EnrollmentModal from './EnrollmentModal';
 import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
 import EventParticipantsModal from '../admin/EventParticipantsModal';
+import EventBulkUploadModal from './EventBulkUploadModal';
+import EventArenaAdminModal from './EventArenaAdminModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
+  const navigate = useNavigate();
   const { myEnrolledEventIds } = useEnrollmentStore();
   const isEnrolled = myEnrolledEventIds.includes(event._id);
   const [timeLeft, setTimeLeft] = useState('');
@@ -15,6 +19,9 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [isArenaAdminOpen, setIsArenaAdminOpen] = useState(false);
+  const [participantsInitialTab, setParticipantsInitialTab] = useState('participants');
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -85,9 +92,22 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
         <div>
           {/* Top Bar: Editorial Metadata & Live indicator */}
           <div className="flex items-center justify-between gap-3 mb-4">
-            <span className="meta-editorial">
-              {categoryLabel} • {formatLabel}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="meta-editorial">
+                {categoryLabel} • {formatLabel}
+              </span>
+              {event.registrationType === 'admin_upload' && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                  Admin Upload Only
+                </span>
+              )}
+              {event.hasArena && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-500 border border-indigo-500/25 flex items-center gap-1 shadow-xs">
+                  <Sparkles size={10} />
+                  Event Arena
+                </span>
+              )}
+            </div>
 
             {isLive ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-destructive border border-red-500/20">
@@ -147,21 +167,36 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
               </div>
             )}
 
-            {event.maxParticipants > 0 && (
+            {event.maxParticipants > 0 ? (
               <div className="flex items-center gap-2.5">
                 <Users size={14} strokeWidth={1.75} className="shrink-0 text-accent" />
                 <span className={event.enrolledCount >= event.maxParticipants ? 'text-rose-500 font-medium' : 'text-label-secondary'}>
                   {event.enrolledCount >= event.maxParticipants
                     ? `Capacity Full (${event.maxParticipants}/${event.maxParticipants})`
-                    : `${event.enrolledCount || 0} / ${event.maxParticipants} students registered`}
+                    : `${event.enrolledCount || 0} / ${event.maxParticipants} registered`}
                 </span>
+                {Boolean(event.participantsCount) && (
+                  <span className="text-emerald-400 font-medium text-xs">
+                    • {event.participantsCount} attended
+                  </span>
+                )}
               </div>
-            )}
+            ) : (Boolean(event.enrolledCount) || Boolean(event.participantsCount)) ? (
+              <div className="flex items-center gap-2.5 text-xs text-label-secondary">
+                <Users size={14} strokeWidth={1.75} className="shrink-0 text-accent" />
+                <span>{event.enrolledCount || 0} registered</span>
+                {Boolean(event.participantsCount) && (
+                  <span className="text-emerald-400 font-medium">
+                    • {event.participantsCount} attended
+                  </span>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
 
         {/* Footer Actions & Status */}
-        <div className="mt-7 pt-4 flex items-center justify-between border-t border-separator">
+        <div className="mt-6 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-separator">
           <div className="flex flex-col min-w-0 pr-2">
             <span className="text-[10px] uppercase font-semibold text-label-tertiary tracking-wider">
               {isPast ? 'Event' : 'Deadline'}
@@ -175,84 +210,144 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
             </span>
           </div>
 
-          <div>
+          <div className="w-full sm:w-auto">
             {isAdmin ? (
-              <div className="flex items-center gap-0.5 p-1 rounded-xl bg-canvas border border-separator">
+              <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl bg-canvas border border-separator w-full sm:w-auto">
                 <button
                   onClick={() => setIsDetailsOpen(true)}
-                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Preview Event Details"
+                  aria-label="Preview Event Details"
                 >
                   <Eye size={15} strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => setIsParticipantsOpen(true)}
-                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
-                  title="Participants Full Details"
+                  onClick={() => setIsBulkUploadOpen(true)}
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-emerald-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Upload Participants List (Excel / CSV)"
+                  aria-label="Upload Participants List"
+                >
+                  <FileSpreadsheet size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => {
+                    setParticipantsInitialTab('registered');
+                    setIsParticipantsOpen(true);
+                  }}
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Registered Students List"
+                  aria-label="Registered Students List"
                 >
                   <Users size={15} strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => onEdit(event)}
-                  className="p-2 text-label-secondary hover:text-label-primary hover:bg-surface rounded-lg transition-colors cursor-pointer"
-                  title="Edit Event"
+                  onClick={() => {
+                    setParticipantsInitialTab('participants');
+                    setIsParticipantsOpen(true);
+                  }}
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-emerald-400 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Event Participants List (Attended)"
+                  aria-label="Event Participants List"
                 >
-                  <Edit2 size={15} strokeWidth={1.75} />
+                  <Award size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => setIsAttendanceOpen(true)}
-                  className="p-2 text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
-                  title="Attendance Records"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-accent hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Attendance Sessions & Logs"
+                  aria-label="Attendance Sessions"
                 >
                   <UserCheck size={15} strokeWidth={1.75} />
                 </button>
                 <button
+                  onClick={() => setIsArenaAdminOpen(true)}
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-indigo-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Event Arena Hub: Configure & Questions"
+                  aria-label="Event Arena Hub"
+                >
+                  <Sparkles size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => onEdit(event)}
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-label-primary hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Edit Event"
+                  aria-label="Edit Event"
+                >
+                  <Edit2 size={15} strokeWidth={1.75} />
+                </button>
+                <button
                   onClick={() => onDelete(event._id)}
-                  className="p-2 text-label-secondary hover:text-destructive hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-destructive hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Delete Event"
+                  aria-label="Delete Event"
                 >
                   <Trash2 size={15} strokeWidth={1.75} />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setIsDetailsOpen(true)}
-                  className="btn-secondary text-[13px] py-1.5 px-3 cursor-pointer"
+                  className="btn-secondary text-[13px] py-1.5 px-3 min-h-[38px] cursor-pointer"
                   title="Preview Details"
+                  aria-label="Preview Details"
                 >
                   <Eye size={14} />
                 </button>
-                <button
-                  onClick={() => !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && setIsEnrollModalOpen(true)}
-                  disabled={timeLeft === 'Closed' || isPast || isEnrolled || (event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants)}
-                  className={
-                    isEnrolled
-                      ? 'btn-secondary text-[13px] py-1.5 px-4 opacity-90 cursor-default'
-                      : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
-                      ? 'btn-secondary text-[13px] py-1.5 px-3.5 opacity-60 cursor-not-allowed text-rose-500'
-                      : 'btn-primary text-[13px] py-1.5 px-4.5 flex items-center gap-1.5 cursor-pointer'
-                  }
-                >
-                  <span>
-                    {isEnrolled
-                      ? 'Enrolled'
-                      : isPast
-                      ? 'Concluded'
-                      : timeLeft === 'Closed'
-                      ? 'Closed'
-                      : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
-                      ? 'Full'
-                      : 'Enroll'}
-                  </span>
-                  {!isPast && timeLeft !== 'Closed' && !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && (
-                    <ArrowUpRight
-                      size={13}
-                      strokeWidth={2}
-                      className="transition-transform duration-200 group-hover:translate-x-[3px] group-hover:-translate-y-[3px]"
-                    />
-                  )}
-                </button>
+
+                {event.registrationType === 'admin_upload' && !isEnrolled ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-secondary text-[12px] py-1.5 px-3.5 min-h-[38px] opacity-80 cursor-not-allowed text-amber-500 border border-amber-500/25"
+                    title="Self-registration is disabled for this event. Participants list is uploaded directly by administrators."
+                  >
+                    <span>Admin Upload</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && setIsEnrollModalOpen(true)}
+                    disabled={timeLeft === 'Closed' || isPast || isEnrolled || (event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants)}
+                    className={
+                      isEnrolled
+                        ? 'btn-secondary text-[13px] py-1.5 px-4 min-h-[38px] opacity-90 cursor-default'
+                        : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
+                        ? 'btn-secondary text-[13px] py-1.5 px-3.5 min-h-[38px] opacity-60 cursor-not-allowed text-rose-500'
+                        : 'btn-primary text-[13px] py-1.5 px-4.5 min-h-[38px] flex items-center gap-1.5 cursor-pointer'
+                    }
+                  >
+                    <span>
+                      {isEnrolled
+                        ? 'Enrolled'
+                        : isPast
+                        ? 'Concluded'
+                        : timeLeft === 'Closed'
+                        ? 'Closed'
+                        : event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants
+                        ? 'Full'
+                        : 'Enroll'}
+                    </span>
+                    {!isPast && timeLeft !== 'Closed' && !isEnrolled && !(event.maxParticipants > 0 && (event.enrolledCount || 0) >= event.maxParticipants) && (
+                      <ArrowUpRight
+                        size={13}
+                        strokeWidth={2}
+                        className="transition-transform duration-200 group-hover:translate-x-[3px] group-hover:-translate-y-[3px]"
+                      />
+                    )}
+                  </button>
+                )}
+
+                {/* Enter Arena Button - Only for Enrolled Students or Admins */}
+                {event.hasArena && (isEnrolled || isAdmin) && (
+                  <button
+                    onClick={() => navigate(`/events/${event._id}/arena`)}
+                    className="btn-primary text-[12px] py-1.5 px-3 min-h-[38px] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer"
+                    title="Enter Event Arena to take assessments"
+                  >
+                    <Sparkles size={13} />
+                    <span>Arena</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -268,15 +363,36 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
         isAdmin={isAdmin}
         onEnroll={() => setIsEnrollModalOpen(true)}
         onEdit={onEdit}
-        onViewParticipants={() => setIsParticipantsOpen(true)}
+        onViewParticipants={(ev, tab) => {
+          setParticipantsInitialTab(tab || 'participants');
+          setIsParticipantsOpen(true);
+        }}
+        onViewRegistered={() => {
+          setParticipantsInitialTab('registered');
+          setIsParticipantsOpen(true);
+        }}
+        onUploadParticipants={() => setIsBulkUploadOpen(true)}
       />
 
-      {/* Event Participants Full Details Modal for Admin */}
+      {/* Event Bulk Upload Modal for Admin */}
+      {isAdmin && isBulkUploadOpen && (
+        <EventBulkUploadModal
+          isOpen={isBulkUploadOpen}
+          onClose={() => setIsBulkUploadOpen(false)}
+          event={event}
+          onSuccess={() => {
+            setIsBulkUploadOpen(false);
+          }}
+        />
+      )}
+
+      {/* Event Participants & Registered Students Modal for Admin */}
       {isAdmin && (
         <EventParticipantsModal
           isOpen={isParticipantsOpen}
           onClose={() => setIsParticipantsOpen(false)}
           event={event}
+          initialTab={participantsInitialTab}
         />
       )}
 
@@ -293,6 +409,15 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
         onClose={() => setIsAttendanceOpen(false)}
         event={event}
       />
+
+      {/* Event Arena Admin & Question Hub Modal */}
+      {isAdmin && (
+        <EventArenaAdminModal
+          isOpen={isArenaAdminOpen}
+          onClose={() => setIsArenaAdminOpen(false)}
+          event={event}
+        />
+      )}
     </>
   );
 };

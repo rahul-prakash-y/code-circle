@@ -19,7 +19,9 @@ import useAnalyticsStore from '../../store/useAnalyticsStore';
 import useThemeStore from '../../store/useThemeStore';
 import { motion } from 'framer-motion';
 
-const StatCard = ({ title, value, icon: Icon, trend, color }) => (
+const StatCard = ({ title, value, icon, trend, color }) => {
+  const Icon = icon;
+  return (
   <motion.div 
     whileHover={{ y: -4, scale: 1.01 }}
     className="bg-surface border border-separator/80 p-6 rounded-2xl relative overflow-hidden group shadow-card hover:shadow-card-elevated transition-all"
@@ -50,7 +52,8 @@ const StatCard = ({ title, value, icon: Icon, trend, color }) => (
       />
     </div>
   </motion.div>
-);
+  );
+};
 
 const AdminAnalytics = () => {
   const { 

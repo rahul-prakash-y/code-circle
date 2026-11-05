@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import api from '../lib/axios';
+import toast from 'react-hot-toast';
+import useAuthStore from './useAuthStore';
+import usePointsStore from './usePointsStore';
 
 export interface AssessmentQuestion {
   _id?: string;
@@ -21,6 +24,7 @@ export interface Assessment {
   questions: AssessmentQuestion[];
   questionsCount?: number;
   totalPoints?: number;
+  customPoints?: number;
   isPublished: boolean;
   createdBy?: any;
   createdAt: string;
@@ -31,6 +35,7 @@ export interface Assessment {
     totalPoints: number;
     percentage: number;
     passed: boolean;
+    pointsAwarded?: number;
     timeSpentSeconds: number;
     createdAt: string;
   } | null;
@@ -42,6 +47,7 @@ export interface DetailedQuestionResult {
   selectedOption: number;
   correctOptionIndex: number;
   isCorrect: boolean;
+  points?: number;
   explanation?: string;
 }
 
@@ -53,32 +59,61 @@ export interface SubmissionResult {
   totalPoints: number;
   percentage: number;
   passed: boolean;
+  pointsAwarded?: number;
+  userTotalPoints?: number;
+  customPoints?: number;
   passingScorePercentage: number;
   timeSpentSeconds: number;
   detailedResults: DetailedQuestionResult[];
   submittedAt: string;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 interface AssessmentStoreState {
   assessments: Assessment[];
+  assessmentsPagination: PaginationMeta | null;
   currentAssessment: Assessment | null;
   currentResult: SubmissionResult | null;
   mySubmissions: any[];
   assessmentSubmissions: any[];
+  activeAssessmentDetails: any | null;
+  submissionsPagination: PaginationMeta | null;
   loading: boolean;
   submitting: boolean;
   error: string | null;
   selectedCategory: string;
   searchQuery: string;
 
-  fetchAssessments: (params?: { category?: string; search?: string; eventId?: string }) => Promise<void>;
+  fetchAssessments: (params?: { category?: string; search?: string; eventId?: string; page?: number; limit?: number }) => Promise<void>;
   fetchAssessmentById: (id: string) => Promise<Assessment | null>;
   createAssessment: (payload: any) => Promise<{ success: boolean; assessment?: Assessment; error?: string }>;
   updateAssessment: (id: string, payload: any) => Promise<{ success: boolean; assessment?: Assessment; error?: string }>;
   deleteAssessment: (id: string) => Promise<{ success: boolean; error?: string }>;
   submitAssessment: (id: string, answers: { questionIndex: number; selectedOption: number }[], timeSpentSeconds?: number) => Promise<{ success: boolean; result?: SubmissionResult; error?: string }>;
   fetchMySubmissions: () => Promise<void>;
-  fetchAssessmentSubmissions: (assessmentId: string) => Promise<void>;
+  fetchAssessmentSubmissions: (assessmentId: string, params?: { page?: number; limit?: number }) => Promise<void>;
+  exportAssessmentSubmissionsCsv: (assessmentId: string) => Promise<void>;
+  deleteSubmission: (assessmentId: string, submissionId: string) => Promise<{ success: boolean; error?: string }>;
+  allowStudentReappear: (assessmentId: string, studentId: string) => Promise<{ success: boolean; error?: string }>;
+  resetMySubmission: (assessmentId: string) => Promise<{ success: boolean; error?: string }>;
+  downloadSampleTemplate: () => Promise<void>;
+  bulkUploadAssessments: (file: File, assessmentId?: string) => Promise<{
+    success: boolean;
+    count?: number;
+    assessmentsCreated?: number;
+    assessmentsUpdated?: number;
+    message?: string;
+    errors?: string[];
+    error?: string;
+  }>;
   setSelectedCategory: (category: string) => void;
   setSearchQuery: (query: string) => void;
   clearCurrentResult: () => void;
@@ -86,10 +121,13 @@ interface AssessmentStoreState {
 
 export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
   assessments: [],
+  assessmentsPagination: null,
   currentAssessment: null,
   currentResult: null,
   mySubmissions: [],
   assessmentSubmissions: [],
+  activeAssessmentDetails: null,
+  submissionsPagination: null,
   loading: false,
   submitting: false,
   error: null,
@@ -98,12 +136,12 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
 
   setSelectedCategory: (category) => {
     set({ selectedCategory: category });
-    get().fetchAssessments({ category, search: get().searchQuery });
+    get().fetchAssessments({ category, search: get().searchQuery, page: 1 });
   },
 
   setSearchQuery: (query) => {
     set({ searchQuery: query });
-    get().fetchAssessments({ category: get().selectedCategory, search: query });
+    get().fetchAssessments({ category: get().selectedCategory, search: query, page: 1 });
   },
 
   clearCurrentResult: () => set({ currentResult: null }),
@@ -118,9 +156,15 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
       if (cat && cat !== 'All') queryParams.append('category', cat);
       if (search && search.trim()) queryParams.append('search', search.trim());
       if (params.eventId) queryParams.append('eventId', params.eventId);
+      if (params.page) queryParams.append('page', String(params.page));
+      if (params.limit) queryParams.append('limit', String(params.limit));
 
       const res = await api.get(`/assessments?${queryParams.toString()}`);
-      set({ assessments: res.data.data || [], loading: false });
+      set({
+        assessments: res.data.data || [],
+        assessmentsPagination: res.data.pagination || null,
+        loading: false,
+      });
     } catch (err: any) {
       set({
         loading: false,
@@ -203,6 +247,28 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
       set({ currentResult: result, submitting: false });
       // Refresh list to update score status
       get().fetchAssessments();
+
+      // Immediately update authStore user points so Navbar, Dashboard, and Profile update seamlessly
+      if (result && typeof result.pointsAwarded === 'number' && result.pointsAwarded > 0) {
+        try {
+          const authStore = useAuthStore.getState();
+          if (authStore.user) {
+            const nextPoints =
+              typeof result.userTotalPoints === 'number'
+                ? result.userTotalPoints
+                : (authStore.user.points || 0) + result.pointsAwarded;
+            authStore.setUser({
+              ...authStore.user,
+              points: nextPoints,
+            });
+          }
+          // Refresh points hub data if store active
+          usePointsStore.getState().fetchMyPoints?.();
+        } catch (syncErr) {
+          console.warn('Could not sync user points in store:', syncErr);
+        }
+      }
+
       return { success: true, result };
     } catch (err: any) {
       set({ submitting: false });
@@ -222,14 +288,141 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
     }
   },
 
-  fetchAssessmentSubmissions: async (assessmentId: string) => {
+  fetchAssessmentSubmissions: async (assessmentId: string, params = {}) => {
     set({ loading: true });
     try {
-      const res = await api.get(`/assessments/${assessmentId}/submissions`);
-      set({ assessmentSubmissions: res.data.data || [], loading: false });
+      const res = await api.get(`/assessments/${assessmentId}/submissions`, { params });
+      set({
+        assessmentSubmissions: res.data.data || [],
+        activeAssessmentDetails: res.data.assessment || null,
+        submissionsPagination: res.data.pagination || null,
+        loading: false,
+      });
     } catch (err: any) {
       set({ loading: false });
       console.error('Failed to fetch assessment submissions', err);
+    }
+  },
+
+  exportAssessmentSubmissionsCsv: async (assessmentId: string) => {
+    try {
+      const toastId = toast.loading('Preparing assessment submissions report...');
+      const res = await api.get(`/assessments/${assessmentId}/submissions/export`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `assessment_submissions_${assessmentId.slice(-6)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Report downloaded successfully!', { id: toastId });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to download report');
+    }
+  },
+
+  deleteSubmission: async (assessmentId: string, submissionId: string) => {
+    try {
+      await api.delete(`/assessments/${assessmentId}/submissions/${submissionId}`);
+      set((state) => ({
+        assessmentSubmissions: state.assessmentSubmissions.filter((s) => s._id !== submissionId),
+      }));
+      get().fetchAssessments();
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to delete submission retry',
+      };
+    }
+  },
+
+  allowStudentReappear: async (assessmentId: string, studentId: string) => {
+    try {
+      await api.post(`/assessments/${assessmentId}/reappear/${studentId}`);
+      set((state) => ({
+        assessmentSubmissions: state.assessmentSubmissions.filter(
+          (s) => (s.user?._id || s.user) !== studentId
+        ),
+      }));
+      get().fetchAssessments();
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to reset student assessment attempt',
+      };
+    }
+  },
+
+  resetMySubmission: async (assessmentId: string) => {
+    try {
+      await api.delete(`/assessments/${assessmentId}/my-submission`);
+      set({ currentResult: null });
+      await get().fetchAssessments();
+      return { success: true };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Failed to reset assessment retry',
+      };
+    }
+  },
+
+  downloadSampleTemplate: async () => {
+    try {
+      const res = await api.get('/assessments/admin/template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(
+        new Blob([res.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'mcq_assessment_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('MCQ assessment template downloaded!');
+    } catch (err: any) {
+      toast.error('Failed to download Excel template');
+    }
+  },
+
+  bulkUploadAssessments: async (file: File, assessmentId?: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (assessmentId) {
+        formData.append('assessmentId', assessmentId);
+      }
+
+      const queryParams = new URLSearchParams();
+      if (assessmentId) queryParams.set('assessmentId', assessmentId);
+      const url = `/assessments/admin/bulk-upload${
+        queryParams.toString() ? `?${queryParams.toString()}` : ''
+      }`;
+
+      const res = await api.post(url, formData);
+      await get().fetchAssessments();
+      return {
+        success: true,
+        count: res.data.count,
+        assessmentsCreated: res.data.assessmentsCreated,
+        assessmentsUpdated: res.data.assessmentsUpdated,
+        message: res.data.message,
+        errors: res.data.errors,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Bulk upload failed',
+        errors: err.response?.data?.errors,
+      };
     }
   },
 }));

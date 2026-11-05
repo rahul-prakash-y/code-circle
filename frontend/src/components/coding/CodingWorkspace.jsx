@@ -17,7 +17,6 @@ const CodingWorkspace = () => {
   const { currentProblem, fetchProblemById, submitCode, isLoading, submissionResult } = useCodingStore();
   const [code, setCode] = useState('// Write your code here...');
   const [languageId, setLanguageId] = useState(63); // Default JavaScript
-  const [showConsole, setShowConsole] = useState(true);
   const [cooldown, setCooldown] = useState(0);
 
   const isMobile = useMediaQuery('(max-width: 1023px)');
@@ -44,7 +43,6 @@ const CodingWorkspace = () => {
     try {
       setCooldown(10); // Enforce 10s cooldown on run
       await submitCode(id, code, languageId);
-      setShowConsole(true);
       if (isMobile) setMobileTab('console');
     } catch (err) {
       console.error('Submission failed', err);
@@ -52,13 +50,13 @@ const CodingWorkspace = () => {
   };
 
   if (!currentProblem) return (
-    <div className="h-screen bg-surface flex items-center justify-center">
+    <div className="h-[100dvh] min-h-[100dvh] bg-surface flex items-center justify-center">
       <Loader2 className="animate-spin text-accent" size={40} />
     </div>
   );
 
   return (
-    <div className="h-screen bg-surface text-text-secondary flex flex-col overflow-hidden font-sans relative">
+    <div className="h-[100dvh] min-h-[100dvh] bg-surface text-text-secondary flex flex-col overflow-hidden font-sans relative">
       <BackgroundGradient />
 
       {/* Desktop Header (>= 1024px) */}
@@ -66,14 +64,15 @@ const CodingWorkspace = () => {
         <div className="flex items-center gap-6">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="p-2.5 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-all border border-transparent hover:border-border cursor-pointer"
+            className="p-2.5 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-all border border-transparent hover:border-border cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
+            aria-label="Back to dashboard"
           >
             <ChevronLeft size={20} />
           </button>
           <div className="h-8 w-[1px] bg-surface-elevated" />
           <div className="flex items-center gap-4">
-            <h1 className="text-sm font-black text-text-primary uppercase tracking-widest leading-none mt-0.5">{currentProblem.title}</h1>
-            <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-xl ${
+            <h1 className="text-sm font-semibold text-text-primary tracking-tight leading-none mt-0.5">{currentProblem.title}</h1>
+            <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wider border shadow-xs ${
               currentProblem.difficulty === 'Easy' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
               currentProblem.difficulty === 'Medium' ? 'bg-accent/10 text-accent-muted border-accent/20' :
               'bg-pink-500/10 text-pink-400 border-pink-500/20'
@@ -88,28 +87,28 @@ const CodingWorkspace = () => {
             <select 
               value={languageId} 
               onChange={(e) => setLanguageId(Number(e.target.value))}
-              className="input-field !py-1.5 !px-4 !text-[10px] !font-black !uppercase !tracking-widest !bg-surface-elevated !border-border group-hover:!border-accent/30 transition-all cursor-pointer appearance-none pr-10"
+              className="input-field !py-1.5 !px-4 !text-xs !font-medium !bg-surface-elevated !border-border group-hover:!border-accent/30 transition-all cursor-pointer appearance-none pr-10 min-h-[38px]"
             >
               <option value={63} className="bg-surface">JavaScript</option>
               <option value={62} className="bg-surface">Java</option>
               <option value={71} className="bg-surface">Python</option>
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted group-hover:text-accent transition-colors">
-              <Star size={12} strokeWidth={3} />
+              <Star size={12} strokeWidth={2} />
             </div>
           </div>
 
           <button
             onClick={handleSubmit}
             disabled={isLoading || cooldown > 0}
-            className="btn-primary !py-2 !px-6 !text-[10px] !uppercase !tracking-widest flex items-center gap-2 group/run disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="btn-primary !py-2 !px-6 !text-xs !font-medium flex items-center gap-2 group/run disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[38px] tabular-nums"
           >
             {isLoading ? (
               <Loader2 className="animate-spin" size={14} />
             ) : cooldown > 0 ? (
               <Clock size={12} className="text-white/70 animate-pulse" />
             ) : (
-              <Play size={12} strokeWidth={3} className="group-hover/run:scale-110 transition-transform" />
+              <Play size={12} strokeWidth={2} className="group-hover/run:scale-110 transition-transform" />
             )}
             <span>
               {isLoading
@@ -128,14 +127,15 @@ const CodingWorkspace = () => {
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button
               onClick={() => navigate('/dashboard')}
-              className="p-1.5 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-all border border-border shrink-0 cursor-pointer"
+              className="p-1.5 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-all border border-border shrink-0 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+              aria-label="Back to dashboard"
             >
               <ChevronLeft size={16} />
             </button>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <h1 className="text-xs font-black text-text-primary truncate max-w-[130px] sm:max-w-xs">{currentProblem.title}</h1>
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 border ${
+                <h1 className="text-xs font-semibold text-text-primary tracking-tight truncate max-w-[130px] sm:max-w-xs">{currentProblem.title}</h1>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider shrink-0 border ${
                   currentProblem.difficulty === 'Easy' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                   currentProblem.difficulty === 'Medium' ? 'bg-accent/10 text-accent-muted border-accent/20' :
                   'bg-pink-500/10 text-pink-400 border-pink-500/20'
@@ -150,7 +150,7 @@ const CodingWorkspace = () => {
             <select
               value={languageId}
               onChange={(e) => setLanguageId(Number(e.target.value))}
-              className="bg-surface-elevated text-text-primary text-[11px] font-bold py-1 px-2 rounded-xl border border-border focus:outline-none cursor-pointer"
+              className="bg-surface-elevated text-text-primary text-[11px] font-medium py-1 px-2 rounded-xl border border-border focus:outline-none cursor-pointer min-h-[36px]"
             >
               <option value={63}>JS</option>
               <option value={62}>Java</option>
@@ -160,7 +160,7 @@ const CodingWorkspace = () => {
             <button
               onClick={handleSubmit}
               disabled={isLoading || cooldown > 0}
-              className="btn-primary py-1.5 px-3 text-[11px] font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+              className="btn-primary py-1.5 px-3 min-h-[36px] text-[11px] font-medium flex items-center gap-1 disabled:opacity-50 cursor-pointer tabular-nums"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin" size={12} />
@@ -178,7 +178,7 @@ const CodingWorkspace = () => {
         <div className="px-3 py-1.5 bg-canvas/40 border-t border-border grid grid-cols-3 gap-1">
           <button
             onClick={() => setMobileTab('problem')}
-            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-medium transition-all cursor-pointer ${
               mobileTab === 'problem' ? 'bg-surface text-text-primary shadow-xs border border-border' : 'text-text-muted hover:text-text-primary'
             }`}
           >
@@ -187,7 +187,7 @@ const CodingWorkspace = () => {
           </button>
           <button
             onClick={() => setMobileTab('code')}
-            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-medium transition-all cursor-pointer ${
               mobileTab === 'code' ? 'bg-accent text-white shadow-xs' : 'text-text-muted hover:text-text-primary'
             }`}
           >
@@ -196,7 +196,7 @@ const CodingWorkspace = () => {
           </button>
           <button
             onClick={() => setMobileTab('console')}
-            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-medium transition-all cursor-pointer ${
               mobileTab === 'console' ? 'bg-surface text-text-primary shadow-xs border border-border' : 'text-text-muted hover:text-text-primary'
             }`}
           >

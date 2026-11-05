@@ -153,7 +153,8 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                       <button
                         type="button"
                         onClick={() => onOpenChange(false)}
-                        className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-text-muted hover:text-text-primary"
+                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-text-muted hover:text-text-primary"
+                        aria-label="Close"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -161,14 +162,14 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                   )}
                   <div
                     className={cn(
-                      'overflow-y-auto flex-1 p-6 pr-4',
+                      'overflow-y-auto flex-1 p-4 sm:p-6 sm:pr-4',
                       contentClassName
                     )}
                   >
                     {children}
                   </div>
                   {footer && (
-                    <div className="p-6 pt-4 border-t border-separator/40 shrink-0">
+                    <div className="p-4 sm:p-6 sm:pt-4 border-t border-separator/40 shrink-0">
                       {footer}
                     </div>
                   )}
@@ -218,7 +219,7 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
             )}
             <div
               className={cn(
-                'overflow-y-auto max-h-[calc(85vh-8rem)] pr-1',
+                'overflow-y-auto max-h-[calc(85dvh-8rem)] pr-1',
                 contentClassName
               )}
             >
@@ -251,7 +252,7 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
           style={{ background: 'var(--surface)', color: 'var(--text-primary)' }}
         >
           {(title || description) ? (
-            <DrawerHeader className="px-5 sm:px-6 pt-2 pb-2 text-left shrink-0">
+            <DrawerHeader className="px-4 sm:px-6 pt-2 pb-2 text-left shrink-0">
               {title ? (
                 <DrawerTitle
                   className="text-xl font-bold tracking-tight text-text-primary"
@@ -276,14 +277,17 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
           )}
           <div
             className={cn(
-              'flex-1 overflow-y-auto px-4 sm:px-6 overscroll-contain space-y-4 max-h-[85vh]',
+              'flex-1 overflow-y-auto px-4 sm:px-6 overscroll-contain space-y-4 max-h-[85dvh]',
               contentClassName
             )}
           >
             {children}
           </div>
           {footer && (
-            <DrawerFooter className="px-6 pt-3 pb-2 shrink-0">
+            <DrawerFooter
+              className="px-4 sm:px-6 pt-3 shrink-0"
+              style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 16px))' }}
+            >
               {footer}
             </DrawerFooter>
           )}

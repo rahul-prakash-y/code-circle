@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import Notification, { NotificationType, NotificationTargetRole } from '../models/notificationModel';
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 export const getNotifications = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
@@ -7,6 +8,14 @@ export const getNotifications = async (request: FastifyRequest, reply: FastifyRe
     if (!user) {
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
+
+    const { page, limit, skip, sort } = parsePaginationParams(request.query as any, {
+      defaultLimit: 20,
+      maxLimit: 50,
+      defaultSortBy: 'createdAt',
+      defaultSortOrder: 'desc',
+      allowedSortFields: ['createdAt', 'type', 'targetRole'],
+    });
 
     // Role filtering: Admins and SuperAdmins can see all broadcast notifications.
     // Students/Faculty see 'All' or notifications matching their specific role.
@@ -20,11 +29,15 @@ export const getNotifications = async (request: FastifyRequest, reply: FastifyRe
           ],
         };
 
-    const docs = await Notification.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(40)
-      .populate('createdBy', 'name email role')
-      .lean();
+    const [docs, total] = await Promise.all([
+      Notification.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate('createdBy', 'name email role')
+        .lean(),
+      Notification.countDocuments(filter),
+    ]);
 
     const notifications = docs.map((doc: any) => {
       const readList = Array.isArray(doc.readBy) ? doc.readBy : [];
@@ -43,9 +56,13 @@ export const getNotifications = async (request: FastifyRequest, reply: FastifyRe
       };
     });
 
+    const pagination = buildPaginationMeta(total, page, limit);
+
     return reply.status(200).send({
       success: true,
       notifications,
+      data: notifications,
+      pagination,
       unreadCount: notifications.filter((n) => n.unread).length,
     });
   } catch (err: any) {

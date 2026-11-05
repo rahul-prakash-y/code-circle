@@ -30,6 +30,7 @@ export interface ICodingChallenge extends Document {
   starterCode: Map<string, string>;
   testCases: ITestCase[];
   timeLimitMinutes?: number;
+  customPoints?: number;
   singleSubmissionOnly?: boolean;
   isPublished?: boolean;
   isCourseChallenge?: boolean;
@@ -135,6 +136,11 @@ const codingChallengeSchema = new Schema<ICodingChallenge>(
       default: 45,
       min: [1, 'Time limit must be at least 1 minute'],
     },
+    customPoints: {
+      type: Number,
+      default: 50,
+      min: [0, 'Points cannot be negative'],
+    },
     singleSubmissionOnly: {
       type: Boolean,
       default: true,
@@ -176,6 +182,7 @@ const codingChallengeSchema = new Schema<ICodingChallenge>(
 // Indexes for query optimization
 codingChallengeSchema.index({ isPublished: 1, createdAt: -1 });
 codingChallengeSchema.index({ isCourseChallenge: 1, createdAt: -1 });
+codingChallengeSchema.index({ isCourseChallenge: 1, isPublished: 1, createdAt: -1 });
 
 export const CodingChallenge: Model<ICodingChallenge> =
   mongoose.models.CodingChallenge ||

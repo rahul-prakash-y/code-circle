@@ -28,13 +28,25 @@ import useEventStore from '../../../store/useEventStore';
 import useDomainStore from '../../../store/useDomainStore';
 import useUserStore from '../../../store/useUserStore';
 
-const THEMES = [
-  { id: 'modern-blue', label: 'Modern Blue', primary: '#38bdf8', bg: '#0b1120', text: '#f8fafc' },
-  { id: 'executive-gold', label: 'Executive Gold', primary: '#fbbf24', bg: '#18181b', text: '#fffbeb' },
-  { id: 'cyber-dark', label: 'Cyber Dark', primary: '#34d399', bg: '#050505', text: '#ffffff' },
-  { id: 'emerald-minimal', label: 'Emerald Minimal', primary: '#047857', bg: '#ffffff', text: '#0f172a' },
-  { id: 'ruby-elegance', label: 'Ruby Elegance', primary: '#fb7185', bg: '#1c1917', text: '#fff1f2' },
+export const THEMES = [
+  { id: 'classic-ivory', label: 'Classic Pearl Ivory', primary: '#1e3a8a', secondary: '#d97706', bg: '#f8fafc', card: '#ffffff', text: '#0f172a', textMuted: '#475569', border: '#1e40af' },
+  { id: 'imperial-gold', label: 'Imperial Ivory Gold', primary: '#b45309', secondary: '#d97706', bg: '#fefce8', card: '#ffffff', text: '#1c1917', textMuted: '#78716c', border: '#ca8a04' },
+  { id: 'royal-sapphire', label: 'Royal Sapphire Light', primary: '#0284c7', secondary: '#0369a1', bg: '#f0f9ff', card: '#ffffff', text: '#0c4a6e', textMuted: '#475569', border: '#0284c7' },
+  { id: 'emerald-merit', label: 'Emerald Jade Merit', primary: '#059669', secondary: '#047857', bg: '#f0fdf4', card: '#ffffff', text: '#064e3b', textMuted: '#4b5563', border: '#059669' },
+  { id: 'ruby-excellence', label: 'Ruby Velvet Light', primary: '#e11d48', secondary: '#be123c', bg: '#fff1f2', card: '#ffffff', text: '#881337', textMuted: '#6b7280', border: '#e11d48' },
+  { id: 'amethyst-prestige', label: 'Amethyst Violet Light', primary: '#7c3aed', secondary: '#6d28d9', bg: '#faf5ff', card: '#ffffff', text: '#4c1d95', textMuted: '#6b7280', border: '#7c3aed' },
+  { id: 'monochrome-executive', label: 'Executive Platinum Minimal', primary: '#0f172a', secondary: '#334155', bg: '#f8fafc', card: '#ffffff', text: '#020617', textMuted: '#64748b', border: '#334155' },
+  { id: 'ocean-azure', label: 'Oceanic Azure Teal', primary: '#0d9488', secondary: '#0f766e', bg: '#f0fdfa', card: '#ffffff', text: '#134e4a', textMuted: '#52525b', border: '#0d9488' },
+  { id: 'crimson-collegiate', label: 'Harvard Crimson Collegiate', primary: '#991b1b', secondary: '#b91c1c', bg: '#fef2f2', card: '#ffffff', text: '#450a0a', textMuted: '#57534e', border: '#991b1b' },
+  { id: 'nordic-frost', label: 'Nordic Arctic Cyan', primary: '#0284c7', secondary: '#2563eb', bg: '#f8fafc', card: '#ffffff', text: '#0f172a', textMuted: '#64748b', border: '#0284c7' },
+  { id: 'champagne-vintage', label: 'Champagne Vintage Parchment', primary: '#854d0e', secondary: '#a16207', bg: '#faf8f5', card: '#ffffff', text: '#292524', textMuted: '#78716c', border: '#854d0e' },
+  { id: 'sunset-topaz', label: 'Sunset Amber Topaz', primary: '#ea580c', secondary: '#c2410c', bg: '#fff7ed', card: '#ffffff', text: '#431407', textMuted: '#78716c', border: '#ea580c' },
+  { id: 'rose-elegance', label: 'Rose Quartz Elegance', primary: '#db2777', secondary: '#be185d', bg: '#fdf2f8', card: '#ffffff', text: '#500724', textMuted: '#71717a', border: '#db2777' },
+  { id: 'corporate-steel', label: 'Corporate Steel Navy', primary: '#334155', secondary: '#1e3a8a', bg: '#f1f5f9', card: '#ffffff', text: '#0f172a', textMuted: '#475569', border: '#334155' },
+  { id: 'botanical-sage', label: 'Botanical Sage Green', primary: '#15803d', secondary: '#166534', bg: '#f6f8f6', card: '#ffffff', text: '#14532d', textMuted: '#52525b', border: '#15803d' },
 ] as const;
+
+export type CertificateThemeId = typeof THEMES[number]['id'];
 
 export const CertificateStudio: React.FC = () => {
   const {
@@ -66,12 +78,19 @@ export const CertificateStudio: React.FC = () => {
   const [description, setDescription] = useState(
     'For exceptional technical competence, sustained dedication, and active participation in advanced club initiatives.'
   );
-  const [theme, setTheme] = useState<'modern-blue' | 'executive-gold' | 'cyber-dark' | 'emerald-minimal' | 'ruby-elegance'>('modern-blue');
-  const [signatoryName, setSignatoryName] = useState('Dr. S. K. Ramesh');
-  const [signatoryTitle, setSignatoryTitle] = useState('Faculty Coordinator & Club Advisor');
+  const [theme, setTheme] = useState<string>('classic-ivory');
+  
+  // Three Faculty Members - All Positions Set as Faculty Coordinator
+  const [signatoryName, setSignatoryName] = useState('Dr. Dhanasekar R');
+  const [signatoryTitle, setSignatoryTitle] = useState('Faculty Coordinator');
+  const [secondarySignatoryName, setSecondarySignatoryName] = useState('Dr. Nandhini K M');
+  const [secondarySignatoryTitle, setSecondarySignatoryTitle] = useState('Faculty Coordinator');
+  const [tertiarySignatoryName, setTertiarySignatoryName] = useState('Prof. RATHNA S');
+  const [tertiarySignatoryTitle, setTertiarySignatoryTitle] = useState('Faculty Coordinator');
   const [signatoryOrganization, setSignatoryOrganization] = useState('Code Circle · Bannari Amman Institute of Technology');
-  const [sampleRecipientName, setSampleRecipientName] = useState('Alex Rivera');
-  const [sampleRollNo, setSampleRollNo] = useState('7376222CB101');
+  
+  const [sampleRecipientName, setSampleRecipientName] = useState('RAHUL P');
+  const [sampleRollNo, setSampleRollNo] = useState('7376231CS272');
   const [associatedEventId, setAssociatedEventId] = useState('');
   const [associatedDomainId, setAssociatedDomainId] = useState('');
 
@@ -79,6 +98,7 @@ export const CertificateStudio: React.FC = () => {
   const [issueTemplateId, setIssueTemplateId] = useState('');
   const [targetType, setTargetType] = useState<'EVENT' | 'COURSE' | 'USERS'>('EVENT');
   const [targetId, setTargetId] = useState('');
+  const [completedOnly, setCompletedOnly] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [userSearch, setUserSearch] = useState('');
 
@@ -99,9 +119,13 @@ export const CertificateStudio: React.FC = () => {
     setTitle(tmpl.title);
     setSubtitle(tmpl.subtitle || 'Proudly Presented To');
     setDescription(tmpl.description || '');
-    setTheme(tmpl.theme || 'modern-blue');
+    setTheme(tmpl.theme || 'classic-ivory');
     setSignatoryName(tmpl.signatoryName || 'Dr. S. K. Ramesh');
-    setSignatoryTitle(tmpl.signatoryTitle || 'Faculty Coordinator & Club Advisor');
+    setSignatoryTitle(tmpl.signatoryTitle || 'Faculty Coordinator');
+    setSecondarySignatoryName(tmpl.secondarySignatoryName || 'Dr. P. Balasubramanie');
+    setSecondarySignatoryTitle(tmpl.secondarySignatoryTitle || 'Faculty Coordinator');
+    setTertiarySignatoryName(tmpl.tertiarySignatoryName || 'Dr. C. Palanisamy');
+    setTertiarySignatoryTitle(tmpl.tertiarySignatoryTitle || 'Faculty Coordinator');
     setSignatoryOrganization(tmpl.signatoryOrganization || 'Code Circle · Bannari Amman Institute of Technology');
     setAssociatedEventId(tmpl.associatedEventId?._id || tmpl.associatedEventId || '');
     setAssociatedDomainId(tmpl.associatedDomainId?._id || tmpl.associatedDomainId || '');
@@ -114,9 +138,13 @@ export const CertificateStudio: React.FC = () => {
     setDescription(
       'For exceptional technical competence, sustained dedication, and active participation in advanced club initiatives.'
     );
-    setTheme('modern-blue');
+    setTheme('classic-ivory');
     setSignatoryName('Dr. S. K. Ramesh');
-    setSignatoryTitle('Faculty Coordinator & Club Advisor');
+    setSignatoryTitle('Faculty Coordinator');
+    setSecondarySignatoryName('Dr. P. Balasubramanie');
+    setSecondarySignatoryTitle('Faculty Coordinator');
+    setTertiarySignatoryName('Dr. C. Palanisamy');
+    setTertiarySignatoryTitle('Faculty Coordinator');
     setSignatoryOrganization('Code Circle · Bannari Amman Institute of Technology');
     setAssociatedEventId('');
     setAssociatedDomainId('');
@@ -135,6 +163,10 @@ export const CertificateStudio: React.FC = () => {
       theme,
       signatoryName,
       signatoryTitle,
+      secondarySignatoryName,
+      secondarySignatoryTitle,
+      tertiarySignatoryName,
+      tertiarySignatoryTitle,
       signatoryOrganization,
       associatedEventId: associatedEventId || null,
       associatedDomainId: associatedDomainId || null,
@@ -169,6 +201,7 @@ export const CertificateStudio: React.FC = () => {
       targetType,
       targetId: targetId || undefined,
       userIds: targetType === 'USERS' ? selectedUserIds : undefined,
+      completedOnly: targetType === 'COURSE' ? completedOnly : undefined,
     });
 
     if (res.success) {
@@ -181,11 +214,11 @@ export const CertificateStudio: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Navigation Sub-Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-2 rounded-2xl border border-separator shadow-sm">
-        <div className="flex items-center gap-1.5 p-1 bg-surface-raised rounded-xl border border-separator/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-2 rounded-2xl border border-separator shadow-sm">
+        <div className="flex items-center gap-1.5 p-1 bg-surface-raised rounded-xl border border-separator/60 overflow-x-auto no-scrollbar w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('designer')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
               activeTab === 'designer'
                 ? 'bg-primary text-white shadow-md shadow-primary/20'
                 : 'text-label-tertiary hover:text-label-primary'
@@ -196,7 +229,7 @@ export const CertificateStudio: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('issue')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
               activeTab === 'issue'
                 ? 'bg-primary text-white shadow-md shadow-primary/20'
                 : 'text-label-tertiary hover:text-label-primary'
@@ -207,7 +240,7 @@ export const CertificateStudio: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('ledger')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
               activeTab === 'ledger'
                 ? 'bg-primary text-white shadow-md shadow-primary/20'
                 : 'text-label-tertiary hover:text-label-primary'
@@ -223,11 +256,11 @@ export const CertificateStudio: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           {activeTab === 'designer' && (
             <button
               onClick={handleResetToNew}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 rounded-lg transition-colors border border-primary/20"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 rounded-lg transition-colors border border-primary/20 cursor-pointer"
             >
               <Plus size={14} />
               <span>New Template</span>
@@ -312,49 +345,127 @@ export const CertificateStudio: React.FC = () => {
                 />
               </div>
 
-              {/* Theme Palette Chooser */}
+              {/* Theme Palette Chooser - 15 Light Themes */}
               <div className="space-y-2 pt-2">
-                <label className="text-xs font-medium text-label-secondary">Theme & Aesthetics</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-label-secondary uppercase tracking-wider">
+                    Light Theme Collection ({THEMES.length} Themes)
+                  </label>
+                  <span className="text-[10px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    100% Light Print-Ready
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
                   {THEMES.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => setTheme(t.id as any)}
-                      className={`flex items-center gap-2.5 p-2 rounded-xl border text-left transition-all ${
+                      className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
                         theme === t.id
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary shadow-xs'
                           : 'border-separator bg-surface-raised hover:border-separator-focus'
                       }`}
                     >
-                      <span
-                        className="w-4 h-4 rounded-full border border-black/20 shrink-0 shadow-inner"
-                        style={{ background: t.primary }}
-                      />
-                      <span className="text-xs font-semibold text-label-primary truncate">{t.label}</span>
+                      <div className="flex items-center -space-x-1 shrink-0">
+                        <span
+                          className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-xs"
+                          style={{ background: t.primary }}
+                        />
+                        <span
+                          className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-xs"
+                          style={{ background: t.secondary }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-semibold text-label-primary truncate">{t.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Signatory Configuration */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-label-secondary">Signatory Name</label>
-                  <input
-                    type="text"
-                    value={signatoryName}
-                    onChange={(e) => setSignatoryName(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
-                  />
+              {/* Three Faculty Members Configuration - All Positioned as Faculty Coordinator */}
+              <div className="space-y-3 pt-2 border-t border-separator/60">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award size={15} className="text-primary" />
+                    <span className="text-xs font-bold text-label-secondary uppercase tracking-wider">
+                      Faculty Coordinators (3 Members)
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                    Position: Faculty Coordinator
+                  </span>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-label-secondary">Signatory Title</label>
-                  <input
-                    type="text"
-                    value={signatoryTitle}
-                    onChange={(e) => setSignatoryTitle(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
-                  />
+
+                {/* Faculty 1: Coordinator */}
+                <div className="bg-surface-raised p-3 rounded-xl border border-separator/80 space-y-2">
+                  <div className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center justify-between">
+                    <span>1. Faculty Coordinator</span>
+                    <span className="text-label-tertiary font-normal">Coordinator 1</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={signatoryName}
+                      onChange={(e) => setSignatoryName(e.target.value)}
+                      placeholder="Name (e.g. Dr. S. K. Ramesh)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
+                    />
+                    <input
+                      type="text"
+                      value={signatoryTitle}
+                      onChange={(e) => setSignatoryTitle(e.target.value)}
+                      placeholder="Title (Faculty Coordinator)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* Faculty 2: Coordinator */}
+                <div className="bg-surface-raised p-3 rounded-xl border border-separator/80 space-y-2">
+                  <div className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center justify-between">
+                    <span>2. Faculty Coordinator</span>
+                    <span className="text-label-tertiary font-normal">Coordinator 2</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={secondarySignatoryName}
+                      onChange={(e) => setSecondarySignatoryName(e.target.value)}
+                      placeholder="Name (e.g. Dr. P. Balasubramanie)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
+                    />
+                    <input
+                      type="text"
+                      value={secondarySignatoryTitle}
+                      onChange={(e) => setSecondarySignatoryTitle(e.target.value)}
+                      placeholder="Title (Faculty Coordinator)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                {/* Faculty 3: Coordinator */}
+                <div className="bg-surface-raised p-3 rounded-xl border border-separator/80 space-y-2">
+                  <div className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center justify-between">
+                    <span>3. Faculty Coordinator</span>
+                    <span className="text-label-tertiary font-normal">Coordinator 3</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={tertiarySignatoryName}
+                      onChange={(e) => setTertiarySignatoryName(e.target.value)}
+                      placeholder="Name (e.g. Dr. C. Palanisamy)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
+                    />
+                    <input
+                      type="text"
+                      value={tertiarySignatoryTitle}
+                      onChange={(e) => setTertiarySignatoryTitle(e.target.value)}
+                      placeholder="Title (Faculty Coordinator)"
+                      className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -405,98 +516,189 @@ export const CertificateStudio: React.FC = () => {
             </div>
 
             {/* Visual Canvas Card */}
-            <div
-              className="w-full aspect-[1.414/1] rounded-2xl p-6 sm:p-10 flex flex-col justify-between shadow-2xl relative overflow-hidden transition-all duration-300 select-none border"
-              style={{
-                backgroundColor: currentTheme.bg,
-                borderColor: currentTheme.primary + '55',
-                color: currentTheme.text,
-              }}
-            >
+            <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+              <div
+                className="min-w-[560px] sm:min-w-0 w-full aspect-[1.414/1] rounded-2xl p-6 sm:p-10 flex flex-col justify-between shadow-2xl relative overflow-hidden transition-all duration-300 select-none border"
+                style={{
+                  backgroundColor: currentTheme.bg,
+                  borderColor: currentTheme.primary + '55',
+                  color: currentTheme.text,
+                }}
+              >
               {/* Decorative Corner Ornaments */}
               <div
                 className="absolute inset-3 sm:inset-5 border rounded-xl pointer-events-none"
-                style={{ borderColor: currentTheme.primary + '44' }}
+                style={{ borderColor: currentTheme.primary + '35' }}
               />
               <div
                 className="absolute inset-4 sm:inset-6 border rounded-lg pointer-events-none opacity-50"
-                style={{ borderColor: currentTheme.primary + '22' }}
+                style={{ borderColor: currentTheme.primary + '18' }}
               />
 
               {/* Ambient Glows */}
               <div
-                className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none"
+                className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl opacity-10 pointer-events-none"
                 style={{ background: currentTheme.primary }}
               />
               <div
-                className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none"
-                style={{ background: currentTheme.primary }}
+                className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-10 pointer-events-none"
+                style={{ background: currentTheme.secondary }}
               />
 
-              {/* Header */}
-              <div className="text-center relative z-10 pt-2">
+              {/* Header with Club Logo */}
+              <div className="text-center relative z-10 pt-1">
+                <img
+                  src="/codecirclelogo.jpeg"
+                  alt="Code Circle Logo"
+                  className="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 rounded-full border-2 border-black/10 shadow-sm object-cover bg-black/5"
+                />
                 <p
-                  className="text-[9px] sm:text-[11px] font-bold tracking-[0.25em] uppercase"
+                  className="text-[9px] sm:text-[10px] font-bold tracking-[0.22em] uppercase"
                   style={{ color: currentTheme.primary }}
                 >
                   {signatoryOrganization}
                 </p>
-                <h2 className="text-lg sm:text-2xl font-black tracking-tight mt-1 uppercase">
+                <h2
+                  className="text-base sm:text-xl font-black tracking-tight mt-0.5 uppercase"
+                  style={{ color: currentTheme.text }}
+                >
                   {title || 'Certificate Title'}
                 </h2>
-                <p className="text-[10px] sm:text-xs opacity-70 tracking-widest uppercase mt-0.5">
+                <p
+                  className="text-[9px] sm:text-[11px] opacity-75 tracking-widest uppercase mt-0.5"
+                  style={{ color: currentTheme.text }}
+                >
                   {subtitle}
                 </p>
                 <div
-                  className="w-16 h-0.5 mx-auto my-2 rounded-full"
-                  style={{ backgroundColor: currentTheme.primary }}
+                  className="w-16 h-0.5 mx-auto my-1.5 rounded-full"
+                  style={{ backgroundColor: currentTheme.secondary || currentTheme.primary }}
                 />
               </div>
 
               {/* Recipient Spotlight */}
-              <div className="text-center my-auto relative z-10 py-2">
+              <div className="text-center my-auto relative z-10 py-1">
                 <h1
-                  className="text-2xl sm:text-4xl font-extrabold tracking-tight uppercase"
+                  className="text-xl sm:text-3xl font-extrabold tracking-tight uppercase"
                   style={{ color: currentTheme.primary }}
                 >
                   {sampleRecipientName}
                 </h1>
                 {sampleRollNo && (
-                  <p className="text-[10px] sm:text-xs font-mono opacity-60 mt-0.5">
+                  <p
+                    className="text-[9px] sm:text-[11px] font-mono opacity-65 mt-0.5 font-semibold"
+                    style={{ color: currentTheme.text }}
+                  >
                     Roll No: {sampleRollNo}
                   </p>
                 )}
-                <p className="text-[10px] sm:text-xs opacity-75 max-w-md mx-auto mt-2 leading-relaxed px-4 line-clamp-3">
+                <p
+                  className="text-[9px] sm:text-[11px] opacity-80 max-w-md mx-auto mt-1.5 leading-relaxed px-4 line-clamp-2"
+                  style={{ color: currentTheme.text }}
+                >
                   {description}
                 </p>
               </div>
 
-              {/* Footer Meta & Signatures */}
-              <div className="flex items-end justify-between relative z-10 pt-2 border-t border-white/10">
-                {/* Official Seal */}
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 flex flex-col items-center justify-center shrink-0 shadow-md"
-                    style={{ borderColor: currentTheme.primary }}
-                  >
-                    <ShieldCheck size={16} style={{ color: currentTheme.primary }} />
-                    <span className="text-[6px] font-black tracking-tighter uppercase mt-0.5">
-                      Verified
-                    </span>
+              {/* Footer: Official Seal & Three Faculty Signatories */}
+              <div
+                className="space-y-2 relative z-10 pt-2 border-t"
+                style={{ borderColor: currentTheme.primary + '20' }}
+              >
+                {/* Mid Verification Strip */}
+                <div
+                  className="flex items-center justify-between px-2 text-[7px] sm:text-[9px] font-mono opacity-70"
+                  style={{ color: currentTheme.text }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck size={13} style={{ color: currentTheme.primary }} />
+                    <span className="font-bold tracking-wider uppercase">Verified Institutional Credential</span>
                   </div>
-                  <div className="hidden sm:block text-[8px] font-mono opacity-60 leading-tight">
-                    <p>ID: CC-CERT-SAMPLE</p>
-                    <p>DATE: {new Date().toLocaleDateString()}</p>
-                  </div>
+                  <div>ID: CC-CERT-SAMPLE · DATE: {new Date().toLocaleDateString()}</div>
                 </div>
 
-                {/* Signatory Signature Block */}
-                <div className="text-right">
-                  <div className="w-28 sm:w-36 h-0.5 bg-white/30 ml-auto mb-1" />
-                  <p className="text-[10px] sm:text-xs font-bold">{signatoryName}</p>
-                  <p className="text-[8px] sm:text-[9px] opacity-70">{signatoryTitle}</p>
+                {/* Three Faculty Signatures Side by Side - All Faculty Coordinators */}
+                <div
+                  className="grid grid-cols-3 gap-2 pt-1 border-t text-center"
+                  style={{ borderColor: currentTheme.primary + '20' }}
+                >
+                  <div>
+                    <div
+                      className="w-16 sm:w-24 h-0.5 mx-auto mb-1"
+                      style={{ backgroundColor: currentTheme.primary + '55' }}
+                    />
+                    <p
+                      className="text-[8px] sm:text-[10px] font-bold truncate"
+                      style={{ color: currentTheme.text }}
+                    >
+                      {signatoryName || 'Dr. S. K. Ramesh'}
+                    </p>
+                    <p
+                      className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate"
+                      style={{ color: currentTheme.primary }}
+                    >
+                      {signatoryTitle || 'Faculty Coordinator'}
+                    </p>
+                    <p
+                      className="text-[6px] sm:text-[7px] opacity-60 truncate"
+                      style={{ color: currentTheme.text }}
+                    >
+                      Faculty Coordinator · EIE
+                    </p>
+                  </div>
+
+                  <div>
+                    <div
+                      className="w-16 sm:w-24 h-0.5 mx-auto mb-1"
+                      style={{ backgroundColor: currentTheme.primary + '55' }}
+                    />
+                    <p
+                      className="text-[8px] sm:text-[10px] font-bold truncate"
+                      style={{ color: currentTheme.text }}
+                    >
+                      {secondarySignatoryName || 'Dr. P. Balasubramanie'}
+                    </p>
+                    <p
+                      className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate"
+                      style={{ color: currentTheme.primary }}
+                    >
+                      {secondarySignatoryTitle || 'Faculty Coordinator'}
+                    </p>
+                    <p
+                      className="text-[6px] sm:text-[7px] opacity-60 truncate"
+                      style={{ color: currentTheme.text }}
+                    >
+                      Faculty Coordinator · EIE
+                    </p>
+                  </div>
+
+                  <div>
+                    <div
+                      className="w-16 sm:w-24 h-0.5 mx-auto mb-1"
+                      style={{ backgroundColor: currentTheme.primary + '55' }}
+                    />
+                    <p
+                      className="text-[8px] sm:text-[10px] font-bold truncate"
+                      style={{ color: currentTheme.text }}
+                    >
+                      {tertiarySignatoryName || 'Dr. C. Palanisamy'}
+                    </p>
+                    <p
+                      className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate"
+                      style={{ color: currentTheme.primary }}
+                    >
+                      {tertiarySignatoryTitle || 'Faculty Coordinator'}
+                    </p>
+                    <p
+                      className="text-[6px] sm:text-[7px] opacity-60 truncate"
+                      style={{ color: currentTheme.text }}
+                    >
+                      Faculty Coordinator · CSE
+                    </p>
+                  </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -504,9 +706,9 @@ export const CertificateStudio: React.FC = () => {
 
       {/* --- TAB 2: BULK ISSUER --- */}
       {activeTab === 'issue' && (
-        <div className="max-w-3xl mx-auto bg-surface p-8 rounded-3xl border border-separator shadow-sm space-y-6">
+        <div className="max-w-3xl mx-auto bg-surface p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-separator shadow-sm space-y-6">
           <div>
-            <h2 className="text-lg font-bold text-label-primary flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-bold text-label-primary flex items-center gap-2">
               <Send size={20} className="text-primary" />
               <span>Bulk Certificate Issuance Studio</span>
             </h2>
@@ -540,7 +742,7 @@ export const CertificateStudio: React.FC = () => {
               <label className="text-xs font-bold text-label-secondary uppercase tracking-wider">
                 2. Target Recipient Source
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setTargetType('EVENT')}
@@ -600,20 +802,41 @@ export const CertificateStudio: React.FC = () => {
             )}
 
             {targetType === 'COURSE' && (
-              <div className="space-y-1.5 animate-in fade-in">
-                <label className="text-xs font-medium text-label-secondary">Choose Domain Course</label>
-                <select
-                  value={targetId}
-                  onChange={(e) => setTargetId(e.target.value)}
-                  className="w-full px-4 py-2.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
-                >
-                  <option value="">-- Select Domain Course --</option>
-                  {domains.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-3 animate-in fade-in">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-label-secondary">Choose Domain Course</label>
+                  <select
+                    value={targetId}
+                    onChange={(e) => setTargetId(e.target.value)}
+                    className="w-full px-4 py-2.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary font-medium"
+                  >
+                    <option value="">-- Select Domain Course --</option>
+                    {domains.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name} ({d.levelsCount || d.levels?.length || 0} levels)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Course Completion Condition */}
+                <div className="flex items-center justify-between p-3 bg-surface-raised border border-separator/80 rounded-xl">
+                  <div>
+                    <p className="text-xs font-bold text-label-primary">Target Completed Students Only</p>
+                    <p className="text-[10px] text-label-tertiary">
+                      Only issue certificates to students whose course status is marked as 'completed'
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={completedOnly}
+                      onChange={(e) => setCompletedOnly(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-separator peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
               </div>
             )}
 
@@ -694,7 +917,7 @@ export const CertificateStudio: React.FC = () => {
 
       {/* --- TAB 3: REGISTRY & LEDGER --- */}
       {activeTab === 'ledger' && (
-        <div className="bg-surface rounded-2xl border border-separator shadow-sm overflow-hidden space-y-4 p-6">
+        <div className="bg-surface rounded-2xl border border-separator shadow-sm overflow-hidden space-y-4 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
@@ -706,8 +929,8 @@ export const CertificateStudio: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
                 <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
                 <input
                   type="text"
@@ -717,7 +940,7 @@ export const CertificateStudio: React.FC = () => {
                     fetchIssuedCertificates({ search: e.target.value, status: statusFilter });
                   }}
                   placeholder="Search recipient or ID..."
-                  className="pl-8 pr-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary w-48"
+                  className="pl-8 pr-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary w-full sm:w-48"
                 />
               </div>
 
@@ -727,7 +950,7 @@ export const CertificateStudio: React.FC = () => {
                   setStatusFilter(e.target.value);
                   fetchIssuedCertificates({ search: ledgerSearch, status: e.target.value });
                 }}
-                className="px-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none"
+                className="px-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none w-full sm:w-auto"
               >
                 <option value="">All Statuses</option>
                 <option value="ACTIVE">Active Only</option>
@@ -737,8 +960,8 @@ export const CertificateStudio: React.FC = () => {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto border border-separator rounded-xl">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto border border-separator rounded-xl custom-scrollbar touch-pan-x">
+            <table className="w-full text-left text-xs min-w-[760px]">
               <thead className="bg-surface-raised border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Certificate ID</th>
@@ -784,7 +1007,7 @@ export const CertificateStudio: React.FC = () => {
                       <td className="py-3 px-4 text-right space-x-1.5">
                         <button
                           onClick={() => downloadCertificatePdf(cert._id, cert.certificateId)}
-                          className="p-1.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+                          className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
                           title="Download PDF"
                         >
                           <Download size={15} />
@@ -795,7 +1018,7 @@ export const CertificateStudio: React.FC = () => {
                             navigator.clipboard.writeText(url);
                             toast.success('Public verification link copied!');
                           }}
-                          className="p-1.5 hover:bg-surface-raised text-label-secondary rounded-lg transition-colors"
+                          className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-raised text-label-secondary rounded-lg transition-colors cursor-pointer"
                           title="Copy Verification Link"
                         >
                           <Copy size={15} />
@@ -806,7 +1029,7 @@ export const CertificateStudio: React.FC = () => {
                               const reason = prompt('Enter revocation reason (optional):');
                               if (reason !== null) revokeCertificate(cert._id, reason || undefined);
                             }}
-                            className="p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-colors"
+                            className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-rose-500/10 text-rose-500 rounded-lg transition-colors cursor-pointer"
                             title="Revoke Certificate"
                           >
                             <X size={15} />

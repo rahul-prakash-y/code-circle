@@ -96,17 +96,17 @@ const NewsFeed = () => {
     : newsList;
 
   return (
-    <div className="space-y-8 py-2">
+    <div className="space-y-6 sm:space-y-8 py-2">
       {/* Page Header — Publication Masthead */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-separator">
         <div>
           <p className="meta-editorial mb-1">
             Club Publication
           </p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-label-primary tracking-tight font-heading">
+          <h1 className="text-2xl sm:text-4xl font-bold text-label-primary tracking-tight font-heading">
             Official Announcements
           </h1>
-          <p className="text-sm text-label-secondary mt-1 max-w-xl">
+          <p className="text-xs sm:text-sm text-label-secondary mt-1 max-w-xl">
             Technical initiatives, hackathon updates, workshops, and club milestones.
           </p>
         </div>
@@ -114,7 +114,7 @@ const NewsFeed = () => {
         {canPublish && (
           <button
             onClick={handleOpenCreate}
-            className="btn-primary flex items-center gap-2 self-start md:self-auto text-xs py-2 px-4.5"
+            className="btn-primary flex items-center justify-center gap-2 self-start md:self-auto text-xs py-2.5 px-5 min-h-[40px] cursor-pointer"
           >
             <Plus size={15} />
             <span>Publish Announcement</span>
@@ -126,11 +126,11 @@ const NewsFeed = () => {
       {pinnedArticle && (
         <div
           onClick={() => handleOpenReader(pinnedArticle)}
-          className="surface p-6 sm:p-8 relative overflow-hidden group cursor-pointer hover:shadow-md transition-shadow duration-200"
+          className="surface p-4 sm:p-7 lg:p-8 rounded-2xl sm:rounded-3xl relative overflow-hidden group cursor-pointer hover:shadow-md transition-shadow duration-200"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
             {/* Image Column */}
-            <div className="lg:col-span-5 h-60 sm:h-64 rounded-xl overflow-hidden relative border border-separator bg-canvas">
+            <div className="lg:col-span-5 h-52 sm:h-64 rounded-xl sm:rounded-2xl overflow-hidden relative border border-separator bg-canvas">
               <img
                 src={pinnedArticle.coverImage || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80'}
                 alt={pinnedArticle.title}
@@ -154,15 +154,15 @@ const NewsFeed = () => {
                 </span>
               </div>
 
-              <h2 className="text-2xl sm:text-[26px] font-bold text-label-primary group-hover:text-accent transition-colors leading-snug font-heading">
+              <h2 className="text-xl sm:text-[26px] font-bold text-label-primary group-hover:text-accent transition-colors leading-snug font-heading">
                 {pinnedArticle.title}
               </h2>
 
-              <p className="text-sm text-label-secondary line-clamp-3 leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm text-label-secondary line-clamp-3 leading-relaxed font-normal">
                 {pinnedArticle.content}
               </p>
 
-              <div className="flex items-center justify-between pt-3 border-t border-separator">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-separator">
                 <div className="flex items-center gap-2 text-xs text-label-secondary">
                   <span>By {pinnedArticle.author?.name || 'Editorial Team'}</span>
                   <span>•</span>
@@ -176,15 +176,17 @@ const NewsFeed = () => {
                     <>
                       <button
                         onClick={(e) => handleOpenEdit(pinnedArticle, e)}
-                        className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors cursor-pointer"
                         title="Edit Article"
+                        aria-label="Edit Article"
                       >
                         <Edit3 size={14} />
                       </button>
                       <button
                         onClick={(e) => handleDelete(pinnedArticle._id, e)}
-                        className="p-1.5 rounded-lg text-label-secondary hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-label-secondary hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                         title="Delete Article"
+                        aria-label="Delete Article"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -203,14 +205,14 @@ const NewsFeed = () => {
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
         {/* Category Pills */}
-        <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full overflow-x-auto">
+        <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full overflow-x-auto no-scrollbar max-w-full">
           {TAGS.map((t) => (
             <button
               key={t}
               onClick={() => setSelectedTag(t)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+              className={`px-3.5 py-1.5 min-h-[34px] rounded-full text-xs font-medium transition-colors whitespace-nowrap cursor-pointer touch-manipulation ${
                 selectedTag === t
-                  ? 'bg-accent text-white shadow-xs'
+                  ? 'bg-accent text-white shadow-xs font-bold'
                   : 'text-label-secondary hover:text-label-primary hover:bg-canvas'
               }`}
             >
@@ -220,14 +222,14 @@ const NewsFeed = () => {
         </div>
 
         {/* Search input */}
-        <div className="relative min-w-[240px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[240px]">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-label-tertiary" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search announcements…"
-            className="input-base pl-9 text-xs"
+            className="input-base pl-9 text-xs min-h-[38px] w-full"
           />
         </div>
       </div>
@@ -240,14 +242,14 @@ const NewsFeed = () => {
           ))}
         </div>
       ) : standardArticles.length === 0 && !pinnedArticle ? (
-        <div className="surface p-14 text-center rounded-[18px]">
+        <div className="surface p-10 sm:p-14 text-center rounded-[18px]">
           <Newspaper size={32} className="text-label-tertiary mx-auto mb-3 opacity-30" />
           <h3 className="text-base font-semibold text-label-primary">No announcements found</h3>
           <p className="text-xs text-label-secondary mt-1">
             Try adjusting your search filter or check back later.
           </p>
           {canPublish && (
-            <button onClick={handleOpenCreate} className="btn-primary text-xs mt-4">
+            <button onClick={handleOpenCreate} className="btn-primary text-xs mt-4 py-2.5 px-5 min-h-[40px]">
               Publish First Announcement
             </button>
           )}
@@ -278,7 +280,7 @@ const NewsFeed = () => {
                 </div>
 
                 {/* Card Text Content */}
-                <div className="p-5 space-y-2">
+                <div className="p-4 sm:p-5 space-y-2">
                   <div className="text-[11px] text-label-tertiary">
                     {new Date(article.date).toLocaleDateString('en-US', {
                       month: 'short',
@@ -296,27 +298,29 @@ const NewsFeed = () => {
               </div>
 
               {/* Card Footer */}
-              <div className="px-5 pb-5 pt-3 border-t border-separator flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
+              <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-separator flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 min-w-0 pr-2">
                   <span className="text-label-secondary truncate max-w-[120px]">
                     {article.author?.name || 'Club Staff'}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {canPublish && (
                     <>
                       <button
                         onClick={(e) => handleOpenEdit(article, e)}
-                        className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors"
+                        className="p-1.5 min-h-[34px] min-w-[34px] flex items-center justify-center rounded-lg text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors cursor-pointer"
                         title="Edit Article"
+                        aria-label="Edit Article"
                       >
                         <Edit3 size={13} />
                       </button>
                       <button
                         onClick={(e) => handleDelete(article._id, e)}
-                        className="p-1.5 rounded-lg text-label-secondary hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        className="p-1.5 min-h-[34px] min-w-[34px] flex items-center justify-center rounded-lg text-label-secondary hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                         title="Delete Article"
+                        aria-label="Delete Article"
                       >
                         <Trash2 size={13} />
                       </button>

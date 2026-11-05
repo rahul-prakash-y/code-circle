@@ -9,6 +9,12 @@ export interface IUser extends Document {
   role: UserRole;
   password: string;
   isBlocked: boolean;
+  isRestricted?: boolean;
+  restrictionReason?: string;
+  restrictedFeatures?: ('assessments' | 'contests' | 'courses')[];
+  restrictedAt?: Date | null;
+  unblockedAt?: Date | null;
+  unblockedBy?: mongoose.Types.ObjectId | null;
   hasChangedDefaultPassword: boolean;
   isOnboarded?: boolean;
   mustChangePassword: boolean;
@@ -21,6 +27,7 @@ export interface IUser extends Document {
   dob?: string;
   dateOfBirth?: string;
   gender?: string;
+  residenceType?: 'Hosteller' | 'Day Scholar' | '';
   bio?: string;
   skills: string[];
   socialLinks: ISocialLinks;
@@ -47,6 +54,16 @@ const userSchema = new Schema<IUser>(
     },
     password: { type: String, required: true },
     isBlocked: { type: Boolean, default: false, index: true },
+    isRestricted: { type: Boolean, default: false, index: true },
+    restrictionReason: { type: String, default: '', trim: true },
+    restrictedFeatures: {
+      type: [String],
+      enum: ['assessments', 'contests', 'courses'],
+      default: [],
+    },
+    restrictedAt: { type: Date, default: null },
+    unblockedAt: { type: Date, default: null },
+    unblockedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     hasChangedDefaultPassword: { type: Boolean, default: false, index: true },
     isOnboarded: { type: Boolean, default: false, index: true },
     mustChangePassword: { type: Boolean, default: false },
@@ -59,6 +76,13 @@ const userSchema = new Schema<IUser>(
     dob: { type: String, default: '', trim: true },
     dateOfBirth: { type: String, default: '', trim: true },
     gender: { type: String, default: '', trim: true },
+    residenceType: {
+      type: String,
+      enum: ['Hosteller', 'Day Scholar', ''],
+      default: '',
+      trim: true,
+      index: true,
+    },
     bio: { type: String, default: '', trim: true },
     skills: [{ type: String, trim: true }],
     socialLinks: {
@@ -83,6 +107,9 @@ const userSchema = new Schema<IUser>(
 userSchema.index({ role: 1, isBlocked: 1 });
 userSchema.index({ role: 1, hasChangedDefaultPassword: 1 });
 userSchema.index({ role: 1, isOnboarded: 1 });
+userSchema.index({ role: 1, mustChangePassword: 1, createdAt: -1 });
+userSchema.index({ role: 1, createdAt: -1 });
+userSchema.index({ role: 1, points: -1, createdAt: -1 });
 userSchema.index({ department: 1, role: 1 });
 userSchema.index({ createdAt: -1 });
 

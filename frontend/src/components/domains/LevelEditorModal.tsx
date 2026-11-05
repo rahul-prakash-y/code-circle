@@ -437,11 +437,11 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-1">
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 p-1 rounded-xl bg-surface-secondary border border-separator text-xs font-semibold">
+        <div className="flex items-center gap-1.5 sm:gap-2 p-1 rounded-xl bg-surface-secondary border border-separator text-xs font-semibold overflow-x-auto no-scrollbar touch-pan-x flex-nowrap">
           <button
             type="button"
             onClick={() => setActiveTab('info')}
-            className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+            className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-1.5 min-h-[38px] rounded-lg transition cursor-pointer whitespace-nowrap ${
               activeTab === 'info'
                 ? 'bg-surface text-label-primary shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
@@ -452,7 +452,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('materials')}
-            className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+            className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-1.5 min-h-[38px] rounded-lg transition cursor-pointer whitespace-nowrap ${
               activeTab === 'materials'
                 ? 'bg-surface text-label-primary shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'
@@ -463,7 +463,7 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('questions')}
-            className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${
+            className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-1.5 min-h-[38px] rounded-lg transition cursor-pointer whitespace-nowrap ${
               activeTab === 'questions'
                 ? 'bg-surface text-label-primary shadow-sm'
                 : 'text-label-secondary hover:text-label-primary'

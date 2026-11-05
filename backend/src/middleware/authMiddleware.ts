@@ -38,6 +38,9 @@ export const verifyToken = async (request: FastifyRequest, reply: FastifyReply) 
       rollNo: user.rollNo,
       department: user.department || '',
       sessionId: decoded.sessionId,
+      isRestricted: Boolean(user.isRestricted),
+      restrictionReason: user.restrictionReason || '',
+      restrictedFeatures: (user.restrictedFeatures as any) || [],
     };
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
@@ -136,6 +139,43 @@ export const requireSuperAdmin = async (request: FastifyRequest, reply: FastifyR
 export const isSuperAdmin = requireSuperAdmin;
 export const isAdminOrFaculty = requireRole('Admin', 'Faculty', 'Committee');
 
+/**
+ * Middleware: Verify student is not restricted from accessing a given feature
+ * (e.g. 'assessments', 'contests', 'courses')
+ */
+export const checkFeatureNotRestricted = (feature: 'assessments' | 'contests' | 'courses') => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = (request as any).user;
+    if (!user) return;
+
+    // Faculty, Admin, SuperAdmin, Committee are never restricted
+    if (
+      user.role === 'Admin' ||
+      user.role === 'SuperAdmin' ||
+      user.role === 'Faculty' ||
+      user.role === 'Committee'
+    ) {
+      return;
+    }
+
+    const dbUser = await User.findById(user.id).select(
+      'isRestricted restrictionReason restrictedFeatures'
+    );
+
+    if (dbUser?.isRestricted && (dbUser.restrictedFeatures || []).includes(feature)) {
+      return reply.status(403).send({
+        success: false,
+        restricted: true,
+        feature,
+        restrictionReason: dbUser.restrictionReason || 'Account restriction in place',
+        error: `Access Denied: You have been restricted from accessing ${feature}. Reason: ${
+          dbUser.restrictionReason || 'Account restriction in place'
+        }. An administrator must unblock your account before you can proceed.`,
+      });
+    }
+  };
+};
+
 export default {
   verifyToken,
   optionalToken,
@@ -145,4 +185,5 @@ export default {
   requireSuperAdmin,
   isSuperAdmin,
   isAdminOrFaculty,
+  checkFeatureNotRestricted,
 };

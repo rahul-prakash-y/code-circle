@@ -10,6 +10,7 @@ import AttendanceDashboard from '../admin/AttendanceDashboard';
 import EventParticipantsModal from '../admin/EventParticipantsModal';
 import { EventCardSkeleton } from '../ui/LoadingSkeleton';
 import { useDebounce } from '../../hooks/useDebounce';
+import Pagination from '../common/Pagination';
 import { 
   Search, 
   CalendarCheck, 
@@ -25,10 +26,11 @@ import {
   MapPin, 
   UserCheck, 
   ArrowUpRight,
-  Eye
+  Eye,
+  Award
 } from 'lucide-react';
 
-const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop'];
+const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['all', 'Individual', 'Duo', 'Team'];
 
 export const EventFeed = ({
@@ -36,7 +38,7 @@ export const EventFeed = ({
   onEdit,
   onDelete,
 }) => {
-  const { events, upcomingEvents, pastEvents, loading, fetchEvents } = useEventStore();
+  const { events, upcomingEvents, pastEvents, pagination, loading, fetchEvents } = useEventStore();
   const { myEnrolledEventIds, fetchMyEnrollments } = useEnrollmentStore();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [selectedType, setSelectedType] = useState('all');
@@ -44,22 +46,32 @@ export const EventFeed = ({
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 350);
   const [viewMode, setViewMode] = useState('grid');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
   // Selected event for modals
   const [enrollEvent, setEnrollEvent] = useState(null);
   const [attendanceEvent, setAttendanceEvent] = useState(null);
   const [previewEvent, setPreviewEvent] = useState(null);
   const [participantsEvent, setParticipantsEvent] = useState(null);
+  const [participantsTab, setParticipantsTab] = useState('participants');
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, selectedType, selectedFormat, debouncedSearch]);
 
   useEffect(() => {
     fetchEvents({
       status: activeTab === 'all' ? undefined : activeTab,
       type: selectedType !== 'all' ? selectedType : undefined,
       format: selectedFormat !== 'all' ? selectedFormat : undefined,
-      search: searchQuery || undefined,
+      search: debouncedSearch || undefined,
+      page,
+      limit,
     });
     fetchMyEnrollments();
-  }, [activeTab, selectedType, selectedFormat, fetchEvents, fetchMyEnrollments]);
+  }, [activeTab, selectedType, selectedFormat, debouncedSearch, page, limit, fetchEvents, fetchMyEnrollments]);
 
   const isEventLive = (e) => {
     if (!e) return false;
@@ -146,7 +158,7 @@ export const EventFeed = ({
         {/* Status Tabs & View Mode */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Status filter pills */}
-          <div className="flex items-center gap-1 p-1 bg-surface border border-separator rounded-full overflow-x-auto">
+          <div className="flex items-center gap-1 p-1 bg-surface border border-separator rounded-full overflow-x-auto no-scrollbar max-w-full">
             {[
               { id: 'upcoming', label: 'Upcoming', icon: CalendarCheck },
               { id: 'live', label: 'Live', icon: Activity },
@@ -158,7 +170,7 @@ export const EventFeed = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-colors duration-150 ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-colors duration-150 min-h-[36px] ${
                     isActive
                       ? 'bg-accent text-white shadow-xs'
                       : 'text-label-secondary hover:text-label-primary hover:bg-canvas'
@@ -172,10 +184,10 @@ export const EventFeed = ({
           </div>
 
           {/* View mode toggle (Grid vs Table) */}
-          <div className="flex items-center gap-0.5 p-1 bg-surface border border-separator rounded-full ">
+          <div className="flex items-center gap-0.5 p-1 bg-surface border border-separator rounded-full">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+              className={`p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-full transition-colors cursor-pointer ${
                 viewMode === 'grid'
                   ? 'bg-separator text-label-primary'
                   : 'text-label-secondary hover:text-label-primary'
@@ -187,7 +199,7 @@ export const EventFeed = ({
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+              className={`p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-full transition-colors cursor-pointer ${
                 viewMode === 'table'
                   ? 'bg-separator text-label-primary'
                   : 'text-label-secondary hover:text-label-primary'
@@ -216,12 +228,12 @@ export const EventFeed = ({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Type Filter */}
-          <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full overflow-auto">
+          <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full overflow-x-auto no-scrollbar max-w-full">
             {EVENT_TYPES.map((type) => (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-1 min-h-[32px] rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap touch-manipulation ${
                   selectedType === type
                     ? 'bg-separator text-label-primary'
                     : 'text-label-secondary hover:text-label-primary'
@@ -233,12 +245,12 @@ export const EventFeed = ({
           </div>
 
           {/* Format Filter */}
-          <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full">
+          <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full overflow-x-auto no-scrollbar max-w-full">
             {EVENT_FORMATS.map((format) => (
               <button
                 key={format}
                 onClick={() => setSelectedFormat(format)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                className={`px-3 py-1 min-h-[32px] rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap touch-manipulation ${
                   selectedFormat === format
                     ? 'bg-separator text-label-primary'
                     : 'text-label-secondary hover:text-label-primary'
@@ -296,7 +308,7 @@ export const EventFeed = ({
         /* Data Table View — Clean Apple-spec Table */
         <div className="surface overflow-hidden rounded-[18px]">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[640px]">
               <thead>
                 <tr className="border-b border-separator bg-canvas/40">
                   <th className="px-6 py-3.5 text-[11px] font-semibold text-label-secondary uppercase tracking-wider">Event</th>
@@ -374,16 +386,29 @@ export const EventFeed = ({
                           {isAdmin && (
                             <>
                               <button
-                                onClick={() => setParticipantsEvent(event)}
+                                onClick={() => {
+                                  setParticipantsTab('registered');
+                                  setParticipantsEvent(event);
+                                }}
                                 className="p-1.5 rounded-lg text-label-secondary hover:text-accent hover:bg-canvas transition-colors cursor-pointer"
-                                title="Participants Directory"
+                                title="Registered Students List"
                               >
                                 <Users size={15} />
                               </button>
                               <button
+                                onClick={() => {
+                                  setParticipantsTab('participants');
+                                  setParticipantsEvent(event);
+                                }}
+                                className="p-1.5 rounded-lg text-label-secondary hover:text-emerald-400 hover:bg-canvas transition-colors cursor-pointer"
+                                title="Event Participants List (Attended)"
+                              >
+                                <Award size={15} />
+                              </button>
+                              <button
                                 onClick={() => setAttendanceEvent(event)}
                                 className="p-1.5 rounded-lg text-label-secondary hover:text-accent hover:bg-canvas transition-colors cursor-pointer"
-                                title="Attendance Records"
+                                title="Attendance Sessions & Logs"
                               >
                                 <UserCheck size={15} />
                               </button>
@@ -429,6 +454,23 @@ export const EventFeed = ({
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {pagination && pagination.total > 0 && (
+        <div className="pt-4 border-t border-separator">
+          <Pagination
+            page={page}
+            totalPages={pagination.totalPages || 1}
+            totalItems={pagination.total}
+            limit={limit}
+            onPageChange={(p) => setPage(p)}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
+        </div>
+      )}
+
       {/* Event Details Preview Modal */}
       {previewEvent && (
         <EventDetailsModal
@@ -439,16 +481,24 @@ export const EventFeed = ({
           isAdmin={isAdmin}
           onEnroll={(ev) => setEnrollEvent(ev)}
           onEdit={onEdit}
-          onViewParticipants={(ev) => setParticipantsEvent(ev)}
+          onViewParticipants={(ev, tab) => {
+            setParticipantsTab(tab || 'participants');
+            setParticipantsEvent(ev);
+          }}
+          onViewRegistered={(ev) => {
+            setParticipantsTab('registered');
+            setParticipantsEvent(ev);
+          }}
         />
       )}
 
-      {/* Event Participants Directory Modal for Admin */}
+      {/* Event Participants & Registered Students Directory Modal for Admin */}
       {participantsEvent && (
         <EventParticipantsModal
           isOpen={Boolean(participantsEvent)}
           onClose={() => setParticipantsEvent(null)}
           event={participantsEvent}
+          initialTab={participantsTab}
         />
       )}
 

@@ -12,8 +12,8 @@ async function healthRoutes(fastify, options) {
 
     const isHealthy = dbState === 1;
 
-    return reply.status(isHealthy ? 200 : 503).send({
-      status: isHealthy ? 'ok' : 'degraded',
+    return reply.status(200).send({
+      status: isHealthy ? 'ok' : 'initializing',
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
       database: dbStatusMap[dbState] || 'unknown',

@@ -2,12 +2,21 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import Event, { EventType, EventFormat, EventStatus, ICustomField } from '../models/eventModel';
 import Enrollment from '../models/enrollmentModel';
+import AttendanceSession from '../models/attendanceSessionModel';
+import AttendanceRecord from '../models/attendanceRecordModel';
+import Attendance from '../models/attendanceModel';
+import Team from '../models/teamModel';
+import Feedback from '../models/feedbackModel';
+import MissedEventRequest from '../models/missedEventRequestModel';
+import { IssuedCertificate } from '../models/certificateModel';
+import Assessment from '../models/assessmentModel';
 
 export interface CreateEventBody {
   title: string;
   description: string;
   type?: EventType;
   format?: EventFormat;
+  registrationType?: 'open' | 'admin_upload';
   date: string | Date;
   startDate?: string | Date;
   endDate?: string | Date;
@@ -43,6 +52,7 @@ export const createEvent = async (
       description,
       type = 'Technical',
       format = 'Individual',
+      registrationType = 'open',
       date,
       startDate,
       endDate,
@@ -72,6 +82,7 @@ export const createEvent = async (
       description: description.trim(),
       type,
       format,
+      registrationType: registrationType === 'admin_upload' ? 'admin_upload' : 'open',
       date: eventDate,
       startDate: evStartDate,
       endDate: evEndDate,
@@ -96,12 +107,34 @@ export const createEvent = async (
   }
 };
 
+import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+
+export interface GetEventsQuery {
+  status?: string;
+  type?: string;
+  format?: string;
+  search?: string;
+  page?: string;
+  limit?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 export const getEvents = async (
   request: FastifyRequest<{ Querystring: GetEventsQuery }>,
   reply: FastifyReply
 ) => {
   try {
     const { status, type, format, search } = request.query;
+    const { page, limit, skip, sort } = parsePaginationParams(request.query, {
+      defaultPage: 1,
+      defaultLimit: 20,
+      maxLimit: 100,
+      allowedSortFields: ['date', 'title', 'status', 'type', 'format', 'createdAt', 'startDate', 'endDate'],
+      defaultSortBy: 'date',
+      defaultSortOrder: 'asc',
+    });
+
     const query: any = {};
     const now = new Date();
 
@@ -138,30 +171,50 @@ export const getEvents = async (
     }
 
     if (search && search.trim()) {
-      const regex = new RegExp(search.trim(), 'i');
+      const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       query.$or = [{ title: regex }, { description: regex }, { venueOrLink: regex }];
     }
 
-    const events = await Event.find(query)
-      .sort({ date: 1 })
-      .populate('createdBy', 'name email profilePicUrl role');
+    const [total, events] = await Promise.all([
+      Event.countDocuments(query),
+      Event.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate('createdBy', 'name email profilePicUrl role')
+        .populate('arenaAdmins', 'name email profilePicUrl role rollNo department')
+        .lean(),
+    ]);
 
-    const eventIds = events.map((e) => e._id);
-    const enrollments = await (Enrollment as any).find({ event: { $in: eventIds } });
+    const eventIds = events.map((e: any) => e._id);
+    const enrollments = await (Enrollment as any).find({ event: { $in: eventIds } }).lean();
     const countMap: Record<string, number> = {};
+    const participantCountMap: Record<string, number> = {};
     for (const enr of enrollments) {
       const evId = enr.event.toString();
       const count = 1 + (enr.members?.length || 0);
-      countMap[evId] = (countMap[evId] || 0) + count;
+      if (!enr.isWalkIn) {
+        countMap[evId] = (countMap[evId] || 0) + count;
+      }
+      if (enr.attendanceStatus) {
+        participantCountMap[evId] = (participantCountMap[evId] || 0) + count;
+      }
     }
 
-    const eventsWithCounts = events.map((e) => {
-      const obj: any = e.toObject ? e.toObject() : { ...e };
-      obj.enrolledCount = countMap[e._id.toString()] || 0;
-      return obj;
-    });
+    const eventsWithCounts = events.map((e: any) => ({
+      ...e,
+      enrolledCount: countMap[e._id.toString()] || 0,
+      participantsCount: participantCountMap[e._id.toString()] || 0,
+    }));
 
-    return reply.send(eventsWithCounts);
+    const pagination = buildPaginationMeta(total, page, limit);
+
+    return reply.send({
+      success: true,
+      data: eventsWithCounts,
+      events: eventsWithCounts,
+      pagination,
+    });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({
@@ -181,23 +234,31 @@ export const getEventById = async (
       return reply.status(400).send({ success: false, error: 'Invalid event ID' });
     }
 
-    const event = await Event.findById(id).populate(
-      'createdBy',
-      'name email profilePicUrl role'
-    );
+    const event = await Event.findById(id)
+      .populate('createdBy', 'name email profilePicUrl role')
+      .populate('arenaAdmins', 'name email profilePicUrl role rollNo department');
 
     if (!event) {
       return reply.status(404).send({ success: false, error: 'Event not found' });
     }
 
     const enrollments = await (Enrollment as any).find({ event: event._id });
-    const enrolledCount = enrollments.reduce(
-      (sum: number, enr: any) => sum + 1 + (enr.members?.length || 0),
-      0
-    );
+    const enrolledCount = enrollments
+      .filter((enr: any) => !enr.isWalkIn)
+      .reduce(
+        (sum: number, enr: any) => sum + 1 + (enr.members?.length || 0),
+        0
+      );
+    const participantsCount = enrollments
+      .filter((enr: any) => enr.attendanceStatus)
+      .reduce(
+        (sum: number, enr: any) => sum + 1 + (enr.members?.length || 0),
+        0
+      );
 
     const obj: any = event.toObject ? event.toObject() : { ...event };
     obj.enrolledCount = enrolledCount;
+    obj.participantsCount = participantsCount;
 
     return reply.send(obj);
   } catch (error: any) {
@@ -249,6 +310,10 @@ export const updateEvent = async (
       updateData.registrationDeadline = new Date(updateData.registrationDeadline);
     }
 
+    if (updateData.registrationType !== undefined) {
+      updateData.registrationType = updateData.registrationType === 'admin_upload' ? 'admin_upload' : 'open';
+    }
+
     const event = await Event.findByIdAndUpdate(
       id,
       { $set: updateData },
@@ -285,12 +350,66 @@ export const deleteEvent = async (
       return reply.status(404).send({ success: false, error: 'Event not found' });
     }
 
-    return reply.send({ success: true, message: 'Event deleted successfully' });
+    const eventObjectId = new mongoose.Types.ObjectId(id);
+
+    // Cascade delete related records across the system
+    // 1. Delete all student enrollments for this event
+    await (Enrollment as any).deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }],
+    });
+
+    // 2. Cascade delete attendance sessions & student attendance records
+    const sessions = await AttendanceSession.find({
+      $or: [{ event: id }, { event: eventObjectId }],
+    })
+      .select('_id')
+      .lean();
+    const sessionIds = sessions.map((s: any) => s._id);
+    if (sessionIds.length > 0) {
+      await AttendanceRecord.deleteMany({ session: { $in: sessionIds } });
+      await AttendanceSession.deleteMany({ _id: { $in: sessionIds } });
+    }
+
+    // 3. Delete direct attendance records (legacy Attendance collection)
+    await Attendance.deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }, { eventId: String(id) }],
+    });
+
+    // 4. Delete teams formed specifically for this event
+    await Team.deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }],
+    });
+
+    // 5. Delete feedbacks for this event
+    await Feedback.deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }],
+    });
+
+    // 6. Delete missed event requests for this event
+    await MissedEventRequest.deleteMany({
+      $or: [{ event: id }, { event: eventObjectId }],
+    });
+
+    // 7. Delete issued certificates associated with this event
+    await IssuedCertificate.deleteMany({
+      $or: [{ associatedEventId: id }, { associatedEventId: eventObjectId }],
+    });
+
+    // 8. Disassociate any assessments linked to this event
+    await Assessment.updateMany(
+      { $or: [{ eventId: id }, { eventId: eventObjectId }] },
+      { $set: { eventId: null } }
+    );
+
+    return reply.send({
+      success: true,
+      message: 'Event and all associated student enrollments and records deleted successfully',
+    });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({
       success: false,
-      error: 'Failed to delete event',
+      error: error.message || 'Failed to delete event',
     });
   }
 };

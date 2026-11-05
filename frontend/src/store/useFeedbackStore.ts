@@ -45,6 +45,7 @@ interface FeedbackStoreState {
   isSuperAdminView: boolean;
   viewerRole: string | null;
   privacyNotice: string | null;
+  pagination: any;
   loading: boolean;
   submitting: boolean;
   error: string | null;
@@ -60,7 +61,14 @@ interface FeedbackStoreState {
     category?: string;
     comment: string;
   }) => Promise<{ success: boolean; data?: any; error?: string }>;
-  fetchFeedbacks: (params?: { type?: string; rating?: number; eventId?: string }) => Promise<void>;
+  fetchFeedbacks: (params?: {
+    type?: string;
+    rating?: number;
+    eventId?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => Promise<void>;
   fetchFeedbackStats: () => Promise<void>;
   fetchMyFeedbacks: () => Promise<void>;
   deleteFeedback: (id: string) => Promise<{ success: boolean; error?: string }>;
@@ -73,6 +81,7 @@ export const useFeedbackStore = create<FeedbackStoreState>((set, get) => ({
   isSuperAdminView: false,
   viewerRole: null,
   privacyNotice: null,
+  pagination: null,
   loading: false,
   submitting: false,
   error: null,
@@ -116,10 +125,14 @@ export const useFeedbackStore = create<FeedbackStoreState>((set, get) => ({
       if (type && type !== 'All') queryParams.append('type', type);
       if (rating) queryParams.append('rating', String(rating));
       if (params.eventId) queryParams.append('eventId', params.eventId);
+      if (params.page) queryParams.append('page', String(params.page));
+      if (params.limit) queryParams.append('limit', String(params.limit));
+      if (params.search) queryParams.append('search', params.search);
 
       const res = await api.get(`/feedback?${queryParams.toString()}`);
       set({
         feedbacks: res.data.data || [],
+        pagination: res.data.pagination || null,
         isSuperAdminView: res.data.isSuperAdminView ?? false,
         viewerRole: res.data.viewerRole || null,
         privacyNotice: res.data.privacyPolicyNotice || null,

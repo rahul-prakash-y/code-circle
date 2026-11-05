@@ -217,6 +217,11 @@ export const getTrackingStudents = async (
                 skills: 1,
                 isOnboarded: 1,
                 isBlocked: 1,
+                isRestricted: 1,
+                restrictionReason: 1,
+                restrictedFeatures: 1,
+                restrictedAt: 1,
+                unblockedAt: 1,
                 totalEventsAttended: 1,
                 questsCompleted: 1,
                 levelsCompleted: 1,
@@ -236,14 +241,20 @@ export const getTrackingStudents = async (
     const students = result?.data || [];
     const total = result?.totalCount?.[0]?.count || 0;
 
+    const totalPages = Math.ceil(total / limit) || 1;
     return reply.send({
       success: true,
       students,
+      data: students,
       pagination: {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit) || 1,
+        totalPages,
+        pages: totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+        hasMore: page < totalPages,
       },
     });
   } catch (error: any) {
@@ -312,32 +323,36 @@ export const fetchStudent360DataInternal = async (userId: string) => {
       .lean(),
   ]);
 
-  // Normalize attendance records into a consistent structure
+  // Normalize attendance records into a consistent structure (excluding any where event was deleted)
   const formattedAttendance = [
-    ...attendanceRecords.map((r: any) => ({
-      id: r._id.toString(),
-      eventName: r.session?.event?.title || r.session?.sessionName || 'Club Event',
-      eventDescription: r.session?.event?.description || '',
-      eventType: r.session?.event?.type || 'Technical',
-      eventFormat: r.session?.event?.format || 'Individual',
-      venueOrLink: r.session?.event?.venueOrLink || '',
-      sessionName: r.session?.sessionName || 'Attendance Session',
-      timestamp: r.timestamp || r.createdAt,
-      status: 'Present',
-      pointsAwarded: r.pointsAwarded || r.session?.hourlyPoints || 0,
-    })),
-    ...legacyAttendances.map((r: any) => ({
-      id: r._id.toString(),
-      eventName: r.event?.title || 'Club Event',
-      eventDescription: r.event?.description || '',
-      eventType: r.event?.type || 'Technical',
-      eventFormat: r.event?.format || 'Individual',
-      venueOrLink: r.event?.venueOrLink || '',
-      sessionName: 'General Attendance',
-      timestamp: r.timestamp || r.createdAt,
-      status: r.status || 'Present',
-      pointsAwarded: r.event?.hourlyPoints || 0,
-    })),
+    ...attendanceRecords
+      .filter((r: any) => Boolean(r.session?.event))
+      .map((r: any) => ({
+        id: r._id.toString(),
+        eventName: r.session?.event?.title || r.session?.sessionName || 'Club Event',
+        eventDescription: r.session?.event?.description || '',
+        eventType: r.session?.event?.type || 'Technical',
+        eventFormat: r.session?.event?.format || 'Individual',
+        venueOrLink: r.session?.event?.venueOrLink || '',
+        sessionName: r.session?.sessionName || 'Attendance Session',
+        timestamp: r.timestamp || r.createdAt,
+        status: 'Present',
+        pointsAwarded: r.pointsAwarded || r.session?.hourlyPoints || 0,
+      })),
+    ...legacyAttendances
+      .filter((r: any) => Boolean(r.event))
+      .map((r: any) => ({
+        id: r._id.toString(),
+        eventName: r.event?.title || 'Club Event',
+        eventDescription: r.event?.description || '',
+        eventType: r.event?.type || 'Technical',
+        eventFormat: r.event?.format || 'Individual',
+        venueOrLink: r.event?.venueOrLink || '',
+        sessionName: 'General Attendance',
+        timestamp: r.timestamp || r.createdAt,
+        status: r.status || 'Present',
+        pointsAwarded: r.event?.hourlyPoints || 0,
+      })),
   ];
 
   // 3. Fetch StudentProgress (Domains/Levels/Quests)

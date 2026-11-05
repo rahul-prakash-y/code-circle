@@ -1,45 +1,70 @@
 import { create } from 'zustand';
 import api from '../lib/axios';
+import useEnrollmentStore from './useEnrollmentStore';
+
+const defaultPagination = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  totalPages: 1,
+  hasNextPage: false,
+  hasPreviousPage: false,
+};
 
 const useEventStore = create((set) => ({
   events: [],
   upcomingEvents: [],
   pastEvents: [],
+  pagination: defaultPagination,
   loading: false,
   error: null,
 
-  fetchEvents: async (filters = '') => {
+  fetchEvents: async (filters = '', page = 1, limit = 20) => {
     set({ loading: true, error: null });
+    let statusVal = '';
     try {
-      let url = '/events';
-      let statusVal = '';
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('limit', String(limit));
+
       if (typeof filters === 'string') {
         statusVal = filters;
-        if (filters) url += `?status=${filters}`;
+        if (filters && filters !== 'all') params.set('status', filters);
       } else if (typeof filters === 'object' && filters !== null) {
         statusVal = filters.status || '';
-        const params = new URLSearchParams();
-        if (filters.status && filters.status !== 'all') params.append('status', filters.status);
-        if (filters.type && filters.type !== 'all') params.append('type', filters.type);
-        if (filters.format && filters.format !== 'all') params.append('format', filters.format);
-        if (filters.search) params.append('search', filters.search);
-        const queryStr = params.toString();
-        if (queryStr) url += `?${queryStr}`;
+        if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+        if (filters.type && filters.type !== 'all') params.set('type', filters.type);
+        if (filters.format && filters.format !== 'all') params.set('format', filters.format);
+        if (filters.search) params.set('search', filters.search);
+        if (filters.page) params.set('page', String(filters.page));
+        if (filters.limit) params.set('limit', String(filters.limit));
       }
 
-      const response = await api.get(url);
+      const response = await api.get(`/events?${params.toString()}`);
+      const rawData = response.data;
+      const eventList = Array.isArray(rawData) ? rawData : (rawData.data || rawData.events || []);
+      const pagination = rawData.pagination || {
+        total: eventList.length,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(eventList.length / limit)),
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+
       if (statusVal === 'upcoming') {
-        set({ events: response.data, upcomingEvents: response.data, loading: false });
+        set({ events: eventList, upcomingEvents: eventList, pagination, loading: false });
       } else if (statusVal === 'past') {
-        set({ events: response.data, pastEvents: response.data, loading: false });
+        set({ events: eventList, pastEvents: eventList, pagination, loading: false });
       } else {
         set({ 
-          events: response.data, 
-          upcomingEvents: response.data.filter((e) => e.status !== 'Cancelled' && e.status !== 'Completed'), 
+          events: eventList, 
+          upcomingEvents: eventList.filter((e) => e.status !== 'Cancelled' && e.status !== 'Completed'), 
+          pagination,
           loading: false 
         });
       }
-    } catch (error) {
+    } catch {
       // Fallback Mock Events
       const mockEvents = [
         {
@@ -146,8 +171,16 @@ const useEventStore = create((set) => ({
       set((state) => ({
         events: state.events.filter((e) => e._id !== id),
         upcomingEvents: state.upcomingEvents.filter((e) => e._id !== id),
+        pastEvents: state.pastEvents ? state.pastEvents.filter((e) => e._id !== id) : [],
         loading: false
       }));
+
+      // Immediately sync student enrollment state so the deleted event enrollment is removed
+      try {
+        useEnrollmentStore.getState().removeEnrolledEvent(id);
+      } catch {
+        // Safe fallback
+      }
     } catch (error) {
       set({ 
         error: error.response?.data?.error || 'Failed to delete event', 

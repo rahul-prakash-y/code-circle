@@ -101,13 +101,14 @@ const SetupPassword = () => {
               placeholder="Enter temporary password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="input-field pl-10 pr-10 text-sm"
+              className="input-field pl-10 pr-11 min-h-[46px] text-xs sm:text-sm"
               required
             />
             <button
               type="button"
               onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              aria-label="Toggle password visibility"
             >
               {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -126,14 +127,15 @@ const SetupPassword = () => {
               placeholder="Minimum 6 characters"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="input-field pl-10 pr-10 text-sm"
+              className="input-field pl-10 pr-11 min-h-[46px] text-xs sm:text-sm"
               required
               minLength={6}
             />
             <button
               type="button"
               onClick={() => setShowNewPassword(!showNewPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              aria-label="Toggle password visibility"
             >
               {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -152,21 +154,22 @@ const SetupPassword = () => {
               placeholder="Re-enter your new password"
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}
-              className="input-field pl-10 pr-10 text-sm"
+              className="input-field pl-10 pr-11 min-h-[46px] text-xs sm:text-sm"
               required
               minLength={6}
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              aria-label="Toggle password visibility"
             >
               {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
 
           {confirmNewPassword && newPassword !== confirmNewPassword && (
-            <p className="text-xs text-destructive mt-1">Passwords do not match</p>
+            <p className="text-xs text-destructive mt-1 font-medium">Passwords do not match</p>
           )}
           {confirmNewPassword && newPassword === confirmNewPassword && newPassword.length >= 6 && (
             <p className="text-xs text-success mt-1 flex items-center gap-1 font-medium">
@@ -176,11 +179,11 @@ const SetupPassword = () => {
         </div>
 
         {/* Action buttons */}
-        <div className="pt-3 flex items-center justify-between gap-3">
+        <div className="pt-3 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             type="button"
             onClick={handleSignOut}
-            className="text-xs text-text-muted hover:text-destructive flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="min-h-[44px] py-2 px-3 text-xs text-text-muted hover:text-destructive flex items-center justify-center sm:justify-start gap-1.5 transition-colors cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -189,7 +192,7 @@ const SetupPassword = () => {
           <button
             type="submit"
             disabled={loading || !currentPassword || newPassword.length < 6 || newPassword !== confirmNewPassword}
-            className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary w-full sm:w-auto min-h-[48px] py-3 px-6 text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent/15"
           >
             {loading ? (
               <Loader2 className="animate-spin w-4 h-4" />

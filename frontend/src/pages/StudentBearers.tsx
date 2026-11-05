@@ -71,7 +71,7 @@ export const StudentBearers: React.FC = () => {
         <div className="flex items-center gap-3">
           <Link
             to="/dashboard"
-            className="inline-flex items-center gap-2 text-xs font-semibold tracking-tight text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 text-xs font-semibold tracking-tight text-label-secondary hover:text-label-primary transition-colors cursor-pointer min-h-[36px]"
           >
             <ArrowLeft size={14} />
             <span>Dashboard</span>
@@ -99,9 +99,9 @@ export const StudentBearers: React.FC = () => {
           {isSuperAdmin && (
             <Link
               to="/admin/bearers"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-accent hover:bg-accent-hover transition-all duration-200 cursor-pointer shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[38px] rounded-xl text-xs font-semibold text-white bg-accent hover:bg-accent-hover transition-all duration-200 cursor-pointer shadow-sm"
             >
-              <Settings size={12} />
+              <Settings size={13} />
               <span>Manage Bearers</span>
             </Link>
           )}
@@ -113,7 +113,7 @@ export const StudentBearers: React.FC = () => {
       </div>
 
       {/* Main Headline Section */}
-      <div className="max-w-3xl mx-auto text-center space-y-4 pt-4 sm:pt-6 mb-10 sm:mb-14">
+      <div className="max-w-3xl mx-auto text-center space-y-4 pt-4 sm:pt-6 mb-8 sm:mb-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -137,7 +137,7 @@ export const StudentBearers: React.FC = () => {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="text-sm sm:text-base text-label-secondary leading-relaxed max-w-2xl mx-auto"
+          className="text-sm sm:text-base text-label-secondary leading-relaxed max-w-2xl mx-auto px-2"
         >
           Meet the visionary students and coordinators steering Code Circle’s workshops,
           hackathons, competitive programming leagues, and community chapters.
@@ -149,7 +149,7 @@ export const StudentBearers: React.FC = () => {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-        className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-10 max-w-5xl mx-auto"
+        className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-8 sm:mb-10 max-w-5xl mx-auto"
       >
         {/* Search Bar */}
         <div className="relative flex-1 max-w-md">
@@ -162,20 +162,20 @@ export const StudentBearers: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, position, or focus..."
-            className="w-full pl-11 pr-4 py-2.5 rounded-2xl text-xs sm:text-[13px] text-label-primary placeholder:text-label-tertiary bg-surface border border-separator/80 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 outline-none transition-all shadow-sm"
+            className="w-full pl-11 pr-4 py-2.5 min-h-[44px] rounded-2xl text-xs sm:text-[13px] text-label-primary placeholder:text-label-tertiary bg-surface border border-separator/80 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 outline-none transition-all shadow-sm"
           />
         </div>
 
         {/* Position Segmented Tabs */}
         {positions.length > 2 && (
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-surface-secondary border border-separator/80 overflow-x-auto self-start md:self-auto max-w-full">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-surface-secondary border border-separator/80 overflow-x-auto no-scrollbar touch-pan-x flex-nowrap self-start md:self-auto max-w-full">
             {positions.map((pos) => {
               const isActive = selectedFilter === pos;
               return (
                 <button
                   key={pos}
                   onClick={() => setSelectedFilter(pos)}
-                  className={`relative px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`relative px-3.5 py-1.5 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center justify-center ${
                     isActive
                       ? 'bg-surface text-label-primary shadow-sm border border-separator/60'
                       : 'text-label-secondary hover:text-label-primary'
@@ -192,7 +192,7 @@ export const StudentBearers: React.FC = () => {
       {/* Scroll Reveal Grid */}
       <div ref={containerRef}>
         {loading && bearers.length === 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
             {[1, 2, 3, 4].map((n) => (
               <div
                 key={n}
@@ -205,7 +205,7 @@ export const StudentBearers: React.FC = () => {
             variants={containerVariants}
             initial="hidden"
             animate={isInView ? 'visible' : 'hidden'}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7 sm:gap-8"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8"
           >
             {filteredBearers.map((bearer, index) => (
               <BearerCard key={bearer._id} bearer={bearer} index={index} />
@@ -216,7 +216,7 @@ export const StudentBearers: React.FC = () => {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
-            className="max-w-md mx-auto py-16 px-8 text-center rounded-3xl bg-surface border border-separator shadow-card"
+            className="max-w-md mx-auto py-16 px-6 sm:px-8 text-center rounded-3xl bg-surface border border-separator shadow-card"
           >
             <div className="w-14 h-14 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-center mx-auto mb-4 text-label-tertiary">
               <Users size={24} />
@@ -235,7 +235,7 @@ export const StudentBearers: React.FC = () => {
                   setSearchQuery('');
                   setSelectedFilter('All');
                 }}
-                className="mt-5 px-4 py-2 rounded-xl text-xs font-semibold text-label-primary bg-surface-secondary hover:bg-surface border border-separator transition-colors cursor-pointer shadow-sm"
+                className="mt-5 px-4 py-2 min-h-[40px] rounded-xl text-xs font-semibold text-label-primary bg-surface-secondary hover:bg-surface border border-separator transition-colors cursor-pointer shadow-sm"
               >
                 Clear Filters
               </button>

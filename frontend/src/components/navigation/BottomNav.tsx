@@ -8,6 +8,7 @@ import {
   Trophy,
   Newspaper,
 } from 'lucide-react';
+import { preloadRoute } from '../../lib/routePreload';
 
 /**
  * iOS-style Bottom Navigation Bar — shown only on mobile (< md).
@@ -82,6 +83,8 @@ export const BottomNav: React.FC = () => {
             <Link
               key={item.to}
               to={item.to}
+              onMouseEnter={() => preloadRoute(item.to)}
+              onTouchStart={() => preloadRoute(item.to)}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               className="relative flex flex-col items-center justify-center flex-1 py-2 gap-[3px]"

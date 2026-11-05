@@ -22,6 +22,7 @@ import {
   UserX,
   X,
   SlidersHorizontal,
+  Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
@@ -66,6 +67,12 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
   const [selectedReminderTarget, setSelectedReminderTarget] = useState<User | 'all_pending' | null>(null);
   const [customMessage, setCustomMessage] = useState<string>('');
   const [sendingReminder, setSendingReminder] = useState<boolean>(false);
+
+  // Deletion modal & multi-selection states (Pending Initial Login)
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [selectedDeleteTarget, setSelectedDeleteTarget] = useState<User | 'all_pending' | 'selected' | null>(null);
+  const [deletingStudent, setDeletingStudent] = useState<boolean>(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
   // ── Fetch Data from GET /api/admin/onboarding-stats ───────────────────────
   const fetchStats = async (isManualRefresh = false) => {
@@ -220,7 +227,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
       });
 
       toast.success(
-        newStatus
+        isNowOnboarded
           ? `${student.name} marked as Onboarded!`
           : `${student.name} marked as Pending onboarding.`
       );
@@ -268,6 +275,95 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
     }
   };
 
+  // ── Pending Student Deletion & Multi-Selection Handlers ───────────────────
+  const pendingStudentsList = useMemo(() => {
+    return filteredStudents.filter((s) => Boolean(s.mustChangePassword));
+  }, [filteredStudents]);
+
+  const toggleSelectAllPending = () => {
+    if (selectedStudentIds.length === pendingStudentsList.length && pendingStudentsList.length > 0) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(pendingStudentsList.map((s) => s._id));
+    }
+  };
+
+  const toggleSelectStudent = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedStudentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleOpenDeleteModal = (target: User | 'all_pending' | 'selected', e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedDeleteTarget(target);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteTarget) return;
+    setDeletingStudent(true);
+
+    try {
+      if (selectedDeleteTarget === 'all_pending') {
+        const res = await api.post('/admin/onboarding/bulk-delete', {
+          allPending: true,
+          department: selectedDept !== 'all' ? selectedDept : undefined,
+        });
+
+        const deletedCount = res.data?.deletedCount ?? (stats?.notOnboarded ?? 0);
+        toast.success(res.data?.message || `Successfully deleted ${deletedCount} pending student accounts!`);
+
+        setSelectedStudentIds([]);
+        setShowDeleteModal(false);
+        await fetchStats();
+      } else if (selectedDeleteTarget === 'selected') {
+        const res = await api.post('/admin/onboarding/bulk-delete', {
+          studentIds: selectedStudentIds,
+        });
+
+        const deletedCount = res.data?.deletedCount ?? selectedStudentIds.length;
+        toast.success(res.data?.message || `Successfully deleted ${deletedCount} selected student accounts!`);
+
+        setSelectedStudentIds([]);
+        setShowDeleteModal(false);
+        await fetchStats();
+      } else {
+        // Individual student deletion
+        const res = await api.delete(`/admin/students/${selectedDeleteTarget._id}`);
+        toast.success(res.data?.message || `Student ${selectedDeleteTarget.name} deleted successfully!`);
+
+        // Optimistically update list and stats
+        setStudents((prev) => prev.filter((s) => s._id !== selectedDeleteTarget._id));
+        setSelectedStudentIds((prev) => prev.filter((id) => id !== selectedDeleteTarget._id));
+        setStats((prev) => {
+          if (!prev) return prev;
+          const total = Math.max(0, prev.total - 1);
+          const notOnboarded = Math.max(0, prev.notOnboarded - 1);
+          const onboarded = prev.onboarded;
+          const rate = total > 0 ? Number(((onboarded / total) * 100).toFixed(1)) : 0;
+          return {
+            ...prev,
+            total,
+            notOnboarded,
+            completionRate: rate,
+            breakdown: [
+              { ...prev.breakdown[0], percentage: rate },
+              { ...prev.breakdown[1], count: notOnboarded, percentage: Number((100 - rate).toFixed(1)) },
+            ],
+          };
+        });
+
+        setShowDeleteModal(false);
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to delete student account(s)');
+    } finally {
+      setDeletingStudent(false);
+    }
+  };
+
   // ── Donut Chart Geometry (Custom Interactive SVG) ─────────────────────────
   const chartSize = 190;
   const strokeWidth = 22;
@@ -293,7 +389,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
 
       {/* ── TOP HEADER BAR ──────────────────────────────────────────────── */}
-      <div className="border-b border-separator/60 px-6 py-5 sm:px-8">
+      <div className="border-b border-separator/60 px-4 py-4 sm:px-8 sm:py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="mb-1.5 flex items-center gap-2">
@@ -320,11 +416,28 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleOpenReminderModal('all_pending')}
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-500/15 px-3.5 py-2 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500/15 px-3.5 py-2 min-h-[36px] text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300 cursor-pointer"
               >
                 <Mail size={14} className="text-amber-500" />
                 <span>Remind All Pending</span>
                 <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-bold text-amber-800 dark:text-amber-200">
+                  {stats.notOnboarded}
+                </span>
+              </motion.button>
+            )}
+
+            {/* Quick Bulk Action: Delete All Pending */}
+            {stats && stats.notOnboarded > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleOpenDeleteModal('all_pending')}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-500/15 px-3.5 py-2 min-h-[36px] text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-500/25 dark:text-rose-300 cursor-pointer"
+                title="Permanently delete all pending initial login student accounts"
+              >
+                <Trash2 size={14} className="text-rose-500" />
+                <span>Delete All Pending</span>
+                <span className="rounded-full bg-rose-500/20 px-1.5 py-0.2 text-[10px] font-bold text-rose-800 dark:text-rose-200">
                   {stats.notOnboarded}
                 </span>
               </motion.button>
@@ -335,7 +448,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               onClick={() => fetchStats(true)}
               disabled={refreshing}
               title="Refresh statistics"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-separator bg-surface-secondary px-3 py-2 text-xs font-medium text-label-secondary transition-colors hover:bg-surface-raised hover:text-label-primary disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-separator bg-surface-secondary px-3 py-2 min-h-[36px] text-xs font-medium text-label-secondary transition-colors hover:bg-surface-raised hover:text-label-primary disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
               <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
@@ -344,7 +457,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
         </div>
       </div>
 
-      <div className="space-y-8 p-6 sm:p-8">
+      <div className="space-y-6 sm:space-y-8 p-4 sm:p-8">
         {/* ── METRIC CARDS ROW ────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4 sm:gap-5">
           {/* Total Students */}
@@ -352,7 +465,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="group relative overflow-hidden rounded-2xl border border-separator/70 bg-surface-secondary/80 p-4 transition-all hover:border-accent/30 hover:shadow-lg sm:p-5"
+            className="group relative overflow-hidden rounded-2xl border border-separator/70 bg-surface-secondary/80 p-3.5 sm:p-5 transition-all hover:border-accent/30 hover:shadow-lg"
           >
             <div className="flex items-center justify-between text-label-secondary">
               <span className="text-xs font-medium">Total Students</span>
@@ -378,7 +491,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.05 }}
             onClick={() => setStatusFilter('onboarded')}
-            className={`group relative cursor-pointer overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-lg sm:p-5 ${
+            className={`group relative cursor-pointer overflow-hidden rounded-2xl border p-3.5 sm:p-5 transition-all hover:shadow-lg ${
               statusFilter === 'onboarded'
                 ? 'border-emerald-500/60 bg-emerald-500/10 ring-2 ring-emerald-500/20'
                 : 'border-separator/70 bg-surface-secondary/80 hover:border-emerald-500/30'
@@ -409,14 +522,14 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
             onClick={() => setStatusFilter('not_onboarded')}
-            className={`group relative cursor-pointer overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-lg sm:p-5 ${
+            className={`group relative cursor-pointer overflow-hidden rounded-2xl border p-3.5 sm:p-5 transition-all hover:shadow-lg ${
               statusFilter === 'not_onboarded'
                 ? 'border-amber-500/60 bg-amber-500/10 ring-2 ring-amber-500/20'
                 : 'border-separator/70 bg-surface-secondary/80 hover:border-amber-500/30'
             }`}
           >
             <div className="flex items-center justify-between text-amber-600 dark:text-amber-400">
-              <span className="text-xs font-medium whitespace-nowrap">Pending Initial Login</span>
+              <span className="text-xs font-medium whitespace-nowrap">Pending Login</span>
               <div className="rounded-lg bg-amber-500/15 p-1.5 text-amber-500">
                 <Clock size={16} />
               </div>
@@ -438,7 +551,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.15 }}
-            className="group relative overflow-hidden rounded-2xl border border-separator/70 bg-surface-secondary/80 p-4 transition-all hover:border-accent/30 hover:shadow-lg sm:p-5"
+            className="group relative overflow-hidden rounded-2xl border border-separator/70 bg-surface-secondary/80 p-3.5 sm:p-5 transition-all hover:border-accent/30 hover:shadow-lg"
           >
             <div className="flex items-center justify-between text-label-secondary">
               <span className="text-xs font-medium">Claim Rate</span>
@@ -463,7 +576,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
         </div>
 
         {/* ── VISUALIZATION: INTERACTIVE DONUT & SEGMENTED PROGRESS ─────── */}
-        <div className="rounded-3xl border border-separator/70 bg-surface-secondary/40 p-6 backdrop-blur-xl sm:p-8">
+        <div className="rounded-3xl border border-separator/70 bg-surface-secondary/40 p-5 sm:p-8 backdrop-blur-xl">
           <div className="mb-6 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
             <div>
               <h3 className="text-base font-bold text-label-primary sm:text-lg">
@@ -753,25 +866,37 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               </p>
             </div>
 
-            {/* Quick reminder for current filtered pending list */}
+            {/* Quick actions for current filtered pending list */}
             {statusFilter === 'not_onboarded' && filteredStudents.length > 0 && (
-              <button
-                onClick={() => handleOpenReminderModal('all_pending')}
-                className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-accent/20 transition-all hover:bg-accent-hover hover:shadow-lg"
-              >
-                <Send size={13} />
-                <span>Send Reminder to All ({filteredStudents.length})</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenReminderModal('all_pending')}
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 min-h-[38px] text-xs font-semibold text-white shadow-md shadow-accent/20 transition-all hover:bg-accent-hover hover:shadow-lg cursor-pointer"
+                >
+                  <Send size={13} />
+                  <span>Send Reminder to All ({filteredStudents.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenDeleteModal('all_pending')}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 px-4 py-2 min-h-[38px] text-xs font-semibold text-white shadow-md shadow-rose-600/20 transition-all hover:shadow-lg cursor-pointer"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete All Pending ({filteredStudents.length})</span>
+                </button>
+              </div>
             )}
           </div>
 
           {/* Controls Bar: Tabs, Search, and Department Filter */}
           <div className="flex flex-col gap-3 rounded-2xl border border-separator/70 bg-surface-secondary/60 p-3 sm:flex-row sm:items-center sm:justify-between">
             {/* Status Filter Tabs (Defaults to 'not_onboarded') */}
-            <div className="flex overflow-auto items-center rounded-xl bg-surface p-1 border border-separator/60">
+            <div className="flex overflow-x-auto no-scrollbar touch-pan-x items-center rounded-xl bg-surface p-1 border border-separator/60 max-w-full">
               <button
                 onClick={() => setStatusFilter('not_onboarded')}
-                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 min-h-[34px] text-xs font-semibold transition-all cursor-pointer ${
                   statusFilter === 'not_onboarded'
                     ? 'bg-amber-500 text-white shadow-sm'
                     : 'text-label-secondary hover:text-label-primary'
@@ -792,7 +917,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
               <button
                 onClick={() => setStatusFilter('onboarded')}
-                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 min-h-[34px] text-xs font-semibold transition-all cursor-pointer ${
                   statusFilter === 'onboarded'
                     ? 'bg-emerald-500 text-white shadow-sm'
                     : 'text-label-secondary hover:text-label-primary'
@@ -813,7 +938,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`relative whitespace-nowrap flex items-center gap-1.5 rounded-lg px-3 py-1.5 min-h-[34px] text-xs font-semibold transition-all cursor-pointer ${
                   statusFilter === 'all'
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-label-secondary hover:text-label-primary'
@@ -839,19 +964,19 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               <div className="relative flex-1">
                 <Search
                   size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary pointer-events-none"
                 />
                 <input
                   type="text"
                   placeholder="Search name, roll no, email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-xl border border-separator bg-surface py-1.5 pl-8 pr-8 text-xs text-label-primary placeholder-label-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  className="w-full rounded-xl border border-separator bg-surface py-2 min-h-[38px] pl-8 pr-8 text-xs text-label-primary placeholder-label-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-label-tertiary hover:text-label-primary"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-label-tertiary hover:text-label-primary p-1 cursor-pointer"
                   >
                     <X size={12} />
                   </button>
@@ -862,7 +987,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               <select
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
-                className="rounded-xl border border-separator bg-surface py-1.5 px-3 text-xs text-label-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                className="rounded-xl border border-separator bg-surface py-2 px-3 min-h-[38px] text-xs text-label-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
               >
                 <option value="all">All Departments</option>
                 {departmentsList.map((dept) => (
@@ -874,13 +999,68 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
             </div>
           </div>
 
+          {/* Batch Selection Action Bar for Pending Students */}
+          {selectedStudentIds.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-2xl text-xs shadow-sm"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl bg-rose-500/20 p-1.5 text-rose-500">
+                  <Trash2 size={15} />
+                </div>
+                <div>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">
+                    {selectedStudentIds.length}
+                  </span>{' '}
+                  <span className="text-label-secondary">
+                    pending student(s) selected for deletion
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => handleOpenDeleteModal('selected')}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 px-3.5 py-2 min-h-[36px] text-xs font-semibold text-white shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete Selected ({selectedStudentIds.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentIds([])}
+                  className="rounded-xl border border-separator bg-surface px-3 py-2 min-h-[36px] text-xs font-medium text-label-secondary hover:text-label-primary cursor-pointer transition-colors"
+                >
+                  Deselect
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Table Container */}
           <div className="overflow-hidden rounded-2xl border border-separator/80 bg-surface shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto custom-scrollbar touch-pan-x">
+              <table className="w-full text-left text-xs min-w-[760px]">
                 <thead>
                   <tr className="border-b border-separator bg-surface-secondary/70 text-[11px] font-bold uppercase tracking-wider text-label-secondary">
-                    <th className="py-3.5 pl-6 pr-3">Student</th>
+                    <th className="py-3.5 pl-5 pr-2 w-10">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedStudentIds.length > 0 &&
+                          pendingStudentsList.length > 0 &&
+                          selectedStudentIds.length === pendingStudentsList.length
+                        }
+                        onChange={toggleSelectAllPending}
+                        disabled={pendingStudentsList.length === 0}
+                        className="rounded border-separator text-accent focus:ring-accent cursor-pointer disabled:opacity-40"
+                        title="Select all pending initial login students"
+                      />
+                    </th>
+                    <th className="py-3.5 pl-2 pr-3">Student</th>
                     <th className="px-3 py-3.5">Roll No</th>
                     <th className="px-3 py-3.5">Department</th>
                     <th className="px-3 py-3.5">Onboarding Status</th>
@@ -893,7 +1073,10 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     // Loading skeleton rows
                     Array.from({ length: 4 }).map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td className="py-4 pl-6 pr-3">
+                        <td className="py-4 pl-5 pr-2 w-10">
+                          <div className="h-4 w-4 rounded bg-separator" />
+                        </td>
+                        <td className="py-4 pl-2 pr-3">
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full bg-separator" />
                             <div className="space-y-1.5">
@@ -922,7 +1105,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   ) : paginatedStudents.length === 0 ? (
                     // Empty state
                     <tr>
-                      <td colSpan={6} className="py-12 text-center">
+                      <td colSpan={7} className="py-12 text-center">
                         <div className="mx-auto flex max-w-sm flex-col items-center justify-center space-y-3">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-secondary text-label-tertiary">
                             {statusFilter === 'not_onboarded' ? (
@@ -946,7 +1129,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                           {searchTerm && (
                             <button
                               onClick={() => setSearchTerm('')}
-                              className="text-xs font-semibold text-accent hover:underline"
+                              className="text-xs font-semibold text-accent hover:underline cursor-pointer"
                             >
                               Clear search query
                             </button>
@@ -957,45 +1140,43 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   ) : (
                     // Student Rows
                     paginatedStudents.map((student) => {
-                      // Rule: mustChangePassword === true  -> User is NOT onboarded (Pending)
-                      //       mustChangePassword === false -> User is ONBOARDED (Claimed)
                       const isPending = Boolean(student.mustChangePassword);
                       const isClaimed = !isPending;
 
                       return (
                         <motion.tr
                           key={student._id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          onClick={() => onStudentSelect && onStudentSelect(student)}
-                          className="group transition-colors hover:bg-surface-secondary/80"
+                          className="hover:bg-surface-secondary/50 transition-colors"
                         >
+                          {/* Selection Checkbox */}
+                          <td className="py-3.5 pl-5 pr-2 w-10">
+                            <input
+                              type="checkbox"
+                              checked={selectedStudentIds.includes(student._id)}
+                              onChange={(e) => toggleSelectStudent(student._id, e as any)}
+                              disabled={!isPending}
+                              className="rounded border-separator text-accent focus:ring-accent cursor-pointer disabled:opacity-30"
+                              title={
+                                isPending
+                                  ? 'Select student for deletion'
+                                  : 'Claimed accounts cannot be bulk deleted'
+                              }
+                            />
+                          </td>
+
                           {/* Student Details */}
-                          <td className="py-3.5 pl-6 pr-3">
+                          <td className="py-3.5 pl-2 pr-3">
                             <div className="flex items-center gap-3">
-                              <div
-                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ${
-                                  isClaimed
-                                    ? 'bg-gradient-to-tr from-emerald-600 to-teal-400'
-                                    : 'bg-gradient-to-tr from-amber-500 to-orange-400'
-                                }`}
-                              >
-                                {student.name
-                                  ? student.name
-                                      .split(' ')
-                                      .map((n) => n[0])
-                                      .join('')
-                                      .slice(0, 2)
-                                      .toUpperCase()
-                                  : 'ST'}
+                              <div className="h-9 w-9 rounded-full bg-accent/10 text-accent flex items-center justify-center font-bold text-xs shrink-0">
+                                {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
                               </div>
-                              <div className="min-w-0">
-                                <div className="font-semibold text-label-primary truncate max-w-[180px]">
-                                  {student.name}
-                                </div>
-                                <div className="text-[11px] text-label-secondary truncate max-w-[180px]">
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-bold text-label-primary truncate max-w-[160px] sm:max-w-xs">
+                                  {student.name || 'Unnamed Student'}
+                                </span>
+                                <span className="text-[11px] text-label-tertiary font-mono truncate max-w-[160px] sm:max-w-xs">
                                   {student.email}
-                                </div>
+                                </span>
                               </div>
                             </div>
                           </td>
@@ -1033,7 +1214,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                           <td className="px-3 py-3.5">
                             <button
                               onClick={(e) => handleCopyEmail(student.email, student._id, e)}
-                              className="inline-flex items-center gap-1 text-[11px] text-label-secondary hover:text-accent transition-colors"
+                              className="inline-flex items-center gap-1 text-[11px] text-label-secondary hover:text-accent transition-colors p-1 rounded-md"
                               title="Copy email to clipboard"
                             >
                               {copiedEmailId === student._id ? (
@@ -1048,6 +1229,21 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                           {/* Actions */}
                           <td className="py-3.5 pl-3 pr-6 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* Delete Pending Student Button */}
+                              {isPending && (
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={(e) => handleOpenDeleteModal(student, e)}
+                                  disabled={actionLoadingId === student._id || deletingStudent}
+                                  title={`Delete ${student.name} (Pending Initial Login)`}
+                                  className="inline-flex items-center gap-1 rounded-xl bg-rose-500/15 px-2.5 py-1.5 min-h-[32px] text-[11px] font-semibold text-rose-700 transition-colors hover:bg-rose-500/25 dark:text-rose-300 cursor-pointer disabled:opacity-50"
+                                >
+                                  <Trash2 size={12} />
+                                  <span>Delete</span>
+                                </motion.button>
+                              )}
+
                               {/* Send Reminder Button */}
                               {isPending && (
                                 <motion.button
@@ -1055,7 +1251,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                                   whileTap={{ scale: 0.95 }}
                                   onClick={(e) => handleOpenReminderModal(student, e)}
                                   title="Send onboarding reminder email"
-                                  className="inline-flex items-center gap-1 rounded-xl bg-amber-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300"
+                                  className="inline-flex items-center gap-1 rounded-xl bg-amber-500/15 px-2.5 py-1.5 min-h-[32px] text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300 cursor-pointer"
                                 >
                                   <Mail size={12} />
                                   <span>Remind</span>
@@ -1071,7 +1267,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                                     ? 'Mark student as pending'
                                     : 'Mark student as onboarded'
                                 }
-                                className={`inline-flex items-center gap-1 rounded-xl border border-separator px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+                                className={`inline-flex items-center gap-1 rounded-xl border border-separator px-2.5 py-1.5 min-h-[32px] text-[11px] font-medium transition-colors cursor-pointer ${
                                   isClaimed
                                     ? 'hover:bg-amber-500/10 hover:text-amber-600 hover:border-amber-500/30'
                                     : 'hover:bg-emerald-500/10 hover:text-emerald-600 hover:border-emerald-500/30'
@@ -1103,7 +1299,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-separator px-6 py-3 text-xs text-label-secondary">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-separator px-4 sm:px-6 py-3 text-xs text-label-secondary">
                 <div>
                   Showing{' '}
                   <span className="font-semibold text-label-primary">
@@ -1124,7 +1320,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-separator bg-surface text-label-primary transition-colors hover:bg-surface-secondary disabled:opacity-40"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-separator bg-surface text-label-primary transition-colors hover:bg-surface-secondary disabled:opacity-40 cursor-pointer"
                   >
                     <ChevronLeft size={14} />
                   </button>
@@ -1136,7 +1332,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-separator bg-surface text-label-primary transition-colors hover:bg-surface-secondary disabled:opacity-40"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-separator bg-surface text-label-primary transition-colors hover:bg-surface-secondary disabled:opacity-40 cursor-pointer"
                   >
                     <ChevronRight size={14} />
                   </button>
@@ -1166,7 +1362,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              className="relative w-full max-w-lg rounded-3xl border border-separator bg-surface p-6 shadow-2xl sm:p-8"
+              className="relative w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto rounded-3xl border border-separator bg-surface p-6 shadow-2xl sm:p-8"
             >
               <div className="flex items-center justify-between border-b border-separator/60 pb-4">
                 <div className="flex items-center gap-2.5">
@@ -1187,7 +1383,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
                 <button
                   onClick={() => setShowReminderModal(false)}
-                  className="rounded-lg p-1 text-label-tertiary hover:bg-surface-secondary hover:text-label-primary"
+                  className="rounded-lg p-1.5 text-label-tertiary hover:bg-surface-secondary hover:text-label-primary cursor-pointer"
                 >
                   <X size={18} />
                 </button>
@@ -1221,7 +1417,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   type="button"
                   onClick={() => setShowReminderModal(false)}
                   disabled={sendingReminder}
-                  className="rounded-xl px-4 py-2 text-xs font-medium text-label-secondary transition-colors hover:bg-surface-secondary hover:text-label-primary"
+                  className="rounded-xl px-4 py-2 min-h-[38px] text-xs font-medium text-label-secondary transition-colors hover:bg-surface-secondary hover:text-label-primary cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1230,7 +1426,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   type="button"
                   onClick={handleSendReminder}
                   disabled={sendingReminder}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2 text-xs font-semibold text-white shadow-md shadow-accent/25 transition-all hover:bg-accent-hover hover:shadow-lg disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2 min-h-[38px] text-xs font-semibold text-white shadow-md shadow-accent/25 transition-all hover:bg-accent-hover hover:shadow-lg disabled:opacity-50 cursor-pointer"
                 >
                   {sendingReminder ? (
                     <>
@@ -1241,6 +1437,150 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     <>
                       <Send size={14} />
                       <span>Send Reminder</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── DELETE CONFIRMATION MODAL ────────────────────────────────────── */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !deletingStudent && setShowDeleteModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Dialog */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              className="relative w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto rounded-3xl border border-rose-500/30 bg-surface p-6 shadow-2xl sm:p-8"
+            >
+              <div className="flex items-center justify-between border-b border-separator/60 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="rounded-xl bg-rose-500/15 p-2 text-rose-500">
+                    <Trash2 size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-label-primary">
+                      {selectedDeleteTarget === 'all_pending'
+                        ? 'Delete All Pending Students'
+                        : selectedDeleteTarget === 'selected'
+                        ? `Delete ${selectedStudentIds.length} Selected Student(s)`
+                        : `Delete Student: ${selectedDeleteTarget?.name}`}
+                    </h3>
+                    <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">
+                      Permanent Account Deletion (Pending Initial Login)
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  disabled={deletingStudent}
+                  onClick={() => setShowDeleteModal(false)}
+                  className="rounded-lg p-1.5 text-label-tertiary hover:bg-surface-secondary hover:text-label-primary disabled:opacity-40 cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {selectedDeleteTarget === 'all_pending' ? (
+                  <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-label-primary space-y-2">
+                    <p className="font-semibold text-rose-700 dark:text-rose-300">
+                      ⚠️ You are about to delete all pending initial login students
+                      {selectedDept !== 'all' ? ` in department "${selectedDept}"` : ''}.
+                    </p>
+                    <p className="text-label-secondary">
+                      This will permanently remove{' '}
+                      <span className="font-bold text-rose-600 dark:text-rose-400">
+                        {pendingStudentsList.length}
+                      </span>{' '}
+                      student account(s) that have never logged in, along with their credentials and any associated password reset requests.
+                    </p>
+                  </div>
+                ) : selectedDeleteTarget === 'selected' ? (
+                  <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-label-primary space-y-2">
+                    <p className="font-semibold text-rose-700 dark:text-rose-300">
+                      ⚠️ You are about to delete {selectedStudentIds.length} selected pending student account(s).
+                    </p>
+                    <p className="text-label-secondary">
+                      These students have not completed initial login. Their records and pending requests will be completely removed.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-separator bg-surface-secondary/60 p-4 space-y-2.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-label-secondary">Student Name:</span>
+                      <span className="font-semibold text-label-primary">{selectedDeleteTarget?.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-label-secondary">Email:</span>
+                      <span className="font-mono text-label-primary">{selectedDeleteTarget?.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-label-secondary">Roll Number:</span>
+                      <span className="font-mono text-label-primary">{selectedDeleteTarget?.rollNo || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-label-secondary">Department:</span>
+                      <span className="font-medium text-label-primary">{selectedDeleteTarget?.department || 'General'}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-separator/40 pt-2 text-rose-600 dark:text-rose-400">
+                      <span>Status:</span>
+                      <span className="font-semibold">Pending Initial Login</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-xl bg-surface-secondary p-3 text-xs text-label-secondary">
+                  <span className="font-semibold text-label-primary">Security Note: </span>
+                  Accounts that have already been claimed / onboarded by students cannot be deleted through this action.
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3 border-t border-separator/60 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deletingStudent}
+                  className="rounded-xl px-4 py-2 min-h-[38px] text-xs font-medium text-label-secondary transition-colors hover:bg-surface-secondary hover:text-label-primary disabled:opacity-40 cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deletingStudent}
+                  className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 px-5 py-2 min-h-[38px] text-xs font-semibold text-white shadow-md shadow-rose-600/25 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {deletingStudent ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      <span>
+                        {selectedDeleteTarget === 'all_pending'
+                          ? 'Delete All Pending'
+                          : selectedDeleteTarget === 'selected'
+                          ? `Delete (${selectedStudentIds.length})`
+                          : 'Delete Account'}
+                      </span>
                     </>
                   )}
                 </button>

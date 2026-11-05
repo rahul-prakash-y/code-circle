@@ -11,12 +11,18 @@ export async function userRoutes(fastify: FastifyInstance) {
     instance.get('/me', getMe);
     instance.put('/me', updateMe);
     instance.get('/passport', getEventPassport);
+    // Student reports integrity violation / tab switch
+    instance.post('/integrity-violation', userManagementController.reportIntegrityViolation);
   });
 
   // Admin & SuperAdmin User Management routes
   fastify.register(async (instance) => {
     instance.addHook('preHandler', verifyToken);
-    instance.addHook('preHandler', requireRole('Admin', 'SuperAdmin'));
+    instance.addHook('preHandler', requireRole('Admin', 'SuperAdmin', 'Faculty'));
+
+    // Restriction unblock and manual restriction
+    instance.post('/:id/unblock-restrictions', userManagementController.unblockUserRestrictions);
+    instance.post('/:id/restrict', userManagementController.restrictUserManually);
 
     // Paginated User Directory & CRUD
     instance.get('/', userManagementController.getUsers);

@@ -62,7 +62,7 @@ const notificationSchema = new Schema<INotification>(
 );
 
 notificationSchema.index({ createdAt: -1 });
-notificationSchema.index({ targetRole: 1 });
+notificationSchema.index({ targetRole: 1, createdAt: -1 });
 
 const Notification = mongoose.models.Notification || mongoose.model<INotification>('Notification', notificationSchema);
 

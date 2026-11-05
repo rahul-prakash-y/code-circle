@@ -78,55 +78,57 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="bg-surface border border-separator rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col"
+          className="bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl w-[min(512px,95vw)] max-h-[90dvh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="p-6 border-b border-separator flex items-center justify-between bg-surface-secondary">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center">
+          <div className="p-4 sm:p-6 border-b border-separator flex items-start sm:items-center justify-between gap-3 bg-surface-secondary">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                 <Zap size={20} />
               </div>
-              <div>
-                <h3 className="text-base font-extrabold text-label-primary tracking-tight">
+              <div className="min-w-0">
+                <h3 className="text-sm sm:text-base font-extrabold text-label-primary tracking-tight break-words">
                   Manual Point Allocation
                 </h3>
-                <p className="text-xs text-label-tertiary">
+                <p className="text-[11px] sm:text-xs text-label-tertiary truncate">
                   Award or adjust student club merit points for this contest
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
+              className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface transition-colors cursor-pointer shrink-0"
             >
               <X size={18} />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1 custom-scrollbar">
             {/* Student Spotlight */}
-            <div className="p-4 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center border border-primary/20 text-sm">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-surface-secondary border border-separator flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center border border-primary/20 text-sm shrink-0">
                   {entry.user?.name ? entry.user.name.charAt(0).toUpperCase() : <User size={16} />}
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-label-primary">{entry.user?.name || 'Student'}</h4>
-                  <p className="text-[11px] text-label-tertiary font-mono">
+                <div className="min-w-0">
+                  <h4 className="text-xs sm:text-sm font-bold text-label-primary truncate">{entry.user?.name || 'Student'}</h4>
+                  <p className="text-[11px] text-label-tertiary font-mono truncate">
                     {entry.user?.rollNo || entry.user?.email || 'N/A'}
                   </p>
                 </div>
               </div>
 
-              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-label-secondary">Contest Score</p>
-                <p className="text-sm font-black text-primary font-mono">{entry.totalScore} pts</p>
-                <p className="text-[10px] text-label-tertiary">
+              <div className="text-left sm:text-right w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-separator flex sm:flex-col justify-between sm:justify-start items-center sm:items-end">
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-label-secondary">Contest Score</p>
+                  <p className="text-sm font-black text-primary font-mono">{entry.totalScore} pts</p>
+                </div>
+                <p className="text-[10px] text-label-tertiary sm:mt-0.5">
                   Current XP: <span className="font-bold text-emerald-600 dark:text-emerald-400">+{currentAwarded}</span>
                 </p>
               </div>
@@ -144,7 +146,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                     setMode('direct');
                     setPoints(entry.awardedClubPoints ?? entry.totalScore ?? 0);
                   }}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all min-h-[38px] cursor-pointer ${
                     mode === 'direct'
                       ? 'bg-surface text-label-primary shadow-sm border border-separator'
                       : 'text-label-secondary hover:text-label-primary'
@@ -158,7 +160,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                     setMode('bonus');
                     setPoints(25);
                   }}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all min-h-[38px] cursor-pointer ${
                     mode === 'bonus'
                       ? 'bg-surface text-label-primary shadow-sm border border-separator'
                       : 'text-label-secondary hover:text-label-primary'
@@ -187,7 +189,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                 step="1"
                 value={points}
                 onChange={(e) => setPoints(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full px-4 py-3 bg-surface-secondary border border-separator rounded-2xl text-lg font-black text-label-primary font-mono focus:outline-none focus:border-primary focus:bg-surface focus:ring-1 focus:ring-primary"
+                className="w-full px-4 py-3 bg-surface-secondary border border-separator rounded-2xl text-lg font-black text-label-primary font-mono focus:outline-none focus:border-primary focus:bg-surface focus:ring-1 focus:ring-primary min-h-[44px]"
                 required
               />
 
@@ -198,21 +200,21 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setPoints(entry.totalScore)}
-                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-1.5 min-h-[32px] text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors cursor-pointer"
                     >
                       Match Score ({entry.totalScore})
                     </button>
                     <button
                       type="button"
                       onClick={() => setPoints(Math.round(entry.totalScore * 1.2))}
-                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-1.5 min-h-[32px] text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors cursor-pointer"
                     >
                       +20% Bonus ({Math.round(entry.totalScore * 1.2)})
                     </button>
                     <button
                       type="button"
                       onClick={() => setPoints(100)}
-                      className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                      className="px-2.5 py-1.5 min-h-[32px] text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors cursor-pointer"
                     >
                       100 pts
                     </button>
@@ -224,7 +226,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                         key={b}
                         type="button"
                         onClick={() => setPoints(b)}
-                        className="px-2.5 py-1 text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors"
+                        className="px-2.5 py-1.5 min-h-[32px] text-[11px] font-mono rounded-lg bg-surface border border-separator text-label-secondary hover:text-label-primary hover:border-primary/50 transition-colors cursor-pointer"
                       >
                         +{b} pts
                       </button>
@@ -245,7 +247,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="e.g. Clean algorithmic optimization, contest bonus..."
-                className="w-full px-4 py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-primary focus:bg-surface"
+                className="w-full px-4 py-2.5 bg-surface-secondary border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-primary focus:bg-surface min-h-[40px]"
               />
 
               {/* Quick reason suggestions */}
@@ -255,7 +257,7 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
                     key={r}
                     type="button"
                     onClick={() => setReason(r)}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary hover:border-primary/40 transition-colors"
+                    className="text-[10px] px-2.5 py-1 rounded-md bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary hover:border-primary/40 transition-colors cursor-pointer"
                   >
                     {r}
                   </button>
@@ -277,18 +279,18 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 text-xs font-bold text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors"
+                className="w-full sm:w-auto px-4 py-2.5 min-h-[42px] text-xs font-bold text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors text-center cursor-pointer flex items-center justify-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                className="w-full sm:w-auto px-6 py-2.5 min-h-[42px] bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? (
                   <>

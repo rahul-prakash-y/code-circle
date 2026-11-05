@@ -15,6 +15,7 @@ import {
   Trophy,
   HelpCircle,
   ShieldAlert,
+  ShieldCheck,
   Maximize2,
   Minimize2,
   Lock,
@@ -22,11 +23,14 @@ import {
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
+import api from '../../lib/axios';
+import { isMobileScreenOrDevice } from '../../lib/deviceUtils';
 
 const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const {
     fetchAssessmentById,
     submitAssessment,
+    resetMySubmission,
     currentAssessment,
     currentResult,
     clearCurrentResult,
@@ -34,28 +38,43 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   } = useAssessmentStore();
 
   const [loading, setLoading] = useState(true);
+  const [reappearing, setReappearing] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { [qIndex]: selectedOptionIndex }
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(0);
   const [startTime, setStartTime] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [reviewMode, setReviewMode] = useState(false);
 
   // Anti-cheat proctoring state
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [showTabWarning, setShowTabWarning] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMobileMode, setIsMobileMode] = useState(() => isMobileScreenOrDevice());
+  const wasInterruptedRef = useRef(false);
   const maxStrikes = 3;
 
   // Timer ref to cancel interval safely
   const timerRef = useRef(null);
 
+  // Monitor screen size changes for mobile protection
+  useEffect(() => {
+    const handleDeviceCheck = () => {
+      setIsMobileMode(isMobileScreenOrDevice());
+    };
+    handleDeviceCheck();
+    window.addEventListener('resize', handleDeviceCheck);
+    window.addEventListener('orientationchange', handleDeviceCheck);
+    return () => {
+      window.removeEventListener('resize', handleDeviceCheck);
+      window.removeEventListener('orientationchange', handleDeviceCheck);
+    };
+  }, []);
+
   useEffect(() => {
     if (isOpen && assessmentId) {
       clearCurrentResult();
-      setReviewMode(false);
       setAnswers({});
       setCurrentQuestionIndex(0);
       setTabSwitchCount(0);
@@ -96,108 +115,112 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       if (forcedByViolation) {
         toast.error('Assessment automatically submitted due to tab-switching violations.', { duration: 5000 });
       } else {
-        toast.success(res.result?.passed ? 'Congratulations! You passed!' : 'Assessment completed!');
+        const ptsMsg =
+          res.result?.pointsAwarded && res.result.pointsAwarded > 0
+            ? ` (+${res.result.pointsAwarded} points awarded!)`
+            : '';
+        toast.success(`Assessment completed successfully!${ptsMsg}`);
       }
     } else {
-      toast.error(res.error || 'Failed to submit assessment');
+      toast.error(res.error || 'Failed to submit assessment.');
     }
   }, [answers, assessmentId, startTime, submitAssessment]);
 
-  const handleAutoSubmit = useCallback(() => {
-    toast.error('Time is up! Submitting your assessment automatically...');
-    executeSubmit();
-  }, [executeSubmit]);
-
-  // Anti-cheat tab switch handler
-  const handleTabSwitchViolation = useCallback(() => {
-    if (!isOpen || !currentAssessment || currentResult || loading || isLocked) return;
-
-    setTabSwitchCount((prev) => {
-      const nextCount = prev + 1;
-      if (nextCount >= maxStrikes) {
-        setIsLocked(true);
-        setShowTabWarning(false);
-        toast.error('Maximum tab switch violations reached! Test locked and auto-submitting...', { duration: 4000 });
-        setTimeout(() => {
-          executeSubmit(true);
-        }, 1200);
-      } else {
-        setShowTabWarning(true);
-      }
-      return nextCount;
-    });
-  }, [isOpen, currentAssessment, currentResult, loading, isLocked, executeSubmit, maxStrikes]);
-
-  // Anti-cheat event listeners for active proctoring
+  // Anti-cheat tab visibility and window blur listeners
   useEffect(() => {
-    if (!isOpen || !currentAssessment || currentResult || loading || isLocked) return;
+    if (!isOpen || currentResult || loading || isLocked) return;
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        handleTabSwitchViolation();
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab was hidden or user switched apps
+        if (isMobileMode) {
+          wasInterruptedRef.current = true;
+          return;
+        }
+
+        setTabSwitchCount((prev) => {
+          const newCount = prev + 1;
+          if (newCount >= maxStrikes) {
+            setIsLocked(true);
+            executeSubmit(true);
+          } else {
+            setShowTabWarning(true);
+          }
+          return newCount;
+        });
+      } else {
+        if (isMobileMode && wasInterruptedRef.current) {
+          wasInterruptedRef.current = false;
+        }
       }
     };
 
-    const onWindowBlur = () => {
-      handleTabSwitchViolation();
-    };
-
-    const onContextMenu = (e) => {
-      e.preventDefault();
-      toast.error('Right-click is disabled during proctored assessment.');
-    };
-
-    const onKeyDown = (e) => {
-      if (
-        (e.ctrlKey && ['c', 'v', 'u', 'a', 'w', 't', 'j'].includes(e.key.toLowerCase())) ||
-        (e.metaKey && ['c', 'v', 'u', 'a', 'w', 't', 'j'].includes(e.key.toLowerCase())) ||
-        e.key === 'F12'
-      ) {
-        e.preventDefault();
-        toast.error('Keyboard shortcuts are disabled during proctored assessment.');
+    const handleWindowBlur = () => {
+      if (isMobileMode) return;
+      if (!document.hidden) {
+        // App lost focus without switching tab
+        setTabSwitchCount((prev) => {
+          const newCount = prev + 1;
+          if (newCount >= maxStrikes) {
+            setIsLocked(true);
+            executeSubmit(true);
+          } else {
+            setShowTabWarning(true);
+          }
+          return newCount;
+        });
       }
     };
 
-    const onFullscreenChange = () => {
+    const handleFullscreenChange = () => {
       setIsFullscreen(Boolean(document.fullscreenElement));
     };
 
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    window.addEventListener('blur', onWindowBlur);
-    window.addEventListener('contextmenu', onContextMenu);
-    window.addEventListener('keydown', onKeyDown);
-    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      window.removeEventListener('blur', onWindowBlur);
-      window.removeEventListener('contextmenu', onContextMenu);
-      window.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [isOpen, currentAssessment, currentResult, loading, isLocked, handleTabSwitchViolation]);
+  }, [isOpen, currentResult, loading, isLocked, isMobileMode, executeSubmit]);
 
-  // Live Timer Countdown Effect
+  // Timer countdown hook
   useEffect(() => {
-    if (!loading && currentAssessment && !currentResult && timeLeftSeconds > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeftSeconds((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            handleAutoSubmit();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (!isOpen || currentResult || loading || timeLeftSeconds <= 0 || isLocked) return;
 
-      return () => {
-        if (timerRef.current) clearInterval(timerRef.current);
-      };
-    }
-  }, [loading, currentAssessment, currentResult, timeLeftSeconds, handleAutoSubmit]);
+    timerRef.current = setInterval(() => {
+      setTimeLeftSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          toast.error("Time's up! Submitting your answers automatically...");
+          executeSubmit(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isOpen, currentResult, loading, isLocked, executeSubmit]);
 
   if (!isOpen) return null;
+
+  const questions = currentAssessment?.questions || [];
+  const currentQ = questions[currentQuestionIndex];
+  const totalQuestions = questions.length;
+  const answeredCount = Object.keys(answers).length;
+  const isTimeCritical = timeLeftSeconds > 0 && timeLeftSeconds <= 120; // Last 2 minutes
+
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const handleSelectOption = (optIndex) => {
     setAnswers((prev) => ({
@@ -207,7 +230,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   };
 
   const handleNext = () => {
-    if (currentAssessment && currentQuestionIndex < currentAssessment.questions.length - 1) {
+    if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
@@ -219,7 +242,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   };
 
   const handleSafeClose = () => {
-    if (!currentResult && currentAssessment && !loading) {
+    if (!currentResult && answeredCount > 0) {
       setShowExitConfirm(true);
     } else {
       if (document.fullscreenElement) {
@@ -229,41 +252,29 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     }
   };
 
-  const formatTime = (totalSeconds) => {
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const questions = currentAssessment?.questions || [];
-  const currentQ = questions[currentQuestionIndex];
-  const totalQuestions = questions.length;
-  const answeredCount = Object.keys(answers).length;
-  const isTimeCritical = timeLeftSeconds < 180 && timeLeftSeconds > 0; // Under 3 mins
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-lg overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md">
       <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[92vh] glass border-0 sm:border border-border relative overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] flex flex-col rounded-none sm:rounded-3xl"
+        initial={{ opacity: 0, scale: 0.98, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.98, y: 10 }}
+        className="relative w-full max-w-4xl h-[94dvh] bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
       >
-        {/* Ambient Glow */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
+        {/* Subtle Ambient Glow */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
 
         {/* Top Assessment Header */}
-        <div className="p-3 sm:p-5 md:p-6 border-b border-border flex items-center justify-between gap-2 sm:gap-4 relative z-10 flex-shrink-0 bg-white/[0.01]">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+        <div className="p-3.5 sm:p-5 md:p-6 border-b border-separator flex items-center justify-between gap-2 sm:gap-4 relative z-10 flex-shrink-0 bg-surface">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
               <Award size={18} className="sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-xs sm:text-base md:text-lg font-black text-text-primary truncate">
-                {currentAssessment?.title || 'Loading Assessment...'}
+              <h2 className="text-xs sm:text-base font-semibold text-label-primary tracking-tight truncate">
+                {currentAssessment?.title || 'Loading assessment...'}
               </h2>
-              <p className="text-[10px] sm:text-[11px] text-text-muted truncate">
-                {currentResult ? 'Assessment Results & Breakdown' : `Question ${currentQuestionIndex + 1} of ${totalQuestions} • Cutoff: ${currentAssessment?.passingScorePercentage}%`}
+              <p className="text-[11px] text-label-secondary truncate tabular-nums">
+                {currentResult ? 'Assessment results & breakdown' : `Question ${currentQuestionIndex + 1} of ${totalQuestions} • Cutoff: ${currentAssessment?.passingScorePercentage}%`}
               </p>
             </div>
           </div>
@@ -274,21 +285,36 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
               <>
                 {/* Anti-Cheat Proctoring Badge */}
                 <div
-                  className={`hidden xs:flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-bold transition-all shrink-0 ${
-                    tabSwitchCount === 0
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  className={`hidden xs:flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs font-medium transition-all shrink-0 tabular-nums ${
+                    isMobileMode
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                      : tabSwitchCount === 0
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                       : tabSwitchCount === 1
-                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/25'
-                      : 'bg-red-500/15 text-red-400 border-red-500/40 animate-pulse'
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25'
+                      : 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/40 animate-pulse'
                   }`}
-                  title="Anti-cheat proctoring active. Tab switches are strictly monitored."
+                  title={
+                    isMobileMode
+                      ? 'Mobile Call Protection Active: Phone calls and incoming interruptions will not increase warnings'
+                      : 'Anti-cheat proctoring active. Tab switches are strictly monitored.'
+                  }
                 >
-                  <ShieldAlert size={13} className={tabSwitchCount > 1 ? 'animate-bounce' : ''} />
-                  <span>
-                    <span className="hidden sm:inline">Tab Switches: </span>
-                    <span className="sm:hidden">Switches: </span>
-                    {tabSwitchCount} / {maxStrikes}
-                  </span>
+                  {isMobileMode ? (
+                    <>
+                      <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
+                      <span>Call protected</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert size={13} className={tabSwitchCount > 1 ? 'animate-bounce' : ''} />
+                      <span>
+                        <span className="hidden sm:inline">Tab switches: </span>
+                        <span className="sm:hidden">Switches: </span>
+                        {tabSwitchCount} / {maxStrikes}
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 {/* Fullscreen Toggle */}
@@ -301,7 +327,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       document.exitFullscreen?.().catch(() => {});
                     }
                   }}
-                  className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer hidden md:flex shrink-0"
+                  className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary transition-all border border-separator cursor-pointer hidden md:flex shrink-0"
                   title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
                   {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -309,28 +335,28 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
                 {/* Timer */}
                 <div
-                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border transition-all shrink-0 ${
+                  className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border transition-all shrink-0 ${
                     isTimeCritical
-                      ? 'bg-red-500/15 border-red-500/40 text-red-400 animate-pulse'
-                      : 'bg-surface-elevated border-border text-text-primary'
+                      ? 'bg-red-500/15 border-red-500/40 text-red-600 dark:text-red-400 animate-pulse'
+                      : 'bg-surface-secondary border-separator text-label-primary'
                   }`}
                 >
-                  <Clock size={14} className={isTimeCritical ? 'text-red-400' : 'text-purple-400'} />
-                  <span className="font-mono text-xs sm:text-sm font-black tabular-nums">
+                  <Clock size={14} className={isTimeCritical ? 'text-red-500' : 'text-accent'} />
+                  <span className="font-mono text-xs sm:text-sm font-medium tabular-nums">
                     {formatTime(timeLeftSeconds)}
                   </span>
                 </div>
 
-                {/* Always-Visible Direct Submit Button (Essential for Mobile & Quick Finishing) */}
+                {/* Always-Visible Direct Submit Button */}
                 <button
                   type="button"
                   onClick={() => setShowConfirmModal(true)}
-                  className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-white shadow-[0_0_15px_rgba(16,185,129,0.35)] transition-all cursor-pointer shrink-0"
+                  className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white shadow-xs transition-all cursor-pointer shrink-0 min-h-[36px]"
                   title="Submit assessment now"
                 >
                   <Send size={12} className="sm:w-[13px] sm:h-[13px]" />
                   <span>Submit</span>
-                  <span className="hidden xs:inline-block text-[10px] bg-white/20 px-1 rounded font-mono">
+                  <span className="hidden xs:inline-block text-[10px] bg-white/20 px-1 rounded font-mono tabular-nums">
                     {answeredCount}/{totalQuestions}
                   </span>
                 </button>
@@ -339,10 +365,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
             <button
               onClick={handleSafeClose}
-              className="p-1.5 sm:p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer shrink-0"
-              title="Close Test"
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary transition-all border border-separator cursor-pointer shrink-0"
+              title="Close test"
             >
-              <X size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <X size={16} />
             </button>
           </div>
         </div>
@@ -350,9 +376,9 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         {/* Main Content Area */}
         {loading ? (
           <div className="p-16 text-center space-y-4">
-            <div className="w-12 h-12 rounded-2xl border-2 border-purple-500 border-t-transparent animate-spin mx-auto" />
-            <p className="text-xs text-text-muted uppercase tracking-widest font-black">
-              Preparing Assessment...
+            <div className="w-10 h-10 rounded-2xl border-2 border-accent border-t-transparent animate-spin mx-auto" />
+            <p className="text-xs text-label-secondary uppercase tracking-wider font-medium">
+              Preparing assessment...
             </p>
           </div>
         ) : currentResult ? (
@@ -362,52 +388,62 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           <div className="overflow-y-auto custom-scrollbar flex-1 p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 relative z-10">
             {/* Score Banner */}
             <div
-              className={`p-5 sm:p-8 rounded-2xl sm:rounded-3xl border relative overflow-hidden text-center space-y-3 sm:space-y-4 ${
+              className={`p-6 sm:p-8 rounded-2xl sm:rounded-3xl border relative overflow-hidden text-center space-y-3 sm:space-y-4 ${
                 currentResult.passed
                   ? 'bg-emerald-500/10 border-emerald-500/30'
                   : 'bg-red-500/10 border-red-500/30'
               }`}
             >
-              <div className="inline-flex p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-surface-elevated border border-border mx-auto">
+              <div className="inline-flex p-3 sm:p-3.5 rounded-2xl bg-surface border border-separator mx-auto shadow-xs">
                 {currentResult.passed ? (
-                  <Trophy size={34} className="text-emerald-400 animate-bounce sm:w-10 sm:h-10" />
+                  <Trophy size={32} className="text-emerald-500" />
                 ) : (
-                  <AlertTriangle size={34} className="text-amber-400 sm:w-10 sm:h-10" />
+                  <AlertTriangle size={32} className="text-amber-500" />
                 )}
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <span
-                  className={`text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] px-3 sm:px-3.5 py-1 rounded-full border ${
+                  className={`text-[11px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full border inline-block ${
                     currentResult.passed
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                      : 'bg-red-500/20 text-red-400 border-red-500/40'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                      : 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30'
                   }`}
                 >
-                  {currentResult.passed ? 'Assessment Passed' : 'Needs Practice'}
+                  {currentResult.passed ? 'Assessment passed' : 'Needs practice'}
                 </span>
-                <h3 className="text-2xl sm:text-4xl font-black text-text-primary mt-2.5 sm:mt-3">
-                  {currentResult.score} / {currentResult.totalPoints} Points ({currentResult.percentage}%)
+
+                {currentResult.pointsAwarded && currentResult.pointsAwarded > 0 ? (
+                  <div className="pt-1 flex items-center justify-center">
+                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-medium text-xs sm:text-sm tabular-nums">
+                      <Award size={15} className="text-amber-500" />
+                      <span>+{currentResult.pointsAwarded} club points awarded</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight text-label-primary tabular-nums">
+                  {currentResult.score} / {currentResult.totalPoints} points ({currentResult.percentage}%)
                 </h3>
-                <p className="text-xs text-text-secondary max-w-md mx-auto mt-2 leading-relaxed">
+                <p className="text-xs sm:text-sm text-label-secondary max-w-prose mx-auto leading-relaxed">
                   {currentResult.passed
-                    ? `Outstanding! You achieved ${currentResult.percentage}%, exceeding the ${currentResult.passingScorePercentage}% requirement.`
-                    : `You scored ${currentResult.percentage}%. The passing threshold is ${currentResult.passingScorePercentage}%. Review the explanations below and try again!`}
+                    ? `Outstanding! You achieved ${currentResult.percentage}%, exceeding the ${currentResult.passingScorePercentage}% cutoff requirement.`
+                    : `You scored ${currentResult.percentage}%. The passing threshold is ${currentResult.passingScorePercentage}%. Review the explanations below and try again.`}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-2 text-[11px] sm:text-xs font-bold text-text-muted">
-                <span>⏱️ Time Spent: {formatTime(currentResult.timeSpentSeconds)}</span>
-                <span>📋 Total Questions: {currentResult.detailedResults.length}</span>
+              <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-2 text-xs font-medium text-label-secondary tabular-nums">
+                <span>Time spent: {formatTime(currentResult.timeSpentSeconds)}</span>
+                <span>Total questions: {currentResult.detailedResults.length}</span>
               </div>
             </div>
 
             {/* Detailed Question Review Breakdown */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <HelpCircle size={18} className="text-purple-400 shrink-0" />
-                <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-text-primary">
-                  Answer Key & Comprehensive Explanations
+                <HelpCircle size={17} className="text-accent shrink-0" />
+                <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-label-primary">
+                  Answer key & explanations
                 </h4>
               </div>
 
@@ -424,51 +460,51 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
                         {qResult.isCorrect ? (
-                          <CheckCircle2 size={18} className="text-emerald-400 flex-shrink-0" />
+                          <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" />
                         ) : (
-                          <XCircle size={18} className="text-red-400 flex-shrink-0" />
+                          <XCircle size={16} className="text-red-500 flex-shrink-0" />
                         )}
-                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                        <span className="text-xs font-medium text-label-secondary uppercase tracking-wider">
                           Question #{idx + 1}
                         </span>
                       </div>
                       <span
-                        className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                        className={`text-[10px] font-medium uppercase tracking-wider px-2.5 py-0.5 rounded-full tabular-nums ${
                           qResult.isCorrect
-                            ? 'bg-emerald-500/10 text-emerald-400'
-                            : 'bg-red-500/10 text-red-400'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-red-500/10 text-red-600 dark:text-red-400'
                         }`}
                       >
-                        {qResult.isCorrect ? 'Correct (+1)' : 'Incorrect (0)'}
+                        {qResult.isCorrect ? `Correct (+${qResult.points || 1})` : 'Incorrect (0)'}
                       </span>
                     </div>
 
-                    <p className="text-xs sm:text-sm font-bold text-text-primary leading-relaxed break-words">
+                    <p className="text-xs sm:text-sm font-medium text-label-primary leading-relaxed break-words">
                       {qResult.questionText}
                     </p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 rounded-xl bg-surface-elevated border border-border space-y-0.5">
-                        <p className="text-[10px] font-bold text-text-muted uppercase">Your Choice:</p>
-                        <p className={qResult.isCorrect ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                      <div className="p-2.5 rounded-xl bg-surface border border-separator space-y-0.5">
+                        <p className="text-[10px] font-medium text-label-secondary uppercase">Your answer:</p>
+                        <p className={qResult.isCorrect ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-red-600 dark:text-red-400 font-medium'}>
                           {qResult.selectedOption >= 0
                             ? `Option ${String.fromCharCode(65 + qResult.selectedOption)}`
                             : 'Unanswered'}
                         </p>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-surface-elevated border border-border space-y-0.5">
-                        <p className="text-[10px] font-bold text-text-muted uppercase">Correct Answer:</p>
-                        <p className="text-emerald-400 font-bold">
-                          Option {String.fromCharCode(65 + qResult.correctOptionIndex)}
+                      <div className="p-2.5 rounded-xl bg-surface border border-separator space-y-0.5">
+                        <p className="text-[10px] font-medium text-label-secondary uppercase">Correct answer:</p>
+                        <p className="text-emerald-600 dark:text-emerald-400 font-medium">
+                          Option {String.fromCharCode(65 + qResult.correctOption)}
                         </p>
                       </div>
                     </div>
 
                     {qResult.explanation && (
-                      <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/15 text-xs text-purple-300 leading-relaxed break-words">
-                        <span className="font-bold text-purple-400">Explanation: </span>
-                        {qResult.explanation}
+                      <div className="p-3 rounded-xl bg-surface border border-separator text-xs text-label-secondary space-y-1">
+                        <span className="font-semibold text-accent block text-[11px] uppercase tracking-wider">Explanation</span>
+                        <p className="leading-relaxed font-normal">{qResult.explanation}</p>
                       </div>
                     )}
                   </div>
@@ -476,9 +512,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* Post-result Actions */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-4 border-t border-border">
+            {/* Bottom Actions for Review Screen */}
+            <div className="pt-4 border-t border-separator flex flex-col sm:flex-row items-center justify-between gap-3">
               <button
+                type="button"
                 onClick={() => {
                   clearCurrentResult();
                   setAnswers({});
@@ -486,15 +523,15 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   setTimeLeftSeconds((currentAssessment.timeLimitMinutes || 30) * 60);
                   setStartTime(Date.now());
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated flex items-center justify-center gap-2 border border-border transition-all cursor-pointer w-full sm:w-auto"
+                className="px-5 py-2.5 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface flex items-center justify-center gap-2 border border-separator transition-all cursor-pointer w-full sm:w-auto min-h-[42px]"
               >
-                <RotateCcw size={14} /> Retake Assessment
+                <RotateCcw size={14} /> Retake assessment
               </button>
               <button
                 onClick={onClose}
-                className="btn-primary py-2.5 px-6 text-xs font-black cursor-pointer w-full sm:w-auto text-center"
+                className="btn-primary py-2.5 px-6 text-xs font-medium cursor-pointer w-full sm:w-auto text-center min-h-[42px]"
               >
-                Return to Dashboard
+                Return to dashboard
               </button>
             </div>
           </div>
@@ -504,7 +541,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           /* ========================================================================= */
           <div className="flex-1 flex flex-col overflow-hidden relative z-10">
             {/* Question Progress Bubbles Bar */}
-            <div className="px-3 sm:px-6 py-2.5 sm:py-4 bg-white/[0.02] border-b border-border flex items-center gap-1.5 sm:gap-2 overflow-x-auto custom-scrollbar flex-shrink-0">
+            <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 bg-surface-secondary/40 border-b border-separator flex items-center gap-1.5 sm:gap-2 overflow-x-auto custom-scrollbar flex-shrink-0">
               {questions.map((_, idx) => {
                 const isAnswered = answers[idx] !== undefined;
                 const isCurrent = idx === currentQuestionIndex;
@@ -513,12 +550,12 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   <button
                     key={idx}
                     onClick={() => setCurrentQuestionIndex(idx)}
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center flex-shrink-0 cursor-pointer ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-medium transition-all flex items-center justify-center flex-shrink-0 cursor-pointer tabular-nums ${
                       isCurrent
-                        ? 'bg-purple-600 text-text-primary shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-105'
+                        ? 'bg-accent text-white shadow-xs'
                         : isAnswered
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-elevated border border-border'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                     }`}
                   >
                     {idx + 1}
@@ -530,7 +567,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(true)}
-                className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black transition-all flex items-center gap-1 shrink-0 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer ml-auto"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 shrink-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer ml-auto min-h-[32px]"
                 title="Finish and submit assessment"
               >
                 <Send size={11} />
@@ -544,16 +581,16 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 <div className="space-y-4 sm:space-y-6">
                   {/* Question Header & Points */}
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                    <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-accent bg-accent/10 border border-accent/20 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full tabular-nums">
                       Question {currentQuestionIndex + 1} of {totalQuestions}
                     </span>
-                    <span className="text-[11px] sm:text-xs font-bold text-text-muted">
-                      Worth {currentQ.points || 1} Point{(currentQ.points || 1) > 1 ? 's' : ''}
+                    <span className="text-[11px] sm:text-xs font-medium text-label-secondary tabular-nums">
+                      Worth {currentQ.points || 1} point{(currentQ.points || 1) > 1 ? 's' : ''}
                     </span>
                   </div>
 
                   {/* Question Prompt */}
-                  <h3 className="text-base sm:text-lg md:text-xl font-bold sm:font-black text-text-primary leading-snug sm:leading-relaxed break-words">
+                  <h3 className="text-base sm:text-lg md:text-xl font-semibold text-label-primary leading-snug sm:leading-relaxed break-words tracking-tight">
                     {currentQ.questionText}
                   </h3>
 
@@ -566,31 +603,31 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       return (
                         <motion.button
                           key={optIndex}
-                          whileHover={{ scale: 1.005 }}
-                          whileTap={{ scale: 0.995 }}
+                          whileHover={{ scale: 1.002 }}
+                          whileTap={{ scale: 0.998 }}
                           onClick={() => handleSelectOption(optIndex)}
-                          className={`w-full p-3.5 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl text-left flex items-center gap-3 sm:gap-4 transition-all duration-200 cursor-pointer border ${
+                          className={`w-full p-3.5 sm:p-4 rounded-xl sm:rounded-2xl text-left flex items-center gap-3 sm:gap-4 transition-all duration-150 cursor-pointer border ${
                             isSelected
-                              ? 'bg-purple-600/15 border-purple-500 text-text-primary shadow-[0_0_25px_rgba(168,85,247,0.25)]'
-                              : 'bg-surface-elevated border-border text-text-secondary hover:bg-surface-elevated hover:border-border-hover'
+                              ? 'bg-accent/10 border-accent text-label-primary shadow-xs'
+                              : 'bg-surface border-separator text-label-secondary hover:bg-surface-secondary hover:text-label-primary'
                           }`}
                         >
                           <div
-                            className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center text-xs font-black transition-all flex-shrink-0 ${
+                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-all flex-shrink-0 ${
                               isSelected
-                                ? 'bg-purple-600 text-text-primary shadow-[0_0_12px_rgba(168,85,247,0.4)]'
-                                : 'bg-surface-elevated text-text-muted'
+                                ? 'bg-accent text-white shadow-xs'
+                                : 'bg-surface-secondary text-label-secondary'
                             }`}
                           >
                             {optionLetter}
                           </div>
 
-                          <span className="text-xs sm:text-sm font-medium leading-relaxed flex-1 break-words min-w-0">
+                          <span className="text-xs sm:text-sm font-normal leading-relaxed flex-1 break-words min-w-0">
                             {optText}
                           </span>
 
                           {isSelected && (
-                            <CheckCircle2 size={18} className="text-purple-400 flex-shrink-0" />
+                            <CheckCircle2 size={18} className="text-accent flex-shrink-0" />
                           )}
                         </motion.button>
                       );
@@ -598,37 +635,36 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-10 text-text-muted">No question selected</div>
+                <div className="text-center py-10 text-label-secondary">No question selected</div>
               )}
             </div>
 
             {/* Bottom Controls Bar */}
-            <div className="p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] border-t border-border flex items-center justify-between gap-2 sm:gap-3 bg-white/[0.01] flex-shrink-0">
+            <div className="p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] border-t border-separator flex items-center justify-between gap-2 sm:gap-3 bg-surface flex-shrink-0">
               <button
                 onClick={handlePrevious}
                 disabled={currentQuestionIndex === 0}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 sm:gap-1.5 transition-all shrink-0 cursor-pointer"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 sm:gap-1.5 transition-all shrink-0 cursor-pointer min-h-[38px] border border-separator"
               >
                 <ChevronLeft size={15} />
                 <span className="hidden sm:inline">Previous</span>
                 <span className="sm:hidden">Prev</span>
               </button>
 
-              <div className="text-[11px] sm:text-xs font-bold text-text-muted text-center px-1 truncate">
+              <div className="text-[11px] sm:text-xs font-medium text-label-secondary text-center px-1 truncate tabular-nums">
                 <span className="hidden sm:inline">
-                  <span className="text-purple-400 font-black">{answeredCount}</span> of {totalQuestions} answered
+                  <span className="text-accent font-semibold">{answeredCount}</span> of {totalQuestions} answered
                 </span>
                 <span className="sm:hidden">
-                  <span className="text-purple-400 font-black">{answeredCount}</span>/{totalQuestions} answered
+                  <span className="text-accent font-semibold">{answeredCount}</span>/{totalQuestions} answered
                 </span>
               </div>
 
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                {/* Secondary Quick Submit Button - ALWAYS accessible across all questions */}
                 {currentQuestionIndex < totalQuestions - 1 && (
                   <button
                     onClick={() => setShowConfirmModal(true)}
-                    className="px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 flex items-center gap-1 transition-all cursor-pointer"
+                    className="px-3 py-2 rounded-xl text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 flex items-center gap-1 transition-all cursor-pointer min-h-[38px]"
                     title="Submit assessment now"
                   >
                     <Send size={12} />
@@ -639,17 +675,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 {currentQuestionIndex < totalQuestions - 1 ? (
                   <button
                     onClick={handleNext}
-                    className="btn-primary py-2 sm:py-2.5 px-3 sm:px-5 text-xs font-black flex items-center gap-1 sm:gap-1.5 cursor-pointer"
+                    className="btn-primary py-2 px-4 text-xs font-medium flex items-center gap-1 cursor-pointer min-h-[38px]"
                   >
                     <span>Next</span> <ChevronRight size={15} />
                   </button>
                 ) : (
                   <button
                     onClick={() => setShowConfirmModal(true)}
-                    className="btn-primary py-2 sm:py-2.5 px-3.5 sm:px-6 text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center gap-1.5 cursor-pointer"
+                    className="btn-primary py-2 px-5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 flex items-center gap-1.5 cursor-pointer min-h-[38px]"
                   >
                     <Send size={13} />
-                    <span className="hidden sm:inline">Submit Assessment</span>
+                    <span className="hidden sm:inline">Submit assessment</span>
                     <span className="sm:hidden">Submit</span>
                   </button>
                 )}
@@ -666,20 +702,20 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-sm sm:max-w-md glass border border-border p-5 sm:p-7 space-y-4 sm:space-y-5 text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-2xl sm:rounded-3xl max-h-[90dvh] overflow-y-auto"
+                className="w-full max-w-sm sm:max-w-md bg-surface border border-separator p-5 sm:p-7 space-y-4 sm:space-y-5 text-center shadow-2xl rounded-2xl sm:rounded-3xl max-h-[90dvh] overflow-y-auto"
               >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
-                  <Send size={24} className="sm:w-[26px] sm:h-[26px]" />
+                <div className="w-12 h-12 rounded-2xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center mx-auto">
+                  <Send size={22} />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-black text-text-primary">Ready to submit?</h3>
-                  <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  <h3 className="text-base sm:text-lg font-semibold text-label-primary tracking-tight">Ready to submit?</h3>
+                  <p className="text-xs sm:text-[13px] text-label-secondary mt-1.5 leading-relaxed tabular-nums">
                     You have completed{' '}
-                    <span className="text-text-primary font-bold">{answeredCount}</span> of{' '}
-                    <span className="text-text-primary font-bold">{totalQuestions}</span> questions.
+                    <span className="text-label-primary font-medium">{answeredCount}</span> of{' '}
+                    <span className="text-label-primary font-medium">{totalQuestions}</span> questions.
                     {answeredCount < totalQuestions && (
-                      <span className="block text-amber-400 mt-1 font-bold">
-                        ⚠️ Note: {totalQuestions - answeredCount} question(s) remain unanswered!
+                      <span className="block text-amber-500 mt-1 font-medium">
+                        Notice: {totalQuestions - answeredCount} question(s) remain unanswered.
                       </span>
                     )}
                   </p>
@@ -688,16 +724,16 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2">
                   <button
                     onClick={() => setShowConfirmModal(false)}
-                    className="w-full sm:flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-text-muted hover:text-text-primary bg-surface-elevated hover:bg-surface-elevated transition-all cursor-pointer"
+                    className="w-full sm:flex-1 py-2.5 px-4 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface border border-separator transition-all cursor-pointer min-h-[42px]"
                   >
-                    Back to Test
+                    Back to test
                   </button>
                   <button
-                    onClick={executeSubmit}
+                    onClick={() => executeSubmit(false)}
                     disabled={submitting}
-                    className="btn-primary w-full sm:flex-1 py-2.5 px-4 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 disabled:opacity-50 cursor-pointer text-center"
+                    className="btn-primary w-full sm:flex-1 py-2.5 px-4 text-xs font-medium disabled:opacity-50 cursor-pointer text-center min-h-[42px]"
                   >
-                    {submitting ? 'Submitting...' : 'Yes, Submit Now'}
+                    {submitting ? 'Submitting...' : 'Yes, submit now'}
                   </button>
                 </div>
               </motion.div>
@@ -710,32 +746,32 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           {showTabWarning && !isLocked && !currentResult && (
             <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-xl">
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 className="w-full max-w-sm sm:max-w-md bg-surface border border-amber-500/40 rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-center space-y-4 sm:space-y-5 shadow-2xl relative overflow-hidden"
               >
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
-                  <ShieldAlert size={32} className="sm:w-9 sm:h-9" />
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 mx-auto">
+                  <ShieldAlert size={28} />
                 </div>
 
                 <div className="space-y-2">
-                  <span className="px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                    Security Warning: Strike {tabSwitchCount} of {maxStrikes}
+                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-500 border border-amber-500/30 tabular-nums">
+                    Security warning: Strike {tabSwitchCount} of {maxStrikes}
                   </span>
-                  <h3 className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-heading mt-1.5 sm:mt-2">
-                    Tab Switching Is Prohibited!
+                  <h3 className="text-lg sm:text-xl font-semibold text-label-primary tracking-tight mt-1.5 sm:mt-2">
+                    Tab switching is restricted
                   </h3>
-                  <p className="text-xs text-text-secondary leading-relaxed">
-                    You have navigated away from the assessment window or switched tabs. Switching tabs, minimizing windows, or using secondary apps during this test is strictly disallowed.
+                  <p className="text-xs sm:text-[13px] text-label-secondary leading-relaxed">
+                    You have navigated away from the assessment window. Switching tabs, minimizing windows, or running secondary apps during this test is strictly disallowed.
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-canvas border border-separator text-xs text-left space-y-1.5 font-medium">
-                  <p className="text-destructive font-bold flex items-center gap-1.5">
-                    <AlertTriangle size={14} /> Strike {tabSwitchCount} Recorded
+                <div className="p-3.5 rounded-xl bg-surface-secondary border border-separator text-xs text-left space-y-1.5 font-normal">
+                  <p className="text-destructive font-medium flex items-center gap-1.5 tabular-nums">
+                    <AlertTriangle size={14} /> Strike {tabSwitchCount} recorded
                   </p>
-                  <p className="text-text-muted text-[11px] leading-relaxed">
+                  <p className="text-label-secondary text-[11px] leading-relaxed tabular-nums">
                     If you switch tabs {maxStrikes - tabSwitchCount} more time{maxStrikes - tabSwitchCount > 1 ? 's' : ''}, your assessment will be <strong>automatically locked and submitted</strong> with current answers.
                   </p>
                 </div>
@@ -743,9 +779,9 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 <button
                   type="button"
                   onClick={() => setShowTabWarning(false)}
-                  className="w-full btn-primary py-3 text-xs font-bold uppercase tracking-wider cursor-pointer"
+                  className="w-full btn-primary py-2.5 text-xs font-medium cursor-pointer min-h-[42px]"
                 >
-                  I Understand, Return to Test
+                  I understand, return to test
                 </button>
               </motion.div>
             </div>
@@ -757,25 +793,25 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           {isLocked && (
             <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-4 bg-black/95 backdrop-blur-2xl">
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="w-full max-w-sm sm:max-w-md bg-surface border border-red-500/40 rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center space-y-4 sm:space-y-5 shadow-2xl"
               >
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-destructive mx-auto">
-                  <Lock size={32} className="sm:w-9 sm:h-9" />
+                <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-destructive mx-auto">
+                  <Lock size={28} />
                 </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-heading">
-                    Assessment Disqualified & Locked
+                <div className="space-y-1.5">
+                  <h3 className="text-lg sm:text-xl font-semibold text-label-primary tracking-tight">
+                    Assessment session locked
                   </h3>
-                  <p className="text-xs text-destructive font-bold uppercase tracking-wider mt-1">
-                    Exceeded Maximum {maxStrikes} Tab Switch Violations
+                  <p className="text-xs text-destructive font-medium uppercase tracking-wider tabular-nums">
+                    Exceeded maximum {maxStrikes} tab switch violations
                   </p>
-                  <p className="text-xs text-text-secondary mt-2 leading-relaxed">
-                    You have repeatedly left the test window. Your session has been locked and your answers are being automatically submitted to the evaluator.
+                  <p className="text-xs sm:text-[13px] text-label-secondary mt-2 leading-relaxed">
+                    You have repeatedly left the test window. Your session has been locked and your current answers are being submitted to the evaluator.
                   </p>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-xs text-text-muted">
+                <div className="flex items-center justify-center gap-2 text-xs text-label-secondary">
                   <Loader2 size={16} className="animate-spin text-destructive" />
                   <span>Finalizing submission...</span>
                 </div>
@@ -789,26 +825,26 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           {showExitConfirm && (
             <div className="fixed inset-0 z-100 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md">
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="w-full max-w-sm sm:max-w-md glass border border-border p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-center space-y-4 shadow-2xl"
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-sm sm:max-w-md bg-surface border border-separator p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-center space-y-4 shadow-2xl"
               >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-destructive flex items-center justify-center mx-auto">
-                  <AlertTriangle size={26} className="sm:w-7 sm:h-7" />
+                <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-destructive flex items-center justify-center mx-auto">
+                  <AlertTriangle size={24} />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-black text-text-primary">Exit Assessment?</h3>
-                  <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  <h3 className="text-base sm:text-lg font-semibold text-label-primary tracking-tight">Exit assessment?</h3>
+                  <p className="text-xs sm:text-[13px] text-label-secondary mt-1 leading-relaxed">
                     Your test timer is running. If you leave now without submitting, your answers will not be saved.
                   </p>
                 </div>
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2">
                   <button
                     onClick={() => setShowExitConfirm(false)}
-                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-bold text-text-primary bg-surface-elevated border border-border hover:bg-canvas transition-all cursor-pointer"
+                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium text-label-primary bg-surface-secondary border border-separator hover:bg-surface transition-all cursor-pointer min-h-[42px]"
                   >
-                    Continue Test
+                    Continue test
                   </button>
                   <button
                     onClick={() => {
@@ -818,9 +854,9 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                       }
                       onClose();
                     }}
-                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-destructive hover:bg-red-600 transition-all cursor-pointer"
+                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium text-white bg-destructive hover:bg-red-600 transition-all cursor-pointer min-h-[42px]"
                   >
-                    Exit Anyway
+                    Exit anyway
                   </button>
                 </div>
               </motion.div>
