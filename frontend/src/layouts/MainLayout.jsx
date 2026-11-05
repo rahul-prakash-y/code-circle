@@ -272,7 +272,7 @@ export const MainLayout = ({ children }) => {
       </motion.div>
 
       {/* iOS Bottom Navigation — visible only on mobile (< md: 768px) */}
-      <BottomNav />
+      {/* <BottomNav /> */}
 
       <MandatoryChangePasswordModal />
     </div>

@@ -514,23 +514,24 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span>Event Arena Assessments</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+            <span className="px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
               Admin Panel
             </span>
           </div>
         </div>
       }
       description={`${event?.title || 'Event'} • Multi-Assessment Management & Assigned Admins`}
-      dialogClassName="sm:max-w-5xl p-6"
+      dialogClassName="sm:max-w-5xl p-4 sm:p-6"
+      drawerClassName="max-h-[92dvh] px-2 sm:px-4 pb-6 pt-2"
     >
       <div className="space-y-4 pt-2">
 
         {/* Assessment Switcher Bar */}
-        <div className="px-6 py-2.5 border-b border-black/5 dark:border-white/10 bg-white/[0.01] flex items-center justify-between gap-3 overflow-x-auto shrink-0">
-          <div className="flex items-center gap-2 overflow-x-auto py-1">
-            <span className="text-xs font-semibold text-text-muted shrink-0 flex items-center gap-1.5 mr-1">
-              <Layers size={13} className="text-purple-400" />
-              <span>Assessments:</span>
+        <div className="px-3 sm:px-6 py-2.5 border-b border-separator bg-surface-secondary/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 rounded-2xl">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 sm:mx-0 sm:px-0">
+            <span className="text-[11px] font-bold text-label-tertiary uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
+              <Layers size={13} className="text-purple-500" />
+              <span className="hidden sm:inline">Rounds:</span>
             </span>
 
             {assessments.map((asm) => {
@@ -542,16 +543,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     setIsCreatingNew(false);
                     setSelectedAssessment(asm);
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 shrink-0 transition-all cursor-pointer ${
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-purple-600 text-[#1D1D1F] dark:text-[#F5F5F7] shadow-md shadow-purple-600/30'
-                      : 'bg-white/5 hover:bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7]/70 border border-white/5'
+                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                      : 'bg-surface hover:bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
                   }`}
                 >
-                  <span className="truncate max-w-[150px]">{asm.title}</span>
+                  <span className="truncate max-w-[120px] sm:max-w-[150px]">{asm.title}</span>
                   <span
-                    className={`px-1.5 py-0.2 rounded text-[10px] uppercase font-mono ${
-                      isSelected ? 'bg-white/20 text-[#1D1D1F] dark:text-[#F5F5F7]' : 'bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7]/60'
+                    className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-mono font-bold ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-surface-secondary text-label-tertiary'
                     }`}
                   >
                     {asm.type}
@@ -563,10 +564,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
           <button
             onClick={() => setIsCreatingNew(true)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+            className={`min-h-[36px] px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer ${
               isCreatingNew
-                ? 'bg-emerald-600 text-[#1D1D1F] dark:text-[#F5F5F7] shadow-md shadow-emerald-600/30'
-                : 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
             }`}
           >
             <Plus size={14} />
@@ -577,7 +578,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* Main Body */}
         {isCreatingNew ? (
           /* CREATE NEW ASSESSMENT VIEW */
-          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-5">
             <div className="max-w-2xl mx-auto space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/10">
                 <div>
@@ -818,27 +819,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
           /* SELECTED ASSESSMENT WORKSPACE */
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Assessment Sub-Navigation */}
-            <div className="px-6 py-2.5 border-b border-black/5 dark:border-white/10 bg-white/[0.015] flex flex-wrap items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-1.5 overflow-x-auto">
+            <div className="border-b border-separator bg-surface-secondary/30 shrink-0 space-y-2 py-2 px-1 sm:px-4 rounded-xl">
+              {/* Row 1: Horizontally Scrollable Tabs with touch momentum */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-1 py-0.5">
                 <button
                   onClick={() => setActiveTab('settings')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'settings'
-                      ? 'bg-white/15 text-[#1D1D1F] dark:text-[#F5F5F7]'
-                      : 'text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-white/5'
+                      ? 'bg-accent text-white shadow-xs'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                   }`}
                 >
                   <Settings size={13} />
-                  <span>Config & Assigned Admins</span>
+                  <span>Config & Admins</span>
                 </button>
 
                 {(selectedAssessment.type === 'MCQ' || selectedAssessment.type === 'HYBRID') && (
                   <button
                     onClick={() => setActiveTab('mcq')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'mcq'
-                        ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30'
-                        : 'text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-white/5'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                     }`}
                   >
                     <HelpCircle size={13} />
@@ -849,37 +851,37 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 {(selectedAssessment.type === 'CODING' || selectedAssessment.type === 'HYBRID') && (
                   <button
                     onClick={() => setActiveTab('coding')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'coding'
-                        ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
-                        : 'text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-white/5'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                     }`}
                   >
                     <Code2 size={13} />
-                    <span>Coding Challenges ({adminCoding.length})</span>
+                    <span>Coding ({adminCoding.length})</span>
                   </button>
                 )}
 
                 {selectedAssessment.type === 'UI_UX' && (
                   <button
                     onClick={() => setActiveTab('design')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'design'
-                        ? 'bg-gradient-to-r from-pink-600/30 to-purple-600/30 text-pink-300 border border-pink-500/40 shadow-sm shadow-pink-500/20'
-                        : 'text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-white/5'
+                        ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-xs'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                     }`}
                   >
                     <Palette size={13} className="text-pink-400" />
-                    <span>🎨 UI/UX Design Challenge</span>
+                    <span>UI/UX Design</span>
                   </button>
                 )}
 
                 <button
                   onClick={() => setActiveTab('teams')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'teams'
-                      ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
-                      : 'text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-white/5'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                   }`}
                 >
                   <Users size={13} />
@@ -888,10 +890,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                 <button
                   onClick={() => setActiveTab('submissions')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'submissions'
-                      ? 'bg-white/15 text-[#1D1D1F] dark:text-[#F5F5F7]'
-                      : 'text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-white/5'
+                      ? 'bg-accent text-white shadow-xs'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                   }`}
                 >
                   <Award size={13} />
@@ -899,35 +901,52 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 </button>
               </div>
 
-              {/* Status Indicator & Assigned Admins summary */}
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-1.5 overflow-hidden">
-                  {(selectedAssessment.assignedAdmins || []).slice(0, 3).map((adm: any) => (
-                    <img
-                      key={adm._id || adm}
-                      title={adm.name || 'Assigned Admin'}
-                      src={
-                        adm.profilePicUrl ||
-                        `https://ui-avatars.com/api/?name=${adm.name || 'Admin'}&background=7C3AED&color=fff&size=60`
-                      }
-                      className="w-5 h-5 rounded-full border border-black object-cover"
-                    />
-                  ))}
+              {/* Row 2: Status & Quick Meta bar */}
+              <div className="flex items-center justify-between px-2 pt-1 border-t border-separator/40 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    selectedAssessment.status === 'LIVE'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25'
+                      : selectedAssessment.status === 'UPCOMING'
+                      ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25'
+                      : 'bg-surface-secondary text-label-secondary border border-separator'
+                  }`}>
+                    {selectedAssessment.status}
+                  </span>
+                  <span className="text-[11px] text-label-tertiary font-mono">
+                    {selectedAssessment.durationMinutes}m • {selectedAssessment.totalPoints} pts
+                  </span>
                 </div>
-                {canManageSelected ? (
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                    Authorized Editor
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                    View Only
-                  </span>
-                )}
+
+                <div className="flex items-center gap-1.5">
+                  <div className="flex -space-x-1.5 overflow-hidden">
+                    {(selectedAssessment.assignedAdmins || []).slice(0, 3).map((adm: any) => (
+                      <img
+                        key={adm._id || adm}
+                        title={adm.name || 'Assigned Admin'}
+                        src={
+                          adm.profilePicUrl ||
+                          `https://ui-avatars.com/api/?name=${adm.name || 'Admin'}&background=7C3AED&color=fff&size=60`
+                        }
+                        className="w-5 h-5 rounded-full border border-separator object-cover"
+                      />
+                    ))}
+                  </div>
+                  {canManageSelected ? (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      Editor
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                      View
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Sub-Tab Contents */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-6">
               {/* TAB 1: CONFIG & ASSIGNED ADMINS */}
               {activeTab === 'settings' && (
                 <div className="max-w-3xl mx-auto space-y-6">
@@ -1182,12 +1201,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-separator">
                     {isSuperAdmin && (
                       <button
                         type="button"
                         onClick={handleDeleteAssessment}
-                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 flex items-center gap-1.5 transition-colors"
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-full text-xs font-semibold text-destructive border border-destructive/30 hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Trash2 size={13} />
                         <span>Delete Assessment</span>
@@ -1199,7 +1218,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         type="button"
                         onClick={handleSaveAssessmentConfig}
                         disabled={actionLoading}
-                        className="ml-auto px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="w-full sm:w-auto ml-auto px-6 py-2.5 rounded-full bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                       >
                         {actionLoading && <Loader2 size={13} className="animate-spin" />}
                         <span>Save Changes</span>
@@ -1226,7 +1245,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <button
                         onClick={() => downloadArenaTemplate(event._id, 'mcq')}
                         className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-semibold border border-black/5 dark:border-white/10 flex items-center gap-1.5 transition-colors"
@@ -2185,154 +2204,284 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
 
                   {adminSubmissions.length === 0 ? (
-                    <div className="p-8 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 text-center space-y-2">
-                      <Award size={28} className="mx-auto text-[#1D1D1F] dark:text-[#F5F5F7]/30" />
-                      <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">No Submissions Yet</h4>
-                      <p className="text-xs text-text-muted">
+                    <div className="p-8 rounded-2xl bg-surface-secondary border border-separator text-center space-y-2">
+                      <Award size={28} className="mx-auto text-label-tertiary" />
+                      <h4 className="text-sm font-bold text-label-primary">No Submissions Yet</h4>
+                      <p className="text-xs text-label-secondary">
                         Submissions from students who complete this assessment will appear here with complete details.
                       </p>
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-black/5 dark:border-white/10 overflow-hidden bg-white/[0.01]">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-white/5 border-b border-black/5 dark:border-white/10 text-text-muted uppercase text-[10px]">
-                          <tr>
-                            <th className="p-3">Rank & Student</th>
-                            <th className="p-3">Residence</th>
-                            <th className="p-3">Score</th>
-                            <th className="p-3">Percentage</th>
-                            <th className="p-3">Result</th>
-                            <th className="p-3">Figma / Work</th>
-                            <th className="p-3">Submitted At</th>
-                            <th className="p-3 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {adminSubmissions.map((sub, idx) => (
-                            <tr key={sub._id || idx} className="hover:bg-white/[0.02] transition-colors">
-                              <td className="p-3">
-                                <div className="flex items-center gap-2.5">
-                                  <span className="font-mono text-text-muted w-4">#{idx + 1}</span>
-                                  <div className="w-6 h-6 rounded-full overflow-hidden bg-white/10 shrink-0">
-                                    <img
-                                      src={
-                                        sub.userId?.profilePicUrl ||
-                                        `https://ui-avatars.com/api/?name=${sub.userId?.name}&background=1D1D1F&color=fff&size=60`
-                                      }
-                                      alt={sub.userId?.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  <div>
-                                    <p className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{sub.userId?.name || 'Student'}</p>
-                                    <p className="text-[10px] text-text-muted">
-                                      {sub.userId?.rollNo || sub.userId?.email}
-                                    </p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                {sub.userId?.residenceType ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 border border-black/5 dark:border-white/10 text-purple-300">
-                                    {sub.userId.residenceType === 'Hosteller' ? (
-                                      <Building size={10} />
-                                    ) : (
-                                      <Bus size={10} />
-                                    )}
-                                    <span>{sub.userId.residenceType}</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-text-muted text-[10px]">—</span>
-                                )}
-                              </td>
-                              <td className="p-3 font-mono font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
-                                {sub.totalScore} / {sub.maxPossibleScore}
-                              </td>
-                              <td className="p-3 font-mono text-[#1D1D1F] dark:text-[#F5F5F7]/80">{sub.scorePercentage}%</td>
-                              <td className="p-3">
-                                <span
-                                  className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    sub.isPassed
-                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                                  }`}
-                                >
-                                  {sub.isPassed ? 'Passed' : 'Failed'}
+                    <>
+                      {/* Mobile Card List (< md viewports) */}
+                      <div className="block md:hidden space-y-3">
+                        {adminSubmissions.map((sub, idx) => (
+                          <div
+                            key={sub._id || idx}
+                            className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-3 shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="w-6 h-6 rounded-full bg-accent/10 text-accent font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                                  #{idx + 1}
                                 </span>
-                              </td>
-                              <td className="p-3">
-                                {sub.designSubmission?.figmaLink ? (
-                                  <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <a
-                                        href={sub.designSubmission.figmaLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-400 hover:text-pink-300 underline underline-offset-2"
-                                      >
-                                        <Palette size={11} />
-                                        <span>Figma File</span>
-                                        <ExternalLink size={10} />
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
-                                        className="px-1.5 py-0.5 rounded text-[10px] bg-white/10 hover:bg-white/20 text-[#1D1D1F] dark:text-[#F5F5F7] font-medium"
-                                      >
-                                        Embed
-                                      </button>
-                                    </div>
-                                    {sub.designSubmission.isEvaluated ? (
-                                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                                        <CheckCircle size={10} />
-                                        <span>Graded: {sub.designSubmission.pointsEarned} pts</span>
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] text-amber-400 font-semibold">
-                                        Pending Review
-                                      </span>
-                                    )}
-                                    {sub.designSubmission.notes && (
-                                      <p className="text-[10px] text-text-muted italic truncate max-w-[150px]">
-                                        "{sub.designSubmission.notes}"
-                                      </p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-text-muted text-[10px]">—</span>
-                                )}
-                              </td>
-                              <td className="p-3 text-[11px] text-text-muted">
+                                <div className="w-8 h-8 rounded-full overflow-hidden bg-surface border border-separator shrink-0">
+                                  <img
+                                    src={
+                                      sub.userId?.profilePicUrl ||
+                                      `https://ui-avatars.com/api/?name=${sub.userId?.name}&background=1D1D1F&color=fff&size=60`
+                                    }
+                                    alt={sub.userId?.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-xs text-label-primary truncate">
+                                    {sub.userId?.name || 'Student'}
+                                  </p>
+                                  <p className="text-[10px] text-label-tertiary truncate">
+                                    {sub.userId?.rollNo || sub.userId?.email}
+                                  </p>
+                                </div>
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                                  sub.isPassed
+                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                }`}
+                              >
+                                {sub.isPassed ? 'Passed' : 'Failed'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 p-2 bg-surface rounded-xl border border-separator/60 text-center">
+                              <div>
+                                <span className="text-[9px] text-label-tertiary uppercase font-bold block">Score</span>
+                                <span className="font-mono text-xs font-bold text-label-primary">
+                                  {sub.totalScore}/{sub.maxPossibleScore}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-label-tertiary uppercase font-bold block">Percentage</span>
+                                <span className="font-mono text-xs font-bold text-label-primary">{sub.scorePercentage}%</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-label-tertiary uppercase font-bold block">Residence</span>
+                                <span className="text-[10px] font-semibold text-accent truncate block mt-0.5">
+                                  {sub.userId?.residenceType || '—'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Figma / Work status */}
+                            {sub.designSubmission?.figmaLink && (
+                              <div className="p-2.5 rounded-xl bg-pink-500/5 border border-pink-500/20 space-y-2">
+                                <div className="flex items-center justify-between text-xs">
+                                  <a
+                                    href={sub.designSubmission.figmaLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-500 hover:text-pink-400 underline underline-offset-2"
+                                  >
+                                    <Palette size={11} />
+                                    <span>Figma File</span>
+                                    <ExternalLink size={10} />
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
+                                    className="px-2 py-0.5 rounded-lg text-[10px] bg-surface border border-separator text-label-primary font-medium cursor-pointer"
+                                  >
+                                    Preview
+                                  </button>
+                                </div>
+                                <div className="flex items-center justify-between text-[11px]">
+                                  {sub.designSubmission.isEvaluated ? (
+                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                      <CheckCircle size={10} />
+                                      <span>Graded: {sub.designSubmission.pointsEarned} pts</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-amber-500 font-semibold">
+                                      Pending Review
+                                    </span>
+                                  )}
+                                  {canManageSelected && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEvaluatingSub(sub);
+                                        setEvalPoints(sub.designSubmission?.pointsEarned || 0);
+                                        setEvalFeedback(sub.designSubmission?.feedback || '');
+                                      }}
+                                      className="px-3 py-1 rounded-full text-xs font-bold bg-pink-600 hover:bg-pink-500 text-white shadow-xs transition-all inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Award size={11} />
+                                      <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-[10px] text-label-tertiary pt-1 border-t border-separator/40">
+                              <span>Submitted</span>
+                              <span>
                                 {sub.submittedAt
                                   ? new Date(sub.submittedAt).toLocaleTimeString([], {
                                       hour: '2-digit',
                                       minute: '2-digit',
                                     })
                                   : 'In Progress'}
-                              </td>
-                              <td className="p-3 text-right">
-                                {sub.designSubmission?.figmaLink && canManageSelected ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEvaluatingSub(sub);
-                                      setEvalPoints(sub.designSubmission?.pointsEarned || 0);
-                                      setEvalFeedback(sub.designSubmission?.feedback || '');
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 transition-all inline-flex items-center gap-1"
-                                  >
-                                    <Award size={11} />
-                                    <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
-                                  </button>
-                                ) : (
-                                  <span className="text-text-muted text-[10px]">—</span>
-                                )}
-                              </td>
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Desktop Table (md+) */}
+                      <div className="hidden md:block rounded-xl border border-separator overflow-hidden bg-surface-secondary/20">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-surface-secondary border-b border-separator text-label-secondary uppercase text-[10px]">
+                            <tr>
+                              <th className="p-3">Rank & Student</th>
+                              <th className="p-3">Residence</th>
+                              <th className="p-3">Score</th>
+                              <th className="p-3">Percentage</th>
+                              <th className="p-3">Result</th>
+                              <th className="p-3">Figma / Work</th>
+                              <th className="p-3">Submitted At</th>
+                              <th className="p-3 text-right">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-separator/40">
+                            {adminSubmissions.map((sub, idx) => (
+                              <tr key={sub._id || idx} className="hover:bg-surface-secondary/40 transition-colors">
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="font-mono text-label-tertiary w-4">#{idx + 1}</span>
+                                    <div className="w-6 h-6 rounded-full overflow-hidden bg-surface border border-separator shrink-0">
+                                      <img
+                                        src={
+                                          sub.userId?.profilePicUrl ||
+                                          `https://ui-avatars.com/api/?name=${sub.userId?.name}&background=1D1D1F&color=fff&size=60`
+                                        }
+                                        alt={sub.userId?.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold text-label-primary">{sub.userId?.name || 'Student'}</p>
+                                      <p className="text-[10px] text-label-tertiary">
+                                        {sub.userId?.rollNo || sub.userId?.email}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  {sub.userId?.residenceType ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface border border-separator text-accent">
+                                      {sub.userId.residenceType === 'Hosteller' ? (
+                                        <Building size={10} />
+                                      ) : (
+                                        <Bus size={10} />
+                                      )}
+                                      <span>{sub.userId.residenceType}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-label-tertiary text-[10px]">—</span>
+                                  )}
+                                </td>
+                                <td className="p-3 font-mono font-bold text-label-primary">
+                                  {sub.totalScore} / {sub.maxPossibleScore}
+                                </td>
+                                <td className="p-3 font-mono text-label-secondary">{sub.scorePercentage}%</td>
+                                <td className="p-3">
+                                  <span
+                                    className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                      sub.isPassed
+                                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                        : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                    }`}
+                                  >
+                                    {sub.isPassed ? 'Passed' : 'Failed'}
+                                  </span>
+                                </td>
+                                <td className="p-3">
+                                  {sub.designSubmission?.figmaLink ? (
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <a
+                                          href={sub.designSubmission.figmaLink}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-500 hover:text-pink-400 underline underline-offset-2"
+                                        >
+                                          <Palette size={11} />
+                                          <span>Figma File</span>
+                                          <ExternalLink size={10} />
+                                        </a>
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
+                                          className="px-1.5 py-0.5 rounded text-[10px] bg-surface border border-separator text-label-primary font-medium cursor-pointer"
+                                        >
+                                          Embed
+                                        </button>
+                                      </div>
+                                      {sub.designSubmission.isEvaluated ? (
+                                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                          <CheckCircle size={10} />
+                                          <span>Graded: {sub.designSubmission.pointsEarned} pts</span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-[10px] text-amber-500 font-semibold">
+                                          Pending Review
+                                        </span>
+                                      )}
+                                      {sub.designSubmission.notes && (
+                                        <p className="text-[10px] text-label-tertiary italic truncate max-w-[150px]">
+                                          "{sub.designSubmission.notes}"
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-label-tertiary text-[10px]">—</span>
+                                  )}
+                                </td>
+                                <td className="p-3 text-[11px] text-label-tertiary">
+                                  {sub.submittedAt
+                                    ? new Date(sub.submittedAt).toLocaleTimeString([], {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })
+                                    : 'In Progress'}
+                                </td>
+                                <td className="p-3 text-right">
+                                  {sub.designSubmission?.figmaLink && canManageSelected ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEvaluatingSub(sub);
+                                        setEvalPoints(sub.designSubmission?.pointsEarned || 0);
+                                        setEvalFeedback(sub.designSubmission?.feedback || '');
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-500 border border-pink-500/30 transition-all inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Award size={11} />
+                                      <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-label-tertiary text-[10px]">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
@@ -2359,12 +2508,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* BULK UPLOAD SUB-MODAL */}
         <AnimatePresence>
           {bulkModalType && (
-            <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-md rounded-2xl bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/15 p-6 shadow-2xl space-y-4"
+                className="w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-surface border border-separator p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
@@ -2468,12 +2617,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* FIGMA EMBED PREVIEW MODAL */}
         <AnimatePresence>
           {previewFigmaUrl && (
-            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <div className="fixed inset-0 z-70 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-5xl h-[85vh] rounded-2xl bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/20 shadow-2xl flex flex-col overflow-hidden"
+                className="w-full sm:max-w-5xl h-[82vh] rounded-t-3xl sm:rounded-2xl bg-surface border border-separator shadow-2xl flex flex-col overflow-hidden"
               >
                 <div className="px-6 py-3.5 border-b border-black/5 dark:border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
                   <div className="flex items-center gap-3">
@@ -2515,12 +2664,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* DESIGN SUBMISSION EVALUATION DRAWER / MODAL */}
         <AnimatePresence>
           {evaluatingSub && (
-            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="fixed inset-0 z-70 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-lg rounded-2xl bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/20 p-6 shadow-2xl space-y-5"
+                className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl bg-surface border border-separator p-5 sm:p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
                   <div className="flex items-center gap-2.5">
