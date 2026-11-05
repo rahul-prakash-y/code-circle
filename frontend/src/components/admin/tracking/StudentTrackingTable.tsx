@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -19,6 +19,8 @@ import {
   CheckCircle2,
   FileText,
   ShieldAlert,
+  MoreVertical,
+  ExternalLink,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/axios';
@@ -26,6 +28,26 @@ import { useDebounce } from '@/hooks/useDebounce';
 import ResponsiveModal from '@/components/ui/ResponsiveModal';
 import Student360Profile from './Student360Profile';
 import ExportReportButton from './ExportReportButton';
+import {
+  EMIL_EASE_OUT,
+  EMIL_EASE_IN_OUT,
+  DURATION_MICRO,
+  DURATION_FAST,
+  DURATION_DROPDOWN,
+  DURATION_MODAL,
+  emilMicroTap,
+  emilCardVariants,
+} from '@/lib/motion';
+import {
+  EmilButton,
+  EmilCard,
+  EmilDropdownRoot,
+  EmilDropdownTrigger,
+  EmilDropdownMenu,
+  EmilDropdownItem,
+  EmilTooltipGroup,
+  EmilTooltip,
+} from '@/components/ui/emil-ui';
 
 export interface StudentSummary {
   _id: string;
@@ -54,7 +76,7 @@ export interface StudentSummary {
 export const StudentTrackingTable: React.FC = () => {
   // Query & filter states
   const [searchInput, setSearchInput] = useState<string>('');
-  const debouncedSearch = useDebounce<string>(searchInput, 400);
+  const debouncedSearch = useDebounce<string>(searchInput, 300);
 
   const [department, setDepartment] = useState<string>('all');
   const [page, setPage] = useState<number>(1);
@@ -69,7 +91,7 @@ export const StudentTrackingTable: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Detail Modal / Slide-over state
+  // Detail Modal state
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
@@ -140,7 +162,7 @@ export const StudentTrackingTable: React.FC = () => {
     fetchStudents();
   }, [fetchStudents]);
 
-  // Reset page when search or department changes
+  // Instant page reset on search change without layout animation delay
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, department]);
@@ -157,81 +179,78 @@ export const StudentTrackingTable: React.FC = () => {
       setSortBy(field);
       setSortOrder('desc');
     }
-    setPage(1);
   };
 
-  // Departments list for filtering
   const departmentsList = [
     { value: 'all', label: 'All Departments' },
-    { value: 'COMPUTER SCIENCE AND ENGINEERING', label: 'CSE' },
-    { value: 'INFORMATION TECHNOLOGY', label: 'IT' },
-    { value: 'ARTIFICIAL INTELLIGENCE AND DATA SCIENCE', label: 'AI & DS' },
-    { value: 'ELECTRONICS AND COMMUNICATION ENGINEERING', label: 'ECE' },
-    { value: 'ELECTRICAL AND ELECTRONICS ENGINEERING', label: 'EEE' },
-    { value: 'MECHANICAL ENGINEERING', label: 'Mechanical' },
-    { value: 'BIOTECHNOLOGY', label: 'Biotechnology' },
-    { value: 'BIOMEDICAL ENGINEERING', label: 'Biomedical' },
-    { value: 'CIVIL ENGINEERING', label: 'Civil' },
+    { value: 'Computer Science and Engineering', label: 'CSE' },
+    { value: 'Information Technology', label: 'IT' },
+    { value: 'Artificial Intelligence and Data Science', label: 'AI & DS' },
+    { value: 'Electronics and Communication Engineering', label: 'ECE' },
+    { value: 'Electrical and Electronics Engineering', label: 'EEE' },
+    { value: 'Mechanical Engineering', label: 'Mechanical' },
+    { value: 'Civil Engineering', label: 'Civil' },
   ];
 
   return (
-    <div className="space-y-6 w-full">
-      {/* ── Table Top Bar & Minimal Actions ── */}
-      <div className="surface p-5 sm:p-6 rounded-3xl border border-separator shadow-card space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 w-full max-w-[100vw] overflow-hidden">
+      {/* ── Top Header and Metrics Panel ── */}
+      <motion.div
+        variants={emilCardVariants}
+        initial="initial"
+        animate="animate"
+        className="surface p-5 sm:p-6 rounded-3xl border border-separator shadow-card space-y-5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-accent/10 text-accent border border-accent/20">
-                SuperAdmin Analytics
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary flex items-center gap-2.5">
+              <span>Student Performance Tracking</span>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
+                Live Data
               </span>
-              <span className="text-xs text-text-muted font-mono">
-                {totalStudents.toLocaleString()} Students Enrolled
-              </span>
-            </div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-text-primary">
-              Student Tracking System
             </h2>
-            <p className="text-xs sm:text-sm text-text-secondary">
-              Aggregated real-time metrics across attendance, domain quests, and knowledge assessments.
+            <p className="text-xs sm:text-sm text-text-muted mt-1">
+              Cross-domain student audit: events, coding assessments, badges, and real-time standing.
             </p>
           </div>
 
-          {/* Action Header Button: Ghost Export Button */}
           <div className="flex items-center gap-3 shrink-0">
             <ExportReportButton />
           </div>
         </div>
 
-        {/* ── Search Bar & Filter Controls ── */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-          {/* Real-time search with useDebounce */}
+        {/* ── Snappy Search Bar & Filter Controls (Instant Keyboard Response) ── */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 pt-1 w-full">
+          {/* Real-time search with clear button */}
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search student by name, roll number, or email..."
-              className="w-full pl-10 pr-10 py-2.5 min-h-[44px] bg-canvas rounded-full text-xs sm:text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent/40 border border-separator transition-shadow"
+              placeholder="Search student by name, roll number, or email (Instant)..."
+              className="w-full pl-10 pr-10 py-2.5 min-h-[44px] bg-canvas rounded-2xl text-[16px] md:text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent/40 border border-separator transition-shadow"
             />
             {searchInput && (
-              <button
+              <motion.button
                 type="button"
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                 onClick={() => setSearchInput('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer"
                 aria-label="Clear search"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </motion.button>
             )}
           </div>
 
           {/* Department Filter Dropdown */}
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 w-full md:w-auto">
             <select
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              className="appearance-none bg-canvas text-text-primary text-xs sm:text-sm font-medium rounded-full px-4 py-2.5 pr-8 min-h-[44px] outline-none cursor-pointer border border-separator focus:ring-2 focus:ring-accent/40 transition-shadow"
+              className="w-full md:w-auto appearance-none bg-canvas text-text-primary text-[16px] md:text-sm font-medium rounded-2xl px-4 py-2.5 pr-8 min-h-[44px] outline-none cursor-pointer border border-separator focus:ring-2 focus:ring-accent/40 transition-shadow"
             >
               {departmentsList.map((dep) => (
                 <option key={dep.value} value={dep.value} className="bg-surface text-text-primary">
@@ -242,74 +261,91 @@ export const StudentTrackingTable: React.FC = () => {
             <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Master Tracking Data Table ── */}
-      <div className="surface rounded-3xl border border-separator shadow-card overflow-hidden">
+      <motion.div
+        variants={emilCardVariants}
+        initial="initial"
+        animate="animate"
+        className="surface rounded-3xl border border-separator shadow-card overflow-hidden"
+      >
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full min-w-[720px] text-left border-collapse">
+          <table className="w-full min-w-[760px] text-left border-collapse">
             <thead>
-              <tr className="bg-surface-elevated/70 text-[11px] uppercase tracking-wider text-text-muted border-b border-separator">
+              <tr className="bg-surface-elevated/70 text-[11px] uppercase tracking-wider text-text-muted border-b border-separator select-none">
                 <th className="py-3.5 px-4 sm:px-6 font-semibold">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                     onClick={() => handleSort('name')}
                     className="flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Student</span>
                     <ArrowUpDown className="w-3 h-3" />
-                  </button>
+                  </motion.button>
                 </th>
                 <th className="py-3.5 px-4 font-semibold">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                     onClick={() => handleSort('department')}
                     className="flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Dept / Year</span>
                     <ArrowUpDown className="w-3 h-3" />
-                  </button>
+                  </motion.button>
                 </th>
                 <th className="py-3.5 px-4 font-semibold text-center">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                     onClick={() => handleSort('totalEventsAttended')}
                     className="inline-flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Events Attended</span>
                     <ArrowUpDown className="w-3 h-3" />
-                  </button>
+                  </motion.button>
                 </th>
                 <th className="py-3.5 px-4 font-semibold text-center">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                     onClick={() => handleSort('questsCompleted')}
                     className="inline-flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Quests Done</span>
                     <ArrowUpDown className="w-3 h-3" />
-                  </button>
+                  </motion.button>
                 </th>
                 <th className="py-3.5 px-4 font-semibold text-center">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                     onClick={() => handleSort('averageAssessmentScore')}
                     className="inline-flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Avg Score</span>
                     <ArrowUpDown className="w-3 h-3" />
-                  </button>
+                  </motion.button>
                 </th>
                 <th className="py-3.5 px-4 font-semibold text-center">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                     onClick={() => handleSort('points')}
                     className="inline-flex items-center gap-1.5 hover:text-text-primary cursor-pointer"
                   >
                     <span>Club Points</span>
                     <ArrowUpDown className="w-3 h-3" />
-                  </button>
+                  </motion.button>
                 </th>
-                <th className="py-3.5 px-4 sm:px-6 font-semibold text-right">Action</th>
+                <th className="py-3.5 px-4 sm:px-6 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-separator/60 text-sm">
               {loading ? (
-                // Shimmer Skeleton Rows
+                // Shimmer Skeletons
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={`skeleton-${i}`} className="animate-pulse">
                     <td className="py-4 px-4 sm:px-6">
@@ -337,7 +373,7 @@ export const StudentTrackingTable: React.FC = () => {
                       <div className="w-12 h-6 mx-auto bg-surface-elevated rounded-full" />
                     </td>
                     <td className="py-4 px-4 sm:px-6 text-right">
-                      <div className="w-6 h-6 ml-auto bg-surface-elevated rounded" />
+                      <div className="w-8 h-8 ml-auto bg-surface-elevated rounded-full" />
                     </td>
                   </tr>
                 ))
@@ -366,13 +402,15 @@ export const StudentTrackingTable: React.FC = () => {
                       : 'bg-surface-elevated text-text-muted';
 
                   return (
-                    <tr
+                    <motion.tr
                       key={student._id}
+                      whileTap={{ scale: 0.992 }}
+                      transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                       onClick={() => handleRowClick(student._id)}
-                      className="group hover:bg-surface-elevated/50 cursor-pointer transition-colors"
+                      className="group hover:bg-surface-elevated/50 cursor-pointer transition-colors duration-150"
                     >
                       {/* Student identity */}
-                      <td className="py-4 px-4 sm:px-6">
+                      <td className="py-3.5 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0 shadow-sm">
                             {student.name.charAt(0)}
@@ -394,7 +432,7 @@ export const StudentTrackingTable: React.FC = () => {
                       </td>
 
                       {/* Department / Year */}
-                      <td className="py-4 px-4 text-xs">
+                      <td className="py-3.5 px-4 text-xs">
                         <div className="text-text-primary font-medium truncate max-w-[170px]">
                           {student.department || 'Unassigned'}
                         </div>
@@ -404,25 +442,25 @@ export const StudentTrackingTable: React.FC = () => {
                       </td>
 
                       {/* Summary Metric 1: Total Events Attended */}
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-surface-elevated text-text-primary">
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-surface-elevated text-text-primary border border-separator/40">
                           <Calendar className="w-3 h-3 text-text-muted" />
                           {student.totalEventsAttended}
                         </span>
                       </td>
 
                       {/* Summary Metric 2: Quests Completed */}
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                           <Compass className="w-3 h-3 text-emerald-500" />
                           {student.questsCompleted}
                         </span>
                       </td>
 
                       {/* Summary Metric 3: Average Assessment Score */}
-                      <td className="py-4 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center">
                         <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-mono ${scoreBadgeColor}`}
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-mono border border-separator/40 ${scoreBadgeColor}`}
                         >
                           <Award className="w-3 h-3" />
                           {score > 0 ? `${score}%` : '—'}
@@ -430,41 +468,97 @@ export const StudentTrackingTable: React.FC = () => {
                       </td>
 
                       {/* Club Points */}
-                      <td className="py-4 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-text-primary">
                           {student.points || 0} pts
                         </span>
                       </td>
 
-                      {/* Row action: PDF report & chevron */}
-                      <td className="py-4 px-4 sm:px-6 text-right" onClick={(e) => e.stopPropagation()}>
+                      {/* Actions: Origin-Aware Dropdown & Coordinated Tooltip */}
+                      <td
+                        className="py-3.5 px-4 sm:px-6 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            title="Download Student PDF Report"
-                            onClick={(e) => handleDownloadStudentPdf(e, student._id, student.rollNo, student.name)}
-                            disabled={generatingPdfId === student._id}
-                            className="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full text-text-muted hover:text-accent hover:bg-accent/10 transition-colors"
-                            aria-label={`Download PDF report for ${student.name}`}
-                          >
-                            {generatingPdfId === student._id ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-accent" />
-                            ) : (
-                              <FileText className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            title="View Student 360 Profile"
-                            onClick={() => handleRowClick(student._id)}
-                            className="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full text-text-muted group-hover:text-accent group-hover:bg-accent/10 transition-colors"
-                            aria-label={`View 360 profile for ${student.name}`}
-                          >
-                            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                          </button>
+                          <EmilTooltipGroup>
+                            <div className="flex items-center gap-1">
+                              <EmilTooltip content="Download PDF Report">
+                                <motion.button
+                                  whileTap={{ scale: 0.97 }}
+                                  transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
+                                  type="button"
+                                  onClick={(e) =>
+                                    handleDownloadStudentPdf(
+                                      e,
+                                      student._id,
+                                      student.rollNo,
+                                      student.name
+                                    )
+                                  }
+                                  disabled={generatingPdfId === student._id}
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-xl text-text-muted hover:text-accent hover:bg-accent-subtle transition-colors cursor-pointer"
+                                  aria-label={`Download PDF report for ${student.name}`}
+                                >
+                                  {generatingPdfId === student._id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                                  ) : (
+                                    <FileText className="w-4 h-4" />
+                                  )}
+                                </motion.button>
+                              </EmilTooltip>
+
+                              {/* Origin-Aware Quick Actions Popover */}
+                              <EmilDropdownRoot origin="top right">
+                                <EmilDropdownTrigger>
+                                  <motion.button
+                                    whileTap={{ scale: 0.97 }}
+                                    transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-xl text-text-muted hover:text-text-primary hover:bg-separator/50 transition-colors cursor-pointer"
+                                    aria-label="More options"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </motion.button>
+                                </EmilDropdownTrigger>
+                                <EmilDropdownMenu align="right" className="w-48">
+                                  <EmilDropdownItem
+                                    onClick={() => handleRowClick(student._id)}
+                                    icon={<User className="w-4 h-4 text-accent" />}
+                                  >
+                                    View 360° Profile
+                                  </EmilDropdownItem>
+                                  <EmilDropdownItem
+                                    onClick={(e: any) =>
+                                      handleDownloadStudentPdf(
+                                        e,
+                                        student._id,
+                                        student.rollNo,
+                                        student.name
+                                      )
+                                    }
+                                    icon={<Download className="w-4 h-4 text-emerald-500" />}
+                                  >
+                                    Export Audit Sheet
+                                  </EmilDropdownItem>
+                                </EmilDropdownMenu>
+                              </EmilDropdownRoot>
+
+                              <EmilTooltip content="Open 360 Profile">
+                                <motion.button
+                                  whileTap={{ scale: 0.97 }}
+                                  transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
+                                  type="button"
+                                  onClick={() => handleRowClick(student._id)}
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-xl text-text-muted group-hover:text-accent group-hover:bg-accent-subtle transition-colors cursor-pointer"
+                                  aria-label={`View 360 profile for ${student.name}`}
+                                >
+                                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                                </motion.button>
+                              </EmilTooltip>
+                            </div>
+                          </EmilTooltipGroup>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })
               )}
@@ -472,7 +566,7 @@ export const StudentTrackingTable: React.FC = () => {
           </table>
         </div>
 
-        {/* ── Pagination Footer ── */}
+        {/* ── Snappy Pagination Footer ── */}
         <div className="flex flex-col sm:flex-row items-center justify-between p-4 px-4 sm:px-6 bg-surface-elevated/40 border-t border-separator text-xs text-text-muted gap-3">
           <div>
             Showing <span className="font-semibold text-text-primary">{students.length}</span> of{' '}
@@ -480,34 +574,34 @@ export const StudentTrackingTable: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <EmilButton
+              variant="outline"
+              size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1 || loading}
-              className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full surface border border-separator shadow-xs disabled:opacity-40 disabled:pointer-events-none hover:bg-surface-elevated transition-colors cursor-pointer"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
+              <ChevronLeft className="w-3.5 h-3.5 mr-1" />
               <span>Previous</span>
-            </button>
+            </EmilButton>
 
-            <span className="px-3 py-1 font-mono text-text-primary">
+            <span className="px-3 py-1 font-mono text-text-primary text-[11px] font-medium bg-separator/30 rounded-lg">
               Page {page} of {totalPages}
             </span>
 
-            <button
-              type="button"
+            <EmilButton
+              variant="outline"
+              size="sm"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages || loading}
-              className="inline-flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full surface border border-separator shadow-xs disabled:opacity-40 disabled:pointer-events-none hover:bg-surface-elevated transition-colors cursor-pointer"
             >
               <span>Next</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+              <ChevronRight className="w-3.5 h-3.5 ml-1" />
+            </EmilButton>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* ── 360 Detail View in ResponsiveModal (Drawer on mobile, Slide-over on desktop) ── */}
+      {/* ── 360 Detail View in ResponsiveModal (Backdrop-blur-md, Enters scale(0.95), sub-220ms) ── */}
       <ResponsiveModal
         open={isProfileModalOpen}
         onOpenChange={setIsProfileModalOpen}

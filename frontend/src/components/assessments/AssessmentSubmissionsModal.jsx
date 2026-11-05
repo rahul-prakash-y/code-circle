@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -148,39 +149,27 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-4xl my-auto glass border border-border p-6 sm:p-8 relative overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] max-h-[90vh] flex flex-col"
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center pb-6 border-b border-border relative z-10 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-              <Users size={20} />
+    <>
+      <ResponsiveModal
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        title={
+          <div className="flex items-center justify-between w-full pr-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <Users className="w-4 h-4" />
+              </div>
+              <span>Assessment Submissions Roster</span>
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-text-primary tracking-tight">
-                Assessment submissions roster
-              </h2>
-              <p className="text-xs text-text-muted font-normal">
-                Manage student submissions, allow retries, and delete obsolete attempts
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
             <TutorialButton tutorialId="assessment-submissions" variant="icon" />
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-elevated text-text-muted hover:text-text-primary transition-all border border-border cursor-pointer"
-            >
-              <X size={18} />
-            </button>
           </div>
-        </div>
-
+        }
+        description="Manage student submissions, allow retries, and award bonus performance points."
+        dialogClassName="sm:max-w-4xl p-6"
+      >
+        <div className="space-y-4 pt-2">
         {/* Filter Bar */}
         <div className="pt-5 pb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 flex-shrink-0 relative z-10">
           <div className="flex items-center gap-2 px-4 py-2 bg-surface-elevated border border-border rounded-2xl focus-within:border-purple-500/40 transition-all flex-1 max-w-sm">
@@ -570,17 +559,19 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
           )}
         </AnimatePresence>
 
-        {/* Detailed Report Modal */}
-        {inspectingSubmission && (
-          <AssessmentSubmissionDetailModal
-            isOpen={Boolean(inspectingSubmission)}
-            onClose={() => setInspectingSubmission(null)}
-            submission={inspectingSubmission}
-            assessment={assessment || activeAssessmentDetails}
-          />
-        )}
-      </motion.div>
-    </div>
+        </div>
+      </ResponsiveModal>
+
+      {/* Detailed Report Modal */}
+      {inspectingSubmission && (
+        <AssessmentSubmissionDetailModal
+          isOpen={Boolean(inspectingSubmission)}
+          onClose={() => setInspectingSubmission(null)}
+          submission={inspectingSubmission}
+          assessment={assessment || activeAssessmentDetails}
+        />
+      )}
+    </>
   );
 };
 

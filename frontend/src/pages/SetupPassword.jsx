@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, Lock, KeyRound, Eye, EyeOff, CheckCircle2, Loader2, LogOut, ArrowRight } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
+import { EmilButton } from '../components/ui/emil-ui';
 import { useNavigate, Navigate } from 'react-router-dom';
 import AuthLayout from '../layouts/AuthLayout';
 import { decodeJwtPayload } from '../lib/jwt';

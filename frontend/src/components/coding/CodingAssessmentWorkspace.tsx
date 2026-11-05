@@ -804,7 +804,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
 
   if (loadingChallenge) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#000000] text-white space-y-4">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F5F5F7] dark:bg-[#000000] text-[#1D1D1F] dark:text-[#F5F5F7] space-y-4">
         <Loader2 className="w-9 h-9 animate-spin text-blue-500" />
         <p className="text-sm font-medium tracking-wide text-neutral-400">
           Loading Live Assessment Environment...
@@ -815,7 +815,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
 
   if (errorChallenge || !challenge) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#000000] text-white p-6">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F5F5F7] dark:bg-[#000000] text-[#1D1D1F] dark:text-[#F5F5F7] p-6">
         <div className="max-w-md w-full bg-neutral-900/90 border border-neutral-800 rounded-3xl p-8 text-center space-y-5 shadow-2xl">
           <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-400 flex items-center justify-center mx-auto">
             <AlertTriangle className="w-6 h-6" />
@@ -838,9 +838,9 @@ export const CodingAssessmentWorkspace: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-full bg-[#000000] text-neutral-100 flex flex-col overflow-hidden font-sans select-none antialiased">
+    <div className="h-screen w-full bg-[#F5F5F7] dark:bg-[#000000] text-[#1D1D1F] dark:text-[#F5F5F7] flex flex-col overflow-hidden font-sans select-none antialiased">
       {/* ── Top Apple Spatial Control Bar (Desktop >= 1024px) ───────── */}
-      <header className="hidden lg:flex h-14 border-b border-white/[0.08] bg-black/60 backdrop-blur-2xl items-center justify-between px-5 shrink-0 z-40">
+      <header className="hidden lg:flex h-14 border-b border-black/5 dark:border-white/[0.08] bg-white/70 dark:bg-[#161617]/70 backdrop-blur-2xl items-center justify-between px-5 shrink-0 z-40">
         {/* Left: Back & Title or Problem Switcher */}
         <div className="flex items-center gap-3">
           <button

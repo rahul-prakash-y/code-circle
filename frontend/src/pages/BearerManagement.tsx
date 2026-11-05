@@ -23,6 +23,7 @@ import useBearerStore, { StudentBearer, BearerFormData } from '../store/useBeare
 import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
+import { EmilCard, EmilButton } from '../components/ui/emil-ui';
 import { useDebounce } from '../hooks/useDebounce';
 
 export const BearerManagement: React.FC = () => {

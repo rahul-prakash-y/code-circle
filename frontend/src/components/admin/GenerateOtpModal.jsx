@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,6 +17,7 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import useEventStore from '../../store/useEventStore';
+import { EmilButton } from '../ui/emil-ui';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { formatISTDate } from '../../lib/dateUtils';
@@ -143,38 +145,24 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
     return `${mins}:${remainder < 10 ? '0' : ''}${remainder}`;
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-[calc(100%-1.5rem)] sm:w-full max-w-xl glass border border-border p-4 sm:p-7 relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] max-h-[90dvh] overflow-y-auto rounded-2xl sm:rounded-3xl"
-      >
-        {/* Glow ambient light */}
-        <div className="absolute top-0 right-0 w-64 h-64 -mr-20 -mt-20 rounded-full bg-blue-500/15 blur-3xl pointer-events-none" />
-
-        {/* Header */}
-        <div className="flex justify-between items-center mb-5 sm:mb-6 relative z-10 gap-2">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
-              <KeyRound size={20} />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-base sm:text-xl font-black text-text-primary truncate">Generate Attendance OTP</h2>
-              <p className="text-[11px] sm:text-xs text-text-muted truncate">Map class periods & award leaderboard points</p>
-            </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+            <KeyRound className="w-4 h-4" />
           </div>
-          <button
-            onClick={onClose}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors cursor-pointer shrink-0"
-            aria-label="Close modal"
-          >
-            <X size={20} />
-          </button>
+          <span>Generate Attendance OTP</span>
         </div>
+      }
+      description="Map class periods & award leaderboard points."
+      dialogClassName="sm:max-w-xl p-6"
+    >
+      <div className="space-y-4 pt-2">
 
         {!generatedSession ? (
           /* Form view */
@@ -419,26 +407,26 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
+            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-2">
               <button
                 onClick={copyToClipboard}
-                className="flex-1 btn-primary flex items-center justify-center gap-2 py-3 min-h-[46px] rounded-xl font-bold cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition cursor-pointer shadow"
               >
-                {copied ? <Check size={18} className="text-emerald-500" /> : <Copy size={18} />}
-                {copied ? 'Copied Code!' : 'Copy Code'}
+                {copied ? <Check size={15} className="text-white" /> : <Copy size={15} />}
+                <span>{copied ? 'Copied Code!' : 'Copy Code'}</span>
               </button>
 
               <button
                 onClick={() => setGeneratedSession(null)}
-                className="btn-secondary px-6 min-h-[46px] text-xs font-bold rounded-xl cursor-pointer"
+                className="px-5 py-2.5 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
               >
                 Generate Another
               </button>
             </div>
           </div>
         )}
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

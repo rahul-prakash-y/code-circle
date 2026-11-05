@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import ResponsiveModal from '../../ui/ResponsiveModal';
 import {
   X,
   Plus,
@@ -7,15 +7,10 @@ import {
   Lock,
   Code,
   FileText,
-  Calendar,
-  Hash,
   ToggleLeft,
   ToggleRight,
-  User as UserIcon,
-  HelpCircle,
-  AlertCircle,
-  CheckCircle2,
   Layers,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { UserPickerInput } from './UserPickerInput';
@@ -67,7 +62,6 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
   const userRefRegex = /(user|student|createdby|updatedby|author|instructor|unblockedby|member|mentor)/i;
 
   const detectFieldType = (key: string, val: any): FieldType => {
-    // Check if matching schema says ObjectID
     const schemaMeta = schemaFields.find((s) => s.path === key);
     if (schemaMeta?.instance === 'ObjectID' || userRefRegex.test(key)) {
       return 'user';
@@ -178,10 +172,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
   };
 
   const handleUpdateFieldValue = (key: string, val: any) => {
-    setFormData((prev) => {
-      const updated = { ...prev, [key]: val };
-      return updated;
-    });
+    setFormData((prev) => ({ ...prev, [key]: val }));
   };
 
   const handleDeleteField = (key: string) => {
@@ -218,7 +209,6 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
     setShowAddField(false);
   };
 
-  // Helper for array tag pills
   const handleAddArrayItem = (key: string) => {
     const item = (arrayInputs[key] || '').trim();
     if (!item) return;
@@ -256,90 +246,81 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface rounded-2xl sm:rounded-3xl border border-separator max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
-      >
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-separator px-4 sm:px-6 py-3.5 sm:py-4 bg-surface-secondary/40 gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                {mode === 'create' ? 'Create Record' : 'Edit Record'}
-              </span>
-              <span className="text-xs font-mono text-label-secondary truncate">
-                Collection: <span className="font-bold text-label-primary">{collectionName}</span>
-              </span>
-            </div>
-            <h2 className="text-sm sm:text-base font-bold text-label-primary mt-1 truncate">
-              {mode === 'create'
-                ? `Insert Document into '${collectionName}'`
-                : `Edit Document: ${initialData?._id || ''}`}
-            </h2>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
+            <Layers className="w-4 h-4" />
           </div>
-
-          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-            {/* Form / Raw JSON Tab Toggle */}
-            <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-xl">
-              <button
-                type="button"
-                onClick={() => handleTabSwitch('form')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'form'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-label-secondary hover:text-label-primary'
-                }`}
-              >
-                <FileText size={13} />
-                <span>Form</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTabSwitch('json')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'json'
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'text-label-secondary hover:text-label-primary'
-                }`}
-              >
-                <Code size={13} />
-                <span>Raw JSON</span>
-              </button>
-            </div>
-
+          <span>
+            {mode === 'create'
+              ? `Insert Document: ${collectionName}`
+              : `Edit Document: ${initialData?._id || ''}`}
+          </span>
+        </div>
+      }
+      description={`Manage schema fields, types, and document properties in '${collectionName}'.`}
+      dialogClassName="sm:max-w-3xl p-6"
+    >
+      <div className="space-y-4 pt-2">
+        {/* Tab switch header */}
+        <div className="flex items-center justify-between p-1 bg-surface-secondary border border-separator rounded-2xl">
+          <div className="flex items-center gap-1">
             <button
-              onClick={onClose}
-              className="p-1.5 hover:bg-surface-secondary rounded-xl text-label-tertiary hover:text-label-primary transition-colors cursor-pointer"
+              type="button"
+              onClick={() => handleTabSwitch('form')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'form'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'text-label-secondary hover:text-label-primary'
+              }`}
             >
-              <X size={18} />
+              <FileText size={13} />
+              <span>Form View ({fields.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabSwitch('json')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === 'json'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'text-label-secondary hover:text-label-primary'
+              }`}
+            >
+              <Code size={13} />
+              <span>Raw BSON / JSON</span>
             </button>
           </div>
+          <span className="text-[11px] font-mono text-label-tertiary px-3 hidden sm:inline-block">
+            {collectionName}
+          </span>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+        <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-4">
           {activeTab === 'json' ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-label-secondary">
-                <span>Direct JSON BSON Payload</span>
+                <span>Direct JSON Payload</span>
                 <span className="text-[11px] text-label-tertiary font-mono">
-                  All fields will be synced to form upon return
+                  Synced to form upon return
                 </span>
               </div>
               <textarea
                 rows={16}
                 value={rawJson}
                 onChange={(e) => setRawJson(e.target.value)}
-                className="w-full font-mono text-xs p-4 bg-surface-secondary dark:bg-zinc-950 border border-separator rounded-2xl text-label-primary dark:text-emerald-400 focus:outline-none focus:border-primary resize-none leading-relaxed"
+                className="w-full font-mono text-xs p-4 bg-surface-secondary border border-separator rounded-2xl text-label-primary focus:outline-none focus:border-accent resize-none leading-relaxed"
               />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {/* Form Fields List */}
-              <div className="space-y-3.5">
+              <div className="space-y-3">
                 {fields.map((field) => {
                   const val = formData[field.key];
                   const isId = field.key === '_id';
@@ -348,7 +329,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                   return (
                     <div
                       key={field.key}
-                      className="p-3.5 bg-surface-secondary/50 rounded-2xl border border-separator/80 space-y-2 hover:border-separator transition-colors"
+                      className="p-3.5 bg-surface-secondary/50 rounded-2xl border border-separator space-y-2 hover:border-separator/90 transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -357,7 +338,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                             <span>{field.key}</span>
                             {field.required && <span className="text-destructive">*</span>}
                           </label>
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono uppercase bg-surface border border-separator text-label-tertiary">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-surface border border-separator text-label-tertiary">
                             {field.type}
                           </span>
                         </div>
@@ -416,7 +397,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                               e.target.value === '' ? '' : Number(e.target.value)
                             )
                           }
-                          className="w-full px-3 py-2 bg-surface border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-primary font-mono"
+                          className="w-full px-3 py-2 bg-surface border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-accent font-mono"
                           placeholder="0"
                         />
                       ) : field.type === 'date' ? (
@@ -425,7 +406,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                             type="text"
                             value={val ? String(val) : ''}
                             onChange={(e) => handleUpdateFieldValue(field.key, e.target.value)}
-                            className="flex-1 px-3 py-2 bg-surface border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-primary font-mono"
+                            className="flex-1 px-3 py-2 bg-surface border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-accent font-mono"
                             placeholder="YYYY-MM-DD or ISO 8601 string"
                           />
                           <button
@@ -433,7 +414,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                             onClick={() =>
                               handleUpdateFieldValue(field.key, new Date().toISOString())
                             }
-                            className="px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/10 rounded-lg border border-primary/20 whitespace-nowrap"
+                            className="px-2.5 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent/10 rounded-lg border border-accent/20 whitespace-nowrap cursor-pointer"
                           >
                             Now
                           </button>
@@ -451,7 +432,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveArrayItem(field.key, idx)}
-                                    className="text-label-tertiary hover:text-destructive"
+                                    className="text-label-tertiary hover:text-destructive cursor-pointer"
                                   >
                                     <X size={11} />
                                   </button>
@@ -479,13 +460,13 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                                   handleAddArrayItem(field.key);
                                 }
                               }}
-                              placeholder="Add item and press Enter or click Add..."
-                              className="flex-1 px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
+                              placeholder="Add item and press Enter..."
+                              className="flex-1 px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent"
                             />
                             <button
                               type="button"
                               onClick={() => handleAddArrayItem(field.key)}
-                              className="px-3 py-1.5 bg-surface-secondary hover:bg-surface border border-separator rounded-xl text-xs font-semibold text-label-primary transition-colors"
+                              className="px-3 py-1.5 bg-surface-secondary hover:bg-surface border border-separator rounded-xl text-xs font-semibold text-label-primary transition-colors cursor-pointer"
                             >
                               Add Tag
                             </button>
@@ -505,10 +486,9 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                               handleUpdateFieldValue(field.key, e.target.value);
                             }
                           }}
-                          className="w-full font-mono text-xs p-3 bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary resize-none"
+                          className="w-full font-mono text-xs p-3 bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent resize-none"
                         />
                       ) : (
-                        // Standard String
                         field.key === 'description' ||
                         field.key === 'bio' ||
                         field.key === 'code' ||
@@ -518,7 +498,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                             rows={3}
                             value={val !== undefined && val !== null ? String(val) : ''}
                             onChange={(e) => handleUpdateFieldValue(field.key, e.target.value)}
-                            className="w-full px-3 py-2 bg-surface border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-primary resize-none"
+                            className="w-full px-3 py-2 bg-surface border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-accent resize-none"
                             placeholder={`Enter ${field.key}...`}
                           />
                         ) : (
@@ -526,7 +506,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                             type="text"
                             value={val !== undefined && val !== null ? String(val) : ''}
                             onChange={(e) => handleUpdateFieldValue(field.key, e.target.value)}
-                            className="w-full px-3 py-2 bg-surface border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-primary"
+                            className="w-full px-3 py-2 bg-surface border border-separator rounded-xl text-xs text-label-primary focus:outline-none focus:border-accent"
                             placeholder={`Enter ${field.key}...`}
                           />
                         )
@@ -538,9 +518,9 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
 
               {/* Add Custom Field Section */}
               {showAddField ? (
-                <div className="p-4 bg-surface-secondary rounded-2xl border border-primary/30 space-y-3 animate-in fade-in duration-200">
+                <div className="p-4 bg-surface-secondary rounded-2xl border border-accent/30 space-y-3 animate-in fade-in duration-200">
                   <h4 className="text-xs font-bold text-label-primary flex items-center gap-1.5">
-                    <Plus size={14} className="text-primary" />
+                    <Plus size={14} className="text-accent" />
                     <span>Add New Field to Record</span>
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -553,8 +533,8 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                         autoFocus
                         value={newFieldKey}
                         onChange={(e) => setNewFieldKey(e.target.value)}
-                        placeholder="e.g., customTag, reviewerId, score"
-                        className="w-full mt-1 px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary font-mono"
+                        placeholder="e.g., customTag, score"
+                        className="w-full mt-1 px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent font-mono"
                       />
                     </div>
                     <div>
@@ -564,10 +544,10 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                       <select
                         value={newFieldType}
                         onChange={(e) => setNewFieldType(e.target.value as FieldType)}
-                        className="w-full mt-1 px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
+                        className="w-full mt-1 px-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent"
                       >
                         <option value="string">String (Text)</option>
-                        <option value="user">User Reference (User Picker)</option>
+                        <option value="user">User Reference</option>
                         <option value="number">Number</option>
                         <option value="boolean">Boolean (True/False)</option>
                         <option value="date">Date / Timestamp</option>
@@ -580,14 +560,14 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowAddField(false)}
-                      className="px-3 py-1.5 text-xs font-semibold text-label-secondary hover:text-label-primary"
+                      className="px-3 py-1.5 text-xs font-semibold text-label-secondary hover:text-label-primary cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleAddField}
-                      className="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all"
+                      className="px-4 py-1.5 bg-accent text-white text-xs font-bold rounded-full shadow-xs hover:bg-accent-hover transition-all cursor-pointer"
                     >
                       Confirm Add Field
                     </button>
@@ -597,7 +577,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddField(true)}
-                  className="w-full py-2.5 px-4 rounded-2xl border border-dashed border-separator hover:border-primary/50 text-xs font-semibold text-label-secondary hover:text-primary transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 rounded-2xl border border-dashed border-separator hover:border-accent/50 text-xs font-semibold text-label-secondary hover:text-accent transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Plus size={15} />
                   <span>Add Custom Field</span>
@@ -608,39 +588,33 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-separator px-4 sm:px-6 py-3.5 sm:py-4 bg-surface-secondary/40 gap-2.5">
-          <span className="text-xs text-label-tertiary">
-            {activeTab === 'form' ? `${fields.length} fields defined` : 'JSON mode'}
-          </span>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary transition-colors cursor-pointer text-center"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={saving}
-              className="flex-1 sm:flex-none px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer text-center"
-            >
-              {saving ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <span>{mode === 'create' ? 'Insert Record' : 'Save Changes'}</span>
-              )}
-            </button>
-          </div>
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-50 transition cursor-pointer shadow"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <span>{mode === 'create' ? 'Insert Record' : 'Save Changes'}</span>
+            )}
+          </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

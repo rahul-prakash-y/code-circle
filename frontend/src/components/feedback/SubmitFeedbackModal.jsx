@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import ResponsiveModal from '../ui/ResponsiveModal';
 import {
-  X,
   MessageSquarePlus,
   Star,
   ShieldCheck,
@@ -9,6 +8,7 @@ import {
   Send,
   Sparkles,
   Check,
+  Loader2,
 } from 'lucide-react';
 import useFeedbackStore from '../../store/useFeedbackStore';
 import useEventStore from '../../store/useEventStore';
@@ -94,235 +94,199 @@ export const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) 
   const ratingMeta = RATING_LABELS[activeRating] || RATING_LABELS[5];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/40 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 12 }}
-        transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-        className="w-full max-w-xl my-auto bg-surface border border-separator rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl flex flex-col"
-      >
-        {/* Decorative soft ambient top glow */}
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-
-        {/* Modal Header */}
-        <div className="flex justify-between items-start pb-5 border-b border-separator relative z-10">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
-              <MessageSquarePlus size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary">
-                  Student Voice
-                </span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-label-primary tracking-tight">
-                Submit Feedback
-              </h2>
-              <p className="text-xs text-label-secondary mt-0.5">
-                Your candid opinion directly guides club leadership and event quality
-              </p>
-            </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
+            <MessageSquarePlus className="w-4 h-4" />
           </div>
-
+          <span>Submit Student Feedback</span>
+        </div>
+      }
+      description="Share your experience, insights, and suggestions directly with organizers."
+      dialogClassName="sm:max-w-xl p-6"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        {/* Feedback Type Toggle */}
+        <div className="grid grid-cols-2 gap-2 p-1 bg-surface-secondary border border-separator rounded-2xl">
           <button
-            onClick={onClose}
-            className="p-2 rounded-xl bg-surface-raised hover:bg-surface-secondary text-label-secondary hover:text-label-primary transition-all border border-separator cursor-pointer"
-            title="Close"
+            type="button"
+            onClick={() => setType('ClubGeneral')}
+            className={`py-2 px-3 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              type === 'ClubGeneral'
+                ? 'bg-accent text-white shadow-xs'
+                : 'text-label-secondary hover:text-label-primary'
+            }`}
           >
-            <X size={17} />
+            <Sparkles size={14} />
+            <span>Club & Platform</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setType('Event')}
+            className={`py-2 px-3 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              type === 'Event'
+                ? 'bg-accent text-white shadow-xs'
+                : 'text-label-secondary hover:text-label-primary'
+            }`}
+          >
+            <Calendar size={14} />
+            <span>Specific Event</span>
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="py-5 space-y-5 relative z-10">
-          {/* Target Type Selector Pills */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-label-secondary">
-              Feedback Context
+        {/* Event Picker (Visible if Event type selected) */}
+        {type === 'Event' && (
+          <div className="space-y-1.5 animate-in fade-in duration-200">
+            <label className="text-xs font-semibold uppercase tracking-wider text-label-secondary">
+              Select Event *
             </label>
-            <div className="grid grid-cols-2 gap-2.5 p-1 bg-surface-secondary border border-separator rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setType('ClubGeneral')}
-                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  type === 'ClubGeneral'
-                    ? 'bg-surface text-primary shadow-xs border border-separator'
-                    : 'text-label-secondary hover:text-label-primary'
-                }`}
-              >
-                <Sparkles size={14} className={type === 'ClubGeneral' ? 'text-primary' : ''} />
-                <span>Club in General</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setType('Event')}
-                className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  type === 'Event'
-                    ? 'bg-surface text-primary shadow-xs border border-separator'
-                    : 'text-label-secondary hover:text-label-primary'
-                }`}
-              >
-                <Calendar size={14} className={type === 'Event' ? 'text-primary' : ''} />
-                <span>Specific Event</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Event Dropdown (if type === 'Event') */}
-          {type === 'Event' && (
-            <div className="space-y-1.5 animate-in fade-in duration-200">
-              <label className="text-xs font-bold uppercase tracking-wider text-label-secondary flex items-center justify-between">
-                <span>Select Event *</span>
-                <span className="text-[11px] font-normal text-label-tertiary">Required</span>
-              </label>
-              <select
-                value={eventId}
-                onChange={(e) => setEventId(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface-raised border border-separator rounded-xl text-label-primary text-xs sm:text-sm font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
-                required
-              >
-                <option value="">-- Choose an event --</option>
-                {events?.map((ev) => (
-                  <option key={ev._id} value={ev._id}>
-                    {ev.title} ({new Date(ev.date).toLocaleDateString()})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Star Rating Interactive Selector */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-label-secondary">
-                Overall Experience Rating
-              </label>
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 font-mono">
-                {activeRating} / 5 Stars
-              </span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-surface-secondary border border-separator flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5 justify-center sm:justify-start">
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const filled = star <= activeRating;
-                  return (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      className="p-1 rounded-xl transition-all duration-150 transform hover:scale-120 active:scale-95 cursor-pointer"
-                      title={`${star} Star${star > 1 ? 's' : ''}`}
-                    >
-                      <Star
-                        size={28}
-                        className={
-                          filled
-                            ? 'text-amber-400 fill-amber-400 filter drop-shadow-[0_2px_8px_rgba(251,191,36,0.4)]'
-                            : 'text-separator-opaque hover:text-amber-300'
-                        }
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="text-center sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-separator">
-                <p className="text-xs font-bold text-label-primary">{ratingMeta.title}</p>
-                <p className="text-[11px] text-label-tertiary">{ratingMeta.desc}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Category Tag Selector */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-label-secondary">
-              Category Tag
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {categories.map((cat) => {
-                const isSelected = category === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      isSelected
-                        ? 'bg-primary text-white shadow-xs border border-primary'
-                        : 'bg-surface-raised text-label-secondary hover:text-label-primary border border-separator hover:border-separator-focus'
-                    }`}
-                  >
-                    {isSelected && <Check size={12} className="stroke-[3]" />}
-                    <span>{cat}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Text Comments Area */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-label-secondary">
-                Detailed Thoughts & Suggestions *
-              </label>
-              <span className="text-[10px] text-label-tertiary font-mono">
-                {comment.trim().length} chars (min 3)
-              </span>
-            </div>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="What went exceptionally well? What could our team improve next time? Be as honest and constructive as possible..."
-              rows={4}
-              className="w-full px-4 py-3 bg-surface-raised border border-separator rounded-2xl text-label-primary text-xs sm:text-sm font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-label-tertiary resize-none leading-relaxed"
+            <select
+              value={eventId}
+              onChange={(e) => setEventId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-separator bg-surface-secondary text-label-primary text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
               required
-            />
-          </div>
-
-          {/* Student Privacy Assurance Callout */}
-          <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/15 flex items-start gap-3">
-            <ShieldCheck size={18} className="text-primary shrink-0 mt-0.5" />
-            <div className="text-xs leading-relaxed text-label-secondary">
-              <strong className="text-label-primary font-semibold">Anonymous by Default: </strong>
-              To promote authentic and fearless feedback, standard administrators see your review signed as{' '}
-              <span className="font-mono text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded">
-                Anonymous Student
-              </span>
-              .
-            </div>
-          </div>
-
-          {/* Modal Actions */}
-          <div className="pt-2 flex items-center justify-end gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-label-secondary hover:text-label-primary bg-surface-raised hover:bg-surface-secondary border border-separator transition-all cursor-pointer"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-primary hover:bg-primary-hover shadow-md shadow-primary/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <Send size={14} />
-              <span>{submitting ? 'Submitting...' : 'Submit Feedback'}</span>
-            </button>
+              <option value="">-- Choose an event to review --</option>
+              {events && events.map((ev) => (
+                <option key={ev._id} value={ev._id}>
+                  {ev.title} {ev.eventDate ? `(${new Date(ev.eventDate).toLocaleDateString()})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
-        </form>
-      </motion.div>
-    </div>
+        )}
+
+        {/* Interactive Star Rating */}
+        <div className="p-4 rounded-2xl bg-surface-secondary border border-separator flex flex-col items-center justify-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-label-tertiary">
+            Overall Experience Rating
+          </span>
+          <div className="flex items-center gap-2 py-1">
+            {[1, 2, 3, 4, 5].map((star) => {
+              const isFilled = star <= activeRating;
+              return (
+                <button
+                  key={star}
+                  type="button"
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setRating(star)}
+                  className="p-1 hover:scale-115 active:scale-95 transition cursor-pointer"
+                >
+                  <Star
+                    size={28}
+                    className={`transition-colors ${
+                      isFilled
+                        ? 'fill-amber-400 text-amber-400 drop-shadow-sm'
+                        : 'text-separator hover:text-amber-300'
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          <div className="text-center">
+            <span className="text-xs font-bold text-label-primary">{ratingMeta.title}</span>
+            <span className="text-[11px] text-label-tertiary block">{ratingMeta.desc}</span>
+          </div>
+        </div>
+
+        {/* Category Selection */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wider text-label-secondary">
+            Category Focus
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {categories.map((cat) => {
+              const isSelected = category === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCategory(cat)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-accent text-white shadow-xs'
+                      : 'bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
+                  }`}
+                >
+                  {isSelected && <Check size={12} className="stroke-[3]" />}
+                  <span>{cat}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Text Comments Area */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold uppercase tracking-wider text-label-secondary">
+              Detailed Thoughts & Suggestions *
+            </label>
+            <span className="text-[10px] text-label-tertiary font-mono">
+              {comment.trim().length} chars (min 3)
+            </span>
+          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="What went exceptionally well? What could our team improve next time? Be as honest and constructive as possible..."
+            rows={4}
+            className="w-full px-4 py-2.5 rounded-xl border border-separator bg-surface-secondary text-label-primary text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition resize-none leading-relaxed"
+            required
+          />
+        </div>
+
+        {/* Student Privacy Assurance Callout */}
+        <div className="p-3.5 rounded-2xl bg-accent/5 border border-accent/15 flex items-start gap-3">
+          <ShieldCheck size={18} className="text-accent shrink-0 mt-0.5" />
+          <div className="text-xs leading-relaxed text-label-secondary">
+            <strong className="text-label-primary font-semibold">Anonymous by Default: </strong>
+            To promote authentic feedback, administrators see your review signed as{' '}
+            <span className="font-mono text-accent font-bold bg-accent/10 px-1.5 py-0.5 rounded">
+              Anonymous Student
+            </span>
+            .
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-50 transition cursor-pointer shadow"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Submitting...</span>
+              </>
+            ) : (
+              <>
+                <Send size={13} />
+                <span>Submit Feedback</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </ResponsiveModal>
   );
 };
 
 export default SubmitFeedbackModal;
-

@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -355,62 +356,41 @@ export const EventParticipantsModal = ({
   const isParticipantsTab = activeTab === 'participants';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-md p-3 sm:p-5 overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 12 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-6xl my-auto bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.2)] dark:shadow-[0_25px_80px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col h-[90vh] max-h-[90vh]"
-      >
-        {/* ================================================================= */}
-        {/* MODAL HEADER                                                      */}
-        {/* ================================================================= */}
-        <div className="p-5 sm:p-6 border-b border-separator dark:border-white/10 bg-canvas/40 dark:bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3.5">
-            <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-xs transition-all ${
-                isParticipantsTab
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
-                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25'
-              }`}
-            >
-              {isParticipantsTab ? <UserCheck size={22} /> : <Users size={22} />}
+    <>
+      <ResponsiveModal
+        open={isOpen && Boolean(event)}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        title={
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+              {isParticipantsTab ? <UserCheck className="w-4 h-4" /> : <Users className="w-4 h-4" />}
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-semibold text-label-primary dark:text-[#F5F5F7] tracking-tight">
-                  {isParticipantsTab ? 'Event participants directory' : 'Registered students directory'}
-                </h2>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-xs font-medium tabular-nums border transition-colors ${
-                    isParticipantsTab
-                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25'
-                      : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25'
-                  }`}
-                >
-                  {isParticipantsTab
-                    ? `${stats.presentStudents} attended`
-                    : `${stats.totalStudents} registered`}
-                </span>
-                {event?.registrationType === 'admin_upload' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 inline-flex items-center gap-1 shadow-xs">
-                    <ShieldCheck size={12} />
-                    Admin upload roster
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-label-secondary dark:text-[#86868B] font-normal mt-0.5 truncate max-w-xl">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>{isParticipantsTab ? 'Event Participants Directory' : 'Registered Students Directory'}</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                  isParticipantsTab
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
+                    : 'bg-accent/10 text-accent border-accent/25'
+                }`}
+              >
                 {isParticipantsTab
-                  ? 'Registered students who completed attendance for '
-                  : 'Complete student and team registration roster for '}
-                <strong className="text-label-primary dark:text-white font-medium">{event.title}</strong>
-              </p>
+                  ? `${stats.presentStudents} attended`
+                  : `${stats.totalStudents} registered`}
+              </span>
             </div>
           </div>
-
+        }
+        description={`${isParticipantsTab ? 'Verified attendance roster for ' : 'Complete student registration roster for '} ${event?.title || 'event'}`}
+        dialogClassName="sm:max-w-5xl p-6"
+      >
+        <div className="space-y-4 pt-2">
           {/* Action Buttons Toolbar */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-surface-secondary rounded-2xl border border-separator">
+            <span className="text-xs font-semibold text-label-secondary">Roster Controls:</span>
+            <div className="flex flex-wrap items-center gap-2">
             {isParticipantsTab && (
               <>
                 {event.certificateTemplateUrl ? (
@@ -459,15 +439,8 @@ export const EventParticipantsModal = ({
               <span>{isParticipantsTab ? 'Export participants CSV' : 'Export registered CSV'}</span>
             </button>
 
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas dark:hover:bg-white/10 transition-colors cursor-pointer border border-transparent hover:border-separator shrink-0"
-              title="Close modal"
-            >
-              <X size={18} />
-            </button>
+            </div>
           </div>
-        </div>
 
         {/* ================================================================= */}
         {/* SEGMENTED TAB SWITCHER & CLARITY BANNER                           */}
@@ -1105,7 +1078,8 @@ export const EventParticipantsModal = ({
             </button>
           </div>
         </div>
-      </motion.div>
+        </div>
+      </ResponsiveModal>
 
       {/* Bulk Upload Modal */}
       <EventBulkUploadModal
@@ -1212,7 +1186,7 @@ export const EventParticipantsModal = ({
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 

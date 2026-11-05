@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-black/50 backdrop-blur-md duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 ease-emil-out",
       className
     )}
     {...props}
@@ -37,13 +37,13 @@ const DialogContent = React.forwardRef<
       ref={ref}
       style={{ background: 'var(--surface)', color: 'var(--text-primary)', ...props.style }}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-1.5rem)] sm:w-full max-w-lg max-h-[90dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border border-separator bg-surface text-text-primary p-4 sm:p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-[0.98] data-[state=open]:zoom-in-[0.98] data-[state=open]:slide-in-from-top-[51%] data-[state=closed]:slide-out-to-top-[51%] rounded-2xl sm:rounded-[18px]",
+        "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-1.5rem)] sm:w-full max-w-lg max-h-[90dvh] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border border-separator bg-surface text-text-primary p-4 sm:p-6 shadow-2xl duration-200 ease-emil-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-2xl sm:rounded-[20px]",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-xl min-h-[44px] min-w-[44px] flex items-center justify-center text-label-secondary opacity-70 transition-opacity hover:opacity-100 hover:bg-separator focus:outline-none focus:ring-2 focus:ring-accent disabled:pointer-events-none">
+      <DialogPrimitive.Close className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-xl min-h-[40px] min-w-[40px] flex items-center justify-center text-label-secondary opacity-70 transition-all hover:opacity-100 hover:bg-separator active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-accent disabled:pointer-events-none">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -72,7 +72,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 sm:gap-0",
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
       className
     )}
     {...props}

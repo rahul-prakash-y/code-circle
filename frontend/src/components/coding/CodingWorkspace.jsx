@@ -8,6 +8,7 @@ import useCodingStore from '../../store/useCodingStore';
 import useAntiCheat from '../../hooks/useAntiCheat';
 import AntiCheatModal from './AntiCheatModal';
 import { Loader2, Play, ChevronLeft, Star, Clock, FileText, Code2, Terminal } from 'lucide-react';
+import { EmilButton } from '../ui/emil-ui';
 import BackgroundGradient from '../ui/BackgroundGradient';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 

@@ -350,9 +350,9 @@ export const EventArenaPage: React.FC = () => {
   // -------------------------------------------------------------------------
   if (!activeAssessmentId) {
     return (
-      <div className="min-h-[100dvh] bg-[#0A0A0D] text-white flex flex-col">
+      <div className="min-h-[100dvh] bg-[#F5F5F7] dark:bg-[#000000] text-[#1D1D1F] dark:text-[#F5F5F7] flex flex-col">
         {/* Top Header */}
-        <header className="h-16 border-b border-white/10 px-4 sm:px-10 flex items-center justify-between shrink-0 bg-[#0F0F14]/80 backdrop-blur-md">
+        <header className="h-16 border-b border-black/5 dark:border-white/10 px-4 sm:px-10 flex items-center justify-between shrink-0 bg-white/70 dark:bg-[#161617]/70 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/events')}
@@ -663,9 +663,9 @@ export const EventArenaPage: React.FC = () => {
 
       {/* Main Workspace */}
       {selectedAssessment?.type === 'UI_UX' ? (
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#0A0A0D]">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#F5F5F7] dark:bg-[#000000]">
           {/* Left Column: Design Brief & Reference Mockup */}
-          <div className="w-full lg:w-1/2 border-r border-white/10 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#0A0A0D]">
+          <div className="w-full lg:w-1/2 border-r border-black/5 dark:border-white/10 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#FFFFFF] dark:bg-[#161617]">
             {/* Header info */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div className="flex items-center gap-2.5">

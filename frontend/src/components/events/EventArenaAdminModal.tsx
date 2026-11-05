@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -501,46 +502,36 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden bg-black/80 backdrop-blur-md">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-5xl h-[92vh] flex flex-col rounded-2xl bg-[#0F0F12] border border-white/10 shadow-2xl overflow-hidden text-text-primary"
-      >
-        {/* Top Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-              <Sparkles size={20} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold tracking-tight text-white">Event Arena Assessments</h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 uppercase">
-                  Admin Panel
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-0.5 truncate max-w-lg">
-                {event.title} • Multi-Assessment Management & Assigned Admins
-              </p>
-            </div>
+    <ResponsiveModal
+      open={isOpen && Boolean(event)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <Sparkles className="w-4 h-4" />
           </div>
-
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <span>Event Arena Assessments</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+              Admin Panel
+            </span>
+          </div>
         </div>
+      }
+      description={`${event?.title || 'Event'} • Multi-Assessment Management & Assigned Admins`}
+      dialogClassName="sm:max-w-5xl p-4 sm:p-6"
+      drawerClassName="max-h-[92dvh] px-2 sm:px-4 pb-6 pt-2"
+    >
+      <div className="space-y-4 pt-2">
 
         {/* Assessment Switcher Bar */}
-        <div className="px-6 py-2.5 border-b border-white/10 bg-white/[0.01] flex items-center justify-between gap-3 overflow-x-auto shrink-0">
-          <div className="flex items-center gap-2 overflow-x-auto py-1">
-            <span className="text-xs font-semibold text-text-muted shrink-0 flex items-center gap-1.5 mr-1">
-              <Layers size={13} className="text-purple-400" />
-              <span>Assessments:</span>
+        <div className="px-3 sm:px-6 py-2.5 border-b border-separator bg-surface-secondary/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0 rounded-2xl">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 sm:mx-0 sm:px-0">
+            <span className="text-[11px] font-bold text-label-tertiary uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
+              <Layers size={13} className="text-purple-500" />
+              <span className="hidden sm:inline">Rounds:</span>
             </span>
 
             {assessments.map((asm) => {
@@ -552,16 +543,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     setIsCreatingNew(false);
                     setSelectedAssessment(asm);
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 shrink-0 transition-all cursor-pointer ${
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                      : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/5'
+                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                      : 'bg-surface hover:bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
                   }`}
                 >
-                  <span className="truncate max-w-[150px]">{asm.title}</span>
+                  <span className="truncate max-w-[120px] sm:max-w-[150px]">{asm.title}</span>
                   <span
-                    className={`px-1.5 py-0.2 rounded text-[10px] uppercase font-mono ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
+                    className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-mono font-bold ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-surface-secondary text-label-tertiary'
                     }`}
                   >
                     {asm.type}
@@ -573,10 +564,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
           <button
             onClick={() => setIsCreatingNew(true)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+            className={`min-h-[36px] px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer ${
               isCreatingNew
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
             }`}
           >
             <Plus size={14} />
@@ -587,11 +578,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* Main Body */}
         {isCreatingNew ? (
           /* CREATE NEW ASSESSMENT VIEW */
-          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-5">
             <div className="max-w-2xl mx-auto space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/10">
                 <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <h3 className="text-base font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                     <Plus size={16} className="text-emerald-400" />
                     <span>Create a New Arena Assessment</span>
                   </h3>
@@ -602,7 +593,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsCreatingNew(false)}
-                  className="text-xs text-text-muted hover:text-white"
+                  className="text-xs text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7]"
                 >
                   Cancel
                 </button>
@@ -610,7 +601,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
               <form onSubmit={handleCreateAssessment} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold text-white/80 mb-1.5">
+                  <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
                     Assessment Title <span className="text-rose-400">*</span>
                   </label>
                   <input
@@ -619,28 +610,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g. Round 1: Screening Test or Coding Finale"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-purple-500 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-purple-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-white/80 mb-1.5">Description</label>
+                  <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Description</label>
                   <textarea
                     rows={2}
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     placeholder="Short description or guidelines for this assessment..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-purple-500 outline-none resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-purple-500 outline-none resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-white/80 mb-1.5">Assessment Type</label>
+                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Assessment Type</label>
                     <select
                       value={newType}
                       onChange={(e) => setNewType(e.target.value as any)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
                     >
                       <option value="HYBRID">Hybrid (MCQ + Coding)</option>
                       <option value="MCQ">MCQ Questions Only</option>
@@ -649,24 +640,24 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-white/80 mb-1.5">Duration (Minutes)</label>
+                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Duration (Minutes)</label>
                     <input
                       type="number"
                       min={5}
                       value={newDuration}
                       onChange={(e) => setNewDuration(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-white/80 mb-1.5">Passing Score (%)</label>
+                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Passing Score (%)</label>
                     <input
                       type="number"
                       min={0}
                       max={100}
                       value={newPassingScore}
                       onChange={(e) => setNewPassingScore(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
                     />
                   </div>
                 </div>
@@ -674,7 +665,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 {/* Qualification Cutoff & Team Mode */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                   <div>
-                    <label className="block text-xs font-bold text-white/80 mb-1.5">
+                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
                       Qualify Top Students (Cutoff)
                     </label>
                     <input
@@ -683,19 +674,19 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       value={newCutoffRank}
                       onChange={(e) => setNewCutoffRank(Number(e.target.value))}
                       placeholder="e.g. 80 (0 for all)"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none focus:border-purple-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none focus:border-purple-500"
                     />
-                    <p className="text-[10px] text-white/40 mt-1">
+                    <p className="text-[10px] text-[#1D1D1F] dark:text-[#F5F5F7]/40 mt-1">
                       Top N from previous round allowed (0 = open to all enrolled).
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-white/80 mb-1.5">Round Mode</label>
+                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Round Mode</label>
                     <select
                       value={newIsTeamMode ? 'team' : 'individual'}
                       onChange={(e) => setNewIsTeamMode(e.target.value === 'team')}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
                     >
                       <option value="individual">Individual Participation</option>
                       <option value="team">👥 Team Mode (Manual Assignment)</option>
@@ -704,14 +695,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                   {newIsTeamMode && (
                     <div>
-                      <label className="block text-xs font-bold text-white/80 mb-1.5">Team Size</label>
+                      <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Team Size</label>
                       <input
                         type="number"
                         min={2}
                         max={10}
                         value={newTeamSize}
                         onChange={(e) => setNewTeamSize(Number(e.target.value))}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
                       />
                     </div>
                   )}
@@ -721,7 +712,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <label className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-1.5">
                         <Users size={14} className="text-purple-400" />
                         <span>Assign Assessment Admins</span>
                       </label>
@@ -737,18 +728,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
 
                   {isSuperAdmin ? (
-                    <div className="space-y-3 p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                    <div className="space-y-3 p-4 rounded-xl bg-white/[0.02] border border-black/5 dark:border-white/10">
                       <div className="relative">
                         <Search
                           size={14}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1D1D1F] dark:text-[#F5F5F7]/40"
                         />
                         <input
                           type="text"
                           value={adminSearch}
                           onChange={(e) => setAdminSearch(e.target.value)}
                           placeholder="Search admins by name, email, roll number..."
-                          className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 outline-none"
+                          className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 outline-none"
                         />
                       </div>
 
@@ -761,8 +752,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               onClick={() => toggleNewAdmin(cand._id)}
                               className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                                 isAssigned
-                                  ? 'bg-purple-500/15 border-purple-500/40 text-white'
-                                  : 'bg-white/[0.02] border-white/5 hover:border-white/15 text-white/70'
+                                  ? 'bg-purple-500/15 border-purple-500/40 text-[#1D1D1F] dark:text-[#F5F5F7]'
+                                  : 'bg-white/[0.02] border-white/5 hover:border-black/10 dark:border-white/15 text-[#1D1D1F] dark:text-[#F5F5F7]/70'
                               }`}
                             >
                               <div className="flex items-center gap-2.5">
@@ -786,8 +777,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               <div
                                 className={`w-5 h-5 rounded-md flex items-center justify-center border ${
                                   isAssigned
-                                    ? 'bg-purple-600 border-purple-500 text-white'
-                                    : 'border-white/20'
+                                    ? 'bg-purple-600 border-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7]'
+                                    : 'border-black/10 dark:border-white/20'
                                 }`}
                               >
                                 {isAssigned && <Check size={12} />}
@@ -798,7 +789,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-text-muted">
+                    <div className="p-3 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-text-muted">
                       Admin assignment is managed by SuperAdmin.
                     </div>
                   )}
@@ -808,14 +799,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsCreatingNew(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 transition-colors"
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/70 hover:bg-white/10 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                   >
                     {actionLoading && <Loader2 size={13} className="animate-spin" />}
                     <span>Create Assessment</span>
@@ -828,27 +819,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
           /* SELECTED ASSESSMENT WORKSPACE */
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Assessment Sub-Navigation */}
-            <div className="px-6 py-2.5 border-b border-white/10 bg-white/[0.015] flex flex-wrap items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-1.5 overflow-x-auto">
+            <div className="border-b border-separator bg-surface-secondary/30 shrink-0 space-y-2 py-2 px-1 sm:px-4 rounded-xl">
+              {/* Row 1: Horizontally Scrollable Tabs with touch momentum */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-1 py-0.5">
                 <button
                   onClick={() => setActiveTab('settings')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'settings'
-                      ? 'bg-white/15 text-white'
-                      : 'text-text-muted hover:text-white hover:bg-white/5'
+                      ? 'bg-accent text-white shadow-xs'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                   }`}
                 >
                   <Settings size={13} />
-                  <span>Config & Assigned Admins</span>
+                  <span>Config & Admins</span>
                 </button>
 
                 {(selectedAssessment.type === 'MCQ' || selectedAssessment.type === 'HYBRID') && (
                   <button
                     onClick={() => setActiveTab('mcq')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'mcq'
-                        ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30'
-                        : 'text-text-muted hover:text-white hover:bg-white/5'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                     }`}
                   >
                     <HelpCircle size={13} />
@@ -859,37 +851,37 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 {(selectedAssessment.type === 'CODING' || selectedAssessment.type === 'HYBRID') && (
                   <button
                     onClick={() => setActiveTab('coding')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'coding'
-                        ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
-                        : 'text-text-muted hover:text-white hover:bg-white/5'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                     }`}
                   >
                     <Code2 size={13} />
-                    <span>Coding Challenges ({adminCoding.length})</span>
+                    <span>Coding ({adminCoding.length})</span>
                   </button>
                 )}
 
                 {selectedAssessment.type === 'UI_UX' && (
                   <button
                     onClick={() => setActiveTab('design')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                       activeTab === 'design'
-                        ? 'bg-gradient-to-r from-pink-600/30 to-purple-600/30 text-pink-300 border border-pink-500/40 shadow-sm shadow-pink-500/20'
-                        : 'text-text-muted hover:text-white hover:bg-white/5'
+                        ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-xs'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                     }`}
                   >
                     <Palette size={13} className="text-pink-400" />
-                    <span>🎨 UI/UX Design Challenge</span>
+                    <span>UI/UX Design</span>
                   </button>
                 )}
 
                 <button
                   onClick={() => setActiveTab('teams')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'teams'
-                      ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
-                      : 'text-text-muted hover:text-white hover:bg-white/5'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                   }`}
                 >
                   <Users size={13} />
@@ -898,10 +890,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                 <button
                   onClick={() => setActiveTab('submissions')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'submissions'
-                      ? 'bg-white/15 text-white'
-                      : 'text-text-muted hover:text-white hover:bg-white/5'
+                      ? 'bg-accent text-white shadow-xs'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
                   }`}
                 >
                   <Award size={13} />
@@ -909,42 +901,59 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 </button>
               </div>
 
-              {/* Status Indicator & Assigned Admins summary */}
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-1.5 overflow-hidden">
-                  {(selectedAssessment.assignedAdmins || []).slice(0, 3).map((adm: any) => (
-                    <img
-                      key={adm._id || adm}
-                      title={adm.name || 'Assigned Admin'}
-                      src={
-                        adm.profilePicUrl ||
-                        `https://ui-avatars.com/api/?name=${adm.name || 'Admin'}&background=7C3AED&color=fff&size=60`
-                      }
-                      className="w-5 h-5 rounded-full border border-black object-cover"
-                    />
-                  ))}
+              {/* Row 2: Status & Quick Meta bar */}
+              <div className="flex items-center justify-between px-2 pt-1 border-t border-separator/40 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    selectedAssessment.status === 'LIVE'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25'
+                      : selectedAssessment.status === 'UPCOMING'
+                      ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25'
+                      : 'bg-surface-secondary text-label-secondary border border-separator'
+                  }`}>
+                    {selectedAssessment.status}
+                  </span>
+                  <span className="text-[11px] text-label-tertiary font-mono">
+                    {selectedAssessment.durationMinutes}m • {selectedAssessment.totalPoints} pts
+                  </span>
                 </div>
-                {canManageSelected ? (
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                    Authorized Editor
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                    View Only
-                  </span>
-                )}
+
+                <div className="flex items-center gap-1.5">
+                  <div className="flex -space-x-1.5 overflow-hidden">
+                    {(selectedAssessment.assignedAdmins || []).slice(0, 3).map((adm: any) => (
+                      <img
+                        key={adm._id || adm}
+                        title={adm.name || 'Assigned Admin'}
+                        src={
+                          adm.profilePicUrl ||
+                          `https://ui-avatars.com/api/?name=${adm.name || 'Admin'}&background=7C3AED&color=fff&size=60`
+                        }
+                        className="w-5 h-5 rounded-full border border-separator object-cover"
+                      />
+                    ))}
+                  </div>
+                  {canManageSelected ? (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                      Editor
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                      View
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Sub-Tab Contents */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-6">
               {/* TAB 1: CONFIG & ASSIGNED ADMINS */}
               {activeTab === 'settings' && (
                 <div className="max-w-3xl mx-auto space-y-6">
-                  <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-5">
-                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                  <div className="p-5 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-5">
+                    <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
                       <div>
-                        <h3 className="text-sm font-bold text-white">Assessment Information</h3>
+                        <h3 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Assessment Information</h3>
                         <p className="text-xs text-text-muted mt-0.5">
                           Configure title, type, duration and passing criteria
                         </p>
@@ -956,22 +965,22 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">Assessment Title</label>
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Assessment Title</label>
                         <input
                           type="text"
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none focus:border-purple-500 disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none focus:border-purple-500 disabled:opacity-50"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">Status</label>
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Status</label>
                         <select
                           value={editStatus}
                           onChange={(e) => setEditStatus(e.target.value as any)}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
                         >
                           <option value="LIVE">Live (Open for students)</option>
                           <option value="UPCOMING">Upcoming</option>
@@ -982,24 +991,24 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-white/80 mb-1.5">Description</label>
+                      <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Description</label>
                       <textarea
                         rows={2}
                         value={editDesc}
                         onChange={(e) => setEditDesc(e.target.value)}
                         disabled={!canManageSelected}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none resize-none disabled:opacity-50"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none resize-none disabled:opacity-50"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">Type</label>
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Type</label>
                         <select
                           value={editType}
                           onChange={(e) => setEditType(e.target.value as any)}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
                         >
                           <option value="HYBRID">Hybrid (MCQ + Coding)</option>
                           <option value="MCQ">MCQ Questions Only</option>
@@ -1008,18 +1017,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">Duration (Mins)</label>
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Duration (Mins)</label>
                         <input
                           type="number"
                           min={5}
                           value={editDuration}
                           onChange={(e) => setEditDuration(Number(e.target.value))}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">Passing %</label>
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Passing %</label>
                         <input
                           type="number"
                           min={0}
@@ -1027,7 +1036,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           value={editPassingScore}
                           onChange={(e) => setEditPassingScore(Number(e.target.value))}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
                         />
                       </div>
                     </div>
@@ -1035,7 +1044,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     {/* Cutoff & Team Mode Configuration */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
                           Top Rank Cutoff (Next Round)
                         </label>
                         <input
@@ -1045,20 +1054,20 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setEditCutoffRank(Number(e.target.value))}
                           disabled={!canManageSelected}
                           placeholder="e.g. 80 (0 for no limit)"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
                         />
-                        <p className="text-[10px] text-white/40 mt-1">
+                        <p className="text-[10px] text-[#1D1D1F] dark:text-[#F5F5F7]/40 mt-1">
                           Only top {editCutoffRank || 0} students from previous round attend.
                         </p>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">Round Mode</label>
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Round Mode</label>
                         <select
                           value={editIsTeamMode ? 'team' : 'individual'}
                           onChange={(e) => setEditIsTeamMode(e.target.value === 'team')}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
                         >
                           <option value="individual">Individual Participation</option>
                           <option value="team">👥 Team Mode (Manual Allocation)</option>
@@ -1067,7 +1076,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                       {editIsTeamMode && (
                         <div>
-                          <label className="block text-xs font-bold text-white/80 mb-1.5">Team Size</label>
+                          <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Team Size</label>
                           <input
                             type="number"
                             min={2}
@@ -1075,7 +1084,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={editTeamSize}
                             onChange={(e) => setEditTeamSize(Number(e.target.value))}
                             disabled={!canManageSelected}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none disabled:opacity-50"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
                           />
                         </div>
                       )}
@@ -1083,10 +1092,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
 
                   {/* Assigned Admins for this Assessment */}
-                  <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                  <div className="p-5 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
                       <div>
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                           <Crown size={15} className="text-amber-400" />
                           <span>Assigned Assessment Admins</span>
                         </h3>
@@ -1106,14 +1115,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <div className="relative">
                           <Search
                             size={14}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1D1D1F] dark:text-[#F5F5F7]/40"
                           />
                           <input
                             type="text"
                             value={adminSearch}
                             onChange={(e) => setAdminSearch(e.target.value)}
                             placeholder="Search admin name, email, roll number..."
-                            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 outline-none"
+                            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 outline-none"
                           />
                         </div>
 
@@ -1126,8 +1135,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 onClick={() => toggleEditAdmin(cand._id)}
                                 className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                                   isAssigned
-                                    ? 'bg-purple-500/15 border-purple-500/40 text-white'
-                                    : 'bg-white/[0.02] border-white/5 hover:border-white/15 text-white/70'
+                                    ? 'bg-purple-500/15 border-purple-500/40 text-[#1D1D1F] dark:text-[#F5F5F7]'
+                                    : 'bg-white/[0.02] border-white/5 hover:border-black/10 dark:border-white/15 text-[#1D1D1F] dark:text-[#F5F5F7]/70'
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5">
@@ -1151,8 +1160,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 <div
                                   className={`w-5 h-5 rounded-md flex items-center justify-center border ${
                                     isAssigned
-                                      ? 'bg-purple-600 border-purple-500 text-white'
-                                      : 'border-white/20'
+                                      ? 'bg-purple-600 border-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7]'
+                                      : 'border-black/10 dark:border-white/20'
                                   }`}
                                 >
                                   {isAssigned && <Check size={12} />}
@@ -1168,7 +1177,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           (selectedAssessment.assignedAdmins || []).map((adm: any) => (
                             <div
                               key={adm._id || adm}
-                              className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-xs"
+                              className="px-3 py-1.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 flex items-center gap-2 text-xs"
                             >
                               <div className="w-5 h-5 rounded-full overflow-hidden bg-purple-500/20 shrink-0">
                                 <img
@@ -1180,7 +1189,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   className="w-full h-full object-cover"
                                 />
                               </div>
-                              <span className="font-semibold text-white">{adm.name || 'Admin'}</span>
+                              <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">{adm.name || 'Admin'}</span>
                               <span className="text-[10px] text-text-muted">{adm.role}</span>
                             </div>
                           ))
@@ -1192,12 +1201,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-separator">
                     {isSuperAdmin && (
                       <button
                         type="button"
                         onClick={handleDeleteAssessment}
-                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 flex items-center gap-1.5 transition-colors"
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-full text-xs font-semibold text-destructive border border-destructive/30 hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Trash2 size={13} />
                         <span>Delete Assessment</span>
@@ -1209,7 +1218,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         type="button"
                         onClick={handleSaveAssessmentConfig}
                         disabled={actionLoading}
-                        className="ml-auto px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                        className="w-full sm:w-auto ml-auto px-6 py-2.5 rounded-full bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                       >
                         {actionLoading && <Loader2 size={13} className="animate-spin" />}
                         <span>Save Changes</span>
@@ -1223,23 +1232,23 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
               {activeTab === 'mcq' && (
                 <div className="space-y-6">
                   {/* Action Bar */}
-                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
                         <HelpCircle size={18} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-white">MCQ Question Bank</h4>
+                        <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">MCQ Question Bank</h4>
                         <p className="text-xs text-text-muted">
                           {adminMcqs.length} Questions • Total {adminMcqs.reduce((s, q) => s + (q.points || 10), 0)} Points
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2">
                       <button
                         onClick={() => downloadArenaTemplate(event._id, 'mcq')}
-                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-semibold border border-black/5 dark:border-white/10 flex items-center gap-1.5 transition-colors"
                       >
                         <Download size={13} />
                         <span>Sample Template</span>
@@ -1249,7 +1258,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <>
                           <button
                             onClick={() => setBulkModalType('mcq')}
-                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-colors"
+                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-semibold border border-black/5 dark:border-white/10 flex items-center gap-1.5 transition-colors"
                           >
                             <Upload size={13} />
                             <span>Bulk Upload Excel</span>
@@ -1257,7 +1266,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                           <button
                             onClick={() => setShowAddMcq(!showAddMcq)}
-                            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all"
+                            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all"
                           >
                             <Plus size={14} />
                             <span>Add Question</span>
@@ -1276,34 +1285,34 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         exit={{ opacity: 0, height: 0 }}
                         className="p-5 rounded-2xl bg-white/[0.03] border border-purple-500/30 space-y-4 overflow-hidden"
                       >
-                        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                          <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                        <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/10">
+                          <h4 className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                             <Plus size={14} className="text-purple-400" />
                             <span>Add New Multiple Choice Question</span>
                           </h4>
                           <button
                             onClick={() => setShowAddMcq(false)}
-                            className="text-text-muted hover:text-white"
+                            className="text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7]"
                           >
                             <X size={15} />
                           </button>
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-white/80 mb-1.5">Question Text</label>
+                          <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Question Text</label>
                           <textarea
                             rows={2}
                             value={newQuestionText}
                             onChange={(e) => setNewQuestionText(e.target.value)}
                             placeholder="Enter the question prompt..."
-                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 outline-none resize-none focus:border-purple-500"
+                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 outline-none resize-none focus:border-purple-500"
                           />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {newOptions.map((opt, optIdx) => (
                             <div key={optIdx} className="space-y-1">
-                              <label className="flex items-center justify-between text-[11px] font-bold text-white/70">
+                              <label className="flex items-center justify-between text-[11px] font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/70">
                                 <span>Option {String.fromCharCode(65 + optIdx)}</span>
                                 <label className="flex items-center gap-1 text-emerald-400 cursor-pointer">
                                   <input
@@ -1325,7 +1334,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   setNewOptions(updated);
                                 }}
                                 placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none focus:border-purple-500"
+                                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none focus:border-purple-500"
                               />
                             </div>
                           ))}
@@ -1333,23 +1342,23 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
-                            <label className="block text-xs font-bold text-white/80 mb-1">Points</label>
+                            <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">Points</label>
                             <input
                               type="number"
                               min={1}
                               value={newMcqPoints}
                               onChange={(e) => setNewMcqPoints(Number(e.target.value))}
-                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
                             />
                           </div>
                           <div className="sm:col-span-2">
-                            <label className="block text-xs font-bold text-white/80 mb-1">Explanation (Optional)</label>
+                            <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">Explanation (Optional)</label>
                             <input
                               type="text"
                               value={newExplanation}
                               onChange={(e) => setNewExplanation(e.target.value)}
                               placeholder="Explanation shown after submission..."
-                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
                             />
                           </div>
                         </div>
@@ -1357,14 +1366,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <div className="flex justify-end gap-2 pt-2">
                           <button
                             onClick={() => setShowAddMcq(false)}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-white"
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7]"
                           >
                             Cancel
                           </button>
                           <button
                             onClick={handleAddMcq}
                             disabled={actionLoading}
-                            className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5"
+                            className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5"
                           >
                             {actionLoading && <Loader2 size={12} className="animate-spin" />}
                             <span>Save Question</span>
@@ -1377,9 +1386,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   {/* List of MCQs */}
                   <div className="space-y-3">
                     {adminMcqs.length === 0 ? (
-                      <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-2">
-                        <HelpCircle size={28} className="mx-auto text-white/30" />
-                        <h4 className="text-sm font-bold text-white">No MCQ Questions Yet</h4>
+                      <div className="p-8 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 text-center space-y-2">
+                        <HelpCircle size={28} className="mx-auto text-[#1D1D1F] dark:text-[#F5F5F7]/30" />
+                        <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">No MCQ Questions Yet</h4>
                         <p className="text-xs text-text-muted max-w-sm mx-auto">
                           Click "Add Question" above or upload an Excel file containing questions and options.
                         </p>
@@ -1388,7 +1397,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       adminMcqs.map((q, idx) => (
                         <div
                           key={idx}
-                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/15 transition-all space-y-3"
+                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-black/10 dark:border-white/15 transition-all space-y-3"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-2.5">
@@ -1396,14 +1405,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 {idx + 1}
                               </span>
                               <div>
-                                <h5 className="text-xs font-bold text-white leading-relaxed">{q.question}</h5>
+                                <h5 className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] leading-relaxed">{q.question}</h5>
                                 {q.explanation && (
                                   <p className="text-[11px] text-text-muted italic mt-1">{q.explanation}</p>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-white/80">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7]/80">
                                 {q.points || 10} pts
                               </span>
                               {canManageSelected && (
@@ -1426,7 +1435,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   className={`px-3 py-1.5 rounded-lg border text-xs flex items-center justify-between ${
                                     isCorrect
                                       ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold'
-                                      : 'bg-white/[0.01] border-white/5 text-white/70'
+                                      : 'bg-white/[0.01] border-white/5 text-[#1D1D1F] dark:text-[#F5F5F7]/70'
                                   }`}
                                 >
                                   <span>
@@ -1453,13 +1462,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
               {activeTab === 'coding' && (
                 <div className="space-y-6">
                   {/* Action Bar */}
-                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
                         <Code2 size={18} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-white">Coding Challenges</h4>
+                        <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Coding Challenges</h4>
                         <p className="text-xs text-text-muted">
                           {adminCoding.length} Problems • Total{' '}
                           {adminCoding.reduce((s, p) => s + (p.points || 30), 0)} Points
@@ -1470,7 +1479,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => downloadArenaTemplate(event._id, 'coding')}
-                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-semibold border border-black/5 dark:border-white/10 flex items-center gap-1.5 transition-colors"
                       >
                         <Download size={13} />
                         <span>Sample Template</span>
@@ -1480,7 +1489,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <>
                           <button
                             onClick={() => setBulkModalType('coding')}
-                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-colors"
+                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-semibold border border-black/5 dark:border-white/10 flex items-center gap-1.5 transition-colors"
                           >
                             <Upload size={13} />
                             <span>Bulk Upload Excel</span>
@@ -1488,7 +1497,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                           <button
                             onClick={() => setShowAddCoding(!showAddCoding)}
-                            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
+                            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
                           >
                             <Plus size={14} />
                             <span>Add Problem</span>
@@ -1507,14 +1516,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         exit={{ opacity: 0, height: 0 }}
                         className="p-5 rounded-2xl bg-white/[0.03] border border-blue-500/30 space-y-4 overflow-hidden"
                       >
-                        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                          <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                        <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/10">
+                          <h4 className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                             <Plus size={14} className="text-blue-400" />
                             <span>Add New Coding Challenge</span>
                           </h4>
                           <button
                             onClick={() => setShowAddCoding(false)}
-                            className="text-text-muted hover:text-white"
+                            className="text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7]"
                           >
                             <X size={15} />
                           </button>
@@ -1522,21 +1531,21 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="sm:col-span-2">
-                            <label className="block text-xs font-bold text-white/80 mb-1">Problem Title</label>
+                            <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">Problem Title</label>
                             <input
                               type="text"
                               value={newCodingTitle}
                               onChange={(e) => setNewCodingTitle(e.target.value)}
                               placeholder="e.g. Invert a Binary Tree or Maximum Subarray"
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none focus:border-blue-500"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none focus:border-blue-500"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-white/80 mb-1">Difficulty</label>
+                            <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">Difficulty</label>
                             <select
                               value={newCodingDiff}
                               onChange={(e) => setNewCodingDiff(e.target.value as any)}
-                              className="w-full px-3 py-2 rounded-xl bg-[#1A1A1E] border border-white/10 text-xs text-white outline-none"
+                              className="w-full px-3 py-2 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
                             >
                               <option value="Easy">Easy</option>
                               <option value="Medium">Medium</option>
@@ -1546,7 +1555,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-white/80 mb-1">
+                          <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">
                             Problem Description & Constraints
                           </label>
                           <textarea
@@ -1554,23 +1563,23 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={newCodingDesc}
                             onChange={(e) => setNewCodingDesc(e.target.value)}
                             placeholder="Describe the challenge problem, input and output expectations..."
-                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none resize-none focus:border-blue-500"
+                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none resize-none focus:border-blue-500"
                           />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs font-bold text-white/80 mb-1">Sample Input</label>
+                            <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">Sample Input</label>
                             <textarea
                               rows={2}
                               value={newSampleInput}
                               onChange={(e) => setNewSampleInput(e.target.value)}
                               placeholder="Sample stdin input..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] font-mono outline-none resize-none"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-white/80 mb-1">
+                            <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">
                               Sample Output (Expected)
                             </label>
                             <textarea
@@ -1578,7 +1587,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               value={newSampleOutput}
                               onChange={(e) => setNewSampleOutput(e.target.value)}
                               placeholder="Sample expected output..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] font-mono outline-none resize-none"
                             />
                           </div>
                         </div>
@@ -1593,7 +1602,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               value={newHiddenInput}
                               onChange={(e) => setNewHiddenInput(e.target.value)}
                               placeholder="Hidden input for grading..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-white font-mono outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] font-mono outline-none resize-none"
                             />
                           </div>
                           <div>
@@ -1605,7 +1614,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               value={newHiddenOutput}
                               onChange={(e) => setNewHiddenOutput(e.target.value)}
                               placeholder="Hidden expected output..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-white font-mono outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] font-mono outline-none resize-none"
                             />
                           </div>
                         </div>
@@ -1613,14 +1622,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <div className="flex justify-end gap-2 pt-2">
                           <button
                             onClick={() => setShowAddCoding(false)}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-white"
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7]"
                           >
                             Cancel
                           </button>
                           <button
                             onClick={handleAddCoding}
                             disabled={actionLoading}
-                            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5"
+                            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5"
                           >
                             {actionLoading && <Loader2 size={12} className="animate-spin" />}
                             <span>Save Challenge</span>
@@ -1633,9 +1642,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   {/* List of Coding Challenges */}
                   <div className="space-y-3">
                     {adminCoding.length === 0 ? (
-                      <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-2">
-                        <Code2 size={28} className="mx-auto text-white/30" />
-                        <h4 className="text-sm font-bold text-white">No Coding Challenges Yet</h4>
+                      <div className="p-8 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 text-center space-y-2">
+                        <Code2 size={28} className="mx-auto text-[#1D1D1F] dark:text-[#F5F5F7]/30" />
+                        <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">No Coding Challenges Yet</h4>
                         <p className="text-xs text-text-muted max-w-sm mx-auto">
                           Click "Add Problem" above or upload an Excel file containing coding challenges and test cases.
                         </p>
@@ -1644,7 +1653,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       adminCoding.map((p, idx) => (
                         <div
                           key={idx}
-                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/15 transition-all space-y-2.5"
+                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-black/10 dark:border-white/15 transition-all space-y-2.5"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-2.5">
@@ -1652,7 +1661,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 {idx + 1}
                               </span>
                               <div>
-                                <h5 className="text-xs font-bold text-white">{p.title}</h5>
+                                <h5 className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">{p.title}</h5>
                                 <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2">
                                   {p.description}
                                 </p>
@@ -1670,7 +1679,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               >
                                 {p.difficulty}
                               </span>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-white/80">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7]/80">
                                 {p.points || 30} pts
                               </span>
                               {canManageSelected && (
@@ -1705,7 +1714,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <Palette size={20} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                           <span>UI/UX & Figma Design Challenge Configuration</span>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-pink-500/20 text-pink-300 border border-pink-500/30">
                             Figma Prototype
@@ -1717,7 +1726,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white/10 text-white border border-white/10">
+                      <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10">
                         {designPoints} Total Pts
                       </span>
                     </div>
@@ -1725,10 +1734,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                   <form onSubmit={handleSaveDesignChallenge} className="space-y-6">
                     {/* SECTION 1: REFERENCE DESIGN IMAGE UPLOAD */}
-                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <label className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-1.5">
                             <ImageIcon size={14} className="text-pink-400" />
                             <span>Design Reference Mockup Image</span>
                             <span className="text-rose-400">*</span>
@@ -1741,7 +1750,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           <button
                             type="button"
                             onClick={() => setPreviewModalImg(designImageUrl)}
-                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-white flex items-center gap-1.5 transition-colors"
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-1.5 transition-colors"
                           >
                             <Maximize2 size={12} />
                             <span>Preview Fullscreen</span>
@@ -1752,7 +1761,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                         {/* Upload Controls */}
                         <div className="space-y-3">
-                          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/15 hover:border-pink-500/50 rounded-2xl cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] transition-all group">
+                          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 dark:border-white/15 hover:border-pink-500/50 rounded-2xl cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] transition-all group">
                             <input
                               type="file"
                               accept="image/*"
@@ -1770,7 +1779,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 <div className="w-10 h-10 rounded-xl bg-pink-500/15 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                                   <Upload size={18} />
                                 </div>
-                                <span className="text-xs font-bold text-white group-hover:text-pink-300 transition-colors">
+                                <span className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] group-hover:text-pink-300 transition-colors">
                                   Click or Drag Image Here
                                 </span>
                                 <span className="text-[10px] text-text-muted">
@@ -1788,13 +1797,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               onChange={(e) => setDesignImageUrl(e.target.value)}
                               placeholder="https://res.cloudinary.com/... or image link"
                               disabled={!canManageSelected}
-                              className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none"
+                              className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none"
                             />
                           </div>
                         </div>
 
                         {/* Image Preview Box */}
-                        <div className="h-52 rounded-2xl border border-white/10 bg-black/40 overflow-hidden flex items-center justify-center relative group">
+                        <div className="h-52 rounded-2xl border border-black/5 dark:border-white/10 bg-black/40 overflow-hidden flex items-center justify-center relative group">
                           {designImageUrl ? (
                             <>
                               <img
@@ -1806,7 +1815,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => setPreviewModalImg(designImageUrl)}
-                                  className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm transition-all"
+                                  className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm transition-all"
                                 >
                                   <Maximize2 size={13} />
                                   <span>Inspect</span>
@@ -1834,10 +1843,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
 
                     {/* SECTION 2: CHALLENGE DETAILS & PROBLEM STATEMENT */}
-                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="sm:col-span-2">
-                          <label className="block text-xs font-bold text-white/80 mb-1.5">
+                          <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
                             Challenge Title <span className="text-rose-400">*</span>
                           </label>
                           <input
@@ -1847,11 +1856,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             onChange={(e) => setDesignTitle(e.target.value)}
                             placeholder="e.g. Modern Fintech Banking App Mobile & Desktop UI"
                             disabled={!canManageSelected}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-white/80 mb-1.5">
+                          <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
                             Total Points
                           </label>
                           <input
@@ -1860,13 +1869,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={designPoints}
                             onChange={(e) => setDesignPoints(Number(e.target.value))}
                             disabled={!canManageSelected}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white font-mono outline-none disabled:opacity-50"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] font-mono outline-none disabled:opacity-50"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
                           Brief Overview / Description
                         </label>
                         <input
@@ -1875,12 +1884,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignDesc(e.target.value)}
                           placeholder="e.g. Design a sleek, high-conversion crypto & banking experience with rich micro-interactions."
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5">
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
                           Problem Statement & Functional Requirements
                         </label>
                         <textarea
@@ -1889,12 +1898,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignProblem(e.target.value)}
                           placeholder="Detail the target audience, user personas, key flows (Onboarding, Dashboard, Transactions), design constraints, and expected user journeys..."
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none resize-none disabled:opacity-50 leading-relaxed"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none resize-none disabled:opacity-50 leading-relaxed"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-white/80 mb-1.5 flex items-center justify-between">
+                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5 flex items-center justify-between">
                           <span>Reference / Starter Figma URL (Optional)</span>
                           <span className="text-[10px] text-text-muted">Students can duplicate this file</span>
                         </label>
@@ -1904,16 +1913,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignRefFigma(e.target.value)}
                           placeholder="https://www.figma.com/file/... (starter kit / UI kit)"
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
                         />
                       </div>
                     </div>
 
                     {/* SECTION 3: DELIVERABLES CHECKLIST */}
-                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h5 className="text-xs font-bold text-white">Expected Deliverables</h5>
+                          <h5 className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Expected Deliverables</h5>
                           <p className="text-[11px] text-text-muted">Items students must complete in their Figma file.</p>
                         </div>
                         {canManageSelected && (
@@ -1944,7 +1953,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               }}
                               placeholder="e.g. Responsive Desktop layout (1440px) and Mobile layout (390px)"
                               disabled={!canManageSelected}
-                              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/20 outline-none focus:border-pink-500 disabled:opacity-50"
+                              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/20 outline-none focus:border-pink-500 disabled:opacity-50"
                             />
                             {canManageSelected && designDeliverables.length > 1 && (
                               <button
@@ -1961,10 +1970,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
 
                     {/* SECTION 4: GUIDELINES & EVALUATION CRITERIA */}
-                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h5 className="text-xs font-bold text-white">Guidelines & Evaluation Criteria</h5>
+                          <h5 className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Guidelines & Evaluation Criteria</h5>
                           <p className="text-[11px] text-text-muted">Rubric used by admins when grading design links.</p>
                         </div>
                         {canManageSelected && (
@@ -1995,7 +2004,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               }}
                               placeholder="e.g. Visual Hierarchy, Spacing consistency, WCAG AA Contrast"
                               disabled={!canManageSelected}
-                              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/20 outline-none focus:border-purple-500 disabled:opacity-50"
+                              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/20 outline-none focus:border-purple-500 disabled:opacity-50"
                             />
                             {canManageSelected && designGuidelines.length > 1 && (
                               <button
@@ -2017,7 +2026,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <button
                           type="submit"
                           disabled={actionLoading}
-                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                         >
                           {actionLoading && <Loader2 size={14} className="animate-spin" />}
                           <CheckCircle2 size={14} />
@@ -2038,7 +2047,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <Users size={20} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                           <span>Arena Teams & Manual Allocation</span>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
                             {arenaTeams.length} Teams
@@ -2053,8 +2062,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                   {/* Create Team Form */}
                   {canManageSelected && (
-                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
-                      <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                    <div className="p-5 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-4">
+                      <h4 className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                         <Plus size={14} className="text-blue-400" />
                         <span>Create New Team</span>
                       </h4>
@@ -2065,7 +2074,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           value={teamNameInput}
                           onChange={(e) => setTeamNameInput(e.target.value)}
                           placeholder="Enter team name (e.g. Code Phoenix, DevSquad)..."
-                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 outline-none focus:border-blue-500"
+                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 outline-none focus:border-blue-500"
                         />
                         <button
                           type="button"
@@ -2078,7 +2087,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             });
                             setTeamNameInput('');
                           }}
-                          className="px-5 py-2.5 min-h-[40px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="px-5 py-2.5 min-h-[40px] rounded-xl bg-blue-600 hover:bg-blue-500 text-[#1D1D1F] dark:text-[#F5F5F7] font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           {actionLoading && <Loader2 size={13} className="animate-spin" />}
                           <Plus size={13} />
@@ -2090,9 +2099,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                   {/* Existing Teams List */}
                   {arenaTeams.length === 0 ? (
-                    <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-2">
-                      <Users size={28} className="mx-auto text-white/30" />
-                      <h4 className="text-sm font-bold text-white">No Teams Formed Yet</h4>
+                    <div className="p-8 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 text-center space-y-2">
+                      <Users size={28} className="mx-auto text-[#1D1D1F] dark:text-[#F5F5F7]/30" />
+                      <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">No Teams Formed Yet</h4>
                       <p className="text-xs text-text-muted max-w-sm mx-auto">
                         Create teams above to assign participants. Students in team-mode rounds will share submissions and scoring.
                       </p>
@@ -2102,7 +2111,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       {arenaTeams.map((team) => (
                         <div
                           key={team._id}
-                          className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3"
+                          className="p-4 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-3"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -2110,8 +2119,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 👥
                               </span>
                               <div>
-                                <h5 className="text-sm font-bold text-white">{team.name}</h5>
-                                <p className="text-[10px] text-white/50">{team.members.length} members</p>
+                                <h5 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">{team.name}</h5>
+                                <p className="text-[10px] text-[#1D1D1F] dark:text-[#F5F5F7]/50">{team.members.length} members</p>
                               </div>
                             </div>
 
@@ -2123,7 +2132,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                     deleteArenaTeam(event._id, team._id);
                                   }
                                 }}
-                                className="p-1.5 rounded-lg text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                className="p-1.5 rounded-lg text-[#1D1D1F] dark:text-[#F5F5F7]/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -2133,12 +2142,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           {/* Member List */}
                           <div className="space-y-1.5 max-h-36 overflow-y-auto">
                             {team.members.length === 0 ? (
-                              <p className="text-[11px] text-white/40 italic">No members assigned yet.</p>
+                              <p className="text-[11px] text-[#1D1D1F] dark:text-[#F5F5F7]/40 italic">No members assigned yet.</p>
                             ) : (
                               team.members.map((mem) => (
                                 <div
                                   key={mem._id}
-                                  className="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs text-white/80"
+                                  className="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs text-[#1D1D1F] dark:text-[#F5F5F7]/80"
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <div className="w-5 h-5 rounded-full overflow-hidden bg-white/10 shrink-0">
@@ -2150,7 +2159,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                     </div>
                                     <span className="truncate font-semibold text-[11px]">{mem.name}</span>
                                     {mem.rollNo && (
-                                      <span className="text-[10px] text-white/40 font-mono">({mem.rollNo})</span>
+                                      <span className="text-[10px] text-[#1D1D1F] dark:text-[#F5F5F7]/40 font-mono">({mem.rollNo})</span>
                                     )}
                                   </div>
 
@@ -2165,7 +2174,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                           memberUserIds: remaining,
                                         });
                                       }}
-                                      className="text-white/40 hover:text-rose-400 text-xs px-1"
+                                      className="text-[#1D1D1F] dark:text-[#F5F5F7]/40 hover:text-rose-400 text-xs px-1"
                                       title="Remove member"
                                     >
                                       <X size={12} />
@@ -2187,7 +2196,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-bold text-white">Student Submissions</h4>
+                      <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Student Submissions</h4>
                       <p className="text-xs text-text-muted">
                         Total {adminSubmissions.length} submissions for "{selectedAssessment.title}"
                       </p>
@@ -2195,154 +2204,284 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
 
                   {adminSubmissions.length === 0 ? (
-                    <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/10 text-center space-y-2">
-                      <Award size={28} className="mx-auto text-white/30" />
-                      <h4 className="text-sm font-bold text-white">No Submissions Yet</h4>
-                      <p className="text-xs text-text-muted">
+                    <div className="p-8 rounded-2xl bg-surface-secondary border border-separator text-center space-y-2">
+                      <Award size={28} className="mx-auto text-label-tertiary" />
+                      <h4 className="text-sm font-bold text-label-primary">No Submissions Yet</h4>
+                      <p className="text-xs text-label-secondary">
                         Submissions from students who complete this assessment will appear here with complete details.
                       </p>
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-white/10 overflow-hidden bg-white/[0.01]">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-white/5 border-b border-white/10 text-text-muted uppercase text-[10px]">
-                          <tr>
-                            <th className="p-3">Rank & Student</th>
-                            <th className="p-3">Residence</th>
-                            <th className="p-3">Score</th>
-                            <th className="p-3">Percentage</th>
-                            <th className="p-3">Result</th>
-                            <th className="p-3">Figma / Work</th>
-                            <th className="p-3">Submitted At</th>
-                            <th className="p-3 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {adminSubmissions.map((sub, idx) => (
-                            <tr key={sub._id || idx} className="hover:bg-white/[0.02] transition-colors">
-                              <td className="p-3">
-                                <div className="flex items-center gap-2.5">
-                                  <span className="font-mono text-text-muted w-4">#{idx + 1}</span>
-                                  <div className="w-6 h-6 rounded-full overflow-hidden bg-white/10 shrink-0">
-                                    <img
-                                      src={
-                                        sub.userId?.profilePicUrl ||
-                                        `https://ui-avatars.com/api/?name=${sub.userId?.name}&background=1D1D1F&color=fff&size=60`
-                                      }
-                                      alt={sub.userId?.name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  <div>
-                                    <p className="font-semibold text-white">{sub.userId?.name || 'Student'}</p>
-                                    <p className="text-[10px] text-text-muted">
-                                      {sub.userId?.rollNo || sub.userId?.email}
-                                    </p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                {sub.userId?.residenceType ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 border border-white/10 text-purple-300">
-                                    {sub.userId.residenceType === 'Hosteller' ? (
-                                      <Building size={10} />
-                                    ) : (
-                                      <Bus size={10} />
-                                    )}
-                                    <span>{sub.userId.residenceType}</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-text-muted text-[10px]">—</span>
-                                )}
-                              </td>
-                              <td className="p-3 font-mono font-bold text-white">
-                                {sub.totalScore} / {sub.maxPossibleScore}
-                              </td>
-                              <td className="p-3 font-mono text-white/80">{sub.scorePercentage}%</td>
-                              <td className="p-3">
-                                <span
-                                  className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    sub.isPassed
-                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                                  }`}
-                                >
-                                  {sub.isPassed ? 'Passed' : 'Failed'}
+                    <>
+                      {/* Mobile Card List (< md viewports) */}
+                      <div className="block md:hidden space-y-3">
+                        {adminSubmissions.map((sub, idx) => (
+                          <div
+                            key={sub._id || idx}
+                            className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-3 shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="w-6 h-6 rounded-full bg-accent/10 text-accent font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                                  #{idx + 1}
                                 </span>
-                              </td>
-                              <td className="p-3">
-                                {sub.designSubmission?.figmaLink ? (
-                                  <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <a
-                                        href={sub.designSubmission.figmaLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-400 hover:text-pink-300 underline underline-offset-2"
-                                      >
-                                        <Palette size={11} />
-                                        <span>Figma File</span>
-                                        <ExternalLink size={10} />
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
-                                        className="px-1.5 py-0.5 rounded text-[10px] bg-white/10 hover:bg-white/20 text-white font-medium"
-                                      >
-                                        Embed
-                                      </button>
-                                    </div>
-                                    {sub.designSubmission.isEvaluated ? (
-                                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                                        <CheckCircle size={10} />
-                                        <span>Graded: {sub.designSubmission.pointsEarned} pts</span>
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] text-amber-400 font-semibold">
-                                        Pending Review
-                                      </span>
-                                    )}
-                                    {sub.designSubmission.notes && (
-                                      <p className="text-[10px] text-text-muted italic truncate max-w-[150px]">
-                                        "{sub.designSubmission.notes}"
-                                      </p>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-text-muted text-[10px]">—</span>
-                                )}
-                              </td>
-                              <td className="p-3 text-[11px] text-text-muted">
+                                <div className="w-8 h-8 rounded-full overflow-hidden bg-surface border border-separator shrink-0">
+                                  <img
+                                    src={
+                                      sub.userId?.profilePicUrl ||
+                                      `https://ui-avatars.com/api/?name=${sub.userId?.name}&background=1D1D1F&color=fff&size=60`
+                                    }
+                                    alt={sub.userId?.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-xs text-label-primary truncate">
+                                    {sub.userId?.name || 'Student'}
+                                  </p>
+                                  <p className="text-[10px] text-label-tertiary truncate">
+                                    {sub.userId?.rollNo || sub.userId?.email}
+                                  </p>
+                                </div>
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                                  sub.isPassed
+                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                }`}
+                              >
+                                {sub.isPassed ? 'Passed' : 'Failed'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 p-2 bg-surface rounded-xl border border-separator/60 text-center">
+                              <div>
+                                <span className="text-[9px] text-label-tertiary uppercase font-bold block">Score</span>
+                                <span className="font-mono text-xs font-bold text-label-primary">
+                                  {sub.totalScore}/{sub.maxPossibleScore}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-label-tertiary uppercase font-bold block">Percentage</span>
+                                <span className="font-mono text-xs font-bold text-label-primary">{sub.scorePercentage}%</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-label-tertiary uppercase font-bold block">Residence</span>
+                                <span className="text-[10px] font-semibold text-accent truncate block mt-0.5">
+                                  {sub.userId?.residenceType || '—'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Figma / Work status */}
+                            {sub.designSubmission?.figmaLink && (
+                              <div className="p-2.5 rounded-xl bg-pink-500/5 border border-pink-500/20 space-y-2">
+                                <div className="flex items-center justify-between text-xs">
+                                  <a
+                                    href={sub.designSubmission.figmaLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-500 hover:text-pink-400 underline underline-offset-2"
+                                  >
+                                    <Palette size={11} />
+                                    <span>Figma File</span>
+                                    <ExternalLink size={10} />
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
+                                    className="px-2 py-0.5 rounded-lg text-[10px] bg-surface border border-separator text-label-primary font-medium cursor-pointer"
+                                  >
+                                    Preview
+                                  </button>
+                                </div>
+                                <div className="flex items-center justify-between text-[11px]">
+                                  {sub.designSubmission.isEvaluated ? (
+                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                      <CheckCircle size={10} />
+                                      <span>Graded: {sub.designSubmission.pointsEarned} pts</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-amber-500 font-semibold">
+                                      Pending Review
+                                    </span>
+                                  )}
+                                  {canManageSelected && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEvaluatingSub(sub);
+                                        setEvalPoints(sub.designSubmission?.pointsEarned || 0);
+                                        setEvalFeedback(sub.designSubmission?.feedback || '');
+                                      }}
+                                      className="px-3 py-1 rounded-full text-xs font-bold bg-pink-600 hover:bg-pink-500 text-white shadow-xs transition-all inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Award size={11} />
+                                      <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-[10px] text-label-tertiary pt-1 border-t border-separator/40">
+                              <span>Submitted</span>
+                              <span>
                                 {sub.submittedAt
                                   ? new Date(sub.submittedAt).toLocaleTimeString([], {
                                       hour: '2-digit',
                                       minute: '2-digit',
                                     })
                                   : 'In Progress'}
-                              </td>
-                              <td className="p-3 text-right">
-                                {sub.designSubmission?.figmaLink && canManageSelected ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEvaluatingSub(sub);
-                                      setEvalPoints(sub.designSubmission?.pointsEarned || 0);
-                                      setEvalFeedback(sub.designSubmission?.feedback || '');
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 transition-all inline-flex items-center gap-1"
-                                  >
-                                    <Award size={11} />
-                                    <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
-                                  </button>
-                                ) : (
-                                  <span className="text-text-muted text-[10px]">—</span>
-                                )}
-                              </td>
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Desktop Table (md+) */}
+                      <div className="hidden md:block rounded-xl border border-separator overflow-hidden bg-surface-secondary/20">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-surface-secondary border-b border-separator text-label-secondary uppercase text-[10px]">
+                            <tr>
+                              <th className="p-3">Rank & Student</th>
+                              <th className="p-3">Residence</th>
+                              <th className="p-3">Score</th>
+                              <th className="p-3">Percentage</th>
+                              <th className="p-3">Result</th>
+                              <th className="p-3">Figma / Work</th>
+                              <th className="p-3">Submitted At</th>
+                              <th className="p-3 text-right">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-separator/40">
+                            {adminSubmissions.map((sub, idx) => (
+                              <tr key={sub._id || idx} className="hover:bg-surface-secondary/40 transition-colors">
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="font-mono text-label-tertiary w-4">#{idx + 1}</span>
+                                    <div className="w-6 h-6 rounded-full overflow-hidden bg-surface border border-separator shrink-0">
+                                      <img
+                                        src={
+                                          sub.userId?.profilePicUrl ||
+                                          `https://ui-avatars.com/api/?name=${sub.userId?.name}&background=1D1D1F&color=fff&size=60`
+                                        }
+                                        alt={sub.userId?.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold text-label-primary">{sub.userId?.name || 'Student'}</p>
+                                      <p className="text-[10px] text-label-tertiary">
+                                        {sub.userId?.rollNo || sub.userId?.email}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  {sub.userId?.residenceType ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface border border-separator text-accent">
+                                      {sub.userId.residenceType === 'Hosteller' ? (
+                                        <Building size={10} />
+                                      ) : (
+                                        <Bus size={10} />
+                                      )}
+                                      <span>{sub.userId.residenceType}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-label-tertiary text-[10px]">—</span>
+                                  )}
+                                </td>
+                                <td className="p-3 font-mono font-bold text-label-primary">
+                                  {sub.totalScore} / {sub.maxPossibleScore}
+                                </td>
+                                <td className="p-3 font-mono text-label-secondary">{sub.scorePercentage}%</td>
+                                <td className="p-3">
+                                  <span
+                                    className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                      sub.isPassed
+                                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                        : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                    }`}
+                                  >
+                                    {sub.isPassed ? 'Passed' : 'Failed'}
+                                  </span>
+                                </td>
+                                <td className="p-3">
+                                  {sub.designSubmission?.figmaLink ? (
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <a
+                                          href={sub.designSubmission.figmaLink}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-500 hover:text-pink-400 underline underline-offset-2"
+                                        >
+                                          <Palette size={11} />
+                                          <span>Figma File</span>
+                                          <ExternalLink size={10} />
+                                        </a>
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
+                                          className="px-1.5 py-0.5 rounded text-[10px] bg-surface border border-separator text-label-primary font-medium cursor-pointer"
+                                        >
+                                          Embed
+                                        </button>
+                                      </div>
+                                      {sub.designSubmission.isEvaluated ? (
+                                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                          <CheckCircle size={10} />
+                                          <span>Graded: {sub.designSubmission.pointsEarned} pts</span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-[10px] text-amber-500 font-semibold">
+                                          Pending Review
+                                        </span>
+                                      )}
+                                      {sub.designSubmission.notes && (
+                                        <p className="text-[10px] text-label-tertiary italic truncate max-w-[150px]">
+                                          "{sub.designSubmission.notes}"
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-label-tertiary text-[10px]">—</span>
+                                  )}
+                                </td>
+                                <td className="p-3 text-[11px] text-label-tertiary">
+                                  {sub.submittedAt
+                                    ? new Date(sub.submittedAt).toLocaleTimeString([], {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })
+                                    : 'In Progress'}
+                                </td>
+                                <td className="p-3 text-right">
+                                  {sub.designSubmission?.figmaLink && canManageSelected ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEvaluatingSub(sub);
+                                        setEvalPoints(sub.designSubmission?.pointsEarned || 0);
+                                        setEvalFeedback(sub.designSubmission?.feedback || '');
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-500 border border-pink-500/30 transition-all inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Award size={11} />
+                                      <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-label-tertiary text-[10px]">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
@@ -2351,14 +2490,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3">
             <Layers size={36} className="text-purple-400/50" />
-            <h3 className="text-base font-bold text-white">No Assessments Created Yet</h3>
+            <h3 className="text-base font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">No Assessments Created Yet</h3>
             <p className="text-xs text-text-muted max-w-md">
               Create the first assessment for this Event Arena. You can create as many assessments as needed
               and assign admins to curate each one.
             </p>
             <button
               onClick={() => setIsCreatingNew(true)}
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
             >
               <Plus size={14} />
               <span>Create First Assessment</span>
@@ -2369,15 +2508,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* BULK UPLOAD SUB-MODAL */}
         <AnimatePresence>
           {bulkModalType && (
-            <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-md rounded-2xl bg-[#141418] border border-white/15 p-6 shadow-2xl space-y-4"
+                className="w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-surface border border-separator p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                     <FileSpreadsheet size={16} className="text-purple-400" />
                     <span>Upload {bulkModalType.toUpperCase()} Questions</span>
                   </h3>
@@ -2386,7 +2525,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       setBulkModalType(null);
                       setBulkFile(null);
                     }}
-                    className="text-text-muted hover:text-white"
+                    className="text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7]"
                   >
                     <X size={16} />
                   </button>
@@ -2395,10 +2534,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 <p className="text-xs text-text-muted">
                   Upload an Excel (.xlsx) or JSON file formatted according to the sample template. Questions
                   will be added directly to{' '}
-                  <span className="font-semibold text-white">"{selectedAssessment?.title}"</span>.
+                  <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">"{selectedAssessment?.title}"</span>.
                 </p>
 
-                <div className="p-6 rounded-xl border-2 border-dashed border-white/15 hover:border-purple-500/50 text-center space-y-2 cursor-pointer transition-colors bg-white/[0.01]">
+                <div className="p-6 rounded-xl border-2 border-dashed border-black/10 dark:border-white/15 hover:border-purple-500/50 text-center space-y-2 cursor-pointer transition-colors bg-white/[0.01]">
                   <Upload size={24} className="mx-auto text-purple-400" />
                   <div>
                     <input
@@ -2416,7 +2555,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </label>
                   </div>
                   {bulkFile && (
-                    <p className="text-xs text-white font-mono truncate px-4">{bulkFile.name}</p>
+                    <p className="text-xs text-[#1D1D1F] dark:text-[#F5F5F7] font-mono truncate px-4">{bulkFile.name}</p>
                   )}
                 </div>
 
@@ -2426,14 +2565,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       setBulkModalType(null);
                       setBulkFile(null);
                     }}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-white"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7]"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleBulkUpload}
                     disabled={!bulkFile || actionLoading}
-                    className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 disabled:opacity-50"
                   >
                     {actionLoading && <Loader2 size={12} className="animate-spin" />}
                     <span>Upload Now</span>
@@ -2454,16 +2593,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center"
               >
-                <div className="w-full flex justify-between items-center pb-3 text-white">
-                  <span className="text-xs font-bold text-white/80">Reference Design Mockup</span>
+                <div className="w-full flex justify-between items-center pb-3 text-[#1D1D1F] dark:text-[#F5F5F7]">
+                  <span className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80">Reference Design Mockup</span>
                   <button
                     onClick={() => setPreviewModalImg(null)}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#1D1D1F] dark:text-[#F5F5F7]"
                   >
                     <X size={18} />
                   </button>
                 </div>
-                <div className="overflow-auto max-h-[82vh] rounded-2xl border border-white/20 bg-black/60 p-2">
+                <div className="overflow-auto max-h-[82vh] rounded-2xl border border-black/10 dark:border-white/20 bg-black/60 p-2">
                   <img
                     src={previewModalImg}
                     alt="Design Reference Full"
@@ -2478,20 +2617,20 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* FIGMA EMBED PREVIEW MODAL */}
         <AnimatePresence>
           {previewFigmaUrl && (
-            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <div className="fixed inset-0 z-70 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-5xl h-[85vh] rounded-2xl bg-[#141418] border border-white/20 shadow-2xl flex flex-col overflow-hidden"
+                className="w-full sm:max-w-5xl h-[82vh] rounded-t-3xl sm:rounded-2xl bg-surface border border-separator shadow-2xl flex flex-col overflow-hidden"
               >
-                <div className="px-6 py-3.5 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
+                <div className="px-6 py-3.5 border-b border-black/5 dark:border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400">
                       <Palette size={16} />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white">Interactive Figma Prototype Embed</h4>
+                      <h4 className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Interactive Figma Prototype Embed</h4>
                       <a
                         href={previewFigmaUrl}
                         target="_blank"
@@ -2505,7 +2644,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
                   <button
                     onClick={() => setPreviewFigmaUrl(null)}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#1D1D1F] dark:text-[#F5F5F7]"
                   >
                     <X size={16} />
                   </button>
@@ -2525,28 +2664,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* DESIGN SUBMISSION EVALUATION DRAWER / MODAL */}
         <AnimatePresence>
           {evaluatingSub && (
-            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="fixed inset-0 z-70 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-lg rounded-2xl bg-[#141418] border border-white/20 p-6 shadow-2xl space-y-5"
+                className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl bg-surface border border-separator p-5 sm:p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
               >
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400">
                       <Award size={16} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-white">Evaluate Figma Design</h4>
+                      <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Evaluate Figma Design</h4>
                       <p className="text-xs text-text-muted">
-                        Student: <span className="text-white font-semibold">{evaluatingSub.userId?.name}</span> ({evaluatingSub.userId?.rollNo || evaluatingSub.userId?.email})
+                        Student: <span className="text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold">{evaluatingSub.userId?.name}</span> ({evaluatingSub.userId?.rollNo || evaluatingSub.userId?.email})
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setEvaluatingSub(null)}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#1D1D1F] dark:text-[#F5F5F7]"
                   >
                     <X size={16} />
                   </button>
@@ -2568,7 +2707,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   {evaluatingSub.designSubmission?.notes && (
                     <div className="pt-1 text-xs">
                       <span className="text-text-muted block text-[10px] uppercase font-bold tracking-wider mb-0.5">Student Notes:</span>
-                      <p className="text-white/80 bg-white/5 p-2 rounded-lg text-[11px] leading-relaxed">
+                      <p className="text-[#1D1D1F] dark:text-[#F5F5F7]/80 bg-white/5 p-2 rounded-lg text-[11px] leading-relaxed">
                         {evaluatingSub.designSubmission.notes}
                       </p>
                     </div>
@@ -2578,7 +2717,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
-                      <label className="text-xs font-bold text-white">Awarded Points</label>
+                      <label className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Awarded Points</label>
                       <span className="text-xs font-mono font-bold text-pink-400">
                         {evalPoints} / {selectedAssessment?.totalPoints || 100} pts
                       </span>
@@ -2599,7 +2738,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-white mb-1.5">
+                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1.5">
                       Reviewer Feedback / Comments
                     </label>
                     <textarea
@@ -2607,16 +2746,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       value={evalFeedback}
                       onChange={(e) => setEvalFeedback(e.target.value)}
                       placeholder="e.g. Excellent layout spacing, responsive auto-layout implemented cleanly. Typography hierarchy is on point!"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-white/30 focus:border-pink-500 outline-none resize-none leading-relaxed"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none resize-none leading-relaxed"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                <div className="flex justify-end gap-2 pt-2 border-t border-black/5 dark:border-white/10">
                   <button
                     type="button"
                     onClick={() => setEvaluatingSub(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white/70 hover:bg-white/10"
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/70 hover:bg-white/10"
                   >
                     Cancel
                   </button>
@@ -2624,7 +2763,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     type="button"
                     onClick={handleEvaluateSubmit}
                     disabled={actionLoading}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-1.5 disabled:opacity-50"
                   >
                     {actionLoading && <Loader2 size={13} className="animate-spin" />}
                     <CheckCircle2 size={13} />
@@ -2635,8 +2774,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
             </div>
           )}
         </AnimatePresence>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

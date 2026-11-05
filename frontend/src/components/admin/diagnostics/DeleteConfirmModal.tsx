@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Trash2, X, Lock } from 'lucide-react';
+import ResponsiveModal from '../../ui/ResponsiveModal';
+import { AlertTriangle, Trash2, Loader2 } from 'lucide-react';
 import { UserBadge } from './UserBadge';
 import { UserLookupItem } from '../../../store/useDiagnosticsStore';
 
@@ -42,45 +42,34 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface rounded-2xl sm:rounded-3xl border border-destructive/30 max-w-md w-full shadow-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5"
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
-              <AlertTriangle size={20} className="sm:w-6 sm:h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-label-primary">Delete Document Record</h3>
-              <p className="text-xs text-label-tertiary">
-                Permanent deletion from collection '{collectionName}'
-              </p>
-            </div>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-4 h-4" />
           </div>
-
-          <button
-            onClick={onClose}
-            className="p-1.5 hover:bg-surface-secondary rounded-xl text-label-tertiary hover:text-label-primary transition-colors"
-          >
-            <X size={16} />
-          </button>
+          <span>Delete Document Record</span>
         </div>
-
+      }
+      description={`Permanent deletion from collection '${collectionName}'.`}
+      dialogClassName="sm:max-w-md p-6"
+    >
+      <div className="space-y-4 pt-2">
         {/* Record Overview Card */}
-        <div className="p-3 sm:p-4 bg-surface-secondary rounded-2xl border border-separator space-y-2.5">
+        <div className="p-3.5 sm:p-4 bg-surface-secondary rounded-2xl border border-separator space-y-2.5">
           <div className="flex items-center justify-between text-xs">
             <span className="text-label-tertiary font-mono">_id</span>
-            <span className="font-mono text-primary font-bold">{doc._id}</span>
+            <span className="font-mono text-accent font-bold truncate max-w-[200px]">{doc._id}</span>
           </div>
 
           {titleOrName && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-label-tertiary">Record Label</span>
-              <span className="font-semibold text-label-primary truncate max-w-[180px] sm:max-w-[200px]">
+              <span className="font-semibold text-label-primary truncate max-w-[200px]">
                 {titleOrName}
               </span>
             </div>
@@ -103,17 +92,17 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           )}
         </div>
 
-        <p className="text-xs text-destructive bg-destructive/10 p-3 rounded-xl border border-destructive/20 font-medium">
+        <p className="text-xs text-destructive bg-destructive/10 p-3 rounded-xl border border-destructive/20 font-medium leading-relaxed">
           Warning: This action cannot be undone. The document will be permanently purged from MongoDB Atlas.
         </p>
 
         {/* Actions */}
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 sm:gap-3 pt-2">
+        <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={deleting}
-            className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-label-secondary hover:text-label-primary hover:bg-surface-secondary rounded-xl transition-colors text-center"
+            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors"
           >
             Cancel
           </button>
@@ -121,14 +110,23 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             type="button"
             onClick={handleDelete}
             disabled={deleting}
-            className="w-full sm:w-auto px-5 py-2.5 bg-destructive text-white text-xs font-bold rounded-xl shadow-md shadow-destructive/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-destructive text-white hover:opacity-90 disabled:opacity-50 transition cursor-pointer shadow"
           >
-            <Trash2 size={14} className={deleting ? 'animate-spin' : ''} />
-            <span>{deleting ? 'Deleting...' : 'Delete Permanently'}</span>
+            {deleting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 size={13} />
+                <span>Delete Permanently</span>
+              </>
+            )}
           </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </ResponsiveModal>
   );
 };
 

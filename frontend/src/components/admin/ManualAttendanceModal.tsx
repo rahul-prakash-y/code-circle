@@ -1,3 +1,4 @@
+import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -429,56 +430,28 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md"
-        />
-
-        {/* Modal Window */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 16 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 16 }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-4xl bg-surface border border-separator rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[92vh]"
-          style={{ backgroundColor: 'var(--surface)', color: 'var(--label-primary)' }}
-        >
-          {/* Modal Header */}
-          <div className="p-5 sm:p-6 border-b border-separator bg-canvas/60 flex items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
-                <UserCheck size={22} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-extrabold text-label-primary tracking-tight font-heading">
-                    Manual Attendance Entry
-                  </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-accent/10 text-accent border border-accent/20">
-                    Admin Override
-                  </span>
-                </div>
-                <p className="text-xs text-label-secondary mt-0.5">
-                  Directly record verified presence for students who missed OTP submission.
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors cursor-pointer"
-              title="Close modal"
-            >
-              <X size={20} />
-            </button>
+    <ResponsiveModal
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+            <UserCheck className="w-4 h-4" />
           </div>
-
+          <div className="flex items-center gap-2">
+            <span>Manual Attendance Entry</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent/10 text-accent border border-accent/20">
+              Admin Override
+            </span>
+          </div>
+        </div>
+      }
+      description="Directly record verified presence for students who missed OTP submission."
+      dialogClassName="sm:max-w-4xl p-6"
+    >
+      <div className="space-y-4 pt-2">
           {/* Event & Session Selector Bar */}
           <div className="p-4 sm:px-6 border-b border-separator bg-surface grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {/* Event Selector */}
@@ -1001,25 +974,24 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
             </div>
           )}
 
-          {/* Modal Footer */}
-          <div className="p-4 sm:px-6 border-t border-separator bg-canvas/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary">
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>
-                Manual markings automatically synchronize with certificates and the live attendance registry.
-              </span>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="btn-secondary text-xs py-1.5 px-4 cursor-pointer self-end sm:self-auto"
-            >
-              Done & Close
-            </button>
+        {/* Modal Footer */}
+        <div className="pt-4 border-t border-separator flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary">
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>
+              Manual markings automatically synchronize with certificates and the live attendance registry.
+            </span>
           </div>
-        </motion.div>
+
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition self-end sm:self-auto"
+          >
+            Done & Close
+          </button>
+        </div>
       </div>
-    </AnimatePresence>
+    </ResponsiveModal>
   );
 };
 

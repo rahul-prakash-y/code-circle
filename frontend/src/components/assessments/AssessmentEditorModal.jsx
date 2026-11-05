@@ -433,7 +433,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                       onClick={() => setCustomPoints(preset)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium tabular-nums transition-all cursor-pointer ${
                         customPoints === preset
-                          ? 'bg-amber-500 text-black shadow-xs font-semibold'
+                          ? 'bg-amber-500 text-white shadow-xs font-semibold'
                           : 'bg-white/5 border border-border text-text-secondary hover:text-text-primary hover:bg-white/10'
                       }`}
                     >
@@ -582,7 +582,7 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                               <span
                                 className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-semibold ${
                                   isCorrect
-                                    ? 'bg-emerald-500 text-black shadow-xs'
+                                    ? 'bg-emerald-500 text-white shadow-xs'
                                     : 'bg-surface-elevated text-text-muted'
                                 }`}
                               >
