@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Plus,
@@ -26,6 +25,7 @@ import {
   Terminal,
   Loader2,
 } from 'lucide-react';
+import ResponsiveModal from '../../ui/ResponsiveModal';
 import { toast } from 'react-hot-toast';
 import useContestStore, {
   Contest,
@@ -423,45 +423,60 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/75 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-5 overflow-hidden">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-t-[28px] sm:rounded-3xl border border-black/5 dark:border-white/10 w-full sm:w-[min(1024px,96vw)] p-4 sm:p-7 space-y-4 sm:space-y-5 shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[90vh]"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-separator dark:border-white/10 pb-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 flex items-center justify-center">
-              <Award size={20} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-label-primary dark:text-[#F5F5F7] tracking-tight font-heading">
-                  {editingContest ? 'Edit Weekly Contest' : 'Create Weekly Contest'}
-                </h2>
-                {loadingDetails && (
-                  <span className="flex items-center gap-1 text-[11px] text-blue-500 font-semibold">
-                    <Loader2 size={12} className="animate-spin" /> Loading specs...
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5">
-                Design timed coding challenges, hidden anti-cheat test cases, and technical MCQs.
-              </p>
-            </div>
-          </div>
+    <>
+      <ResponsiveModal
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        title={
           <div className="flex items-center gap-2">
-            <TutorialButton tutorialId="contests" variant="icon" />
-            <button
-              onClick={onClose}
-              className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center hover:bg-surface-secondary dark:hover:bg-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
-            >
-              <X size={18} />
-            </button>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 flex items-center justify-center shrink-0">
+              <Award className="w-4 h-4" />
+            </div>
+            <span className="truncate">{editingContest ? 'Edit Weekly Contest' : 'Create Weekly Contest'}</span>
+            {loadingDetails && (
+              <span className="flex items-center gap-1 text-[11px] text-blue-500 font-semibold">
+                <Loader2 size={12} className="animate-spin" /> Loading specs...
+              </span>
+            )}
           </div>
-        </div>
+        }
+        description="Design timed coding challenges, hidden anti-cheat test cases, and technical MCQs."
+        dialogClassName="sm:max-w-4xl p-6"
+        footer={
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-separator dark:border-white/10 w-full text-xs">
+            <div className="text-xs text-label-secondary dark:text-[#86868B] text-center sm:text-left">
+              Total Reward: <strong className="text-amber-500 font-mono font-bold">{totalPoints} XP</strong>
+              {questionsPointSum > 0 && (
+                <span className="ml-1 text-[11px] text-label-tertiary">
+                  ({questionsPointSum} configured in challenges)
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5 justify-end">
+              <TutorialButton tutorialId="contests" variant="button" />
+              <button
+                type="button"
+                onClick={onClose}
+                className="min-h-[40px] px-4 py-2 text-xs font-bold text-label-secondary hover:text-label-primary bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl transition-colors cursor-pointer text-center justify-center inline-flex items-center"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="min-h-[40px] px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Save size={14} />
+                <span>{editingContest ? 'Update Contest' : 'Publish Contest'}</span>
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4 pt-1">
 
         {/* Tab Switcher */}
         <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10 shrink-0 overflow-x-auto no-scrollbar touch-pan-x flex-nowrap">
@@ -1257,36 +1272,8 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-separator dark:border-white/10 shrink-0">
-          <div className="text-xs text-label-secondary dark:text-[#86868B] text-center sm:text-left">
-            Total Reward: <strong className="text-amber-500 font-mono font-bold">{totalPoints} XP</strong>
-            {questionsPointSum > 0 && (
-              <span className="ml-1 text-[11px] text-label-tertiary">
-                ({questionsPointSum} configured in challenges)
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 sm:flex-initial min-h-[42px] px-4 py-2.5 text-xs font-bold text-label-secondary hover:text-label-primary bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl transition-colors cursor-pointer text-center justify-center inline-flex items-center"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="flex-1 sm:flex-initial min-h-[42px] px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Save size={15} />
-              <span>{editingContest ? 'Update Contest' : 'Publish Contest'}</span>
-            </button>
-          </div>
         </div>
-      </motion.div>
+      </ResponsiveModal>
 
       {/* Bulk Upload Modals */}
       <ContestMcqBulkUploadModal
@@ -1301,7 +1288,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         onImport={handleImportCodingProblems}
         currentProblemsCount={codingProblems.length}
       />
-    </div>
+    </>
   );
 };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ResponsiveModal from '../ui/ResponsiveModal';
 import {
   X,
   ShieldCheck,
@@ -501,42 +502,43 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-hidden bg-black/40 dark:bg-black/75 backdrop-blur-xl">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-5xl h-[85vh] sm:h-[92vh] max-h-[85vh] sm:max-h-[92vh] flex flex-col rounded-t-[28px] sm:rounded-3xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-black/5 dark:border-white/10 shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 overflow-hidden"
-      >
-        {/* Top Header */}
-        <div className="px-6 py-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between shrink-0 bg-white/[0.02]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-              <Sparkles size={20} />
+    <>
+      <ResponsiveModal
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        title={
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+              <Sparkles size={18} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">Event Arena Assessments</h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 uppercase">
-                  Admin Panel
-                </span>
-              </div>
-              <p className="text-xs text-text-muted mt-0.5 truncate max-w-lg">
-                {event.title} • Multi-Assessment Management & Assigned Admins
-              </p>
-            </div>
+            <span className="truncate">Event Arena Assessments</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 uppercase">
+              Admin Panel
+            </span>
           </div>
-
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-white/10 transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Assessment Switcher Bar */}
-        <div className="px-6 py-2.5 border-b border-black/5 dark:border-white/10 bg-white/[0.01] flex items-center justify-between gap-3 overflow-x-auto shrink-0">
+        }
+        description={`${event.title} • Multi-Assessment Management & Assigned Admins`}
+        dialogClassName="sm:max-w-5xl p-6"
+        footer={
+          <div className="flex items-center justify-between w-full pt-3 border-t border-separator dark:border-white/10 text-xs">
+            <span className="text-text-muted text-[11px]">
+              {assessments.length} assessment{assessments.length === 1 ? '' : 's'} configured
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl font-bold text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 pt-1">
+          {/* Assessment Switcher Bar */}
+          <div className="px-4 py-2.5 border border-separator dark:border-white/10 rounded-2xl bg-surface-secondary/70 flex items-center justify-between gap-3 overflow-x-auto shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto py-1">
             <span className="text-xs font-semibold text-text-muted shrink-0 flex items-center gap-1.5 mr-1">
               <Layers size={13} className="text-purple-400" />
@@ -2523,120 +2525,116 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         </AnimatePresence>
 
         {/* DESIGN SUBMISSION EVALUATION DRAWER / MODAL */}
-        <AnimatePresence>
-          {evaluatingSub && (
-            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-lg rounded-2xl bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/20 p-6 shadow-2xl space-y-5"
-              >
-                <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400">
-                      <Award size={16} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Evaluate Figma Design</h4>
-                      <p className="text-xs text-text-muted">
-                        Student: <span className="text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold">{evaluatingSub.userId?.name}</span> ({evaluatingSub.userId?.rollNo || evaluatingSub.userId?.email})
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setEvaluatingSub(null)}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#1D1D1F] dark:text-[#F5F5F7]"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
+        </div>
+      </ResponsiveModal>
 
-                <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-text-muted">Submitted Figma Link:</span>
-                    <a
-                      href={evaluatingSub.designSubmission?.figmaLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-pink-400 hover:text-pink-300 font-mono underline inline-flex items-center gap-1"
-                    >
-                      <span>Open Figma</span>
-                      <ExternalLink size={11} />
-                    </a>
-                  </div>
-                  {evaluatingSub.designSubmission?.notes && (
-                    <div className="pt-1 text-xs">
-                      <span className="text-text-muted block text-[10px] uppercase font-bold tracking-wider mb-0.5">Student Notes:</span>
-                      <p className="text-[#1D1D1F] dark:text-[#F5F5F7]/80 bg-white/5 p-2 rounded-lg text-[11px] leading-relaxed">
-                        {evaluatingSub.designSubmission.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <label className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Awarded Points</label>
-                      <span className="text-xs font-mono font-bold text-pink-400">
-                        {evalPoints} / {selectedAssessment?.totalPoints || 100} pts
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={selectedAssessment?.totalPoints || 100}
-                      value={evalPoints}
-                      onChange={(e) => setEvalPoints(Number(e.target.value))}
-                      className="w-full accent-pink-500 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-text-muted font-mono mt-1">
-                      <span>0 pts</span>
-                      <span>{Math.round((selectedAssessment?.totalPoints || 100) / 2)} pts</span>
-                      <span>{selectedAssessment?.totalPoints || 100} pts</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1.5">
-                      Reviewer Feedback / Comments
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={evalFeedback}
-                      onChange={(e) => setEvalFeedback(e.target.value)}
-                      placeholder="e.g. Excellent layout spacing, responsive auto-layout implemented cleanly. Typography hierarchy is on point!"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none resize-none leading-relaxed"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-black/5 dark:border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setEvaluatingSub(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/70 hover:bg-white/10"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleEvaluateSubmit}
-                    disabled={actionLoading}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    {actionLoading && <Loader2 size={13} className="animate-spin" />}
-                    <CheckCircle2 size={13} />
-                    <span>Save Evaluation</span>
-                  </button>
-                </div>
-              </motion.div>
+      {/* Evaluation Sub-Modal */}
+      {evaluatingSub && (
+        <ResponsiveModal
+          open={Boolean(evaluatingSub)}
+          onOpenChange={(open) => {
+            if (!open) setEvaluatingSub(null);
+          }}
+          title={
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400 shrink-0">
+                <Award size={16} />
+              </div>
+              <span className="truncate">Evaluate Figma Design</span>
             </div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </div>
+          }
+          description={
+            <span>
+              Student: <strong className="text-label-primary dark:text-[#F5F5F7]">{evaluatingSub.userId?.name}</strong> ({evaluatingSub.userId?.rollNo || evaluatingSub.userId?.email})
+            </span>
+          }
+          dialogClassName="sm:max-w-lg p-6"
+          footer={
+            <div className="flex justify-end gap-2 pt-2 border-t border-separator dark:border-white/10 w-full">
+              <button
+                type="button"
+                onClick={() => setEvaluatingSub(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-label-secondary hover:text-label-primary hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleEvaluateSubmit}
+                disabled={actionLoading}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {actionLoading && <Loader2 size={13} className="animate-spin" />}
+                <CheckCircle2 size={13} />
+                <span>Save Evaluation</span>
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-4 pt-1">
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-separator dark:border-white/10 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-text-muted">Submitted Figma Link:</span>
+                <a
+                  href={evaluatingSub.designSubmission?.figmaLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-pink-400 hover:text-pink-300 font-mono underline inline-flex items-center gap-1"
+                >
+                  <span>Open Figma</span>
+                  <ExternalLink size={11} />
+                </a>
+              </div>
+              {evaluatingSub.designSubmission?.notes && (
+                <div className="pt-1 text-xs">
+                  <span className="text-text-muted block text-[10px] uppercase font-bold tracking-wider mb-0.5">Student Notes:</span>
+                  <p className="text-[#1D1D1F] dark:text-[#F5F5F7]/80 bg-white/5 p-2 rounded-lg text-[11px] leading-relaxed">
+                    {evaluatingSub.designSubmission.notes}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Awarded Points</label>
+                  <span className="text-xs font-mono font-bold text-pink-400">
+                    {evalPoints} / {selectedAssessment?.totalPoints || 100} pts
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={selectedAssessment?.totalPoints || 100}
+                  value={evalPoints}
+                  onChange={(e) => setEvalPoints(Number(e.target.value))}
+                  className="w-full accent-pink-500 cursor-pointer"
+                />
+                <div className="flex justify-between text-[10px] text-text-muted font-mono mt-1">
+                  <span>0 pts</span>
+                  <span>{Math.round((selectedAssessment?.totalPoints || 100) / 2)} pts</span>
+                  <span>{selectedAssessment?.totalPoints || 100} pts</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1.5">
+                  Reviewer Feedback / Comments
+                </label>
+                <textarea
+                  rows={3}
+                  value={evalFeedback}
+                  onChange={(e) => setEvalFeedback(e.target.value)}
+                  placeholder="e.g. Excellent layout spacing, responsive auto-layout implemented cleanly. Typography hierarchy is on point!"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-separator dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none resize-none leading-relaxed"
+                />
+              </div>
+            </div>
+          </div>
+        </ResponsiveModal>
+      )}
+    </>
   );
 };
 
