@@ -205,7 +205,7 @@ export const DomainEditorModal: React.FC<DomainEditorModalProps> = ({
               title={isLocked ? 'Click to approve & unlock' : 'Click to lock'}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow dark:shadow-none ring-0 transition duration-200 ease-in-out ${
                   !isLocked ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />

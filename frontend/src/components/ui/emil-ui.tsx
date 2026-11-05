@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, forwardRef } from 'react';
-import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   EMIL_EASE_OUT,
   EMIL_EASE_IN_OUT,
@@ -15,9 +15,10 @@ import {
 } from '../../lib/motion';
 
 /* ══════════════════════════════════════════════════════════════
-   1. COORDINTATED EMIL TOOLTIP SYSTEM
+   1. COORDINATED EMIL TOOLTIP SYSTEM
    - Delay initial tooltip (~350ms)
    - Zero-delay (0ms) for consecutive tooltips in same group
+   - Apple Liquid Glass styling with dark mode shadow suppression
 ══════════════════════════════════════════════════════════════ */
 
 interface TooltipGroupContextType {
@@ -77,7 +78,6 @@ export const EmilTooltip: React.FC<EmilTooltipProps> = ({
 
   const handleMouseEnter = () => {
     if (isWarm) {
-      // Instant transition for subsequent tooltips in the group
       setIsOpen(true);
       onOpen();
     } else {
@@ -128,12 +128,7 @@ export const EmilTooltip: React.FC<EmilTooltipProps> = ({
               duration: isWarm ? 0.08 : 0.14,
               ease: EMIL_EASE_OUT,
             }}
-            className={`absolute z-50 pointer-events-none px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap shadow-md backdrop-blur-md ${getPositionClasses()}`}
-            style={{
-              background: 'var(--surface-raised, #1C1C1E)',
-              color: 'var(--label-primary, #FFFFFF)',
-              border: '1px solid var(--separator, rgba(255,255,255,0.1))',
-            }}
+            className={`absolute z-50 pointer-events-none px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap shadow-[0_4px_16px_rgba(0,0,0,0.08)] dark:shadow-none dark:ring-1 dark:ring-white/10 backdrop-blur-xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 ${getPositionClasses()}`}
           >
             {content}
           </motion.div>
@@ -145,6 +140,8 @@ export const EmilTooltip: React.FC<EmilTooltipProps> = ({
 
 /* ══════════════════════════════════════════════════════════════
    2. EMIL BUTTON (Strict Micro-interaction: scale 0.97)
+   - Apple HIG tonal variants
+   - 0.97 tactile feedback
 ══════════════════════════════════════════════════════════════ */
 
 export interface EmilButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -175,11 +172,11 @@ export const EmilButton = forwardRef<HTMLButtonElement, EmilButtonProps>(
     }[size];
 
     const variantClasses = {
-      solid: 'bg-primary text-white font-medium shadow-sm hover:opacity-95',
-      flat: 'bg-separator/40 hover:bg-separator/70 text-label-primary font-medium',
-      outline: 'border border-separator bg-transparent hover:bg-separator/30 text-label-primary font-medium',
-      ghost: 'bg-transparent hover:bg-separator/30 text-label-secondary hover:text-label-primary font-medium',
-      danger: 'bg-destructive text-white font-medium hover:opacity-90',
+      solid: 'bg-primary text-white font-medium shadow-sm dark:shadow-none hover:opacity-95 active:opacity-90',
+      flat: 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#1D1D1F] dark:text-[#F5F5F7] font-medium',
+      outline: 'border border-black/10 dark:border-white/15 bg-transparent hover:bg-black/5 dark:hover:bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] font-medium',
+      ghost: 'bg-transparent hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] font-medium',
+      danger: 'bg-destructive text-white font-medium hover:opacity-90 active:opacity-85',
     }[variant];
 
     return (
@@ -203,7 +200,9 @@ export const EmilButton = forwardRef<HTMLButtonElement, EmilButtonProps>(
 EmilButton.displayName = 'EmilButton';
 
 /* ══════════════════════════════════════════════════════════════
-   3. EMIL CARD (Scale 0.95 Entrance, Tap Feedback)
+   3. EMIL CARD (Scale 0.95 Entrance, Tap Feedback, OLED Black Contrast)
+   - Light: bg-[#FFFFFF], shadow-[0_8px_30px_rgb(0,0,0,0.04)]
+   - Dark: bg-[#161617], shadow-none, ring-1 ring-white/10
 ══════════════════════════════════════════════════════════════ */
 
 export interface EmilCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -221,8 +220,8 @@ export const EmilCard = forwardRef<HTMLDivElement, EmilCardProps>(
         exit={{ opacity: 0, scale: 0.95 }}
         whileTap={isPressable ? { scale: 0.97 } : undefined}
         transition={{ duration: 0.2, ease: EMIL_EASE_OUT }}
-        className={`rounded-2xl border border-separator bg-surface text-label-primary p-4 shadow-card transition-shadow duration-200 ${
-          isHoverable ? 'hover:shadow-card-elevated hover:border-separator-opaque' : ''
+        className={`rounded-2xl border border-black/5 dark:border-white/10 bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:ring-1 dark:ring-white/10 transition-all duration-200 ${
+          isHoverable ? 'hover:shadow-[0_12px_36px_rgb(0,0,0,0.06)] dark:hover:shadow-none hover:border-black/10 dark:hover:ring-white/20' : ''
         } ${isPressable ? 'cursor-pointer select-none' : ''} ${className}`}
         {...(props as any)}
       >
@@ -234,7 +233,7 @@ export const EmilCard = forwardRef<HTMLDivElement, EmilCardProps>(
 EmilCard.displayName = 'EmilCard';
 
 /* ══════════════════════════════════════════════════════════════
-   4. EMIL DROPDOWN (Origin-Aware, Never scale(0), Sub-180ms)
+   4. EMIL DROPDOWN (Origin-Aware, Liquid Glass, Sub-180ms)
 ══════════════════════════════════════════════════════════════ */
 
 interface DropdownContextType {
@@ -305,7 +304,7 @@ export const EmilDropdownMenu: React.FC<{
           initial="initial"
           animate="animate"
           exit="exit"
-          className={`absolute top-full mt-1.5 z-50 min-w-[200px] p-1.5 rounded-2xl bg-surface/95 backdrop-blur-md border border-separator shadow-xl outline-none ${alignClasses} ${className}`}
+          className={`absolute top-full mt-1.5 z-50 min-w-[200px] p-1.5 rounded-2xl bg-white/80 dark:bg-[#161617]/90 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.08)] dark:shadow-none dark:ring-1 dark:ring-white/10 outline-none ${alignClasses} ${className}`}
         >
           {children}
         </motion.div>
@@ -336,7 +335,7 @@ export const EmilDropdownItem: React.FC<{
       className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-left cursor-pointer transition-colors duration-100 ${
         isDestructive
           ? 'text-destructive hover:bg-destructive/10'
-          : 'text-label-primary hover:bg-separator/40 hover:text-label-primary'
+          : 'text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/5 dark:hover:bg-white/10'
       } ${className}`}
     >
       {icon && <span className="shrink-0">{icon}</span>}
@@ -346,7 +345,9 @@ export const EmilDropdownItem: React.FC<{
 };
 
 /* ══════════════════════════════════════════════════════════════
-   5. EMIL MODAL (Centered, Backdrop-Blur-Md, Never scale(0))
+   5. EMIL MODAL (Centered, Backdrop-Blur-Xl, Never scale(0))
+   - Light: bg-[#FFFFFF], shadow-[0_24px_60px_rgba(0,0,0,0.12)]
+   - Dark: bg-[#161617], dark:shadow-none, dark:ring-1 dark:ring-white/10
 ══════════════════════════════════════════════════════════════ */
 
 export interface EmilModalProps {
@@ -364,7 +365,6 @@ export const EmilModal: React.FC<EmilModalProps> = ({
   children,
   maxWidth = 'max-w-lg',
 }) => {
-  // Close on Escape key (instant keyboard action)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -379,14 +379,14 @@ export const EmilModal: React.FC<EmilModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop with backdrop-blur-md */}
+          {/* Backdrop: Liquid glass darkened */}
           <motion.div
             variants={emilBackdropVariants}
             initial="initial"
             animate="animate"
             exit="exit"
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-md"
+            className="fixed inset-0 bg-black/30 dark:bg-black/75 backdrop-blur-xl"
           />
 
           {/* Centered Dialog: enters from scale(0.95), strong ease-out, sub-220ms */}
@@ -395,18 +395,18 @@ export const EmilModal: React.FC<EmilModalProps> = ({
             initial="initial"
             animate="animate"
             exit="exit"
-            className={`relative z-10 w-full ${maxWidth} rounded-3xl bg-surface border border-separator shadow-2xl p-6 overflow-hidden`}
+            className={`relative z-10 w-full ${maxWidth} rounded-3xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.12)] dark:shadow-none dark:ring-1 dark:ring-white/10 p-6 overflow-hidden`}
           >
             {title && (
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-separator">
-                <div className="text-[17px] font-semibold text-label-primary tracking-tight">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-black/5 dark:border-white/10">
+                <div className="text-[17px] font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
                   {title}
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-label-secondary hover:text-label-primary bg-separator/40 hover:bg-separator/80 cursor-pointer transition-colors"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 cursor-pointer transition-colors"
                   aria-label="Close dialog"
                 >
                   ✕
@@ -420,3 +420,47 @@ export const EmilModal: React.FC<EmilModalProps> = ({
     </AnimatePresence>
   );
 };
+
+/* ══════════════════════════════════════════════════════════════
+   6. EMIL INPUT & TEXTAREA (Apple Form Ergonomics)
+   - Light: bg-[#FFFFFF], border-black/10, placeholder-[#86868B]
+   - Dark: bg-[#1C1C1E], border-white/10, placeholder-[#86868B]
+══════════════════════════════════════════════════════════════ */
+
+export interface EmilInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: boolean;
+}
+
+export const EmilInput = forwardRef<HTMLInputElement, EmilInputProps>(
+  ({ className = '', error, ...props }, ref) => {
+    return (
+      <input
+        ref={ref}
+        className={`w-full px-3.5 py-2.5 rounded-xl text-[14px] bg-[#FFFFFF] dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] border ${
+          error ? 'border-destructive' : 'border-black/10 dark:border-white/10 focus:border-primary'
+        } placeholder-[#86868B] dark:placeholder-[#86868B] outline-none transition-all duration-150 focus:ring-2 focus:ring-primary/20 ${className}`}
+        {...props}
+      />
+    );
+  }
+);
+EmilInput.displayName = 'EmilInput';
+
+export interface EmilTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  error?: boolean;
+}
+
+export const EmilTextarea = forwardRef<HTMLTextAreaElement, EmilTextareaProps>(
+  ({ className = '', error, ...props }, ref) => {
+    return (
+      <textarea
+        ref={ref}
+        className={`w-full px-3.5 py-2.5 rounded-xl text-[14px] bg-[#FFFFFF] dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] border ${
+          error ? 'border-destructive' : 'border-black/10 dark:border-white/10 focus:border-primary'
+        } placeholder-[#86868B] dark:placeholder-[#86868B] outline-none transition-all duration-150 focus:ring-2 focus:ring-primary/20 ${className}`}
+        {...props}
+      />
+    );
+  }
+);
+EmilTextarea.displayName = 'EmilTextarea';

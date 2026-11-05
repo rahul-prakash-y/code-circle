@@ -208,7 +208,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                       <span
                         className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
                           filterMode === mode
-                            ? 'bg-white text-primary'
+                            ? 'bg-white dark:bg-white text-primary dark:text-primary shadow-xs'
                             : 'bg-amber-500 text-white animate-pulse'
                         }`}
                       >

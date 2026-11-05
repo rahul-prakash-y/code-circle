@@ -226,7 +226,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
         <div className="w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-500">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+        <h3 className="text-lg font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
           Unable to Load Profile
         </h3>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto">
@@ -298,9 +298,9 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
   };
 
   return (
-    <div className="w-full bg-[#F5F5F7] dark:bg-[#161617] text-neutral-900 dark:text-neutral-100 rounded-3xl p-4 sm:p-6 space-y-8 select-text">
+    <div className="w-full bg-[#F5F5F7] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-3xl p-4 sm:p-6 space-y-8 select-text">
       {/* ── 1. HERO SECTION (Macro-Typography, Rank, Stats) ── */}
-      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.45)] space-y-6">
+      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -330,7 +330,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
             </div>
 
             {/* Macro-Typography Student Name */}
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
               {student.name}
             </h1>
 
@@ -406,7 +406,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
               <Trophy className="w-3.5 h-3.5 text-amber-500" />
               Club Rank
             </div>
-            <div className="text-4xl sm:text-5xl font-black tracking-tight text-neutral-900 dark:text-white">
+            <div className="text-4xl sm:text-5xl font-black tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
               #{stats.rank}
             </div>
             <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 font-medium">
@@ -421,7 +421,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
             <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 block mb-1">
               Events Attended
             </span>
-            <span className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+            <span className="text-2xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
               {stats.totalEventsAttended}
             </span>
           </div>
@@ -481,19 +481,19 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
               ) : ghStats ? (
                 <div className="grid grid-cols-3 gap-2 text-center pt-1">
                   <div className="bg-white/60 dark:bg-[#202022] rounded-xl py-2">
-                    <div className="text-lg font-bold text-neutral-900 dark:text-white">
+                    <div className="text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
                       {ghStats.public_repos}
                     </div>
                     <div className="text-[11px] text-neutral-500">Repositories</div>
                   </div>
                   <div className="bg-white/60 dark:bg-[#202022] rounded-xl py-2">
-                    <div className="text-lg font-bold text-neutral-900 dark:text-white">
+                    <div className="text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
                       {ghStats.followers}
                     </div>
                     <div className="text-[11px] text-neutral-500">Followers</div>
                   </div>
                   <div className="bg-white/60 dark:bg-[#202022] rounded-xl py-2">
-                    <div className="text-lg font-bold text-neutral-900 dark:text-white">
+                    <div className="text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
                       {ghStats.following}
                     </div>
                     <div className="text-[11px] text-neutral-500">Following</div>
@@ -539,7 +539,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
               ) : lcStats ? (
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between text-xs">
-                    <span className="font-semibold text-neutral-900 dark:text-white text-base">
+                    <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] text-base">
                       {lcStats.totalSolved} Solved
                     </span>
                     <span className="text-neutral-500">Rank #{lcStats.ranking?.toLocaleString() || 'N/A'}</span>
@@ -571,10 +571,10 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
       </section>
 
       {/* ── 2. PROGRESS SECTION (Minimal Pill-Shaped Bars) ── */}
-      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.45)] space-y-6">
+      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
               <Layers className="w-5 h-5 text-blue-500" />
               Domain & Curriculum Progress
             </h2>
@@ -625,10 +625,10 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
       </section>
 
       {/* ── 3. ACTIVITY TIMELINE (Unified Chronological Journey) ── */}
-      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.45)] space-y-6">
+      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-emerald-500" />
               Activity Timeline
             </h2>
@@ -670,7 +670,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                         >
                           {item.status}
                         </span>
-                        <h4 className="text-sm sm:text-base font-bold text-neutral-900 dark:text-white">
+                        <h4 className="text-sm sm:text-base font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
                           {item.title}
                         </h4>
                       </div>

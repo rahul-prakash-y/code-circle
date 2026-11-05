@@ -72,7 +72,7 @@ const AttendanceManager = () => {
                     <span>OTP</span>
                   </div>
                 </div>
-                <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center text-text-primary group-hover:bg-white group-hover:text-black transition-all">
+                <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center text-text-primary group-hover:bg-primary group-hover:text-white group-hover:border-transparent transition-all">
                   <Plus size={20} />
                 </div>
               </div>
