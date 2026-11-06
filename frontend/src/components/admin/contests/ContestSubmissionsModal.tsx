@@ -137,12 +137,12 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
         }}
         title={
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
               <Sliders className="w-4 h-4" />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span>Submissions & Student Re-entry</span>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-warning-subtle text-warning border border-warning/20">
                 {contest.pointAllocationMode || 'AUTOMATIC'} MODE
               </span>
             </div>
@@ -154,7 +154,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
         <div className="space-y-4 pt-2">
 
           {/* Action Toolbar */}
-          <div className="p-3 sm:p-4 border-b border-separator bg-surface-secondary/50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="p-3 sm:p-4 border-b border-separator bg-surface-secondary flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search & Filter */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
               <div className="relative w-full sm:max-w-xs">
@@ -164,7 +164,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Filter student or roll no..."
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                 />
               </div>
 
@@ -174,9 +174,9 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                   <button
                     key={mode}
                     onClick={() => setFilterMode(mode)}
-                    className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all duration-150 ease-out flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                       filterMode === mode
-                        ? 'bg-primary text-white shadow-xs'
+                        ? 'bg-accent text-white shadow-xs'
                         : 'text-label-tertiary hover:text-label-secondary'
                     }`}
                   >
@@ -193,8 +193,8 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                       <span
                         className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
                           filterMode === mode
-                            ? 'bg-white dark:bg-white text-primary dark:text-primary shadow-xs'
-                            : 'bg-amber-500 text-white animate-pulse'
+                            ? 'bg-surface text-accent shadow-xs'
+                            : 'bg-warning text-white animate-pulse'
                         }`}
                       >
                         {pendingReentryCount}
@@ -211,26 +211,26 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                 type="button"
                 onClick={handleBulkMatchScores}
                 disabled={bulkLoading || submissions.length === 0}
-                className="px-3 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-label-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="px-3 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-label-primary rounded-xl text-xs font-bold transition-colors duration-150 ease-out flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 title="Automatically set awarded points = student's total score"
               >
-                <Zap size={13} className="text-amber-500" />
+                <Zap size={13} className="text-warning fill-current" />
                 <span>Match Scores</span>
               </button>
               <button
                 type="button"
                 onClick={handleBulkBonus}
                 disabled={bulkLoading || submissions.length === 0}
-                className="px-3 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-label-primary rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="px-3 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-label-primary rounded-xl text-xs font-bold transition-colors duration-150 ease-out flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
-                <Sparkles size={13} className="text-indigo-500" />
+                <Sparkles size={13} className="text-info" />
                 <span>Bulk +Bonus</span>
               </button>
               <button
                 type="button"
                 onClick={loadData}
                 disabled={loading}
-                className="p-1.5 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer"
+                className="p-1.5 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors duration-150 ease-out cursor-pointer"
                 title="Refresh"
               >
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -242,7 +242,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
           <div className="flex-1 overflow-y-auto p-3 sm:p-6">
             {loading ? (
               <div className="py-20 text-center space-y-3">
-                <RefreshCw size={24} className="animate-spin text-primary mx-auto" />
+                <RefreshCw size={24} className="animate-spin text-accent mx-auto" />
                 <p className="text-xs text-label-tertiary">Loading contest submissions...</p>
               </div>
             ) : filtered.length === 0 ? (
@@ -274,22 +274,22 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                       const codingCount = s.codingSubmissions?.length || 0;
 
                       return (
-                        <tr key={s._id} className="hover:bg-surface-secondary/70 transition-colors">
+                        <tr key={s._id} className="hover:bg-surface-secondary transition-colors duration-150 ease-out">
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
                               <p className="font-bold text-label-primary">{s.userId?.name || 'Anonymous'}</p>
                               {s.status === 'IN_PROGRESS' && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-accent-subtle text-accent border border-accent/20">
                                   In Arena
                                 </span>
                               )}
                               {s.status === 'SUBMITTED' && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-success-subtle text-success border border-success/20">
                                   Submitted
                                 </span>
                               )}
                               {s.status === 'AUTO_EXPIRED' && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-destructive-subtle text-destructive border border-destructive/20">
                                   Expired
                                 </span>
                               )}
@@ -300,22 +300,22 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
 
                             {/* Reentry Indicators */}
                             {s.reentryStatus === 'PENDING' && (
-                              <div className="mt-1.5 p-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[10px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5 max-w-sm">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+                              <div className="mt-1.5 p-1.5 bg-warning-subtle border border-warning/30 rounded-lg text-[10px] text-warning font-bold flex items-center gap-1.5 max-w-sm">
+                                <span className="w-1.5 h-1.5 rounded-full bg-warning animate-ping shrink-0" />
                                 <span className="truncate" title={s.reentryReason}>
                                   Appeal: "{s.reentryReason || 'Re-entry requested'}"
                                 </span>
                               </div>
                             )}
                             {s.reentryStatus === 'APPROVED' && (
-                              <div className="mt-1 flex items-center gap-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md w-fit">
+                              <div className="mt-1 flex items-center gap-1 text-[9px] font-bold text-success bg-success-subtle border border-success/20 px-1.5 py-0.5 rounded-md w-fit">
                                 <CheckCircle2 size={10} />
                                 <span>Re-entry Approved ({s.reentryCount || 1}x)</span>
                               </div>
                             )}
                             {s.reentryStatus === 'REJECTED' && (
                               <div
-                                className="mt-1 flex items-center gap-1 text-[9px] font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded-md w-fit"
+                                className="mt-1 flex items-center gap-1 text-[9px] font-bold text-destructive bg-destructive-subtle border border-destructive/20 px-1.5 py-0.5 rounded-md w-fit"
                                 title={s.reentryReviewNote}
                               >
                                 <XCircle size={10} />
@@ -325,7 +325,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                           </td>
 
                           <td className="py-3 px-4 text-center">
-                            <span className="font-mono font-extrabold text-primary text-sm">
+                            <span className="font-mono font-extrabold text-accent text-sm">
                               {s.totalScore} pts
                             </span>
                             <p className="text-[10px] text-label-tertiary font-mono">
@@ -336,7 +336,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                             <button
                               type="button"
                               onClick={() => setSelectedSubmissionForDetails(s)}
-                              className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-surface-secondary hover:bg-primary/10 border border-separator hover:border-primary/30 text-label-secondary hover:text-primary transition-all inline-flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-surface-secondary hover:bg-accent-subtle border border-separator hover:border-accent/30 text-label-secondary hover:text-accent transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer"
                               title="Click to view MCQ answers"
                             >
                               <HelpCircle size={11} />
@@ -351,7 +351,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                               <button
                                 type="button"
                                 onClick={() => setSelectedSubmissionForDetails(s)}
-                                className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all inline-flex items-center gap-1 cursor-pointer"
+                                className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-info-subtle text-info hover:bg-info/15 border border-info/20 transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer"
                                 title="Click to view code solutions"
                               >
                                 <Code2 size={11} />
@@ -365,8 +365,8 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                               <span
                                 className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black ${
                                   s.pointsAwarded && (s.awardedClubPoints || 0) > 0
-                                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                                    : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                                    ? 'bg-success-subtle text-success border border-success/20'
+                                    : 'bg-warning-subtle text-warning border border-warning/20'
                                 }`}
                               >
                                 {s.awardedClubPoints || 0} XP
@@ -374,7 +374,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                               {s.manualPointsAdjustment ? (
                                 <span
                                   title={s.manualPointsReason || 'Manual adjustment'}
-                                  className="text-[9px] text-amber-500 font-bold mt-0.5"
+                                  className="text-[9px] text-warning font-bold mt-0.5"
                                 >
                                   {s.manualPointsAdjustment > 0 ? `+${s.manualPointsAdjustment}` : s.manualPointsAdjustment} manual
                                 </span>
@@ -390,7 +390,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedSubmissionForApproveReentry(s)}
-                                    className="px-2.5 py-1.5 min-h-[34px] bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer shadow-xs shadow-emerald-500/20"
+                                    className="px-2.5 py-1.5 min-h-[34px] bg-success hover:bg-success-hover text-white rounded-xl text-xs font-bold transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer shadow-xs"
                                     title="Approve Re-entry Request"
                                   >
                                     <UserCheck size={12} />
@@ -399,7 +399,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                                   <button
                                     type="button"
                                     onClick={() => setSelectedSubmissionForRejectReentry(s)}
-                                    className="p-2 min-w-[34px] min-h-[34px] flex items-center justify-center bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl transition-all cursor-pointer border border-rose-500/20"
+                                    className="p-2 min-w-[34px] min-h-[34px] flex items-center justify-center bg-destructive-subtle hover:bg-destructive text-destructive hover:text-white rounded-xl transition-colors duration-150 ease-out cursor-pointer border border-destructive/20"
                                     title="Decline Re-entry Request"
                                   >
                                     <XCircle size={12} />
@@ -409,7 +409,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                                 <button
                                   type="button"
                                   onClick={() => setSelectedSubmissionForApproveReentry(s)}
-                                  className="px-2.5 py-1.5 min-h-[34px] bg-surface-secondary hover:bg-surface border border-separator hover:border-emerald-500/40 text-label-secondary hover:text-emerald-500 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                                  className="px-2.5 py-1.5 min-h-[34px] bg-surface-secondary hover:bg-surface border border-separator hover:border-success/40 text-label-secondary hover:text-success rounded-xl text-xs font-bold transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer"
                                   title="Allow Re-entry & Resume Session"
                                 >
                                   <RotateCcw size={12} />
@@ -421,10 +421,10 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                               <button
                                 type="button"
                                 onClick={() => setSelectedSubmissionForDetails(s)}
-                                className="px-2.5 py-1.5 min-h-[34px] bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                                className="px-2.5 py-1.5 min-h-[34px] bg-surface-secondary hover:bg-surface border border-separator hover:border-accent/40 text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer"
                                 title="Inspect Complete Submission (MCQs + Code)"
                               >
-                                <FileCode2 size={12} className="text-primary" />
+                                <FileCode2 size={12} className="text-accent" />
                                 <span className="hidden md:inline">Inspect</span>
                               </button>
 
@@ -440,7 +440,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                                     manualPointsReason: s.manualPointsReason,
                                   })
                                 }
-                                className="px-2.5 py-1.5 min-h-[34px] bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer"
+                                className="px-2.5 py-1.5 min-h-[34px] bg-accent-subtle hover:bg-accent text-accent hover:text-white rounded-xl text-xs font-bold transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer"
                                 title="Manual Points Allocation"
                               >
                                 <Zap size={12} className="fill-current" />
@@ -451,7 +451,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                               <button
                                 type="button"
                                 onClick={() => setSelectedSubmissionForDelete(s)}
-                                className="p-2 min-w-[34px] min-h-[34px] flex items-center justify-center bg-surface-secondary hover:bg-rose-500/10 text-label-tertiary hover:text-rose-500 rounded-xl transition-all cursor-pointer border border-separator hover:border-rose-500/30"
+                                className="p-2 min-w-[34px] min-h-[34px] flex items-center justify-center bg-surface-secondary hover:bg-destructive-subtle text-label-tertiary hover:text-destructive rounded-xl transition-colors duration-150 ease-out cursor-pointer border border-separator hover:border-destructive/30"
                                 title="Delete Student Contest Entry"
                               >
                                 <Trash2 size={12} />
@@ -489,7 +489,7 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
               </span>
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+                className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors duration-150 ease-out"
               >
                 Close
               </button>

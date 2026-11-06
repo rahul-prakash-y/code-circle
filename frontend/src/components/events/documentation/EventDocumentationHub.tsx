@@ -153,11 +153,11 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
           {/* Header Controls */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <h3 className="text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
+              <h3 className="text-lg font-bold text-label-primary  flex items-center gap-2">
                 <FileText size={18} className="text-primary" />
                 Event Documentation & Institutional Records
               </h3>
-              <p className="text-xs text-[#86868B]">
+              <p className="text-xs text-label-secondary">
                 Generate, review, and client-side export official PDF event documentation
               </p>
             </div>
@@ -184,8 +184,8 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
                   onClick={() => setSelectedStatus(status)}
                   className={`px-3 py-1 rounded-xl text-xs font-semibold capitalize transition-all select-none cursor-pointer ${
                     selectedStatus === status
-                      ? 'bg-white dark:bg-white/15 text-[#1D1D1F] dark:text-white shadow-xs'
-                      : 'text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white'
+                      ? 'bg-white dark:bg-white/15 text-label-primary dark:text-white shadow-xs'
+                      : 'text-label-secondary hover:text-label-primary dark:hover:text-white'
                   }`}
                 >
                   {status}
@@ -194,28 +194,28 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
             </div>
 
             <div className="relative w-full sm:w-64">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868B]" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-secondary" />
               <input
                 type="text"
                 placeholder="Search documents..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && fetchDocuments()}
-                className="w-full h-8 pl-8 pr-3 text-xs rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] text-[#1D1D1F] dark:text-white focus:outline-none focus:ring-1 focus:ring-primary/40"
+                className="w-full h-8 pl-8 pr-3 text-xs rounded-xl border border-separator bg-black/[0.02] dark:bg-white/[0.02] text-label-primary dark:text-white focus:outline-none focus:ring-1 focus:ring-primary/40"
               />
             </div>
           </div>
 
           {/* Documents Grid */}
           {loading ? (
-            <div className="p-12 text-center text-xs text-[#86868B]">Loading documentation...</div>
+            <div className="p-12 text-center text-xs text-label-secondary">Loading documentation...</div>
           ) : documents.length === 0 ? (
-            <EmilCard className="p-8 text-center rounded-3xl border border-dashed border-black/10 dark:border-white/10">
-              <FileText size={32} className="mx-auto mb-2 text-[#86868B] opacity-50" />
-              <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1">
+            <EmilCard className="p-8 text-center rounded-3xl border border-dashed border-separator">
+              <FileText size={32} className="mx-auto mb-2 text-label-secondary opacity-50" />
+              <p className="text-sm font-semibold text-label-primary  mb-1">
                 No documentation reports found
               </p>
-              <p className="text-xs text-[#86868B] mb-4">
+              <p className="text-xs text-label-secondary mb-4">
                 Draft a new document to record event outcomes, metrics, and summary data.
               </p>
               <EmilButton
@@ -240,11 +240,11 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
                 return (
                   <EmilCard
                     key={d._id}
-                    className="p-5 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#161617] shadow-sm flex flex-col justify-between hover:border-black/20 dark:hover:border-white/20 transition-all"
+                    className="p-5 rounded-2xl border border-separator bg-white  shadow-sm flex flex-col justify-between hover:border-black/20 dark:hover:border-white/20 transition-all"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-[10px] font-mono font-semibold text-[#86868B]">
+                        <span className="text-[10px] font-mono font-semibold text-label-secondary">
                           v{d.version || 1}.0 &bull; {new Date(d.createdAt).toLocaleDateString()}
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${statusBadge}`}>
@@ -252,15 +252,15 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
                         </span>
                       </div>
 
-                      <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7] mb-1.5 line-clamp-1">
+                      <h4 className="text-sm font-bold text-label-primary  mb-1.5 line-clamp-1">
                         {d.title}
                       </h4>
 
-                      <p className="text-xs text-[#86868B] line-clamp-2 mb-3">
+                      <p className="text-xs text-label-secondary line-clamp-2 mb-3">
                         {d.content?.replace(/#+\s/g, '').substring(0, 140) || 'No summary available.'}
                       </p>
 
-                      <div className="text-[11px] text-[#86868B] flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
+                      <div className="text-[11px] text-label-secondary flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
                         <span>By {d.createdBy?.name || 'Member'}</span>
                         {d.approvedBy && (
                           <span className="text-emerald-500 flex items-center gap-1">
@@ -339,3 +339,4 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
 };
 
 export default EventDocumentationHub;
+

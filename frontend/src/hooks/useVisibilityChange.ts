@@ -113,9 +113,9 @@ export const useVisibilityChange = ({
               icon: '⚠️',
               duration: 5000,
               style: {
-                background: '#1C1C1E',
-                color: '#FF9F0A',
-                border: '1px solid rgba(255, 159, 10, 0.3)',
+                background: 'var(--surface)',
+                color: 'var(--warning)',
+                border: '1px solid var(--warning-subtle)',
               },
             }
           );
@@ -126,9 +126,9 @@ export const useVisibilityChange = ({
               icon: '🚨',
               duration: 6000,
               style: {
-                background: '#1C1C1E',
-                color: '#FF453A',
-                border: '1px solid rgba(255, 69, 58, 0.4)',
+                background: 'var(--surface)',
+                color: 'var(--destructive)',
+                border: '1px solid var(--destructive-subtle)',
               },
             }
           );
@@ -160,9 +160,9 @@ export const useVisibilityChange = ({
             id: 'mobile-call-protection-toast',
             duration: 3500,
             style: {
-              background: '#1C1C1E',
-              color: '#34D399',
-              border: '1px solid rgba(52, 211, 153, 0.3)',
+              background: 'var(--surface)',
+              color: 'var(--success)',
+              border: '1px solid var(--success-subtle)',
             },
           }
         );
@@ -200,4 +200,5 @@ export const useVisibilityChange = ({
 };
 
 export default useVisibilityChange;
+
 

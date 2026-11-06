@@ -55,8 +55,8 @@ const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
     <motion.div
       className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 select-none"
       style={{
-        background: 'linear-gradient(145deg, #0077ED 0%, #0062CC 100%)',
-        boxShadow: '0 2px 6px rgba(0, 113, 227, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+        background: 'linear-gradient(145deg, var(--accent) 0%, var(--accent-hover) 100%)',
+        boxShadow: '0 2px 8px var(--accent-subtle), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
       }}
     >
       <span className="text-white font-bold text-[12.5px] tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>

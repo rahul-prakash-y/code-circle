@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
-import api from '../../lib/axios';
 import FullScreenEnforcementOverlay from './FullScreenEnforcementOverlay';
 import { isMobileScreenOrDevice } from '../../lib/deviceUtils';
 
@@ -31,7 +30,6 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const {
     fetchAssessmentById,
     submitAssessment,
-    resetMySubmission,
     currentAssessment,
     currentResult,
     clearCurrentResult,
@@ -39,7 +37,6 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   } = useAssessmentStore();
 
   const [loading, setLoading] = useState(true);
-  const [reappearing, setReappearing] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { [qIndex]: selectedOptionIndex }
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(0);
@@ -248,7 +245,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       {/* Permanent Lockout Screen if Student is Blocked for Tab Switch */}
       {isLocked && !currentResult && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-3xl bg-black/90 select-none">
-          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-red-500/40 bg-[#161617]/95 shadow-2xl text-center">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-destructive/40 bg-surface/95 shadow-2xl text-center">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5 text-red-400">
               <AlertTriangle size={28} />
             </div>

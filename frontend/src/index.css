@@ -19,6 +19,7 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-subtle: var(--accent-subtle);
+  --color-accent-ring: var(--accent-ring);
   --color-accent-muted: var(--accent);
 
   --color-canvas: var(--canvas);
@@ -36,6 +37,7 @@
   --color-border-color: var(--separator);
   --color-border-hover: var(--separator-opaque);
   --color-separator: var(--separator);
+  --color-separator-opaque: var(--separator-opaque);
 
   --color-label-primary: var(--label-primary);
   --color-label-secondary: var(--label-secondary);
@@ -45,8 +47,20 @@
   --color-text-muted: var(--label-secondary);
 
   --color-success: var(--success);
+  --color-success-hover: var(--success-hover);
+  --color-success-subtle: var(--success-subtle);
+
   --color-warning: var(--warning);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-subtle: var(--warning-subtle);
+
   --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-subtle: var(--destructive-subtle);
+
+  --color-info: var(--info);
+  --color-info-hover: var(--info-hover);
+  --color-info-subtle: var(--info-subtle);
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif, system-ui;
   --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif, system-ui;
@@ -81,28 +95,28 @@
 
 /* ── Light Mode ────────────────────────────────────────────── */
 :root {
-  /* Canvas & surfaces */
-  --canvas: #F5F5F7;
+  /* Canvas & surfaces — Emil Kowalski soft off-white canvas with pure/crisp layered surfaces */
+  --canvas: #F6F6F9;
   --surface: #FFFFFF;
   --content1: #FFFFFF;
   --heroui-content1: #FFFFFF;
-  --surface-secondary: #FAFAFC;
+  --surface-secondary: #F0F0F4;
   --surface-raised: #FFFFFF;
-  --surface-overlay: rgba(255, 255, 255, 0.92);
+  --surface-overlay: rgba(246, 246, 249, 0.92);
 
   /* Liquid Glass — restricted to Navbar and Tab Bar only */
   --glass-bg: rgba(255, 255, 255, 0.82);
   --glass-bg-dark: rgba(255, 255, 255, 0.65);
-  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-border: rgba(18, 18, 23, 0.06);
 
-  /* Separators & Hairlines */
-  --separator: rgba(0, 0, 0, 0.07);
-  --separator-opaque: #E5E5EA;
+  /* Separators & Hairlines — delicate low-opacity */
+  --separator: rgba(18, 18, 23, 0.07);
+  --separator-opaque: #E2E2E8;
 
-  /* 4-Tier Tonal Hierarchy: High contrast, neutral precision */
-  --label-primary: #1D1D1F;      /* Tier 1: Dominant contrast */
-  --label-secondary: #6E6E73;    /* Tier 2: Refined editorial gray */
-  --label-tertiary: #8E8E93;     /* Tier 3: Muted metadata / timestamps */
+  /* 4-Tier Tonal Hierarchy: High contrast, neutral precision (WCAG AA compliant) */
+  --label-primary: #18181B;      /* Tier 1: Dominant contrast */
+  --label-secondary: #63636E;    /* Tier 2: Refined editorial gray */
+  --label-tertiary: #8E8E98;     /* Tier 3: Muted metadata / timestamps */
 
   /* Legacy variable fallbacks */
   --text-primary: var(--label-primary);
@@ -115,16 +129,28 @@
   --glass-border-color: var(--separator);
   --shadow-deep-val: var(--shadow-xl);
 
-  /* Apple System Blue */
+  /* Apple System Blue Accent */
   --accent: #0071E3;
   --accent-hover: #0077ED;
   --accent-subtle: rgba(0, 113, 227, 0.08);
-  --accent-ring: rgba(0, 113, 227, 0.16);
+  --accent-ring: rgba(0, 113, 227, 0.20);
 
-  /* Semantic (used strictly for functional status) */
-  --success: #34C759;
-  --warning: #FF9F0A;
-  --destructive: #FF3B30;
+  /* Semantic status colors with hover & subtle chip fills */
+  --success: #1E8E3E;
+  --success-hover: #167A33;
+  --success-subtle: rgba(30, 142, 62, 0.09);
+
+  --warning: #C26100;
+  --warning-hover: #A35200;
+  --warning-subtle: rgba(194, 97, 0, 0.09);
+
+  --destructive: #D32F2F;
+  --destructive-hover: #B71C1C;
+  --destructive-subtle: rgba(211, 47, 47, 0.09);
+
+  --info: #4F46E5;
+  --info-hover: #4338CA;
+  --info-subtle: rgba(79, 70, 229, 0.09);
 
   /* Shadows — Refined layered lift */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
@@ -137,27 +163,28 @@
   color-scheme: light;
 }
 
-/* ── Dark Mode — OLED True Black ──────────────────────────── */
+/* ── Dark Mode — Tuned Rich Dark (Emil Kowalski Layered Surfaces) ── */
 .dark {
-  --canvas: #000000;
-  --surface: #161617;
-  --content1: #161617;
-  --heroui-content1: #161617;
-  --surface-secondary: #1C1C1E;
-  --surface-raised: #1C1C1E;
-  --surface-overlay: rgba(22, 22, 23, 0.92);
+  /* Rich warm near-black canvas — prevents stark OLED eye strain */
+  --canvas: #0B0B0E;
+  --surface: #141418;
+  --content1: #141418;
+  --heroui-content1: #141418;
+  --surface-secondary: #1A1A20;
+  --surface-raised: #212128;
+  --surface-overlay: rgba(11, 11, 14, 0.88);
 
-  --glass-bg: rgba(0, 0, 0, 0.80);
-  --glass-bg-dark: rgba(0, 0, 0, 0.60);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(16, 16, 20, 0.80);
+  --glass-bg-dark: rgba(11, 11, 14, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.07);
 
   --separator: rgba(255, 255, 255, 0.08);
-  --separator-opaque: #38383A;
+  --separator-opaque: #282830;
 
   /* 4-Tier Tonal Hierarchy: High contrast, neutral precision */
-  --label-primary: #F5F5F7;      /* Tier 1: Crisp high contrast */
-  --label-secondary: #A1A1A6;    /* Tier 2: Neutral readable zinc */
-  --label-tertiary: #6E6E73;     /* Tier 3: Muted metadata / timestamps */
+  --label-primary: #F1F1F4;      /* Tier 1: Crisp readable off-white */
+  --label-secondary: #9B9BA6;    /* Tier 2: Refined neutral zinc */
+  --label-tertiary: #6E6E78;     /* Tier 3: Muted metadata / timestamps */
 
   /* Legacy variable fallbacks */
   --text-primary: var(--label-primary);
@@ -170,29 +197,48 @@
   --glass-border-color: var(--separator);
   --shadow-deep-val: var(--shadow-xl);
 
-  --accent: #2997FF;            /* Apple Blue adjusted for dark mode */
-  --accent-hover: #409CFF;
-  --accent-subtle: rgba(41, 151, 255, 0.12);
-  --accent-ring: rgba(41, 151, 255, 0.24);
+  /* Apple Blue adjusted for dark mode (slightly desaturated/tuned) */
+  --accent: #3B99FC;
+  --accent-hover: #54A7FC;
+  --accent-subtle: rgba(59, 153, 252, 0.12);
+  --accent-ring: rgba(59, 153, 252, 0.28);
 
-  --success: #30D158;
-  --warning: #FF9F0A;
-  --destructive: #FF453A;
+  /* Semantic status colors with hover & subtle chip fills */
+  --success: #34D399;
+  --success-hover: #4ADE80;
+  --success-subtle: rgba(52, 211, 153, 0.12);
 
-  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.40);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.50), 0 1px 3px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.60), 0 2px 6px rgba(0, 0, 0, 0.40);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.70), 0 4px 12px rgba(0, 0, 0, 0.50);
-  --shadow-card: 0 1px 1px rgba(255, 255, 255, 0.04), 0 4px 16px rgba(0, 0, 0, 0.40);
-  --shadow-card-elevated: 0 2px 4px rgba(0, 0, 0, 0.50), 0 8px 30px rgba(0, 0, 0, 0.65);
+  --warning: #FBBF24;
+  --warning-hover: #FCD34D;
+  --warning-subtle: rgba(251, 191, 36, 0.12);
+
+  --destructive: #F87171;
+  --destructive-hover: #FCA5A5;
+  --destructive-subtle: rgba(248, 113, 113, 0.14);
+
+  --info: #818CF8;
+  --info-hover: #A5B4FC;
+  --info-subtle: rgba(129, 140, 248, 0.14);
+
+  /* Subtle border & surface contrast instead of heavy black shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40), 0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.50), 0 2px 6px rgba(0, 0, 0, 0.30);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.60), 0 4px 12px rgba(0, 0, 0, 0.40);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.20), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-card-elevated: 0 4px 20px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.07);
 
   color-scheme: dark;
 }
 
 /* ── Base Layer & Typography System ──────────────────────── */
 @layer base {
-  a, button, [role="button"] {
-    transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  a, button, [role="button"], input, select, textarea {
+    transition: opacity 160ms cubic-bezier(0.23, 1, 0.32, 1), 
+                background-color 160ms cubic-bezier(0.23, 1, 0.32, 1), 
+                color 160ms cubic-bezier(0.23, 1, 0.32, 1), 
+                box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1), 
+                border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   html {
@@ -208,6 +254,7 @@
     font-family: var(--font-sans);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     letter-spacing: -0.011em;
+    transition: background-color 180ms cubic-bezier(0.23, 1, 0.32, 1), color 180ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   /* Headings: Balanced, optical letter spacing, no awkward orphans */
@@ -353,8 +400,8 @@
     box-shadow: 0 2px 8px rgba(0, 113, 227, 0.28);
   }
   .btn-primary:active {
-    transform: translateY(1px);
-    opacity: 0.90;
+    transform: scale(0.97);
+    opacity: 0.92;
   }
   .btn-primary:disabled { opacity: 0.40; cursor: not-allowed; transform: none; }
 
@@ -376,12 +423,12 @@
     transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
   }
   .btn-secondary:hover {
-    background: var(--separator);
+    background: var(--surface-secondary);
     border-color: var(--separator-opaque);
   }
   .btn-secondary:active {
-    transform: translateY(1px);
-    opacity: 0.90;
+    transform: scale(0.97);
+    opacity: 0.92;
   }
 
   .btn-ghost {
@@ -403,8 +450,8 @@
     color: var(--label-primary);
   }
   .btn-ghost:active {
-    transform: translateY(1px);
-    opacity: 0.85;
+    transform: scale(0.97);
+    opacity: 0.90;
   }
 
   /* ── Inputs ── */
@@ -464,11 +511,12 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .tag-blue  { background: var(--accent-subtle); color: var(--accent); }
-  .tag-green { background: rgba(52, 199, 89, 0.10); color: var(--success); }
-  .tag-red   { background: rgba(255, 59, 48, 0.10); color: var(--destructive); }
-  .tag-gray  { background: var(--separator); color: var(--label-secondary); }
-  .tag-amber { background: rgba(255, 159, 10, 0.10); color: var(--warning); }
+  .tag-blue   { background: var(--accent-subtle); color: var(--accent); }
+  .tag-green  { background: var(--success-subtle); color: var(--success); }
+  .tag-red    { background: var(--destructive-subtle); color: var(--destructive); }
+  .tag-gray   { background: var(--separator); color: var(--label-secondary); }
+  .tag-amber  { background: var(--warning-subtle); color: var(--warning); }
+  .tag-purple { background: var(--info-subtle); color: var(--info); }
 
   /* ── Tactile Interactive Card (Desktop Hover) ── */
   .interactive-card {

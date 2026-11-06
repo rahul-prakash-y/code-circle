@@ -153,7 +153,7 @@ export const MainLayout = ({ children }) => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 z-50 lg:hidden backdrop-blur-md" style={{ background: 'rgba(0,0,0,0.5)' }}
+              className="fixed inset-0 z-50 lg:hidden backdrop-blur-md" style={{ background: 'var(--surface-overlay)' }}
             />
             <motion.div
               initial={{ x: '-100%' }}
@@ -175,7 +175,7 @@ export const MainLayout = ({ children }) => {
                 <div className="flex items-center gap-3">
                   <div
                     className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-                    style={{ background: 'var(--accent)', boxShadow: '0 2px 8px rgba(0,113,227,0.30)' }}
+                    style={{ background: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-subtle)' }}
                   >
                     <span className="text-white font-bold text-[13px]">CC</span>
                   </div>

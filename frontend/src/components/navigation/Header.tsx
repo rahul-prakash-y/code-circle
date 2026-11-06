@@ -53,7 +53,7 @@ const notifIcons = {
   info: { Icon: Info, color: 'var(--accent)' },
   success: { Icon: CheckCircle2, color: 'var(--success)' },
   warning: { Icon: AlertTriangle, color: 'var(--warning)' },
-  urgent: { Icon: AlertCircle, color: '#FF3B30' },
+  urgent: { Icon: AlertCircle, color: 'var(--destructive)' },
 };
 
 const getTimeAgo = (dateStr?: string) => {
@@ -68,10 +68,10 @@ const getTimeAgo = (dateStr?: string) => {
 };
 
 const roleColors: Record<string, string> = {
-  SuperAdmin: '#FF9F0A',
+  SuperAdmin: 'var(--warning)',
   Admin: 'var(--accent)',
-  Faculty: '#34C759',
-  Committee: '#30B0C7',     /* Apple System Teal */
+  Faculty: 'var(--success)',
+  Committee: 'var(--info)',
   Student: 'var(--label-secondary)',
 };
 

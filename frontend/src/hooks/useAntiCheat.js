@@ -17,9 +17,9 @@ const useAntiCheat = (maxWarnings = 3, onLock) => {
           id: 'mobile-call-protection-toast',
           duration: 3500,
           style: {
-            background: '#1C1C1E',
-            color: '#34D399',
-            border: '1px solid rgba(52, 211, 153, 0.3)',
+            background: 'var(--surface)',
+            color: 'var(--success)',
+            border: '1px solid var(--success-subtle)',
           },
         });
       } else if (document.visibilityState === 'hidden') {
@@ -56,4 +56,5 @@ const useAntiCheat = (maxWarnings = 3, onLock) => {
 };
 
 export default useAntiCheat;
+
 

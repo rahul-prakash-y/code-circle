@@ -102,8 +102,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
         notOnboarded: 36,
         completionRate: 70.0,
         breakdown: [
-          { status: 'Completed', label: 'Onboarded', mustChangePassword: false, count: 84, percentage: 70.0, color: '#10B981' },
-          { status: 'Pending', label: 'Not Onboarded', mustChangePassword: true, count: 36, percentage: 30.0, color: '#F59E0B' },
+          { status: 'Completed', label: 'Onboarded', mustChangePassword: false, count: 84, percentage: 70.0, color: 'var(--success)' },
+          { status: 'Pending', label: 'Not Onboarded', mustChangePassword: true, count: 36, percentage: 30.0, color: 'var(--warning)' },
         ],
         departments: ['CSE', 'IT', 'ECE', 'AI&DS', 'MECH'],
       };
@@ -381,12 +381,12 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
     <div
       className={`relative overflow-hidden rounded-3xl border border-separator/80 bg-surface/90 shadow-2xl backdrop-blur-2xl transition-all duration-300 ${className}`}
       style={{
-        background: 'radial-gradient(ellipse at 85% 0%, rgba(0, 113, 227, 0.05) 0%, var(--surface) 70%)',
+        background: 'radial-gradient(ellipse at 85% 0%, var(--accent-subtle) 0%, var(--surface) 70%)',
       }}
     >
       {/* Ambient background glow accents */}
       <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-success/10 blur-3xl" />
 
       {/* ── TOP HEADER BAR ──────────────────────────────────────────────── */}
       <div className="border-b border-separator/60 px-4 py-4 sm:px-8 sm:py-5">
@@ -631,14 +631,14 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     cy={chartSize / 2}
                     r={radius}
                     fill="transparent"
-                    stroke="#F59E0B"
+                    stroke="var(--warning)"
                     strokeWidth={hoveredSegment?.status === 'Pending' ? strokeWidth + 4 : strokeWidth}
                     strokeDasharray={`${notOnboardedDash} ${circumference}`}
                     strokeDashoffset={-onboardedDash}
                     strokeLinecap="round"
                     className="cursor-pointer transition-all duration-300"
                     style={{
-                      filter: hoveredSegment?.status === 'Pending' ? 'drop-shadow(0 0 10px rgba(245, 158, 11, 0.5))' : 'none',
+                      filter: hoveredSegment?.status === 'Pending' ? 'drop-shadow(0 0 10px var(--warning-subtle))' : 'none',
                     }}
                     onMouseEnter={() =>
                       setHoveredSegment({
@@ -647,7 +647,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                         mustChangePassword: true,
                         count: stats?.notOnboarded ?? 0,
                         percentage: stats?.total ? Number(((stats.notOnboarded / stats.total) * 100).toFixed(1)) : 0,
-                        color: '#F59E0B',
+                        color: 'var(--warning)',
                       })
                     }
                     onMouseLeave={() => setHoveredSegment(null)}
@@ -660,14 +660,14 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     cy={chartSize / 2}
                     r={radius}
                     fill="transparent"
-                    stroke="#10B981"
+                    stroke="var(--success)"
                     strokeWidth={hoveredSegment?.status === 'Claimed' ? strokeWidth + 4 : strokeWidth}
                     strokeDasharray={`${onboardedDash} ${circumference}`}
                     strokeDashoffset={0}
                     strokeLinecap="round"
                     className="cursor-pointer transition-all duration-300"
                     style={{
-                      filter: hoveredSegment?.status === 'Claimed' ? 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.5))' : 'none',
+                      filter: hoveredSegment?.status === 'Claimed' ? 'drop-shadow(0 0 10px var(--success-subtle))' : 'none',
                     }}
                     onMouseEnter={() =>
                       setHoveredSegment({
@@ -676,7 +676,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                         mustChangePassword: false,
                         count: stats?.onboarded ?? 0,
                         percentage: stats?.completionRate ?? 0,
-                        color: '#10B981',
+                        color: 'var(--success)',
                       })
                     }
                     onMouseLeave={() => setHoveredSegment(null)}
@@ -733,12 +733,12 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                         mustChangePassword: false,
                         count: stats?.onboarded ?? 0,
                         percentage: stats?.completionRate ?? 0,
-                        color: '#10B981',
+                        color: 'var(--success)',
                       })
                     }
                     onMouseLeave={() => setHoveredSegment(null)}
                     style={{ width: `${Math.max(2, (onboardedRatio * 100))}%` }}
-                    className="relative flex h-full items-center justify-center rounded-l-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all hover:brightness-110"
+                    className="relative flex h-full items-center justify-center rounded-l-full bg-gradient-to-r from-success to-success/80 transition-all hover:brightness-110"
                   >
                     {onboardedRatio > 0.15 && (
                       <span className="text-[10px] font-bold text-white drop-shadow-sm">
@@ -758,12 +758,12 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                         mustChangePassword: true,
                         count: stats?.notOnboarded ?? 0,
                         percentage: stats?.total ? Number(((stats.notOnboarded / stats.total) * 100).toFixed(1)) : 0,
-                        color: '#F59E0B',
+                        color: 'var(--warning)',
                       })
                     }
                     onMouseLeave={() => setHoveredSegment(null)}
                     style={{ width: `${Math.max(2, (notOnboardedRatio * 100))}%` }}
-                    className="relative flex h-full items-center justify-center rounded-r-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all hover:brightness-110"
+                    className="relative flex h-full items-center justify-center rounded-r-full bg-gradient-to-r from-warning to-warning/80 transition-all hover:brightness-110"
                   >
                     {notOnboardedRatio > 0.15 && (
                       <span className="text-[10px] font-bold text-white drop-shadow-sm">
@@ -786,18 +786,18 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                       mustChangePassword: false,
                       count: stats?.onboarded ?? 0,
                       percentage: stats?.completionRate ?? 0,
-                      color: '#10B981',
+                      color: 'var(--success)',
                     })
                   }
                   onMouseLeave={() => setHoveredSegment(null)}
                   className={`flex cursor-pointer items-center justify-between rounded-2xl border p-3.5 transition-all ${
                     statusFilter === 'onboarded'
-                      ? 'border-emerald-500/50 bg-emerald-500/10 shadow-sm'
-                      : 'border-separator bg-surface hover:border-emerald-500/30'
+                      ? 'border-success/50 bg-success-subtle shadow-sm'
+                      : 'border-separator bg-surface hover:border-success/30'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-3.5 w-3.5 rounded-full bg-emerald-500 shadow-sm" />
+                    <div className="h-3.5 w-3.5 rounded-full bg-success shadow-sm" />
                     <div>
                       <h4 className="text-xs font-bold text-label-primary">Accounts Claimed</h4>
                       <p className="text-[11px] text-label-secondary">Personal password created</p>
@@ -807,7 +807,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     <span className="text-sm font-bold text-label-primary">
                       {stats?.onboarded.toLocaleString() ?? '0'}
                     </span>
-                    <span className="block text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="block text-[10px] font-semibold text-success">
                       {stats?.completionRate ?? 0}%
                     </span>
                   </div>
@@ -823,28 +823,28 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                       mustChangePassword: true,
                       count: stats?.notOnboarded ?? 0,
                       percentage: stats?.total ? Number(((stats.notOnboarded / stats.total) * 100).toFixed(1)) : 0,
-                      color: '#F59E0B',
+                      color: 'var(--warning)',
                     })
                   }
                   onMouseLeave={() => setHoveredSegment(null)}
                   className={`flex cursor-pointer items-center justify-between rounded-2xl border p-3.5 transition-all ${
                     statusFilter === 'not_onboarded'
-                      ? 'border-amber-500/50 bg-amber-500/10 shadow-sm'
-                      : 'border-separator bg-surface hover:border-amber-500/30'
+                      ? 'border-warning/50 bg-warning-subtle shadow-sm'
+                      : 'border-separator bg-surface hover:border-warning/30'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-3.5 w-3.5 rounded-full bg-amber-500 shadow-sm" />
+                    <div className="h-3.5 w-3.5 rounded-full bg-warning shadow-sm" />
                     <div>
                       <h4 className="text-xs font-bold text-label-primary">Pending Initial Login</h4>
-                      <p className="text-[11px] text-label-secondary">Using temporary default credentials</p>
+                      <p className="text-[11px] text-label-secondary">Default password unchanged</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-bold text-label-primary">
                       {stats?.notOnboarded.toLocaleString() ?? '0'}
                     </span>
-                    <span className="block text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                    <span className="block text-[10px] font-semibold text-warning">
                       {stats?.total ? Number(((stats.notOnboarded / stats.total) * 100).toFixed(1)) : 0}%
                     </span>
                   </div>

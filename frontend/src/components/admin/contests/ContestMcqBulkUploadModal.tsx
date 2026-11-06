@@ -161,10 +161,10 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
           <div className="flex items-center gap-2.5">
             <Download size={18} className="text-purple-600 dark:text-purple-400 shrink-0" />
             <div>
-              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] block">
+              <span className="text-xs font-bold text-label-primary block">
                 Need the Excel Format?
               </span>
-              <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
+              <span className="text-[11px] text-label-secondary">
                 Download our standardized template with column headers and sample questions.
               </span>
             </div>
@@ -202,21 +202,21 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
           {isParsing ? (
             <div className="flex flex-col items-center justify-center py-4 space-y-2">
               <Loader2 size={28} className="animate-spin text-purple-500" />
-              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+              <span className="text-xs font-bold text-label-primary">
                 Parsing spreadsheet records...
               </span>
             </div>
           ) : file ? (
-            <div className="flex items-center justify-between p-3 bg-surface-secondary dark:bg-[#1C1C1E] rounded-xl border border-separator dark:border-white/10 text-left">
+            <div className="flex items-center justify-between p-3 bg-surface-secondary rounded-xl border border-separator dark:border-white/10 text-left">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                   <FileSpreadsheet size={18} />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] block">
+                  <span className="text-xs font-bold text-label-primary block">
                     {file.name}
                   </span>
-                  <span className="text-[10px] text-label-secondary dark:text-[#86868B]">
+                  <span className="text-[10px] text-label-secondary">
                     {(file.size / 1024).toFixed(1)} KB • {parsedQuestions.length} item(s) parsed
                   </span>
                 </div>
@@ -238,10 +238,10 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
               <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-1">
                 <Upload size={22} />
               </div>
-              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+              <span className="text-xs font-bold text-label-primary">
                 Drag & drop your question sheet here, or <span className="text-purple-500 underline">browse</span>
               </span>
-              <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
+              <span className="text-[11px] text-label-secondary">
                 Supports Microsoft Excel (.xlsx, .xls) and structured JSON files
               </span>
             </div>
@@ -266,20 +266,20 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
         {/* Staging & Mode Controls */}
         {parsedQuestions.length > 0 && (
           <div className="space-y-3 pt-1">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-surface-secondary rounded-2xl border border-separator dark:border-white/10">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-purple-500" />
-                <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+                <span className="text-xs font-bold text-label-primary">
                   Parsed: {parsedQuestions.length} Questions ({totalPoints} total pts)
                 </span>
               </div>
 
               {/* Import Mode Radio */}
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-label-secondary dark:text-[#86868B] text-[11px] font-semibold">
+                <span className="text-label-secondary text-[11px] font-semibold">
                   Target Mode:
                 </span>
-                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary dark:text-[#F5F5F7]">
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary">
                   <input
                     type="radio"
                     name="importMode"
@@ -290,7 +290,7 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
                   />
                   <span>Append to existing ({currentQuestionsCount})</span>
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary dark:text-[#F5F5F7]">
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary">
                   <input
                     type="radio"
                     name="importMode"
@@ -309,17 +309,17 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
               {parsedQuestions.map((q, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-surface dark:bg-[#161617] rounded-xl border border-separator dark:border-white/10 flex items-start justify-between gap-3 text-xs"
+                  className="p-3 bg-surface rounded-xl border border-separator dark:border-white/10 flex items-start justify-between gap-3 text-xs"
                 >
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold font-mono text-[10px] text-label-secondary dark:text-[#86868B]">
+                      <span className="font-bold font-mono text-[10px] text-label-secondary">
                         #{idx + 1}
                       </span>
-                      <span className="font-bold text-label-primary dark:text-[#F5F5F7] truncate">
+                      <span className="font-bold text-label-primary truncate">
                         {q.question}
                       </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-secondary dark:bg-white/10 text-label-secondary dark:text-[#86868B]">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-secondary dark:bg-white/10 text-label-secondary">
                         {q.points || 10} pts
                       </span>
                     </div>
@@ -330,7 +330,7 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
                           className={`px-2 py-0.5 rounded-lg text-[10px] truncate ${
                             optIdx === q.correctOptionIndex
                               ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20'
-                              : 'bg-surface-secondary dark:bg-[#1C1C1E] text-label-secondary dark:text-[#86868B]'
+                              : 'bg-surface-secondary text-label-secondary'
                           }`}
                         >
                           {String.fromCharCode(65 + optIdx)}. {opt}
@@ -379,3 +379,4 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
 };
 
 export default ContestMcqBulkUploadModal;
+

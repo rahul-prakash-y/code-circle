@@ -36,28 +36,28 @@ export const FullScreenEnforcementOverlay: React.FC<FullScreenEnforcementOverlay
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
-        className={`absolute inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-3xl bg-black/80 dark:bg-[#070709]/90 select-none ${className}`}
+        className={`absolute inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-3xl bg-black/80 dark:bg-canvas/90 select-none ${className}`}
       >
         <EmilCard
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: DURATION_MODAL, ease: EMIL_EASE_OUT }}
-          className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#161617]/95 shadow-[0_20px_50px_rgba(0,0,0,0.4)] text-center relative"
+          className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-separator bg-surface shadow-2xl text-center relative"
         >
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5 text-primary">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-accent-subtle border border-accent/20 flex items-center justify-center mb-5 text-accent">
             <Maximize2 size={28} />
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-warning-subtle text-warning border border-warning/20 mb-3">
             <AlertTriangle size={12} /> Proctoring Requirement
           </div>
 
-          <h3 className="text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] mb-2">
+          <h3 className="text-xl font-bold tracking-tight text-label-primary mb-2">
             {title}
           </h3>
 
-          <p className="text-xs sm:text-sm text-[#86868B] dark:text-[#86868B] mb-6 leading-relaxed">
+          <p className="text-xs sm:text-sm text-label-secondary  mb-6 leading-relaxed">
             {description}
           </p>
 
@@ -77,3 +77,4 @@ export const FullScreenEnforcementOverlay: React.FC<FullScreenEnforcementOverlay
 };
 
 export default FullScreenEnforcementOverlay;
+

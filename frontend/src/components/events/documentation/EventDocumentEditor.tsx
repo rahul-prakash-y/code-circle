@@ -136,32 +136,32 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
   };
 
   return (
-    <EmilCard className="w-full max-w-5xl mx-auto p-4 sm:p-6 rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#161617] shadow-xl overflow-hidden">
+    <EmilCard className="w-full max-w-5xl mx-auto p-4 sm:p-6 rounded-3xl border border-separator bg-surface shadow-xl overflow-hidden">
       {/* Top Bar: Title & View Mode Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-black/5 dark:border-white/10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-separator">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-xl bg-accent-subtle text-accent flex items-center justify-center font-bold">
             <FileText size={20} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
+            <h2 className="text-lg font-bold text-label-primary">
               Event Documentation Generator
             </h2>
-            <p className="text-xs text-[#86868B]">
+            <p className="text-xs text-label-secondary">
               Author and format structured documentation reports for institutional approval
             </p>
           </div>
         </div>
 
         {/* View Mode Switcher */}
-        <div className="flex items-center gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/10">
+        <div className="flex items-center gap-1 p-1 bg-surface-secondary rounded-xl border border-separator">
           <button
             type="button"
             onClick={() => setViewMode('edit')}
             className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
               viewMode === 'edit'
-                ? 'bg-white dark:bg-white/15 text-[#1D1D1F] dark:text-white shadow-xs'
-                : 'text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white'
+                ? 'bg-surface text-label-primary shadow-xs'
+                : 'text-label-secondary hover:text-label-primary'
             }`}
           >
             <Edit3 size={13} /> Edit
@@ -171,8 +171,8 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             onClick={() => setViewMode('split')}
             className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
               viewMode === 'split'
-                ? 'bg-white dark:bg-white/15 text-[#1D1D1F] dark:text-white shadow-xs'
-                : 'text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white'
+                ? 'bg-surface text-label-primary shadow-xs'
+                : 'text-label-secondary hover:text-label-primary'
             }`}
           >
             <Columns size={13} /> Split
@@ -182,8 +182,8 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             onClick={() => setViewMode('preview')}
             className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
               viewMode === 'preview'
-                ? 'bg-white dark:bg-white/15 text-[#1D1D1F] dark:text-white shadow-xs'
-                : 'text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white'
+                ? 'bg-surface text-label-primary shadow-xs'
+                : 'text-label-secondary hover:text-label-primary'
             }`}
           >
             <Eye size={13} /> Preview
@@ -195,13 +195,13 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
         {!eventId && eventsList.length > 0 && (
           <div className="md:col-span-3">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-label-secondary mb-1">
               Select Event
             </label>
             <select
               value={targetEventId}
               onChange={(e) => setTargetEventId(e.target.value)}
-              className="w-full h-10 px-3.5 text-sm rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
+              className="w-full h-10 px-3.5 text-sm rounded-xl border border-separator bg-surface-secondary text-label-primary focus:outline-none focus:ring-1 focus:ring-accent-ring focus:border-accent cursor-pointer"
             >
               <option value="">-- Choose Target Event --</option>
               {eventsList.map((ev) => (
@@ -213,7 +213,7 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
           </div>
         )}
         <div className="md:col-span-2">
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-label-secondary mb-1">
             Document Title
           </label>
           <input
@@ -221,12 +221,12 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Code Hackathon 2026 - Post-Event Documentation"
-            className="w-full h-10 px-3.5 text-sm rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+            className="w-full h-10 px-3.5 text-sm rounded-xl border border-separator bg-surface-secondary text-label-primary focus:outline-none focus:ring-1 focus:ring-accent-ring focus:border-accent transition-all"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#86868B] mb-1">
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-label-secondary mb-1">
             Tags (comma separated)
           </label>
           <input
@@ -234,19 +234,19 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             placeholder="Report, Assessment, Technical"
-            className="w-full h-10 px-3.5 text-sm rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+            className="w-full h-10 px-3.5 text-sm rounded-xl border border-separator bg-surface-secondary text-label-primary focus:outline-none focus:ring-1 focus:ring-accent-ring focus:border-accent transition-all"
           />
         </div>
       </div>
 
       {/* Markdown Toolbar */}
       {viewMode !== 'preview' && (
-        <div className="flex flex-wrap items-center gap-1 p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 mb-3 text-[#1D1D1F] dark:text-[#F5F5F7]">
+        <div className="flex flex-wrap items-center gap-1 p-2 rounded-xl bg-surface-secondary border border-separator mb-3 text-label-primary">
           <button
             type="button"
             onClick={() => insertFormatting('**', '**')}
             title="Bold"
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-raised text-label-secondary hover:text-label-primary transition-colors"
           >
             <Bold size={15} />
           </button>
@@ -254,7 +254,7 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             type="button"
             onClick={() => insertFormatting('*', '*')}
             title="Italic"
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-raised text-label-secondary hover:text-label-primary transition-colors"
           >
             <Italic size={15} />
           </button>
@@ -262,7 +262,7 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             type="button"
             onClick={() => insertFormatting('# ')}
             title="Heading 1"
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-raised text-label-secondary hover:text-label-primary transition-colors"
           >
             <Heading1 size={15} />
           </button>
@@ -270,16 +270,16 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             type="button"
             onClick={() => insertFormatting('## ')}
             title="Heading 2"
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-raised text-label-secondary hover:text-label-primary transition-colors"
           >
             <Heading2 size={15} />
           </button>
-          <span className="w-px h-4 bg-black/10 dark:bg-white/10 mx-1" />
+          <span className="w-px h-4 bg-separator mx-1" />
           <button
             type="button"
             onClick={() => insertFormatting('- ')}
             title="Bullet List"
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-raised text-label-secondary hover:text-label-primary transition-colors"
           >
             <List size={15} />
           </button>
@@ -287,7 +287,7 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             type="button"
             onClick={() => insertFormatting('1. ')}
             title="Numbered List"
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-raised text-label-secondary hover:text-label-primary transition-colors"
           >
             <ListOrdered size={15} />
           </button>
@@ -295,7 +295,7 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             type="button"
             onClick={() => insertFormatting('`', '`')}
             title="Code"
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-raised text-label-secondary hover:text-label-primary transition-colors"
           >
             <Code size={15} />
           </button>
@@ -303,7 +303,7 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             type="button"
             onClick={() => insertFormatting('> ')}
             title="Quote"
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-raised text-label-secondary hover:text-label-primary transition-colors"
           >
             <Quote size={15} />
           </button>
@@ -320,18 +320,18 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your event documentation here in Markdown..."
-              className="w-full flex-1 p-4 font-mono text-xs sm:text-sm rounded-2xl border border-black/10 dark:border-white/10 bg-[#FAFAFA] dark:bg-[#0D0D0E] text-[#1D1D1F] dark:text-[#F5F5F7] resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 leading-relaxed overflow-y-auto"
+              className="w-full flex-1 p-4 font-mono text-xs sm:text-sm rounded-2xl border border-separator bg-surface-secondary text-label-primary resize-none focus:outline-none focus:ring-1 focus:ring-accent-ring focus:border-accent leading-relaxed overflow-y-auto"
             />
           </div>
         )}
 
         {/* Live Preview Pane */}
         {viewMode !== 'edit' && (
-          <div className={`${viewMode === 'split' ? 'col-span-1' : 'col-span-2 md:col-span-2'} h-full p-5 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#111112] overflow-y-auto`}>
-            <div className="text-[11px] uppercase tracking-wider font-semibold text-[#86868B] mb-3 pb-2 border-b border-black/5 dark:border-white/5">
+          <div className={`${viewMode === 'split' ? 'col-span-1' : 'col-span-2 md:col-span-2'} h-full p-5 rounded-2xl border border-separator bg-surface overflow-y-auto`}>
+            <div className="text-[11px] uppercase tracking-wider font-semibold text-label-secondary mb-3 pb-2 border-b border-separator">
               Live Markdown Preview
             </div>
-            <div className="prose dark:prose-invert prose-sm max-w-none text-[#1D1D1F] dark:text-[#E5E5EA] leading-relaxed">
+            <div className="prose dark:prose-invert prose-sm max-w-none text-label-primary leading-relaxed">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {content || '*No content to preview*'}
               </ReactMarkdown>
@@ -341,8 +341,8 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
       </div>
 
       {/* Bottom Actions Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-5 mt-4 border-t border-black/5 dark:border-white/10">
-        <div className="text-xs text-[#86868B] flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-5 mt-4 border-t border-separator">
+        <div className="text-xs text-label-secondary flex items-center gap-2">
           <span>{content.split(/\s+/).filter(Boolean).length} words</span>
           <span>&bull;</span>
           <span>{content.length} characters</span>

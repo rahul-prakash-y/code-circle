@@ -154,12 +154,12 @@ export const HeroUISelect: React.FC<HeroUISelectProps> = ({
           disabled
             ? 'opacity-50 cursor-not-allowed bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-zinc-400'
             : isOpen
-            ? 'bg-white dark:bg-[#1E1E22] border border-zinc-300 dark:border-white/20 shadow-md ring-2 ring-black/5 dark:ring-white/10'
-            : 'bg-zinc-50 dark:bg-white/[0.05] hover:bg-zinc-100 dark:hover:bg-white/[0.08] border border-zinc-200 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/20'
+            ? 'bg-surface border border-separator-opaque shadow-md ring-2 ring-black/5 dark:ring-white/10'
+            : 'bg-surface-secondary hover:bg-surface border border-separator hover:border-separator-opaque'
         }`}
       >
         <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-          {startContent && <span className="shrink-0 text-zinc-500 dark:text-zinc-400">{startContent}</span>}
+          {startContent && <span className="shrink-0 text-label-secondary">{startContent}</span>}
           {selectedOption ? (
             <div className="flex items-center gap-2 truncate">
               {selectedOption.icon && <span className="shrink-0">{selectedOption.icon}</span>}
@@ -209,7 +209,7 @@ export const HeroUISelect: React.FC<HeroUISelectProps> = ({
             animate={{ opacity: 1, y: 4, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 right-0 z-50 overflow-hidden rounded-2xl bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-white/15 shadow-2xl dark:shadow-black/80 backdrop-blur-xl p-1.5"
+            className="absolute left-0 right-0 z-50 overflow-hidden rounded-2xl bg-surface-raised border border-separator shadow-2xl backdrop-blur-xl p-1.5"
           >
             {/* Search Input for Autocomplete */}
             {isSearchable && (

@@ -226,40 +226,40 @@ export const AdminMissedEventRequestsModal: React.FC<
         <div className="space-y-4 pt-2">
 
           {/* Stats Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 px-6 py-3.5 bg-zinc-50 dark:bg-white/[0.01] border-b border-zinc-200 dark:border-white/10 shrink-0">
-            <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 shadow-2xs">
-              <span className="text-[11px] font-semibold text-zinc-500 dark:text-[#86868B] uppercase tracking-wider block">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 px-6 py-3.5 bg-surface-secondary border-b border-separator shrink-0">
+            <div className="p-3 rounded-2xl bg-surface border border-separator shadow-2xs">
+              <span className="text-[11px] font-semibold text-label-secondary uppercase tracking-wider block">
                 Total Requests
               </span>
-              <span className="text-xl font-extrabold text-zinc-900 dark:text-[#F5F5F7]">{stats.total}</span>
+              <span className="text-xl font-extrabold text-label-primary">{stats.total}</span>
             </div>
 
-            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-              <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+            <div className="p-3 rounded-2xl bg-warning-subtle border border-warning/20">
+              <span className="text-[11px] font-semibold text-warning uppercase tracking-wider block">
                 Pending Review
               </span>
-              <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400">{stats.pending}</span>
+              <span className="text-xl font-extrabold text-warning">{stats.pending}</span>
             </div>
 
-            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-              <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
+            <div className="p-3 rounded-2xl bg-success-subtle border border-success/20">
+              <span className="text-[11px] font-semibold text-success uppercase tracking-wider block">
                 Approved
               </span>
-              <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">{stats.approved}</span>
+              <span className="text-xl font-extrabold text-success">{stats.approved}</span>
             </div>
 
-            <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
-              <span className="text-[11px] font-semibold text-rose-800 dark:text-rose-300 uppercase tracking-wider block">
+            <div className="p-3 rounded-2xl bg-destructive-subtle border border-destructive/20">
+              <span className="text-[11px] font-semibold text-destructive uppercase tracking-wider block">
                 Restricted Students
               </span>
-              <span className="text-xl font-extrabold text-rose-600 dark:text-rose-400">
+              <span className="text-xl font-extrabold text-destructive">
                 {stats.restrictedStudents}
               </span>
             </div>
           </div>
 
           {/* Filter & Search Bar */}
-          <div className="px-6 py-3.5 bg-zinc-100/70 dark:bg-[#18181B] border-b border-zinc-200 dark:border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="px-6 py-3.5 bg-surface-secondary border-b border-separator flex flex-col sm:flex-row items-center justify-between gap-3">
             {/* Status Tabs with Emil Kowalski spring motion */}
             <HeroTabs
               size="sm"
@@ -281,7 +281,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search student or roll no..."
-                startContent={<Search className="w-4 h-4 text-zinc-400 dark:text-[#86868B]" />}
+                startContent={<Search className="w-4 h-4 text-label-tertiary" />}
                 isClearable
                 onClear={() => {
                   setSearchQuery('');
@@ -294,15 +294,15 @@ export const AdminMissedEventRequestsModal: React.FC<
           {/* List of Requests */}
           <div className="p-6 overflow-y-auto space-y-4 flex-1">
             {loading ? (
-              <div className="py-20 text-center text-[#86868B] space-y-2">
-                <Loader2 className="w-7 h-7 animate-spin mx-auto text-amber-500" />
+              <div className="py-20 text-center text-label-secondary space-y-2">
+                <Loader2 className="w-7 h-7 animate-spin mx-auto text-warning" />
                 <p className="text-xs">Loading missed event requests...</p>
               </div>
             ) : requests.length === 0 ? (
-              <div className="py-20 text-center text-neutral-500 space-y-2">
-                <Calendar className="w-10 h-10 mx-auto text-neutral-600" />
-                <p className="text-sm font-semibold text-neutral-300">No requests found</p>
-                <p className="text-xs">
+              <div className="py-20 text-center text-label-secondary space-y-2">
+                <Calendar className="w-10 h-10 mx-auto text-label-tertiary" />
+                <p className="text-sm font-semibold text-label-primary">No requests found</p>
+                <p className="text-xs text-label-secondary">
                   There are currently no requests matching the selected filter criteria.
                 </p>
               </div>
@@ -314,10 +314,10 @@ export const AdminMissedEventRequestsModal: React.FC<
                 return (
                   <div
                     key={req._id}
-                    className="p-5 rounded-2xl bg-white dark:bg-[#1A1A1D] border border-zinc-200 dark:border-white/[0.08] hover:border-zinc-300 dark:hover:border-white/[0.14] shadow-xs transition-all space-y-3.5"
+                    className="p-5 rounded-2xl bg-surface border border-separator hover:border-separator-opaque shadow-xs transition-all space-y-3.5"
                   >
                     {/* Top Row: Student Identity & Badges */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 dark:border-white/[0.04] pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-separator pb-3">
                       <div className="flex items-center gap-3">
                         <HeroAvatar
                           name={req.student?.name || 'Student'}
@@ -327,22 +327,22 @@ export const AdminMissedEventRequestsModal: React.FC<
                         />
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-zinc-900 dark:text-white">
+                            <span className="font-bold text-sm text-label-primary">
                               {req.student?.name || 'Unknown Student'}
                             </span>
-                            <span className="text-xs font-mono text-zinc-500 dark:text-[#86868B]">
+                            <span className="text-xs font-mono text-label-secondary">
                               ({req.student?.rollNo || '—'})
                             </span>
                             {isStudentRestricted && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive-subtle text-destructive border border-destructive/20 flex items-center gap-1">
                                 <ShieldAlert className="w-3 h-3" />
                                 Restricted
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-zinc-500 dark:text-[#86868B]">
+                          <p className="text-xs text-label-secondary">
                             {req.student?.department || 'General'} • {req.student?.email} • Points:{' '}
-                            <strong className="text-zinc-900 dark:text-neutral-200 font-semibold">{req.student?.points || 0}</strong>
+                            <strong className="text-label-primary font-semibold">{req.student?.points || 0}</strong>
                           </p>
                         </div>
                       </div>
@@ -352,10 +352,10 @@ export const AdminMissedEventRequestsModal: React.FC<
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold border ${
                             req.status === 'APPROVED'
-                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                              ? 'bg-success-subtle text-success border-success/30'
                               : req.status === 'REJECTED'
-                              ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                              : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                              ? 'bg-destructive-subtle text-destructive border-destructive/30'
+                              : 'bg-warning-subtle text-warning border-warning/30'
                           }`}
                         >
                           {req.status === 'APPROVED' && 'Approved'}
@@ -383,31 +383,31 @@ export const AdminMissedEventRequestsModal: React.FC<
                     </div>
 
                     {/* Middle Row: Event & Request Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-zinc-50 dark:bg-black/30 p-3.5 rounded-xl border border-zinc-200 dark:border-white/[0.04]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-surface-secondary p-3.5 rounded-xl border border-separator">
                       <div>
-                        <span className="text-zinc-500 dark:text-[#86868B] block mb-0.5">Event Missed:</span>
-                        <strong className="text-zinc-900 dark:text-white text-sm">
+                        <span className="text-label-secondary block mb-0.5">Event Missed:</span>
+                        <strong className="text-label-primary text-sm">
                           {req.event?.title || 'Unknown Event'}
                         </strong>
-                        <p className="text-zinc-500 dark:text-[#86868B] mt-0.5">
+                        <p className="text-label-secondary mt-0.5">
                           Date: {formatISTDate(req.missedDate)} • Type: {req.event?.type}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-zinc-500 dark:text-[#86868B] block mb-0.5">Requested Credit:</span>
-                        <strong className="text-amber-600 dark:text-amber-400 text-sm">
+                        <span className="text-label-secondary block mb-0.5">Requested Credit:</span>
+                        <strong className="text-warning text-sm">
                           {req.clubHoursRequested} Club Hour(s)
                         </strong>
-                        <p className="text-zinc-500 dark:text-[#86868B] mt-0.5">
+                        <p className="text-label-secondary mt-0.5">
                           Periods: {req.classHours?.join(', ') || '1'}
                         </p>
                       </div>
                     </div>
 
                     {/* Reason statement */}
-                    <div className="p-3 rounded-xl bg-zinc-100/70 dark:bg-black/40 border border-zinc-200 dark:border-white/[0.04] text-xs text-zinc-800 dark:text-neutral-300">
-                      <span className="text-zinc-500 dark:text-[#86868B] font-semibold block mb-0.5">
+                    <div className="p-3 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary">
+                      <span className="text-label-secondary font-semibold block mb-0.5">
                         Student Justification:
                       </span>
                       {req.reason}
@@ -420,7 +420,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                           href={req.proofUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                          className="inline-flex items-center gap-1.5 text-accent hover:underline font-medium"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>View Attached Proof / Document</span>
@@ -433,8 +433,8 @@ export const AdminMissedEventRequestsModal: React.FC<
                       <div
                         className={`p-3 rounded-xl text-xs border ${
                           req.status === 'REJECTED'
-                            ? 'bg-rose-500/10 border-rose-500/25 text-rose-800 dark:text-rose-300'
-                            : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-800 dark:text-emerald-300'
+                            ? 'bg-destructive-subtle border-destructive/25 text-destructive'
+                            : 'bg-success-subtle border-success/25 text-success'
                         }`}
                       >
                         <span className="font-semibold block mb-0.5">
@@ -446,11 +446,11 @@ export const AdminMissedEventRequestsModal: React.FC<
 
                     {/* Action Bar for Pending Requests */}
                     {req.status === 'PENDING' && (
-                      <div className="pt-2 flex flex-wrap items-center justify-end gap-2 border-t border-zinc-100 dark:border-white/[0.04]">
+                      <div className="pt-2 flex flex-wrap items-center justify-end gap-2 border-t border-separator">
                         <button
                           type="button"
                           onClick={() => handleOpenReview(req, 'REJECT')}
-                          className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600/15 hover:bg-rose-600/25 text-rose-400 border border-rose-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                          className="px-4 py-2 rounded-xl text-xs font-bold bg-destructive-subtle hover:bg-destructive/20 text-destructive border border-destructive/30 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <XCircle className="w-4 h-4" />
                           <span>Reject (Restrict Student)</span>
@@ -459,7 +459,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                         <button
                           type="button"
                           onClick={() => handleOpenReview(req, 'APPROVE')}
-                          className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                          className="px-4 py-2 rounded-xl text-xs font-bold bg-success hover:bg-success-hover text-white shadow-md shadow-success/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           <span>Approve Request</span>
@@ -476,19 +476,19 @@ export const AdminMissedEventRequestsModal: React.FC<
 
       {/* Review Action Confirmation Sub-Modal */}
         {reviewingReq && (
-          <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 dark:bg-black/75 backdrop-blur-xl overflow-hidden">
+          <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-surface-overlay backdrop-blur-xl overflow-hidden">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-white dark:bg-[#161617] text-zinc-900 dark:text-[#F5F5F7] border border-zinc-200 dark:border-white/10 rounded-t-[28px] sm:rounded-3xl p-6 shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-4"
+              className="w-full max-w-md bg-surface text-label-primary border border-separator rounded-t-[28px] sm:rounded-3xl p-6 shadow-2xl dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-4"
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
                     reviewAction === 'REJECT'
-                      ? 'bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400'
-                      : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                      ? 'bg-destructive-subtle border border-destructive/30 text-destructive'
+                      : 'bg-success-subtle border border-success/30 text-success'
                   }`}
                 >
                   {reviewAction === 'REJECT' ? (
@@ -498,12 +498,12 @@ export const AdminMissedEventRequestsModal: React.FC<
                   )}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                  <h3 className="text-base font-bold text-label-primary">
                     {reviewAction === 'REJECT'
                       ? 'Reject Missed Event Request'
                       : 'Approve Missed Event Request'}
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-[#86868B]">
+                  <p className="text-xs text-label-secondary">
                     Student: {reviewingReq.student.name} ({reviewingReq.student.rollNo})
                   </p>
                 </div>
@@ -511,26 +511,26 @@ export const AdminMissedEventRequestsModal: React.FC<
 
               {/* CRITICAL WARNING FOR REJECTION */}
               {reviewAction === 'REJECT' && (
-                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-800 dark:text-rose-300 space-y-1">
-                  <p className="font-bold flex items-center gap-1 text-rose-900 dark:text-rose-200">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                <div className="p-3.5 rounded-2xl bg-destructive-subtle border border-destructive/25 text-xs text-destructive space-y-1">
+                  <p className="font-bold flex items-center gap-1 text-destructive">
+                    <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
                     Automatic Restriction Warning
                   </p>
                   <p className="leading-relaxed">
                     Rejecting this request will immediately block this student from attending{' '}
-                    <strong className="text-rose-950 dark:text-white">assessments, contests, and courses</strong>. Only an administrator can unblock them.
+                    <strong className="text-label-primary">assessments, contests, and courses</strong>. Only an administrator can unblock them.
                   </p>
                 </div>
               )}
 
               {/* Approval Option: Grant Attendance */}
               {reviewAction === 'APPROVE' && reviewingReq.session && (
-                <label className="flex items-center gap-2 p-3 rounded-xl bg-zinc-50 dark:bg-white/[0.04] border border-zinc-200 dark:border-white/[0.08] cursor-pointer text-xs text-zinc-800 dark:text-neutral-200">
+                <label className="flex items-center gap-2 p-3 rounded-xl bg-surface-secondary border border-separator cursor-pointer text-xs text-label-primary">
                   <input
                     type="checkbox"
                     checked={grantAttendance}
                     onChange={(e) => setGrantAttendance(e.target.checked)}
-                    className="rounded border-zinc-300 dark:border-neutral-700 text-emerald-500 focus:ring-0 cursor-pointer"
+                    className="rounded border-separator text-success focus:ring-0 cursor-pointer"
                   />
                   <span>
                     Credit attendance record & club points ({reviewingReq.session?.totalPoints || 50} pts)
@@ -557,7 +557,7 @@ export const AdminMissedEventRequestsModal: React.FC<
                 <button
                   type="button"
                   onClick={() => setReviewingReq(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-[#86868B] hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -568,8 +568,8 @@ export const AdminMissedEventRequestsModal: React.FC<
                   disabled={actionLoading}
                   className={`px-5 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 ${
                     reviewAction === 'REJECT'
-                      ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'
-                      : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
+                      ? 'bg-destructive hover:bg-destructive-hover shadow-destructive/20'
+                      : 'bg-success hover:bg-success-hover shadow-success/20'
                   }`}
                 >
                   {actionLoading ? (

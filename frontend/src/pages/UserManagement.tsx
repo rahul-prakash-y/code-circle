@@ -23,7 +23,7 @@ import { HeroUISelect } from '../components/ui/HeroUISelect';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
-  SuperAdmin: { color: 'var(--accent)', bg: 'rgba(0,113,227,0.08)', Icon: Crown },
+  SuperAdmin: { color: 'var(--accent)', bg: 'var(--accent-subtle)', Icon: Crown },
   Admin: { color: 'var(--text-primary)', bg: 'var(--surface-elevated)', Icon: ShieldCheck },
   Faculty: { color: 'var(--text-secondary)', bg: 'var(--surface-elevated)', Icon: Shield },
   Committee: { color: 'var(--text-secondary)', bg: 'var(--surface-elevated)', Icon: Shield },
@@ -881,13 +881,13 @@ const UserManagement: React.FC = () => {
                       className="group"
                       style={{
                         borderBottom: '1px solid var(--border-color)',
-                        background: isSelected ? 'rgba(0, 113, 227, 0.04)' : undefined,
+                        background: isSelected ? 'var(--accent-subtle)' : undefined,
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'var(--glass-bg)';
                       }}
                       onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLTableRowElement).style.background = isSelected ? 'rgba(0, 113, 227, 0.04)' : 'transparent';
+                        (e.currentTarget as HTMLTableRowElement).style.background = isSelected ? 'var(--accent-subtle)' : 'transparent';
                       }}
                     >
                       {/* Selection Checkbox */}
@@ -950,14 +950,14 @@ const UserManagement: React.FC = () => {
                           {item.isBlocked ? (
                             <span
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-                              style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
+                              style={{ background: 'var(--destructive-subtle)', color: 'var(--destructive)', border: '1px solid var(--destructive-subtle)' }}
                             >
                               <ShieldAlert size={11} strokeWidth={2.5} /> Blocked
                             </span>
                           ) : (
                             <span
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-                              style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399', border: '1px solid rgba(52,211,153,0.2)' }}
+                              style={{ background: 'var(--success-subtle)', color: 'var(--success)', border: '1px solid var(--success-subtle)' }}
                             >
                               <CheckCircle2 size={11} strokeWidth={2.5} /> Active
                             </span>
@@ -966,7 +966,7 @@ const UserManagement: React.FC = () => {
                           {item.isRestricted && (
                             <span
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-                              style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                              style={{ background: 'var(--destructive-subtle)', color: 'var(--destructive)', border: '1px solid var(--destructive-subtle)' }}
                               title={`Restricted: ${item.restrictionReason || 'Academic restriction active'}`}
                             >
                               <Lock size={11} strokeWidth={2.5} /> Restricted
@@ -997,7 +997,7 @@ const UserManagement: React.FC = () => {
                                 onClick={() => handleDeleteSubmit(uid)}
                                 disabled={actionLoading}
                                 className="px-3 py-1.5 min-h-[34px] rounded-lg text-[12px] font-semibold cursor-pointer transition-colors duration-150 flex items-center justify-center"
-                                style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}
+                                style={{ background: 'var(--destructive-subtle)', color: 'var(--destructive)' }}
                               >
                                 {actionLoading ? <Loader2 size={12} className="animate-spin" /> : 'Confirm'}
                               </button>
@@ -1038,7 +1038,7 @@ const UserManagement: React.FC = () => {
                                   onClick={() => handleForceResetPassword(item)}
                                   className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
                                   style={{ color: 'var(--text-muted)' }}
-                                  onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#f59e0b')}
+                                  onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--warning)')}
                                   onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
                                   title="Generate temporary password"
                                   aria-label={`Generate temp password for ${item.name}`}
@@ -1065,7 +1065,7 @@ const UserManagement: React.FC = () => {
                                       }
                                     }
                                   }}
-                                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 text-success hover:bg-success-subtle"
                                   title="Lift academic restrictions (assessments, contests, courses)"
                                   aria-label={`Lift restrictions for ${item.name}`}
                                 >
@@ -1079,7 +1079,7 @@ const UserManagement: React.FC = () => {
                                 className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
                                 style={{ color: 'var(--text-muted)' }}
                                 onMouseEnter={(e) => {
-                                  (e.currentTarget as HTMLButtonElement).style.color = item.isBlocked ? '#34d399' : '#f59e0b';
+                                  (e.currentTarget as HTMLButtonElement).style.color = item.isBlocked ? 'var(--success)' : 'var(--warning)';
                                 }}
                                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
                                 title={item.isBlocked ? 'Unblock' : 'Block'}
@@ -1106,7 +1106,7 @@ const UserManagement: React.FC = () => {
                                 onClick={() => { setSelectedUser(item); setConfirmDeleteId(uid); }}
                                 className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
                                 style={{ color: 'var(--text-muted)' }}
-                                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#f87171')}
+                                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--destructive)')}
                                 onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
                                 title="Delete user"
                                 aria-label={`Delete ${item.name}`}
@@ -1357,14 +1357,14 @@ const UserManagement: React.FC = () => {
       <CenteredModal open={showForceResetModal && !!selectedUser} onClose={() => { setShowForceResetModal(false); setGeneratedTempPassword(null); }}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest truncate" style={{ color: '#f59e0b' }}>
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest truncate" style={{ color: 'var(--warning)' }}>
               Admin / SuperAdmin Action
             </p>
             <h3 className="text-lg sm:text-xl font-black mt-0.5 truncate" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Temporary Password Generation
             </h3>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--warning-subtle)', color: 'var(--warning)' }}>
             <KeyRound size={18} strokeWidth={1.8} />
           </div>
         </div>
@@ -1373,10 +1373,10 @@ const UserManagement: React.FC = () => {
           <>
             <div
               className="p-3.5 sm:p-4 rounded-2xl text-xs sm:text-[13px] leading-relaxed space-y-2"
-              style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', color: '#fbbf24' }}
+              style={{ background: 'var(--warning-subtle)', border: '1px solid var(--warning-subtle)', color: 'var(--warning)' }}
             >
               <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
-                <ShieldAlert size={15} strokeWidth={2} style={{ color: '#f59e0b' }} />
+                <ShieldAlert size={15} strokeWidth={2} style={{ color: 'var(--warning)' }} />
                 Temporary Access Generation
               </div>
               <p>
@@ -1391,7 +1391,7 @@ const UserManagement: React.FC = () => {
                 onClick={executeForceReset}
                 disabled={actionLoading}
                 className="w-full sm:flex-1 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors duration-150"
-                style={{ background: '#f59e0b', color: '#000' }}
+                style={{ background: 'var(--warning)', color: '#FFFFFF' }}
               >
                 {actionLoading ? <Loader2 size={15} className="animate-spin" /> : 'Generate Temp Password'}
               </button>
@@ -1401,30 +1401,30 @@ const UserManagement: React.FC = () => {
           <div className="space-y-4">
             <div
               className="p-3.5 sm:p-4 rounded-2xl flex items-start gap-3"
-              style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+              style={{ background: 'var(--success-subtle)', border: '1px solid var(--success-subtle)' }}
             >
-              <CheckCircle2 size={16} strokeWidth={2} style={{ color: '#34d399', flexShrink: 0, marginTop: 2 }} />
-              <p className="text-xs sm:text-[13px]" style={{ color: '#34d399' }}>Temporary password generated. Hand off to the student; they will be prompted to create their own personal password upon login:</p>
+              <CheckCircle2 size={16} strokeWidth={2} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
+              <p className="text-xs sm:text-[13px]" style={{ color: 'var(--success)' }}>Temporary password generated. Hand off to the student; they will be prompted to create their own personal password upon login:</p>
             </div>
             <div
               className="flex items-center gap-2 sm:gap-3 p-3.5 sm:p-4 rounded-xl"
-              style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}
+              style={{ background: 'var(--warning-subtle)', border: '1px solid var(--warning-subtle)' }}
             >
-              <code className="text-sm sm:text-base font-mono font-bold flex-1 tracking-widest break-all" style={{ color: '#fbbf24' }}>
+              <code className="text-sm sm:text-base font-mono font-bold flex-1 tracking-widest break-all" style={{ color: 'var(--warning)' }}>
                 {generatedTempPassword}
               </code>
               <button
                 onClick={() => copyToClipboard(generatedTempPassword!, 'Temporary password copied!')}
-                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
-                style={{ color: '#f59e0b' }}
+                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-surface-secondary shrink-0"
+                style={{ color: 'var(--warning)' }}
                 title="Copy temporary password"
               >
                 <Copy size={15} strokeWidth={2} />
               </button>
               <button
                 onClick={() => handleShareResetLink(generatedTempPassword!, selectedUser?.name)}
-                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
-                style={{ color: '#f59e0b' }}
+                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-surface-secondary shrink-0"
+                style={{ color: 'var(--warning)' }}
                 title="Share temporary password"
               >
                 <Share2 size={15} strokeWidth={2} />
@@ -1452,31 +1452,31 @@ const UserManagement: React.FC = () => {
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             className="fixed bottom-5 sm:bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border w-[calc(100%-2rem)] max-w-lg sm:w-auto"
             style={{
-              background: 'rgba(18, 18, 20, 0.92)',
-              borderColor: 'var(--border-color)',
-              boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 113, 227, 0.2)',
+              background: 'var(--surface-overlay)',
+              borderColor: 'var(--separator)',
+              boxShadow: 'var(--shadow-xl)',
             }}
           >
             <div className="flex items-center gap-2.5">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
-              <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-accent animate-pulse shrink-0" />
+              <span className="text-xs sm:text-sm font-semibold text-label-primary whitespace-nowrap">
                 {selectedIds.length} student{selectedIds.length > 1 ? 's' : ''} selected
               </span>
             </div>
 
-            <div className="h-4 w-px bg-white/15 hidden sm:block" />
+            <div className="h-4 w-px bg-separator-opaque hidden sm:block" />
 
             <div className="flex items-center gap-2 ml-auto sm:ml-0">
               <button
                 onClick={() => setSelectedIds([])}
-                className="px-3 py-1.5 min-h-[36px] text-xs font-medium text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center"
+                className="px-3 py-1.5 min-h-[36px] text-xs font-medium text-label-secondary hover:text-label-primary rounded-lg hover:bg-surface-secondary transition-colors cursor-pointer flex items-center justify-center"
               >
                 Clear
               </button>
 
               <button
                 onClick={handleExportSelectedExcel}
-                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 min-h-[36px] text-xs font-semibold text-emerald-300 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-xl transition-colors cursor-pointer justify-center"
+                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 min-h-[36px] text-xs font-semibold text-success bg-success-subtle hover:bg-success-subtle/80 border border-success/30 rounded-xl transition-colors cursor-pointer justify-center"
                 title="Export selected students to Excel spreadsheet"
               >
                 <FileSpreadsheet size={13} strokeWidth={2.2} />
@@ -1485,7 +1485,7 @@ const UserManagement: React.FC = () => {
 
               <button
                 onClick={() => setShowBulkDeleteModal(true)}
-                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 min-h-[36px] text-xs font-semibold text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl transition-colors cursor-pointer justify-center"
+                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 min-h-[36px] text-xs font-semibold text-destructive bg-destructive-subtle hover:bg-destructive-subtle/80 border border-destructive/30 rounded-xl transition-colors cursor-pointer justify-center"
               >
                 <Trash2 size={13} strokeWidth={2.2} />
                 <span>Delete Selected ({selectedIds.length})</span>
@@ -1583,7 +1583,7 @@ const UserManagement: React.FC = () => {
             className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl text-sm font-mono border focus:outline-none"
             style={{
               background: 'var(--surface-elevated)',
-              borderColor: deleteAllConfirmText === 'DELETE' ? '#ef4444' : 'var(--border-color)',
+              borderColor: deleteAllConfirmText === 'DELETE' ? 'var(--destructive)' : 'var(--border-color)',
               color: 'var(--text-primary)',
             }}
           />
@@ -1643,7 +1643,7 @@ const UserManagement: React.FC = () => {
           {/* Info Banner */}
           <div
             className="p-4 rounded-2xl text-xs sm:text-[13px] leading-relaxed space-y-2"
-            style={{ background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderColor: 'rgba(0,113,227,0.15)' }}
+            style={{ background: 'var(--accent-subtle)', border: '1px solid var(--accent-subtle)' }}
           >
             <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
               <FileSpreadsheet size={15} strokeWidth={2} style={{ color: 'var(--accent)' }} />
@@ -1704,7 +1704,7 @@ const UserManagement: React.FC = () => {
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399' }}
+                style={{ background: 'var(--success-subtle)', color: 'var(--success)' }}
               >
                 <FileSpreadsheet size={18} strokeWidth={1.8} />
               </div>
@@ -1755,23 +1755,23 @@ const UserManagement: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div
                   className="p-4 rounded-xl text-center"
-                  style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+                  style={{ background: 'var(--success-subtle)', border: '1px solid var(--success-subtle)' }}
                 >
-                  <p className="text-2xl font-black" style={{ color: '#34d399' }}>
+                  <p className="text-2xl font-black" style={{ color: 'var(--success)' }}>
                     {bulkResult.summary?.created || 0}
                   </p>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: '#34d399' }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: 'var(--success)' }}>
                     Created
                   </p>
                 </div>
                 <div
                   className="p-4 rounded-xl text-center"
-                  style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}
+                  style={{ background: 'var(--warning-subtle)', border: '1px solid var(--warning-subtle)' }}
                 >
-                  <p className="text-2xl font-black" style={{ color: '#fbbf24' }}>
+                  <p className="text-2xl font-black" style={{ color: 'var(--warning)' }}>
                     {bulkResult.summary?.duplicatesSkipped || 0}
                   </p>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: '#fbbf24' }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: 'var(--warning)' }}>
                     Skipped
                   </p>
                 </div>
@@ -1780,11 +1780,11 @@ const UserManagement: React.FC = () => {
               {/* Success Message */}
               <div
                 className="p-4 rounded-2xl flex items-start gap-3"
-                style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+                style={{ background: 'var(--success-subtle)', border: '1px solid var(--success-subtle)' }}
               >
-                <CheckCircle2 size={16} strokeWidth={2} style={{ color: '#34d399', flexShrink: 0, marginTop: 2 }} />
+                <CheckCircle2 size={16} strokeWidth={2} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
                 <div>
-                  <p className="text-[13px] font-semibold" style={{ color: '#34d399' }}>
+                  <p className="text-[13px] font-semibold" style={{ color: 'var(--success)' }}>
                     {bulkResult.message}
                   </p>
                   <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -1809,7 +1809,7 @@ const UserManagement: React.FC = () => {
                           <span className="font-mono font-semibold" style={{ color: 'var(--text-muted)' }}>{d.rollNo}</span>
                           {' '}{d.name}
                         </span>
-                        <span className="text-[10px]" style={{ color: '#fbbf24' }}>{d.reason}</span>
+                        <span className="text-[10px]" style={{ color: 'var(--warning)' }}>{d.reason}</span>
                       </div>
                     ))}
                   </div>

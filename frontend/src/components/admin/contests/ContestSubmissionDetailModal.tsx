@@ -101,16 +101,16 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
       }}
       title={
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
             <FileCode2 className="w-4 h-4" />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span>{isAdminView ? `${studentName}'s Submission` : 'Your Contest Submission'}</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent/10 text-accent border border-accent/20">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-subtle text-accent border border-accent/20">
               {submission.totalScore || 0} PTS
             </span>
             {submission.awardedClubPoints > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-success-subtle text-success border border-success/20">
                 +{submission.awardedClubPoints} Club XP
               </span>
             )}
@@ -130,7 +130,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                 <button
                   type="button"
                   onClick={() => onApproveReentry(submission)}
-                  className="px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500/20 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-success-subtle hover:bg-success text-success hover:text-white border border-success/20 rounded-full text-xs font-bold transition-colors duration-150 ease-out flex items-center gap-1.5 cursor-pointer"
                   title="Approve or grant re-entry"
                 >
                   <UserCheck size={13} />
@@ -141,7 +141,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                 <button
                   type="button"
                   onClick={() => onAllocatePoints(submission)}
-                  className="px-3 py-1.5 bg-accent text-white hover:bg-accent-hover rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="px-3 py-1.5 bg-accent text-white hover:bg-accent-hover rounded-full text-xs font-bold transition-colors duration-150 ease-out flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <Zap size={13} className="fill-current" />
                   <span>Allocate Points</span>
@@ -151,7 +151,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                 <button
                   type="button"
                   onClick={() => onDeleteSubmission(submission)}
-                  className="p-1.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 rounded-full transition-all flex items-center justify-center cursor-pointer"
+                  className="p-1.5 bg-destructive-subtle hover:bg-destructive text-destructive hover:text-white border border-destructive/20 rounded-full transition-colors duration-150 ease-out flex items-center justify-center cursor-pointer"
                   title="Delete Student Entry from Contest"
                 >
                   <Trash2 size={14} />
@@ -163,8 +163,8 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
 
           {/* Re-entry Request Banner if Pending */}
           {submission.reentryStatus === 'PENDING' && (
-            <div className="px-4 sm:px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold min-w-0">
+            <div className="px-4 sm:px-6 py-2.5 bg-warning-subtle border-b border-warning/20 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-warning font-bold min-w-0">
                 <AlertTriangle size={14} className="shrink-0 animate-bounce" />
                 <span className="truncate">
                   Student submitted Re-entry Appeal: "{submission.reentryReason || 'No details provided'}"
@@ -174,7 +174,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                 <button
                   type="button"
                   onClick={() => onApproveReentry(submission)}
-                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shrink-0 transition-colors cursor-pointer shadow-xs"
+                  className="px-3 py-1 bg-success hover:bg-success-hover text-white rounded-lg font-bold text-xs shrink-0 transition-colors duration-150 ease-out cursor-pointer shadow-xs"
                 >
                   Approve Re-entry
                 </button>
@@ -186,21 +186,21 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
           <div className="px-4 sm:px-6 py-2.5 bg-surface border-b border-separator/80 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap items-center gap-4 text-label-secondary">
               <span className="flex items-center gap-1.5">
-                <Clock size={13} className="text-primary" />
+                <Clock size={13} className="text-accent" />
                 <span className="font-mono font-bold text-label-primary">
                   {formatSeconds(submission.timeTakenSeconds)}
                 </span>
                 <span className="text-[11px] text-label-tertiary">time taken</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={13} className="text-emerald-500" />
+                <CheckCircle2 size={13} className="text-success" />
                 <span className="font-mono font-bold text-label-primary">
                   {mcqCorrectCount}/{mcqTotalCount}
                 </span>
                 <span className="text-[11px] text-label-tertiary">MCQs correct</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <Code2 size={13} className="text-indigo-500" />
+                <Code2 size={13} className="text-info" />
                 <span className="font-mono font-bold text-label-primary">
                   {codingPassedCount}/{codingSubmissions.length}
                 </span>
@@ -221,15 +221,15 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
               <button
                 type="button"
                 onClick={() => setActiveTab('mcq')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all duration-150 ease-out flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'mcq'
-                    ? 'border-primary text-primary'
+                    ? 'border-accent text-accent'
                     : 'border-transparent text-label-secondary hover:text-label-primary'
                 }`}
               >
                 <HelpCircle size={14} />
                 <span>MCQ Questions ({mcqTotalCount})</span>
-                <span className="px-1.5 py-0.2 bg-primary/10 text-primary rounded-full text-[10px] font-mono">
+                <span className="px-1.5 py-0.2 bg-accent-subtle text-accent rounded-full text-[10px] font-mono">
                   {mcqTotalPointsEarned} pts
                 </span>
               </button>
@@ -237,15 +237,15 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
               <button
                 type="button"
                 onClick={() => setActiveTab('coding')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all duration-150 ease-out flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'coding'
-                    ? 'border-primary text-primary'
+                    ? 'border-accent text-accent'
                     : 'border-transparent text-label-secondary hover:text-label-primary'
                 }`}
               >
                 <Code2 size={14} />
                 <span>Coding Challenges ({codingSubmissions.length})</span>
-                <span className="px-1.5 py-0.2 bg-indigo-500/10 text-indigo-500 rounded-full text-[10px] font-mono">
+                <span className="px-1.5 py-0.2 bg-info-subtle text-info rounded-full text-[10px] font-mono">
                   {codingTotalPointsEarned} pts
                 </span>
               </button>
@@ -253,9 +253,9 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
               <button
                 type="button"
                 onClick={() => setActiveTab('summary')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all duration-150 ease-out flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'summary'
-                    ? 'border-primary text-primary'
+                    ? 'border-accent text-accent'
                     : 'border-transparent text-label-secondary hover:text-label-primary'
                 }`}
               >
@@ -279,9 +279,9 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                     <button
                       type="button"
                       onClick={() => setMcqFilter('all')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap shrink-0 ${
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all duration-150 ease-out whitespace-nowrap shrink-0 ${
                         mcqFilter === 'all'
-                          ? 'bg-primary text-white shadow-xs'
+                          ? 'bg-accent text-white shadow-xs'
                           : 'text-label-secondary hover:text-label-primary'
                       }`}
                     >
@@ -290,9 +290,9 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                     <button
                       type="button"
                       onClick={() => setMcqFilter('correct')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap shrink-0 ${
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all duration-150 ease-out whitespace-nowrap shrink-0 ${
                         mcqFilter === 'correct'
-                          ? 'bg-emerald-600 text-white shadow-xs'
+                          ? 'bg-success text-white shadow-xs'
                           : 'text-label-secondary hover:text-label-primary'
                       }`}
                     >
@@ -301,9 +301,9 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                     <button
                       type="button"
                       onClick={() => setMcqFilter('incorrect')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap shrink-0 ${
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all duration-150 ease-out whitespace-nowrap shrink-0 ${
                         mcqFilter === 'incorrect'
-                          ? 'bg-rose-600 text-white shadow-xs'
+                          ? 'bg-destructive text-white shadow-xs'
                           : 'text-label-secondary hover:text-label-primary'
                       }`}
                     >
@@ -329,11 +329,11 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                       return (
                         <div
                           key={ans.questionId || qIdx}
-                          className={`rounded-2xl border p-4 sm:p-5 transition-all ${
+                          className={`rounded-2xl border p-4 sm:p-5 transition-all duration-150 ease-out ${
                             isCorrect
-                              ? 'bg-emerald-500/[0.03] border-emerald-500/25'
+                              ? 'bg-success-subtle/40 border-success/25'
                               : hasSelected
-                              ? 'bg-rose-500/[0.03] border-rose-500/25'
+                              ? 'bg-destructive-subtle/40 border-destructive/25'
                               : 'bg-surface-secondary border-separator'
                           }`}
                         >
@@ -343,10 +343,10 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                               <span
                                 className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 mt-0.5 ${
                                   isCorrect
-                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                    ? 'bg-success-subtle text-success'
                                     : hasSelected
-                                    ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
-                                    : 'bg-zinc-500/15 text-zinc-400'
+                                    ? 'bg-destructive-subtle text-destructive'
+                                    : 'bg-surface-raised text-label-tertiary'
                                 }`}
                               >
                                 {qIdx + 1}
@@ -360,10 +360,10 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                               <span
                                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 ${
                                   isCorrect
-                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                    ? 'bg-success-subtle text-success border border-success/30'
                                     : hasSelected
-                                    ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                                    : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
+                                    ? 'bg-destructive-subtle text-destructive border border-destructive/30'
+                                    : 'bg-warning-subtle text-warning border border-warning/30'
                                 }`}
                               >
                                 {isCorrect ? (
@@ -391,22 +391,22 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                               const optionLetter = String.fromCharCode(65 + oIdx);
 
                               let optionStyle =
-                                'bg-surface border-separator text-label-secondary hover:border-separator/80';
+                                'bg-surface border-separator text-label-secondary hover:border-separator-opaque';
                               if (isStudentSelected && isCorrect) {
                                 optionStyle =
-                                  'bg-emerald-500/10 border-emerald-500/60 text-emerald-700 dark:text-emerald-300 font-bold shadow-xs';
+                                  'bg-success-subtle border-success text-success font-bold shadow-xs';
                               } else if (isStudentSelected && !isCorrect) {
                                 optionStyle =
-                                  'bg-rose-500/10 border-rose-500/60 text-rose-700 dark:text-rose-300 font-bold shadow-xs';
+                                  'bg-destructive-subtle border-destructive text-destructive font-bold shadow-xs';
                               } else if (isCorrectOption && !isCorrect) {
                                 optionStyle =
-                                  'bg-emerald-500/5 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 border-dashed font-semibold';
+                                  'bg-success-subtle/50 border-success/40 text-success border-dashed font-semibold';
                               }
 
                               return (
                                 <div
                                   key={oIdx}
-                                  className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-2 transition-all ${optionStyle}`}
+                                  className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-2 transition-all duration-150 ease-out ${optionStyle}`}
                                 >
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <span className="w-5 h-5 rounded-md bg-surface-secondary border border-separator text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
@@ -420,15 +420,15 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                                       <span
                                         className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
                                           isCorrect
-                                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
-                                            : 'bg-rose-500/20 text-rose-600 dark:text-rose-300'
+                                            ? 'bg-success-subtle text-success'
+                                            : 'bg-destructive-subtle text-destructive'
                                         }`}
                                       >
                                         Student Choice
                                       </span>
                                     )}
                                     {isCorrectOption && !isStudentSelected && (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-300">
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-success-subtle text-success">
                                         Correct Answer
                                       </span>
                                     )}
@@ -441,7 +441,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                           {/* Explanation (if provided) */}
                           {ans.explanation && (
                             <div className="mt-3 p-3 bg-surface-secondary/70 border border-separator rounded-xl text-xs space-y-1">
-                              <span className="text-[10px] font-bold uppercase font-mono text-primary flex items-center gap-1">
+                              <span className="text-[10px] font-bold uppercase font-mono text-accent flex items-center gap-1">
                                 <HelpCircle size={11} />
                                 <span>Explanation</span>
                               </span>
@@ -477,16 +477,16 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                               key={cs.problemId || idx}
                               type="button"
                               onClick={() => setSelectedCodingProblemIdx(idx)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 ease-out flex items-center gap-2 shrink-0 cursor-pointer ${
                                 isSelected
-                                  ? 'bg-primary text-white shadow-xs'
+                                  ? 'bg-accent text-white shadow-xs'
                                   : 'bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
                               }`}
                             >
                               <span>Problem {idx + 1}: {cs.problemTitle || 'Challenge'}</span>
                               <span
                                 className={`w-2 h-2 rounded-full ${
-                                  isAccepted ? 'bg-emerald-400' : 'bg-rose-400'
+                                  isAccepted ? 'bg-success' : 'bg-destructive'
                                 }`}
                               />
                             </button>
@@ -504,7 +504,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                               <h4 className="text-base font-extrabold text-label-primary tracking-tight">
                                 {selectedCoding.problemTitle || `Challenge #${selectedCodingProblemIdx + 1}`}
                               </h4>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent-subtle text-accent border border-accent/20">
                                 {selectedCoding.problemDifficulty || 'Medium'}
                               </span>
                             </div>
@@ -519,10 +519,10 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                             <span
                               className={`px-3 py-1 rounded-xl text-xs font-mono font-bold uppercase tracking-wider ${
                                 selectedCoding.status === 'ACCEPTED'
-                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                  ? 'bg-success-subtle text-success border border-success/30'
                                   : selectedCoding.status === 'WRONG_ANSWER'
-                                  ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                                  : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
+                                  ? 'bg-destructive-subtle text-destructive border border-destructive/30'
+                                  : 'bg-warning-subtle text-warning border border-warning/30'
                               }`}
                             >
                               {selectedCoding.status}
@@ -530,21 +530,21 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                             <span className="px-3 py-1 bg-surface border border-separator rounded-xl text-xs font-mono font-bold text-label-primary">
                               {selectedCoding.passedTestCases || 0} / {selectedCoding.totalTestCases || 0} Tests Passed
                             </span>
-                            <span className="px-3 py-1 bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 rounded-xl text-xs font-mono font-bold">
+                            <span className="px-3 py-1 bg-info-subtle text-info border border-info/20 rounded-xl text-xs font-mono font-bold">
                               +{selectedCoding.pointsEarned || 0} / {selectedCoding.maxPoints || 30} pts
                             </span>
                           </div>
                         </div>
 
                         {/* Code Inspector Box */}
-                        <div className="rounded-2xl border border-separator overflow-hidden shadow-lg bg-zinc-950">
+                        <div className="rounded-2xl border border-separator overflow-hidden shadow-card bg-canvas">
                           {/* Code Top Action Bar */}
-                          <div className="px-4 py-2.5 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between text-xs">
+                          <div className="px-4 py-2.5 bg-surface border-b border-separator flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                              <span className="ml-2 font-mono text-[11px] font-bold text-zinc-400 uppercase">
+                              <span className="w-2.5 h-2.5 rounded-full bg-destructive" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-warning" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-success" />
+                              <span className="ml-2 font-mono text-[11px] font-bold text-label-tertiary uppercase">
                                 {selectedCoding.language || 'python'} solution
                               </span>
                             </div>
@@ -552,15 +552,15 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                             <button
                               type="button"
                               onClick={() => handleCopyCode(selectedCoding.code || '')}
-                              className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors font-mono text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg bg-surface-secondary hover:bg-surface-raised border border-separator text-label-secondary hover:text-label-primary transition-colors duration-150 ease-out font-mono text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
                             >
-                              {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                              {copied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
                               <span>{copied ? 'Copied' : 'Copy Code'}</span>
                             </button>
                           </div>
 
                           {/* Raw Syntax Highlighted / Monospaced Code */}
-                          <pre className="p-4 sm:p-5 text-emerald-400 font-mono text-xs overflow-x-auto max-h-[380px] leading-relaxed selection:bg-emerald-500/20 selection:text-white">
+                          <pre className="p-4 sm:p-5 text-label-primary font-mono text-xs overflow-x-auto max-h-[380px] leading-relaxed selection:bg-accent-subtle selection:text-label-primary">
                             {selectedCoding.code || '// No code submitted by participant'}
                           </pre>
                         </div>
@@ -579,7 +579,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                     <span className="text-[10px] font-bold uppercase font-mono text-label-tertiary">
                       Total Contest Score
                     </span>
-                    <p className="text-2xl font-black text-primary">{submission.totalScore || 0} PTS</p>
+                    <p className="text-2xl font-black text-accent">{submission.totalScore || 0} PTS</p>
                     <p className="text-[11px] text-label-secondary">
                       MCQ: {mcqTotalPointsEarned} + Coding: {codingTotalPointsEarned}
                     </p>
@@ -589,7 +589,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                     <span className="text-[10px] font-bold uppercase font-mono text-label-tertiary">
                       Awarded Club XP
                     </span>
-                    <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                    <p className="text-2xl font-black text-success">
                       {submission.awardedClubPoints || 0} XP
                     </p>
                     <p className="text-[11px] text-label-secondary">
@@ -622,13 +622,13 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
 
                 {/* Manual Adjustment Card */}
                 {submission.manualPointsAdjustment ? (
-                  <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+                  <div className="p-5 rounded-2xl bg-warning-subtle border border-warning/30 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-amber-500 font-bold text-xs uppercase tracking-wider">
+                      <div className="flex items-center gap-2 text-warning font-bold text-xs uppercase tracking-wider">
                         <Zap size={14} />
                         <span>Manual Point Adjustment Active</span>
                       </div>
-                      <span className="text-xs font-mono font-bold text-amber-500">
+                      <span className="text-xs font-mono font-bold text-warning">
                         {submission.manualPointsAdjustment > 0
                           ? `+${submission.manualPointsAdjustment}`
                           : submission.manualPointsAdjustment}{' '}
@@ -682,7 +682,7 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+            className="px-5 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors duration-150 ease-out"
           >
             Close
           </button>

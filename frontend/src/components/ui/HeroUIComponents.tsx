@@ -94,34 +94,34 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
     // Variant backgrounds & borders
     const variantStyle =
       variant === 'faded'
-        ? 'bg-[#FFFFFF]/70 dark:bg-[#161617]/70 border border-black/10 dark:border-white/10 shadow-sm'
+        ? 'bg-surface/70 border border-separator shadow-sm'
         : variant === 'bordered'
-        ? 'bg-transparent border border-black/15 dark:border-white/15'
-        : 'bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 border border-transparent';
+        ? 'bg-transparent border border-separator-opaque'
+        : 'bg-surface-secondary/80 border border-transparent';
 
     return (
       <div className={`w-full group ${className}`}>
         {label && labelPlacement === 'outside' && (
           <label
             htmlFor={inputId}
-            className="block text-xs font-semibold tracking-wide text-[#6E6E73] dark:text-[#A1A1A6] mb-1.5 px-0.5"
+            className="block text-xs font-semibold tracking-wide text-label-secondary mb-1.5 px-0.5"
           >
             {label}
-            {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+            {isRequired && <span className="text-destructive ml-0.5">*</span>}
           </label>
         )}
 
         <div
           className={`relative w-full flex items-center rounded-2xl transition-all duration-200 backdrop-blur-md ${heightClass} ${variantStyle} ${
             isFocused
-              ? 'ring-2 ring-[#0071E3]/25 dark:ring-[#2997FF]/30 border-[#0071E3]/40 dark:border-[#2997FF]/50 shadow-sm'
+              ? 'ring-2 ring-accent/25 border-accent/40 shadow-sm'
               : error
-              ? 'border-red-500/60 ring-2 ring-red-500/20'
+              ? 'border-destructive/60 ring-2 ring-destructive/20'
               : 'hover:border-black/15 dark:hover:border-white/20'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {startContent && (
-            <div className="pl-3.5 pr-1.5 flex items-center justify-center text-[#86868B] dark:text-[#A1A1A6] shrink-0">
+            <div className="pl-3.5 pr-1.5 flex items-center justify-center text-label-tertiary shrink-0">
               {startContent}
             </div>
           )}
@@ -131,12 +131,12 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
               <span
                 className={`absolute left-3.5 pointer-events-none transition-all duration-200 origin-top-left font-medium select-none truncate max-w-[85%] ${
                   isFloating
-                    ? 'top-2 text-[10.5px] uppercase tracking-wider font-semibold text-[#86868B] dark:text-[#A1A1A6]'
-                    : 'top-1/2 -translate-y-1/2 text-sm text-[#86868B] dark:text-[#8E8E93]'
-                } ${isFocused ? 'text-[#0071E3] dark:text-[#2997FF]' : ''} ${error ? 'text-red-500' : ''}`}
+                    ? 'top-2 text-[10.5px] uppercase tracking-wider font-semibold text-label-tertiary'
+                    : 'top-1/2 -translate-y-1/2 text-sm text-label-tertiary'
+                } ${isFocused ? 'text-accent' : ''} ${error ? 'text-destructive' : ''}`}
               >
                 {label}
-                {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+                {isRequired && <span className="text-destructive ml-0.5">*</span>}
               </span>
             )}
 
@@ -156,7 +156,7 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
                 setIsFocused(false);
                 onBlur?.(e);
               }}
-              className={`w-full bg-transparent outline-none border-none text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#8E8E93] dark:placeholder-[#6E6E73] font-normal leading-normal ${
+              className={`w-full bg-transparent outline-none border-none text-label-primary placeholder:text-label-tertiary font-normal leading-normal ${
                 labelPlacement === 'inside' && label ? 'pt-3.5 pb-0.5' : ''
               } text-[16px] md:text-sm`}
               {...rest}
@@ -168,14 +168,14 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
               <button
                 type="button"
                 onClick={handleClear}
-                className="p-1 rounded-full text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                className="p-1 rounded-full text-label-tertiary hover:text-label-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
                 aria-label="Clear input"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
             {endContent && (
-              <div className="text-[#86868B] dark:text-[#A1A1A6] flex items-center">
+              <div className="text-label-tertiary flex items-center">
                 {endContent}
               </div>
             )}
@@ -185,12 +185,12 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
         {(error || description) && (
           <div className="mt-1.5 px-1 flex items-center gap-1.5 text-xs">
             {error ? (
-              <p className="text-red-500 dark:text-red-400 flex items-center gap-1">
+              <p className="text-destructive flex items-center gap-1">
                 <AlertCircle className="w-3 h-3 shrink-0" />
                 {error}
               </p>
             ) : description ? (
-              <p className="text-[#86868B] dark:text-[#A1A1A6]">{description}</p>
+              <p className="text-label-tertiary">{description}</p>
             ) : null}
           </div>
         )}
@@ -250,29 +250,29 @@ export const HeroTextarea = forwardRef<HTMLTextAreaElement, HeroTextareaProps>(
 
     const variantStyle =
       variant === 'faded'
-        ? 'bg-[#FFFFFF]/70 dark:bg-[#161617]/70 border border-black/10 dark:border-white/10 shadow-sm'
+        ? 'bg-surface/70 border border-separator shadow-sm'
         : variant === 'bordered'
-        ? 'bg-transparent border border-black/15 dark:border-white/15'
-        : 'bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 border border-transparent';
+        ? 'bg-transparent border border-separator-opaque'
+        : 'bg-surface-secondary/80 border border-transparent';
 
     return (
       <div className={`w-full group ${className}`}>
         {label && labelPlacement === 'outside' && (
           <label
             htmlFor={textareaId}
-            className="block text-xs font-semibold tracking-wide text-[#6E6E73] dark:text-[#A1A1A6] mb-1.5 px-0.5"
+            className="block text-xs font-semibold tracking-wide text-label-secondary mb-1.5 px-0.5"
           >
             {label}
-            {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+            {isRequired && <span className="text-destructive ml-0.5">*</span>}
           </label>
         )}
 
         <div
           className={`relative w-full rounded-2xl transition-all duration-200 backdrop-blur-md p-3.5 ${variantStyle} ${
             isFocused
-              ? 'ring-2 ring-[#0071E3]/25 dark:ring-[#2997FF]/30 border-[#0071E3]/40 dark:border-[#2997FF]/50 shadow-sm'
+              ? 'ring-2 ring-accent/25 border-accent/40 shadow-sm'
               : error
-              ? 'border-red-500/60 ring-2 ring-red-500/20'
+              ? 'border-destructive/60 ring-2 ring-destructive/20'
               : 'hover:border-black/15 dark:hover:border-white/20'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
@@ -280,12 +280,12 @@ export const HeroTextarea = forwardRef<HTMLTextAreaElement, HeroTextareaProps>(
             <span
               className={`block pointer-events-none transition-all duration-200 font-medium select-none truncate ${
                 isFloating
-                  ? 'text-[10.5px] uppercase tracking-wider font-semibold text-[#86868B] dark:text-[#A1A1A6] mb-1'
-                  : 'text-sm text-[#86868B] dark:text-[#8E8E93] mb-1'
-              } ${isFocused ? 'text-[#0071E3] dark:text-[#2997FF]' : ''} ${error ? 'text-red-500' : ''}`}
+                  ? 'text-[10.5px] uppercase tracking-wider font-semibold text-label-tertiary mb-1'
+                  : 'text-sm text-label-tertiary mb-1'
+              } ${isFocused ? 'text-accent' : ''} ${error ? 'text-destructive' : ''}`}
             >
               {label}
-              {isRequired && <span className="text-red-500 ml-0.5">*</span>}
+              {isRequired && <span className="text-destructive ml-0.5">*</span>}
             </span>
           )}
 
@@ -305,7 +305,7 @@ export const HeroTextarea = forwardRef<HTMLTextAreaElement, HeroTextareaProps>(
               setIsFocused(false);
               onBlur?.(e);
             }}
-            className="w-full bg-transparent outline-none border-none resize-none text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-[#8E8E93] dark:placeholder-[#6E6E73] font-normal leading-relaxed text-[16px] md:text-sm"
+            className="w-full bg-transparent outline-none border-none resize-none text-label-primary placeholder:text-label-tertiary font-normal leading-relaxed text-[16px] md:text-sm"
             {...rest}
           />
         </div>
@@ -313,12 +313,12 @@ export const HeroTextarea = forwardRef<HTMLTextAreaElement, HeroTextareaProps>(
         {(error || description) && (
           <div className="mt-1.5 px-1 flex items-center gap-1.5 text-xs">
             {error ? (
-              <p className="text-red-500 dark:text-red-400 flex items-center gap-1">
+              <p className="text-destructive flex items-center gap-1">
                 <AlertCircle className="w-3 h-3 shrink-0" />
                 {error}
               </p>
             ) : description ? (
-              <p className="text-[#86868B] dark:text-[#A1A1A6]">{description}</p>
+              <p className="text-label-tertiary">{description}</p>
             ) : null}
           </div>
         )}
@@ -364,11 +364,11 @@ export const HeroAvatar: React.FC<HeroAvatarProps> = ({
   }[size];
 
   const ringClasses = {
-    default: 'ring-2 ring-black/15 dark:ring-white/20 ring-offset-2 ring-offset-[#FFFFFF] dark:ring-offset-[#161617]',
-    primary: 'ring-2 ring-[#0071E3] dark:ring-[#2997FF] ring-offset-2 ring-offset-[#FFFFFF] dark:ring-offset-[#161617]',
-    success: 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-[#FFFFFF] dark:ring-offset-[#161617]',
-    warning: 'ring-2 ring-amber-500 ring-offset-2 ring-offset-[#FFFFFF] dark:ring-offset-[#161617]',
-    danger: 'ring-2 ring-red-500 ring-offset-2 ring-offset-[#FFFFFF] dark:ring-offset-[#161617]',
+    default: 'ring-2 ring-black/15 dark:ring-white/20 ring-offset-2 ring-offset-surface',
+    primary: 'ring-2 ring-accent ring-offset-2 ring-offset-surface',
+    success: 'ring-2 ring-success ring-offset-2 ring-offset-surface',
+    warning: 'ring-2 ring-warning ring-offset-2 ring-offset-surface',
+    danger: 'ring-2 ring-destructive ring-offset-2 ring-offset-surface',
   }[color];
 
   const getInitials = (n?: string) => {
@@ -382,7 +382,7 @@ export const HeroAvatar: React.FC<HeroAvatarProps> = ({
     <div
       className={`relative inline-flex items-center justify-center shrink-0 rounded-full select-none overflow-hidden font-semibold transition-transform duration-150 ${sizeClasses} ${
         isBordered ? ringClasses : ''
-      } bg-[#E5E5EA] dark:bg-[#2C2C2E] text-[#1D1D1F] dark:text-[#F5F5F7] ${className}`}
+      } bg-separator-opaque text-label-primary ${className}`}
     >
       {src && !imgError ? (
         <img
@@ -424,11 +424,11 @@ export const HeroUser: React.FC<HeroUserProps> = ({
     >
       <HeroAvatar name={name} {...avatarProps} />
       <div className="flex flex-col min-w-0">
-        <span className="text-sm font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] truncate leading-snug">
+        <span className="text-sm font-semibold text-label-primary truncate leading-snug">
           {name}
         </span>
         {description && (
-          <span className="text-xs text-[#86868B] dark:text-[#A1A1A6] truncate leading-tight">
+          <span className="text-xs text-label-tertiary truncate leading-tight">
             {description}
           </span>
         )}
@@ -493,7 +493,7 @@ export const HeroTabs: React.FC<HeroTabsProps> = ({
 
   return (
     <div
-      className={`inline-flex items-center rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-black/5 dark:border-white/5 backdrop-blur-md ${containerPadding} ${className}`}
+      className={`inline-flex items-center rounded-2xl bg-surface-secondary border border-black/5 dark:border-white/5 backdrop-blur-md ${containerPadding} ${className}`}
     >
       {items.map((tab) => {
         const isActive = activeKey === tab.id;
@@ -507,14 +507,14 @@ export const HeroTabs: React.FC<HeroTabsProps> = ({
               tab.disabled
                 ? 'opacity-40 cursor-not-allowed'
                 : isActive
-                ? 'text-[#1D1D1F] dark:text-[#F5F5F7] font-semibold'
-                : 'text-[#86868B] dark:text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+                ? 'text-label-primary font-semibold'
+                : 'text-label-tertiary hover:text-label-primary'
             }`}
           >
             {isActive && (
               <motion.div
                 layoutId="activeTabBadge"
-                className="absolute inset-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-xl shadow-sm border border-black/5 dark:border-white/10 -z-10"
+                className="absolute inset-0 bg-surface-raised rounded-xl shadow-sm border border-black/5 dark:border-white/10 -z-10"
                 transition={motionProps.transition}
               />
             )}
@@ -524,8 +524,8 @@ export const HeroTabs: React.FC<HeroTabsProps> = ({
               <span
                 className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-full font-semibold ${
                   isActive
-                    ? 'bg-[#0071E3]/10 dark:bg-[#2997FF]/20 text-[#0071E3] dark:text-[#2997FF]'
-                    : 'bg-black/5 dark:bg-white/10 text-[#86868B]'
+                    ? 'bg-accent-subtle text-accent'
+                    : 'bg-black/5 dark:bg-white/10 text-label-tertiary'
                 }`}
               >
                 {tab.badge}
@@ -655,7 +655,7 @@ export function HeroTable<T extends Record<string, any>>({
     <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-black/[0.06] dark:border-white/[0.08] bg-[#FAFAFC]/50 dark:bg-[#161617]/50">
+          <tr className="border-b border-separator bg-surface-secondary/50">
             {columns.map((col) => {
               const isSorted = sortColumn === col.key;
               return (
@@ -663,13 +663,13 @@ export function HeroTable<T extends Record<string, any>>({
                   key={col.key}
                   style={{ width: col.width }}
                   onClick={() => col.sortable && handleSort(col.key)}
-                  className={`py-3.5 px-4 text-xs font-semibold uppercase tracking-wider text-[#86868B] dark:text-[#A1A1A6] select-none ${
+                  className={`py-3.5 px-4 text-xs font-semibold uppercase tracking-wider text-label-tertiary select-none ${
                     col.align === 'center'
                       ? 'text-center'
                       : col.align === 'right'
                       ? 'text-right'
                       : 'text-left'
-                  } ${col.sortable ? 'cursor-pointer hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] transition-colors' : ''}`}
+                  } ${col.sortable ? 'cursor-pointer hover:text-label-primary transition-colors' : ''}`}
                 >
                   <div
                     className={`inline-flex items-center gap-1.5 ${
@@ -678,12 +678,12 @@ export function HeroTable<T extends Record<string, any>>({
                   >
                     <span>{col.label}</span>
                     {col.sortable && (
-                      <span className="text-[#86868B]">
+                      <span className="text-label-tertiary">
                         {isSorted ? (
                           sortDirection === 'asc' ? (
-                            <ChevronUp className="w-3.5 h-3.5 text-[#0071E3] dark:text-[#2997FF]" />
+                            <ChevronUp className="w-3.5 h-3.5 text-accent" />
                           ) : (
-                            <ChevronDown className="w-3.5 h-3.5 text-[#0071E3] dark:text-[#2997FF]" />
+                            <ChevronDown className="w-3.5 h-3.5 text-accent" />
                           )
                         ) : (
                           <div className="flex flex-col opacity-30 hover:opacity-100">
@@ -704,7 +704,7 @@ export function HeroTable<T extends Record<string, any>>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="py-12 text-center text-sm text-[#86868B] dark:text-[#A1A1A6]"
+                className="py-12 text-center text-sm text-label-tertiary"
               >
                 {emptyContent}
               </td>
@@ -741,7 +741,7 @@ export function HeroTable<T extends Record<string, any>>({
                     return (
                       <td
                         key={col.key}
-                        className={`py-3.5 px-4 text-[#1D1D1F] dark:text-[#F5F5F7] ${alignClass}`}
+                        className={`py-3.5 px-4 text-label-primary ${alignClass}`}
                       >
                         {col.render ? col.render(row, index) : row[col.key]}
                       </td>
@@ -756,11 +756,11 @@ export function HeroTable<T extends Record<string, any>>({
 
       {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-black/[0.06] dark:border-white/[0.08] bg-[#FAFAFC]/30 dark:bg-[#161617]/30 text-xs text-[#86868B]">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-separator bg-surface-secondary/30 text-xs text-label-tertiary">
           <span>
-            Showing <strong className="text-[#1D1D1F] dark:text-[#F5F5F7]">{(currentPage - 1) * pageSize + 1}</strong> to{' '}
-            <strong className="text-[#1D1D1F] dark:text-[#F5F5F7]">{Math.min(currentPage * pageSize, sortedData.length)}</strong> of{' '}
-            <strong className="text-[#1D1D1F] dark:text-[#F5F5F7]">{sortedData.length}</strong>
+            Showing <strong className="text-label-primary">{(currentPage - 1) * pageSize + 1}</strong> to{' '}
+            <strong className="text-label-primary">{Math.min(currentPage * pageSize, sortedData.length)}</strong> of{' '}
+            <strong className="text-label-primary">{sortedData.length}</strong>
           </span>
 
           <div className="flex items-center gap-1.5">
@@ -768,7 +768,7 @@ export function HeroTable<T extends Record<string, any>>({
               type="button"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-1.5 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg border border-separator hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
@@ -779,7 +779,7 @@ export function HeroTable<T extends Record<string, any>>({
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-1.5 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg border border-separator hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -791,7 +791,7 @@ export function HeroTable<T extends Record<string, any>>({
 
   if (removeWrapper) {
     return (
-      <EmilCard className={`overflow-hidden p-0 border border-black/10 dark:border-white/10 ${className}`}>
+      <EmilCard className={`overflow-hidden p-0 border border-separator ${className}`}>
         {tableBody}
       </EmilCard>
     );
@@ -808,3 +808,5 @@ export { HeroTable as Table };
 export { HeroAvatar as Avatar };
 export { HeroUser as User };
 export { HeroUISelect as Select } from './HeroUISelect';
+
+

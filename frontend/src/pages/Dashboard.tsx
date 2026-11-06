@@ -70,7 +70,7 @@ const Hero = ({
       <div
         className="absolute -top-6 -left-8 w-full max-w-[680px] h-[280px] pointer-events-none -z-10 rounded-full dark:hidden overflow-hidden"
         style={{
-          background: 'radial-gradient(ellipse at 25% 45%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.45) 50%, transparent 80%)',
+          background: 'radial-gradient(ellipse at 25% 45%, var(--surface) 0%, transparent 80%)',
         }}
       />
 
@@ -226,7 +226,7 @@ const ParticipationBar = () => {
       {/* Progress track */}
       <div
         className="w-full rounded-full overflow-hidden"
-        style={{ height: '6px', background: 'rgba(0, 0, 0, 0.06)' }}
+        style={{ height: '6px', background: 'var(--separator)' }}
       >
         <motion.div
           initial={{ width: 0 }}

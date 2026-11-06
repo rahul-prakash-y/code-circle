@@ -64,10 +64,10 @@ export const EventDocumentationPage: React.FC = () => {
           )}
 
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
+            <h1 className="text-xl font-bold tracking-tight text-label-primary">
               {id ? (eventData?.title ? `${eventData.title} • Documentation` : 'Event Documentation') : 'Documentation Center'}
             </h1>
-            <p className="text-xs text-[#86868B]">
+            <p className="text-xs text-label-secondary">
               Institutional event documentation, administrative reviews, and client-side PDF records
             </p>
           </div>
@@ -76,11 +76,11 @@ export const EventDocumentationPage: React.FC = () => {
         {/* Event Selector when opened generally from the sidebar */}
         {!id && allEvents.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[#86868B]">Filter Event:</span>
+            <span className="text-xs font-semibold text-label-secondary">Filter Event:</span>
             <select
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
-              className="h-9 px-3 text-xs rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
+              className="h-9 px-3 text-xs rounded-xl border border-separator bg-surface text-label-primary focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             >
               <option value="all">All Events</option>
               {allEvents.map((ev) => (
@@ -93,7 +93,7 @@ export const EventDocumentationPage: React.FC = () => {
         )}
 
         {eventData && id && (
-          <div className="flex items-center gap-3 text-xs text-[#86868B]">
+          <div className="flex items-center gap-3 text-xs text-label-secondary">
             {eventData.date && (
               <span className="flex items-center gap-1">
                 <Calendar size={13} />

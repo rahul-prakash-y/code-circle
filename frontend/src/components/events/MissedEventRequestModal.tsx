@@ -196,8 +196,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                 onClick={() => setActiveTab('create')}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'create'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+                    ? 'bg-accent text-white shadow-xs'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
                 <Send className="w-3.5 h-3.5" />
@@ -209,8 +209,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                 onClick={() => setActiveTab('history')}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'history'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+                    ? 'bg-accent text-white shadow-xs'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -260,7 +260,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                 {/* 2. Date and Club Hours Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                       Missed Date *
                     </label>
                     <input
@@ -268,12 +268,12 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                       value={missedDate}
                       onChange={(e) => setMissedDate(e.target.value)}
                       required
-                      className="w-full bg-zinc-50 dark:bg-[#1C1C1E] border border-zinc-200 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-zinc-900 dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                      className="w-full bg-surface-secondary border border-separator rounded-2xl px-4 py-2.5 text-sm text-label-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                       Club Hours Requested *
                     </label>
                     <input
@@ -283,14 +283,14 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                       value={clubHoursRequested}
                       onChange={(e) => setClubHoursRequested(Number(e.target.value))}
                       required
-                      className="w-full bg-zinc-50 dark:bg-[#1C1C1E] border border-zinc-200 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-zinc-900 dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                      className="w-full bg-surface-secondary border border-separator rounded-2xl px-4 py-2.5 text-sm text-label-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all"
                     />
                   </div>
                 </div>
 
                 {/* 3. Class Hours Missed Selection */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                     Class Periods / Hours Missed
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -303,8 +303,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                           onClick={() => handleToggleHour(period)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                             isSelected
-                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
-                              : 'bg-zinc-100 hover:bg-zinc-200/80 dark:bg-white/[0.04] text-zinc-700 dark:text-[#86868B] border-zinc-200 dark:border-white/10 hover:text-zinc-900 dark:hover:text-[#F5F5F7]'
+                              ? 'bg-accent text-white border-accent shadow-xs'
+                              : 'bg-surface-secondary hover:bg-surface-raised text-label-secondary border-separator hover:text-label-primary'
                           }`}
                         >
                           Period {period}
@@ -316,7 +316,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
 
                 {/* 4. Reason for Absence */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                     Reason for Absence / Excused Leave *
                   </label>
                   <textarea
@@ -325,13 +325,13 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                     onChange={(e) => setReason(e.target.value)}
                     required
                     placeholder="Provide a detailed, legitimate reason for your absence (e.g. Attended campus recruitment interview, college sports meet, or medical emergency with approval)."
-                    className="w-full bg-zinc-50 dark:bg-[#1C1C1E] border border-zinc-200 dark:border-white/10 rounded-2xl p-4 text-sm text-zinc-900 dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-zinc-400 dark:placeholder:text-[#86868B]"
+                    className="w-full bg-surface-secondary border border-separator rounded-2xl p-4 text-sm text-label-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all placeholder:text-label-tertiary"
                   />
                 </div>
 
                 {/* 5. Proof / Documentation URL */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                     Supporting Document / Proof URL (Optional)
                   </label>
                   <input
@@ -339,7 +339,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                     value={proofUrl}
                     onChange={(e) => setProofUrl(e.target.value)}
                     placeholder="https://drive.google.com/file/d/... or proof document link"
-                    className="w-full bg-zinc-50 dark:bg-[#1C1C1E] border border-zinc-200 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-zinc-900 dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-zinc-400"
+                    className="w-full bg-surface-secondary border border-separator rounded-2xl px-4 py-2.5 text-sm text-label-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all placeholder:text-label-tertiary"
                   />
                 </div>
 
@@ -348,7 +348,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-5 py-2.5 rounded-2xl text-xs font-semibold text-zinc-600 hover:text-zinc-900 dark:text-[#86868B] dark:hover:text-[#F5F5F7] hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+                    className="px-5 py-2.5 rounded-2xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -356,7 +356,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-6 py-2.5 rounded-2xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="px-6 py-2.5 rounded-2xl text-xs font-bold bg-accent hover:opacity-95 text-white shadow-xs active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {submitting ? (
                       <>
@@ -376,14 +376,14 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
               /* Request History Tab */
               <div className="space-y-4">
                 {loadingHistory ? (
-                  <div className="py-16 text-center text-[#86868B] space-y-2">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-500" />
+                  <div className="py-16 text-center text-label-secondary space-y-2">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-accent" />
                     <p className="text-xs">Loading your request history...</p>
                   </div>
                 ) : myRequests.length === 0 ? (
                   <div className="py-16 text-center text-neutral-500 space-y-3">
                     <Calendar className="w-10 h-10 mx-auto text-neutral-600" />
-                    <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                    <p className="text-sm font-semibold text-label-primary ">
                       No missed event requests yet
                     </p>
                     <p className="text-xs max-w-sm mx-auto">
@@ -410,23 +410,23 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                       },
                     }[req.status] || {
                       label: req.status,
-                      badge: 'bg-neutral-800 text-[#1D1D1F] dark:text-[#F5F5F7] border-neutral-700',
+                      badge: 'bg-neutral-800 text-label-primary  border-neutral-700',
                       icon: null,
                     };
 
                     return (
                       <div
                         key={req._id}
-                        className="p-5 rounded-2xl bg-white dark:bg-[#1C1C1E] border border-zinc-200 dark:border-white/10 shadow-xs space-y-3"
+                        className="p-5 rounded-2xl bg-surface border border-separator shadow-xs space-y-3"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <div>
-                            <h4 className="text-sm font-bold text-zinc-900 dark:text-[#F5F5F7] tracking-tight">
+                            <h4 className="text-sm font-bold text-label-primary tracking-tight">
                               {req.event?.title || 'Unknown Event'}
                             </h4>
-                            <p className="text-xs text-zinc-500 dark:text-[#86868B]">
+                            <p className="text-xs text-label-secondary">
                               Missed on: {formatISTDate(req.missedDate)} • Requested:{' '}
-                              <strong className="text-zinc-900 dark:text-neutral-200 font-semibold">
+                              <strong className="text-label-primary font-semibold">
                                 {req.clubHoursRequested} Club Hour(s)
                               </strong>
                             </p>
@@ -445,7 +445,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                                 type="button"
                                 onClick={() => handleDelete(req._id)}
                                 disabled={deletingId === req._id}
-                                className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg text-label-tertiary hover:text-destructive hover:bg-destructive-subtle transition-colors cursor-pointer"
                                 title="Cancel pending request"
                               >
                                 {deletingId === req._id ? (
@@ -459,8 +459,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                         </div>
 
                         {/* Reason quote */}
-                        <div className="p-3 rounded-xl bg-zinc-100/80 dark:bg-black/40 border border-zinc-200 dark:border-white/[0.04] text-xs text-zinc-800 dark:text-[#F5F5F7]">
-                          <span className="text-zinc-500 dark:text-neutral-400 font-semibold block mb-0.5">
+                        <div className="p-3 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary">
+                          <span className="text-label-secondary font-semibold block mb-0.5">
                             Reason Submitted:
                           </span>
                           {req.reason}
@@ -473,7 +473,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                               href={req.proofUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                              className="inline-flex items-center gap-1.5 text-accent hover:underline font-medium"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                               <span>View Attached Supporting Document</span>
@@ -486,8 +486,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                           <div
                             className={`p-3 rounded-xl text-xs border ${
                               req.status === 'REJECTED'
-                                ? 'bg-rose-500/10 border-rose-500/25 text-rose-800 dark:text-rose-300'
-                                : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-800 dark:text-emerald-300'
+                                ? 'bg-destructive-subtle border-destructive/25 text-destructive'
+                                : 'bg-success-subtle border-success/25 text-success'
                             }`}
                           >
                             <span className="font-semibold block mb-0.5">
@@ -497,7 +497,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                             </span>
                             {req.reviewNote}
                             {req.status === 'REJECTED' && (
-                              <p className="mt-1.5 font-medium text-[11px] text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                              <p className="mt-1.5 font-medium text-[11px] text-destructive flex items-center gap-1">
                                 <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
                                 Account restricted from assessments, contests, and courses. An admin must unblock your account.
                               </p>
@@ -505,7 +505,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-neutral-500 pt-1 border-t border-zinc-100 dark:border-white/[0.04]">
+                        <div className="flex items-center justify-between text-[11px] text-label-secondary pt-1 border-t border-separator">
                           <span>Periods: {req.classHours?.join(', ') || '1'}</span>
                           <span>Submitted: {formatISTDateTime(req.createdAt)}</span>
                         </div>
@@ -522,3 +522,5 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
 };
 
 export default MissedEventRequestModal;
+
+

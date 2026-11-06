@@ -368,9 +368,9 @@ export const EventArenaPage: React.FC = () => {
   // -------------------------------------------------------------------------
   if (!activeAssessmentId) {
     return (
-      <div className="min-h-[100dvh] bg-[#F5F5F7] dark:bg-[#000000] text-[#1D1D1F] dark:text-[#F5F5F7] flex flex-col">
+      <div className="min-h-[100dvh] bg-canvas text-label-primary flex flex-col">
         {/* Top Header */}
-        <header className="h-16 border-b border-black/5 dark:border-white/10 px-4 sm:px-10 flex items-center justify-between shrink-0 bg-white/70 dark:bg-[#161617]/70 backdrop-blur-xl">
+        <header className="h-16 border-b border-separator px-4 sm:px-10 flex items-center justify-between shrink-0 bg-white/70 dark:bg-surface/70 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/events')}
@@ -446,7 +446,7 @@ export const EventArenaPage: React.FC = () => {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.08 }}
-                    className="rounded-3xl bg-[#121217] border border-white/10 hover:border-purple-500/40 p-5 sm:p-6 flex flex-col justify-between space-y-5 transition-all shadow-xl group relative overflow-hidden"
+                    className="rounded-3xl bg-surface border border-white/10 hover:border-purple-500/40 p-5 sm:p-6 flex flex-col justify-between space-y-5 transition-all shadow-xl group relative overflow-hidden"
                   >
                     {/* Top Glow on hover */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -647,11 +647,11 @@ export const EventArenaPage: React.FC = () => {
   // VIEW 2: FULLSCREEN ASSESSMENT WORKSPACE (When activeAssessmentId is chosen)
   // -------------------------------------------------------------------------
   return (
-    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-[#0A0A0D] text-white overflow-hidden select-none relative">
+    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-canvas text-white overflow-hidden select-none relative">
       {/* 1. Permanent Block Screen if Assessment is Blocked */}
       {isAssessmentBlocked && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-3xl bg-black/90 select-none">
-          <EmilCard className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-red-500/40 bg-[#161617]/95 shadow-[0_20px_50px_rgba(239,68,68,0.35)] text-center relative">
+          <EmilCard className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-red-500/40 bg-surface/95 shadow-[0_20px_50px_rgba(239,68,68,0.35)] text-center relative">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5 text-red-400">
               <ShieldAlert size={28} />
             </div>
@@ -702,7 +702,7 @@ export const EventArenaPage: React.FC = () => {
         />
       )}
       {/* Top Header Bar */}
-      <header className="min-h-14 py-2 border-b border-white/10 px-3 sm:px-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 bg-[#0F0F14]/90 backdrop-blur-md z-30">
+      <header className="min-h-14 py-2 border-b border-white/10 px-3 sm:px-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 bg-canvas/90 backdrop-blur-md z-30">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={handleReturnToHub}
@@ -764,9 +764,9 @@ export const EventArenaPage: React.FC = () => {
 
       {/* Main Workspace */}
       {selectedAssessment?.type === 'UI_UX' ? (
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#F5F5F7] dark:bg-[#000000]">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-canvas">
           {/* Left Column: Design Brief & Reference Mockup */}
-          <div className="w-full lg:w-1/2 border-r border-black/5 dark:border-white/10 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#FFFFFF] dark:bg-[#161617]">
+          <div className="w-full lg:w-1/2 border-r border-separator flex flex-col overflow-y-auto p-4 sm:p-6 space-y-6 bg-surface">
             {/* Tab switch permitted notice for Figma */}
             <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2.5 text-xs text-emerald-300">
               <Sparkles size={15} className="text-emerald-400 shrink-0" />
@@ -960,7 +960,7 @@ export const EventArenaPage: React.FC = () => {
           </div>
 
           {/* Right Column: Submission & Live Figma Interactive Embed */}
-          <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-5 bg-[#0D0D11]">
+          <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-5 bg-canvas">
             {/* Header & Status */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <div>
@@ -1059,7 +1059,7 @@ export const EventArenaPage: React.FC = () => {
 
             {/* Live Interactive Figma Embed */}
             <div className="flex-1 min-h-95 sm:min-h-110 flex flex-col rounded-2xl bg-black/40 border border-white/10 overflow-hidden shadow-inner">
-              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-[#121216]">
+              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-surface-secondary">
                 <div className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${studentFigmaLink.trim().includes('figma.com') ? 'bg-purple-500 animate-pulse' : 'bg-white/20'}`} />
                   <span className="text-xs font-bold text-white">Live Figma Prototype Preview</span>
@@ -1105,9 +1105,9 @@ export const EventArenaPage: React.FC = () => {
       ) : (
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left / Top Navigation Palette (MCQ vs Coding & Question Buttons) */}
-          <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-[#0D0D11] shrink-0">
+          <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-canvas shrink-0">
             {/* Section Switcher Tabs (MCQ vs Coding) with Emil Kowalski sub-300ms spring physics */}
-            <div className="p-2 sm:p-2.5 border-b border-white/10 flex justify-center bg-[#121216]">
+            <div className="p-2 sm:p-2.5 border-b border-white/10 flex justify-center bg-surface-secondary">
               <HeroTabs
                 size="sm"
                 selectedKey={selectedType}
@@ -1182,7 +1182,7 @@ export const EventArenaPage: React.FC = () => {
 
           {/* Center / Right Content Panel */}
           {selectedType === 'mcq' && currentMcq && (
-            <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-8 md:p-10 bg-[#0F0F14]">
+            <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-8 md:p-10 bg-canvas">
               <div className="max-w-3xl mx-auto w-full space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-white/10">
                   <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
@@ -1258,7 +1258,7 @@ export const EventArenaPage: React.FC = () => {
           {selectedType === 'coding' && currentCoding && (
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               {/* Left Column: Problem Statement */}
-              <div className="w-full lg:w-1/2 overflow-y-auto p-4 sm:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-white/10 bg-[#0E0E12] max-h-72 lg:max-h-none shrink-0 lg:shrink">
+              <div className="w-full lg:w-1/2 overflow-y-auto p-4 sm:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-separator bg-surface max-h-72 lg:max-h-none shrink-0 lg:shrink">
                 <div className="flex items-center justify-between pb-3 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
@@ -1324,9 +1324,9 @@ export const EventArenaPage: React.FC = () => {
               </div>
 
               {/* Right Column: Monaco Code Editor & Terminal */}
-              <div className="w-full lg:w-1/2 flex flex-col flex-1 bg-[#111114] min-h-80">
+              <div className="w-full lg:w-1/2 flex flex-col flex-1 bg-surface min-h-80">
                 {/* Language Toolbar */}
-                <div className="h-11 px-3 sm:px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#141418]">
+                <div className="h-11 px-3 sm:px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-surface">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="text-[11px] font-bold text-white/60 hidden sm:inline">Language:</span>
                     <select
@@ -1335,7 +1335,7 @@ export const EventArenaPage: React.FC = () => {
                       className="px-2 sm:px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-white outline-none cursor-pointer"
                     >
                       {['python', 'javascript', 'cpp', 'java', 'c'].map((lang) => (
-                        <option key={lang} value={lang} className="bg-[#1A1A1E]">
+                        <option key={lang} value={lang} className="bg-surface-secondary">
                           {LANG_DISPLAY_NAMES[lang]}
                         </option>
                       ))}
@@ -1405,7 +1405,7 @@ export const EventArenaPage: React.FC = () => {
 
                 {/* Terminal / Run Results Drawer */}
                 {runResults && (
-                  <div className="h-44 border-t border-white/10 bg-[#0C0C0E] p-3 overflow-y-auto space-y-2 shrink-0 font-mono text-xs">
+                  <div className="h-44 border-t border-white/10 bg-canvas p-3 overflow-y-auto space-y-2 shrink-0 font-mono text-xs">
                     <div className="flex items-center justify-between pb-1 border-b border-white/5">
                       <span className="font-bold text-white/70 flex items-center gap-1.5">
                         <Terminal size={13} />
@@ -1456,7 +1456,7 @@ export const EventArenaPage: React.FC = () => {
       {/* SUBMIT CONFIRMATION MODAL */}
       {showSubmitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
-          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto shadow-2xl space-y-4">
+          <div className="bg-surface border border-white/10 rounded-3xl p-6 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto shadow-2xl space-y-4">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Send size={18} className="text-purple-400" />
               <span>Submit Assessment Round?</span>
@@ -1536,7 +1536,7 @@ export const EventArenaPage: React.FC = () => {
       {/* FINAL SCORE & EVALUATION RESULTS MODAL */}
       {finalResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-lg p-4">
-          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center space-y-5 shadow-2xl">
+          <div className="bg-surface border border-white/10 rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center space-y-5 shadow-2xl">
             <div
               className={`w-16 h-16 rounded-3xl mx-auto flex items-center justify-center shadow-lg border ${
                 finalResultModal.isPassed
@@ -1633,8 +1633,8 @@ export const EventArenaPage: React.FC = () => {
       {/* REFERENCE DESIGN IMAGE LIGHTBOX MODAL */}
       {previewReferenceImg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-[#141418] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#121216]">
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-surface border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-surface-secondary">
               <div className="flex items-center gap-2">
                 <ImageIcon size={16} className="text-purple-400" />
                 <span className="text-xs font-bold text-white">Reference Design Mockup (Full HD View)</span>
@@ -1673,3 +1673,4 @@ export const EventArenaPage: React.FC = () => {
 };
 
 export default EventArenaPage;
+

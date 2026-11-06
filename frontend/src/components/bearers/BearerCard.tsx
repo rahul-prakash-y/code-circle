@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Linkedin, Sparkles, ExternalLink } from 'lucide-react';
 import { StudentBearer } from '../../store/useBearerStore';
 import { EmilCard } from '../ui/emil-ui';
-import { EMIL_EASE_OUT, DURATION_MODAL } from '../../lib/motion';
 
 interface BearerCardProps {
   bearer: StudentBearer;
@@ -42,7 +41,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
           damping: 30,
         },
       }}
-      className="group relative w-full h-[460px] sm:h-[490px] rounded-[28px] overflow-hidden select-none cursor-pointer flex flex-col justify-end border border-separator/80 bg-surface shadow-card hover:shadow-card-elevated transition-all duration-300"
+      className="group relative w-full h-[460px] sm:h-[490px] rounded-[28px] overflow-hidden select-none cursor-pointer flex flex-col justify-end border border-separator bg-surface shadow-sm hover:shadow-md transition-all duration-200"
       style={{
         transformStyle: 'preserve-3d',
       }}
@@ -75,8 +74,8 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
             }}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50/50 dark:from-[#161617] dark:via-[#1c1c1e] dark:to-[#0a0a0b] text-label-tertiary">
-            <span className="text-7xl font-extralight tracking-tighter text-label-secondary/35 dark:text-white/20 select-none">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-surface via-surface-secondary to-canvas text-label-tertiary">
+            <span className="text-7xl font-extralight tracking-tighter text-label-tertiary/40 select-none">
               {fallbackInitial}
             </span>
           </div>
@@ -84,10 +83,9 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
 
         {/* Ambient subtle light sheen on top corner */}
         <div
-          className="absolute -top-24 -right-24 w-60 h-60 rounded-full pointer-events-none opacity-25 dark:opacity-40 group-hover:opacity-50 transition-opacity duration-700"
+          className="absolute -top-24 -right-24 w-60 h-60 rounded-full pointer-events-none opacity-25 group-hover:opacity-40 transition-opacity duration-700"
           style={{
-            background:
-              'radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 70%)',
+            background: 'radial-gradient(circle, var(--separator) 0%, transparent 70%)',
             filter: 'blur(20px)',
           }}
         />
@@ -96,14 +94,10 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
       {/* Gradient Overlay for Text Readability */}
       {hasPhoto ? (
         <div
-          className="absolute inset-0 pointer-events-none transition-opacity duration-500"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 32%, rgba(0,0,0,0.72) 70%, rgba(0,0,0,0.92) 100%)',
-          }}
+          className="absolute inset-0 pointer-events-none transition-opacity duration-500 bg-gradient-to-t from-black/90 via-black/50 to-transparent"
         />
       ) : (
-        <div className="absolute inset-0 pointer-events-none transition-opacity duration-500 bg-gradient-to-t from-surface via-surface/60 to-transparent dark:from-surface dark:via-surface/70" />
+        <div className="absolute inset-0 pointer-events-none transition-opacity duration-500 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
       )}
 
       {/* Top Header Pills */}
@@ -111,11 +105,11 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
         <div
           className={`px-3 py-1 rounded-full text-[10.5px] font-medium tracking-tight flex items-center gap-1.5 shadow-sm backdrop-blur-md ${
             hasPhoto
-              ? 'bg-black/40 text-white/90 border border-white/15'
-              : 'bg-surface/85 dark:bg-white/10 text-label-secondary border border-separator'
+              ? 'bg-surface/30 text-white border border-separator/40'
+              : 'bg-surface/85 text-label-secondary border border-separator'
           }`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-success" />
           <span>Executive</span>
         </div>
 
@@ -126,10 +120,10 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             title={`Connect with ${bearer.name} on LinkedIn`}
-            className={`pointer-events-auto w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer shadow-sm backdrop-blur-md ${
+            className={`pointer-events-auto w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer shadow-sm backdrop-blur-md ${
               hasPhoto
-                ? 'bg-black/40 text-white/85 hover:text-white border border-white/15'
-                : 'bg-surface/85 dark:bg-white/10 text-label-secondary hover:text-label-primary border border-separator'
+                ? 'bg-surface/30 text-white/85 hover:text-white border border-separator/40'
+                : 'bg-surface/85 text-label-secondary hover:text-label-primary border border-separator'
             }`}
             aria-label={`Connect with ${bearer.name} on LinkedIn`}
           >
@@ -142,14 +136,8 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
       <div className="relative z-10 p-5 sm:p-7 flex flex-col justify-end space-y-2.5">
         {/* Position Badge */}
         <div className="self-start">
-          <div
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-tight shadow-sm backdrop-blur-md ${
-              hasPhoto
-                ? 'bg-blue-500/25 text-blue-200 border border-blue-400/30'
-                : 'bg-accent/10 text-accent border border-accent/20'
-            }`}
-          >
-            <Sparkles size={11} className={hasPhoto ? 'text-blue-300' : 'text-accent'} />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-tight shadow-sm backdrop-blur-md bg-accent-subtle text-accent border border-accent/20">
+            <Sparkles size={11} className="text-accent" />
             <span className="truncate max-w-[200px]">{bearer.position}</span>
           </div>
         </div>
@@ -180,7 +168,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
           <p
             className={`text-[12px] italic tracking-tight ${
               hasPhoto
-                ? 'text-white/45'
+                ? 'text-white/60'
                 : 'text-label-tertiary'
             }`}
           >
@@ -196,16 +184,16 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium transition-colors duration-200 group/link min-h-[32px] ${
+              className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium transition-colors duration-150 group/link min-h-[32px] ${
                 hasPhoto
-                  ? 'text-white/70 hover:text-white'
+                  ? 'text-white/80 hover:text-white'
                   : 'text-accent hover:underline'
               }`}
             >
               <span>Connect Profile</span>
               <ExternalLink
                 size={11}
-                className="opacity-70 group-hover/link:opacity-100 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform duration-200"
+                className="opacity-70 group-hover/link:opacity-100 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform duration-150"
               />
             </a>
           </div>
@@ -216,8 +204,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
       <div
         className="absolute bottom-0 inset-x-0 h-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
         style={{
-          background:
-            'radial-gradient(circle at 50% 100%, rgba(0, 113, 227, 0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(circle at 50% 100%, var(--accent-subtle) 0%, transparent 70%)',
         }}
       />
     </EmilCard>

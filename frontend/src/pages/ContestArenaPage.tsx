@@ -940,10 +940,10 @@ export const ContestArenaPage: React.FC = () => {
                 </PanelResizeHandle>
 
                 {/* 2. RIGHT PANEL: Resizable Monaco Editor & OLED Terminal */}
-                <Panel defaultSize={58} minSize={30} className="flex flex-col overflow-hidden bg-[#050505]">
+                <Panel defaultSize={58} minSize={30} className="flex flex-col overflow-hidden bg-canvas">
                   <PanelGroup direction="vertical" className="h-full w-full overflow-hidden">
                     {/* Monaco Code Editor Sub-Panel */}
-                    <Panel defaultSize={65} minSize={30} className="flex flex-col bg-[#050505] relative overflow-hidden">
+                    <Panel defaultSize={65} minSize={30} className="flex flex-col bg-canvas relative overflow-hidden">
                       {/* Editor Sub-Header Toolbar */}
                       <div className="h-10 border-b border-white/[0.08] bg-black/60 px-4 flex items-center justify-between shrink-0 text-xs">
                         {/* Filename & Problem Indicator */}
@@ -1081,7 +1081,7 @@ export const ContestArenaPage: React.FC = () => {
                     </PanelResizeHandle>
 
                     {/* OLED Execution Output Terminal Sub-Panel */}
-                    <Panel defaultSize={35} minSize={15} className="flex flex-col bg-[#000000] text-neutral-200 overflow-hidden border-t border-white/[0.08]">
+                    <Panel defaultSize={35} minSize={15} className="flex flex-col bg-canvas text-neutral-200 overflow-hidden border-t border-white/[0.08]">
                       {/* Terminal Header Tabs */}
                       <div className="h-9 border-b border-white/[0.08] bg-black/80 px-4 flex items-center justify-between shrink-0 text-xs">
                         <div className="flex items-center gap-2">
@@ -1122,7 +1122,7 @@ export const ContestArenaPage: React.FC = () => {
                       </div>
 
                       {/* Terminal Body */}
-                      <div className="flex-1 overflow-y-auto p-4 bg-[#000000] font-mono text-xs scrollbar-thin">
+                      <div className="flex-1 overflow-y-auto p-4 bg-canvas font-mono text-xs scrollbar-thin">
                         {activeConsoleTab === 'cases' ? (
                           executionResult ? (
                             executionResult.source === 'run' ? (
@@ -1290,7 +1290,7 @@ export const ContestArenaPage: React.FC = () => {
             </div>
 
             {/* ── MOBILE CODING WORKSPACE (< 1024px) ── */}
-            <div className="flex lg:hidden flex-col flex-1 h-full w-full overflow-hidden bg-[#000000]">
+            <div className="flex lg:hidden flex-col flex-1 h-full w-full overflow-hidden bg-canvas">
               {/* Multi-Problem Switcher Bar on Mobile (if >1 problem) */}
               {codings.length > 1 && (
                 <div className="px-3 py-2 bg-neutral-950 border-b border-white/[0.08] flex items-center gap-1.5 overflow-x-auto custom-scrollbar touch-pan-x shrink-0 z-20">
@@ -1462,7 +1462,7 @@ export const ContestArenaPage: React.FC = () => {
 
                 {/* TAB 2: Mobile Code Editor & Accessory Keyboard Row (100% Height Guaranteed) */}
                 {mobileTab === 'code' && (
-                  <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#050505] relative">
+                  <div className="flex-1 flex flex-col h-full overflow-hidden bg-canvas relative">
                     {/* Filename Bar */}
                     <div className="h-8 border-b border-white/[0.06] bg-black/40 px-3 flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-1.5">
@@ -1694,7 +1694,7 @@ export const ContestArenaPage: React.FC = () => {
 
                 {/* TAB 4: Mobile Terminal Console Output */}
                 {mobileTab === 'console' && (
-                  <div className="flex-1 overflow-y-auto p-4 bg-[#000000] font-mono text-xs text-neutral-300 scrollbar-thin">
+                  <div className="flex-1 overflow-y-auto p-4 bg-canvas font-mono text-xs text-neutral-300 scrollbar-thin">
                     <pre className="whitespace-pre-wrap leading-relaxed">
                       {consoleOutput || '$ Ready for code execution...'}
                     </pre>
@@ -1927,7 +1927,7 @@ export const ContestArenaPage: React.FC = () => {
       {/* Proctored Lock Overlay on 3 Warnings Reached */}
       {antiCheatLocked && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#18181B] border border-red-500/30 rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center shadow-2xl shadow-red-500/10">
+          <div className="bg-surface border border-red-500/30 rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center shadow-2xl shadow-red-500/10">
             <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
               <ShieldAlert className="w-8 h-8" />
             </div>
@@ -1972,3 +1972,4 @@ export const ContestArenaPage: React.FC = () => {
 };
 
 export default ContestArenaPage;
+

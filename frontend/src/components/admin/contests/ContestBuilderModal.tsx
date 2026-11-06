@@ -432,7 +432,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         title={
           <div className="flex items-center justify-between w-full pr-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
                 <Award className="w-4 h-4" />
               </div>
               <div className="flex items-center gap-2">
@@ -453,13 +453,13 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         <div className="space-y-4 pt-2">
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10 shrink-0 overflow-x-auto no-scrollbar touch-pan-x flex-nowrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-surface-secondary rounded-2xl border border-separator shrink-0 overflow-x-auto no-scrollbar touch-pan-x flex-nowrap">
           <button
             onClick={() => setActiveTab('info')}
-            className={`flex-1 min-w-[120px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex-1 min-w-[120px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all duration-150 ease-out cursor-pointer whitespace-nowrap ${
               activeTab === 'info'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
+                ? 'bg-accent text-white shadow-xs'
+                : 'text-label-secondary hover:text-label-primary'
             }`}
           >
             1. Basic Settings
@@ -467,10 +467,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {type !== 'CODING' && (
             <button
               onClick={() => setActiveTab('mcq')}
-              className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all duration-150 ease-out cursor-pointer whitespace-nowrap ${
                 activeTab === 'mcq'
-                  ? 'bg-primary text-white shadow-xs'
-                  : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               2. MCQ Questions ({mcqQuestions.length})
@@ -479,10 +479,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {type !== 'MCQ' && (
             <button
               onClick={() => setActiveTab('coding')}
-              className={`flex-1 min-w-[160px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`flex-1 min-w-[160px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all duration-150 ease-out cursor-pointer whitespace-nowrap ${
                 activeTab === 'coding'
-                  ? 'bg-primary text-white shadow-xs'
-                  : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               3. Coding Challenges ({codingProblems.length})
@@ -496,7 +496,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {activeTab === 'info' && (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                <label className="text-xs font-bold text-label-secondary">
                   Contest Title
                 </label>
                 <input
@@ -504,31 +504,31 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Weekly Algorithm Arena #12"
-                  className="w-full px-4 py-2.5 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-primary font-medium"
+                  className="w-full px-4 py-2.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out font-medium"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                <label className="text-xs font-bold text-label-secondary">
                   Description
                 </label>
                 <textarea
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-primary font-medium resize-none"
+                  className="w-full px-4 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out font-medium resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                  <label className="text-xs font-bold text-label-secondary">
                     Contest Type
                   </label>
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out cursor-pointer"
                   >
                     <option value="HYBRID">Hybrid (Coding + MCQ)</option>
                     <option value="CODING">Coding Challenges Only</option>
@@ -537,13 +537,13 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                  <label className="text-xs font-bold text-label-secondary">
                     Difficulty
                   </label>
                   <select
                     value={difficulty}
                     onChange={(e) => setDifficulty(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none cursor-pointer"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out cursor-pointer"
                   >
                     <option value="All Levels">All Levels</option>
                     <option value="Beginner">Beginner</option>
@@ -553,7 +553,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary dark:text-[#86868B]">
+                  <label className="text-xs font-bold text-label-secondary">
                     Duration (Minutes)
                   </label>
                   <input
@@ -562,24 +562,24 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     onChange={(e) => setDurationMinutes(Number(e.target.value))}
                     min={5}
                     max={360}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                   />
                 </div>
               </div>
 
               {/* Total Reward Points Controller */}
-              <div className="space-y-3 p-4 rounded-2xl bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10">
+              <div className="space-y-3 p-4 rounded-2xl bg-surface-secondary border border-separator">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] flex items-center gap-1.5">
-                      <Zap size={14} className="text-amber-500 fill-current" />
+                    <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
+                      <Zap size={14} className="text-warning fill-current" />
                       <span>Contest Reward Points (Total XP)</span>
                     </label>
-                    <p className="text-[11px] text-label-secondary dark:text-[#86868B] mt-0.5">
+                    <p className="text-[11px] text-label-secondary mt-0.5">
                       Default is 100 points. Increase or decrease freely to match tournament stakes.
                     </p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-mono font-black">
+                  <span className="px-2.5 py-1 rounded-xl bg-warning-subtle border border-warning/20 text-warning text-xs font-mono font-black">
                     {totalPoints} Points
                   </span>
                 </div>
@@ -590,7 +590,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setTotalPoints(Math.max(10, totalPoints - 50))}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary transition-colors duration-150 ease-out cursor-pointer"
                       title="Decrease by 50"
                     >
                       -50
@@ -598,7 +598,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setTotalPoints(Math.max(10, totalPoints - 10))}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary transition-colors duration-150 ease-out cursor-pointer"
                       title="Decrease by 10"
                     >
                       -10
@@ -611,14 +611,14 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     onChange={(e) => setTotalPoints(Math.max(1, Number(e.target.value)))}
                     min={1}
                     max={5000}
-                    className="flex-1 px-3 py-2 text-xs text-center font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-amber-500"
+                    className="flex-1 px-3 py-2 text-xs text-center font-mono font-bold bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-warning transition-colors duration-150 ease-out"
                   />
 
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setTotalPoints(totalPoints + 10)}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary transition-colors duration-150 ease-out cursor-pointer"
                       title="Increase by 10"
                     >
                       +10
@@ -626,7 +626,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setTotalPoints(totalPoints + 50)}
-                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-secondary hover:text-label-primary transition-colors cursor-pointer"
+                      className="px-2.5 py-2 text-xs font-mono font-bold bg-surface border border-separator rounded-xl text-label-secondary hover:text-label-primary transition-colors duration-150 ease-out cursor-pointer"
                       title="Increase by 50"
                     >
                       +50
@@ -639,11 +639,11 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
-                      <Clock size={13} className="text-primary" />
+                    <label className="text-xs font-bold text-label-secondary flex items-center gap-1.5">
+                      <Clock size={13} className="text-accent" />
                       <span>Contest Start Time</span>
                     </label>
-                    <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                    <span className="text-[10px] font-mono font-bold text-accent px-1.5 py-0.5 rounded-md bg-accent-subtle border border-accent/20">
                       IST (UTC+5:30)
                     </span>
                   </div>
@@ -651,7 +651,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     type="datetime-local"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                   />
                   <p className="text-[10px] text-label-tertiary">
                     {startTime ? `Starts: ${formatISTDateTime(parseISTInputToISO(startTime))}` : 'Select start date & time'}
@@ -660,11 +660,11 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
-                      <Clock size={13} className="text-primary" />
+                    <label className="text-xs font-bold text-label-secondary flex items-center gap-1.5">
+                      <Clock size={13} className="text-accent" />
                       <span>Contest End Time</span>
                     </label>
-                    <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                    <span className="text-[10px] font-mono font-bold text-accent px-1.5 py-0.5 rounded-md bg-accent-subtle border border-accent/20">
                       IST (UTC+5:30)
                     </span>
                   </div>
@@ -672,7 +672,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     type="datetime-local"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                   />
                   <p className="text-[10px] text-label-tertiary">
                     {endTime ? `Ends: ${formatISTDateTime(parseISTInputToISO(endTime))}` : 'Select end date & time'}
@@ -687,10 +687,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
-                  <span className="text-xs font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider block">
+                  <span className="text-xs font-bold text-label-secondary uppercase tracking-wider block">
                     Multiple Choice Questions ({mcqQuestions.length})
                   </span>
-                  <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
+                  <span className="text-[11px] text-label-secondary">
                     Configure conceptual technical questions, answer keys, and point values.
                   </span>
                 </div>
@@ -698,7 +698,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowMcqBulkModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-info-subtle hover:bg-info/15 text-info border border-info/30 text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
                     title="Bulk upload questions via Excel or JSON"
                   >
                     <FileSpreadsheet size={14} />
@@ -707,7 +707,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   <button
                     type="button"
                     onClick={handleAddMcq}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
                   >
                     <Plus size={14} />
                     <span>Add Question</span>
@@ -716,15 +716,15 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               </div>
 
               {mcqQuestions.length === 0 ? (
-                <div className="p-8 text-center bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-dashed border-separator dark:border-white/10 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+                <div className="p-8 text-center bg-surface-secondary rounded-2xl border border-dashed border-separator space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-info-subtle text-info flex items-center justify-center mx-auto">
                     <FileSpreadsheet size={22} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-label-primary dark:text-[#F5F5F7]">
+                    <h4 className="text-sm font-bold text-label-primary">
                       No MCQ Questions Configured
                     </h4>
-                    <p className="text-xs text-label-secondary dark:text-[#86868B] max-w-sm mx-auto mt-0.5">
+                    <p className="text-xs text-label-secondary max-w-sm mx-auto mt-0.5">
                       Add multiple-choice questions one-by-one or import dozens at once from an Excel template.
                     </p>
                   </div>
@@ -732,7 +732,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowMcqBulkModal(true)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-info hover:bg-info-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
                     >
                       <FileSpreadsheet size={14} />
                       <span>Bulk Upload from Excel</span>
@@ -740,7 +740,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={handleAddMcq}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-surface dark:bg-[#121214] hover:bg-surface-secondary border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-surface hover:bg-surface-secondary border border-separator text-label-primary text-xs font-bold rounded-xl transition-colors duration-150 ease-out cursor-pointer"
                     >
                       <Plus size={14} />
                       <span>Add Manually</span>
@@ -751,14 +751,14 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 mcqQuestions.map((q, qIdx) => (
                 <div
                   key={qIdx}
-                  className="p-4 sm:p-5 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10 space-y-3 relative group"
+                  className="p-4 sm:p-5 bg-surface-secondary rounded-2xl border border-separator space-y-3 relative group"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-primary font-mono">Question #{qIdx + 1}</span>
+                    <span className="text-xs font-bold text-accent font-mono">Question #{qIdx + 1}</span>
                     <button
                       type="button"
                       onClick={() => setMcqQuestions(mcqQuestions.filter((_, idx) => idx !== qIdx))}
-                      className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      className="text-destructive hover:bg-destructive-subtle p-1.5 rounded-lg transition-colors duration-150 ease-out cursor-pointer"
                       title="Delete Question"
                     >
                       <Trash2 size={15} />
@@ -774,7 +774,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                       setMcqQuestions(updated);
                     }}
                     placeholder="Enter question statement..."
-                    className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] font-medium focus:outline-none"
+                    className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-medium focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                   />
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
@@ -789,7 +789,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             updated[qIdx].correctOptionIndex = optIdx;
                             setMcqQuestions(updated);
                           }}
-                          className="accent-primary cursor-pointer"
+                          className="accent-accent cursor-pointer"
                         />
                         <input
                           type="text"
@@ -800,7 +800,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setMcqQuestions(updated);
                           }}
                           placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                          className="w-full px-2.5 py-1.5 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-lg text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                          className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                         />
                       </div>
                     ))}
@@ -808,7 +808,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
                   <div className="flex items-center gap-3 pt-1">
                     <div className="w-28">
-                      <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-medium">Points</label>
+                      <label className="text-[10px] text-label-secondary font-medium">Points</label>
                       <input
                         type="number"
                         value={q.points}
@@ -817,11 +817,11 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           updated[qIdx].points = Number(e.target.value);
                           setMcqQuestions(updated);
                         }}
-                        className="w-full px-2 py-1 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-lg text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                        className="w-full px-2 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-medium">Explanation</label>
+                      <label className="text-[10px] text-label-secondary font-medium">Explanation</label>
                       <input
                         type="text"
                         value={q.explanation || ''}
@@ -831,7 +831,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           setMcqQuestions(updated);
                         }}
                         placeholder="Why is this option correct?"
-                        className="w-full px-2.5 py-1 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-lg text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                        className="w-full px-2.5 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                       />
                     </div>
                   </div>
@@ -846,10 +846,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
             <div className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
-                  <span className="text-xs font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider block">
+                  <span className="text-xs font-bold text-label-secondary uppercase tracking-wider block">
                     Coding Challenges ({codingProblems.length})
                   </span>
-                  <p className="text-[11px] text-label-secondary dark:text-[#86868B]">
+                  <p className="text-[11px] text-label-secondary">
                     Configure problem statements, sample test cases, and hidden anti-cheat grading test cases.
                   </p>
                 </div>
@@ -857,7 +857,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowCodingBulkModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-success-subtle hover:bg-success/15 text-success border border-success/30 text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
                     title="Bulk upload coding challenges via Excel or JSON"
                   >
                     <FileSpreadsheet size={14} />
@@ -866,7 +866,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   <button
                     type="button"
                     onClick={handleAddCoding}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
                   >
                     <Plus size={14} />
                     <span>Add Challenge</span>
@@ -875,15 +875,15 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
               </div>
 
               {codingProblems.length === 0 ? (
-                <div className="p-8 text-center bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-dashed border-separator dark:border-white/10 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                <div className="p-8 text-center bg-surface-secondary rounded-2xl border border-dashed border-separator space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-success-subtle text-success flex items-center justify-center mx-auto">
                     <FileCode size={22} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-label-primary dark:text-[#F5F5F7]">
+                    <h4 className="text-sm font-bold text-label-primary">
                       No Coding Challenges Configured
                     </h4>
-                    <p className="text-xs text-label-secondary dark:text-[#86868B] max-w-sm mx-auto mt-0.5">
+                    <p className="text-xs text-label-secondary max-w-sm mx-auto mt-0.5">
                       Design problems with hidden test cases or upload complete challenges via our Excel template.
                     </p>
                   </div>
@@ -891,7 +891,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowCodingBulkModal(true)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-success hover:bg-success-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
                     >
                       <FileSpreadsheet size={14} />
                       <span>Bulk Upload from Excel</span>
@@ -899,7 +899,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     <button
                       type="button"
                       onClick={handleAddCoding}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-surface dark:bg-[#121214] hover:bg-surface-secondary border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-surface hover:bg-surface-secondary border border-separator text-label-primary text-xs font-bold rounded-xl transition-colors duration-150 ease-out cursor-pointer"
                     >
                       <Plus size={14} />
                       <span>Add Manually</span>
@@ -915,22 +915,22 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 return (
                   <div
                     key={pIdx}
-                    className="p-5 sm:p-6 bg-surface-secondary dark:bg-[#18181A] rounded-3xl border border-separator dark:border-white/10 space-y-4 shadow-sm"
+                    className="p-5 sm:p-6 bg-surface-secondary rounded-3xl border border-separator space-y-4 shadow-xs"
                   >
                     {/* Problem Header */}
-                    <div className="flex items-center justify-between pb-3 border-b border-separator dark:border-white/10">
+                    <div className="flex items-center justify-between pb-3 border-b border-separator">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold font-mono text-xs flex items-center justify-center border border-blue-500/20">
+                        <span className="w-7 h-7 rounded-lg bg-accent-subtle text-accent font-bold font-mono text-xs flex items-center justify-center border border-accent/20">
                           #{pIdx + 1}
                         </span>
-                        <span className="font-extrabold text-sm text-label-primary dark:text-[#F5F5F7]">
+                        <span className="font-extrabold text-sm text-label-primary">
                           {p.title || `Coding Challenge #${pIdx + 1}`}
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setCodingProblems(codingProblems.filter((_, idx) => idx !== pIdx))}
-                        className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        className="text-destructive hover:bg-destructive-subtle p-1.5 rounded-lg transition-colors duration-150 ease-out cursor-pointer"
                         title="Delete Problem"
                       >
                         <Trash2 size={15} />
@@ -940,7 +940,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     {/* Problem Meta: Title, Difficulty, Points */}
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
                           Problem Title *
                         </label>
                         <input
@@ -952,12 +952,12 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setCodingProblems(updated);
                           }}
                           placeholder="e.g. Invert Binary Tree / Subarray Max"
-                          className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] font-medium focus:outline-none focus:border-primary"
+                          className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-medium focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
                           Difficulty
                         </label>
                         <select
@@ -967,7 +967,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             updated[pIdx].difficulty = e.target.value;
                             setCodingProblems(updated);
                           }}
-                          className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] font-medium focus:outline-none cursor-pointer"
+                          className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-medium focus:outline-none focus:border-accent transition-colors duration-150 ease-out cursor-pointer"
                         >
                           <option value="Easy">Easy</option>
                           <option value="Medium">Medium</option>
@@ -976,7 +976,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                        <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
                           Points
                         </label>
                         <input
@@ -987,14 +987,14 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             updated[pIdx].points = Number(e.target.value);
                             setCodingProblems(updated);
                           }}
-                          className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl text-label-primary dark:text-[#F5F5F7] font-bold focus:outline-none"
+                          className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-bold focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                         />
                       </div>
                     </div>
 
                     {/* Problem Statement */}
                     <div>
-                      <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                      <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
                         Problem Statement (Markdown / Plain Text)
                       </label>
                       <textarea
@@ -1006,15 +1006,15 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           setCodingProblems(updated);
                         }}
                         placeholder="Describe the problem, input constraints, and expected logic..."
-                        className="w-full px-3 py-2 text-xs bg-surface dark:bg-[#121214] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none leading-relaxed"
+                        className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out leading-relaxed"
                       />
                     </div>
 
                     {/* Sample Input & Output */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-surface/50 dark:bg-[#121214]/60 border border-separator dark:border-white/10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-surface border border-separator">
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider">
+                          <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider">
                             Sample Input (Console Stdin)
                           </label>
                         </div>
@@ -1027,12 +1027,12 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setCodingProblems(updated);
                           }}
                           placeholder="e.g. 4\n2 7 11 15\n9"
-                          className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface dark:bg-[#161617] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                          className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface-secondary border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                         />
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider">
+                          <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider">
                             Sample Expected Output (Console Stdout)
                           </label>
                         </div>
@@ -1045,7 +1045,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setCodingProblems(updated);
                           }}
                           placeholder="e.g. 0 1"
-                          className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface dark:bg-[#161617] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none"
+                          className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface-secondary border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                         />
                       </div>
                     </div>
@@ -1053,20 +1053,20 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     {/* ============================================================= */}
                     {/* TEST CASES SUITE MANAGER (VISIBLE & HIDDEN TEST CASES)        */}
                     {/* ============================================================= */}
-                    <div className="pt-3 border-t border-separator dark:border-white/10 space-y-3">
+                    <div className="pt-3 border-t border-separator space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-black text-label-primary dark:text-[#F5F5F7] flex items-center gap-1.5">
-                            <Terminal size={14} className="text-primary" />
+                          <span className="text-xs font-black text-label-primary flex items-center gap-1.5">
+                            <Terminal size={14} className="text-accent" />
                             <span>Evaluation Test Cases Suite</span>
                           </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface dark:bg-[#202023] border border-separator dark:border-white/10 text-label-secondary dark:text-[#86868B]">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-raised border border-separator text-label-secondary">
                             {testCases.length} Total
                           </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-subtle text-accent border border-accent/20">
                             {publicCount} Public
                           </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning-subtle text-warning border border-warning/20">
                             {hiddenCount} Hidden (Anti-Cheat)
                           </span>
                         </div>
@@ -1077,7 +1077,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             <button
                               type="button"
                               onClick={() => handleCopySampleToTestCase(pIdx, false)}
-                              className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-secondary hover:text-label-primary transition-colors flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-surface border border-separator text-label-secondary hover:text-label-primary transition-colors duration-150 ease-out flex items-center gap-1 cursor-pointer"
                               title="Import sample input & output as public test case"
                             >
                               <Copy size={12} />
@@ -1088,7 +1088,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           <button
                             type="button"
                             onClick={() => handleAddTestCase(pIdx, false)}
-                            className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/25 transition-colors flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-accent-subtle hover:bg-accent/15 text-accent border border-accent/25 transition-colors duration-150 ease-out flex items-center gap-1 cursor-pointer"
                           >
                             <Plus size={12} />
                             <Eye size={12} />
@@ -1098,7 +1098,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           <button
                             type="button"
                             onClick={() => handleAddTestCase(pIdx, true)}
-                            className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/25 transition-colors flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-warning-subtle hover:bg-warning/15 text-warning border border-warning/25 transition-colors duration-150 ease-out flex items-center gap-1 cursor-pointer"
                           >
                             <Plus size={12} />
                             <EyeOff size={12} />
@@ -1108,10 +1108,10 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                       </div>
 
                       {/* Informational Hint Card */}
-                      <div className="p-3 rounded-2xl bg-amber-500/[0.06] dark:bg-amber-500/[0.08] border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2.5 leading-relaxed">
-                        <ShieldAlert size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="p-3 rounded-2xl bg-warning-subtle border border-warning/20 text-[11px] text-label-primary flex items-start gap-2.5 leading-relaxed">
+                        <ShieldAlert size={16} className="text-warning shrink-0 mt-0.5" />
                         <div>
-                          <strong className="font-bold text-amber-700 dark:text-amber-300">
+                          <strong className="font-bold text-warning">
                             Hidden Test Cases Engine:
                           </strong>{' '}
                           Hidden test cases are evaluated strictly during final grading by the sandbox runner.
@@ -1123,12 +1123,12 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                       {/* List of Test Cases */}
                       <div className="space-y-3 pt-1">
                         {testCases.length === 0 ? (
-                          <div className="p-6 text-center rounded-2xl border border-dashed border-separator dark:border-white/10 space-y-2">
+                          <div className="p-6 text-center rounded-2xl border border-dashed border-separator space-y-2">
                             <Terminal size={22} className="text-label-tertiary mx-auto" />
-                            <p className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+                            <p className="text-xs font-bold text-label-primary">
                               No Test Cases Configured
                             </p>
-                            <p className="text-[11px] text-label-secondary dark:text-[#86868B]">
+                            <p className="text-[11px] text-label-secondary">
                               Click "+ Public Case" or "+ Hidden Case" above to add grading tests.
                             </p>
                           </div>
@@ -1139,16 +1139,16 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             return (
                               <div
                                 key={tcIdx}
-                                className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                                className={`p-4 rounded-2xl border transition-all duration-150 ease-out space-y-3 ${
                                   isHidden
-                                    ? 'bg-amber-500/[0.03] dark:bg-amber-500/[0.04] border-amber-500/25'
-                                    : 'bg-surface dark:bg-[#141416] border-separator dark:border-white/10'
+                                    ? 'bg-warning-subtle/40 border-warning/25'
+                                    : 'bg-surface border-separator'
                                 }`}
                               >
                                 {/* Top Row: Index, Visibility Switch, Actions */}
                                 <div className="flex items-center justify-between gap-2 flex-wrap">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono font-black text-xs text-label-primary dark:text-[#F5F5F7]">
+                                    <span className="font-mono font-black text-xs text-label-primary">
                                       Test Case #{tcIdx + 1}
                                     </span>
 
@@ -1156,21 +1156,21 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => handleToggleTestCaseHidden(pIdx, tcIdx)}
-                                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border ${
+                                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors duration-150 ease-out cursor-pointer border ${
                                         isHidden
-                                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25 shadow-sm'
-                                          : 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/25 shadow-sm'
+                                          ? 'bg-warning-subtle text-warning border-warning/30 hover:bg-warning/20 shadow-xs'
+                                          : 'bg-accent-subtle text-accent border-accent/30 hover:bg-accent/20 shadow-xs'
                                       }`}
                                       title="Click to switch between Public and Hidden"
                                     >
                                       {isHidden ? (
                                         <>
-                                          <EyeOff size={12} className="text-amber-600 dark:text-amber-400" />
+                                          <EyeOff size={12} className="text-warning" />
                                           <span>Hidden (Final Grading Only)</span>
                                         </>
                                       ) : (
                                         <>
-                                          <Eye size={12} className="text-blue-600 dark:text-blue-400" />
+                                          <Eye size={12} className="text-accent" />
                                           <span>Public (Visible in Run Code)</span>
                                         </>
                                       )}
@@ -1181,7 +1181,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => handleDuplicateTestCase(pIdx, tcIdx)}
-                                      className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface-secondary dark:hover:bg-white/10 transition-colors cursor-pointer"
+                                      className="p-1.5 rounded-lg text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition-colors duration-150 ease-out cursor-pointer"
                                       title="Duplicate Test Case"
                                     >
                                       <Copy size={13} />
@@ -1189,7 +1189,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveTestCase(pIdx, tcIdx)}
-                                      className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                      className="p-1.5 rounded-lg text-destructive hover:bg-destructive-subtle transition-colors duration-150 ease-out cursor-pointer"
                                       title="Delete Test Case"
                                     >
                                       <Trash2 size={14} />
@@ -1200,7 +1200,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                                 {/* Inputs Grid: Stdin & Stdout */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   <div>
-                                    <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1">
+                                    <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
                                       Standard Input (stdin)
                                     </label>
                                     <textarea
@@ -1210,14 +1210,14 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                                         handleUpdateTestCase(pIdx, tcIdx, 'input', e.target.value)
                                       }
                                       placeholder="Raw stdin input lines..."
-                                      className="w-full font-mono text-xs px-3 py-2 bg-surface dark:bg-[#1A1A1D] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-primary"
+                                      className="w-full font-mono text-xs px-3 py-2 bg-surface-secondary border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                                     />
                                   </div>
 
                                   <div>
-                                    <label className="text-[10px] text-label-secondary dark:text-[#86868B] font-bold uppercase tracking-wider block mb-1 flex items-center justify-between">
+                                    <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1 flex items-center justify-between">
                                       <span>Expected Output (stdout) *</span>
-                                      <span className="text-[10px] text-primary lowercase font-medium">
+                                      <span className="text-[10px] text-accent lowercase font-medium">
                                         exact match
                                       </span>
                                     </label>
@@ -1228,7 +1228,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                                         handleUpdateTestCase(pIdx, tcIdx, 'expectedOutput', e.target.value)
                                       }
                                       placeholder="Exact expected terminal output..."
-                                      className="w-full font-mono text-xs px-3 py-2 bg-surface dark:bg-[#1A1A1D] border border-separator dark:border-white/10 rounded-xl resize-none text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-primary"
+                                      className="w-full font-mono text-xs px-3 py-2 bg-surface-secondary border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
                                     />
                                   </div>
                                 </div>
@@ -1249,7 +1249,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
         {/* Footer Actions */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-separator shrink-0">
           <div className="text-xs text-label-secondary text-center sm:text-left">
-            Total Reward: <strong className="text-amber-500 font-mono font-bold">{totalPoints} XP</strong>
+            Total Reward: <strong className="text-warning font-mono font-bold">{totalPoints} XP</strong>
             {questionsPointSum > 0 && (
               <span className="ml-1 text-[11px] text-label-secondary">
                 ({questionsPointSum} configured in challenges)
@@ -1261,14 +1261,14 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+              className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors duration-150 ease-out"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition cursor-pointer shadow"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition-colors duration-150 ease-out cursor-pointer shadow-xs"
             >
               <Save size={14} />
               <span>{editingContest ? 'Update Contest' : 'Publish Contest'}</span>

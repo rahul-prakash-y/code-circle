@@ -83,7 +83,7 @@ export const StudentBearers: React.FC = () => {
             <div
               className="w-5 h-5 rounded-[6px] flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
               style={{
-                background: 'linear-gradient(135deg, #0077ED 0%, #0056B3 100%)',
+                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
               }}
             >
               CC

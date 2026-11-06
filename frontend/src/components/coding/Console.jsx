@@ -5,14 +5,14 @@ import { EMIL_EASE_OUT, DURATION_MODAL } from '../../lib/motion';
 
 const Console = ({ result }) => {
   return (
-    <div className="h-full flex flex-col bg-[#000000] text-neutral-200 overflow-hidden select-none font-mono">
+    <div className="h-full flex flex-col bg-canvas text-neutral-200 overflow-hidden select-none font-mono">
       {/* Apple Spatial Window Frame Header */}
-      <div className="h-10 px-4 bg-[#0A0A0A] border-b border-white/[0.08] flex items-center justify-between shrink-0 select-none">
+      <div className="h-10 px-4 bg-surface border-b border-white/[0.08] flex items-center justify-between shrink-0 select-none">
         <div className="flex items-center gap-2">
           {/* Apple Traffic Light Dots */}
-          <div className="w-3 h-3 rounded-full bg-[#FF5F56] shadow-xs" />
-          <div className="w-3 h-3 rounded-full bg-[#FFBD2E] shadow-xs" />
-          <div className="w-3 h-3 rounded-full bg-[#27C93F] shadow-xs" />
+          <div className="w-3 h-3 rounded-full bg-destructive shadow-xs" />
+          <div className="w-3 h-3 rounded-full bg-warning shadow-xs" />
+          <div className="w-3 h-3 rounded-full bg-success shadow-xs" />
           <span className="text-[11px] text-neutral-400 font-medium ml-2 tracking-tight">
             Terminal · Execution Sandbox
           </span>
@@ -147,3 +147,4 @@ const Console = ({ result }) => {
 };
 
 export default Console;
+

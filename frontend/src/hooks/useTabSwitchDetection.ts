@@ -63,10 +63,10 @@ export const useTabSwitchDetection = ({
         id: 'anti-cheat-permanent-blocked',
         duration: 10000,
         style: {
-          background: '#161617',
-          color: '#F87171',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+          background: 'var(--surface)',
+          color: 'var(--destructive)',
+          border: '1px solid var(--destructive-subtle)',
+          boxShadow: 'var(--shadow-xl)',
         },
       });
 
@@ -118,3 +118,4 @@ export const useTabSwitchDetection = ({
 };
 
 export default useTabSwitchDetection;
+

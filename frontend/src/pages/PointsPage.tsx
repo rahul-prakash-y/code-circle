@@ -255,7 +255,7 @@ export const PointsPage: React.FC = () => {
             <div
               className="absolute -right-20 -top-20 w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
               style={{
-                background: myPointsData?.tier.color || '#0071E3',
+                background: myPointsData?.tier.color || 'var(--accent)',
               }}
             />
 
@@ -264,7 +264,7 @@ export const PointsPage: React.FC = () => {
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-surface-secondary border border-separator">
                   <span
                     className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: myPointsData?.tier.color || '#0071E3' }}
+                    style={{ backgroundColor: myPointsData?.tier.color || 'var(--accent)' }}
                   />
                   <span>{myPointsData?.tier.name || 'Bronze'} Tier Division</span>
                 </div>
@@ -297,7 +297,7 @@ export const PointsPage: React.FC = () => {
                       animate={{ width: `${myPointsData?.tier.progressPercent ?? 0}%` }}
                       transition={{ duration: 1, ease: 'easeOut' }}
                       className="h-full rounded-full"
-                      style={{ backgroundColor: myPointsData?.tier.color || '#0071E3' }}
+                      style={{ backgroundColor: myPointsData?.tier.color || 'var(--accent)' }}
                     />
                   </div>
                 </div>
@@ -331,10 +331,10 @@ export const PointsPage: React.FC = () => {
             {/* 1. Attendance & Club Hours */}
             <div className="surface rounded-[20px] p-5 border border-separator shadow-card hover:border-accent/40 transition-all group">
               <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-accent-subtle border border-accent/20 text-accent flex items-center justify-center">
                   <CalendarCheck size={18} />
                 </div>
-                <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="text-xs font-mono font-bold text-success bg-success-subtle px-2 py-0.5 rounded-full border border-success/20">
                   +{myPointsData?.summary?.attendance?.points ?? 0} pts
                 </span>
               </div>
@@ -498,16 +498,16 @@ export const PointsPage: React.FC = () => {
                     <div
                       className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 border mt-0.5 sm:mt-0 ${
                         tx.category === 'Attendance'
-                          ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
+                          ? 'bg-accent-subtle border-accent/20 text-accent'
                           : tx.category === 'Coding'
-                          ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400'
+                          ? 'bg-info-subtle border-info/20 text-info'
                           : tx.category === 'Contest'
-                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
+                          ? 'bg-warning-subtle border-warning/20 text-warning'
                           : tx.category === 'Course'
-                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                          ? 'bg-success-subtle border-success/20 text-success'
                           : tx.category === 'Assessment'
-                          ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400'
-                          : 'bg-accent/10 border-accent/20 text-accent'
+                          ? 'bg-info-subtle border-info/20 text-info'
+                          : 'bg-accent-subtle border-accent/20 text-accent'
                       }`}
                     >
                       {tx.category === 'Attendance' ? (
@@ -536,7 +536,7 @@ export const PointsPage: React.FC = () => {
                             : tx.category}
                         </span>
                         {tx.classHoursText && (
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
                             {tx.classHoursText}
                           </span>
                         )}
@@ -609,7 +609,7 @@ export const PointsPage: React.FC = () => {
                 <span className="text-xs font-bold text-label-secondary uppercase tracking-wider">
                   Club Hours Logged
                 </span>
-                <Clock size={16} className="text-blue-500" />
+                <Clock size={16} className="text-accent" />
               </div>
               <p className="text-3xl font-black text-label-primary font-mono">
                 {(adminOverview?.totalClubHours ?? 0).toLocaleString()}
@@ -624,7 +624,7 @@ export const PointsPage: React.FC = () => {
                 <span className="text-xs font-bold text-label-secondary uppercase tracking-wider">
                   Average Per Student
                 </span>
-                <TrendingUp size={16} className="text-emerald-500" />
+                <TrendingUp size={16} className="text-success" />
               </div>
               <p className="text-3xl font-black text-label-primary font-mono">
                 {(adminOverview?.avgPoints ?? 0).toLocaleString()} pts
@@ -750,7 +750,7 @@ export const PointsPage: React.FC = () => {
                         <span className="text-label-secondary block text-[11px] whitespace-nowrap">{s.year || '3rd Year'}</span>
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        <span className="inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
                           <Clock size={12} />
                           {s.totalClubHours || 0} hr{s.totalClubHours === 1 ? '' : 's'}
                         </span>
@@ -758,7 +758,7 @@ export const PointsPage: React.FC = () => {
                           {s.sessionsCount || 0} session(s)
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 font-mono font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                      <td className="px-5 py-3.5 font-mono font-semibold text-success whitespace-nowrap">
                         +{s.attendancePoints || 0} pts
                       </td>
                       <td className="px-5 py-3.5 font-mono text-label-secondary whitespace-nowrap">
@@ -772,8 +772,8 @@ export const PointsPage: React.FC = () => {
                           <span
                             className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border whitespace-nowrap"
                             style={{
-                              borderColor: s.tier?.color || '#0071E3',
-                              color: s.tier?.color || '#0071E3',
+                              borderColor: s.tier?.color || 'var(--accent)',
+                              color: s.tier?.color || 'var(--accent)',
                             }}
                           >
                             {s.tier?.name || 'Bronze'}
@@ -878,7 +878,7 @@ export const PointsPage: React.FC = () => {
                       </div>
                       <div className="p-3 sm:p-3.5 rounded-xl bg-surface-secondary border border-separator">
                         <span className="text-[10px] sm:text-[11px] text-label-secondary font-semibold">Club Hours Logged</span>
-                        <p className="text-lg sm:text-xl font-bold font-mono text-blue-600 dark:text-blue-400">
+                        <p className="text-lg sm:text-xl font-bold font-mono text-accent">
                           {selectedAudit.summary?.attendance?.totalClubHours || 0} hrs
                         </p>
                       </div>
@@ -886,7 +886,7 @@ export const PointsPage: React.FC = () => {
                         <span className="text-[10px] sm:text-[11px] text-label-secondary font-semibold">Tier</span>
                         <p
                           className="text-lg sm:text-xl font-bold uppercase"
-                          style={{ color: selectedAudit.tier?.color || '#0071E3' }}
+                          style={{ color: selectedAudit.tier?.color || 'var(--accent)' }}
                         >
                           {selectedAudit.tier?.name || 'Bronze'}
                         </p>
@@ -897,25 +897,25 @@ export const PointsPage: React.FC = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
                       <div className="p-2.5 sm:p-3 rounded-xl border border-separator bg-surface">
                         <span className="text-label-secondary block text-[11px]">Club Hours Pts:</span>
-                        <span className="font-bold text-emerald-600 font-mono">
+                        <span className="font-bold text-success font-mono">
                           +{selectedAudit.summary?.attendance?.points || 0} pts
                         </span>
                       </div>
                       <div className="p-2.5 sm:p-3 rounded-xl border border-separator bg-surface">
                         <span className="text-label-secondary block text-[11px]">Coding Challenges:</span>
-                        <span className="font-bold text-purple-600 font-mono">
+                        <span className="font-bold text-info font-mono">
                           +{selectedAudit.summary?.coding?.points || 0} pts
                         </span>
                       </div>
                       <div className="p-2.5 sm:p-3 rounded-xl border border-separator bg-surface">
                         <span className="text-label-secondary block text-[11px]">Contests:</span>
-                        <span className="font-bold text-amber-600 font-mono">
+                        <span className="font-bold text-warning font-mono">
                           +{selectedAudit.summary?.contests?.points || 0} pts
                         </span>
                       </div>
                       <div className="p-2.5 sm:p-3 rounded-xl border border-separator bg-surface">
                         <span className="text-label-secondary block text-[11px]">Course / Bonus:</span>
-                        <span className="font-bold text-blue-600 font-mono">
+                        <span className="font-bold text-accent font-mono">
                           +{(selectedAudit.summary?.courses?.points || 0) + (selectedAudit.summary?.bonus?.points || 0)} pts
                         </span>
                       </div>
@@ -937,7 +937,7 @@ export const PointsPage: React.FC = () => {
                                   {tx.category}
                                 </span>
                                 {tx.classHoursText && (
-                                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
                                     {tx.classHoursText}
                                   </span>
                                 )}
