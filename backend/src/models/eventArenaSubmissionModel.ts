@@ -27,7 +27,10 @@ export interface ICodingSubmissionItem {
 }
 
 export interface IDesignSubmissionItem {
+  selectedChallengeId?: string;
+  selectedChallengeTitle?: string;
   figmaLink: string;
+  figmaFileUrl?: string;
   notes?: string;
   previewImageUrl?: string;
   submittedAt: Date;
@@ -107,7 +110,10 @@ const codingSubmissionItemSchema = new Schema<ICodingSubmissionItem>(
 
 const designSubmissionItemSchema = new Schema<IDesignSubmissionItem>(
   {
+    selectedChallengeId: { type: String, default: '' },
+    selectedChallengeTitle: { type: String, default: '' },
     figmaLink: { type: String, required: true },
+    figmaFileUrl: { type: String, default: '' },
     notes: { type: String, default: '' },
     previewImageUrl: { type: String, default: '' },
     submittedAt: { type: Date, default: Date.now },

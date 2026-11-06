@@ -59,10 +59,26 @@ export const EventFeed = ({
   const [participantsEvent, setParticipantsEvent] = useState(null);
   const [participantsTab, setParticipantsTab] = useState('participants');
 
-  // Reset page when filters change
-  useEffect(() => {
+  // Filter change handlers that reset page cleanly without cascading effects
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
     setPage(1);
-  }, [activeTab, selectedType, selectedFormat, debouncedSearch]);
+  };
+
+  const handleTypeChange = (type) => {
+    setSelectedType(type);
+    setPage(1);
+  };
+
+  const handleFormatChange = (format) => {
+    setSelectedFormat(format);
+    setPage(1);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setPage(1);
+  };
 
   useEffect(() => {
     fetchEvents({
@@ -172,7 +188,7 @@ export const EventFeed = ({
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-colors duration-150 min-h-[36px] ${
                     isActive
                       ? 'bg-accent text-white shadow-xs'
@@ -224,7 +240,7 @@ export const EventFeed = ({
             type="text"
             placeholder="Search events by title, description, or venue…"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             className="input-base pl-9 text-xs"
           />
         </div>
@@ -235,7 +251,7 @@ export const EventFeed = ({
             {EVENT_TYPES.map((type) => (
               <button
                 key={type}
-                onClick={() => setSelectedType(type)}
+                onClick={() => handleTypeChange(type)}
                 className={`px-3 py-1 min-h-[32px] rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap touch-manipulation ${
                   selectedType === type
                     ? 'bg-separator text-label-primary'
@@ -252,7 +268,7 @@ export const EventFeed = ({
             {EVENT_FORMATS.map((format) => (
               <button
                 key={format}
-                onClick={() => setSelectedFormat(format)}
+                onClick={() => handleFormatChange(format)}
                 className={`px-3 py-1 min-h-[32px] rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap touch-manipulation ${
                   selectedFormat === format
                     ? 'bg-separator text-label-primary'

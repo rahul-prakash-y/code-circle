@@ -7,8 +7,9 @@ import {
   Trash2, KeyRound, Check, X, AlertTriangle,
   Loader2, UserPlus, Crown, Copy, RefreshCw,
   Edit, ChevronLeft, ChevronRight, CheckCircle2,
-  Sparkles, Mail, Lock, Unlock, ArrowRight, Upload, FileSpreadsheet, Share2,
+  Sparkles, Mail, Lock, Unlock, ArrowRight, Upload, FileSpreadsheet, Share2, Download,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import api from '../lib/axios';
 import { User, UserRole } from '../types/user';
@@ -166,6 +167,7 @@ const UserManagement: React.FC = () => {
   const [bulkResult, setBulkResult] = useState<any>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showOnboardingWidget, setShowOnboardingWidget] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
@@ -359,6 +361,102 @@ const UserManagement: React.FC = () => {
     setBulkUploading(false);
   };
 
+  // ── Excel Export Handler (Students' emails and info) ──────────────────────
+  const handleExportExcel = async () => {
+    try {
+      setExportingExcel(true);
+      toast.loading('Generating Students Excel Sheet...', { id: 'export-excel' });
+
+      // Primary strategy: request pre-formatted spreadsheet from server
+      try {
+        const response = await api.get('/users/export', {
+          params: {
+            role: filters.role !== 'all' ? filters.role : 'Student',
+            status: filters.status !== 'all' ? filters.status : undefined,
+            search: filters.search || undefined,
+          },
+          responseType: 'blob',
+        });
+
+        const blob = new Blob([response.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        link.setAttribute('download', `Students_Directory_${timestamp}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success('Students Excel sheet downloaded successfully!', { id: 'export-excel' });
+        return;
+      } catch (backendErr) {
+        console.warn('Direct server export failed, generating Excel client-side:', backendErr);
+      }
+
+      // Resilient fallback: fetch all students and generate using client-side XLSX
+      const res = await api.get('/users', {
+        params: {
+          limit: 2000,
+          role: filters.role !== 'all' ? filters.role : 'Student',
+          status: filters.status !== 'all' ? filters.status : undefined,
+          search: filters.search || undefined,
+        },
+      });
+
+      const usersToExport = res.data?.data?.users || res.data?.users || users;
+      const studentList = usersToExport.filter((u: any) => filters.role !== 'all' ? true : u.role === 'Student' || !u.role);
+
+      if (!studentList || studentList.length === 0) {
+        toast.error('No students found to export', { id: 'export-excel' });
+        return;
+      }
+
+      const rows = studentList.map((u: any, idx: number) => ({
+        'S.No': idx + 1,
+        'Name': u.name || '',
+        'Roll Number': u.rollNo || '',
+        'Email Address': u.email || '',
+        'Department': u.department || 'N/A',
+        'Year': u.year || 'N/A',
+        'College': u.college || 'BIT',
+        'Phone': u.phone || u.phoneNumber || 'N/A',
+        'Role': u.role || 'Student',
+        'Points': u.points || 0,
+        'Status': u.isBlocked ? 'Blocked' : u.isRestricted ? 'Restricted' : 'Active',
+        'Registration Date': u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 6 },
+        { wch: 25 },
+        { wch: 16 },
+        { wch: 32 },
+        { wch: 20 },
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 16 },
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 12 },
+        { wch: 16 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Students');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      XLSX.writeFile(wb, `Students_Directory_${timestamp}.xlsx`);
+      toast.success('Students Excel sheet downloaded successfully!', { id: 'export-excel' });
+    } catch (err: any) {
+      console.error('Failed to export students Excel:', err);
+      toast.error('Failed to generate Excel sheet', { id: 'export-excel' });
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   // ── Bulk Delete Handlers ──────────────────────────────────────────────────
   const currentPageStudents = users.filter((u) => u.role === 'Student');
   const allPageStudentsSelected =
@@ -378,6 +476,50 @@ const UserManagement: React.FC = () => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
+  };
+
+  const handleExportSelectedExcel = () => {
+    if (selectedIds.length === 0) return;
+    const selectedUsers = users.filter((u) => selectedIds.includes(u._id || u.id!));
+    if (selectedUsers.length === 0) {
+      toast.error('No selected student records found in memory');
+      return;
+    }
+    const rows = selectedUsers.map((u: any, idx: number) => ({
+      'S.No': idx + 1,
+      'Name': u.name || '',
+      'Roll Number': u.rollNo || '',
+      'Email Address': u.email || '',
+      'Department': u.department || 'N/A',
+      'Year': u.year || 'N/A',
+      'College': u.college || 'BIT',
+      'Phone': u.phone || u.phoneNumber || 'N/A',
+      'Role': u.role || 'Student',
+      'Points': u.points || 0,
+      'Status': u.isBlocked ? 'Blocked' : u.isRestricted ? 'Restricted' : 'Active',
+      'Registration Date': u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 25 },
+      { wch: 16 },
+      { wch: 32 },
+      { wch: 20 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 16 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 16 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Selected Students');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    XLSX.writeFile(wb, `Selected_Students_${timestamp}.xlsx`);
+    toast.success(`Exported ${selectedUsers.length} selected students!`);
   };
 
   const handleExecuteBulkDelete = async () => {
@@ -544,6 +686,21 @@ const UserManagement: React.FC = () => {
                   <CheckCircle2 size={15} strokeWidth={2} className={showOnboardingWidget ? 'text-accent' : ''} />
                   <span>{showOnboardingWidget ? 'Hide Onboarding' : 'Onboarding Tracker'}</span>
                 </button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleExportExcel}
+                  disabled={exportingExcel}
+                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[40px] cursor-pointer text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/30 font-medium"
+                  title="Download Excel spreadsheet containing students' emails and roster"
+                >
+                  {exportingExcel ? (
+                    <Loader2 size={15} className="animate-spin text-emerald-400" />
+                  ) : (
+                    <FileSpreadsheet size={15} strokeWidth={2} className="text-emerald-400" />
+                  )}
+                  <span>{exportingExcel ? 'Exporting...' : 'Download Excel'}</span>
+                </motion.button>
                 <button
                   onClick={() => {
                     resetBulkUpload();
@@ -1339,6 +1496,15 @@ const UserManagement: React.FC = () => {
                 className="px-3 py-1.5 min-h-[36px] text-xs font-medium text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center"
               >
                 Clear
+              </button>
+
+              <button
+                onClick={handleExportSelectedExcel}
+                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 min-h-[36px] text-xs font-semibold text-emerald-300 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-xl transition-colors cursor-pointer justify-center"
+                title="Export selected students to Excel spreadsheet"
+              >
+                <FileSpreadsheet size={13} strokeWidth={2.2} />
+                <span>Export ({selectedIds.length})</span>
               </button>
 
               <button

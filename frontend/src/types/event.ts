@@ -30,6 +30,7 @@ export interface ClubEvent {
   participantsCount?: number;
   registrationDeadline: string;
   certificateTemplateUrl?: string;
+  certificateTemplateId?: any;
   customFields?: CustomField[];
   createdBy?: User | string | { name?: string; email?: string };
   createdAt?: string;

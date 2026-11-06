@@ -109,6 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       icon: Calendar,
       match: (loc) => loc.pathname === '/events',
     },
+    
     {
       to: '/courses',
       label: 'Courses',
@@ -200,6 +201,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
           },
         ]
       : []),
+    {
+      to: '/documentation',
+      label: 'Documentation',
+      icon: FileText,
+      match: (loc) => loc.pathname.startsWith('/documentation') || loc.pathname.startsWith('/docs') || loc.pathname.includes('/docs'),
+    },
     {
       to: '/users',
       label: 'Directory',

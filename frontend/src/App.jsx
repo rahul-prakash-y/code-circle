@@ -233,6 +233,39 @@ function App() {
             />
 
             <Route
+              path="/documentation"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/docs"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events/:id/docs"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events/:id/documentation"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/courses"
               element={
                 <ProtectedRoute>

@@ -1372,6 +1372,11 @@ export const getArenaLeaderboard = async (
   reply: FastifyReply
 ) => {
   try {
+    const user = request.user;
+    const isAdmin = Boolean(user?.role && ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role));
+    if (!isAdmin) {
+      return reply.status(403).send({ success: false, error: 'Leaderboard is restricted to event administrators.' });
+    }
     const { id } = request.params;
 
     const submissions = await EventArenaSubmission.find({
@@ -1832,6 +1837,10 @@ export const getAdminAssessmentQuestions = async (
       });
     }
 
+    const designChallenges = assessment.designChallenges && assessment.designChallenges.length > 0
+      ? assessment.designChallenges
+      : (assessment.designChallenge ? [assessment.designChallenge] : []);
+
     return reply.send({
       success: true,
       assessment: {
@@ -1845,11 +1854,13 @@ export const getAdminAssessmentQuestions = async (
         passingPercentage: assessment.passingPercentage,
         rules: assessment.rules,
         assignedAdmins: assessment.assignedAdmins,
-        designChallenge: assessment.designChallenge || null,
+        designChallenge: designChallenges[0] || assessment.designChallenge || null,
+        designChallenges,
       },
       mcqs: assessment.questions?.mcqs || [],
       coding: assessment.questions?.coding || [],
-      designChallenge: assessment.designChallenge || null,
+      designChallenge: designChallenges[0] || assessment.designChallenge || null,
+      designChallenges,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -2166,6 +2177,8 @@ export const getAdminAssessmentSubmissions = async (
         type: assessment.type,
         totalPoints: assessment.totalPoints,
         designChallenge: assessment.designChallenge || null,
+        designChallenges: assessment.designChallenges?.length ? assessment.designChallenges : (assessment.designChallenge ? [assessment.designChallenge] : []),
+        questions: assessment.questions || { mcqs: [], coding: [] },
       },
       submissions,
       totalSubmissions: submissions.length,
@@ -2342,6 +2355,47 @@ export const getStudentAssessmentData = async (
       testCases: (p.testCases || []).filter((tc: any) => !tc.isHidden),
     }));
 
+    const isAdminUser = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
+    const designChallenges = assessment.designChallenges?.length
+      ? assessment.designChallenges
+      : (assessment.designChallenge ? [assessment.designChallenge] : []);
+
+    let safeSubmission: any = null;
+    if (submission) {
+      if (!isAdminUser) {
+        safeSubmission = {
+          _id: submission._id,
+          eventId: submission.eventId,
+          assessmentId: submission.assessmentId,
+          userId: submission.userId,
+          status: submission.status,
+          startedAt: submission.startedAt,
+          submittedAt: submission.submittedAt,
+          timeTakenSeconds: submission.timeTakenSeconds,
+          tabSwitchCount: submission.tabSwitchCount,
+          codingSubmissions: (submission.codingSubmissions || []).map((cs: any) => ({
+            problemId: cs.problemId,
+            language: cs.language,
+            status: cs.status,
+            executionTimeMs: cs.executionTimeMs,
+          })),
+          designSubmission: submission.designSubmission ? {
+            selectedChallengeId: submission.designSubmission.selectedChallengeId,
+            selectedChallengeTitle: submission.designSubmission.selectedChallengeTitle,
+            figmaLink: submission.designSubmission.figmaLink,
+            figmaFileUrl: submission.designSubmission.figmaFileUrl || submission.designSubmission.figmaLink,
+            notes: submission.designSubmission.notes,
+            previewImageUrl: submission.designSubmission.previewImageUrl,
+            submittedAt: submission.designSubmission.submittedAt,
+            isEvaluated: submission.designSubmission.isEvaluated,
+            feedback: submission.designSubmission.feedback,
+          } : undefined,
+        };
+      } else {
+        safeSubmission = submission;
+      }
+    }
+
     return reply.send({
       success: true,
       event: { _id: event._id, title: event.title },
@@ -2358,13 +2412,15 @@ export const getStudentAssessmentData = async (
         qualificationCutoffRank: assessment.qualificationCutoffRank || 0,
         isTeamMode: Boolean(assessment.isTeamMode),
         teamSize: assessment.teamSize || 2,
-        designChallenge: assessment.designChallenge || null,
+        designChallenge: designChallenges[0] || assessment.designChallenge || null,
+        designChallenges,
       },
       team: teamInfo,
       mcqs: sanitizedMcqs,
       coding: sanitizedCoding,
-      designChallenge: assessment.designChallenge || null,
-      submission: submission || null,
+      designChallenge: designChallenges[0] || assessment.designChallenge || null,
+      designChallenges,
+      submission: safeSubmission,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -2736,9 +2792,10 @@ export const submitAssessmentFinal = async (
     const rawTotalScore = mcqScore + codingScore;
     const maxPossible = assessment.totalPoints || 100;
 
-    // 5% mark reduction on every tab switch
-    const safeTabSwitchCount = Math.max(0, Number(tabSwitchCount) || submission.tabSwitchCount || 0);
-    const penaltyPercent = Math.min(100, safeTabSwitchCount * 5); // 5% per switch, capped at 100%
+    // 5% mark reduction on every tab switch (disabled for UI_UX / Figma rounds)
+    const isUiUx = assessment.type === 'UI_UX';
+    const safeTabSwitchCount = isUiUx ? 0 : Math.max(0, Number(tabSwitchCount) || submission.tabSwitchCount || 0);
+    const penaltyPercent = isUiUx ? 0 : Math.min(100, safeTabSwitchCount * 5); // 5% per switch, capped at 100%
     const penaltyDeduction = (rawTotalScore * penaltyPercent) / 100;
     const adjustedTotalScore = Math.max(0, Math.round((rawTotalScore - penaltyDeduction) * 10) / 10);
 
@@ -2763,23 +2820,33 @@ export const submitAssessmentFinal = async (
 
     await submission.save();
 
+    const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
+    const results = isAdminRole
+      ? {
+          rawTotalScore,
+          tabSwitchCount: safeTabSwitchCount,
+          tabSwitchPenaltyPercentage: penaltyPercent,
+          totalScore: adjustedTotalScore,
+          maxPossibleScore: maxPossible,
+          scorePercentage,
+          isPassed,
+          mcqScore,
+          codingScore,
+          timeTakenSeconds,
+          status: submission.status,
+          submittedAt: submission.submittedAt,
+        }
+      : {
+          timeTakenSeconds,
+          status: submission.status,
+          submittedAt: submission.submittedAt,
+          tabSwitchCount: safeTabSwitchCount,
+        };
+
     return reply.send({
       success: true,
       message: 'Assessment submitted successfully!',
-      results: {
-        rawTotalScore,
-        tabSwitchCount: safeTabSwitchCount,
-        tabSwitchPenaltyPercentage: penaltyPercent,
-        totalScore: adjustedTotalScore,
-        maxPossibleScore: maxPossible,
-        scorePercentage,
-        isPassed,
-        mcqScore,
-        codingScore,
-        timeTakenSeconds,
-        status: submission.status,
-        submittedAt: submission.submittedAt,
-      },
+      results,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -2798,6 +2865,11 @@ export const getAssessmentLeaderboard = async (
   reply: FastifyReply
 ) => {
   try {
+    const user = request.user;
+    const isAdmin = Boolean(user?.role && ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role));
+    if (!isAdmin) {
+      return reply.status(403).send({ success: false, error: 'Leaderboard is restricted to event administrators.' });
+    }
     const { id, assessmentId } = request.params;
 
     const submissions = await EventArenaSubmission.find({
@@ -2841,12 +2913,110 @@ export const getAssessmentLeaderboard = async (
 };
 
 // ---------------------------------------------------------------------------
+// 29B. Tournament Consolidated Leaderboard (All Rounds & Total Points) for Admins
+// ---------------------------------------------------------------------------
+export const getAdminOverallArenaLeaderboard = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    const isAdmin = Boolean(user?.role && ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role));
+    if (!isAdmin) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Leaderboard is restricted to event administrators and faculty.',
+      });
+    }
+
+    const { id } = request.params;
+    const event = await Event.findById(id).lean();
+    if (!event) return reply.status(404).send({ success: false, error: 'Event not found' });
+
+    const assessments = event.arenaAssessments || [];
+    const submissions = await EventArenaSubmission.find({ eventId: id })
+      .populate('userId', 'name rollNo email profilePicUrl department year residenceType')
+      .populate('teamId', 'name')
+      .lean();
+
+    const studentMap: Record<string, any> = {};
+
+    for (const sub of submissions) {
+      if (!sub.userId) continue;
+      const uId = (sub.userId as any)._id?.toString() || sub.userId.toString();
+      if (!studentMap[uId]) {
+        studentMap[uId] = {
+          student: sub.userId,
+          teamName: sub.teamName || (sub.teamId as any)?.name || null,
+          totalScore: 0,
+          totalTimeTakenSeconds: 0,
+          roundsCompleted: 0,
+          roundScores: {},
+        };
+      }
+
+      const aId = sub.assessmentId;
+      const score = sub.totalScore || 0;
+      const time = sub.timeTakenSeconds || 0;
+
+      studentMap[uId].roundScores[aId] = {
+        score,
+        rawScore: sub.rawTotalScore ?? score,
+        maxScore: sub.maxPossibleScore || 100,
+        status: sub.status,
+        submittedAt: sub.submittedAt,
+        timeTakenSeconds: time,
+        tabSwitchCount: sub.tabSwitchCount || 0,
+        isPassed: sub.isPassed,
+        designFigmaLink: sub.designSubmission?.figmaLink || null,
+        designEvaluated: sub.designSubmission?.isEvaluated || false,
+      };
+
+      if (['SUBMITTED', 'AUTO_SUBMITTED'].includes(sub.status)) {
+        studentMap[uId].totalScore += score;
+        studentMap[uId].totalTimeTakenSeconds += time;
+        studentMap[uId].roundsCompleted += 1;
+      }
+    }
+
+    const leaderboard = Object.values(studentMap)
+      .sort((a, b) => {
+        if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+        return a.totalTimeTakenSeconds - b.totalTimeTakenSeconds;
+      })
+      .map((entry, idx) => ({
+        rank: idx + 1,
+        ...entry,
+      }));
+
+    return reply.send({
+      success: true,
+      assessments: assessments.map((a: any) => ({
+        _id: a._id.toString(),
+        title: a.title,
+        type: a.type,
+        totalPoints: a.totalPoints,
+      })),
+      leaderboard,
+      totalParticipants: leaderboard.length,
+    });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to generate tournament leaderboard',
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
 // 30. Save UI/UX Design Challenge for an Assessment
 // ---------------------------------------------------------------------------
 export const saveAssessmentDesignChallenge = async (
   request: FastifyRequest<{
     Params: { id: string; assessmentId: string };
     Body: {
+      challenges?: any[];
       title?: string;
       description?: string;
       problemStatement?: string;
@@ -2864,6 +3034,7 @@ export const saveAssessmentDesignChallenge = async (
     const user = request.user;
     const { id, assessmentId } = request.params;
     const {
+      challenges,
       title,
       description,
       problemStatement,
@@ -2890,20 +3061,39 @@ export const saveAssessmentDesignChallenge = async (
       });
     }
 
-    assessment.designChallenge = {
-      title: title || assessment.title || 'UI/UX Design Challenge',
-      description: description || assessment.description || '',
-      problemStatement: problemStatement || '',
-      designImageUrl: designImageUrl || '',
-      additionalImages: Array.isArray(additionalImages) ? additionalImages : [],
-      referenceFigmaUrl: referenceFigmaUrl || '',
-      deliverables: Array.isArray(deliverables) ? deliverables : [],
-      guidelines: Array.isArray(guidelines) ? guidelines : [],
-      points: Number(points) || 100,
-    };
-
-    if (assessment.type === 'UI_UX') {
-      assessment.totalPoints = Number(points) || 100;
+    if (Array.isArray(challenges) && challenges.length > 0) {
+      const sanitizedChallenges = challenges.map((c: any, cIdx: number) => ({
+        title: c.title || `Design Option ${cIdx + 1}`,
+        description: c.description || '',
+        problemStatement: c.problemStatement || '',
+        designImageUrl: c.designImageUrl || '',
+        additionalImages: Array.isArray(c.additionalImages) ? c.additionalImages : [],
+        referenceFigmaUrl: c.referenceFigmaUrl || '',
+        deliverables: Array.isArray(c.deliverables) ? c.deliverables : ['Figma Interactive Prototype', 'Mobile/Web Screens'],
+        guidelines: Array.isArray(c.guidelines) ? c.guidelines : ['Design clean, modern UI.', 'Use Figma Auto-layout.'],
+        points: Number(c.points) || 100,
+      }));
+      assessment.designChallenges = sanitizedChallenges;
+      assessment.designChallenge = sanitizedChallenges[0];
+      if (assessment.type === 'UI_UX') {
+        assessment.totalPoints = sanitizedChallenges[0].points || 100;
+      }
+    } else {
+      assessment.designChallenge = {
+        title: title || assessment.title || 'UI/UX Design Challenge',
+        description: description || assessment.description || '',
+        problemStatement: problemStatement || '',
+        designImageUrl: designImageUrl || '',
+        additionalImages: Array.isArray(additionalImages) ? additionalImages : [],
+        referenceFigmaUrl: referenceFigmaUrl || '',
+        deliverables: Array.isArray(deliverables) ? deliverables : [],
+        guidelines: Array.isArray(guidelines) ? guidelines : [],
+        points: Number(points) || 100,
+      };
+      assessment.designChallenges = [assessment.designChallenge];
+      if (assessment.type === 'UI_UX') {
+        assessment.totalPoints = Number(points) || 100;
+      }
     }
 
     // Sync to event.arenaDesignChallenge if first/main assessment
@@ -2917,6 +3107,7 @@ export const saveAssessmentDesignChallenge = async (
       success: true,
       message: 'UI/UX design challenge configured successfully',
       designChallenge: assessment.designChallenge,
+      designChallenges: assessment.designChallenges,
       totalPoints: assessment.totalPoints,
     });
   } catch (err: any) {
@@ -2935,9 +3126,12 @@ export const submitAssessmentDesign = async (
   request: FastifyRequest<{
     Params: { id: string; assessmentId: string };
     Body: {
-      figmaLink: string;
+      figmaLink?: string;
+      figmaFileUrl?: string;
       notes?: string;
       previewImageUrl?: string;
+      selectedChallengeId?: string;
+      selectedChallengeTitle?: string;
     };
   }>,
   reply: FastifyReply
@@ -2946,16 +3140,24 @@ export const submitAssessmentDesign = async (
     const user = request.user;
     if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
     const { id, assessmentId } = request.params;
-    const { figmaLink, notes, previewImageUrl } = request.body;
+    const {
+      figmaLink,
+      figmaFileUrl,
+      notes,
+      previewImageUrl,
+      selectedChallengeId,
+      selectedChallengeTitle,
+    } = request.body;
 
-    if (!figmaLink || typeof figmaLink !== 'string' || !figmaLink.trim()) {
+    const rawLink = figmaLink || figmaFileUrl;
+    if (!rawLink || typeof rawLink !== 'string' || !rawLink.trim()) {
       return reply.status(400).send({
         success: false,
         error: 'Please provide a valid Figma design or prototype link.',
       });
     }
 
-    const trimmedLink = figmaLink.trim();
+    const trimmedLink = rawLink.trim();
     if (!trimmedLink.includes('figma.com/')) {
       return reply.status(400).send({
         success: false,
@@ -2991,7 +3193,10 @@ export const submitAssessmentDesign = async (
 
     // Preserve points and evaluation if previously reviewed, or keep default
     submission.designSubmission = {
+      selectedChallengeId: selectedChallengeId || '',
+      selectedChallengeTitle: selectedChallengeTitle || '',
       figmaLink: trimmedLink,
+      figmaFileUrl: trimmedLink,
       notes: notes || '',
       previewImageUrl: previewImageUrl || '',
       submittedAt: new Date(),
@@ -3008,10 +3213,29 @@ export const submitAssessmentDesign = async (
 
     await submission.save();
 
+    const isAdminUser = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
+    const returnSub = isAdminUser ? submission : {
+      _id: submission._id,
+      eventId: submission.eventId,
+      assessmentId: submission.assessmentId,
+      status: submission.status,
+      submittedAt: submission.submittedAt,
+      designSubmission: {
+        selectedChallengeId: submission.designSubmission.selectedChallengeId,
+        selectedChallengeTitle: submission.designSubmission.selectedChallengeTitle,
+        figmaLink: submission.designSubmission.figmaLink,
+        figmaFileUrl: submission.designSubmission.figmaFileUrl,
+        notes: submission.designSubmission.notes,
+        submittedAt: submission.designSubmission.submittedAt,
+        isEvaluated: submission.designSubmission.isEvaluated,
+        feedback: submission.designSubmission.feedback,
+      },
+    };
+
     return reply.send({
       success: true,
       message: 'Figma design submission received successfully!',
-      submission,
+      submission: returnSub,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -3099,6 +3323,30 @@ export const evaluateAssessmentDesign = async (
       success: false,
       error: err.message || 'Failed to evaluate design submission',
     });
+  }
+};
+
+export const deleteAdminAssessmentSubmission = async (
+  request: FastifyRequest<{ Params: { id: string; assessmentId: string; submissionId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    const { id, assessmentId, submissionId } = request.params;
+    const event = await Event.findById(id).lean();
+    if (!event) return reply.status(404).send({ success: false, error: 'Event not found' });
+    const assessment = (event.arenaAssessments || []).find((a: any) => a._id.toString() === assessmentId);
+    if (!assessment) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    if (!canManageAssessmentQuestions(user, event, assessment)) {
+      return reply.status(403).send({ success: false, error: 'Unauthorized to delete submission' });
+    }
+    const deleted = await EventArenaSubmission.findOneAndDelete({ _id: submissionId, eventId: id, assessmentId });
+    if (!deleted) return reply.status(404).send({ success: false, error: 'Submission not found' });
+    return reply.send({ success: true, message: 'Submission deleted successfully' });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({ success: false, error: 'Failed to delete submission' });
   }
 };
 

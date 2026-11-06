@@ -868,8 +868,111 @@ export const restrictUserManually = async (request: FastifyRequest, reply: Fasti
   }
 };
 
+/**
+ * GET /api/users/export
+ * Exports users to Excel sheet (.xlsx).
+ * Supports search, role, status, and department filters.
+ */
+export const exportUsersToExcel = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const query = (request.query || {}) as any;
+    const search = (query.search || '').trim();
+    const role = query.role;
+    const department = query.department;
+    const status = query.status;
+
+    const filter: any = {};
+
+    if (role && role !== 'all') {
+      filter.role = role;
+    }
+
+    if (department && department !== 'all') {
+      filter.department = department;
+    }
+
+    if (search) {
+      const sanitized = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(sanitized, 'i');
+      filter.$or = [
+        { name: searchRegex },
+        { rollNo: searchRegex },
+        { email: searchRegex },
+        { department: searchRegex },
+      ];
+    }
+
+    if (status === 'active') {
+      filter.isBlocked = false;
+    } else if (status === 'blocked') {
+      filter.isBlocked = true;
+    } else if (status === 'restricted') {
+      filter.isRestricted = true;
+    }
+
+    const users = await User.find(filter)
+      .select('name rollNo email role department college year phone phoneNumber gender residenceType points isBlocked isRestricted isOnboarded createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const data = users.map((u: any, idx: number) => ({
+      'S.No': idx + 1,
+      'Name': u.name || '',
+      'Roll Number': u.rollNo || '',
+      'Email Address': u.email || '',
+      'Department': u.department || 'N/A',
+      'Year': u.year || 'N/A',
+      'College': u.college || 'BIT',
+      'Phone': u.phone || u.phoneNumber || 'N/A',
+      'Gender': u.gender || 'N/A',
+      'Residence': u.residenceType || 'N/A',
+      'Role': u.role || 'Student',
+      'Points': u.points || 0,
+      'Status': u.isBlocked ? 'Blocked' : u.isRestricted ? 'Restricted' : 'Active',
+      'Onboarding': u.isOnboarded ? 'Completed' : 'Pending',
+      'Registered Date': u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : 'N/A',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const columnWidths = [
+      { wch: 6 },  // S.No
+      { wch: 25 }, // Name
+      { wch: 16 }, // Roll Number
+      { wch: 32 }, // Email Address
+      { wch: 20 }, // Department
+      { wch: 10 }, // Year
+      { wch: 15 }, // College
+      { wch: 16 }, // Phone
+      { wch: 10 }, // Gender
+      { wch: 14 }, // Residence
+      { wch: 12 }, // Role
+      { wch: 10 }, // Points
+      { wch: 12 }, // Status
+      { wch: 14 }, // Onboarding
+      { wch: 16 }, // Registered Date
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `Students_Directory_${timestamp}.xlsx`;
+
+    reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return reply.send(buffer);
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to export users to Excel' });
+  }
+};
+
 export default {
   getUsers,
+  exportUsersToExcel,
   createUser,
   updateUser,
   deleteUser,

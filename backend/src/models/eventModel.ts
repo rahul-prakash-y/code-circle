@@ -8,6 +8,7 @@ export type EventArenaType = 'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX';
 export type EventArenaStatus = 'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED';
 
 export interface IEventArenaDesignChallenge {
+  _id?: any;
   title: string;
   description: string;
   problemStatement?: string;
@@ -72,6 +73,7 @@ export interface IEventArenaAssessment {
     coding: IEventArenaCodingProblem[];
   };
   designChallenge?: IEventArenaDesignChallenge;
+  designChallenges?: IEventArenaDesignChallenge[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -110,6 +112,7 @@ export interface IEvent extends Document {
   participantsCount?: number;
   registrationDeadline: Date;
   certificateTemplateUrl?: string;
+  certificateTemplateId?: mongoose.Types.ObjectId;
   customFields?: ICustomField[];
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -173,6 +176,32 @@ export const eventArenaAssessmentSchema = new Schema<IEventArenaAssessment>(
         ],
       },
       points: { type: Number, default: 100 },
+    },
+    designChallenges: {
+      type: [
+        {
+          title: { type: String, default: '', trim: true },
+          description: { type: String, default: '', trim: true },
+          problemStatement: { type: String, default: '', trim: true },
+          designImageUrl: { type: String, default: '', trim: true },
+          additionalImages: { type: [String], default: [] },
+          referenceFigmaUrl: { type: String, default: '', trim: true },
+          deliverables: {
+            type: [String],
+            default: () => ['Figma Interactive Prototype', 'Mobile/Web Screens'],
+          },
+          guidelines: {
+            type: [String],
+            default: () => [
+              'Design clean, modern UI following the reference image specifications.',
+              'Use Figma Auto-layout and component hierarchy.',
+              'Ensure link sharing permissions are set to Anyone with the link can view.',
+            ],
+          },
+          points: { type: Number, default: 100 },
+        },
+      ],
+      default: [],
     },
     questions: {
       mcqs: {
@@ -429,6 +458,11 @@ const eventSchema = new Schema<IEvent>(
       type: String,
       default: '',
       trim: true,
+    },
+    certificateTemplateId: {
+      type: Schema.Types.ObjectId,
+      ref: 'CertificateTemplate',
+      default: null,
     },
     customFields: [
       {

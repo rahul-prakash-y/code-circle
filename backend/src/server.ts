@@ -111,7 +111,7 @@ if (fs.existsSync(frontendDistPath)) {
 export const start = async (): Promise<void> => {
   try {
     const port = Number(process.env.PORT) || 5000;
-    const host = '0.0.0.0';
+    const host = process.env.HOST || '127.0.0.1';
 
     await server.listen({ port, host });
     console.log(`[Server] Fastify server listening on http://${host}:${port}`);

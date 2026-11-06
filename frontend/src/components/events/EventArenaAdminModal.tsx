@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +20,7 @@ import {
   Loader2,
   Sparkles,
   Award,
+  Trophy,
   Layers,
   ChevronDown,
   ChevronUp,
@@ -34,8 +36,10 @@ import {
   Maximize2,
   FileText,
   CheckCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import api from '../../lib/axios';
 import useAuthStore from '../../store/useAuthStore';
 import useEventArenaStore, {
   ArenaAssessment,
@@ -44,6 +48,7 @@ import useEventArenaStore, {
   ArenaCodingProblem,
   ArenaDesignChallenge,
 } from '../../store/useEventArenaStore';
+import HeroUISelect from '../ui/HeroUISelect';
 
 interface EventArenaAdminModalProps {
   isOpen: boolean;
@@ -74,6 +79,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     bulkUploadAssessmentQuestions,
     downloadArenaTemplate,
     fetchAdminAssessmentSubmissions,
+    deleteAssessmentSubmission,
     assessments,
     selectedAssessment,
     setSelectedAssessment,
@@ -81,7 +87,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     adminMcqs,
     adminCoding,
     adminDesignChallenge,
+    adminDesignChallenges,
     adminSubmissions,
+    overallLeaderboard,
+    overallLeaderboardAssessments,
+    fetchAdminOverallLeaderboard,
     loading,
     actionLoading,
     arenaTeams,
@@ -126,6 +136,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
 
+  // Submissions & Leaderboard sub-tab state ('round' | 'leaderboard')
+  const [submissionsSubTab, setSubmissionsSubTab] = useState<'round' | 'leaderboard'>('round');
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+
+  // Multi-Design Challenge Form state
+  const [designChallengesList, setDesignChallengesList] = useState<any[]>([]);
+  const [activeDesignOptionIdx, setActiveDesignOptionIdx] = useState(0);
+
   // Design Challenge Form state
   const [designTitle, setDesignTitle] = useState('');
   const [designDesc, setDesignDesc] = useState('');
@@ -151,6 +169,59 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [evalPoints, setEvalPoints] = useState<number>(0);
   const [evalFeedback, setEvalFeedback] = useState<string>('');
   const [previewFigmaUrl, setPreviewFigmaUrl] = useState<string | null>(null);
+  const [inspectingSub, setInspectingSub] = useState<any | null>(null);
+  const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
+
+  const handleResetSubmission = async (sub: any) => {
+    if (!event?._id || !selectedAssessmentId || !sub._id) return;
+    const studentName = sub.userId?.name || 'this student';
+    if (!window.confirm(`Reset assessment attempt for ${studentName}? Their current submission will be cleared and they will be able to retake this round.`)) {
+      return;
+    }
+    setActionInProgressId(sub._id);
+    try {
+      await deleteAssessmentSubmission(event._id, selectedAssessmentId, sub._id);
+      if (inspectingSub?._id === sub._id) {
+        setInspectingSub(null);
+      }
+    } catch {
+      // Handled in store
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const handleUnblockStudent = async (studentId: string, studentName?: string) => {
+    if (!event?._id || !studentId) return;
+    setActionInProgressId(studentId);
+    try {
+      await api.post(`/events/${event._id}/unblock-student`, { studentId });
+      toast.success(`${studentName || 'Student'} unblocked successfully for this event.`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to unblock student');
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const handleDeleteSubmission = async (sub: any) => {
+    if (!event?._id || !selectedAssessmentId || !sub._id) return;
+    const studentName = sub.userId?.name || 'this student';
+    if (!window.confirm(`Permanently delete submission record for ${studentName}? This cannot be undone.`)) {
+      return;
+    }
+    setActionInProgressId(sub._id);
+    try {
+      await deleteAssessmentSubmission(event._id, selectedAssessmentId, sub._id);
+      if (inspectingSub?._id === sub._id) {
+        setInspectingSub(null);
+      }
+    } catch {
+      // Handled in store
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
 
   // MCQ Form state
   const [showAddMcq, setShowAddMcq] = useState(false);
@@ -233,8 +304,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
   // Sync design challenge form fields (no API calls here)
   useEffect(() => {
-    const dc = adminDesignChallenge || selectedAssessment?.designChallenge;
-    if (dc) {
+    const dcs = (adminDesignChallenges && adminDesignChallenges.length > 0)
+      ? adminDesignChallenges
+      : (selectedAssessment?.designChallenges && selectedAssessment.designChallenges.length > 0)
+        ? selectedAssessment.designChallenges
+        : (adminDesignChallenge ? [adminDesignChallenge] : (selectedAssessment?.designChallenge ? [selectedAssessment.designChallenge] : []));
+
+    if (dcs.length > 0) {
+      setDesignChallengesList(dcs);
+      const safeIdx = Math.min(activeDesignOptionIdx, dcs.length - 1);
+      const dc = dcs[safeIdx] || dcs[0];
       setDesignTitle(dc.title || selectedAssessment?.title || '');
       setDesignDesc(dc.description || selectedAssessment?.description || '');
       setDesignProblem(dc.problemStatement || '');
@@ -248,14 +327,25 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       }
       setDesignPoints(dc.totalPoints || dc.points || selectedAssessment?.totalPoints || 100);
     } else if (selectedAssessment) {
-      setDesignTitle(selectedAssessment.title || '');
-      setDesignDesc(selectedAssessment.description || '');
+      const defaultInitial = [{
+        title: selectedAssessment.title || 'UI/UX Design Challenge',
+        description: selectedAssessment.description || '',
+        problemStatement: '',
+        designImageUrl: '',
+        referenceFigmaUrl: '',
+        deliverables: ['High-fidelity Desktop & Mobile layouts', 'Interactive Prototype link with micro-interactions', 'Consistent Component Design System'],
+        guidelines: ['Adhere to visual hierarchy and readable typography scale', 'Proper color contrast adhering to WCAG AA standard', 'Use Figma auto-layout and clear layer naming'],
+        points: selectedAssessment.totalPoints || 100,
+      }];
+      setDesignChallengesList(defaultInitial);
+      setDesignTitle(defaultInitial[0].title);
+      setDesignDesc(defaultInitial[0].description);
       setDesignProblem('');
       setDesignImageUrl('');
       setDesignRefFigma('');
       setDesignPoints(selectedAssessment.totalPoints || 100);
     }
-  }, [adminDesignChallenge, selectedAssessmentId]);
+  }, [adminDesignChallenge, adminDesignChallenges, selectedAssessmentId]);
 
   if (!isOpen || !event) return null;
 
@@ -446,6 +536,115 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     setBulkFile(null);
   };
 
+  const switchActiveChallengeOption = (targetIdx: number) => {
+    // 1. Sync current form inputs into current slot
+    const currentList = [...designChallengesList];
+    if (currentList[activeDesignOptionIdx]) {
+      currentList[activeDesignOptionIdx] = {
+        ...currentList[activeDesignOptionIdx],
+        title: designTitle.trim() || `Problem Statement ${activeDesignOptionIdx + 1}`,
+        description: designDesc.trim(),
+        problemStatement: designProblem.trim(),
+        designImageUrl: designImageUrl.trim(),
+        referenceFigmaUrl: designRefFigma.trim(),
+        deliverables: designDeliverables.filter((d) => d.trim()),
+        guidelines: designGuidelines.filter((g) => g.trim()),
+        points: Number(designPoints) || 100,
+      };
+    }
+    setDesignChallengesList(currentList);
+    setActiveDesignOptionIdx(targetIdx);
+
+    // 2. Load target challenge inputs
+    const target = currentList[targetIdx];
+    if (target) {
+      setDesignTitle(target.title || '');
+      setDesignDesc(target.description || '');
+      setDesignProblem(target.problemStatement || '');
+      setDesignImageUrl(target.referenceImageUrl || target.designImageUrl || '');
+      setDesignRefFigma(target.figmaStarterUrl || target.referenceFigmaUrl || '');
+      setDesignDeliverables(target.deliverables && target.deliverables.length > 0 ? target.deliverables : ['High-fidelity Desktop & Mobile layouts', 'Interactive Prototype link']);
+      setDesignGuidelines(target.guidelines && target.guidelines.length > 0 ? target.guidelines : ['Use Figma Auto-layout', 'Ensure accessible color contrast']);
+      setDesignPoints(target.totalPoints || target.points || 100);
+    }
+  };
+
+  const handleAddDesignChallengeOption = () => {
+    // Save current editing fields into existing active index
+    const currentList = [...designChallengesList];
+    if (currentList[activeDesignOptionIdx]) {
+      currentList[activeDesignOptionIdx] = {
+        ...currentList[activeDesignOptionIdx],
+        title: designTitle.trim() || `Problem Statement ${activeDesignOptionIdx + 1}`,
+        description: designDesc.trim(),
+        problemStatement: designProblem.trim(),
+        designImageUrl: designImageUrl.trim(),
+        referenceFigmaUrl: designRefFigma.trim(),
+        deliverables: designDeliverables.filter((d) => d.trim()),
+        guidelines: designGuidelines.filter((g) => g.trim()),
+        points: Number(designPoints) || 100,
+      };
+    }
+
+    const newIdx = currentList.length;
+    const newOption = {
+      title: `Problem Statement ${newIdx + 1}`,
+      description: 'Alternative problem design for students to choose from',
+      problemStatement: '',
+      designImageUrl: '',
+      referenceFigmaUrl: '',
+      deliverables: ['High-fidelity Desktop & Mobile layouts', 'Interactive Prototype link'],
+      guidelines: ['Use Figma Auto-layout', 'Ensure accessible WCAG contrast'],
+      points: 100,
+    };
+    const updated = [...currentList, newOption];
+    setDesignChallengesList(updated);
+    setActiveDesignOptionIdx(newIdx);
+
+    // Reset inputs for new option
+    setDesignTitle(newOption.title);
+    setDesignDesc(newOption.description);
+    setDesignProblem('');
+    setDesignImageUrl('');
+    setDesignRefFigma('');
+    setDesignDeliverables(newOption.deliverables);
+    setDesignGuidelines(newOption.guidelines);
+    setDesignPoints(100);
+
+    toast.success(`Problem Statement ${newIdx + 1} added! Enter the challenge details below.`);
+  };
+
+  const handleRemoveDesignChallengeOption = async (removeIdx: number) => {
+    if (designChallengesList.length <= 1) {
+      return toast.error('At least one design challenge problem statement is required.');
+    }
+    if (!window.confirm(`Delete Problem Statement #${removeIdx + 1}? This cannot be undone.`)) {
+      return;
+    }
+    const updated = designChallengesList.filter((_, idx) => idx !== removeIdx);
+    setDesignChallengesList(updated);
+    const nextIdx = Math.max(0, removeIdx - 1);
+    setActiveDesignOptionIdx(nextIdx);
+    const target = updated[nextIdx];
+    if (target) {
+      setDesignTitle(target.title || '');
+      setDesignDesc(target.description || '');
+      setDesignProblem(target.problemStatement || '');
+      setDesignImageUrl(target.referenceImageUrl || target.designImageUrl || '');
+      setDesignRefFigma(target.figmaStarterUrl || target.referenceFigmaUrl || '');
+      if (target.deliverables) setDesignDeliverables(target.deliverables);
+      if (target.guidelines) setDesignGuidelines(target.guidelines);
+      setDesignPoints(target.totalPoints || target.points || 100);
+    }
+    // Also save to server
+    if (selectedAssessment) {
+      await saveAssessmentDesignChallenge(event._id, selectedAssessment._id, {
+        challenges: updated,
+      });
+    }
+    toast.success('Design challenge problem removed and updated.');
+  };
+
   const handleSaveDesignChallenge = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAssessment) return;
@@ -455,7 +654,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     if (!designImageUrl.trim()) {
       return toast.error('Please upload or provide a reference design image');
     }
-    await saveAssessmentDesignChallenge(event._id, selectedAssessment._id, {
+
+    // Prepare synchronized challenges list
+    const currentList = [...designChallengesList];
+    currentList[activeDesignOptionIdx] = {
       title: designTitle.trim(),
       description: designDesc.trim(),
       problemStatement: designProblem.trim(),
@@ -464,7 +666,49 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       deliverables: designDeliverables.filter((d) => d.trim()),
       guidelines: designGuidelines.filter((g) => g.trim()),
       points: Number(designPoints) || 100,
+    };
+
+    await saveAssessmentDesignChallenge(event._id, selectedAssessment._id, {
+      challenges: currentList,
     });
+    setDesignChallengesList(currentList);
+  };
+
+  const handleExportTournamentLeaderboard = () => {
+    if (!overallLeaderboard || overallLeaderboard.length === 0) {
+      return toast.error('No leaderboard data to export');
+    }
+    const assessmentsList = overallLeaderboardAssessments || assessments || [];
+    const rows = overallLeaderboard.map((entry: any) => {
+      const row: Record<string, any> = {
+        'Rank': entry.rank,
+        'Student Name': entry.student?.name || 'N/A',
+        'Roll No': entry.student?.rollNo || 'N/A',
+        'Email': entry.student?.email || 'N/A',
+        'Department': entry.student?.department || 'N/A',
+        'Year': entry.student?.year || 'N/A',
+        'Residence': entry.student?.residenceType || 'N/A',
+        'Team': entry.teamName || 'Individual',
+      };
+
+      assessmentsList.forEach((asm: any, idx: number) => {
+        const round = entry.roundScores?.[asm._id];
+        const roundTitle = `Round ${idx + 1} (${asm.title})`;
+        row[roundTitle] = round?.score !== undefined ? `${round.score} / ${round.maxScore || asm.totalPoints || 100}` : 'Not Attempted';
+      });
+
+      row['Total Points'] = entry.totalScore || 0;
+      row['Rounds Completed'] = `${entry.roundsCompleted || 0} / ${assessmentsList.length}`;
+      row['Total Time (Mins)'] = Math.floor((entry.totalTimeTakenSeconds || 0) / 60);
+
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tournament Leaderboard');
+    XLSX.writeFile(workbook, `${event.title.replace(/[^a-zA-Z0-9]/g, '_')}_Tournament_Leaderboard.xlsx`);
+    toast.success('Tournament leaderboard exported to Excel successfully!');
   };
 
   const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -610,54 +854,55 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g. Round 1: Screening Test or Coding Finale"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-purple-500 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Description</label>
+                  <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">Description</label>
                   <textarea
                     rows={2}
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     placeholder="Short description or guidelines for this assessment..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-purple-500 outline-none resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Assessment Type</label>
-                    <select
+                    <HeroUISelect
+                      label="Assessment Type"
                       value={newType}
-                      onChange={(e) => setNewType(e.target.value as any)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
-                    >
-                      <option value="HYBRID">Hybrid (MCQ + Coding)</option>
-                      <option value="MCQ">MCQ Questions Only</option>
-                      <option value="CODING">Coding Challenges Only</option>
-                      <option value="UI_UX">🎨 UI/UX Design (Figma)</option>
-                    </select>
+                      onChange={(val) => setNewType(val as any)}
+                      color="purple"
+                      options={[
+                        { value: 'HYBRID', label: 'Hybrid (MCQ + Coding)', badge: 'Hybrid' },
+                        { value: 'MCQ', label: 'MCQ Questions Only', badge: 'MCQ' },
+                        { value: 'CODING', label: 'Coding Challenges Only', badge: 'Code' },
+                        { value: 'UI_UX', label: '🎨 UI/UX Design (Figma)', badge: 'Design' },
+                      ]}
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Duration (Minutes)</label>
+                    <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">Duration (Minutes)</label>
                     <input
                       type="number"
                       min={5}
                       value={newDuration}
                       onChange={(e) => setNewDuration(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Passing Score (%)</label>
+                    <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">Passing Score (%)</label>
                     <input
                       type="number"
                       min={0}
                       max={100}
                       value={newPassingScore}
                       onChange={(e) => setNewPassingScore(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
                   </div>
                 </div>
@@ -665,7 +910,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 {/* Qualification Cutoff & Team Mode */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                   <div>
-                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
+                    <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">
                       Qualify Top Students (Cutoff)
                     </label>
                     <input
@@ -674,23 +919,24 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       value={newCutoffRank}
                       onChange={(e) => setNewCutoffRank(Number(e.target.value))}
                       placeholder="e.g. 80 (0 for all)"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none focus:border-purple-500"
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder:text-white/30 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
-                    <p className="text-[10px] text-[#1D1D1F] dark:text-[#F5F5F7]/40 mt-1">
+                    <p className="text-[10px] text-zinc-500 dark:text-[#F5F5F7]/40 mt-1">
                       Top N from previous round allowed (0 = open to all enrolled).
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Round Mode</label>
-                    <select
+                    <HeroUISelect
+                      label="Round Mode"
                       value={newIsTeamMode ? 'team' : 'individual'}
-                      onChange={(e) => setNewIsTeamMode(e.target.value === 'team')}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
-                    >
-                      <option value="individual">Individual Participation</option>
-                      <option value="team">👥 Team Mode (Manual Assignment)</option>
-                    </select>
+                      onChange={(val) => setNewIsTeamMode(val === 'team')}
+                      color="purple"
+                      options={[
+                        { value: 'individual', label: 'Individual Participation', badge: 'Solo' },
+                        { value: 'team', label: '👥 Team Mode (Manual Assignment)', badge: 'Team' },
+                      ]}
+                    />
                   </div>
 
                   {newIsTeamMode && (
@@ -739,7 +985,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           value={adminSearch}
                           onChange={(e) => setAdminSearch(e.target.value)}
                           placeholder="Search admins by name, email, roll number..."
-                          className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 outline-none"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 outline-none focus:border-purple-500"
                         />
                       </div>
 
@@ -975,60 +1221,62 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Status</label>
-                        <select
+                        <HeroUISelect
+                          label="Status"
                           value={editStatus}
-                          onChange={(e) => setEditStatus(e.target.value as any)}
+                          onChange={(val) => setEditStatus(val as any)}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
-                        >
-                          <option value="LIVE">Live (Open for students)</option>
-                          <option value="UPCOMING">Upcoming</option>
-                          <option value="DRAFT">Draft</option>
-                          <option value="ENDED">Ended</option>
-                        </select>
+                          color="purple"
+                          options={[
+                            { value: 'LIVE', label: 'Live (Open for students)', badge: 'Live' },
+                            { value: 'UPCOMING', label: 'Upcoming', badge: 'Upcoming' },
+                            { value: 'DRAFT', label: 'Draft', badge: 'Draft' },
+                            { value: 'ENDED', label: 'Ended', badge: 'Ended' },
+                          ]}
+                        />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Description</label>
+                      <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">Description</label>
                       <textarea
                         rows={2}
                         value={editDesc}
                         onChange={(e) => setEditDesc(e.target.value)}
                         disabled={!canManageSelected}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none resize-none disabled:opacity-50"
+                        className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] outline-none resize-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Type</label>
-                        <select
+                        <HeroUISelect
+                          label="Type"
                           value={editType}
-                          onChange={(e) => setEditType(e.target.value as any)}
+                          onChange={(val) => setEditType(val as any)}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
-                        >
-                          <option value="HYBRID">Hybrid (MCQ + Coding)</option>
-                          <option value="MCQ">MCQ Questions Only</option>
-                          <option value="CODING">Coding Challenges Only</option>
-                          <option value="UI_UX">🎨 UI/UX Design (Figma)</option>
-                        </select>
+                          color="purple"
+                          options={[
+                            { value: 'HYBRID', label: 'Hybrid (MCQ + Coding)', badge: 'Hybrid' },
+                            { value: 'MCQ', label: 'MCQ Questions Only', badge: 'MCQ' },
+                            { value: 'CODING', label: 'Coding Challenges Only', badge: 'Code' },
+                            { value: 'UI_UX', label: '🎨 UI/UX Design (Figma)', badge: 'Design' },
+                          ]}
+                        />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Duration (Mins)</label>
+                        <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">Duration (Mins)</label>
                         <input
                           type="number"
                           min={5}
                           value={editDuration}
                           onChange={(e) => setEditDuration(Number(e.target.value))}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Passing %</label>
+                        <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">Passing %</label>
                         <input
                           type="number"
                           min={0}
@@ -1036,7 +1284,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           value={editPassingScore}
                           onChange={(e) => setEditPassingScore(Number(e.target.value))}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                         />
                       </div>
                     </div>
@@ -1044,7 +1292,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     {/* Cutoff & Team Mode Configuration */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                       <div>
-                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">
+                        <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">
                           Top Rank Cutoff (Next Round)
                         </label>
                         <input
@@ -1054,24 +1302,25 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setEditCutoffRank(Number(e.target.value))}
                           disabled={!canManageSelected}
                           placeholder="e.g. 80 (0 for no limit)"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder:text-white/30 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                         />
-                        <p className="text-[10px] text-[#1D1D1F] dark:text-[#F5F5F7]/40 mt-1">
+                        <p className="text-[10px] text-zinc-500 dark:text-[#F5F5F7]/40 mt-1">
                           Only top {editCutoffRank || 0} students from previous round attend.
                         </p>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Round Mode</label>
-                        <select
+                        <HeroUISelect
+                          label="Round Mode"
                           value={editIsTeamMode ? 'team' : 'individual'}
-                          onChange={(e) => setEditIsTeamMode(e.target.value === 'team')}
+                          onChange={(val) => setEditIsTeamMode(val === 'team')}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none disabled:opacity-50"
-                        >
-                          <option value="individual">Individual Participation</option>
-                          <option value="team">👥 Team Mode (Manual Allocation)</option>
-                        </select>
+                          color="purple"
+                          options={[
+                            { value: 'individual', label: 'Individual Participation', badge: 'Solo' },
+                            { value: 'team', label: '👥 Team Mode (Manual Allocation)', badge: 'Team' },
+                          ]}
+                        />
                       </div>
 
                       {editIsTeamMode && (
@@ -1122,7 +1371,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={adminSearch}
                             onChange={(e) => setAdminSearch(e.target.value)}
                             placeholder="Search admin name, email, roll number..."
-                            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 outline-none"
+                            className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 outline-none focus:border-purple-500"
                           />
                         </div>
 
@@ -1299,13 +1548,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1.5">Question Text</label>
+                          <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1.5">Question Text</label>
                           <textarea
                             rows={2}
                             value={newQuestionText}
                             onChange={(e) => setNewQuestionText(e.target.value)}
                             placeholder="Enter the question prompt..."
-                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 outline-none resize-none focus:border-purple-500"
+                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 outline-none resize-none focus:border-purple-500"
                           />
                         </div>
 
@@ -1531,26 +1780,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="sm:col-span-2">
-                            <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">Problem Title</label>
+                            <label className="block text-xs font-semibold text-zinc-800 dark:text-[#F5F5F7]/80 uppercase tracking-wider mb-1">Problem Title</label>
                             <input
                               type="text"
                               value={newCodingTitle}
                               onChange={(e) => setNewCodingTitle(e.target.value)}
                               placeholder="e.g. Invert a Binary Tree or Maximum Subarray"
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none focus:border-blue-500"
+                              className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder:text-white/30 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-[#1D1D1F] dark:text-[#F5F5F7]/80 mb-1">Difficulty</label>
-                            <select
+                            <HeroUISelect
+                              label="Difficulty"
                               value={newCodingDiff}
-                              onChange={(e) => setNewCodingDiff(e.target.value as any)}
-                              className="w-full px-3 py-2 rounded-xl bg-[#1A1A1E] border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] outline-none"
-                            >
-                              <option value="Easy">Easy</option>
-                              <option value="Medium">Medium</option>
-                              <option value="Hard">Hard</option>
-                            </select>
+                              onChange={(val) => setNewCodingDiff(val as any)}
+                              size="sm"
+                              color="purple"
+                              options={[
+                                { value: 'Easy', label: 'Easy', badge: 'Easy' },
+                                { value: 'Medium', label: 'Medium', badge: 'Med' },
+                                { value: 'Hard', label: 'Hard', badge: 'Hard' },
+                              ]}
+                            />
                           </div>
                         </div>
 
@@ -1717,22 +1968,116 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
                           <span>UI/UX & Figma Design Challenge Configuration</span>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-pink-500/20 text-pink-300 border border-pink-500/30">
-                            Figma Prototype
+                            {designChallengesList.length} Problem{designChallengesList.length > 1 ? 's' : ''} Configured
                           </span>
                         </h4>
                         <p className="text-xs text-text-muted mt-0.5">
-                          Upload reference designs, define user stories & problem statement, and provide starter Figma links.
+                          Create multiple problem statements for students. In the assessment arena, students can pick any 1 problem to solve and submit.
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10">
-                        {designPoints} Total Pts
+                      {canManageSelected && (
+                        <button
+                          type="button"
+                          onClick={handleAddDesignChallengeOption}
+                          className="px-3.5 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-pink-600/30 transition-all cursor-pointer"
+                        >
+                          <Plus size={13} />
+                          <span>Add New Problem Statement</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MULTI-PROBLEM SELECTOR & MANAGEMENT BAR */}
+                  <div className="p-4 rounded-2xl bg-surface-secondary border border-separator space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Palette size={14} className="text-pink-400" />
+                        <h5 className="text-xs font-bold uppercase tracking-wider text-label-primary">
+                          Configured Problem Statements ({designChallengesList.length})
+                        </h5>
+                      </div>
+                      <span className="text-[11px] text-label-tertiary">
+                        Currently Editing: <strong className="text-pink-400">Problem #{activeDesignOptionIdx + 1}</strong>
                       </span>
+                    </div>
+
+                    {/* Problem Cards Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {designChallengesList.map((ch: any, idx: number) => {
+                        const isActive = activeDesignOptionIdx === idx;
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => switchActiveChallengeOption(idx)}
+                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 relative group ${
+                              isActive
+                                ? 'bg-pink-500/15 border-pink-500/50 shadow-sm ring-1 ring-pink-500/30'
+                                : 'bg-surface border-separator hover:border-pink-500/30 hover:bg-surface-secondary'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                isActive ? 'bg-pink-500/25 text-pink-300' : 'bg-surface-secondary text-label-tertiary'
+                              }`}>
+                                Problem #{idx + 1}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-mono text-label-secondary font-bold">
+                                  {ch.points || 100} pts
+                                </span>
+                                {designChallengesList.length > 1 && canManageSelected && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveDesignChallengeOption(idx);
+                                    }}
+                                    className="text-label-tertiary hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-colors"
+                                    title="Delete this problem"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="min-w-0 space-y-0.5">
+                              <p className="font-bold text-xs text-label-primary truncate">
+                                {ch.title || `Problem Statement #${idx + 1}`}
+                              </p>
+                              <p className="text-[10px] text-label-tertiary line-clamp-1">
+                                {ch.description || ch.problemStatement || 'No description provided'}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[10px] text-label-tertiary pt-2 border-t border-separator/40">
+                              <span>{ch.designImageUrl || ch.referenceImageUrl ? '✓ Image Attached' : 'No image'}</span>
+                              <span className={`font-bold ${isActive ? 'text-pink-400' : 'text-label-secondary'}`}>
+                                {isActive ? '● Editing' : 'Click to Edit'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <form onSubmit={handleSaveDesignChallenge} className="space-y-6">
+                    {/* Active Problem Editor Banner */}
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-pink-500 animate-pulse" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-label-primary">
+                          Editing Problem #{activeDesignOptionIdx + 1}: <span className="text-pink-400">{designTitle || 'Untitled Challenge'}</span>
+                        </h4>
+                      </div>
+                      <span className="text-[11px] text-label-tertiary">
+                        Remember to click Save Challenge below after editing
+                      </span>
+                    </div>
                     {/* SECTION 1: REFERENCE DESIGN IMAGE UPLOAD */}
                     <div className="p-5 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/10 space-y-4">
                       <div className="flex items-center justify-between">
@@ -1797,7 +2142,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               onChange={(e) => setDesignImageUrl(e.target.value)}
                               placeholder="https://res.cloudinary.com/... or image link"
                               disabled={!canManageSelected}
-                              className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none"
+                              className="w-full px-3.5 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none"
                             />
                           </div>
                         </div>
@@ -1856,7 +2201,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             onChange={(e) => setDesignTitle(e.target.value)}
                             placeholder="e.g. Modern Fintech Banking App Mobile & Desktop UI"
                             disabled={!canManageSelected}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
                           />
                         </div>
                         <div>
@@ -1869,7 +2214,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={designPoints}
                             onChange={(e) => setDesignPoints(Number(e.target.value))}
                             disabled={!canManageSelected}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] font-mono outline-none disabled:opacity-50"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] font-mono outline-none disabled:opacity-50"
                           />
                         </div>
                       </div>
@@ -1884,7 +2229,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignDesc(e.target.value)}
                           placeholder="e.g. Design a sleek, high-conversion crypto & banking experience with rich micro-interactions."
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
                         />
                       </div>
 
@@ -1898,7 +2243,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignProblem(e.target.value)}
                           placeholder="Detail the target audience, user personas, key flows (Onboarding, Dashboard, Transactions), design constraints, and expected user journeys..."
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none resize-none disabled:opacity-50 leading-relaxed"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none resize-none disabled:opacity-50 leading-relaxed"
                         />
                       </div>
 
@@ -1913,7 +2258,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignRefFigma(e.target.value)}
                           placeholder="https://www.figma.com/file/... (starter kit / UI kit)"
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
                         />
                       </div>
                     </div>
@@ -1953,7 +2298,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               }}
                               placeholder="e.g. Responsive Desktop layout (1440px) and Mobile layout (390px)"
                               disabled={!canManageSelected}
-                              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/20 outline-none focus:border-pink-500 disabled:opacity-50"
+                              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/20 outline-none focus:border-pink-500 disabled:opacity-50"
                             />
                             {canManageSelected && designDeliverables.length > 1 && (
                               <button
@@ -2004,7 +2349,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               }}
                               placeholder="e.g. Visual Hierarchy, Spacing consistency, WCAG AA Contrast"
                               disabled={!canManageSelected}
-                              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/20 outline-none focus:border-purple-500 disabled:opacity-50"
+                              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/20 outline-none focus:border-purple-500 disabled:opacity-50"
                             />
                             {canManageSelected && designGuidelines.length > 1 && (
                               <button
@@ -2020,17 +2365,26 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </div>
                     </div>
 
-                    {/* SAVE BUTTON */}
+                    {/* SAVE BUTTONS */}
                     {canManageSelected && (
-                      <div className="pt-2 flex justify-end">
+                      <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-separator pt-4">
+                        <button
+                          type="button"
+                          onClick={handleAddDesignChallengeOption}
+                          className="px-4 py-2.5 rounded-xl bg-surface-secondary border border-separator hover:bg-surface text-label-primary text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                        >
+                          <Plus size={14} />
+                          <span>+ Add Another Problem Statement</span>
+                        </button>
+
                         <button
                           type="submit"
                           disabled={actionLoading}
-                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-[#1D1D1F] dark:text-[#F5F5F7] text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                         >
                           {actionLoading && <Loader2 size={14} className="animate-spin" />}
                           <CheckCircle2 size={14} />
-                          <span>Save Design Challenge</span>
+                          <span>Save Problem Statements ({designChallengesList.length})</span>
                         </button>
                       </div>
                     )}
@@ -2074,7 +2428,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           value={teamNameInput}
                           onChange={(e) => setTeamNameInput(e.target.value)}
                           placeholder="Enter team name (e.g. Code Phoenix, DevSquad)..."
-                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 outline-none focus:border-blue-500"
+                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 outline-none focus:border-blue-500"
                         />
                         <button
                           type="button"
@@ -2194,14 +2548,167 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
               {/* TAB 4: SUBMISSIONS & LEADERBOARD */}
               {activeTab === 'submissions' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">Student Submissions</h4>
-                      <p className="text-xs text-text-muted">
-                        Total {adminSubmissions.length} submissions for "{selectedAssessment.title}"
-                      </p>
+                  {/* View Switcher: Current Round Submissions vs Overall Tournament Leaderboard */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-separator">
+                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface-secondary border border-separator">
+                      <button
+                        type="button"
+                        onClick={() => setSubmissionsSubTab('round')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          submissionsSubTab === 'round'
+                            ? 'bg-primary text-white shadow-xs'
+                            : 'text-label-secondary hover:text-label-primary'
+                        }`}
+                      >
+                        Round Submissions ({adminSubmissions.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSubmissionsSubTab('leaderboard');
+                          setLoadingLeaderboard(true);
+                          fetchAdminOverallLeaderboard(event._id).finally(() => setLoadingLeaderboard(false));
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          submissionsSubTab === 'leaderboard'
+                            ? 'bg-primary text-white shadow-xs'
+                            : 'text-label-secondary hover:text-label-primary'
+                        }`}
+                      >
+                        <Trophy size={13} />
+                        <span>Tournament Leaderboard (All Rounds)</span>
+                      </button>
                     </div>
+
+                    {submissionsSubTab === 'leaderboard' && (overallLeaderboard?.length > 0) && (
+                      <button
+                        type="button"
+                        onClick={handleExportTournamentLeaderboard}
+                        className="btn-secondary px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Download size={13} />
+                        <span>Export Excel</span>
+                      </button>
+                    )}
                   </div>
+
+                  {submissionsSubTab === 'leaderboard' ? (
+                    /* OVERALL TOURNAMENT LEADERBOARD VIEW */
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-bold text-label-primary flex items-center gap-2">
+                            <Trophy size={16} className="text-amber-400" />
+                            <span>Official Tournament Leaderboard</span>
+                          </h4>
+                          <p className="text-xs text-label-secondary">
+                            Scores tracked per round separately and aggregated total points across all {assessments.length} rounds.
+                          </p>
+                        </div>
+                      </div>
+
+                      {loadingLeaderboard ? (
+                        <div className="py-12 flex flex-col items-center justify-center text-center space-y-2">
+                          <Loader2 size={28} className="animate-spin text-primary" />
+                          <p className="text-xs text-label-secondary">Calculating tournament standings...</p>
+                        </div>
+                      ) : (!overallLeaderboard || overallLeaderboard.length === 0) ? (
+                        <div className="p-8 rounded-2xl bg-surface-secondary border border-separator text-center space-y-2">
+                          <Trophy size={28} className="mx-auto text-label-tertiary" />
+                          <h4 className="text-sm font-bold text-label-primary">No Tournament Results Yet</h4>
+                          <p className="text-xs text-label-secondary">
+                            Student scores will appear here across all rounds once participants begin submitting.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-separator overflow-x-auto bg-surface-secondary/20">
+                          <table className="w-full text-left text-xs min-w-[700px]">
+                            <thead className="bg-surface-secondary border-b border-separator text-label-secondary uppercase text-[10px]">
+                              <tr>
+                                <th className="p-3">Rank & Student</th>
+                                <th className="p-3">Team</th>
+                                {(overallLeaderboardAssessments || assessments || []).map((asm: any, aIdx: number) => (
+                                  <th key={asm._id || aIdx} className="p-3 text-center">
+                                    Round {aIdx + 1} ({asm.type})
+                                  </th>
+                                ))}
+                                <th className="p-3 text-center font-bold text-primary">Total Points</th>
+                                <th className="p-3 text-center">Rounds Done</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-separator/40">
+                              {overallLeaderboard.map((entry: any, eIdx: number) => (
+                                <tr key={eIdx} className="hover:bg-surface-secondary/40 transition-colors">
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-2.5">
+                                      <span className={`font-mono font-bold w-5 ${
+                                        entry.rank === 1 ? 'text-amber-400 font-extrabold' :
+                                        entry.rank === 2 ? 'text-slate-300 font-bold' :
+                                        entry.rank === 3 ? 'text-amber-600 font-bold' : 'text-label-tertiary'
+                                      }`}>
+                                        #{entry.rank}
+                                      </span>
+                                      <div className="w-7 h-7 rounded-full overflow-hidden bg-surface border border-separator shrink-0">
+                                        <img
+                                          src={entry.student?.profilePicUrl || `https://ui-avatars.com/api/?name=${entry.student?.name}&size=60`}
+                                          alt={entry.student?.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="font-semibold text-xs text-label-primary truncate">{entry.student?.name}</p>
+                                        <p className="text-[10px] text-label-tertiary truncate">{entry.student?.rollNo || entry.student?.email}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-3 text-label-secondary">
+                                    {entry.teamName || <span className="text-label-tertiary italic">Individual</span>}
+                                  </td>
+                                  {(overallLeaderboardAssessments || assessments || []).map((asm: any) => {
+                                    const roundData = entry.roundScores?.[asm._id];
+                                    return (
+                                      <td key={asm._id} className="p-3 text-center">
+                                        {roundData?.score !== undefined ? (
+                                          <div className="space-y-0.5">
+                                            <span className="font-mono font-bold text-xs text-label-primary">
+                                              {roundData.score}
+                                            </span>
+                                            <span className="text-[10px] text-label-tertiary block font-mono">
+                                              /{roundData.maxScore || asm.totalPoints || 100}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-label-tertiary">—</span>
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="p-3 text-center">
+                                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 font-mono font-bold text-xs">
+                                      {entry.totalScore || 0} pts
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-center text-label-secondary font-mono text-[11px]">
+                                    {entry.roundsCompleted || 0} / {(overallLeaderboardAssessments || assessments || []).length}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* CURRENT ROUND SUBMISSIONS */
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-bold text-label-primary">Round Submissions</h4>
+                          <p className="text-xs text-label-secondary">
+                            Total {adminSubmissions.length} submissions for "{selectedAssessment.title}"
+                          </p>
+                        </div>
+                      </div>
 
                   {adminSubmissions.length === 0 ? (
                     <div className="p-8 rounded-2xl bg-surface-secondary border border-separator text-center space-y-2">
@@ -2459,22 +2966,73 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                     : 'In Progress'}
                                 </td>
                                 <td className="p-3 text-right">
-                                  {sub.designSubmission?.figmaLink && canManageSelected ? (
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {/* Inspect Details Button */}
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        setEvaluatingSub(sub);
-                                        setEvalPoints(sub.designSubmission?.pointsEarned || 0);
-                                        setEvalFeedback(sub.designSubmission?.feedback || '');
-                                      }}
-                                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-500 border border-pink-500/30 transition-all inline-flex items-center gap-1 cursor-pointer"
+                                      onClick={() => setInspectingSub(sub)}
+                                      className="p-1.5 rounded-lg bg-surface border border-separator hover:bg-accent/10 hover:border-accent/40 text-label-secondary hover:text-accent transition-all cursor-pointer"
+                                      title="View Detailed Submission"
                                     >
-                                      <Award size={11} />
-                                      <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
+                                      <Eye size={13} />
                                     </button>
-                                  ) : (
-                                    <span className="text-label-tertiary text-[10px]">—</span>
-                                  )}
+
+                                    {/* UI/UX Grade Button */}
+                                    {sub.designSubmission?.figmaLink && canManageSelected && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEvaluatingSub(sub);
+                                          setEvalPoints(sub.designSubmission?.pointsEarned || 0);
+                                          setEvalFeedback(sub.designSubmission?.feedback || '');
+                                        }}
+                                        className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-500 border border-pink-500/30 transition-all inline-flex items-center gap-1 cursor-pointer"
+                                        title="Grade UI/UX Design Challenge"
+                                      >
+                                        <Award size={11} />
+                                        <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
+                                      </button>
+                                    )}
+
+                                    {/* Reset / Allow Re-attempt */}
+                                    {canManageSelected && (
+                                      <button
+                                        type="button"
+                                        disabled={actionInProgressId === sub._id}
+                                        onClick={() => handleResetSubmission(sub)}
+                                        className="p-1.5 rounded-lg bg-surface border border-separator hover:bg-amber-500/10 hover:border-amber-500/40 text-label-secondary hover:text-amber-500 transition-all cursor-pointer"
+                                        title="Reset Attempt (Allow Re-attempt)"
+                                      >
+                                        {actionInProgressId === sub._id ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+                                      </button>
+                                    )}
+
+                                    {/* Unblock Integrity */}
+                                    {canManageSelected && (
+                                      <button
+                                        type="button"
+                                        disabled={actionInProgressId === (sub.userId?._id || sub.userId?.id || sub.userId)}
+                                        onClick={() => handleUnblockStudent(sub.userId?._id || sub.userId?.id || sub.userId, sub.userId?.name)}
+                                        className="p-1.5 rounded-lg bg-surface border border-separator hover:bg-emerald-500/10 hover:border-emerald-500/40 text-label-secondary hover:text-emerald-500 transition-all cursor-pointer"
+                                        title="Unblock Student for this Event"
+                                      >
+                                        <ShieldCheck size={13} />
+                                      </button>
+                                    )}
+
+                                    {/* Delete Record */}
+                                    {canManageSelected && (
+                                      <button
+                                        type="button"
+                                        disabled={actionInProgressId === sub._id}
+                                        onClick={() => handleDeleteSubmission(sub)}
+                                        className="p-1.5 rounded-lg bg-surface border border-separator hover:bg-destructive/10 hover:border-destructive/40 text-label-secondary hover:text-destructive transition-all cursor-pointer"
+                                        title="Delete Submission Record"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -2482,6 +3040,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         </table>
                       </div>
                     </>
+                  )}
+                    </div>
                   )}
                 </div>
               )}
@@ -2661,6 +3221,324 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
           )}
         </AnimatePresence>
 
+        
+        {/* SUBMISSION DETAIL INSPECTION MODAL */}
+        <AnimatePresence>
+          {inspectingSub && (
+            <div className="fixed inset-0 z-70 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                className="w-full max-w-3xl max-h-[90vh] rounded-3xl bg-surface border border-separator p-5 sm:p-7 shadow-2xl flex flex-col overflow-hidden space-y-5"
+              >
+                {/* Modal Header */}
+                <div className="flex items-start justify-between pb-4 border-b border-separator shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl overflow-hidden bg-surface border border-separator shrink-0">
+                      <img
+                        src={
+                          inspectingSub.userId?.profilePicUrl ||
+                          `https://ui-avatars.com/api/?name=${inspectingSub.userId?.name}&background=1D1D1F&color=fff&size=80`
+                        }
+                        alt={inspectingSub.userId?.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-label-primary">
+                          {inspectingSub.userId?.name || 'Student Submission'}
+                        </h3>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            inspectingSub.isPassed
+                              ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                              : 'bg-destructive/15 text-destructive border border-destructive/30'
+                          }`}
+                        >
+                          {inspectingSub.isPassed ? 'Passed' : 'Failed'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-label-tertiary">
+                        {inspectingSub.userId?.rollNo} • {inspectingSub.userId?.email}
+                        {inspectingSub.userId?.department && ` • ${inspectingSub.userId.department}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setInspectingSub(null)}
+                    className="p-2 rounded-xl text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Score Summary Metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+                  <div className="p-3 rounded-2xl bg-surface-secondary border border-separator text-center">
+                    <p className="text-[10px] font-semibold text-label-tertiary uppercase">Score</p>
+                    <p className="text-sm sm:text-base font-bold font-mono text-label-primary mt-0.5">
+                      {inspectingSub.totalScore} / {inspectingSub.maxPossibleScore}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-surface-secondary border border-separator text-center">
+                    <p className="text-[10px] font-semibold text-label-tertiary uppercase">Percentage</p>
+                    <p className="text-sm sm:text-base font-bold font-mono text-accent mt-0.5">
+                      {inspectingSub.scorePercentage}%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-surface-secondary border border-separator text-center">
+                    <p className="text-[10px] font-semibold text-label-tertiary uppercase">Tab Switches</p>
+                    <p className={`text-sm sm:text-base font-bold font-mono mt-0.5 ${
+                      (inspectingSub.tabSwitchCount || 0) > 0 ? 'text-destructive' : 'text-label-primary'
+                    }`}>
+                      {inspectingSub.tabSwitchCount || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-surface-secondary border border-separator text-center">
+                    <p className="text-[10px] font-semibold text-label-tertiary uppercase">Time Taken</p>
+                    <p className="text-sm sm:text-base font-bold font-mono text-label-primary mt-0.5">
+                      {inspectingSub.timeTakenSeconds ? `${Math.floor(inspectingSub.timeTakenSeconds / 60)}m ${inspectingSub.timeTakenSeconds % 60}s` : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Scrollable Answers & Work Content */}
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                  {/* UI/UX Design Submission Details */}
+                  {inspectingSub.designSubmission?.figmaLink && (
+                    <div className="p-4 rounded-2xl bg-pink-500/5 border border-pink-500/20 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-pink-400 flex items-center gap-1.5">
+                          <Palette size={14} /> UI/UX Figma Deliverable
+                        </span>
+                        <a
+                          href={inspectingSub.designSubmission.figmaLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-bold text-pink-400 hover:text-pink-300 underline inline-flex items-center gap-1"
+                        >
+                          <span>Open Figma Link</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                      {inspectingSub.designSubmission.notes && (
+                        <p className="text-xs text-label-secondary bg-surface p-2.5 rounded-xl border border-separator">
+                          <strong className="text-label-primary block mb-0.5">Student Notes:</strong>
+                          {inspectingSub.designSubmission.notes}
+                        </p>
+                      )}
+                      {inspectingSub.designSubmission.isEvaluated && (
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 space-y-1">
+                          <p className="font-bold">Graded Score: {inspectingSub.designSubmission.pointsEarned} Points</p>
+                          {inspectingSub.designSubmission.feedback && (
+                            <p className="text-emerald-300/80">Feedback: {inspectingSub.designSubmission.feedback}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MCQ Answers Tracking & Question Breakdown Section */}
+                  {inspectingSub.mcqAnswers && inspectingSub.mcqAnswers.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between pb-1 border-b border-separator/60">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-label-secondary flex items-center gap-1.5">
+                          <HelpCircle size={14} className="text-accent" />
+                          <span>Student MCQ Questions & Answers ({inspectingSub.mcqAnswers.length})</span>
+                        </h4>
+                        <span className="text-[11px] font-bold text-accent">
+                          Total MCQ Score: {inspectingSub.mcqScore || 0} pts
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {inspectingSub.mcqAnswers.map((ans: any, qIdx: number) => {
+                          const questionObj = (adminMcqs || []).find((q: any) => q._id?.toString() === ans.questionId?.toString()) ||
+                            selectedAssessment?.questions?.mcqs?.[qIdx] ||
+                            adminMcqs?.[qIdx];
+                          const studentSelected = typeof ans.selectedOptionIndex === 'number' ? ans.selectedOptionIndex : ans.selectedOption;
+                          const isCorrect = Boolean(ans.isCorrect);
+
+                          return (
+                            <div
+                              key={ans.questionId || qIdx}
+                              className={`p-4 rounded-2xl border text-xs space-y-3 transition-all ${
+                                isCorrect
+                                  ? 'bg-emerald-500/5 border-emerald-500/25'
+                                  : 'bg-destructive/5 border-destructive/25'
+                              }`}
+                            >
+                              {/* Question Title & Points */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-1">
+                                  <span className="font-mono text-[10px] font-bold text-label-tertiary uppercase">
+                                    Question #{qIdx + 1}
+                                  </span>
+                                  <p className="font-bold text-label-primary text-xs sm:text-sm leading-snug">
+                                    {questionObj?.question || `Question ID: ${ans.questionId}`}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 ${
+                                    isCorrect
+                                      ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                      : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                  }`}>
+                                    {isCorrect ? <CheckCircle2 size={11} /> : <X size={11} />}
+                                    <span>{isCorrect ? `+${ans.pointsEarned || questionObj?.points || 10} pts` : '0 pts'}</span>
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* All Options with highlighted selection */}
+                              {questionObj?.options && questionObj.options.length > 0 && (
+                                <div className="space-y-1.5 pt-1">
+                                  {questionObj.options.map((optText: string, oIdx: number) => {
+                                    const isStudentChoice = studentSelected === oIdx;
+                                    const isCorrectChoice = questionObj.correctOptionIndex === oIdx;
+
+                                    let optBorder = 'border-separator bg-surface';
+                                    let optTextClass = 'text-label-secondary';
+
+                                    if (isStudentChoice && isCorrectChoice) {
+                                      optBorder = 'border-emerald-500/50 bg-emerald-500/15';
+                                      optTextClass = 'text-emerald-500 font-bold';
+                                    } else if (isStudentChoice && !isCorrectChoice) {
+                                      optBorder = 'border-destructive/50 bg-destructive/15';
+                                      optTextClass = 'text-destructive font-bold';
+                                    } else if (isCorrectChoice) {
+                                      optBorder = 'border-emerald-500/30 bg-emerald-500/5';
+                                      optTextClass = 'text-emerald-500 font-medium';
+                                    }
+
+                                    return (
+                                      <div
+                                        key={oIdx}
+                                        className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs ${optBorder}`}
+                                      >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span className="w-5 h-5 rounded-full bg-surface-secondary border border-separator font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
+                                            {String.fromCharCode(65 + oIdx)}
+                                          </span>
+                                          <span className={`truncate ${optTextClass}`}>{optText}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          {isStudentChoice && (
+                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                              isCorrect ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'
+                                            }`}>
+                                              {isCorrect ? 'Student Choice ✓' : 'Student Choice ✗'}
+                                            </span>
+                                          )}
+                                          {!isStudentChoice && isCorrectChoice && (
+                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                                              Correct Answer
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Explanation if available */}
+                              {questionObj?.explanation && (
+                                <p className="text-[11px] text-label-tertiary bg-surface-secondary p-2.5 rounded-xl border border-separator/60">
+                                  <strong className="text-label-secondary">Explanation:</strong> {questionObj.explanation}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Coding Submissions Section */}
+                  {inspectingSub.codingSubmissions && inspectingSub.codingSubmissions.length > 0 && (
+                    <div className="space-y-2.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-label-secondary flex items-center gap-1.5">
+                        <Code2 size={14} className="text-purple-400" />
+                        <span>Code Submissions ({inspectingSub.codingSubmissions.length})</span>
+                      </h4>
+                      <div className="space-y-3">
+                        {inspectingSub.codingSubmissions.map((cs: any, cIdx: number) => (
+                          <div
+                            key={cs.problemId || cIdx}
+                            className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-2"
+                          >
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-label-primary">Problem #{cIdx + 1} ({cs.language || 'Code'})</span>
+                              <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                cs.status === 'ACCEPTED'
+                                  ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                  : 'bg-destructive/15 text-destructive border border-destructive/30'
+                              }`}>
+                                {cs.status || 'SUBMITTED'} • {cs.passedCount || 0}/{cs.totalTestCases || 0} Passed
+                              </span>
+                            </div>
+                            {cs.code && (
+                              <pre className="p-3 rounded-xl bg-black/60 border border-separator text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-48">
+                                {cs.code}
+                              </pre>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modal Footer Quick Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-separator shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={actionInProgressId === inspectingSub._id}
+                      onClick={() => handleResetSubmission(inspectingSub)}
+                      className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RotateCcw size={13} />
+                      <span>Reset Attempt</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={actionInProgressId === (inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId)}
+                      onClick={() => handleUnblockStudent(inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId, inspectingSub.userId?.name)}
+                      className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-500 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ShieldCheck size={13} />
+                      <span>Unblock Student</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={actionInProgressId === inspectingSub._id}
+                      onClick={() => handleDeleteSubmission(inspectingSub)}
+                      className="px-3 py-2 rounded-xl bg-destructive/15 hover:bg-destructive/25 text-destructive border border-destructive/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInspectingSub(null)}
+                    className="btn-secondary px-4 py-2 text-xs font-semibold cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* DESIGN SUBMISSION EVALUATION DRAWER / MODAL */}
         <AnimatePresence>
           {evaluatingSub && (
@@ -2746,7 +3624,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       value={evalFeedback}
                       onChange={(e) => setEvalFeedback(e.target.value)}
                       placeholder="e.g. Excellent layout spacing, responsive auto-layout implemented cleanly. Typography hierarchy is on point!"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-black/5 dark:border-white/10 text-xs text-[#1D1D1F] dark:text-[#F5F5F7] placeholder-white/30 focus:border-pink-500 outline-none resize-none leading-relaxed"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900 dark:text-[#F5F5F7] placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none resize-none leading-relaxed"
                     />
                   </div>
                 </div>

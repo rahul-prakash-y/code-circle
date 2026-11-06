@@ -8,7 +8,7 @@ import Attendance from '../models/attendanceModel';
 import Team from '../models/teamModel';
 import Feedback from '../models/feedbackModel';
 import MissedEventRequest from '../models/missedEventRequestModel';
-import { IssuedCertificate } from '../models/certificateModel';
+import { IssuedCertificate, CertificateTemplate } from '../models/certificateModel';
 import Assessment from '../models/assessmentModel';
 
 export interface CreateEventBody {
@@ -27,6 +27,7 @@ export interface CreateEventBody {
   maxTeamSize?: number;
   registrationDeadline?: string | Date;
   certificateTemplateUrl?: string;
+  certificateTemplateId?: string;
   customFields?: ICustomField[];
 }
 
@@ -63,6 +64,7 @@ export const createEvent = async (
       maxTeamSize = 4,
       registrationDeadline,
       certificateTemplateUrl = '',
+      certificateTemplateId,
       customFields = [],
     } = request.body;
 
@@ -93,9 +95,22 @@ export const createEvent = async (
       maxTeamSize: format === 'Duo' ? 2 : (Number(maxTeamSize) > 0 ? Number(maxTeamSize) : 4),
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : eventDate,
       certificateTemplateUrl: certificateTemplateUrl ? certificateTemplateUrl.trim() : '',
+      certificateTemplateId: certificateTemplateId && mongoose.Types.ObjectId.isValid(certificateTemplateId) ? new mongoose.Types.ObjectId(certificateTemplateId) : undefined,
       customFields: Array.isArray(customFields) ? customFields : [],
       createdBy: new mongoose.Types.ObjectId(user.id || user._id),
     });
+
+    if (certificateTemplateId && mongoose.Types.ObjectId.isValid(certificateTemplateId)) {
+      const tmpl = await CertificateTemplate.findByIdAndUpdate(
+        certificateTemplateId,
+        { $set: { associatedEventId: event._id } },
+        { new: true }
+      );
+      if (tmpl && tmpl.bgImageUrl && !event.certificateTemplateUrl) {
+        event.certificateTemplateUrl = tmpl.bgImageUrl;
+        await event.save();
+      }
+    }
 
     return reply.status(201).send(event);
   } catch (error: any) {
@@ -183,6 +198,7 @@ export const getEvents = async (
         .limit(limit)
         .populate('createdBy', 'name email profilePicUrl role')
         .populate('arenaAdmins', 'name email profilePicUrl role rollNo department')
+        .populate('certificateTemplateId', 'title subtitle theme type bgImageUrl primaryColor accentColor')
         .lean(),
     ]);
 
@@ -236,7 +252,8 @@ export const getEventById = async (
 
     const event = await Event.findById(id)
       .populate('createdBy', 'name email profilePicUrl role')
-      .populate('arenaAdmins', 'name email profilePicUrl role rollNo department');
+      .populate('arenaAdmins', 'name email profilePicUrl role rollNo department')
+      .populate('certificateTemplateId', 'title subtitle theme type bgImageUrl primaryColor accentColor');
 
     if (!event) {
       return reply.status(404).send({ success: false, error: 'Event not found' });
@@ -312,6 +329,22 @@ export const updateEvent = async (
 
     if (updateData.registrationType !== undefined) {
       updateData.registrationType = updateData.registrationType === 'admin_upload' ? 'admin_upload' : 'open';
+    }
+
+    if (updateData.certificateTemplateId !== undefined) {
+      if (updateData.certificateTemplateId && mongoose.Types.ObjectId.isValid(updateData.certificateTemplateId)) {
+        updateData.certificateTemplateId = new mongoose.Types.ObjectId(updateData.certificateTemplateId);
+        const tmpl = await CertificateTemplate.findByIdAndUpdate(
+          updateData.certificateTemplateId,
+          { $set: { associatedEventId: id } },
+          { new: true }
+        );
+        if (tmpl && tmpl.bgImageUrl && !updateData.certificateTemplateUrl) {
+          updateData.certificateTemplateUrl = tmpl.bgImageUrl;
+        }
+      } else {
+        updateData.certificateTemplateId = null;
+      }
     }
 
     const event = await Event.findByIdAndUpdate(

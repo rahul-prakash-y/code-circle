@@ -133,21 +133,11 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Tab was hidden or user switched apps
-        if (isMobileMode) {
-          wasInterruptedRef.current = true;
-          return;
-        }
-
-        setTabSwitchCount((prev) => {
-          const newCount = prev + 1;
-          if (newCount >= maxStrikes) {
-            setIsLocked(true);
-            executeSubmit(true);
-          } else {
-            setShowTabWarning(true);
-          }
-          return newCount;
+        // Tab was hidden or user switched apps - immediate anti-cheat block
+        setIsLocked(true);
+        toast.error('You have been blocked for navigating away. Contact Admin.', {
+          id: 'tab-switch-block',
+          duration: 8000,
         });
       } else {
         if (isMobileMode && wasInterruptedRef.current) {
@@ -255,6 +245,45 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md">
+      {/* Permanent Lockout Screen if Student is Blocked for Tab Switch */}
+      {isLocked && !currentResult && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-3xl bg-black/90 select-none">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-red-500/40 bg-[#161617]/95 shadow-2xl text-center">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5 text-red-400">
+              <AlertTriangle size={28} />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20 mb-3">
+              Proctoring Violation
+            </div>
+            <h3 className="text-xl font-bold tracking-tight text-white mb-2">
+              Assessment Blocked
+            </h3>
+            <p className="text-xs sm:text-sm text-red-300/90 mb-6 leading-relaxed">
+              You have been blocked for navigating away. Contact Admin.
+            </p>
+            <button
+              onClick={onClose}
+              className="btn-secondary w-full py-2.5 text-xs font-semibold cursor-pointer"
+            >
+              Close Assessment
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen Enforcement Overlay */}
+      {!isLocked && !currentResult && !loading && !isFullscreen && (
+        <FullScreenEnforcementOverlay
+          isFullscreen={isFullscreen}
+          onRequestFullscreen={() => {
+            const el = document.documentElement;
+            if (el.requestFullscreen) {
+              el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+            }
+          }}
+        />
+      )}
+
       <motion.div
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
