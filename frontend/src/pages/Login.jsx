@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import useServerStore from '../store/useServerStore';
 import AuthLayout from '../layouts/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck, Eye, EyeOff, Server } from 'lucide-react';
 import { EmilButton, EmilModal } from '../components/ui/emil-ui';
 import { HeroInput } from '../components/ui/HeroUIComponents';
-import { Button } from '@heroui/react';
+import { Button, Spinner } from '@heroui/react';
+import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
 
 const Login = () => {
   const [identifier, setIdentifier] = useState(''); // email or rollNo
@@ -19,7 +21,15 @@ const Login = () => {
   const [showForgotModal, setShowForgotModal] = useState(false);
 
   const { login } = useAuthStore();
+  const { activeServerUrl, isConnecting, findFastestServer } = useServerStore();
   const navigate = useNavigate();
+
+  // Load Balancer: Discover optimal server node on initial visit if none pinned
+  useEffect(() => {
+    if (!activeServerUrl) {
+      findFastestServer();
+    }
+  }, [activeServerUrl, findFastestServer]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -126,7 +136,7 @@ const Login = () => {
           </div>
         </motion.div>
 
-        {/* Emil Kowalski Strict Rule: EmilButton with instant 0.97 tactile feedback */}
+        {/* Pre-Login Server State & EmilButton with Emil Kowalski entrance physics */}
         <motion.div 
           variants={{
             hidden: { opacity: 0, y: 8 },
@@ -134,14 +144,46 @@ const Login = () => {
           }}
           className="pt-2"
         >
-          <EmilButton 
-            type="submit" 
-            isLoading={loading}
-            size="lg"
-            className="w-full py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/20 cursor-pointer"
-          >
-            Sign In
-          </EmilButton>
+          <AnimatePresence mode="wait" initial={false}>
+            {isConnecting || !activeServerUrl ? (
+              <motion.div
+                key="locating-node"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: DURATION_MODAL, ease: EMIL_EASE_OUT }}
+                className="w-full py-3.5 min-h-[48px] rounded-xl bg-surface-secondary/80 border border-separator flex items-center justify-center gap-2.5 text-xs sm:text-sm font-medium text-text-muted select-none"
+              >
+                <Spinner size="sm" color="current" className="text-accent" />
+                <span>Locating optimal server node...</span>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="active-signin"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: DURATION_MODAL, ease: EMIL_EASE_OUT }}
+                className="space-y-2"
+              >
+                <EmilButton 
+                  type="submit" 
+                  isLoading={loading}
+                  size="lg"
+                  className="w-full py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/20 cursor-pointer"
+                >
+                  Sign In
+                </EmilButton>
+
+                {activeServerUrl && (
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] text-text-muted/70 tracking-tight">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Connected to {activeServerUrl.replace(/^https?:\/\//, '').split('.')[0] || 'active cluster'}</span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         <motion.p 
