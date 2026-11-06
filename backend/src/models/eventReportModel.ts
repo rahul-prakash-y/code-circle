@@ -2,10 +2,13 @@ import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IEventReport extends Document {
   eventId: mongoose.Types.ObjectId;
+  eventTitle?: string;
   clubName: string;
   eventCategory: string;
   academicYear: string;
   date: Date;
+  endDate?: Date;
+  dateDisplay?: string;
   venue: string;
   // Core Text
   objective: string;
@@ -15,13 +18,21 @@ export interface IEventReport extends Document {
   strategiesUsed: string[];
   activitiesDone: string[];
   accomplishments: string[];
+  achievements: string[];
   takeaways: string[];
+  concludingNote: string;
   // Evidence (URLs or Base64 strings)
   circularUrl: string[];
   brochureUrl: string[];
+  attendanceUrl: string[];
   geoPhotoUrl: string[];
+  newspaperClippingUrl: string[];
   feedbackUrl: string[];
   billSettlementUrl: string[];
+  // Resource Person & Coordinator
+  resourcePerson: string;
+  coordinatorName: string;
+  coordinatorSignatureUrl: string;
   // Metadata & Audit
   createdBy?: mongoose.Types.ObjectId;
   status: 'Draft' | 'Submitted' | 'Approved';
@@ -36,6 +47,11 @@ const eventReportSchema = new Schema<IEventReport>(
       ref: 'Event',
       required: [true, 'Event ID reference is required'],
       index: true,
+    },
+    eventTitle: {
+      type: String,
+      trim: true,
+      default: '',
     },
     clubName: {
       type: String,
@@ -59,6 +75,13 @@ const eventReportSchema = new Schema<IEventReport>(
       type: Date,
       required: [true, 'Event date is required'],
       default: Date.now,
+    },
+    endDate: {
+      type: Date,
+    },
+    dateDisplay: {
+      type: String,
+      trim: true,
     },
     venue: {
       type: String,
@@ -97,9 +120,18 @@ const eventReportSchema = new Schema<IEventReport>(
       type: [String],
       default: [],
     },
+    achievements: {
+      type: [String],
+      default: [],
+    },
     takeaways: {
       type: [String],
       default: [],
+    },
+    concludingNote: {
+      type: String,
+      trim: true,
+      default: '',
     },
     // Evidence (Array of URLs or Base64 encoded strings)
     circularUrl: {
@@ -110,7 +142,15 @@ const eventReportSchema = new Schema<IEventReport>(
       type: [String],
       default: [],
     },
+    attendanceUrl: {
+      type: [String],
+      default: [],
+    },
     geoPhotoUrl: {
+      type: [String],
+      default: [],
+    },
+    newspaperClippingUrl: {
       type: [String],
       default: [],
     },
@@ -121,6 +161,22 @@ const eventReportSchema = new Schema<IEventReport>(
     billSettlementUrl: {
       type: [String],
       default: [],
+    },
+    // Resource Person & Coordinator Details
+    resourcePerson: {
+      type: String,
+      trim: true,
+      default: 'NIL',
+    },
+    coordinatorName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    coordinatorSignatureUrl: {
+      type: String,
+      trim: true,
+      default: '',
     },
     createdBy: {
       type: Schema.Types.ObjectId,

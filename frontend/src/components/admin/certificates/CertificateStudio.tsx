@@ -211,7 +211,7 @@ export const CertificateStudio: React.FC = () => {
     }
   };
 
-  const currentTheme = THEMES.find((t) => t.id === theme) || THEMES[0];
+  const currentTheme : any = THEMES.find((t) => t.id === theme) || THEMES[0];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -296,7 +296,7 @@ export const CertificateStudio: React.FC = () => {
                   <button
                     key={tmpl._id}
                     onClick={() => handleSelectTemplate(tmpl)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all truncate max-w-[200px] ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all truncate max-w-50 ${
                       selectedTemplateId === tmpl._id
                         ? 'bg-primary text-white border-primary shadow-xs'
                         : 'bg-surface-raised border-separator text-label-secondary hover:border-primary/40'
@@ -791,7 +791,7 @@ export const CertificateStudio: React.FC = () => {
                   value={targetId}
                   onChange={setTargetId}
                   placeholder="-- Select Event --"
-                  options={events.map((ev) => ({
+                  options={events.map((ev: { _id: any; title: any; date: string | number | Date; }) => ({
                     value: ev._id,
                     label: `${ev.title} (${new Date(ev.date).toLocaleDateString()})`,
                   }))}
@@ -943,18 +943,21 @@ export const CertificateStudio: React.FC = () => {
                 />
               </div>
 
-              <select
+              <HeroUISelect
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  fetchIssuedCertificates({ search: ledgerSearch, status: e.target.value });
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  fetchIssuedCertificates({ search: ledgerSearch, status: val });
                 }}
-                className="px-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none w-full sm:w-auto"
-              >
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active Only</option>
-                <option value="REVOKED">Revoked</option>
-              </select>
+                options={[
+                  { value: '', label: 'All Statuses' },
+                  { value: 'ACTIVE', label: 'Active Only' },
+                  { value: 'REVOKED', label: 'Revoked' },
+                ]}
+                size="sm"
+                className="w-full sm:w-36 shrink-0"
+                placement="bottom-end"
+              />
             </div>
           </div>
 

@@ -18,11 +18,9 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Maximize2,
-  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Input, Textarea, HeroUISelect } from '../../ui/HeroUIComponents';
+import { Input, Textarea, HeroUISelect, HeroDatePicker } from '../../ui/HeroUIComponents';
 import { EmilCard, EmilButton } from '../../ui/emil-ui';
 import OfficialReportTemplate, { ReportData } from './OfficialReportTemplate';
 import api from '../../../lib/axios';
@@ -249,7 +247,7 @@ const LivePdfPreview: React.FC<LivePdfPreviewProps> = ({
               type="button"
               onClick={onResetZoom}
               className="p-1 text-label-secondary hover:text-label-primary rounded-lg hover:bg-surface transition-colors cursor-pointer border-l border-separator pl-1.5 ml-0.5"
-              title="Reset Zoom (100%)"
+              title="Reset Zoom (95%)"
             >
               <RotateCcw size={11} />
             </button>
@@ -270,7 +268,11 @@ const LivePdfPreview: React.FC<LivePdfPreviewProps> = ({
       </div>
 
       {/* Realistic Paper Stage Canvas */}
-      <div className={`relative w-full overflow-auto bg-neutral-200/70 dark:bg-neutral-900/80 p-4 sm:p-8 rounded-2xl border border-separator shadow-inner flex justify-center ${isCompact ? 'min-h-[500px] max-h-[800px]' : 'min-h-[700px] max-h-[85vh]'}`}>
+      <div
+        className={`relative w-full overflow-auto bg-neutral-200/70 dark:bg-neutral-900/80 p-4 sm:p-8 rounded-2xl border border-separator shadow-inner flex justify-center ${
+          isCompact ? 'min-h-[500px] max-h-[800px]' : 'min-h-[700px] max-h-[85vh]'
+        }`}
+      >
         <div
           style={{
             transform: `scale(${zoom / 100})`,
@@ -279,7 +281,7 @@ const LivePdfPreview: React.FC<LivePdfPreviewProps> = ({
           }}
           className="shadow-[0_20px_50px_rgba(0,0,0,0.22)] ring-1 ring-black/15 bg-white text-black transition-transform duration-150 flex-shrink-0 mb-8"
         >
-          <OfficialReportTemplate data={data} />
+          <OfficialReportTemplate data={data} isPreview={true} />
         </div>
       </div>
     </div>
@@ -313,18 +315,21 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
   // Hidden print reference for react-to-print
   const printContainerRef = useRef<HTMLDivElement>(null);
 
-  // Report Form State
+  // Report Form State with exact fields required by official template
   const [formData, setFormData] = useState<ReportData>({
     eventId: eventId || '',
-    clubName: initialData?.clubName || 'Code Circle',
-    eventCategory: initialData?.eventCategory || 'Technical Workshop & Coding Challenge',
-    academicYear: initialData?.academicYear || '2025-2026',
+    eventTitle: initialData?.eventTitle || '',
+    clubName: initialData?.clubName || 'CODE CIRCLE - BIT',
+    eventCategory: initialData?.eventCategory || 'TECHNICAL EVENT',
+    academicYear: initialData?.academicYear || '2024-2025',
     date: initialData?.date || new Date().toISOString().split('T')[0],
-    venue: initialData?.venue || 'Computing Laboratory 4, BIT Main Campus',
+    endDate: initialData?.endDate || '',
+    dateDisplay: initialData?.dateDisplay || '',
+    venue: initialData?.venue || 'BIO TECH SEMINAR HALL',
     // Core Text
     objective: initialData?.objective || '',
     outcome: initialData?.outcome || '',
-    // Detailed Summary
+    // Summary of the event specific fields
     eventOverview: initialData?.eventOverview || '',
     strategiesUsed: Array.isArray(initialData?.strategiesUsed)
       ? initialData?.strategiesUsed.join('\n')
@@ -335,29 +340,70 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
     accomplishments: Array.isArray(initialData?.accomplishments)
       ? initialData?.accomplishments.join('\n')
       : initialData?.accomplishments || '',
+    achievements: Array.isArray(initialData?.achievements)
+      ? initialData?.achievements.join('\n')
+      : initialData?.achievements || '',
     takeaways: Array.isArray(initialData?.takeaways)
       ? initialData?.takeaways.join('\n')
       : initialData?.takeaways || '',
-    // Evidence (5 required zones)
+    concludingNote: initialData?.concludingNote || '',
+    // Evidence (all zones)
     circularUrl: initialData?.circularUrl || [],
     brochureUrl: initialData?.brochureUrl || [],
+    attendanceUrl: initialData?.attendanceUrl || [],
     geoPhotoUrl: initialData?.geoPhotoUrl || [],
+    newspaperClippingUrl: initialData?.newspaperClippingUrl || [],
     feedbackUrl: initialData?.feedbackUrl || [],
     billSettlementUrl: initialData?.billSettlementUrl || [],
+    // Resource Person & Coordinator
+    resourcePerson: initialData?.resourcePerson || 'NIL',
+    coordinatorName: initialData?.coordinatorName || 'R.Dhanasekar',
+    coordinatorSignatureUrl: initialData?.coordinatorSignatureUrl || '',
   });
 
   // Client-Side PDF Generation Handler
+  const currentEventTitle =
+    formData.eventTitle ||
+    (typeof formData.eventId === 'object' ? formData.eventId?.title : '') ||
+    'Official_Event_Report';
+
   const handlePrint = useReactToPrint({
     contentRef: printContainerRef,
-    documentTitle: `${formData.clubName.replace(/\s+/g, '_')}_Official_Event_Report_${formData.academicYear}`,
+    documentTitle: `${(formData.clubName || 'Report').replace(/\s+/g, '_')}_${currentEventTitle.replace(/\s+/g, '_')}_${formData.academicYear}`,
   });
 
   // Update eventId when prop changes
   useEffect(() => {
     if (eventId) {
-      setFormData((prev) => ({ ...prev, eventId }));
+      const matched = eventsList.find((ev) => ev._id === eventId);
+      setFormData((prev) => ({
+        ...prev,
+        eventId: matched ? { _id: matched._id, title: matched.title } : eventId,
+        eventTitle: matched?.title || prev.eventTitle || '',
+        venue: matched?.venueOrLink || prev.venue,
+        date: matched?.date ? new Date(matched.date).toISOString().split('T')[0] : prev.date,
+        objective: prev.objective || matched?.description || '',
+      }));
     }
-  }, [eventId]);
+  }, [eventId, eventsList]);
+
+  // Synchronize eventTitle when eventsList arrives or eventId changes
+  useEffect(() => {
+    const currentId = typeof formData.eventId === 'string' ? formData.eventId : formData.eventId?._id;
+    if (currentId && (!formData.eventTitle || formData.eventTitle === 'EVENT REPORT') && eventsList.length > 0) {
+      const matched = eventsList.find((ev) => ev._id === currentId);
+      if (matched?.title) {
+        setFormData((prev) => ({
+          ...prev,
+          eventTitle: matched.title,
+          eventId: { _id: matched._id, title: matched.title },
+          venue: matched.venueOrLink || prev.venue,
+          date: matched.date ? new Date(matched.date).toISOString().split('T')[0] : prev.date,
+          objective: prev.objective || matched.description || '',
+        }));
+      }
+    }
+  }, [formData.eventId, formData.eventTitle, eventsList]);
 
   // Fetch pre-existing report or event details if eventId is provided
   useEffect(() => {
@@ -373,12 +419,19 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
           const reportRes = await api.get(`/reports/${eventId}`);
           if (reportRes.data?.data && isMounted) {
             const report = reportRes.data.data;
+            const fetchedEventTitle =
+              report.eventTitle ||
+              (typeof report.eventId === 'object' && report.eventId?.title ? report.eventId.title : '') ||
+              '';
             setFormData({
               eventId: eventId,
-              clubName: report.clubName || 'Code Circle',
-              eventCategory: report.eventCategory || 'Technical Workshop',
-              academicYear: report.academicYear || '2025-2026',
+              eventTitle: fetchedEventTitle,
+              clubName: report.clubName || 'CODE CIRCLE - BIT',
+              eventCategory: report.eventCategory || 'TECHNICAL EVENT',
+              academicYear: report.academicYear || '2024-2025',
               date: report.date ? new Date(report.date).toISOString().split('T')[0] : '',
+              endDate: report.endDate ? new Date(report.endDate).toISOString().split('T')[0] : '',
+              dateDisplay: report.dateDisplay || '',
               venue: report.venue || '',
               objective: report.objective || '',
               outcome: report.outcome || '',
@@ -392,14 +445,23 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
               accomplishments: Array.isArray(report.accomplishments)
                 ? report.accomplishments.join('\n')
                 : report.accomplishments || '',
+              achievements: Array.isArray(report.achievements)
+                ? report.achievements.join('\n')
+                : report.achievements || '',
               takeaways: Array.isArray(report.takeaways)
                 ? report.takeaways.join('\n')
                 : report.takeaways || '',
+              concludingNote: report.concludingNote || '',
               circularUrl: report.circularUrl || [],
               brochureUrl: report.brochureUrl || [],
+              attendanceUrl: report.attendanceUrl || [],
               geoPhotoUrl: report.geoPhotoUrl || [],
+              newspaperClippingUrl: report.newspaperClippingUrl || [],
               feedbackUrl: report.feedbackUrl || [],
               billSettlementUrl: report.billSettlementUrl || [],
+              resourcePerson: report.resourcePerson || 'NIL',
+              coordinatorName: report.coordinatorName || 'R.Dhanasekar',
+              coordinatorSignatureUrl: report.coordinatorSignatureUrl || '',
               createdBy: report.createdBy,
             });
             return;
@@ -414,6 +476,7 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
           setFormData((prev) => ({
             ...prev,
             eventId: ev._id,
+            eventTitle: ev.title || '',
             venue: ev.venueOrLink || prev.venue,
             date: ev.date ? new Date(ev.date).toISOString().split('T')[0] : prev.date,
             objective: prev.objective || ev.description || '',
@@ -456,20 +519,39 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
 
     setSubmitting(true);
     try {
+      const rawEventId =
+        typeof formData.eventId === 'object' && formData.eventId?._id
+          ? formData.eventId._id
+          : formData.eventId;
+      const rawEventTitle =
+        formData.eventTitle ||
+        (typeof formData.eventId === 'object' ? formData.eventId?.title : '') ||
+        '';
+
       const payload = {
         ...formData,
-        strategiesUsed: typeof formData.strategiesUsed === 'string'
-          ? formData.strategiesUsed.split('\n').filter(Boolean)
-          : formData.strategiesUsed,
-        activitiesDone: typeof formData.activitiesDone === 'string'
-          ? formData.activitiesDone.split('\n').filter(Boolean)
-          : formData.activitiesDone,
-        accomplishments: typeof formData.accomplishments === 'string'
-          ? formData.accomplishments.split('\n').filter(Boolean)
-          : formData.accomplishments,
-        takeaways: typeof formData.takeaways === 'string'
-          ? formData.takeaways.split('\n').filter(Boolean)
-          : formData.takeaways,
+        eventId: rawEventId,
+        eventTitle: rawEventTitle,
+        strategiesUsed:
+          typeof formData.strategiesUsed === 'string'
+            ? formData.strategiesUsed.split('\n').filter(Boolean)
+            : formData.strategiesUsed,
+        activitiesDone:
+          typeof formData.activitiesDone === 'string'
+            ? formData.activitiesDone.split('\n').filter(Boolean)
+            : formData.activitiesDone,
+        accomplishments:
+          typeof formData.accomplishments === 'string'
+            ? formData.accomplishments.split('\n').filter(Boolean)
+            : formData.accomplishments,
+        achievements:
+          typeof formData.achievements === 'string'
+            ? formData.achievements.split('\n').filter(Boolean)
+            : formData.achievements,
+        takeaways:
+          typeof formData.takeaways === 'string'
+            ? formData.takeaways.split('\n').filter(Boolean)
+            : formData.takeaways,
       };
 
       const response = await api.post('/reports', payload);
@@ -494,12 +576,12 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
   // Renders the Input Form Body
   const renderFormFields = () => (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* SECTION 1: BASIC INFORMATION (EmilCard) */}
+      {/* SECTION 1: BASIC INSTITUTIONAL & EVENT INFO */}
       <EmilCard className="p-6 space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b border-separator">
           <Building size={16} className="text-primary" />
           <h3 className="text-sm font-bold text-label-primary uppercase tracking-wide">
-            1. Basic Institutional &amp; Event Information
+            1. Basic Event Information
           </h3>
         </div>
 
@@ -512,17 +594,22 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
               <HeroUISelect
                 value={typeof formData.eventId === 'string' ? formData.eventId : formData.eventId?._id || ''}
                 onChange={(selId) => {
-                  handleChange('eventId', selId);
                   const matched = eventsList.find((ev) => ev._id === selId);
                   if (matched) {
                     setFormData((prev) => ({
                       ...prev,
-                      eventId: matched._id,
+                      eventId: { _id: matched._id, title: matched.title },
+                      eventTitle: matched.title,
                       venue: matched.venueOrLink || prev.venue,
                       date: matched.date ? new Date(matched.date).toISOString().split('T')[0] : prev.date,
                       objective: prev.objective || matched.description || '',
+                      clubName: matched.clubName || prev.clubName,
+                      eventCategory: matched.domain || prev.eventCategory,
                     }));
+                  } else {
+                    handleChange('eventId', selId);
                   }
+                  setFormDirty(true);
                 }}
                 placeholder="-- Choose an Event --"
                 options={eventsList.map((ev) => ({
@@ -546,7 +633,26 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
           )}
 
           <Input
-            label="Club / Department Name"
+            label="Event Name (Report Heading)"
+            placeholder="e.g. CODE SAGA’24"
+            value={formData.eventTitle || (typeof formData.eventId === 'object' ? formData.eventId?.title : '') || ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setFormData((prev) => ({
+                ...prev,
+                eventTitle: val,
+                eventId: typeof prev.eventId === 'object' && prev.eventId
+                  ? { ...prev.eventId, title: val }
+                  : prev.eventId,
+              }));
+              setFormDirty(true);
+            }}
+            isRequired
+            description="Printed at the top: REPORT ON “<EVENT TITLE>”"
+          />
+
+          <Input
+            label="Name of the Club"
             placeholder="e.g. Code Circle"
             value={formData.clubName}
             onChange={(e) => handleChange('clubName', e.target.value)}
@@ -569,36 +675,67 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
             isRequired
           />
 
-          <Input
-            type="date"
-            label="Event Date"
+          <HeroDatePicker
+            label="Date (Start)"
             value={typeof formData.date === 'string' ? formData.date.split('T')[0] : ''}
-            onChange={(e) => handleChange('date', e.target.value)}
+            onChange={(val) => handleChange('date', val)}
             isRequired
+            size="sm"
+            startContent={<Calendar size={14} className="text-accent" />}
+          />
+
+          <HeroDatePicker
+            label="End Date (Multi-Day Events)"
+            value={typeof formData.endDate === 'string' ? formData.endDate.split('T')[0] : ''}
+            onChange={(val) => handleChange('endDate', val)}
+            size="sm"
+            startContent={<Calendar size={14} className="text-accent" />}
           />
 
           <Input
-            label="Venue / Laboratory"
-            placeholder="e.g. Main Auditorium / Lab 3"
+            label="Date Display Text (Optional Override)"
+            placeholder="e.g. 17.12.2024 AND 18.12.2024"
+            value={formData.dateDisplay || ''}
+            onChange={(e) => handleChange('dateDisplay', e.target.value)}
+            description="Overrides date formatting if specified"
+          />
+
+          <Input
+            label="Venue"
+            placeholder="e.g. BIO TECH SEMINAR HALL"
             value={formData.venue}
             onChange={(e) => handleChange('venue', e.target.value)}
             isRequired
           />
+
+          <Input
+            label="Coordinator Name"
+            placeholder="e.g. R.Dhanasekar"
+            value={formData.coordinatorName || ''}
+            onChange={(e) => handleChange('coordinatorName', e.target.value)}
+          />
+
+          <Input
+            label="Resource Person Detail"
+            placeholder="e.g. NIL or Dr. K. Raman (AI Specialist)"
+            value={formData.resourcePerson || 'NIL'}
+            onChange={(e) => handleChange('resourcePerson', e.target.value)}
+          />
         </div>
       </EmilCard>
 
-      {/* SECTION 2: CORE TEXT - OBJECTIVE & OUTCOME (EmilCard) */}
+      {/* SECTION 2: OBJECTIVES & OUTCOMES */}
       <EmilCard className="p-6 space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b border-separator">
           <FileText size={16} className="text-primary" />
           <h3 className="text-sm font-bold text-label-primary uppercase tracking-wide">
-            2. Core Objectives &amp; Attained Outcomes
+            2. Objectives &amp; Outcomes
           </h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Textarea
-            label="Event Objective"
+            label="Objective of the event:"
             placeholder="State the institutional and pedagogical objectives of the event..."
             value={formData.objective}
             onChange={(e) => handleChange('objective', e.target.value)}
@@ -608,131 +745,196 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
           />
 
           <Textarea
-            label="Attained Learning Outcomes"
+            label="Outcome of the event:"
             placeholder="Detail what technical skills or milestones the participants achieved..."
             value={formData.outcome}
             onChange={(e) => handleChange('outcome', e.target.value)}
             minRows={4}
             isRequired
-            description="Measured benefits, competencies, and deliverables"
+            description="Measured competencies and attained deliverables"
           />
         </div>
       </EmilCard>
 
-      {/* SECTION 3: DETAILED SUMMARY (EmilCard) */}
+      {/* SECTION 3: SUMMARY OF THE EVENT (SPECIFIC TEXTAREAS AS PER TEMPLATE) */}
       <EmilCard className="p-6 space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b border-separator">
           <Layers size={16} className="text-primary" />
-          <h3 className="text-sm font-bold text-label-primary uppercase tracking-wide">
-            3. Detailed Summary &amp; Methodology
-          </h3>
+          <div>
+            <h3 className="text-sm font-bold text-label-primary uppercase tracking-wide">
+              Summary of the event:
+            </h3>
+            <p className="text-xs text-label-secondary">
+              Provide specific summary details as required by the official BIT manual template.
+            </p>
+          </div>
         </div>
 
         <div className="space-y-4">
+          {/* 1. Event overview: */}
           <Textarea
-            label="Event Overview"
-            placeholder="Comprehensive narrative description of the event progression..."
+            label="Event overview:"
+            placeholder="Narrative executive overview of the event progression and proceedings..."
             value={formData.eventOverview}
             onChange={(e) => handleChange('eventOverview', e.target.value)}
             minRows={3}
+            description="Overview paragraph of the event"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Textarea
-              label="Strategies & Methodology Used"
-              placeholder="One per line: e.g. Peer programming sessions&#10;Hands-on debugging drill"
-              value={formData.strategiesUsed as string}
-              onChange={(e) => handleChange('strategiesUsed', e.target.value)}
-              minRows={3}
-              description="Enter points separated by new lines"
-            />
+          {/* 2. Strategies used */}
+          <Textarea
+            label="Strategies used"
+            placeholder="One per line: e.g. Peer programming sessions&#10;Hands-on debugging drill&#10;Gamified assessment"
+            value={formData.strategiesUsed as string}
+            onChange={(e) => handleChange('strategiesUsed', e.target.value)}
+            minRows={3}
+            description="Enter points separated by new lines"
+          />
 
-            <Textarea
-              label="Activities & Challenges Conducted"
-              placeholder="One per line: e.g. Speed coding round&#10;Architecture design sprint"
-              value={formData.activitiesDone as string}
-              onChange={(e) => handleChange('activitiesDone', e.target.value)}
-              minRows={3}
-              description="Enter points separated by new lines"
-            />
+          {/* 3. Activities done */}
+          <Textarea
+            label="Activities done"
+            placeholder="One per line: e.g. Speed coding round&#10;Architecture design sprint&#10;Mentorship Q&A"
+            value={formData.activitiesDone as string}
+            onChange={(e) => handleChange('activitiesDone', e.target.value)}
+            minRows={3}
+            description="Enter points separated by new lines"
+          />
 
-            <Textarea
-              label="Accomplishments & Milestones"
-              placeholder="One per line: e.g. 150+ students completed assignments&#10;12 prototypes deployed"
-              value={formData.accomplishments as string}
-              onChange={(e) => handleChange('accomplishments', e.target.value)}
-              minRows={3}
-              description="Enter points separated by new lines"
-            />
+          {/* 4. Accomplishments */}
+          <Textarea
+            label="Accomplishments"
+            placeholder="One per line: e.g. 150+ students completed challenges&#10;12 functional prototypes deployed"
+            value={formData.accomplishments as string}
+            onChange={(e) => handleChange('accomplishments', e.target.value)}
+            minRows={3}
+            description="Enter points separated by new lines"
+          />
 
-            <Textarea
-              label="Key Takeaways & Feedback Insights"
-              placeholder="One per line: e.g. High demand for intermediate algorithms workshop"
-              value={formData.takeaways as string}
-              onChange={(e) => handleChange('takeaways', e.target.value)}
-              minRows={3}
-              description="Enter points separated by new lines"
-            />
-          </div>
+          {/* 5. Achievements */}
+          <Textarea
+            label="Achievements"
+            placeholder="One per line: e.g. Top 3 teams selected for zonal hackathon&#10;Zero critical server outages recorded"
+            value={formData.achievements as string}
+            onChange={(e) => handleChange('achievements', e.target.value)}
+            minRows={3}
+            description="Enter points separated by new lines"
+          />
+
+          {/* 6. Conclude with a set of takeaways */}
+          <Textarea
+            label="Conclude with a set of takeaways"
+            placeholder="One per line: e.g. High demand for intermediate algorithms workshop&#10;Need for automated test runners in future editions"
+            value={formData.takeaways as string}
+            onChange={(e) => handleChange('takeaways', e.target.value)}
+            minRows={3}
+            description="Enter points separated by new lines"
+          />
+
+          {/* 7. Concluding Note */}
+          <Textarea
+            label="Concluding Note"
+            placeholder="e.g. As a concluding note, CODE SAGA’24 was not just an event but a stepping stone for first-year students to dive into the world of technology. With this success, we are thrilled to announce our next event, Front-End Frenzy 2.0, coming soon! Stay tuned for more exciting opportunities to shine!"
+            value={formData.concludingNote || ''}
+            onChange={(e) => handleChange('concludingNote', e.target.value)}
+            minRows={3}
+            description="Full-width paragraph rendered at the very end of the report (at left margin)"
+          />
         </div>
       </EmilCard>
 
-      {/* SECTION 4: EVIDENCE DRAG & DROP UPLOAD (EmilCard) */}
+      {/* SECTION 4: EVIDENCE EMBEDDING (EXACT HEADINGS) */}
       <EmilCard className="p-6 space-y-6">
         <div className="flex items-center gap-2 pb-2 border-b border-separator">
           <UploadCloud size={16} className="text-primary" />
           <div>
             <h3 className="text-sm font-bold text-label-primary uppercase tracking-wide">
-              4. Documentary Evidence &amp; Compliance Attachments
+              Documentary Evidence &amp; Attachments
             </h3>
             <p className="text-xs text-label-secondary">
-              Drag and drop scans or photos for the 5 official evidence categories. These images will be embedded directly into the print-ready PDF.
+              Upload photos or scans matching the official BIT template evidence categories. Images render directly into the print-ready document.
             </p>
           </div>
         </div>
 
         <div className="space-y-6">
+          {/* Circular* */}
           <EvidenceDropzone
-            label="1. Official Circular / Sanction Order"
-            description="Scanned copy of the approved circular, notice or permission letter"
-            urls={formData.circularUrl}
+            label="Circular*"
+            description="Scanned copy of the approved circular, sanction order or permission letter"
+            urls={formData.circularUrl || []}
             onChange={(urls) => handleChange('circularUrl', urls)}
           />
 
           <div className="border-t border-separator/40" />
 
+          {/* Brochure* */}
           <EvidenceDropzone
-            label="2. Event Brochure & Promotional Leaflet"
-            description="Digital brochure, poster, agenda pamphlet or invitation"
-            urls={formData.brochureUrl}
+            label="Brochure*"
+            description="Digital brochure, promotional poster, agenda pamphlet or leaflet"
+            urls={formData.brochureUrl || []}
             onChange={(urls) => handleChange('brochureUrl', urls)}
           />
 
           <div className="border-t border-separator/40" />
 
+          {/* Attendance* */}
           <EvidenceDropzone
-            label="3. Geo-Tagged Live Event Photographs"
-            description="High-resolution photographs taken during the session displaying venue/date"
-            urls={formData.geoPhotoUrl}
+            label="Attendance*"
+            description="Scanned attendance sheets with BIT header and signatures. (If empty, standard BIT attendance hint will be rendered)"
+            urls={formData.attendanceUrl || []}
+            onChange={(urls) => handleChange('attendanceUrl', urls)}
+          />
+
+          <div className="border-t border-separator/40" />
+
+          {/* Geo Photo Proofs with caption* */}
+          <EvidenceDropzone
+            label="Geo Photo Proofs with caption*"
+            description="High-resolution live event photographs taken with date/venue caption"
+            urls={formData.geoPhotoUrl || []}
             onChange={(urls) => handleChange('geoPhotoUrl', urls)}
           />
 
           <div className="border-t border-separator/40" />
 
+          {/* Newspaper Clipping */}
           <EvidenceDropzone
-            label="4. Participant Feedback & Attendance Proof"
-            description="Feedback chart summary, sign-off attendance sheets, or analytics"
-            urls={formData.feedbackUrl}
+            label="Newspaper Clipping (if any)"
+            description="Press coverage, magazine snippets or media release clippings"
+            urls={formData.newspaperClippingUrl || []}
+            onChange={(urls) => handleChange('newspaperClippingUrl', urls)}
+          />
+
+          <div className="border-t border-separator/40" />
+
+          {/* Feedback/Attendees Satisfaction Survey* */}
+          <EvidenceDropzone
+            label="Feedback/Attendees Satisfaction Survey*"
+            description="Participant satisfaction survey chart, feedback summary or attendance sign-off"
+            urls={formData.feedbackUrl || []}
             onChange={(urls) => handleChange('feedbackUrl', urls)}
           />
 
           <div className="border-t border-separator/40" />
 
+          {/* Bill settlement Copy */}
           <EvidenceDropzone
-            label="5. Bill Settlement & Financial Vouchers"
-            description="Settlement invoice, refreshments/prizes bills, or expenditure statement"
-            urls={formData.billSettlementUrl}
+            label="Bill settlement Copy"
+            description="Settlement invoice, voucher copies, or expenditure balance statement"
+            urls={formData.billSettlementUrl || []}
             onChange={(urls) => handleChange('billSettlementUrl', urls)}
+          />
+
+          <div className="border-t border-separator/40" />
+
+          {/* Coordinator Signature */}
+          <EvidenceDropzone
+            label="Coordinator Signature (Scan/PNG)"
+            description="Digital transparent signature scan (placed above Coordinator label)"
+            urls={formData.coordinatorSignatureUrl ? [formData.coordinatorSignatureUrl] : []}
+            multiple={false}
+            onChange={(urls) => handleChange('coordinatorSignatureUrl', urls[0] || '')}
           />
         </div>
       </EmilCard>
@@ -742,11 +944,12 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
         <div className="flex items-center gap-2 text-xs text-label-secondary">
           <Info size={14} className="text-primary" />
           <span>
-            PDF rendering executes completely client-side in your browser via <code className="font-mono text-label-primary">react-to-print</code>.
+            PDF rendering executes completely client-side in your browser via{' '}
+            <code className="font-mono text-label-primary">react-to-print</code>.
           </span>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center flex-wrap gap-3 w-full sm:w-auto">
           <EmilButton
             type="button"
             variant="outline"
@@ -788,7 +991,11 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
   );
 
   return (
-    <div className={`w-full mx-auto space-y-6 pb-16 transition-all duration-200 ${viewMode === 'split' ? 'max-w-[1600px]' : 'max-w-5xl'}`}>
+    <div
+      className={`w-full mx-auto space-y-6 pb-16 transition-all duration-200 ${
+        viewMode === 'split' ? 'max-w-[1600px]' : 'max-w-5xl'
+      }`}
+    >
       {/* ══════════════════════════════════════════════════════════════
           PAGE TITLE & HEADER CONTROLS
       ══════════════════════════════════════════════════════════════ */}
@@ -859,7 +1066,7 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
             size="md"
             whileTap={{ scale: 0.97 }}
             onClick={() => handlePrint()}
-            className="gap-2 whitespace-nowrap cursor-pointer border-neutral-300 dark:border-white/15"
+            className="gap-2 cursor-pointer border-neutral-300 dark:border-white/15"
           >
             <Printer size={16} />
             <span>Generate PDF</span>
@@ -873,7 +1080,7 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
             whileTap={{ scale: 0.97 }}
             isLoading={submitting}
             onClick={() => handleSubmit()}
-            className="gap-2 whitespace-nowrap cursor-pointer shadow-md bg-primary hover:bg-primary/95 text-white"
+            className="gap-2 cursor-pointer shadow-md bg-primary hover:bg-primary/95 text-white"
           >
             <Save size={16} />
             <span>Save to MongoDB</span>
@@ -887,14 +1094,10 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
         </div>
       ) : (
         <>
-          {/* ══════════════════════════════════════════════════════════
-              VIEW MODE 1: EDIT FORM ONLY
-          ══════════════════════════════════════════════════════════ */}
+          {/* VIEW MODE 1: EDIT FORM ONLY */}
           {viewMode === 'edit' && renderFormFields()}
 
-          {/* ══════════════════════════════════════════════════════════
-              VIEW MODE 2: SPLIT SCREEN (SIDE-BY-SIDE ON DESKTOP)
-          ══════════════════════════════════════════════════════════ */}
+          {/* VIEW MODE 2: SPLIT SCREEN (SIDE-BY-SIDE ON DESKTOP) */}
           {viewMode === 'split' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               {/* Left Column: Form Editor */}
@@ -923,9 +1126,7 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════════════
-              VIEW MODE 3: FULL SCREEN PDF PREVIEW
-          ══════════════════════════════════════════════════════════ */}
+          {/* VIEW MODE 3: FULL SCREEN PDF PREVIEW */}
           {viewMode === 'preview' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">

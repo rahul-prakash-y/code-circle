@@ -372,23 +372,23 @@ export const EventArenaPage: React.FC = () => {
     return (
       <div className="min-h-[100dvh] bg-canvas text-label-primary flex flex-col">
         {/* Top Header */}
-        <header className="h-16 border-b border-separator px-4 sm:px-10 flex items-center justify-between shrink-0 bg-white/70 dark:bg-surface/70 backdrop-blur-xl">
+        <header className="h-16 border-b border-separator px-4 sm:px-10 flex items-center justify-between shrink-0 bg-surface/85 border-b border-separator backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <Button
               size="sm"
               variant="light"
               onPress={() => navigate('/events')}
-              className="rounded-xl text-white/60 hover:text-white text-xs font-semibold"
+              className="rounded-xl text-label-secondary hover:text-label-primary text-xs font-semibold"
               startContent={<ArrowLeft size={16} />}
             >
               Back to Events
             </Button>
-            <div className="h-5 w-[1px] bg-white/10" />
+            <div className="h-5 w-[1px] bg-surface-secondary" />
             <div className="flex items-center gap-2">
               <span className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
                 <Sparkles size={16} />
               </span>
-              <h1 className="text-sm sm:text-base font-bold text-white tracking-tight">Event Arena Hub</h1>
+              <h1 className="text-sm sm:text-base font-bold text-label-primary tracking-tight">Event Arena Hub</h1>
             </div>
           </div>
 
@@ -406,10 +406,10 @@ export const EventArenaPage: React.FC = () => {
               <ShieldCheck size={14} />
               <span>Official Event Competition Arena</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-black text-label-primary tracking-tight">
               {currentEvent?.title || 'Event Arena Assessments'}
             </h2>
-            <p className="text-xs sm:text-sm text-white/60 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-label-secondary max-w-2xl leading-relaxed">
               Complete each assessment round created by the event coordinators and faculty. Your scores,
               code test-case executions, and performance will be tracked on the live leaderboard.
             </p>
@@ -419,13 +419,13 @@ export const EventArenaPage: React.FC = () => {
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
               <Loader2 size={32} className="animate-spin text-purple-400" />
-              <p className="text-xs text-white/50">Loading event assessments...</p>
+              <p className="text-xs text-label-tertiary">Loading event assessments...</p>
             </div>
           ) : assessments.length === 0 ? (
-            <div className="p-8 sm:p-12 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-3">
-              <Layers size={36} className="mx-auto text-white/30" />
-              <h3 className="text-base font-bold text-white">No Assessments Active</h3>
-              <p className="text-xs text-white/50 max-w-sm mx-auto">
+            <div className="p-8 sm:p-12 rounded-3xl bg-surface-secondary/40 border border-separator text-center space-y-3">
+              <Layers size={36} className="mx-auto text-label-tertiary" />
+              <h3 className="text-base font-bold text-label-primary">No Assessments Active</h3>
+              <p className="text-xs text-label-tertiary max-w-sm mx-auto">
                 The event admins have not published any assessments yet. Please check back when the round goes live.
               </p>
             </div>
@@ -450,7 +450,7 @@ export const EventArenaPage: React.FC = () => {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.08 }}
-                    className="rounded-3xl bg-surface border border-white/10 hover:border-purple-500/40 p-5 sm:p-6 flex flex-col justify-between space-y-5 transition-all shadow-xl group relative overflow-hidden"
+                    className="rounded-3xl bg-surface border border-separator hover:border-purple-500/40 p-5 sm:p-6 flex flex-col justify-between space-y-5 transition-all shadow-xl group relative overflow-hidden"
                   >
                     {/* Top Glow on hover */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -458,7 +458,7 @@ export const EventArenaPage: React.FC = () => {
                     <div className="space-y-4">
                       {/* Top Badges */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-white/10 text-white/80 border border-white/10">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-surface-secondary text-label-primary border border-separator">
                           Round {idx + 1} • {asm.type}
                         </span>
 
@@ -481,7 +481,7 @@ export const EventArenaPage: React.FC = () => {
                               <span>In Progress</span>
                             </span>
                           ) : isLockedBySequence ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-white/50 border border-white/10 flex items-center gap-1">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-secondary text-label-tertiary border border-separator flex items-center gap-1">
                               <Lock size={11} />
                               <span>Locked</span>
                             </span>
@@ -515,30 +515,30 @@ export const EventArenaPage: React.FC = () => {
 
                       {/* Title & Desc */}
                       <div>
-                        <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
+                        <h3 className="text-base font-bold text-label-primary group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                           {asm.title}
                         </h3>
                         {asm.description && (
-                          <p className="text-xs text-white/60 mt-1 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-label-secondary mt-1 line-clamp-2 leading-relaxed">
                             {asm.description}
                           </p>
                         )}
                       </div>
 
                       {/* Stats Pills */}
-                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-white/70">
-                        <div className="p-2 rounded-xl bg-white/5 border border-white/5 flex items-center gap-1.5">
+                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-label-secondary">
+                        <div className="p-2 rounded-xl bg-surface-secondary border border-separator flex items-center gap-1.5">
                           <Clock size={12} className="text-purple-400 shrink-0" />
                           <span>{asm.durationMinutes || 60} Mins</span>
                         </div>
-                        <div className="p-2 rounded-xl bg-white/5 border border-white/5 flex items-center gap-1.5">
+                        <div className="p-2 rounded-xl bg-surface-secondary border border-separator flex items-center gap-1.5">
                           <Trophy size={12} className="text-amber-400 shrink-0" />
                           <span>{asm.totalPoints || 100} Pts</span>
                         </div>
                       </div>
 
                       {/* Question Breakdown */}
-                      <div className="flex items-center gap-3 text-xs text-white/50 pt-1">
+                      <div className="flex items-center gap-3 text-xs text-label-tertiary pt-1">
                         {asm.type === 'UI_UX' ? (
                           <span className="text-pink-400 font-semibold flex items-center gap-1.5">
                             <Palette size={13} />
@@ -558,13 +558,13 @@ export const EventArenaPage: React.FC = () => {
                         <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1">
                           {isAdmin && sub && sub.totalScore !== undefined ? (
                             <>
-                              <div className="flex justify-between items-center text-white font-bold">
+                              <div className="flex justify-between items-center text-label-primary font-bold">
                                 <span>Score (Admin View):</span>
                                 <span className="font-mono text-emerald-400">
                                   {sub.totalScore} / {sub.maxPossibleScore} ({sub.scorePercentage}%)
                                 </span>
                               </div>
-                              <p className="text-[10px] text-white/60">
+                              <p className="text-[10px] text-label-secondary">
                                 Status: <span className="font-bold text-emerald-400">{sub.isPassed ? 'Passed' : 'Participated'}</span>
                               </p>
                             </>
@@ -596,7 +596,7 @@ export const EventArenaPage: React.FC = () => {
                         <Button
                           isDisabled
                           variant="bordered"
-                          className="w-full min-h-[42px] rounded-xl border-white/10 text-white/40 text-xs font-bold"
+                          className="w-full min-h-[42px] rounded-xl border-separator text-label-tertiary text-xs font-bold"
                           startContent={<Lock size={13} />}
                         >
                           Complete Round {idx} First
@@ -654,7 +654,7 @@ export const EventArenaPage: React.FC = () => {
   // VIEW 2: FULLSCREEN ASSESSMENT WORKSPACE (When activeAssessmentId is chosen)
   // -------------------------------------------------------------------------
   return (
-    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-canvas text-white overflow-hidden select-none relative">
+    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-canvas text-label-primary overflow-hidden select-none relative">
       {/* 1. Permanent Block Screen if Assessment is Blocked */}
       {isAssessmentBlocked && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-3xl bg-black/90 select-none">
@@ -667,7 +667,7 @@ export const EventArenaPage: React.FC = () => {
               Proctoring Violation
             </div>
 
-            <h3 className="text-xl font-bold tracking-tight text-white mb-2">
+            <h3 className="text-xl font-bold tracking-tight text-label-primary mb-2">
               Assessment Locked
             </h3>
 
@@ -710,23 +710,23 @@ export const EventArenaPage: React.FC = () => {
         />
       )}
       {/* Top Header Bar */}
-      <header className="min-h-14 py-2 border-b border-white/10 px-3 sm:px-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 bg-canvas/90 backdrop-blur-md z-30">
+      <header className="min-h-14 py-2 border-b border-separator px-3 sm:px-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 bg-canvas/90 backdrop-blur-md z-30">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Button
             size="sm"
             variant="light"
             onPress={handleReturnToHub}
-            className="rounded-xl text-white/60 hover:text-white text-xs font-semibold shrink-0"
+            className="rounded-xl text-label-secondary hover:text-label-primary text-xs font-semibold shrink-0"
             startContent={<ChevronLeft size={16} />}
           >
             <span className="hidden sm:inline">All Rounds</span>
           </Button>
-          <div className="h-4 w-[1px] bg-white/10 shrink-0" />
+          <div className="h-4 w-[1px] bg-surface-secondary shrink-0" />
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
               <Sparkles size={14} />
             </span>
-            <span className="font-bold text-xs sm:text-sm text-white truncate max-w-[120px] sm:max-w-md">
+            <span className="font-bold text-xs sm:text-sm text-label-primary truncate max-w-[120px] sm:max-w-md">
               {selectedAssessment?.title || currentEvent?.title || 'Arena Assessment'}
             </span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase shrink-0">
@@ -754,7 +754,7 @@ export const EventArenaPage: React.FC = () => {
             className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-mono font-bold border transition-colors ${
               remainingSeconds < 300
                 ? 'bg-rose-500/15 border-rose-500/30 text-rose-400 animate-pulse'
-                : 'bg-white/5 border-white/10 text-white/90'
+                : 'bg-surface-secondary border-separator text-label-primary'
             }`}
           >
             <Clock size={13} className={remainingSeconds < 300 ? 'text-rose-400' : 'text-purple-400'} />
@@ -790,9 +790,9 @@ export const EventArenaPage: React.FC = () => {
               const allChallenges = studentDesignChallenges?.length ? studentDesignChallenges : (studentDesignChallenge ? [studentDesignChallenge] : []);
               if (allChallenges.length <= 1) return null;
               return (
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
+                <div className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                       <Palette size={13} className="text-pink-400" /> Choose 1 Design Challenge ({allChallenges.length} Options)
                     </span>
                     <span className="text-[10px] text-pink-300 bg-pink-500/10 px-2 py-0.5 rounded-full font-semibold">
@@ -810,7 +810,7 @@ export const EventArenaPage: React.FC = () => {
                           className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
                             isSelected
                               ? 'bg-pink-500/15 border-pink-500/50 text-white shadow-xs'
-                              : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10'
+                              : 'bg-surface-secondary border-separator text-label-secondary hover:bg-surface-secondary'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-1 w-full">
@@ -818,7 +818,7 @@ export const EventArenaPage: React.FC = () => {
                             {isSelected && <CheckCircle size={13} className="text-pink-400 shrink-0" />}
                           </div>
                           {ch.description && (
-                            <p className="text-[10px] text-white/50 line-clamp-1">{ch.description}</p>
+                            <p className="text-[10px] text-label-tertiary line-clamp-1">{ch.description}</p>
                           )}
                           {isPrevChosen && (
                             <span className="text-[9px] text-emerald-400 font-bold inline-flex items-center gap-1">
@@ -838,14 +838,14 @@ export const EventArenaPage: React.FC = () => {
               const allChallenges = studentDesignChallenges?.length ? studentDesignChallenges : (studentDesignChallenge ? [studentDesignChallenge] : []);
               const currentChallenge = allChallenges[selectedDesignIdx] || studentDesignChallenge;
               return (
-                <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div className="flex items-center justify-between pb-4 border-b border-separator">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
                       <Palette size={18} />
                     </div>
                     <div>
-                      <h2 className="text-sm font-bold text-white">{currentChallenge?.title || 'Design Challenge Brief'}</h2>
-                      <p className="text-[11px] text-white/50">UI/UX Design & Prototype Specification</p>
+                      <h2 className="text-sm font-bold text-label-primary">{currentChallenge?.title || 'Design Challenge Brief'}</h2>
+                      <p className="text-[11px] text-label-tertiary">UI/UX Design & Prototype Specification</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -865,7 +865,7 @@ export const EventArenaPage: React.FC = () => {
               return (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                       <ImageIcon size={13} className="text-purple-400" />
                       <span>Reference Design Mockup</span>
                     </label>
@@ -885,7 +885,7 @@ export const EventArenaPage: React.FC = () => {
                   {refImg ? (
                     <div
                       onClick={() => setPreviewReferenceImg(refImg)}
-                      className="group relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 cursor-zoom-in hover:border-purple-500/40 transition-all max-h-80 flex items-center justify-center"
+                      className="group relative rounded-2xl overflow-hidden border border-separator bg-black/40 cursor-zoom-in hover:border-purple-500/40 transition-all max-h-80 flex items-center justify-center"
                     >
                       <img
                         src={refImg}
@@ -898,10 +898,10 @@ export const EventArenaPage: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-8 rounded-2xl bg-white/5 border border-dashed border-white/15 text-center text-white/40 space-y-1.5">
-                      <ImageIcon size={28} className="mx-auto text-white/20" />
-                      <p className="text-xs font-semibold text-white/60">No Reference Image Provided</p>
-                      <p className="text-[11px] text-white/40">Refer to the problem statement and deliverables below to craft your design.</p>
+                    <div className="p-8 rounded-2xl bg-surface-secondary border border-dashed border-separator text-center text-label-tertiary space-y-1.5">
+                      <ImageIcon size={28} className="mx-auto text-label-tertiary" />
+                      <p className="text-xs font-semibold text-label-secondary">No Reference Image Provided</p>
+                      <p className="text-[11px] text-label-tertiary">Refer to the problem statement and deliverables below to craft your design.</p>
                     </div>
                   )}
                 </div>
@@ -921,10 +921,10 @@ export const EventArenaPage: React.FC = () => {
                     F
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors">
+                    <p className="text-xs font-bold text-label-primary group-hover:text-purple-300 transition-colors">
                       Starter Figma Template / Design Kit
                     </p>
-                    <p className="text-[10px] text-white/50">Duplicate or copy components to kickstart your work</p>
+                    <p className="text-[10px] text-label-tertiary">Duplicate or copy components to kickstart your work</p>
                   </div>
                 </div>
                 <ExternalLink size={14} className="text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -933,11 +933,11 @@ export const EventArenaPage: React.FC = () => {
 
             {/* Problem Statement */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+              <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                 <FileText size={13} className="text-blue-400" />
                 <span>Problem Statement & Brief</span>
               </label>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+              <div className="p-4 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary leading-relaxed whitespace-pre-wrap">
                 {studentDesignChallenge?.problemStatement || 'No challenge description provided.'}
               </div>
             </div>
@@ -945,13 +945,13 @@ export const EventArenaPage: React.FC = () => {
             {/* Expected Deliverables */}
             {studentDesignChallenge?.deliverables && studentDesignChallenge.deliverables.length > 0 && (
               <div className="space-y-2">
-                <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                   <CheckCircle size={13} className="text-emerald-400" />
                   <span>Expected Deliverables</span>
                 </label>
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                <div className="p-4 rounded-2xl bg-surface-secondary border border-separator space-y-2">
                   {studentDesignChallenge.deliverables.map((del, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-xs text-white/80">
+                    <div key={i} className="flex items-start gap-2.5 text-xs text-label-primary">
                       <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
                       <span>{del}</span>
                     </div>
@@ -963,7 +963,7 @@ export const EventArenaPage: React.FC = () => {
             {/* Rubric / Evaluation Criteria */}
             {studentDesignChallenge?.rubric && (
               <div className="space-y-2">
-                <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                   <Info size={13} className="text-amber-400" />
                   <span>Evaluation Criteria & Guidelines</span>
                 </label>
@@ -977,10 +977,10 @@ export const EventArenaPage: React.FC = () => {
           {/* Right Column: Submission & Live Figma Interactive Embed */}
           <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-5 bg-canvas">
             {/* Header & Status */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center justify-between pb-4 border-b border-separator">
               <div>
-                <h2 className="text-sm font-bold text-white">Your Figma Submission</h2>
-                <p className="text-[11px] text-white/50">Submit your prototype link for evaluation</p>
+                <h2 className="text-sm font-bold text-label-primary">Your Figma Submission</h2>
+                <p className="text-[11px] text-label-tertiary">Submit your prototype link for evaluation</p>
               </div>
 
               {submission?.designSubmission?.isEvaluated ? (
@@ -1007,16 +1007,16 @@ export const EventArenaPage: React.FC = () => {
                   <Award size={13} />
                   <span>Faculty Feedback & Review</span>
                 </p>
-                <p className="text-xs text-white/80 leading-relaxed">
+                <p className="text-xs text-label-primary leading-relaxed">
                   {submission.designSubmission.feedback}
                 </p>
               </div>
             )}
 
             {/* Figma Link & Notes Form */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface-secondary border border-separator space-y-4">
               <div>
-                <label className="text-xs font-bold text-white flex items-center gap-1.5 mb-1.5">
+                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5 mb-1.5">
                   <ExternalLink size={13} className="text-purple-400" />
                   <span>Figma File / Prototype Share Link</span>
                   <span className="text-rose-400">*</span>
@@ -1026,31 +1026,31 @@ export const EventArenaPage: React.FC = () => {
                   value={studentFigmaLink}
                   onChange={(e) => setStudentFigmaLink(e.target.value)}
                   placeholder="https://www.figma.com/file/... or /design/... or /proto/..."
-                  className="w-full px-3.5 py-2.5 min-h-10.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs placeholder:text-white/30 focus:outline-none focus:border-purple-500 font-mono transition-all"
+                  className="w-full px-3.5 py-2.5 min-h-10.5 rounded-xl bg-surface-secondary border border-separator text-label-primary text-xs placeholder:text-label-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring font-mono transition-all"
                 />
-                <p className="text-[10px] text-white/40 mt-1 flex items-center gap-1">
-                  <Info size={11} className="text-white/40" />
+                <p className="text-[10px] text-label-tertiary mt-1 flex items-center gap-1">
+                  <Info size={11} className="text-label-tertiary" />
                   <span>Make sure Figma permissions are set to <strong>"Anyone with the link can view"</strong></span>
                 </p>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-white flex items-center gap-1.5 mb-1.5">
+                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5 mb-1.5">
                   <FileText size={13} className="text-blue-400" />
                   <span>Design Rationale & Notes</span>
-                  <span className="text-white/40 font-normal">(Optional)</span>
+                  <span className="text-label-tertiary font-normal">(Optional)</span>
                 </label>
                 <textarea
                   rows={3}
                   value={studentDesignNotes}
                   onChange={(e) => setStudentDesignNotes(e.target.value)}
                   placeholder="Explain your design thinking, component architecture, color choices, and interaction user flow..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs placeholder:text-white/30 focus:outline-none focus:border-purple-500 transition-all resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-label-primary text-xs placeholder:text-label-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all resize-none"
                 />
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <div className="text-[11px] text-white/50">
+                <div className="text-[11px] text-label-tertiary">
                   {submission?.designSubmission?.submittedAt ? (
                     <span className="text-emerald-400 font-medium flex items-center gap-1">
                       <CheckCircle size={12} /> Previously submitted at {new Date(submission.designSubmission.submittedAt).toLocaleTimeString()}. Updates allowed anytime.
@@ -1074,18 +1074,18 @@ export const EventArenaPage: React.FC = () => {
             </div>
 
             {/* Live Interactive Figma Embed */}
-            <div className="flex-1 min-h-95 sm:min-h-110 flex flex-col rounded-2xl bg-black/40 border border-white/10 overflow-hidden shadow-inner">
-              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-surface-secondary">
+            <div className="flex-1 min-h-95 sm:min-h-110 flex flex-col rounded-2xl bg-black/40 border border-separator overflow-hidden shadow-inner">
+              <div className="px-4 py-3 border-b border-separator flex items-center justify-between bg-surface-secondary">
                 <div className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${studentFigmaLink.trim().includes('figma.com') ? 'bg-purple-500 animate-pulse' : 'bg-white/20'}`} />
-                  <span className="text-xs font-bold text-white">Live Figma Prototype Preview</span>
+                  <span className="text-xs font-bold text-label-primary">Live Figma Prototype Preview</span>
                 </div>
                 {studentFigmaLink.trim().includes('figma.com') && (
                   <a
                     href={studentFigmaLink.trim()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all"
+                    className="px-3 py-1.5 rounded-lg bg-surface-secondary hover:bg-surface-secondary text-label-primary hover:text-label-primary text-[11px] font-semibold flex items-center gap-1.5 transition-all"
                   >
                     <ExternalLink size={12} />
                     <span>Open in Figma</span>
@@ -1103,13 +1103,13 @@ export const EventArenaPage: React.FC = () => {
                   />
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-white/40 space-y-3">
-                  <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-purple-400">
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-label-tertiary space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-center text-purple-400">
                     <Palette size={26} />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-white/70">No Figma Link Provided Yet</p>
-                    <p className="text-[11px] text-white/40 max-w-sm mt-1">
+                    <p className="text-xs font-semibold text-label-secondary">No Figma Link Provided Yet</p>
+                    <p className="text-[11px] text-label-tertiary max-w-sm mt-1">
                       Enter your public Figma share link in the field above to interact with and preview your design directly inside the arena.
                     </p>
                   </div>
@@ -1121,9 +1121,9 @@ export const EventArenaPage: React.FC = () => {
       ) : (
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left / Top Navigation Palette (MCQ vs Coding & Question Buttons) */}
-          <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-canvas shrink-0">
+          <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-separator flex flex-col bg-canvas shrink-0">
             {/* Section Switcher Tabs (MCQ vs Coding) with Emil Kowalski sub-300ms spring physics */}
-            <div className="p-2 sm:p-2.5 border-b border-white/10 flex justify-center bg-surface-secondary">
+            <div className="p-2 sm:p-2.5 border-b border-separator flex justify-center bg-surface-secondary">
               <HeroTabs
                 size="sm"
                 selectedKey={selectedType}
@@ -1146,7 +1146,7 @@ export const EventArenaPage: React.FC = () => {
 
             {/* Question Palette Grid (Horizontal scroll on mobile, vertical grid on desktop) */}
             <div className="p-3 md:p-4 space-y-2 md:space-y-4 md:flex-1 md:overflow-y-auto">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-white/50 hidden md:block">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary hidden md:block">
                 {selectedType === 'mcq' ? 'Questions' : 'Challenges'}
               </span>
 
@@ -1167,7 +1167,7 @@ export const EventArenaPage: React.FC = () => {
                             isCurrent
                               ? 'ring-2 ring-purple-400'
                               : !isAnswered
-                              ? 'border-white/10 text-white/70 hover:bg-white/10'
+                              ? 'border-separator text-label-secondary hover:bg-surface-secondary'
                               : ''
                           }`}
                         >
@@ -1190,7 +1190,7 @@ export const EventArenaPage: React.FC = () => {
                             isCurrent
                               ? 'ring-2 ring-blue-400'
                               : !isPassed
-                              ? 'border-white/10 text-white/70 hover:bg-white/10'
+                              ? 'border-separator text-label-secondary hover:bg-surface-secondary'
                               : ''
                           }`}
                         >
@@ -1206,17 +1206,17 @@ export const EventArenaPage: React.FC = () => {
           {selectedType === 'mcq' && currentMcq && (
             <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-8 md:p-10 bg-canvas">
               <div className="max-w-3xl mx-auto w-full space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div className="flex items-center justify-between pb-4 border-b border-separator">
                   <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
                     Question {selectedIndex + 1} of {studentMcqs.length}
                   </span>
-                  <span className="text-xs font-mono text-white/60">
+                  <span className="text-xs font-mono text-label-secondary">
                     {currentMcq.points || 10} Points
                   </span>
                 </div>
 
-                <div className="p-4 sm:p-6 rounded-2xl bg-white/2 border border-white/10 space-y-3">
-                  <h3 className="text-base sm:text-lg font-bold text-white leading-relaxed wrap-break-word">
+                <div className="p-4 sm:p-6 rounded-2xl bg-white/2 border border-separator space-y-3">
+                  <h3 className="text-base sm:text-lg font-bold text-label-primary leading-relaxed wrap-break-word">
                     {currentMcq.question}
                   </h3>
                 </div>
@@ -1233,14 +1233,14 @@ export const EventArenaPage: React.FC = () => {
                         className={`p-3.5 sm:p-4 min-h-11.5 rounded-xl border flex items-center gap-3.5 cursor-pointer transition-all ${
                           isSelected
                             ? 'bg-purple-600/20 border-purple-500 text-white shadow-md shadow-purple-600/15'
-                            : 'bg-white/2 border-white/10 hover:border-white/20 text-white/80 hover:bg-white/4'
+                            : 'bg-white/2 border-separator hover:border-separator text-label-primary hover:bg-white/4'
                         }`}
                       >
                         <div
                           className={`w-6 h-6 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 border ${
                             isSelected
                               ? 'bg-purple-600 border-purple-500 text-white'
-                              : 'border-white/20 text-white/60'
+                              : 'border-separator text-label-secondary'
                           }`}
                         >
                           {String.fromCharCode(65 + optIdx)}
@@ -1258,7 +1258,7 @@ export const EventArenaPage: React.FC = () => {
                     variant="bordered"
                     isDisabled={selectedIndex === 0}
                     onPress={() => setSelectedIndex((prev) => Math.max(0, prev - 1))}
-                    className="min-h-10 rounded-xl text-xs font-bold text-white/70 border-white/10 hover:bg-white/10"
+                    className="min-h-10 rounded-xl text-xs font-bold text-label-secondary border-separator hover:bg-surface-secondary"
                     startContent={<ChevronLeft size={16} />}
                   >
                     Previous
@@ -1269,7 +1269,7 @@ export const EventArenaPage: React.FC = () => {
                     variant="bordered"
                     isDisabled={selectedIndex >= studentMcqs.length - 1}
                     onPress={() => setSelectedIndex((prev) => Math.min(studentMcqs.length - 1, prev + 1))}
-                    className="min-h-10 rounded-xl text-xs font-bold text-white/70 border-white/10 hover:bg-white/10"
+                    className="min-h-10 rounded-xl text-xs font-bold text-label-secondary border-separator hover:bg-surface-secondary"
                     endContent={<ChevronRight size={16} />}
                   >
                     Next
@@ -1283,7 +1283,7 @@ export const EventArenaPage: React.FC = () => {
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               {/* Left Column: Problem Statement */}
               <div className="w-full lg:w-1/2 overflow-y-auto p-4 sm:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-separator bg-surface max-h-72 lg:max-h-none shrink-0 lg:shrink">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center justify-between pb-3 border-b border-separator">
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
                       Challenge {selectedIndex + 1}
@@ -1300,22 +1300,22 @@ export const EventArenaPage: React.FC = () => {
                       {currentCoding.difficulty}
                     </span>
                   </div>
-                  <span className="text-xs font-mono text-white/60">
+                  <span className="text-xs font-mono text-label-secondary">
                     {currentCoding.points || 30} Points
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-white">{currentCoding.title}</h3>
-                  <p className="text-xs text-white/80 mt-2 leading-relaxed whitespace-pre-line">
+                  <h3 className="text-base sm:text-lg font-bold text-label-primary">{currentCoding.title}</h3>
+                  <p className="text-xs text-label-primary mt-2 leading-relaxed whitespace-pre-line">
                     {currentCoding.description}
                   </p>
                 </div>
 
                 {currentCoding.inputFormat && (
                   <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-white/80">Input Format</h4>
-                    <p className="text-xs text-white/60 font-mono bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <h4 className="text-xs font-bold text-label-primary">Input Format</h4>
+                    <p className="text-xs text-label-secondary font-mono bg-surface-secondary p-2.5 rounded-xl border border-separator">
                       {currentCoding.inputFormat}
                     </p>
                   </div>
@@ -1323,8 +1323,8 @@ export const EventArenaPage: React.FC = () => {
 
                 {currentCoding.outputFormat && (
                   <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-white/80">Output Format</h4>
-                    <p className="text-xs text-white/60 font-mono bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <h4 className="text-xs font-bold text-label-primary">Output Format</h4>
+                    <p className="text-xs text-label-secondary font-mono bg-surface-secondary p-2.5 rounded-xl border border-separator">
                       {currentCoding.outputFormat}
                     </p>
                   </div>
@@ -1333,14 +1333,14 @@ export const EventArenaPage: React.FC = () => {
                 {/* Sample I/O */}
                 <div className="space-y-3 pt-2">
                   <div className="space-y-1">
-                    <h4 className="text-[11px] font-bold text-white/70">Sample Input</h4>
-                    <pre className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto">
+                    <h4 className="text-[11px] font-bold text-label-secondary">Sample Input</h4>
+                    <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
                       {currentCoding.sampleInput || '(No input required)'}
                     </pre>
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-[11px] font-bold text-white/70">Sample Output</h4>
-                    <pre className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto">
+                    <h4 className="text-[11px] font-bold text-label-secondary">Sample Output</h4>
+                    <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
                       {currentCoding.sampleOutput || ''}
                     </pre>
                   </div>
@@ -1350,13 +1350,13 @@ export const EventArenaPage: React.FC = () => {
               {/* Right Column: Monaco Code Editor & Terminal */}
               <div className="w-full lg:w-1/2 flex flex-col flex-1 bg-surface min-h-80">
                 {/* Language Toolbar */}
-                <div className="h-11 px-3 sm:px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-surface">
+                <div className="h-11 px-3 sm:px-4 border-b border-separator flex items-center justify-between shrink-0 bg-surface">
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="text-[11px] font-bold text-white/60 hidden sm:inline">Language:</span>
+                    <span className="text-[11px] font-bold text-label-secondary hidden sm:inline">Language:</span>
                     <select
                       value={currentLanguage}
                       onChange={(e) => setCurrentLanguage(e.target.value)}
-                      className="px-2 sm:px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-white outline-none cursor-pointer"
+                      className="px-2 sm:px-2.5 py-1 rounded-lg bg-surface-secondary border border-separator text-xs font-bold text-label-primary outline-none cursor-pointer"
                     >
                       {['python', 'javascript', 'cpp', 'java', 'c'].map((lang) => (
                         <option key={lang} value={lang} className="bg-surface-secondary">
@@ -1428,9 +1428,9 @@ export const EventArenaPage: React.FC = () => {
 
                 {/* Terminal / Run Results Drawer */}
                 {runResults && (
-                  <div className="h-44 border-t border-white/10 bg-canvas p-3 overflow-y-auto space-y-2 shrink-0 font-mono text-xs">
-                    <div className="flex items-center justify-between pb-1 border-b border-white/5">
-                      <span className="font-bold text-white/70 flex items-center gap-1.5">
+                  <div className="h-44 border-t border-separator bg-canvas p-3 overflow-y-auto space-y-2 shrink-0 font-mono text-xs">
+                    <div className="flex items-center justify-between pb-1 border-b border-separator">
+                      <span className="font-bold text-label-secondary flex items-center gap-1.5">
                         <Terminal size={13} />
                         <span>Execution Output</span>
                       </span>
@@ -1440,7 +1440,7 @@ export const EventArenaPage: React.FC = () => {
                         variant="light"
                         aria-label="Close execution output"
                         onPress={() => setRunResults(null)}
-                        className="text-white/40 hover:text-white p-1 min-w-6 h-6"
+                        className="text-label-tertiary hover:text-label-primary p-1 min-w-6 h-6"
                       >
                         <X size={14} />
                       </Button>
@@ -1459,9 +1459,9 @@ export const EventArenaPage: React.FC = () => {
                           <span>
                             Test Case #{res.testCaseNumber}: {res.passed ? 'PASSED' : 'FAILED'}
                           </span>
-                          <span className="text-[10px] text-white/50">{res.executionTimeMs}ms</span>
+                          <span className="text-[10px] text-label-tertiary">{res.executionTimeMs}ms</span>
                         </div>
-                        <div className="mt-1 space-y-0.5 text-[11px] text-white/80">
+                        <div className="mt-1 space-y-0.5 text-[11px] text-label-primary">
                           <p>
                             Expected: <span className="text-white">{res.expectedOutput}</span>
                           </p>
@@ -1483,27 +1483,27 @@ export const EventArenaPage: React.FC = () => {
       {/* SUBMIT CONFIRMATION MODAL */}
       {showSubmitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
-          <div className="bg-surface border border-white/10 rounded-3xl p-6 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="bg-surface border border-separator rounded-3xl p-6 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
               <Send size={18} className="text-purple-400" />
               <span>Submit Assessment Round?</span>
             </h3>
 
-            <p className="text-xs text-white/70 leading-relaxed">
+            <p className="text-xs text-label-secondary leading-relaxed">
               {selectedAssessment?.type === 'UI_UX'
                 ? `Are you sure you want to finalize "${selectedAssessment?.title}"? Your Figma link and design notes will be recorded for evaluation.`
                 : `Are you sure you want to finalize "${selectedAssessment?.title}"? All your MCQ choices and coding submissions will be evaluated and recorded.`}
             </p>
 
             {selectedAssessment?.type === 'UI_UX' ? (
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-xs space-y-1.5">
-                <div className="flex justify-between text-white/80">
+              <div className="p-3 rounded-2xl bg-surface-secondary border border-separator text-xs space-y-1.5">
+                <div className="flex justify-between text-label-primary">
                   <span>Figma Prototype Link:</span>
                   <span className={`font-bold ${studentFigmaLink.trim() ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {studentFigmaLink.trim() ? 'Provided' : 'Missing'}
                   </span>
                 </div>
-                <div className="flex justify-between text-white/80">
+                <div className="flex justify-between text-label-primary">
                   <span>Design Notes:</span>
                   <span className="font-bold text-purple-400">
                     {studentDesignNotes.trim() ? 'Included' : 'None'}
@@ -1511,14 +1511,14 @@ export const EventArenaPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-xs space-y-1.5">
-                <div className="flex justify-between text-white/80">
+              <div className="p-3 rounded-2xl bg-surface-secondary border border-separator text-xs space-y-1.5">
+                <div className="flex justify-between text-label-primary">
                   <span>MCQs Answered:</span>
                   <span className="font-bold text-purple-400">
                     {Object.keys(mcqAnswers).length} / {studentMcqs.length}
                   </span>
                 </div>
-                <div className="flex justify-between text-white/80">
+                <div className="flex justify-between text-label-primary">
                   <span>Coding Challenges Evaluated:</span>
                   <span className="font-bold text-blue-400">
                     {Object.keys(problemStatusMap).length} / {studentCoding.length}
@@ -1532,7 +1532,7 @@ export const EventArenaPage: React.FC = () => {
                 size="sm"
                 variant="light"
                 onPress={() => setShowSubmitConfirm(false)}
-                className="min-h-10 rounded-xl text-xs font-semibold text-white/70 hover:text-white"
+                className="min-h-10 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary"
               >
                 Keep Working
               </Button>
@@ -1553,7 +1553,7 @@ export const EventArenaPage: React.FC = () => {
                     handleFinalSubmit(false);
                   }
                 }}
-                className="min-h-10 rounded-xl text-white font-bold text-xs shadow-md shadow-emerald-500/20"
+                className="min-h-10 rounded-xl text-label-primary font-bold text-xs shadow-md shadow-emerald-500/20"
                 startContent={actionLoading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
               >
                 Confirm & Submit
@@ -1566,7 +1566,7 @@ export const EventArenaPage: React.FC = () => {
       {/* FINAL SCORE & EVALUATION RESULTS MODAL */}
       {finalResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-lg p-4">
-          <div className="bg-surface border border-white/10 rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center space-y-5 shadow-2xl">
+          <div className="bg-surface border border-separator rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center space-y-5 shadow-2xl">
             <div
               className={`w-16 h-16 rounded-3xl mx-auto flex items-center justify-center shadow-lg border ${
                 finalResultModal.isPassed
@@ -1581,32 +1581,32 @@ export const EventArenaPage: React.FC = () => {
               <h3 className="text-xl font-black text-white">
                 {finalResultModal.isPassed ? 'Congratulations! Round Completed' : 'Assessment Completed'}
               </h3>
-              <p className="text-xs text-white/60 mt-1">
+              <p className="text-xs text-label-secondary mt-1">
                 Your submission for "{selectedAssessment?.title}" has been recorded.
               </p>
             </div>
 
             {/* Score Metrics (Visible ONLY to admins; Hidden from students) */}
             {isAdmin && finalResultModal.totalScore !== undefined ? (
-              <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-surface-secondary border border-separator text-center">
                 <div>
-                  <p className="text-[10px] text-white/50 uppercase font-bold">Total Score</p>
+                  <p className="text-[10px] text-label-tertiary uppercase font-bold">Total Score</p>
                   <p className="text-lg font-black text-white mt-0.5">
                     {finalResultModal.totalScore}
                   </p>
-                  <p className="text-[10px] text-white/40">of {finalResultModal.maxPossibleScore}</p>
+                  <p className="text-[10px] text-label-tertiary">of {finalResultModal.maxPossibleScore}</p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-white/50 uppercase font-bold">Percentage</p>
+                  <p className="text-[10px] text-label-tertiary uppercase font-bold">Percentage</p>
                   <p className="text-lg font-black text-purple-400 mt-0.5">
                     {finalResultModal.scorePercentage}%
                   </p>
-                  <p className="text-[10px] text-white/40">Accuracy</p>
+                  <p className="text-[10px] text-label-tertiary">Accuracy</p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-white/50 uppercase font-bold">Outcome</p>
+                  <p className="text-[10px] text-label-tertiary uppercase font-bold">Outcome</p>
                   <p
                     className={`text-sm font-black mt-1 ${
                       finalResultModal.isPassed ? 'text-emerald-400' : 'text-amber-400'
@@ -1614,7 +1614,7 @@ export const EventArenaPage: React.FC = () => {
                   >
                     {finalResultModal.isPassed ? 'PASSED' : 'PARTICIPATED'}
                   </p>
-                  <p className="text-[10px] text-white/40">Status</p>
+                  <p className="text-[10px] text-label-tertiary">Status</p>
                 </div>
               </div>
             ) : (
@@ -1623,29 +1623,29 @@ export const EventArenaPage: React.FC = () => {
                   <CheckCircle2 size={16} />
                   <span>Submission Successfully Recorded</span>
                 </div>
-                <p className="text-xs text-white/70 max-w-sm mx-auto leading-relaxed">
+                <p className="text-xs text-label-secondary max-w-sm mx-auto leading-relaxed">
                   Your attempt has been submitted. Per competition rules, evaluation scores and rankings are tracked by event administrators on the official leaderboard.
                 </p>
               </div>
             )}
 
             {/* Anti-cheat tab switch penalty bg-white/3me metrics */}
-            <div className="p-3.5 rounded-2xl bg-white/3 border border-white/10 grid grid-cols-2 gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-white/3 border border-separator grid grid-cols-2 gap-3 text-xs">
               <div className="text-left">
-                <span className="text-[10px] text-white/50 block font-mono">TAB SWITCHES</span>
+                <span className="text-[10px] text-label-tertiary block font-mono">TAB SWITCHES</span>
                 <span className={`font-bold font-mono ${finalResultModal.tabSwitchCount ? 'text-amber-400' : 'text-emerald-400'}`}>
                   {finalResultModal.tabSwitchCount || 0} (-{(finalResultModal.tabSwitchCount || 0) * 5}%)
                 </span>
                 {finalResultModal.rawTotalScore !== undefined && (
-                  <span className="text-[10px] text-white/40 block">Raw: {finalResultModal.rawTotalScore} pts</span>
+                  <span className="text-[10px] text-label-tertiary block">Raw: {finalResultModal.rawTotalScore} pts</span>
                 )}
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-white/50 block font-mono">TIME TAKEN</span>
+                <span className="text-[10px] text-label-tertiary block font-mono">TIME TAKEN</span>
                 <span className="font-bold font-mono text-purple-300">
                   {Math.floor((finalResultModal.timeTakenSeconds || 0) / 60)}m {(finalResultModal.timeTakenSeconds || 0) % 60}s
                 </span>
-                <span className="text-[10px] text-white/40 block">Total test duration</span>
+                <span className="text-[10px] text-label-tertiary block">Total test duration</span>
               </div>
             </div>
 
@@ -1653,7 +1653,7 @@ export const EventArenaPage: React.FC = () => {
               color="secondary"
               variant="solid"
               onPress={handleReturnToHub}
-              className="w-full min-h-11 rounded-xl text-white font-bold text-xs shadow-md shadow-purple-600/30"
+              className="w-full min-h-11 rounded-xl text-label-primary font-bold text-xs shadow-md shadow-purple-600/30"
             >
               Return to Arena Rounds
             </Button>
@@ -1664,18 +1664,18 @@ export const EventArenaPage: React.FC = () => {
       {/* REFERENCE DESIGN IMAGE LIGHTBOX MODAL */}
       {previewReferenceImg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-surface border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-surface-secondary">
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-surface border border-separator rounded-3xl overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-separator flex items-center justify-between bg-surface-secondary">
               <div className="flex items-center gap-2">
                 <ImageIcon size={16} className="text-purple-400" />
-                <span className="text-xs font-bold text-white">Reference Design Mockup (Full HD View)</span>
+                <span className="text-xs font-bold text-label-primary">Reference Design Mockup (Full HD View)</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <a
                   href={previewReferenceImg}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 min-h-8.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+                  className="px-3 py-1.5 min-h-8.5 rounded-xl bg-surface-secondary hover:bg-surface-secondary text-label-primary hover:text-label-primary text-xs font-semibold flex items-center gap-1.5 transition-all"
                 >
                   <ExternalLink size={13} />
                   <span>Open Full Image</span>
@@ -1685,7 +1685,7 @@ export const EventArenaPage: React.FC = () => {
                   size="sm"
                   variant="light"
                   onPress={() => setPreviewReferenceImg(null)}
-                  className="min-w-8.5 min-h-8.5 rounded-xl text-white/70 hover:text-white"
+                  className="min-w-8.5 min-h-8.5 rounded-xl text-label-secondary hover:text-label-primary"
                 >
                   <X size={16} />
                 </Button>

@@ -42,6 +42,7 @@ import { useVisibilityChange } from '../hooks/useVisibilityChange';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
 import RequestReentryModal from '../components/contests/RequestReentryModal';
+import HeroUISelect from '../components/ui/HeroUISelect';
 
 const MONACO_LANG_MAP: Record<string, string> = {
   python: 'python',
@@ -58,6 +59,14 @@ const LANG_DISPLAY_NAMES: Record<string, string> = {
   java: 'Java (OpenJDK)',
   c: 'C (GCC)',
 };
+
+const CONTEST_LANG_OPTIONS = [
+  { value: 'python', label: 'Python 3' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'cpp', label: 'C++ (GCC)' },
+  { value: 'java', label: 'Java' },
+  { value: 'c', label: 'C (GCC)' },
+];
 
 const ACCESSORY_KEYS = [
   { label: 'Tab', value: '    ' },
@@ -991,23 +1000,15 @@ export const ContestArenaPage: React.FC = () => {
                         {/* Actions: Language, Reset, Run, Submit */}
                         <div className="flex items-center gap-2">
                           {/* Language Selector */}
-                          <div className="relative">
-                            <select
-                              value={selectedLanguage}
-                              onChange={(e) => handleLanguageChange(e.target.value)}
-                              disabled={antiCheatLocked || executing || submitting}
-                              className="appearance-none bg-white/[0.06] hover:bg-white/[0.1] disabled:opacity-50 border border-white/[0.12] rounded-xl px-3 py-1 text-xs font-medium text-neutral-200 transition-all cursor-pointer focus:outline-none pr-6"
-                            >
-                              <option value="python" className="bg-neutral-900 text-white">Python 3</option>
-                              <option value="javascript" className="bg-neutral-900 text-white">JavaScript</option>
-                              <option value="cpp" className="bg-neutral-900 text-white">C++ (GCC)</option>
-                              <option value="java" className="bg-neutral-900 text-white">Java</option>
-                              <option value="c" className="bg-neutral-900 text-white">C (GCC)</option>
-                            </select>
-                            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-neutral-400">
-                              ▼
-                            </span>
-                          </div>
+                          <HeroUISelect
+                            value={selectedLanguage}
+                            onChange={(val) => handleLanguageChange(val)}
+                            options={CONTEST_LANG_OPTIONS}
+                            disabled={antiCheatLocked || executing || submitting}
+                            size="sm"
+                            className="w-36 shrink-0"
+                            placement="bottom-end"
+                          />
 
                           {/* Reset Template */}
                           <Button
@@ -1768,23 +1769,15 @@ export const ContestArenaPage: React.FC = () => {
               {/* Mobile Sticky Bottom Action Dock */}
               <div className="px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.6rem)] bg-neutral-950/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center justify-between gap-2 shrink-0 z-30">
                 {/* Language Selector */}
-                <div className="relative shrink-0">
-                  <select
-                    value={selectedLanguage}
-                    onChange={(e) => handleLanguageChange(e.target.value)}
-                    disabled={antiCheatLocked || executing || submitting}
-                    className="appearance-none bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.12] rounded-xl px-2.5 py-2 min-h-[42px] text-xs font-semibold text-neutral-200 transition-all cursor-pointer focus:outline-none pr-6"
-                  >
-                    <option value="python" className="bg-neutral-900 text-white">Python 3</option>
-                    <option value="javascript" className="bg-neutral-900 text-white">JS</option>
-                    <option value="cpp" className="bg-neutral-900 text-white">C++</option>
-                    <option value="java" className="bg-neutral-900 text-white">Java</option>
-                    <option value="c" className="bg-neutral-900 text-white">C</option>
-                  </select>
-                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-neutral-400">
-                    ▼
-                  </span>
-                </div>
+                <HeroUISelect
+                  value={selectedLanguage}
+                  onChange={(val) => handleLanguageChange(val)}
+                  options={CONTEST_LANG_OPTIONS}
+                  disabled={antiCheatLocked || executing || submitting}
+                  size="sm"
+                  className="w-32 shrink-0"
+                  placement="bottom-start"
+                />
 
                 {/* Reset Template */}
                 <Button

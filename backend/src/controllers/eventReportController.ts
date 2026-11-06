@@ -63,10 +63,13 @@ export const createOrUpdateReport = async (request: FastifyRequest, reply: Fasti
 
     const payload: any = {
       eventId: body.eventId,
+      eventTitle: body.eventTitle || eventExists.title || '',
       clubName: body.clubName || 'Code Circle',
       eventCategory: body.eventCategory || 'Technical Workshop',
       academicYear: body.academicYear || '2025-2026',
       date: body.date ? new Date(body.date) : new Date(),
+      endDate: body.endDate ? new Date(body.endDate) : undefined,
+      dateDisplay: body.dateDisplay || '',
       venue: body.venue || eventExists.venueOrLink || 'Main Campus, BIT',
       // Core Text
       objective: body.objective || '',
@@ -76,13 +79,21 @@ export const createOrUpdateReport = async (request: FastifyRequest, reply: Fasti
       strategiesUsed: normalizeStringArray(body.strategiesUsed),
       activitiesDone: normalizeStringArray(body.activitiesDone),
       accomplishments: normalizeStringArray(body.accomplishments),
+      achievements: normalizeStringArray(body.achievements),
       takeaways: normalizeStringArray(body.takeaways),
+      concludingNote: body.concludingNote || '',
       // Evidence
       circularUrl: normalizeEvidenceArray(body.circularUrl),
       brochureUrl: normalizeEvidenceArray(body.brochureUrl),
+      attendanceUrl: normalizeEvidenceArray(body.attendanceUrl),
       geoPhotoUrl: normalizeEvidenceArray(body.geoPhotoUrl),
+      newspaperClippingUrl: normalizeEvidenceArray(body.newspaperClippingUrl),
       feedbackUrl: normalizeEvidenceArray(body.feedbackUrl),
       billSettlementUrl: normalizeEvidenceArray(body.billSettlementUrl),
+      // Resource Person & Coordinator Details
+      resourcePerson: body.resourcePerson !== undefined ? String(body.resourcePerson).trim() : 'NIL',
+      coordinatorName: body.coordinatorName || '',
+      coordinatorSignatureUrl: body.coordinatorSignatureUrl || '',
       status: body.status || 'Submitted',
     };
 

@@ -1,0 +1,383 @@
+@import './report-fonts.css';
+
+/* ══════════════════════════════════════════════════════════════
+   BIT OFFICIAL EVENT REPORT - STRICT PRINT & PREVIEW STYLES
+   Measured directly from /public/CODE SAGA Event.pdf
+   All values in pt units. Isolated from site theme & Tailwind.
+══════════════════════════════════════════════════════════════ */
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin-top: 35.4pt;
+    margin-bottom: 60pt;
+    margin-left: 72pt;
+    margin-right: 69.1pt;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Root isolated container */
+.bit-report-wrapper {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  font-family: "Times New Roman", Tinos, "Liberation Serif", Times, serif !important;
+  font-size: 11pt !important;
+  line-height: 13.66pt !important;
+  letter-spacing: 0 !important;
+  word-spacing: 0 !important;
+  -webkit-font-smoothing: subpixel-antialiased !important;
+  text-rendering: optimizeLegibility !important;
+  box-sizing: border-box !important;
+  margin: 0 auto;
+}
+
+/* Screen preview container dimensions */
+.bit-report-preview-mode {
+  width: 595.32pt;
+  min-height: 841.92pt;
+  padding: 35.4pt 69.1pt 60pt 72pt;
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Print container dimensions */
+.bit-report-print-mode {
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background-color: #ffffff !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TABLE BASED REPEATING HEADER (Supported across all browsers)
+══════════════════════════════════════════════════════════════ */
+table.bit-report-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  table-layout: fixed !important;
+  border: none !important;
+  background-color: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+table.bit-report-table thead.bit-report-thead {
+  display: table-header-group !important;
+}
+
+table.bit-report-table tbody.bit-report-tbody {
+  display: table-row-group !important;
+}
+
+.bit-report-header-cell {
+  height: 61.8pt !important;
+  vertical-align: top !important;
+  padding: 0 0 13.8pt 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+.bit-report-header-img {
+  width: 451.3pt !important;
+  height: 61.8pt !important;
+  display: block !important;
+  margin: 0 !important;
+  border: none !important;
+  object-fit: fill !important;
+}
+
+.bit-report-content-cell {
+  vertical-align: top !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TYPOGRAPHY SPECIFICATIONS
+══════════════════════════════════════════════════════════════ */
+
+/* 1. Event Title (Times Bold 14pt, centered, not underlined) */
+.bit-report-title {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 14pt !important;
+  font-weight: 700 !important;
+  line-height: 15.5pt !important;
+  text-align: center !important;
+  color: #000000 !important;
+  text-transform: uppercase !important;
+  margin: 0 0 31.5pt 0 !important;
+}
+
+/* 2. Info lines (Bold 11pt, category value italic, ~9.4pt space after) */
+.bit-report-info-line {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  line-height: 12.2pt !important;
+  margin: 0 0 9.4pt 0 !important;
+  color: #000000 !important;
+}
+
+.bit-report-info-line .category-italic {
+  font-style: italic !important;
+  font-weight: normal !important;
+}
+
+/* 3. Section labels (Bold 11pt, underlined on label text only) */
+.bit-report-heading {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  line-height: 12.2pt !important;
+  margin-top: 9.4pt !important;
+  margin-bottom: 9.4pt !important;
+  color: #000000 !important;
+  break-after: avoid !important;
+  page-break-after: avoid !important;
+}
+
+.bit-report-heading.first-section {
+  margin-top: 9.4pt !important;
+}
+
+.bit-report-heading .underline-label {
+  text-decoration: underline !important;
+  text-underline-offset: 2pt !important;
+  text-decoration-thickness: 1pt !important;
+}
+
+.bit-report-heading .trailing-colon {
+  text-decoration: none !important;
+  font-style: italic !important;
+  font-weight: normal !important;
+}
+
+.bit-report-heading .trailing-italic {
+  text-decoration: none !important;
+  font-style: italic !important;
+  font-weight: normal !important;
+}
+
+/* 4. Objective & Outcome Paragraphs (Times 11pt, justified, line-height 13.66pt, 9.4pt space) */
+.bit-report-body-p {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 400 !important;
+  line-height: 13.66pt !important;
+  text-align: justify !important;
+  margin: 0 0 9.4pt 0 !important;
+  color: #000000 !important;
+}
+
+/* 5. Evidence Images */
+.bit-report-evidence-block {
+  margin-top: 0 !important;
+  margin-bottom: 9.4pt !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+.bit-report-evidence-img-wrapper {
+  display: inline-block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.bit-report-img {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  object-fit: contain !important;
+}
+
+.bit-report-img.portrait {
+  max-width: 308.2pt !important;
+  max-height: 480pt !important;
+}
+
+.bit-report-img.landscape {
+  width: 451.3pt !important;
+  max-height: 480pt !important;
+}
+
+.bit-report-img.geo-photo {
+  width: 451.3pt !important;
+  max-height: 191.3pt !important;
+  object-fit: cover !important;
+}
+
+/* 1pt solid black rule directly under each image matching width */
+.bit-report-img-rule {
+  height: 1.08pt !important;
+  background-color: #000000 !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
+.bit-report-caption-text {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 10pt !important;
+  font-style: italic !important;
+  margin-top: 4pt !important;
+  margin-bottom: 4pt !important;
+  color: #000000 !important;
+}
+
+/* 6. Attendance Hint */
+.bit-report-attendance-hint {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 11pt !important;
+  font-style: italic !important;
+  line-height: 13.66pt !important;
+  margin: 0 0 9.4pt 0 !important;
+  color: #000000 !important;
+}
+
+/* 7. Coordinator Block (Right-aligned) */
+.bit-report-coordinator-container {
+  margin-top: 11.2pt !important;
+  margin-bottom: 9.4pt !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  text-align: right !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+.bit-report-coordinator-sig-img {
+  max-height: 40pt !important;
+  max-width: 140pt !important;
+  object-fit: contain !important;
+  margin-bottom: 9.5pt !important;
+  display: block !important;
+}
+
+.bit-report-coordinator-label {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  line-height: 12.2pt !important;
+  margin: 0 0 9.4pt 0 !important;
+  color: #000000 !important;
+}
+
+.bit-report-coordinator-name {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  line-height: 12.2pt !important;
+  margin: 0 !important;
+  color: #000000 !important;
+}
+
+/* 8. Summary Section */
+.bit-report-summary-subheading-row {
+  display: flex !important;
+  align-items: baseline !important;
+  margin-top: 28pt !important;
+  margin-bottom: 13.8pt !important;
+  break-after: avoid !important;
+  page-break-after: avoid !important;
+}
+
+.bit-report-summary-subheading-row.first-subheading {
+  margin-top: 13.8pt !important;
+}
+
+.bit-report-bullet-dot {
+  font-family: Arial, Arimo, sans-serif !important;
+  font-size: 11pt !important;
+  margin-left: 18pt !important; /* x=90pt */
+  width: 18pt !important;
+  color: #000000 !important;
+  line-height: 1 !important;
+}
+
+.bit-report-subheading-text {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 11pt !important;
+  font-weight: 700 !important;
+  font-style: italic !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2pt !important;
+  text-decoration-thickness: 1pt !important;
+  color: #000000 !important;
+}
+
+.bit-report-subheading-colon {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 11pt !important;
+  font-style: italic !important;
+  font-weight: normal !important;
+  text-decoration: none !important;
+  color: #000000 !important;
+}
+
+.bit-report-summary-indent-area {
+  margin-left: 36pt !important; /* x=108pt */
+}
+
+.bit-report-summary-paragraph {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 12pt !important;
+  line-height: 13.8pt !important;
+  text-align: justify !important;
+  margin: 0 0 13.8pt 0 !important;
+  color: #000000 !important;
+}
+
+.bit-report-summary-bullet-item {
+  display: flex !important;
+  align-items: baseline !important;
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 12pt !important;
+  line-height: 13.8pt !important;
+  text-align: justify !important;
+  margin: 0 0 2pt 0 !important;
+  color: #000000 !important;
+}
+
+.bit-report-item-bullet-symbol {
+  font-family: Symbol, "Times New Roman", serif !important;
+  font-size: 12pt !important;
+  width: 5.5pt !important;
+  flex-shrink: 0 !important;
+  margin-right: 5.5pt !important;
+  line-height: 1 !important;
+}
+
+.bit-report-concluding-paragraph {
+  font-family: "Times New Roman", Tinos, Times, serif !important;
+  font-size: 12pt !important;
+  line-height: 13.8pt !important;
+  text-align: justify !important;
+  margin: 14.6pt 0 14.6pt 0 !important;
+  color: #000000 !important;
+}
+
+/* Page break utilities */
+.bit-report-page-break {
+  break-before: page !important;
+  page-break-before: always !important;
+}
+
+.bit-report-avoid-break {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}

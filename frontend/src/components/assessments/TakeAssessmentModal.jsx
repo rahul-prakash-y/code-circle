@@ -258,12 +258,13 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             <p className="text-xs sm:text-sm text-red-300/90 mb-6 leading-relaxed">
               You have been blocked for navigating away. Contact Admin.
             </p>
-            <button
-              onClick={onClose}
-              className="btn-secondary w-full py-2.5 text-xs font-semibold cursor-pointer"
+            <Button
+              variant="secondary"
+              onPress={onClose}
+              className="w-full py-2.5 text-xs font-semibold cursor-pointer rounded-xl"
             >
               Close Assessment
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -345,20 +346,22 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 </div>
 
                 {/* Fullscreen Toggle */}
-                <button
-                  type="button"
-                  onClick={() => {
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="flat"
+                  onPress={() => {
                     if (!document.fullscreenElement) {
                       document.documentElement.requestFullscreen?.().catch(() => {});
                     } else {
                       document.exitFullscreen?.().catch(() => {});
                     }
                   }}
-                  className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary transition-all border border-separator cursor-pointer hidden md:flex shrink-0"
+                  className="rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary border border-separator cursor-pointer hidden md:flex shrink-0 min-h-[36px] min-w-[36px]"
                   title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
                   {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                </button>
+                </Button>
 
                 {/* Timer */}
                 <div
@@ -375,9 +378,11 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 </div>
 
                 {/* Always-Visible Direct Submit Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmModal(true)}
+                <Button
+                  size="sm"
+                  color="success"
+                  variant="solid"
+                  onPress={() => setShowConfirmModal(true)}
                   className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white shadow-xs transition-all cursor-pointer shrink-0 min-h-[36px]"
                   title="Submit assessment now"
                 >
@@ -386,17 +391,20 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   <span className="hidden xs:inline-block text-[10px] bg-white/20 px-1 rounded font-mono tabular-nums">
                     {answeredCount}/{totalQuestions}
                   </span>
-                </button>
+                </Button>
               </>
             )}
 
-            <button
-              onClick={handleSafeClose}
-              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary transition-all border border-separator cursor-pointer shrink-0"
+            <Button
+              isIconOnly
+              size="sm"
+              variant="flat"
+              onPress={handleSafeClose}
+              className="rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary border border-separator cursor-pointer shrink-0 min-h-[36px] min-w-[36px]"
               title="Close test"
             >
               <X size={16} />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -593,15 +601,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
               })}
 
               {/* Direct Jump Submit Pill in Progress Bar */}
-              <button
-                type="button"
-                onClick={() => setShowConfirmModal(true)}
+              <Button
+                size="sm"
+                variant="flat"
+                color="success"
+                onPress={() => setShowConfirmModal(true)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 shrink-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer ml-auto min-h-[32px]"
                 title="Finish and submit assessment"
               >
                 <Send size={11} />
                 <span>Submit</span>
-              </button>
+              </Button>
             </div>
 
             {/* Active Question Content */}

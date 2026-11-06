@@ -303,14 +303,6 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                 >
                   <Eye size={14} />
                 </button>
-                <button
-                  onClick={() => navigate(`/events/${event._id}/docs`)}
-                  className="btn-secondary text-[13px] py-1.5 px-3 min-h-[38px] cursor-pointer"
-                  title="Documentation & Reports"
-                  aria-label="Documentation"
-                >
-                  <FileText size={14} />
-                </button>
 
                 {event.registrationType === 'admin_upload' && !isEnrolled ? (
                   <button

@@ -3,6 +3,7 @@ import { X, Image as ImageIcon, Calendar, Tag, Pin, FileText, Loader2, Sparkles 
 import useNewsStore from '../../store/useNewsStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../ui/ResponsiveModal';
+import { HeroDatePicker } from '../ui/HeroUIComponents';
 import { formatDateToISTDateInput } from '../../lib/dateUtils';
 
 const DEFAULT_COVER = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80';
@@ -130,16 +131,13 @@ const NewsModal = ({ isOpen, onClose, articleToEdit = null }) => {
         {/* Date and Pinned Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="input-label flex items-center gap-2">
-              <Calendar size={14} className="text-accent" />
-              Publication Date
-            </label>
-            <input
-              type="date"
+            <HeroDatePicker
+              label="Publication Date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="input-field"
-              required
+              onChange={(val) => setDate(val)}
+              startContent={<Calendar size={14} className="text-accent" />}
+              isRequired
+              size="sm"
             />
           </div>
 

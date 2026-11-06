@@ -1,4 +1,6 @@
 export interface IDomain {
+  levelsCount: any;
+  levels: any;
   _id: string;
   name: string;
   description: string;
@@ -26,7 +28,7 @@ export interface IQuestQuestion {
 export interface IStudyMaterial {
   _id?: string;
   title: string;
-  type: 'article' | 'link' | 'code' | 'notes' | 'pdf';
+  type: "article" | "link" | "code" | "notes" | "pdf";
   url?: string;
   content?: string;
 }
@@ -48,31 +50,40 @@ export interface ILevel {
   videos?: ILevelVideo[];
   studyMaterials?: IStudyMaterial[];
   questQuestions: IQuestQuestion[];
-  assessmentId?: {
-    _id: string;
-    title: string;
-    description?: string;
-    category?: string;
-    passingScorePercentage?: number;
-    timeLimitMinutes?: number;
-  } | string | null;
-  codingChallengeId?: {
-    _id: string;
-    title: string;
-    description?: string;
-    difficulty?: 'Easy' | 'Medium' | 'Hard';
-    allowedLanguages?: string[];
-    timeLimitMinutes?: number;
-    isPublished?: boolean;
-  } | string | null;
-  codingChallengePool?: Array<{
-    _id: string;
-    title: string;
-    difficulty?: 'Easy' | 'Medium' | 'Hard';
-    allowedLanguages?: string[];
-    timeLimitMinutes?: number;
-    isPublished?: boolean;
-  } | string>;
+  assessmentId?:
+    | {
+        _id: string;
+        title: string;
+        description?: string;
+        category?: string;
+        passingScorePercentage?: number;
+        timeLimitMinutes?: number;
+      }
+    | string
+    | null;
+  codingChallengeId?:
+    | {
+        _id: string;
+        title: string;
+        description?: string;
+        difficulty?: "Easy" | "Medium" | "Hard";
+        allowedLanguages?: string[];
+        timeLimitMinutes?: number;
+        isPublished?: boolean;
+      }
+    | string
+    | null;
+  codingChallengePool?: Array<
+    | {
+        _id: string;
+        title: string;
+        difficulty?: "Easy" | "Medium" | "Hard";
+        allowedLanguages?: string[];
+        timeLimitMinutes?: number;
+        isPublished?: boolean;
+      }
+    | string
+  >;
   codingTimeLimitMinutes?: number;
   isCompleted?: boolean;
   isUnlocked?: boolean;
@@ -99,7 +110,7 @@ export interface IEnrolledStudent {
     role?: string;
   };
   enrolledAt: string;
-  status: 'enrolled' | 'in_progress' | 'completed';
+  status: "enrolled" | "in_progress" | "completed";
   completedLevelsCount: number;
   totalLevels: number;
   progressPercentage: number;
@@ -162,5 +173,3 @@ export interface IStudentAccessPagination {
   totalStudents?: number;
   totalAllowed?: number;
 }
-
-

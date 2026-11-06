@@ -21,6 +21,7 @@ import api from '../../lib/axios';
 import useEventStore from '../../store/useEventStore';
 import { formatISTDateTime, formatISTDate } from '../../lib/dateUtils';
 import HeroUISelect from '../ui/HeroUISelect';
+import { HeroDatePicker } from '../ui/HeroUIComponents';
 
 interface MissedEventRequestModalProps {
   isOpen: boolean;
@@ -260,15 +261,13 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                 {/* 2. Date and Club Hours Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
-                      Missed Date *
-                    </label>
-                    <input
-                      type="date"
+                    <HeroDatePicker
+                      label="Missed Date *"
                       value={missedDate}
-                      onChange={(e) => setMissedDate(e.target.value)}
-                      required
-                      className="w-full bg-surface-secondary border border-separator rounded-2xl px-4 py-2.5 text-sm text-label-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all"
+                      onChange={(val) => setMissedDate(val)}
+                      isRequired
+                      size="sm"
+                      startContent={<Calendar size={14} className="text-accent" />}
                     />
                   </div>
 

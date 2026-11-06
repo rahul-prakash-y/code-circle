@@ -826,7 +826,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
             <div className="max-w-2xl mx-auto space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-separator">
                 <div>
-                  <h3 className="text-base font-bold text-label-primary  flex items-center gap-2">
+                  <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
                     <Plus size={16} className="text-emerald-400" />
                     <span>Create a New Arena Assessment</span>
                   </h3>
@@ -845,7 +845,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
               <form onSubmit={handleCreateAssessment} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold text-label-primary /80 mb-1.5">
+                  <label className="block text-xs font-bold text-label-secondary mb-1.5">
                     Assessment Title <span className="text-rose-400">*</span>
                   </label>
                   <input
@@ -854,18 +854,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g. Round 1: Screening Test or Coding Finale"
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">Description</label>
+                  <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">Description</label>
                   <textarea
                     rows={2}
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     placeholder="Short description or guidelines for this assessment..."
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none resize-none"
                   />
                 </div>
 
@@ -885,24 +885,24 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">Duration (Minutes)</label>
+                    <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">Duration (Minutes)</label>
                     <input
                       type="number"
                       min={5}
                       value={newDuration}
                       onChange={(e) => setNewDuration(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">Passing Score (%)</label>
+                    <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">Passing Score (%)</label>
                     <input
                       type="number"
                       min={0}
                       max={100}
                       value={newPassingScore}
                       onChange={(e) => setNewPassingScore(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
                   </div>
                 </div>
@@ -910,7 +910,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 {/* Qualification Cutoff & Team Mode */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">
                       Qualify Top Students (Cutoff)
                     </label>
                     <input
@@ -919,9 +919,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       value={newCutoffRank}
                       onChange={(e) => setNewCutoffRank(Number(e.target.value))}
                       placeholder="e.g. 80 (0 for all)"
-                      className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder:text-white/30 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                      className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
-                    <p className="text-[10px] text-zinc-500 /40 mt-1">
+                    <p className="text-[10px] text-label-tertiary mt-1">
                       Top N from previous round allowed (0 = open to all enrolled).
                     </p>
                   </div>
@@ -941,14 +941,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                   {newIsTeamMode && (
                     <div>
-                      <label className="block text-xs font-bold text-label-primary /80 mb-1.5">Team Size</label>
+                      <label className="block text-xs font-bold text-label-secondary mb-1.5">Team Size</label>
                       <input
                         type="number"
                         min={2}
                         max={10}
                         value={newTeamSize}
                         onChange={(e) => setNewTeamSize(Number(e.target.value))}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  outline-none"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary outline-none"
                       />
                     </div>
                   )}
@@ -958,7 +958,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="text-xs font-bold text-label-primary  flex items-center gap-1.5">
+                      <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                         <Users size={14} className="text-purple-400" />
                         <span>Assign Assessment Admins</span>
                       </label>
@@ -985,7 +985,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           value={adminSearch}
                           onChange={(e) => setAdminSearch(e.target.value)}
                           placeholder="Search admins by name, email, roll number..."
-                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 outline-none focus:border-purple-500"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500"
                         />
                       </div>
 
@@ -999,7 +999,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                                 isAssigned
                                   ? 'bg-purple-500/15 border-purple-500/40 text-label-primary '
-                                  : 'bg-white/[0.02] border-white/5 hover:border-black/10 dark:border-white/15 text-label-primary /70'
+                                  : 'bg-white/[0.02] border-white/5 hover:border-separator text-label-primary /70'
                               }`}
                             >
                               <div className="flex items-center gap-2.5">
@@ -1024,7 +1024,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 className={`w-5 h-5 rounded-md flex items-center justify-center border ${
                                   isAssigned
                                     ? 'bg-purple-600 border-purple-500 text-label-primary '
-                                    : 'border-black/10 dark:border-white/20'
+                                    : 'border-separator'
                                 }`}
                               >
                                 {isAssigned && <Check size={12} />}
@@ -1052,7 +1052,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary  text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                   >
                     {actionLoading && <Loader2 size={13} className="animate-spin" />}
                     <span>Create Assessment</span>
@@ -1211,13 +1211,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-label-primary /80 mb-1.5">Assessment Title</label>
+                        <label className="block text-xs font-bold text-label-secondary mb-1.5">Assessment Title</label>
                         <input
                           type="text"
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  outline-none focus:border-purple-500 disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary outline-none focus:border-purple-500 disabled:opacity-50"
                         />
                       </div>
                       <div>
@@ -1238,13 +1238,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">Description</label>
+                      <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">Description</label>
                       <textarea
                         rows={2}
                         value={editDesc}
                         onChange={(e) => setEditDesc(e.target.value)}
                         disabled={!canManageSelected}
-                        className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  outline-none resize-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
+                        className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none resize-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                       />
                     </div>
 
@@ -1265,18 +1265,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">Duration (Mins)</label>
+                        <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">Duration (Mins)</label>
                         <input
                           type="number"
                           min={5}
                           value={editDuration}
                           onChange={(e) => setEditDuration(Number(e.target.value))}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">Passing %</label>
+                        <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">Passing %</label>
                         <input
                           type="number"
                           min={0}
@@ -1284,7 +1284,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           value={editPassingScore}
                           onChange={(e) => setEditPassingScore(Number(e.target.value))}
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                         />
                       </div>
                     </div>
@@ -1292,7 +1292,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     {/* Cutoff & Team Mode Configuration */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                       <div>
-                        <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">
+                        <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">
                           Top Rank Cutoff (Next Round)
                         </label>
                         <input
@@ -1302,9 +1302,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setEditCutoffRank(Number(e.target.value))}
                           disabled={!canManageSelected}
                           placeholder="e.g. 80 (0 for no limit)"
-                          className="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder:text-white/30 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                         />
-                        <p className="text-[10px] text-zinc-500 /40 mt-1">
+                        <p className="text-[10px] text-label-tertiary mt-1">
                           Only top {editCutoffRank || 0} students from previous round attend.
                         </p>
                       </div>
@@ -1325,7 +1325,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                       {editIsTeamMode && (
                         <div>
-                          <label className="block text-xs font-bold text-label-primary /80 mb-1.5">Team Size</label>
+                          <label className="block text-xs font-bold text-label-secondary mb-1.5">Team Size</label>
                           <input
                             type="number"
                             min={2}
@@ -1333,7 +1333,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={editTeamSize}
                             onChange={(e) => setEditTeamSize(Number(e.target.value))}
                             disabled={!canManageSelected}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  outline-none disabled:opacity-50"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary outline-none disabled:opacity-50"
                           />
                         </div>
                       )}
@@ -1344,7 +1344,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   <div className="p-5 rounded-2xl bg-white/[0.02] border border-separator space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-separator">
                       <div>
-                        <h3 className="text-sm font-bold text-label-primary  flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-label-primary flex items-center gap-2">
                           <Crown size={15} className="text-amber-400" />
                           <span>Assigned Assessment Admins</span>
                         </h3>
@@ -1371,7 +1371,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={adminSearch}
                             onChange={(e) => setAdminSearch(e.target.value)}
                             placeholder="Search admin name, email, roll number..."
-                            className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 outline-none focus:border-purple-500"
+                            className="w-full pl-9 pr-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500"
                           />
                         </div>
 
@@ -1385,7 +1385,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                                   isAssigned
                                     ? 'bg-purple-500/15 border-purple-500/40 text-label-primary '
-                                    : 'bg-white/[0.02] border-white/5 hover:border-black/10 dark:border-white/15 text-label-primary /70'
+                                    : 'bg-white/[0.02] border-white/5 hover:border-separator text-label-primary /70'
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5">
@@ -1410,7 +1410,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   className={`w-5 h-5 rounded-md flex items-center justify-center border ${
                                     isAssigned
                                       ? 'bg-purple-600 border-purple-500 text-label-primary '
-                                      : 'border-black/10 dark:border-white/20'
+                                      : 'border-separator'
                                   }`}
                                 >
                                   {isAssigned && <Check size={12} />}
@@ -1497,7 +1497,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     <div className="flex items-center flex-wrap gap-2">
                       <button
                         onClick={() => downloadArenaTemplate(event._id, 'mcq')}
-                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary  text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
                       >
                         <Download size={13} />
                         <span>Sample Template</span>
@@ -1507,7 +1507,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <>
                           <button
                             onClick={() => setBulkModalType('mcq')}
-                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary  text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
+                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
                           >
                             <Upload size={13} />
                             <span>Bulk Upload Excel</span>
@@ -1515,7 +1515,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                           <button
                             onClick={() => setShowAddMcq(!showAddMcq)}
-                            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary  text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all"
+                            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all"
                           >
                             <Plus size={14} />
                             <span>Add Question</span>
@@ -1535,7 +1535,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         className="p-5 rounded-2xl bg-white/[0.03] border border-purple-500/30 space-y-4 overflow-hidden"
                       >
                         <div className="flex items-center justify-between pb-2 border-b border-separator">
-                          <h4 className="text-xs font-bold text-label-primary  flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-label-primary flex items-center gap-2">
                             <Plus size={14} className="text-purple-400" />
                             <span>Add New Multiple Choice Question</span>
                           </h4>
@@ -1548,13 +1548,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1.5">Question Text</label>
+                          <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">Question Text</label>
                           <textarea
                             rows={2}
                             value={newQuestionText}
                             onChange={(e) => setNewQuestionText(e.target.value)}
                             placeholder="Enter the question prompt..."
-                            className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 outline-none resize-none focus:border-purple-500"
+                            className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none resize-none focus:border-purple-500"
                           />
                         </div>
 
@@ -1583,7 +1583,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   setNewOptions(updated);
                                 }}
                                 placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  outline-none focus:border-purple-500"
+                                className="w-full px-3 py-2 rounded-xl bg-white/5 border border-separator text-xs text-label-primary outline-none focus:border-purple-500"
                               />
                             </div>
                           ))}
@@ -1591,23 +1591,23 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
-                            <label className="block text-xs font-bold text-label-primary /80 mb-1">Points</label>
+                            <label className="block text-xs font-bold text-label-secondary mb-1">Points</label>
                             <input
                               type="number"
                               min={1}
                               value={newMcqPoints}
                               onChange={(e) => setNewMcqPoints(Number(e.target.value))}
-                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  outline-none"
+                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary outline-none"
                             />
                           </div>
                           <div className="sm:col-span-2">
-                            <label className="block text-xs font-bold text-label-primary /80 mb-1">Explanation (Optional)</label>
+                            <label className="block text-xs font-bold text-label-secondary mb-1">Explanation (Optional)</label>
                             <input
                               type="text"
                               value={newExplanation}
                               onChange={(e) => setNewExplanation(e.target.value)}
                               placeholder="Explanation shown after submission..."
-                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  outline-none"
+                              className="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-separator text-xs text-label-primary outline-none"
                             />
                           </div>
                         </div>
@@ -1622,7 +1622,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           <button
                             onClick={handleAddMcq}
                             disabled={actionLoading}
-                            className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary  text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5"
+                            className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5"
                           >
                             {actionLoading && <Loader2 size={12} className="animate-spin" />}
                             <span>Save Question</span>
@@ -1646,7 +1646,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       adminMcqs.map((q, idx) => (
                         <div
                           key={idx}
-                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-black/10 dark:border-white/15 transition-all space-y-3"
+                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-separator transition-all space-y-3"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-2.5">
@@ -1654,14 +1654,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 {idx + 1}
                               </span>
                               <div>
-                                <h5 className="text-xs font-bold text-label-primary  leading-relaxed">{q.question}</h5>
+                                <h5 className="text-xs font-bold text-label-primary leading-relaxed">{q.question}</h5>
                                 {q.explanation && (
                                   <p className="text-[11px] text-text-muted italic mt-1">{q.explanation}</p>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-label-primary /80">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-label-secondary">
                                 {q.points || 10} pts
                               </span>
                               {canManageSelected && (
@@ -1728,7 +1728,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => downloadArenaTemplate(event._id, 'coding')}
-                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary  text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
+                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
                       >
                         <Download size={13} />
                         <span>Sample Template</span>
@@ -1738,7 +1738,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <>
                           <button
                             onClick={() => setBulkModalType('coding')}
-                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary  text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
+                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
                           >
                             <Upload size={13} />
                             <span>Bulk Upload Excel</span>
@@ -1746,7 +1746,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                           <button
                             onClick={() => setShowAddCoding(!showAddCoding)}
-                            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary  text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
+                            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
                           >
                             <Plus size={14} />
                             <span>Add Problem</span>
@@ -1766,7 +1766,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         className="p-5 rounded-2xl bg-white/[0.03] border border-blue-500/30 space-y-4 overflow-hidden"
                       >
                         <div className="flex items-center justify-between pb-2 border-b border-separator">
-                          <h4 className="text-xs font-bold text-label-primary  flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-label-primary flex items-center gap-2">
                             <Plus size={14} className="text-blue-400" />
                             <span>Add New Coding Challenge</span>
                           </h4>
@@ -1780,13 +1780,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div className="sm:col-span-2">
-                            <label className="block text-xs font-semibold text-zinc-800 /80 uppercase tracking-wider mb-1">Problem Title</label>
+                            <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1">Problem Title</label>
                             <input
                               type="text"
                               value={newCodingTitle}
                               onChange={(e) => setNewCodingTitle(e.target.value)}
                               placeholder="e.g. Invert a Binary Tree or Maximum Subarray"
-                              className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder:text-white/30 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                              className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                             />
                           </div>
                           <div>
@@ -1806,7 +1806,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-label-primary /80 mb-1">
+                          <label className="block text-xs font-bold text-label-secondary mb-1">
                             Problem Description & Constraints
                           </label>
                           <textarea
@@ -1814,23 +1814,23 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={newCodingDesc}
                             onChange={(e) => setNewCodingDesc(e.target.value)}
                             placeholder="Describe the challenge problem, input and output expectations..."
-                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  outline-none resize-none focus:border-blue-500"
+                            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-separator text-xs text-label-primary outline-none resize-none focus:border-blue-500"
                           />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs font-bold text-label-primary /80 mb-1">Sample Input</label>
+                            <label className="block text-xs font-bold text-label-secondary mb-1">Sample Input</label>
                             <textarea
                               rows={2}
                               value={newSampleInput}
                               onChange={(e) => setNewSampleInput(e.target.value)}
                               placeholder="Sample stdin input..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  font-mono outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-separator text-xs text-label-primary font-mono outline-none resize-none"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-label-primary /80 mb-1">
+                            <label className="block text-xs font-bold text-label-secondary mb-1">
                               Sample Output (Expected)
                             </label>
                             <textarea
@@ -1838,7 +1838,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               value={newSampleOutput}
                               onChange={(e) => setNewSampleOutput(e.target.value)}
                               placeholder="Sample expected output..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-separator text-xs text-label-primary  font-mono outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-separator text-xs text-label-primary font-mono outline-none resize-none"
                             />
                           </div>
                         </div>
@@ -1853,7 +1853,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               value={newHiddenInput}
                               onChange={(e) => setNewHiddenInput(e.target.value)}
                               placeholder="Hidden input for grading..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-label-primary  font-mono outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-label-primary font-mono outline-none resize-none"
                             />
                           </div>
                           <div>
@@ -1865,7 +1865,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               value={newHiddenOutput}
                               onChange={(e) => setNewHiddenOutput(e.target.value)}
                               placeholder="Hidden expected output..."
-                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-label-primary  font-mono outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-amber-500/30 text-xs text-label-primary font-mono outline-none resize-none"
                             />
                           </div>
                         </div>
@@ -1880,7 +1880,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           <button
                             onClick={handleAddCoding}
                             disabled={actionLoading}
-                            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary  text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5"
+                            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5"
                           >
                             {actionLoading && <Loader2 size={12} className="animate-spin" />}
                             <span>Save Challenge</span>
@@ -1904,7 +1904,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       adminCoding.map((p, idx) => (
                         <div
                           key={idx}
-                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-black/10 dark:border-white/15 transition-all space-y-2.5"
+                          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-separator transition-all space-y-2.5"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-2.5">
@@ -1930,7 +1930,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               >
                                 {p.difficulty}
                               </span>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-label-primary /80">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-label-secondary">
                                 {p.points || 30} pts
                               </span>
                               {canManageSelected && (
@@ -1965,7 +1965,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <Palette size={20} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-label-primary  flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-label-primary flex items-center gap-2">
                           <span>UI/UX & Figma Design Challenge Configuration</span>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-pink-500/20 text-pink-300 border border-pink-500/30">
                             {designChallengesList.length} Problem{designChallengesList.length > 1 ? 's' : ''} Configured
@@ -2091,7 +2091,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     <div className="p-5 rounded-2xl bg-white/[0.02] border border-separator space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-xs font-bold text-label-primary  flex items-center gap-1.5">
+                          <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                             <ImageIcon size={14} className="text-pink-400" />
                             <span>Design Reference Mockup Image</span>
                             <span className="text-rose-400">*</span>
@@ -2104,7 +2104,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           <button
                             type="button"
                             onClick={() => setPreviewModalImg(designImageUrl)}
-                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-label-primary  flex items-center gap-1.5 transition-colors"
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-label-primary flex items-center gap-1.5 transition-colors"
                           >
                             <Maximize2 size={12} />
                             <span>Preview Fullscreen</span>
@@ -2115,7 +2115,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                         {/* Upload Controls */}
                         <div className="space-y-3">
-                          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black/10 dark:border-white/15 hover:border-pink-500/50 rounded-2xl cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] transition-all group">
+                          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-separator hover:border-pink-500/50 rounded-2xl cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] transition-all group">
                             <input
                               type="file"
                               accept="image/*"
@@ -2133,7 +2133,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 <div className="w-10 h-10 rounded-xl bg-pink-500/15 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                                   <Upload size={18} />
                                 </div>
-                                <span className="text-xs font-bold text-label-primary  group-hover:text-pink-300 transition-colors">
+                                <span className="text-xs font-bold text-label-primary group-hover:text-pink-300 transition-colors">
                                   Click or Drag Image Here
                                 </span>
                                 <span className="text-[10px] text-text-muted">
@@ -2151,7 +2151,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               onChange={(e) => setDesignImageUrl(e.target.value)}
                               placeholder="https://res.cloudinary.com/... or image link"
                               disabled={!canManageSelected}
-                              className="w-full px-3.5 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none"
+                              className="w-full px-3.5 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary focus:border-pink-500 outline-none"
                             />
                           </div>
                         </div>
@@ -2169,7 +2169,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => setPreviewModalImg(designImageUrl)}
-                                  className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-label-primary  text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm transition-all"
+                                  className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-label-primary text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm transition-all"
                                 >
                                   <Maximize2 size={13} />
                                   <span>Inspect</span>
@@ -2200,7 +2200,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     <div className="p-5 rounded-2xl bg-white/[0.02] border border-separator space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="sm:col-span-2">
-                          <label className="block text-xs font-bold text-label-primary /80 mb-1.5">
+                          <label className="block text-xs font-bold text-label-secondary mb-1.5">
                             Challenge Title <span className="text-rose-400">*</span>
                           </label>
                           <input
@@ -2210,11 +2210,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             onChange={(e) => setDesignTitle(e.target.value)}
                             placeholder="e.g. Modern Fintech Banking App Mobile & Desktop UI"
                             disabled={!canManageSelected}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary focus:border-pink-500 outline-none disabled:opacity-50"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-label-primary /80 mb-1.5">
+                          <label className="block text-xs font-bold text-label-secondary mb-1.5">
                             Total Points
                           </label>
                           <input
@@ -2223,13 +2223,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             value={designPoints}
                             onChange={(e) => setDesignPoints(Number(e.target.value))}
                             disabled={!canManageSelected}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  font-mono outline-none disabled:opacity-50"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono outline-none disabled:opacity-50"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-label-primary /80 mb-1.5">
+                        <label className="block text-xs font-bold text-label-secondary mb-1.5">
                           Brief Overview / Description
                         </label>
                         <input
@@ -2238,12 +2238,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignDesc(e.target.value)}
                           placeholder="e.g. Design a sleek, high-conversion crypto & banking experience with rich micro-interactions."
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary focus:border-pink-500 outline-none disabled:opacity-50"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-label-primary /80 mb-1.5">
+                        <label className="block text-xs font-bold text-label-secondary mb-1.5">
                           Problem Statement & Functional Requirements
                         </label>
                         <textarea
@@ -2252,12 +2252,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignProblem(e.target.value)}
                           placeholder="Detail the target audience, user personas, key flows (Onboarding, Dashboard, Transactions), design constraints, and expected user journeys..."
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none resize-none disabled:opacity-50 leading-relaxed"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary focus:border-pink-500 outline-none resize-none disabled:opacity-50 leading-relaxed"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-label-primary /80 mb-1.5 flex items-center justify-between">
+                        <label className="block text-xs font-bold text-label-secondary mb-1.5 flex items-center justify-between">
                           <span>Reference / Starter Figma URL (Optional)</span>
                           <span className="text-[10px] text-text-muted">Students can duplicate this file</span>
                         </label>
@@ -2267,7 +2267,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           onChange={(e) => setDesignRefFigma(e.target.value)}
                           placeholder="https://www.figma.com/file/... (starter kit / UI kit)"
                           disabled={!canManageSelected}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none disabled:opacity-50"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary focus:border-pink-500 outline-none disabled:opacity-50"
                         />
                       </div>
                     </div>
@@ -2307,7 +2307,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               }}
                               placeholder="e.g. Responsive Desktop layout (1440px) and Mobile layout (390px)"
                               disabled={!canManageSelected}
-                              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/20 outline-none focus:border-pink-500 disabled:opacity-50"
+                              className="flex-1 px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-pink-500 disabled:opacity-50"
                             />
                             {canManageSelected && designDeliverables.length > 1 && (
                               <button
@@ -2358,7 +2358,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               }}
                               placeholder="e.g. Visual Hierarchy, Spacing consistency, WCAG AA Contrast"
                               disabled={!canManageSelected}
-                              className="flex-1 px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/20 outline-none focus:border-purple-500 disabled:opacity-50"
+                              className="flex-1 px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500 disabled:opacity-50"
                             />
                             {canManageSelected && designGuidelines.length > 1 && (
                               <button
@@ -2410,7 +2410,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <Users size={20} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-label-primary  flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-label-primary flex items-center gap-2">
                           <span>Arena Teams & Manual Allocation</span>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
                             {arenaTeams.length} Teams
@@ -2426,7 +2426,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   {/* Create Team Form */}
                   {canManageSelected && (
                     <div className="p-5 rounded-2xl bg-white/[0.02] border border-separator space-y-4">
-                      <h4 className="text-xs font-bold text-label-primary  flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-label-primary flex items-center gap-2">
                         <Plus size={14} className="text-blue-400" />
                         <span>Create New Team</span>
                       </h4>
@@ -2437,7 +2437,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           value={teamNameInput}
                           onChange={(e) => setTeamNameInput(e.target.value)}
                           placeholder="Enter team name (e.g. Code Phoenix, DevSquad)..."
-                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 outline-none focus:border-blue-500"
+                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-blue-500"
                         />
                         <button
                           type="button"
@@ -2450,7 +2450,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             });
                             setTeamNameInput('');
                           }}
-                          className="px-5 py-2.5 min-h-[40px] rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary  font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="px-5 py-2.5 min-h-[40px] rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           {actionLoading && <Loader2 size={13} className="animate-spin" />}
                           <Plus size={13} />
@@ -2510,7 +2510,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               team.members.map((mem) => (
                                 <div
                                   key={mem._id}
-                                  className="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs text-label-primary /80"
+                                  className="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs text-label-secondary"
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <div className="w-5 h-5 rounded-full overflow-hidden bg-white/10 shrink-0">
@@ -3066,7 +3066,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
             </p>
             <button
               onClick={() => setIsCreatingNew(true)}
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary  text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
             >
               <Plus size={14} />
               <span>Create First Assessment</span>
@@ -3077,7 +3077,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* BULK UPLOAD SUB-MODAL */}
         <AnimatePresence>
           {bulkModalType && (
-            <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -3085,7 +3085,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 className="w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl bg-surface border border-separator p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-label-primary  flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-label-primary flex items-center gap-2">
                     <FileSpreadsheet size={16} className="text-purple-400" />
                     <span>Upload {bulkModalType.toUpperCase()} Questions</span>
                   </h3>
@@ -3106,7 +3106,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   <span className="font-semibold text-label-primary ">"{selectedAssessment?.title}"</span>.
                 </p>
 
-                <div className="p-6 rounded-xl border-2 border-dashed border-black/10 dark:border-white/15 hover:border-purple-500/50 text-center space-y-2 cursor-pointer transition-colors bg-white/[0.01]">
+                <div className="p-6 rounded-xl border-2 border-dashed border-separator hover:border-purple-500/50 text-center space-y-2 cursor-pointer transition-colors bg-white/[0.01]">
                   <Upload size={24} className="mx-auto text-purple-400" />
                   <div>
                     <input
@@ -3124,7 +3124,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </label>
                   </div>
                   {bulkFile && (
-                    <p className="text-xs text-label-primary  font-mono truncate px-4">{bulkFile.name}</p>
+                    <p className="text-xs text-label-primary font-mono truncate px-4">{bulkFile.name}</p>
                   )}
                 </div>
 
@@ -3141,7 +3141,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   <button
                     onClick={handleBulkUpload}
                     disabled={!bulkFile || actionLoading}
-                    className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary  text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 disabled:opacity-50"
                   >
                     {actionLoading && <Loader2 size={12} className="animate-spin" />}
                     <span>Upload Now</span>
@@ -3155,7 +3155,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* DESIGN IMAGE FULLSCREEN LIGHTBOX */}
         <AnimatePresence>
           {previewModalImg && (
-            <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -3163,7 +3163,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center"
               >
                 <div className="w-full flex justify-between items-center pb-3 text-label-primary ">
-                  <span className="text-xs font-bold text-label-primary /80">Reference Design Mockup</span>
+                  <span className="text-xs font-bold text-label-secondary">Reference Design Mockup</span>
                   <button
                     onClick={() => setPreviewModalImg(null)}
                     className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-label-primary "
@@ -3171,7 +3171,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     <X size={18} />
                   </button>
                 </div>
-                <div className="overflow-auto max-h-[82vh] rounded-2xl border border-black/10 dark:border-white/20 bg-black/60 p-2">
+                <div className="overflow-auto max-h-[82vh] rounded-2xl border border-separator bg-black/60 p-2">
                   <img
                     src={previewModalImg}
                     alt="Design Reference Full"
@@ -3186,7 +3186,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* FIGMA EMBED PREVIEW MODAL */}
         <AnimatePresence>
           {previewFigmaUrl && (
-            <div className="fixed inset-0 z-70 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
+            <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -3234,7 +3234,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* SUBMISSION DETAIL INSPECTION MODAL */}
         <AnimatePresence>
           {inspectingSub && (
-            <div className="fixed inset-0 z-70 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md">
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -3551,7 +3551,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* DESIGN SUBMISSION EVALUATION DRAWER / MODAL */}
         <AnimatePresence>
           {evaluatingSub && (
-            <div className="fixed inset-0 z-70 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md">
+            <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -3566,7 +3566,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     <div>
                       <h4 className="text-sm font-bold text-label-primary ">Evaluate Figma Design</h4>
                       <p className="text-xs text-text-muted">
-                        Student: <span className="text-label-primary  font-semibold">{evaluatingSub.userId?.name}</span> ({evaluatingSub.userId?.rollNo || evaluatingSub.userId?.email})
+                        Student: <span className="text-label-primary font-semibold">{evaluatingSub.userId?.name}</span> ({evaluatingSub.userId?.rollNo || evaluatingSub.userId?.email})
                       </p>
                     </div>
                   </div>
@@ -3594,7 +3594,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   {evaluatingSub.designSubmission?.notes && (
                     <div className="pt-1 text-xs">
                       <span className="text-text-muted block text-[10px] uppercase font-bold tracking-wider mb-0.5">Student Notes:</span>
-                      <p className="text-label-primary /80 bg-white/5 p-2 rounded-lg text-[11px] leading-relaxed">
+                      <p className="text-label-secondary bg-white/5 p-2 rounded-lg text-[11px] leading-relaxed">
                         {evaluatingSub.designSubmission.notes}
                       </p>
                     </div>
@@ -3625,7 +3625,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-label-primary  mb-1.5">
+                    <label className="block text-xs font-bold text-label-primary mb-1.5">
                       Reviewer Feedback / Comments
                     </label>
                     <textarea
@@ -3633,7 +3633,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       value={evalFeedback}
                       onChange={(e) => setEvalFeedback(e.target.value)}
                       placeholder="e.g. Excellent layout spacing, responsive auto-layout implemented cleanly. Typography hierarchy is on point!"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-xs text-zinc-900  placeholder:text-zinc-400 dark:placeholder-white/30 focus:border-pink-500 outline-none resize-none leading-relaxed"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary focus:border-pink-500 outline-none resize-none leading-relaxed"
                     />
                   </div>
                 </div>
@@ -3650,7 +3650,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     type="button"
                     onClick={handleEvaluateSubmit}
                     disabled={actionLoading}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-label-primary  text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-label-primary text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-1.5 disabled:opacity-50"
                   >
                     {actionLoading && <Loader2 size={13} className="animate-spin" />}
                     <CheckCircle2 size={13} />

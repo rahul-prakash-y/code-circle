@@ -18,6 +18,7 @@ import toast from 'react-hot-toast';
 import ResponsiveModal from '../ui/ResponsiveModal';
 import McqBulkUploadModal from './McqBulkUploadModal';
 import TutorialButton from '../common/TutorialButton';
+import { HeroUISelect } from '../ui/HeroUIComponents';
 
 const categories = ['Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
 
@@ -332,17 +333,13 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
               <label className="text-[11px] font-semibold uppercase tracking-wider text-label-secondary">
                 Category track
               </label>
-              <select
+              <HeroUISelect
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 bg-surface-secondary border border-separator rounded-2xl text-label-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all font-normal"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCategory(val)}
+                options={categories.map((cat) => ({ value: cat, label: cat }))}
+                size="sm"
+                className="w-full"
+              />
             </div>
 
             {/* Linked Event */}
@@ -350,18 +347,20 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
               <label className="text-[11px] font-semibold uppercase tracking-wider text-label-secondary">
                 Associate with event (optional)
               </label>
-              <select
+              <HeroUISelect
                 value={eventId}
-                onChange={(e) => setEventId(e.target.value)}
-                className="w-full px-4 py-3 bg-surface-secondary border border-separator rounded-2xl text-label-primary text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all font-normal"
-              >
-                <option value="">None (Standalone assessment)</option>
-                {events?.map((ev) => (
-                  <option key={ev._id} value={ev._id}>
-                    {ev.title} ({new Date(ev.date).toLocaleDateString()})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setEventId(val)}
+                options={[
+                  { value: '', label: 'None (Standalone assessment)' },
+                  ...(events || []).map((ev) => ({
+                    value: ev._id,
+                    label: `${ev.title} (${new Date(ev.date).toLocaleDateString()})`,
+                  })),
+                ]}
+                isSearchable
+                size="sm"
+                className="w-full"
+              />
             </div>
 
             {/* Time Limit */}

@@ -17,6 +17,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
 import TutorialButton from '../../common/TutorialButton';
+import { HeroUISelect } from '../../ui/HeroUIComponents';
 
 const AVAILABLE_LANGUAGES = [
   { id: 'c', label: 'C' },
@@ -378,19 +379,21 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-label-secondary font-semibold mb-1">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-label-secondary font-semibold text-xs">
                       Difficulty Level
                     </label>
-                    <select
+                    <HeroUISelect
                       value={difficulty}
-                      onChange={(e) => setDifficulty(e.target.value as any)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-label-primary text-xs focus:outline-none"
-                    >
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                    </select>
+                      onChange={(val) => setDifficulty(val as any)}
+                      options={[
+                        { value: 'Easy', label: 'Easy' },
+                        { value: 'Medium', label: 'Medium' },
+                        { value: 'Hard', label: 'Hard' },
+                      ]}
+                      size="sm"
+                      className="w-full"
+                    />
                   </div>
 
                   <div>

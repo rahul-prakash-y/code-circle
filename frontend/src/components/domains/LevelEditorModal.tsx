@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CodingBulkUploadModal from '../coding/admin/CodingBulkUploadModal';
+import { HeroUISelect } from '../ui/HeroUIComponents';
 
 interface IVideoField {
   id: string;
@@ -751,31 +752,36 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
               </div>
 
               {/* Add question from existing list */}
-              <div className="flex items-center gap-2 pt-1 border-t border-separator/60">
-                <select
-                  value={candidateChallengeId}
-                  onChange={(e) => setCandidateChallengeId(e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-xl bg-surface border border-separator text-xs text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer"
-                >
-                  <option value="">-- Add existing question to pool --</option>
-                  {codingChallenges
-                    .filter(
-                      (ch) =>
-                        !codingPool.some(
-                          (p: any) => (typeof p === 'object' ? p._id : p) === ch._id
+              <div className="flex items-center gap-2 pt-2 border-t border-separator/60">
+                <div className="flex-1 min-w-0">
+                  <HeroUISelect
+                    value={candidateChallengeId}
+                    onChange={(val) => setCandidateChallengeId(val)}
+                    placeholder="-- Add existing question to pool --"
+                    options={[
+                      { value: '', label: '-- Add existing question to pool --' },
+                      ...codingChallenges
+                        .filter(
+                          (ch) =>
+                            !codingPool.some(
+                              (p: any) => (typeof p === 'object' ? p._id : p) === ch._id
+                            )
                         )
-                    )
-                    .map((ch) => (
-                      <option key={ch._id} value={ch._id}>
-                        {ch.title} [{ch.difficulty || 'Medium'}]
-                      </option>
-                    ))}
-                </select>
+                        .map((ch) => ({
+                          value: ch._id,
+                          label: `${ch.title} [${ch.difficulty || 'Medium'}]`,
+                        })),
+                    ]}
+                    isSearchable
+                    size="sm"
+                    className="w-full"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => handleAddToPool(candidateChallengeId)}
                   disabled={!candidateChallengeId}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 disabled:opacity-40 transition cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 disabled:opacity-40 transition cursor-pointer shrink-0 min-h-[36px]"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add</span>
@@ -783,25 +789,28 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center justify-between">
                 <span>Linked MCQ Assessment (Unlocked on Pass)</span>
                 <span className="text-[11px] font-normal text-purple-600 dark:text-purple-400">
                   Optional
                 </span>
               </label>
-              <select
+              <HeroUISelect
                 value={assessmentId}
-                onChange={(e) => setAssessmentId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-surface-secondary border border-separator text-sm text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer"
-              >
-                <option value="">None (Advances to next level only)</option>
-                {assessments.map((ass) => (
-                  <option key={ass._id} value={ass._id}>
-                    {ass.title} ({ass.category || 'General'}) - {ass.questions?.length || 0} Questions
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setAssessmentId(val)}
+                placeholder="None (Advances to next level only)"
+                options={[
+                  { value: '', label: 'None (Advances to next level only)' },
+                  ...assessments.map((ass) => ({
+                    value: ass._id,
+                    label: `${ass.title} (${ass.category || 'General'}) - ${ass.questions?.length || 0} Questions`,
+                  })),
+                ]}
+                isSearchable
+                size="sm"
+                className="w-full"
+              />
               <p className="text-[11px] text-label-secondary">
                 Students will be awarded and granted direct access to this evaluation upon passing this level's requirements.
               </p>
@@ -849,17 +858,19 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1">
-                      <select
+                      <HeroUISelect
                         value={mat.type}
-                        onChange={(e) => handleUpdateMaterial(idx, 'type', e.target.value)}
-                        className="px-2 py-1 rounded-lg bg-surface border border-separator text-xs font-semibold text-label-primary"
-                      >
-                        <option value="notes">Notes</option>
-                        <option value="link">Link</option>
-                        <option value="code">Code</option>
-                        <option value="article">Article</option>
-                        <option value="pdf">PDF</option>
-                      </select>
+                        onChange={(val) => handleUpdateMaterial(idx, 'type', val)}
+                        options={[
+                          { value: 'notes', label: 'Notes' },
+                          { value: 'link', label: 'Link' },
+                          { value: 'code', label: 'Code' },
+                          { value: 'article', label: 'Article' },
+                          { value: 'pdf', label: 'PDF' },
+                        ]}
+                        size="sm"
+                        className="w-28 shrink-0"
+                      />
                       <input
                         type="text"
                         value={mat.title}
