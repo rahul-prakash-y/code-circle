@@ -48,6 +48,8 @@ import {
   EmilTooltipGroup,
   EmilTooltip,
 } from '@/components/ui/emil-ui';
+import { HeroInput, HeroUser, HeroAvatar } from '@/components/ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
 
 export interface StudentSummary {
   _id: string;
@@ -219,46 +221,29 @@ export const StudentTrackingTable: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Snappy Search Bar & Filter Controls (Instant Keyboard Response) ── */}
+        {/* ── Snappy Search Bar & Filter Controls (HeroUI & Instant Keyboard Response) ── */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 pt-1 w-full">
-          {/* Real-time search with clear button */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
-            <input
-              type="text"
+          {/* Search Box with HeroUI Apple Glass styling */}
+          <div className="flex-1">
+            <HeroInput
+              variant="flat"
+              placeholder="Search student by name, roll number, or email (Instant)..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search student by name, roll number, or email (Instant)..."
-              className="w-full pl-10 pr-10 py-2.5 min-h-[44px] bg-canvas rounded-2xl text-[16px] md:text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent/40 border border-separator transition-shadow"
+              startContent={<Search className="w-4 h-4 text-text-muted" />}
+              isClearable
+              onClear={() => setSearchInput('')}
             />
-            {searchInput && (
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.97 }}
-                transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
-                onClick={() => setSearchInput('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 cursor-pointer"
-                aria-label="Clear search"
-              >
-                <X className="w-4 h-4" />
-              </motion.button>
-            )}
           </div>
 
-          {/* Department Filter Dropdown */}
-          <div className="relative shrink-0 w-full md:w-auto">
-            <select
+          {/* Department Filter with HeroUI Select */}
+          <div className="shrink-0 w-full md:w-64">
+            <HeroUISelect
               value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="w-full md:w-auto appearance-none bg-canvas text-text-primary text-[16px] md:text-sm font-medium rounded-2xl px-4 py-2.5 pr-8 min-h-[44px] outline-none cursor-pointer border border-separator focus:ring-2 focus:ring-accent/40 transition-shadow"
-            >
-              {departmentsList.map((dep) => (
-                <option key={dep.value} value={dep.value} className="bg-surface text-text-primary">
-                  {dep.label}
-                </option>
-              ))}
-            </select>
-            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+              onChange={(val) => setDepartment(val)}
+              options={departmentsList.map((dep) => ({ value: dep.value, label: dep.label }))}
+              placeholder="Filter by Department..."
+            />
           </div>
         </div>
       </motion.div>
@@ -409,26 +394,28 @@ export const StudentTrackingTable: React.FC = () => {
                       onClick={() => handleRowClick(student._id)}
                       className="group hover:bg-surface-elevated/50 cursor-pointer transition-colors duration-150"
                     >
-                      {/* Student identity */}
+                      {/* Student identity — HeroUser with Avatar isBordered */}
                       <td className="py-3.5 px-4 sm:px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0 shadow-sm">
-                            {student.name.charAt(0)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-semibold text-text-primary truncate group-hover:text-accent transition-colors flex items-center gap-1.5">
-                              <span className="truncate">{student.name}</span>
+                        <HeroUser
+                          name={student.name}
+                          description={
+                            <div className="flex items-center gap-1.5 text-xs font-mono text-text-muted">
+                              <span>{student.rollNo}</span>
                               {student.isRestricted && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30 shrink-0">
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30">
                                   Restricted
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs font-mono text-text-muted truncate">
-                              {student.rollNo}
-                            </div>
-                          </div>
-                        </div>
+                          }
+                          avatarProps={{
+                            src: student.profilePicUrl,
+                            name: student.name,
+                            isBordered: true,
+                            color: 'primary',
+                            size: 'sm',
+                          }}
+                        />
                       </td>
 
                       {/* Department / Year */}

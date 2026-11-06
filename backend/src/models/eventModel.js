@@ -257,6 +257,11 @@ const eventSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  certificateTemplateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CertificateTemplate',
+    default: null
+  },
   customFields: [
     {
       id: { type: String },

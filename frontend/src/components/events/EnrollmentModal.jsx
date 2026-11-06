@@ -1,7 +1,8 @@
 import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, Plus, Trash2, CheckCircle, AlertCircle, Loader2, UserPlus, Sliders } from 'lucide-react';
+import { X, Users, Plus, Trash2, CheckCircle, AlertCircle, UserPlus, Sliders } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import { toast } from 'react-hot-toast';
 
@@ -213,26 +214,30 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
                           className="flex-1 bg-surface-elevated/80 border border-slate-700/50 rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-indigo-500 transition-all"
                           required
                         />
-                        <button
+                        <Button
                           type="button"
-                          onClick={() => handleRemoveMember(index)}
-                          className="p-2 text-text-muted hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                          variant="danger"
+                          isIconOnly
+                          size="sm"
+                          onPress={() => handleRemoveMember(index)}
+                          className="rounded-xl"
                         >
-                          <Trash2 size={18} />
-                        </button>
+                          <Trash2 size={16} />
+                        </Button>
                       </motion.div>
                     ))}
                   </AnimatePresence>
 
                   {members.length < maxAdditionalMembers && (
-                    <button
+                    <Button
                       type="button"
-                      onClick={handleAddMember}
-                      className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-semibold text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/5 border border-dashed border-indigo-500/30 rounded-xl transition-all group"
+                      variant="secondary"
+                      onPress={handleAddMember}
+                      className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-semibold border border-dashed rounded-xl group"
                     >
                       <Plus size={14} className="group-hover:rotate-90 transition-transform" />
                       Add Member
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -338,29 +343,31 @@ const EnrollmentModal = ({ isOpen, onClose, event }) => {
 
           {/* Action Buttons */}
           <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-            <button
+            <Button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+              variant="secondary"
+              onPress={onClose}
+              className="px-4 py-2 rounded-full text-xs font-medium"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={loading || isFull}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition cursor-pointer shadow"
+              variant="primary"
+              isDisabled={loading || isFull}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold shadow"
             >
               {loading ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
+                <div className="flex items-center gap-2">
+                  <Spinner size="sm" color="default" />
                   <span>Processing...</span>
-                </>
+                </div>
               ) : isFull ? (
                 'Registration Full'
               ) : (
                 'Confirm Enrollment'
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

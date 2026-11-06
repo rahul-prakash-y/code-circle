@@ -26,6 +26,7 @@ export async function userRoutes(fastify: FastifyInstance) {
 
     // Paginated User Directory & CRUD
     instance.get('/', userManagementController.getUsers);
+    instance.get('/export', userManagementController.exportUsersToExcel);
     instance.post('/', userManagementController.createUser);
     instance.put('/:id', userManagementController.updateUser);
     instance.delete('/:id', userManagementController.deleteUser);

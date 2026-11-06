@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@heroui/react';
+import { HeroInput } from '../components/ui/HeroUIComponents';
 import {
   Activity,
   Server,
@@ -239,28 +241,36 @@ export const DiagnosticsPage: React.FC = () => {
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Tabs */}
           <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
-            <button
-              onClick={() => setActiveTab('health')}
-              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            <Button
+              size="sm"
+              radius="lg"
+              variant={activeTab === 'health' ? 'solid' : 'light'}
+              color={activeTab === 'health' ? 'primary' : 'default'}
+              onPress={() => setActiveTab('health')}
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] text-xs font-bold transition-all ${
                 activeTab === 'health'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  ? 'text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
               }`}
+              startContent={<Activity size={15} />}
             >
-              <Activity size={15} />
-              <span>System Health</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('database')}
-              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              System Health
+            </Button>
+            <Button
+              size="sm"
+              radius="lg"
+              variant={activeTab === 'database' ? 'solid' : 'light'}
+              color={activeTab === 'database' ? 'primary' : 'default'}
+              onPress={() => setActiveTab('database')}
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] text-xs font-bold transition-all ${
                 activeTab === 'database'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  ? 'text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
               }`}
+              startContent={<Database size={15} />}
             >
-              <Database size={15} />
-              <span>Database Manager</span>
-            </button>
+              Database Manager
+            </Button>
           </div>
         </div>
       </div>
@@ -374,24 +384,29 @@ export const DiagnosticsPage: React.FC = () => {
               </div>
 
               <div className="pt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={fetchHealth}
-                  disabled={loadingHealth}
-                  className="flex-1 py-1.5 px-3 min-h-[38px] bg-surface-secondary hover:bg-surface border border-separator text-xs font-bold text-label-primary rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                <Button
+                  size="sm"
+                  radius="lg"
+                  variant="bordered"
+                  onPress={fetchHealth}
+                  isLoading={loadingHealth}
+                  className="flex-1 py-1.5 px-3 min-h-[38px] bg-surface-secondary hover:bg-surface border-separator text-xs font-bold text-label-primary"
+                  startContent={loadingHealth ? undefined : <RefreshCw size={12} />}
                 >
-                  <RefreshCw size={12} className={loadingHealth ? 'animate-spin' : ''} />
-                  <span>Refresh</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={syncCache}
-                  disabled={syncing}
-                  className="flex-1 py-1.5 px-3 min-h-[38px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  Refresh
+                </Button>
+                <Button
+                  size="sm"
+                  radius="lg"
+                  color="primary"
+                  variant="solid"
+                  onPress={syncCache}
+                  isLoading={syncing}
+                  className="flex-1 py-1.5 px-3 min-h-[38px] text-xs font-bold shadow-xs hover:brightness-110"
+                  startContent={syncing ? undefined : <Zap size={12} />}
                 >
-                  <Zap size={12} className={syncing ? 'animate-spin' : ''} />
-                  <span>Sync Cache</span>
-                </button>
+                  Sync Cache
+                </Button>
               </div>
             </div>
           </div>
@@ -455,38 +470,49 @@ export const DiagnosticsPage: React.FC = () => {
               <span className="text-xs font-bold text-label-secondary uppercase tracking-wider">
                 MongoDB Collections ({totalCollections}) · {totalDocuments} Total Documents
               </span>
-              <button
-                onClick={fetchDatabaseStats}
-                className="p-2 min-w-[34px] min-h-[34px] text-label-secondary hover:text-label-primary transition-colors inline-flex items-center justify-center cursor-pointer"
+              <Button
+                isIconOnly
+                size="sm"
+                radius="lg"
+                variant="light"
+                onPress={fetchDatabaseStats}
+                isLoading={loadingDb}
+                className="text-label-secondary hover:text-label-primary min-w-[34px] min-h-[34px]"
                 title="Refresh Collections"
               >
                 <RefreshCw size={14} className={loadingDb ? 'animate-spin' : ''} />
-              </button>
+              </Button>
             </div>
 
             <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
               {databaseStats.map((col) => (
-                <button
+                <Button
                   key={col.name}
-                  onClick={() => handleSelectCollection(col.name)}
-                  className={`px-3.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ${
+                  size="sm"
+                  radius="lg"
+                  variant={selectedCollection === col.name ? 'solid' : 'flat'}
+                  color={selectedCollection === col.name ? 'primary' : 'default'}
+                  onPress={() => handleSelectCollection(col.name)}
+                  className={`px-3.5 py-2 min-h-[38px] text-xs font-semibold border transition-all ${
                     selectedCollection === col.name
-                      ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
-                      : 'bg-surface-secondary border-separator text-label-primary hover:border-primary/40 hover:bg-surface'
+                      ? 'border-primary shadow-sm shadow-primary/20'
+                      : 'border-separator hover:border-primary/40'
                   }`}
+                  startContent={<Database size={13} />}
+                  endContent={
+                    <span
+                      className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                        selectedCollection === col.name
+                          ? 'bg-white/20 text-white'
+                          : 'bg-surface border border-separator/60 text-label-secondary'
+                      }`}
+                    >
+                      {col.count}
+                    </span>
+                  }
                 >
-                  <Database size={13} />
-                  <span>{col.name}</span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-                      selectedCollection === col.name
-                        ? 'bg-white/20 text-white'
-                        : 'bg-surface border border-separator/60 text-label-secondary'
-                    }`}
-                  >
-                    {col.count}
-                  </span>
-                </button>
+                  {col.name}
+                </Button>
               ))}
             </div>
           </div>
@@ -506,27 +532,32 @@ export const DiagnosticsPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:w-52">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary pointer-events-none" />
-                    <input
-                      type="text"
+                  <div className="flex-1 sm:w-56">
+                    <HeroInput
+                      size="sm"
+                      radius="xl"
                       value={docSearch}
-                      onChange={(e) => {
-                        setDocSearch(e.target.value);
-                        fetchCollectionDocuments(selectedCollection, 1, 20, e.target.value);
+                      onValueChange={(val) => {
+                        setDocSearch(val);
+                        fetchCollectionDocuments(selectedCollection, 1, 20, val);
                       }}
                       placeholder="Search records..."
-                      className="w-full pl-8 pr-3 py-2 min-h-[38px] text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary focus:bg-surface"
+                      startContent={<Search size={14} className="text-label-tertiary pointer-events-none" />}
+                      isClearable
                     />
                   </div>
 
-                  <button
-                    onClick={() => setIsNewDocModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 min-h-[38px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all shrink-0 cursor-pointer"
+                  <Button
+                    size="sm"
+                    radius="xl"
+                    color="primary"
+                    variant="solid"
+                    onPress={() => setIsNewDocModalOpen(true)}
+                    startContent={<Plus size={14} />}
+                    className="px-3.5 py-2 min-h-[38px] text-xs font-bold shadow-xs hover:brightness-110 shrink-0"
                   >
-                    <Plus size={14} />
-                    <span>Insert Doc</span>
-                  </button>
+                    Insert Doc
+                  </Button>
                 </div>
               </div>
 
@@ -536,14 +567,18 @@ export const DiagnosticsPage: React.FC = () => {
                   <span className="text-xs font-bold text-primary">
                     {selectedRowIds.length} document(s) selected
                   </span>
-                  <button
-                    onClick={handleBatchDelete}
-                    disabled={batchDeleting}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] bg-destructive text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition-all disabled:opacity-50 cursor-pointer"
+                  <Button
+                    size="sm"
+                    radius="xl"
+                    color="danger"
+                    variant="solid"
+                    onPress={handleBatchDelete}
+                    isLoading={batchDeleting}
+                    startContent={batchDeleting ? undefined : <Trash2 size={13} />}
+                    className="px-3.5 py-1.5 min-h-[36px] text-xs font-bold shadow-xs hover:brightness-110"
                   >
-                    <Trash2 size={13} className={batchDeleting ? 'animate-spin' : ''} />
-                    <span>{batchDeleting ? 'Deleting...' : 'Delete Selected'}</span>
-                  </button>
+                    {batchDeleting ? 'Deleting...' : 'Delete Selected'}
+                  </Button>
                 </div>
               )}
 
@@ -554,10 +589,13 @@ export const DiagnosticsPage: React.FC = () => {
                     {selectedCollection === 'users' ? (
                       <tr>
                         <th className="py-3 px-3 w-10 text-center">
-                          <button
-                            type="button"
-                            onClick={handleToggleSelectAll}
-                            className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            radius="sm"
+                            onPress={handleToggleSelectAll}
+                            className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                           >
                             {selectedRowIds.length === collectionDocs.length &&
                             collectionDocs.length > 0 ? (
@@ -565,7 +603,7 @@ export const DiagnosticsPage: React.FC = () => {
                             ) : (
                               <Square size={15} />
                             )}
-                          </button>
+                          </Button>
                         </th>
                         <th className="py-3 px-4">User Name & Account</th>
                         <th className="py-3 px-4">Role & Status</th>
@@ -576,10 +614,13 @@ export const DiagnosticsPage: React.FC = () => {
                     ) : (
                       <tr>
                         <th className="py-3 px-3 w-10 text-center">
-                          <button
-                            type="button"
-                            onClick={handleToggleSelectAll}
-                            className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            radius="sm"
+                            onPress={handleToggleSelectAll}
+                            className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                           >
                             {selectedRowIds.length === collectionDocs.length &&
                             collectionDocs.length > 0 ? (
@@ -587,7 +628,7 @@ export const DiagnosticsPage: React.FC = () => {
                             ) : (
                               <Square size={15} />
                             )}
-                          </button>
+                          </Button>
                         </th>
                         <th className="py-3 px-4">_id</th>
                         <th className="py-3 px-4">User Name</th>
@@ -621,17 +662,20 @@ export const DiagnosticsPage: React.FC = () => {
                             }`}
                           >
                             <td className="py-3 px-3 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleSelectRow(doc._id)}
-                                className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                radius="sm"
+                                onPress={() => handleToggleSelectRow(doc._id)}
+                                className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                               >
                                 {isSelected ? (
                                   <CheckSquare size={15} className="text-primary" />
                                 ) : (
                                   <Square size={15} />
                                 )}
-                              </button>
+                              </Button>
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-2.5">
@@ -672,9 +716,13 @@ export const DiagnosticsPage: React.FC = () => {
                                 <span className="font-mono text-primary font-bold text-[11px]">
                                   {doc._id.slice(0, 10)}...
                                 </span>
-                                <button
-                                  onClick={(e) => handleCopyId(doc._id, e)}
-                                  className="text-label-tertiary hover:text-label-primary p-1.5 rounded-md min-w-[28px] min-h-[28px] inline-flex items-center justify-center cursor-pointer"
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  radius="md"
+                                  onPress={(e) => handleCopyId(doc._id, e as any)}
+                                  className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                                   title="Copy ObjectId"
                                 >
                                   {copiedId === doc._id ? (
@@ -682,7 +730,7 @@ export const DiagnosticsPage: React.FC = () => {
                                   ) : (
                                     <Copy size={12} />
                                   )}
-                                </button>
+                                </Button>
                               </div>
                             </td>
                             <td className="py-3 px-4 text-label-tertiary font-mono text-[11px]">
@@ -690,27 +738,41 @@ export const DiagnosticsPage: React.FC = () => {
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="inline-flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => setViewDoc(doc)}
-                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors cursor-pointer"
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  radius="lg"
+                                  onPress={() => setViewDoc(doc)}
+                                  className="min-w-[32px] min-h-[32px] w-8 h-8 text-label-secondary hover:text-label-primary hover:bg-surface-secondary"
                                   title="Inspect Document"
                                 >
                                   <Eye size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setEditDoc(doc)}
-                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
+                                </Button>
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  color="primary"
+                                  radius="lg"
+                                  onPress={() => setEditDoc(doc)}
+                                  className="min-w-[32px] min-h-[32px] w-8 h-8 hover:bg-primary/10"
                                   title="Edit Form"
                                 >
                                   <Edit2 size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setDeleteDoc(doc)}
-                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-destructive/10 text-destructive rounded-lg transition-colors cursor-pointer"
+                                </Button>
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  color="danger"
+                                  radius="lg"
+                                  onPress={() => setDeleteDoc(doc)}
+                                  className="min-w-[32px] min-h-[32px] w-8 h-8 hover:bg-destructive/10"
                                   title="Delete Record"
                                 >
                                   <Trash2 size={14} />
-                                </button>
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -729,26 +791,33 @@ export const DiagnosticsPage: React.FC = () => {
                             }`}
                           >
                             <td className="py-3 px-3 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleSelectRow(doc._id)}
-                                className="text-label-tertiary hover:text-label-primary cursor-pointer p-1"
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                radius="sm"
+                                onPress={() => handleToggleSelectRow(doc._id)}
+                                className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                               >
                                 {isSelected ? (
                                   <CheckSquare size={15} className="text-primary" />
                                 ) : (
                                   <Square size={15} />
                                 )}
-                              </button>
+                              </Button>
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-1">
                                 <span className="font-mono text-primary font-bold text-[11px]">
                                   {doc._id.slice(0, 10)}...
                                 </span>
-                                <button
-                                  onClick={(e) => handleCopyId(doc._id, e)}
-                                  className="text-label-tertiary hover:text-label-primary p-1.5 rounded-md min-w-[28px] min-h-[28px] inline-flex items-center justify-center cursor-pointer"
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  radius="md"
+                                  onPress={(e) => handleCopyId(doc._id, e as any)}
+                                  className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                                   title="Copy ObjectId"
                                 >
                                   {copiedId === doc._id ? (
@@ -756,7 +825,7 @@ export const DiagnosticsPage: React.FC = () => {
                                   ) : (
                                     <Copy size={12} />
                                   )}
-                                </button>
+                                </Button>
                               </div>
                             </td>
                             <td className="py-3 px-4">
@@ -774,27 +843,41 @@ export const DiagnosticsPage: React.FC = () => {
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="inline-flex items-center justify-end gap-1">
-                                <button
-                                  onClick={() => setViewDoc(doc)}
-                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg transition-colors cursor-pointer"
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  radius="lg"
+                                  onPress={() => setViewDoc(doc)}
+                                  className="min-w-[32px] min-h-[32px] w-8 h-8 text-label-secondary hover:text-label-primary hover:bg-surface-secondary"
                                   title="Inspect Document"
                                 >
                                   <Eye size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setEditDoc(doc)}
-                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
+                                </Button>
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  color="primary"
+                                  radius="lg"
+                                  onPress={() => setEditDoc(doc)}
+                                  className="min-w-[32px] min-h-[32px] w-8 h-8 hover:bg-primary/10"
                                   title="Edit Form"
                                 >
                                   <Edit2 size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setDeleteDoc(doc)}
-                                  className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-destructive/10 text-destructive rounded-lg transition-colors cursor-pointer"
+                                </Button>
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  color="danger"
+                                  radius="lg"
+                                  onPress={() => setDeleteDoc(doc)}
+                                  className="min-w-[32px] min-h-[32px] w-8 h-8 hover:bg-destructive/10"
                                   title="Delete Record"
                                 >
                                   <Trash2 size={14} />
-                                </button>
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -811,9 +894,13 @@ export const DiagnosticsPage: React.FC = () => {
                   Page {collectionPagination.page} of {collectionPagination.pages || 1}
                 </span>
                 <div className="flex items-center gap-2">
-                  <button
-                    disabled={collectionPagination.page <= 1}
-                    onClick={() =>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    radius="lg"
+                    isDisabled={collectionPagination.page <= 1}
+                    onPress={() =>
                       fetchCollectionDocuments(
                         selectedCollection,
                         collectionPagination.page - 1,
@@ -821,13 +908,17 @@ export const DiagnosticsPage: React.FC = () => {
                         docSearch
                       )
                     }
-                    className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors cursor-pointer"
+                    className="min-w-[34px] min-h-[34px] w-8 h-8 bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator hover:bg-surface"
                   >
                     <ChevronLeft size={16} />
-                  </button>
-                  <button
-                    disabled={collectionPagination.page >= collectionPagination.pages}
-                    onClick={() =>
+                  </Button>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    radius="lg"
+                    isDisabled={collectionPagination.page >= collectionPagination.pages}
+                    onPress={() =>
                       fetchCollectionDocuments(
                         selectedCollection,
                         collectionPagination.page + 1,
@@ -835,10 +926,10 @@ export const DiagnosticsPage: React.FC = () => {
                         docSearch
                       )
                     }
-                    className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center bg-surface-secondary text-label-secondary hover:text-label-primary rounded-lg border border-separator disabled:opacity-30 hover:bg-surface transition-colors cursor-pointer"
+                    className="min-w-[34px] min-h-[34px] w-8 h-8 bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator hover:bg-surface"
                   >
                     <ChevronRight size={16} />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

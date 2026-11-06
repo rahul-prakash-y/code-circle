@@ -132,50 +132,48 @@ const AdminAnalytics = () => {
             <AreaChart data={growthData}>
               <defs>
                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={isDark ? '#38bdf8' : '#0071E3'} stopOpacity={isDark ? 0.35 : 0.2}/>
-                  <stop offset="95%" stopColor={isDark ? '#38bdf8' : '#0071E3'} stopOpacity={0}/>
+                  <stop offset="5%" stopColor="var(--accent)" stopOpacity={isDark ? 0.35 : 0.2}/>
+                  <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid 
                 strokeDasharray="3 3" 
-                stroke={isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'} 
+                stroke="var(--separator)" 
                 vertical={false} 
               />
               <XAxis 
                 dataKey="monthName" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: isDark ? '#A1A1A6' : '#86868B', fontSize: 12 }}
+                tick={{ fill: 'var(--label-secondary)', fontSize: 12 }}
                 dy={10}
               />
               <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: isDark ? '#A1A1A6' : '#86868B', fontSize: 12 }}
+                tick={{ fill: 'var(--label-secondary)', fontSize: 12 }}
               />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', 
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)', 
+                  backgroundColor: 'var(--surface)', 
+                  borderColor: 'var(--separator)', 
                   borderRadius: '14px',
-                  color: isDark ? '#F5F5F7' : '#1D1D1F',
-                  boxShadow: isDark
-                    ? '0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3)'
-                    : '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+                  color: 'var(--label-primary)',
+                  boxShadow: 'var(--shadow-lg)',
                   padding: '10px 14px',
                 }}
                 labelStyle={{
-                  color: isDark ? '#F5F5F7' : '#1D1D1F',
+                  color: 'var(--label-primary)',
                   fontWeight: 600,
                   fontSize: '13px',
                   marginBottom: '4px',
                 }}
-                itemStyle={{ color: isDark ? '#38bdf8' : '#0071E3', fontSize: '12px', fontWeight: 500 }}
+                itemStyle={{ color: 'var(--accent)', fontSize: '12px', fontWeight: 500 }}
               />
               <Area 
                 type="monotone" 
                 dataKey="count" 
-                stroke={isDark ? '#38bdf8' : '#0071E3'} 
+                stroke="var(--accent)" 
                 strokeWidth={2.5}
                 fillOpacity={1} 
                 fill="url(#colorCount)" 

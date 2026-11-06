@@ -10,13 +10,13 @@ import {
   AlertCircle,
   Users,
   UserCheck,
-  Loader2,
   Calendar,
   Sparkles,
   ArrowRight,
   RefreshCw,
   FileText,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
@@ -225,20 +225,22 @@ export const EventBulkUploadModal = ({
                 </span>
               </div>
 
-              <button
+              <Button
                 type="button"
-                onClick={handleDownloadTemplate}
-                disabled={downloadingTemplate}
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-separator text-accent hover:bg-surface-raised transition cursor-pointer shadow-2xs"
+                size="sm"
+                variant="secondary"
+                onPress={handleDownloadTemplate}
+                isDisabled={downloadingTemplate}
+                className="shrink-0 text-xs font-semibold shadow-2xs"
                 title="Download standard Excel template with sample student records"
               >
                 {downloadingTemplate ? (
-                  <Loader2 size={13} className="animate-spin" />
+                  <Spinner size="sm" color="default" />
                 ) : (
                   <Download size={13} />
                 )}
                 <span>Download Sample Template (.xlsx)</span>
-              </button>
+              </Button>
             </div>
 
             {/* Attendance Mode Selector */}
@@ -449,39 +451,49 @@ export const EventBulkUploadModal = ({
 
           {/* Footer Actions */}
           <div className="pt-4 border-t border-separator flex items-center justify-between gap-3 shrink-0">
-            <button
+            <Button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+              variant="secondary"
+              onPress={onClose}
+              className="px-4 py-2 rounded-full text-xs font-medium"
             >
               Close
-            </button>
+            </Button>
 
             <div className="flex items-center gap-2">
               {uploadResult && (
-                <button
+                <Button
                   type="button"
-                  onClick={handleReset}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary flex items-center gap-1.5 cursor-pointer transition"
+                  variant="secondary"
+                  size="sm"
+                  onPress={handleReset}
+                  className="rounded-full text-xs font-medium flex items-center gap-1.5"
                 >
                   <RefreshCw size={13} />
                   <span>Upload Another</span>
-                </button>
+                </Button>
               )}
 
-              <button
+              <Button
                 type="button"
-                onClick={handleUploadSubmit}
-                disabled={!file || loading}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+                variant="primary"
+                color="success"
+                onPress={handleUploadSubmit}
+                isDisabled={!file || loading}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow"
               >
                 {loading ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <div className="flex items-center gap-2">
+                    <Spinner size="sm" color="default" />
+                    <span>Processing...</span>
+                  </div>
                 ) : (
-                  <Upload size={14} />
+                  <div className="flex items-center gap-2">
+                    <Upload size={14} />
+                    <span>Upload & Enroll Students</span>
+                  </div>
                 )}
-                <span>{loading ? 'Processing...' : 'Upload & Enroll Students'}</span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>

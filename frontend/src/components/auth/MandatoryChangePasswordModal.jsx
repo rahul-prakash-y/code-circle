@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Lock, KeyRound, Eye, EyeOff, CheckCircle2, Loader2, LogOut } from 'lucide-react';
+import { ShieldCheck, Lock, KeyRound, Eye, EyeOff, CheckCircle2, LogOut } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useAuthStore from '../../store/useAuthStore';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -187,32 +188,34 @@ export const MandatoryChangePasswordModal = () => {
 
             {/* Action buttons */}
             <div className="pt-4 border-t border-separator flex items-center justify-between gap-3">
-              <button
+              <Button
                 type="button"
-                onClick={handleSignOut}
-                className="text-xs font-medium text-label-tertiary hover:text-destructive flex items-center gap-1.5 transition-colors cursor-pointer"
+                variant="ghost"
+                onPress={handleSignOut}
+                className="text-xs font-medium text-label-tertiary hover:text-destructive flex items-center gap-1.5"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="submit"
-                disabled={loading || !currentPassword || newPassword.length < 6 || newPassword !== confirmNewPassword}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition cursor-pointer shadow"
+                variant="primary"
+                isDisabled={loading || !currentPassword || newPassword.length < 6 || newPassword !== confirmNewPassword}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold shadow"
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="animate-spin w-4 h-4" />
+                  <div className="flex items-center gap-2">
+                    <Spinner size="sm" color="default" />
                     <span>Saving...</span>
-                  </>
+                  </div>
                 ) : (
-                  <>
+                  <div className="flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4" />
                     <span>Set Password & Continue</span>
-                  </>
+                  </div>
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         </motion.div>

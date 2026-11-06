@@ -10,8 +10,8 @@ import {
   ToggleLeft,
   ToggleRight,
   Layers,
-  Loader2,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import { UserPickerInput } from './UserPickerInput';
 import { SchemaFieldMeta, UserLookupItem } from '../../../store/useDiagnosticsStore';
@@ -557,31 +557,36 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 pt-1">
-                    <button
+                    <Button
                       type="button"
-                      onClick={() => setShowAddField(false)}
-                      className="px-3 py-1.5 text-xs font-semibold text-label-secondary hover:text-label-primary cursor-pointer"
+                      size="sm"
+                      variant="secondary"
+                      onPress={() => setShowAddField(false)}
+                      className="px-3 py-1.5 text-xs font-semibold"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
-                      onClick={handleAddField}
-                      className="px-4 py-1.5 bg-accent text-white text-xs font-bold rounded-full shadow-xs hover:bg-accent-hover transition-all cursor-pointer"
+                      size="sm"
+                      variant="primary"
+                      onPress={handleAddField}
+                      className="px-4 py-1.5 text-xs font-bold rounded-full shadow-xs"
                     >
                       Confirm Add Field
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowAddField(true)}
-                  className="w-full py-2.5 px-4 rounded-2xl border border-dashed border-separator hover:border-accent/50 text-xs font-semibold text-label-secondary hover:text-accent transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  variant="secondary"
+                  onPress={() => setShowAddField(true)}
+                  className="w-full py-2.5 px-4 rounded-2xl border border-dashed border-separator hover:border-accent/50 text-xs font-semibold text-label-secondary hover:text-accent transition-all flex items-center justify-center gap-2"
                 >
                   <Plus size={15} />
                   <span>Add Custom Field</span>
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -589,29 +594,31 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
 
         {/* Footer */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors"
+            variant="secondary"
+            onPress={onClose}
+            isDisabled={saving}
+            className="px-4 py-2 rounded-full text-xs font-medium"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            onClick={handleSubmit}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-50 transition cursor-pointer shadow"
+            variant="primary"
+            onPress={handleSubmit}
+            isDisabled={saving}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold shadow"
           >
             {saving ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
                 <span>Saving...</span>
-              </>
+              </div>
             ) : (
               <span>{mode === 'create' ? 'Insert Record' : 'Save Changes'}</span>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

@@ -1,22 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import useServerStore from '../store/useServerStore';
 import AuthLayout from '../layouts/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck } from 'lucide-react';
+import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck, Eye, EyeOff, Server } from 'lucide-react';
 import { EmilButton, EmilModal } from '../components/ui/emil-ui';
+import { HeroInput } from '../components/ui/HeroUIComponents';
+import { Button, Spinner } from '@heroui/react';
+import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
 
 const Login = () => {
   const [identifier, setIdentifier] = useState(''); // email or rollNo
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
   // Forgot Password modal state
   const [showForgotModal, setShowForgotModal] = useState(false);
 
   const { login } = useAuthStore();
+  const { activeServerUrl, isConnecting, findFastestServer } = useServerStore();
   const navigate = useNavigate();
+
+  // Load Balancer: Discover optimal server node on initial visit if none pinned
+  useEffect(() => {
+    if (!activeServerUrl) {
+      findFastestServer();
+    }
+  }, [activeServerUrl, findFastestServer]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,7 +39,7 @@ const Login = () => {
     
     if (result.success) {
       if (result.requirePasswordChange || result.mustChangePassword || result.user?.mustChangePassword) {
-        toast('Please create your own secure password to complete onboarding', { icon: '🔐' });
+        toast('Please create your own secure password to complete onboarding');
         navigate('/setup-password');
       } else {
         toast.success('Welcome back to the circle!');
@@ -64,22 +77,19 @@ const Login = () => {
             hidden: { opacity: 0, y: 8 },
             visible: { opacity: 1, y: 0 }
           }}
-          className="space-y-1.5 sm:space-y-2"
         >
-          <label className="text-xs sm:text-sm font-semibold text-text-primary block tracking-tight">
-            Roll Number or Email
-          </label>
-          <div className="relative group">
-            <User className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-text-muted group-focus-within:text-accent transition-colors duration-200" />
-            <input 
-              type="text" 
-              required
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="e.g. 21CS001 or name@college.edu"
-              className="input-field pl-10 sm:pl-12 py-3 sm:py-3.5 min-h-[44px] text-sm sm:text-base w-full bg-surface-secondary/60 border border-separator rounded-xl focus:border-accent outline-none"
-            />
-          </div>
+          <HeroInput
+            label="Roll Number or Email"
+            labelPlacement="inside"
+            variant="flat"
+            isRequired
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="e.g. 21CS001 or name@college.edu"
+            startContent={<User className="w-4 h-4 text-text-muted" />}
+            isClearable
+            onClear={() => setIdentifier('')}
+          />
         </motion.div>
 
         <motion.div 
@@ -87,34 +97,46 @@ const Login = () => {
             hidden: { opacity: 0, y: 8 },
             visible: { opacity: 1, y: 0 }
           }}
-          className="space-y-1.5 sm:space-y-2"
+          className="space-y-1"
         >
-          <div className="flex justify-between items-center">
-            <label className="text-xs sm:text-sm font-semibold text-text-primary block tracking-tight">
-              Password
-            </label>
-            <button 
+          <HeroInput
+            label="Password"
+            labelPlacement="inside"
+            variant="flat"
+            type={showPassword ? 'text' : 'password'}
+            isRequired
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            startContent={<Lock className="w-4 h-4 text-text-muted" />}
+            endContent={
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                isIconOnly
+                onPress={() => setShowPassword(!showPassword)}
+                className="text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
+                aria-label="Toggle password visibility"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
+            }
+          />
+          <div className="flex justify-end pt-0.5 px-1">
+            <Button 
               type="button"
-              onClick={() => setShowForgotModal(true)}
-              className="text-xs text-text-muted hover:text-accent transition-colors font-medium cursor-pointer"
+              variant="ghost"
+              size="sm"
+              onPress={() => setShowForgotModal(true)}
+              className="text-xs text-text-muted hover:text-accent font-medium min-h-[28px] px-2 h-auto"
             >
               Forgot password?
-            </button>
-          </div>
-          <div className="relative group">
-            <Lock className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-text-muted group-focus-within:text-accent transition-colors duration-200" />
-            <input 
-              type="password" 
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="input-field pl-10 sm:pl-12 py-3 sm:py-3.5 min-h-[44px] text-sm sm:text-base w-full bg-surface-secondary/60 border border-separator rounded-xl focus:border-accent outline-none"
-            />
+            </Button>
           </div>
         </motion.div>
 
-        {/* Emil Kowalski Strict Rule: EmilButton with instant 0.97 tactile feedback */}
+        {/* Pre-Login Server State & EmilButton with Emil Kowalski entrance physics */}
         <motion.div 
           variants={{
             hidden: { opacity: 0, y: 8 },
@@ -122,14 +144,46 @@ const Login = () => {
           }}
           className="pt-2"
         >
-          <EmilButton 
-            type="submit" 
-            isLoading={loading}
-            size="lg"
-            className="w-full py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/20 cursor-pointer"
-          >
-            Sign In
-          </EmilButton>
+          <AnimatePresence mode="wait" initial={false}>
+            {isConnecting || !activeServerUrl ? (
+              <motion.div
+                key="locating-node"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: DURATION_MODAL, ease: EMIL_EASE_OUT }}
+                className="w-full py-3.5 min-h-[48px] rounded-xl bg-surface-secondary/80 border border-separator flex items-center justify-center gap-2.5 text-xs sm:text-sm font-medium text-text-muted select-none"
+              >
+                <Spinner size="sm" color="current" className="text-accent" />
+                <span>Locating optimal server node...</span>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="active-signin"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: DURATION_MODAL, ease: EMIL_EASE_OUT }}
+                className="space-y-2"
+              >
+                <EmilButton 
+                  type="submit" 
+                  isLoading={loading}
+                  size="lg"
+                  className="w-full py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/20 cursor-pointer"
+                >
+                  Sign In
+                </EmilButton>
+
+                {activeServerUrl && (
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] text-text-muted/70 tracking-tight">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Connected to {activeServerUrl.replace(/^https?:\/\//, '').split('.')[0] || 'active cluster'}</span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         <motion.p 

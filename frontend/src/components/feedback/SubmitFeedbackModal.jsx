@@ -13,6 +13,7 @@ import {
 import useFeedbackStore from '../../store/useFeedbackStore';
 import useEventStore from '../../store/useEventStore';
 import toast from 'react-hot-toast';
+import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
 
 const categories = [
   'General',
@@ -145,19 +146,17 @@ export const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) 
             <label className="text-xs font-semibold uppercase tracking-wider text-label-secondary">
               Select Event *
             </label>
-            <select
+            <HeroUISelect
               value={eventId}
-              onChange={(e) => setEventId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-separator bg-surface-secondary text-label-primary text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
-              required
-            >
-              <option value="">-- Choose an event to review --</option>
-              {events && events.map((ev) => (
-                <option key={ev._id} value={ev._id}>
-                  {ev.title} {ev.eventDate ? `(${new Date(ev.eventDate).toLocaleDateString()})` : ''}
-                </option>
-              ))}
-            </select>
+              onChange={setEventId}
+              placeholder="-- Choose an event to review --"
+              options={(events || []).map((ev) => ({
+                value: ev._id,
+                label: `${ev.title} ${ev.eventDate ? `(${new Date(ev.eventDate).toLocaleDateString()})` : ''}`,
+              }))}
+              size="sm"
+              isSearchable
+            />
           </div>
         )}
 
@@ -205,19 +204,17 @@ export const SubmitFeedbackModal = ({ isOpen, onClose, defaultEventId = null }) 
             {categories.map((cat) => {
               const isSelected = category === cat;
               return (
-                <button
+                <Chip
                   key={cat}
-                  type="button"
+                  size="sm"
+                  color={isSelected ? 'accent' : 'default'}
+                  variant={isSelected ? 'solid' : 'flat'}
                   onClick={() => setCategory(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-accent text-white shadow-xs'
-                      : 'bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
-                  }`}
+                  startContent={isSelected ? <Check size={12} className="stroke-[3]" /> : undefined}
+                  className="cursor-pointer font-semibold"
                 >
-                  {isSelected && <Check size={12} className="stroke-[3]" />}
-                  <span>{cat}</span>
-                </button>
+                  {cat}
+                </Chip>
               );
             })}
           </div>

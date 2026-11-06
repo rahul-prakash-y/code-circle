@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { EMIL_EASE_OUT, EMIL_EASE_IN_OUT, DURATION_MICRO, DURATION_DROPDOWN } from '../../lib/motion';
+import { Button } from '@heroui/react';
 import { EmilTooltipGroup, EmilTooltip, EmilDropdownRoot, EmilDropdownTrigger, EmilDropdownMenu, EmilDropdownItem, EmilButton } from '../ui/emil-ui';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
@@ -53,7 +54,7 @@ const notifIcons = {
   info: { Icon: Info, color: 'var(--accent)' },
   success: { Icon: CheckCircle2, color: 'var(--success)' },
   warning: { Icon: AlertTriangle, color: 'var(--warning)' },
-  urgent: { Icon: AlertCircle, color: '#FF3B30' },
+  urgent: { Icon: AlertCircle, color: 'var(--destructive)' },
 };
 
 const getTimeAgo = (dateStr?: string) => {
@@ -68,10 +69,10 @@ const getTimeAgo = (dateStr?: string) => {
 };
 
 const roleColors: Record<string, string> = {
-  SuperAdmin: '#FF9F0A',
+  SuperAdmin: 'var(--warning)',
   Admin: 'var(--accent)',
-  Faculty: '#34C759',
-  Committee: '#30B0C7',     /* Apple System Teal */
+  Faculty: 'var(--success)',
+  Committee: 'var(--info)',
   Student: 'var(--label-secondary)',
 };
 
@@ -300,14 +301,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
       {/* Left */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Mobile hamburger — 44×44 touch target, hidden on md+ (BottomNav handles mobile nav) */}
-        <button
-          onClick={onOpenMobileMenu}
-          className="lg:hidden flex items-center justify-center rounded-xl text-label-secondary transition-colors active:bg-separator"
-          style={{ minWidth: 44, minHeight: 44 }}
+        <Button
+          isIconOnly
+          variant="ghost"
+          onPress={onOpenMobileMenu}
+          className="lg:hidden rounded-xl text-label-secondary hover:text-label-primary min-w-[44px] min-h-[44px]"
           aria-label="Open menu"
         >
           <Menu size={18} strokeWidth={1.75} />
-        </button>
+        </Button>
 
         {/* Search — expands on focus; hidden on mobile to save header real-estate */}
         <div
@@ -356,25 +358,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
           {/* 44×44 touch target */}
-          <button
-            onClick={() => setShowNotifications((v) => !v)}
-            className="relative flex items-center justify-center rounded-xl cursor-pointer text-label-secondary transition-colors active:bg-separator"
-            style={{
-              minWidth: 44,
-              minHeight: 44,
-              background: showNotifications ? 'var(--accent-subtle)' : 'transparent',
-              color: showNotifications ? 'var(--accent)' : undefined,
-            }}
+          <Button
+            isIconOnly
+            variant="ghost"
+            onPress={() => setShowNotifications((v) => !v)}
+            className="relative flex items-center justify-center rounded-xl cursor-pointer text-label-secondary hover:text-label-primary transition-colors min-w-[44px] min-h-[44px]"
             aria-label="Notifications"
           >
             <Bell size={17} strokeWidth={1.75} />
             {unread > 0 && (
               <span
-                className="absolute top-2.5 right-2.5 w-[6px] h-[6px] rounded-full"
-                style={{ background: 'var(--accent)' }}
+                className="absolute top-2.5 right-2.5 w-[6px] h-[6px] rounded-full bg-accent"
               />
             )}
-          </button>
+          </Button>
 
           {/* Desktop dropdown — rendered right below the Bell icon */}
           <AnimatePresence>

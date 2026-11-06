@@ -10,6 +10,7 @@ import EventModal from '../components/events/EventModal';
 import TutorialButton from '../components/common/TutorialButton';
 import MissedEventRequestModal from '../components/events/MissedEventRequestModal';
 import AdminMissedEventRequestsModal from '../components/admin/AdminMissedEventRequestsModal';
+import { Button } from '@heroui/react';
 
 export const EventsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -66,36 +67,41 @@ export const EventsPage: React.FC = () => {
           <TutorialButton tutorialId="events" label="Events Guide" />
 
           {/* Missed Event Request Trigger for Students */}
-          <button
+          <Button
             type="button"
-            onClick={() => setIsMissedRequestOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-surface-secondary border border-separator text-label-primary hover:bg-surface-raised transition-all text-[13px] font-semibold flex items-center gap-2 cursor-pointer shadow-xs"
+            variant="outline"
+            size="sm"
+            onPress={() => setIsMissedRequestOpen(true)}
+            className="text-[13px] font-semibold flex items-center gap-2"
           >
             <Clock size={15} className="text-indigo-400" />
             <span>Apply for Missed Event</span>
-          </button>
+          </Button>
 
           {/* Missed Requests Review for Admins */}
           {isAdmin && (
-            <button
+            <Button
               type="button"
-              onClick={() => setIsAdminRequestsOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500/20 transition-all text-[13px] font-semibold flex items-center gap-2 cursor-pointer shadow-xs"
+              variant="outline"
+              size="sm"
+              onPress={() => setIsAdminRequestsOpen(true)}
+              className="text-[13px] font-semibold flex items-center gap-2 text-amber-500 border-amber-500/30 bg-amber-500/10"
             >
               <ShieldAlert size={15} />
               <span>Review Missed Requests</span>
-            </button>
+            </Button>
           )}
 
           {isAdmin && (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={handleCreateEvent}
-              className="btn-primary flex items-center gap-2 text-[13px] self-start sm:self-auto cursor-pointer"
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={handleCreateEvent}
+              className="text-[13px] flex items-center gap-2 self-start sm:self-auto"
             >
               <Plus size={15} strokeWidth={2} />
               <span>Create Event</span>
-            </motion.button>
+            </Button>
           )}
         </div>
       </div>

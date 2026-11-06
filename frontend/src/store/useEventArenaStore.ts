@@ -49,14 +49,19 @@ export interface ArenaDesignChallenge {
   description?: string;
   problemStatement?: string;
   designImageUrl?: string;
-  additionalImages?: string[];
+  referenceImageUrl?: string | null;
+  figmaStarterUrl?: string;
   referenceFigmaUrl?: string;
+  additionalImages?: string[];
   deliverables?: string[];
   guidelines?: string[];
   points?: number;
+  totalPoints?: number;
+  rubric?: any;
 }
 
 export interface ArenaDesignSubmission {
+  figmaFileUrl: any;
   figmaLink: string;
   notes?: string;
   previewImageUrl?: string;
@@ -88,6 +93,11 @@ export interface ArenaAssessment {
   codingCount?: number;
   canManage?: boolean;
   designChallenge?: ArenaDesignChallenge;
+  designChallenges?: ArenaDesignChallenge[];
+  questions?: {
+    mcqs: ArenaMcqQuestion[];
+    coding: ArenaCodingProblem[];
+  };
   submission?: {
     status: 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
     totalScore: number;
@@ -189,6 +199,7 @@ interface EventArenaState {
   adminMcqs: ArenaMcqQuestion[];
   adminCoding: ArenaCodingProblem[];
   adminDesignChallenge: ArenaDesignChallenge | null;
+  adminDesignChallenges: ArenaDesignChallenge[];
   adminSubmissions: any[];
 
   // Student Arena state
@@ -197,8 +208,11 @@ interface EventArenaState {
   studentMcqs: ArenaMcqQuestion[];
   studentCoding: ArenaCodingProblem[];
   studentDesignChallenge: ArenaDesignChallenge | null;
+  studentDesignChallenges: ArenaDesignChallenge[];
   submission: ArenaSubmission | null;
   leaderboard: any[];
+  overallLeaderboard: any[];
+  overallLeaderboardAssessments: any[];
   arenaTeams: ArenaTeam[];
 
   // Actions
@@ -225,7 +239,7 @@ interface EventArenaState {
   saveAssessmentDesignChallenge: (
     eventId: string,
     assessmentId: string,
-    data: ArenaDesignChallenge
+    data: ArenaDesignChallenge | { challenges: ArenaDesignChallenge[] }
   ) => Promise<any>;
   uploadDesignImage: (file: File) => Promise<string>;
   evaluateAssessmentDesign: (
@@ -254,30 +268,39 @@ interface EventArenaState {
     eventId: string,
     assessmentId: string,
     problemId: string,
-    language: string,
-    code: string
+    languageOrPayload: string | { language: string; code: string },
+    code?: string
   ) => Promise<any>;
   submitAssessmentProblem: (
     eventId: string,
     assessmentId: string,
     problemId: string,
-    language: string,
-    code: string
+    languageOrPayload: string | { language: string; code: string },
+    code?: string
   ) => Promise<any>;
   submitAssessmentFinal: (
     eventId: string,
     assessmentId: string,
     data: {
-      mcqAnswers?: Array<{ questionId: string; selectedOptionIndex: number }>;
+      mcqAnswers?: Array<{ questionId: string; selectedOptionIndex?: number; selectedOption?: number }>;
       tabSwitchCount?: number;
     }
   ) => Promise<any>;
   submitAssessmentDesign: (
     eventId: string,
     assessmentId: string,
-    data: { figmaLink: string; notes?: string; previewImageUrl?: string }
+    data: {
+      figmaLink?: string;
+      figmaFileUrl?: string;
+      notes?: string;
+      previewImageUrl?: string;
+      selectedChallengeId?: string;
+      selectedChallengeTitle?: string;
+    }
   ) => Promise<any>;
+  deleteAssessmentSubmission: (eventId: string, assessmentId: string, submissionId: string) => Promise<any>;
   fetchAssessmentLeaderboard: (eventId: string, assessmentId: string) => Promise<any>;
+  fetchAdminOverallLeaderboard: (eventId: string) => Promise<any>;
 
   // Legacy single-arena actions
   fetchAdminArenaData: (eventId: string) => Promise<any>;
@@ -334,6 +357,7 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   adminMcqs: [],
   adminCoding: [],
   adminDesignChallenge: null,
+  adminDesignChallenges: [],
   adminSubmissions: [],
 
   currentEvent: null,
@@ -341,8 +365,11 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   studentMcqs: [],
   studentCoding: [],
   studentDesignChallenge: null,
+  studentDesignChallenges: [],
   submission: null,
   leaderboard: [],
+  overallLeaderboard: [],
+  overallLeaderboardAssessments: [],
   arenaTeams: [],
 
   setSelectedAssessment: (assessment) => set({ selectedAssessment: assessment }),
@@ -453,6 +480,7 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
         adminMcqs: res.data.mcqs || [],
         adminCoding: res.data.coding || [],
         adminDesignChallenge: res.data.designChallenge || null,
+        adminDesignChallenges: res.data.designChallenges || (res.data.designChallenge ? [res.data.designChallenge] : []),
         loading: false,
       });
       return res.data;
@@ -515,7 +543,7 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   saveAssessmentDesignChallenge: async (
     eventId: string,
     assessmentId: string,
-    data: ArenaDesignChallenge
+    data: ArenaDesignChallenge | { challenges: ArenaDesignChallenge[] }
   ) => {
     set({ actionLoading: true });
     try {
@@ -524,7 +552,11 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
         data
       );
       toast.success(res.data.message || 'Design challenge saved successfully');
-      set({ adminDesignChallenge: res.data.designChallenge, actionLoading: false });
+      set({
+        adminDesignChallenge: res.data.designChallenge,
+        adminDesignChallenges: res.data.designChallenges || (res.data.designChallenge ? [res.data.designChallenge] : []),
+        actionLoading: false,
+      });
       await get().fetchAssessments(eventId);
       return res.data;
     } catch (err: any) {
@@ -613,7 +645,13 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
       const res = await api.get(
         `/events/${eventId}/arena/assessments/${assessmentId}/admin/submissions`
       );
-      set({ adminSubmissions: res.data.submissions || [] });
+      set({
+        adminSubmissions: res.data.submissions || [],
+        adminMcqs: res.data.assessment?.questions?.mcqs || get().adminMcqs,
+        adminCoding: res.data.assessment?.questions?.coding || get().adminCoding,
+        adminDesignChallenge: res.data.assessment?.designChallenge || get().adminDesignChallenge,
+        adminDesignChallenges: res.data.assessment?.designChallenges || (res.data.assessment?.designChallenge ? [res.data.assessment?.designChallenge] : []),
+      });
       return res.data.submissions;
     } catch (err: any) {
       console.error('Failed to fetch assessment submissions:', err);
@@ -698,6 +736,7 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
         studentMcqs: res.data.mcqs || [],
         studentCoding: res.data.coding || [],
         studentDesignChallenge: res.data.designChallenge || null,
+        studentDesignChallenges: res.data.designChallenges || (res.data.designChallenge ? [res.data.designChallenge] : []),
         submission: res.data.submission || null,
         selectedAssessment: res.data.assessment,
         loading: false,
@@ -727,9 +766,11 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
     eventId: string,
     assessmentId: string,
     problemId: string,
-    language: string,
-    code: string
+    languageOrPayload: string | { language: string; code: string },
+    rawCode?: string
   ) => {
+    const language = typeof languageOrPayload === 'string' ? languageOrPayload : languageOrPayload.language;
+    const code = typeof languageOrPayload === 'string' ? (rawCode || '') : languageOrPayload.code;
     try {
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/run-code`,
@@ -747,9 +788,11 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
     eventId: string,
     assessmentId: string,
     problemId: string,
-    language: string,
-    code: string
+    languageOrPayload: string | { language: string; code: string },
+    rawCode?: string
   ) => {
+    const language = typeof languageOrPayload === 'string' ? languageOrPayload : languageOrPayload.language;
+    const code = typeof languageOrPayload === 'string' ? (rawCode || '') : languageOrPayload.code;
     try {
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/submit-problem`,
@@ -776,15 +819,23 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
     eventId: string,
     assessmentId: string,
     data: {
-      mcqAnswers?: Array<{ questionId: string; selectedOptionIndex: number }>;
+      mcqAnswers?: Array<{ questionId: string; selectedOptionIndex?: number; selectedOption?: number }>;
       tabSwitchCount?: number;
     }
   ) => {
     set({ actionLoading: true });
     try {
+      const payload = {
+        ...data,
+        mcqAnswers: data.mcqAnswers?.map((item) => ({
+          questionId: item.questionId,
+          selectedOptionIndex: typeof item.selectedOptionIndex === 'number' ? item.selectedOptionIndex : item.selectedOption,
+          selectedOption: typeof item.selectedOption === 'number' ? item.selectedOption : item.selectedOptionIndex,
+        })),
+      };
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/submit`,
-        data
+        payload
       );
       toast.success(res.data.message || 'Assessment submitted successfully!');
       set({ actionLoading: false });
@@ -800,13 +851,24 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   submitAssessmentDesign: async (
     eventId: string,
     assessmentId: string,
-    data: { figmaLink: string; notes?: string; previewImageUrl?: string }
+    data: {
+      figmaLink?: string;
+      figmaFileUrl?: string;
+      notes?: string;
+      previewImageUrl?: string;
+      selectedChallengeId?: string;
+      selectedChallengeTitle?: string;
+    }
   ) => {
     set({ actionLoading: true });
     try {
+      const payload = {
+        ...data,
+        figmaLink: data.figmaLink || data.figmaFileUrl || '',
+      };
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/design/submit`,
-        data
+        payload
       );
       toast.success(res.data.message || 'Figma design submitted successfully!');
       set({ submission: res.data.submission, actionLoading: false });
@@ -816,6 +878,42 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
       const msg = err.response?.data?.error || 'Failed to submit Figma design';
       toast.error(msg);
       throw err;
+    }
+  },
+
+  deleteAssessmentSubmission: async (
+    eventId: string,
+    assessmentId: string,
+    submissionId: string
+  ) => {
+    set({ actionLoading: true });
+    try {
+      const res = await api.delete(
+        `/events/${eventId}/arena/assessments/${assessmentId}/submissions/${submissionId}`
+      );
+      toast.success(res.data.message || 'Submission reset successfully');
+      set({ actionLoading: false });
+      await get().fetchAdminAssessmentSubmissions(eventId, assessmentId);
+      return res.data;
+    } catch (err: any) {
+      set({ actionLoading: false });
+      const msg = err.response?.data?.error || 'Failed to delete submission';
+      toast.error(msg);
+      throw err;
+    }
+  },
+
+  fetchAdminOverallLeaderboard: async (eventId: string) => {
+    try {
+      const res = await api.get(`/events/${eventId}/arena/admin/overall-leaderboard`);
+      set({
+        overallLeaderboard: res.data.leaderboard || [],
+        overallLeaderboardAssessments: res.data.assessments || [],
+      });
+      return res.data;
+    } catch (err: any) {
+      console.error('Failed to fetch overall tournament leaderboard:', err);
+      return null;
     }
   },
 

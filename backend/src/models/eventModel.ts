@@ -8,6 +8,7 @@ export type EventArenaType = 'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX';
 export type EventArenaStatus = 'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED';
 
 export interface IEventArenaDesignChallenge {
+  _id?: any;
   title: string;
   description: string;
   problemStatement?: string;
@@ -72,6 +73,7 @@ export interface IEventArenaAssessment {
     coding: IEventArenaCodingProblem[];
   };
   designChallenge?: IEventArenaDesignChallenge;
+  designChallenges?: IEventArenaDesignChallenge[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -98,9 +100,10 @@ export interface IEvent extends Document {
     coding: IEventArenaCodingProblem[];
   };
   arenaDesignChallenge?: IEventArenaDesignChallenge;
-  date: Date;
   startDate: Date;
   endDate: Date;
+  eventDays: Date[];
+  date?: Date;
   hourlyPoints: number;
   status: EventStatus;
   venueOrLink: string;
@@ -110,6 +113,7 @@ export interface IEvent extends Document {
   participantsCount?: number;
   registrationDeadline: Date;
   certificateTemplateUrl?: string;
+  certificateTemplateId?: mongoose.Types.ObjectId;
   customFields?: ICustomField[];
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -173,6 +177,32 @@ export const eventArenaAssessmentSchema = new Schema<IEventArenaAssessment>(
         ],
       },
       points: { type: Number, default: 100 },
+    },
+    designChallenges: {
+      type: [
+        {
+          title: { type: String, default: '', trim: true },
+          description: { type: String, default: '', trim: true },
+          problemStatement: { type: String, default: '', trim: true },
+          designImageUrl: { type: String, default: '', trim: true },
+          additionalImages: { type: [String], default: [] },
+          referenceFigmaUrl: { type: String, default: '', trim: true },
+          deliverables: {
+            type: [String],
+            default: () => ['Figma Interactive Prototype', 'Mobile/Web Screens'],
+          },
+          guidelines: {
+            type: [String],
+            default: () => [
+              'Design clean, modern UI following the reference image specifications.',
+              'Use Figma Auto-layout and component hierarchy.',
+              'Ensure link sharing permissions are set to Anyone with the link can view.',
+            ],
+          },
+          points: { type: Number, default: 100 },
+        },
+      ],
+      default: [],
     },
     questions: {
       mcqs: {
@@ -386,14 +416,22 @@ const eventSchema = new Schema<IEvent>(
         default: [],
       },
     },
-    date: {
-      type: Date,
-      required: [true, 'Event date is required'],
-    },
     startDate: {
       type: Date,
+      required: [true, 'Event start date is required'],
+      index: true,
     },
     endDate: {
+      type: Date,
+      required: [true, 'Event end date is required'],
+      index: true,
+    },
+    eventDays: {
+      type: [Date],
+      default: [],
+      index: true,
+    },
+    date: {
       type: Date,
     },
     hourlyPoints: {
@@ -430,6 +468,11 @@ const eventSchema = new Schema<IEvent>(
       default: '',
       trim: true,
     },
+    certificateTemplateId: {
+      type: Schema.Types.ObjectId,
+      ref: 'CertificateTemplate',
+      default: null,
+    },
     customFields: [
       {
         id: { type: String },
@@ -455,27 +498,53 @@ const eventSchema = new Schema<IEvent>(
   }
 );
 
-// Backward compatibility and date sync pre-save hook:
+// Multi-day date synchronization and backward compatibility pre-save hook:
 eventSchema.pre('save', function () {
   if (this.type === 'Individual' || this.type === 'Team') {
     this.format = this.type as EventFormat;
     this.type = 'Technical';
   }
+
+  // Fallbacks between legacy date and multi-day startDate / endDate
   if (!this.startDate && this.date) {
     this.startDate = this.date;
-  }
-  if (!this.date && this.startDate) {
-    this.date = this.startDate;
   }
   if (!this.endDate) {
     this.endDate = this.startDate || this.date;
   }
+  if (!this.date && this.startDate) {
+    this.date = this.startDate;
+  }
+
+  // Auto-populate eventDays array if empty (e.g., 5-day continuous event)
+  if ((!this.eventDays || this.eventDays.length === 0) && this.startDate && this.endDate) {
+    const days: Date[] = [];
+    const current = new Date(this.startDate);
+    current.setHours(0, 0, 0, 0);
+    const end = new Date(this.endDate);
+    end.setHours(0, 0, 0, 0);
+
+    // Generate up to 30 continuous event days safely
+    let safetyCounter = 0;
+    while (current <= end && safetyCounter < 30) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+      safetyCounter++;
+    }
+
+    if (days.length > 0) {
+      this.eventDays = days;
+    }
+  }
+
   if (this.hourlyPoints === undefined || this.hourlyPoints === null) {
     this.hourlyPoints = 50;
   }
 });
 
-// Optimized query indexes
+// Optimized query indexes for multi-day events and status lookups
+eventSchema.index({ startDate: 1, endDate: 1, status: 1 });
+eventSchema.index({ eventDays: 1 });
 eventSchema.index({ date: 1, status: 1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ type: 1 });

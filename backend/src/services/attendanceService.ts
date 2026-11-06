@@ -13,6 +13,8 @@ export interface CreateSessionInput {
   sessionName: string;
   durationMinutes?: number;
   adminId: string;
+  dayNumber?: number;
+  dateAttended?: Date;
   classHours?: number[];
   hourlyPoints?: number;
 }
@@ -20,6 +22,7 @@ export interface CreateSessionInput {
 export interface MarkAttendanceInput {
   userId: string;
   otp: string;
+  dayNumber?: number;
 }
 
 export interface AttendanceFilterOptions {
@@ -52,6 +55,8 @@ export class AttendanceService {
     sessionName,
     durationMinutes = 60,
     adminId,
+    dayNumber = 1,
+    dateAttended,
     classHours,
     hourlyPoints,
   }: CreateSessionInput) {
@@ -68,9 +73,16 @@ export class AttendanceService {
       throw new Error('Cannot create an attendance session for a cancelled event');
     }
 
-    // Automatically expire previous active sessions for this event to avoid confusion
+    const parsedDay = Math.max(1, Number(dayNumber) || 1);
+
+    // Validate that dayNumber does not exceed eventDays length if configured
+    if (event.eventDays && event.eventDays.length > 0 && parsedDay > event.eventDays.length) {
+      throw new Error(`Invalid dayNumber ${parsedDay}. This event only has ${event.eventDays.length} registered days.`);
+    }
+
+    // Automatically expire previous active sessions for this specific event day
     await AttendanceSession.updateMany(
-      { event: eventId, isActive: true },
+      { event: eventId, dayNumber: parsedDay, isActive: true },
       { $set: { isActive: false } }
     );
 
@@ -91,9 +103,18 @@ export class AttendanceService {
     const otp = this.generateOTP();
     const otpExpiry = new Date(Date.now() + Math.max(1, durationMinutes) * 60 * 1000);
 
+    // Compute date for this day
+    const sessionDate =
+      dateAttended ||
+      (event.eventDays && event.eventDays[parsedDay - 1]
+        ? new Date(event.eventDays[parsedDay - 1])
+        : new Date());
+
     const session = await AttendanceSession.create({
       event: event._id,
       sessionName: sessionName.trim(),
+      dayNumber: parsedDay,
+      dateAttended: sessionDate,
       otp,
       otpExpiry,
       isActive: true,
@@ -103,8 +124,8 @@ export class AttendanceService {
       totalPoints,
     });
 
-    // Prime the high-performance in-memory AttendanceBuffer for instant reads
-    attendanceBuffer.setEventOTP(event._id.toString(), otp);
+    // Prime the high-performance in-memory AttendanceBuffer for instant reads with dayNumber
+    attendanceBuffer.setEventOTP(event._id.toString(), otp, parsedDay);
 
     return {
       _id: session._id,
@@ -116,10 +137,13 @@ export class AttendanceService {
         date: event.date,
         startDate: (event as any).startDate,
         endDate: (event as any).endDate,
+        eventDays: (event as any).eventDays,
         hourlyPoints: (event as any).hourlyPoints,
         status: event.status,
       },
       sessionName: session.sessionName,
+      dayNumber: session.dayNumber,
+      dateAttended: session.dateAttended,
       otp: session.otp,
       otpExpiry: session.otpExpiry,
       durationMinutes,
@@ -132,38 +156,45 @@ export class AttendanceService {
   }
 
   /**
-   * Submits student 6-digit OTP to verify presence
+   * Submits student 6-digit OTP to verify presence for a specific day
    */
-  public static async markAttendance({ userId, otp }: MarkAttendanceInput) {
+  public static async markAttendance({ userId, otp, dayNumber }: MarkAttendanceInput) {
     if (!otp || typeof otp !== 'string' || otp.trim().length !== 6) {
       throw new Error('Please provide a valid 6-digit OTP');
     }
 
     const cleanOtp = otp.trim();
 
-    // Find active, unexpired session for this OTP
-    const session = await AttendanceSession.findOne({
+    // Query active unexpired session for this OTP
+    const sessionQuery: any = {
       otp: cleanOtp,
       isActive: true,
       otpExpiry: { $gt: new Date() },
-    }).populate<{ event: any }>('event');
+    };
+    if (dayNumber !== undefined && Number(dayNumber) > 0) {
+      sessionQuery.dayNumber = Number(dayNumber);
+    }
+
+    const session = await AttendanceSession.findOne(sessionQuery).populate<{ event: any }>('event');
 
     if (!session) {
-      throw new Error('Invalid or expired OTP code');
+      throw new Error('Invalid or expired OTP code for the requested event day');
     }
 
     if (!session.event || session.event.status === 'Cancelled') {
       throw new Error('Event is currently cancelled. Attendance cannot be accepted.');
     }
 
-    // Check if user already marked attendance for this session
+    // Check if user already marked attendance for this session or day
     const existingRecord = await AttendanceRecord.findOne({
-      session: session._id,
-      user: userId,
+      $or: [
+        { session: session._id, user: userId },
+        { event: session.event._id, user: userId, dayNumber: session.dayNumber },
+      ],
     });
 
     if (existingRecord) {
-      throw new Error('Attendance has already been marked for this session');
+      throw new Error(`Attendance has already been marked for Day ${session.dayNumber} of this event`);
     }
 
     // Determine points to award based on mapped class hours
@@ -172,9 +203,12 @@ export class AttendanceService {
         ? (session as any).totalPoints
         : (((session as any).hourlyPoints || 50) * (((session as any).classHours && (session as any).classHours.length) ? (session as any).classHours.length : 1));
 
-    // Record attendance
+    // Record attendance with dayNumber and event
     const record = await AttendanceRecord.create({
       session: session._id,
+      event: session.event._id,
+      dayNumber: session.dayNumber || 1,
+      dateAttended: session.dateAttended || new Date(),
       user: new mongoose.Types.ObjectId(userId),
       timestamp: new Date(),
       pointsAwarded: pointsToAward,

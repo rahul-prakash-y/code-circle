@@ -87,15 +87,15 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
               onSelectLevel(lvl);
             } else {
               if (lvl.requiresRegistration) {
-                toast.error('🔒 Please register for this course above to unlock Level 1.');
+                toast.error('Please register for this course above to unlock Level 1.');
               } else if (currentDomain?.isLockedForStudent) {
-                toast.error('🔒 Course is locked pending administrator approval.');
+                toast.error('Course is locked pending administrator approval.');
               } else {
                 const prev = lvl.requiresPreviousLevel || (lvl.levelNumber > 1 ? lvl.levelNumber - 1 : null);
                 if (prev) {
-                  toast.error(`🔒 Level ${lvl.levelNumber} is locked! Complete Level ${prev} requirements first.`);
+                  toast.error(`Level ${lvl.levelNumber} is locked! Complete Level ${prev} requirements first.`);
                 } else {
-                  toast.error('🔒 Level is currently locked.');
+                  toast.error('Level is currently locked.');
                 }
               }
             }

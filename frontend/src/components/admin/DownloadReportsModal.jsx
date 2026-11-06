@@ -1,7 +1,8 @@
 import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Download, FileText, Table, Users, Calendar, CheckSquare, BarChart3, Loader2, Sparkles } from 'lucide-react';
+import { X, Download, FileText, Table, Users, Calendar, CheckSquare, BarChart3, Sparkles } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useMetricsStore from '../../store/useMetricsStore';
 import toast from 'react-hot-toast';
 
@@ -106,13 +107,14 @@ const DownloadReportsModal = ({ isOpen, onClose }) => {
         <div className="mb-6 relative z-10">
           <label className="input-label">2. Select Export Format</label>
           <div className="grid grid-cols-2 gap-3">
-            <button
+            <Button
               type="button"
-              onClick={() => setSelectedFormat('csv')}
-              className={`p-4 rounded-2xl border flex items-center justify-center gap-3 transition-all ${
+              variant={selectedFormat === 'csv' ? 'primary' : 'secondary'}
+              onPress={() => setSelectedFormat('csv')}
+              className={`p-4 h-auto rounded-2xl flex items-center justify-center gap-3 transition-all ${
                 selectedFormat === 'csv'
-                  ? 'bg-accent text-text-primary border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]'
-                  : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated'
+                  ? 'shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+                  : ''
               }`}
             >
               <Table size={18} />
@@ -120,15 +122,16 @@ const DownloadReportsModal = ({ isOpen, onClose }) => {
                 <span className="text-xs font-black block">CSV Spreadsheet</span>
                 <span className="text-[10px] opacity-70">Excel, Sheets raw data</span>
               </div>
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
-              onClick={() => setSelectedFormat('pdf')}
-              className={`p-4 rounded-2xl border flex items-center justify-center gap-3 transition-all ${
+              variant={selectedFormat === 'pdf' ? 'primary' : 'secondary'}
+              onPress={() => setSelectedFormat('pdf')}
+              className={`p-4 h-auto rounded-2xl flex items-center justify-center gap-3 transition-all ${
                 selectedFormat === 'pdf'
-                  ? 'bg-emerald-600 text-text-primary border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-                  : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated'
+                  ? 'shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                  : ''
               }`}
             >
               <FileText size={18} />
@@ -136,37 +139,39 @@ const DownloadReportsModal = ({ isOpen, onClose }) => {
                 <span className="text-xs font-black block">PDF Document</span>
                 <span className="text-[10px] opacity-70">Styled executive document</span>
               </div>
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Download Action */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+            variant="secondary"
+            onPress={onClose}
+            className="rounded-full text-xs font-medium"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            onClick={handleDownload}
-            disabled={exporting}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+            variant="primary"
+            onPress={handleDownload}
+            isDisabled={exporting}
+            className="rounded-full text-xs font-semibold shadow"
           >
             {exporting ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
                 <span>Generating & Downloading...</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <Download size={14} />
                 <span>Download {selectedFormat.toUpperCase()} Report</span>
-              </>
+              </div>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

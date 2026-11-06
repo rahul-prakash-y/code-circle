@@ -8,7 +8,6 @@ import {
   Upload,
   CheckCircle2,
   AlertCircle,
-  Loader2,
   X,
   FileText,
   Sparkles,
@@ -17,6 +16,7 @@ import {
   HelpCircle,
   Plus,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useAssessmentStore, { Assessment } from '../../store/useAssessmentStore';
 import TutorialButton from '../common/TutorialButton';
 
@@ -190,10 +190,10 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
               <FileSpreadsheet size={20} />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black text-label-primary dark:text-[#F5F5F7] tracking-tight font-heading">
+              <h3 className="text-base sm:text-lg font-black text-label-primary  tracking-tight font-heading">
                 Bulk Upload MCQ Assessments
               </h3>
-              <p className="text-xs text-label-secondary dark:text-[#86868B] font-normal">
+              <p className="text-xs text-label-secondary  font-normal">
                 Import hundreds of multiple-choice questions via Excel spreadsheet (.xlsx / .xls)
               </p>
             </div>
@@ -206,7 +206,7 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
       <div className="space-y-5 p-1 text-xs">
         {/* Step 1: Destination Selection */}
         <div className="space-y-2">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-wider text-label-secondary  flex items-center gap-1.5">
             <Layers size={13} className="text-purple-500" />
             <span>1. Choose Destination Mode</span>
           </label>
@@ -218,19 +218,19 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
               className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                 destination === 'new'
                   ? 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/40 shadow-sm'
-                  : 'bg-surface dark:bg-[#161617] border-separator dark:border-white/10 hover:border-separator-opaque'
+                  : 'bg-surface  border-separator dark:border-white/10 hover:border-separator-opaque'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-extrabold text-xs text-label-primary dark:text-[#F5F5F7]">
+                  <span className="font-extrabold text-xs text-label-primary ">
                     Create New Assessment(s)
                   </span>
                   {destination === 'new' && (
                     <CheckCircle2 size={15} className="text-purple-600 dark:text-purple-400" />
                   )}
                 </div>
-                <p className="text-[11px] text-label-secondary dark:text-[#86868B] leading-relaxed">
+                <p className="text-[11px] text-label-secondary  leading-relaxed">
                   Automatically creates one or multiple assessments grouped by the "AssessmentTitle"
                   column in the spreadsheet.
                 </p>
@@ -243,19 +243,19 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
               className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                 destination === 'existing'
                   ? 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/40 shadow-sm'
-                  : 'bg-surface dark:bg-[#161617] border-separator dark:border-white/10 hover:border-separator-opaque'
+                  : 'bg-surface  border-separator dark:border-white/10 hover:border-separator-opaque'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-extrabold text-xs text-label-primary dark:text-[#F5F5F7]">
+                  <span className="font-extrabold text-xs text-label-primary ">
                     Append to Existing Assessment
                   </span>
                   {destination === 'existing' && (
                     <CheckCircle2 size={15} className="text-purple-600 dark:text-purple-400" />
                   )}
                 </div>
-                <p className="text-[11px] text-label-secondary dark:text-[#86868B] leading-relaxed">
+                <p className="text-[11px] text-label-secondary  leading-relaxed">
                   Imports all questions directly into a selected assessment, adding them to its existing
                   question pool.
                 </p>
@@ -268,20 +268,20 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
             <div className="pt-2">
               {targetAssessmentTitle ? (
                 <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs flex items-center justify-between">
-                  <span className="text-label-secondary dark:text-[#86868B]">Target Assessment:</span>
+                  <span className="text-label-secondary ">Target Assessment:</span>
                   <strong className="text-purple-700 dark:text-purple-300 font-bold">
                     {targetAssessmentTitle}
                   </strong>
                 </div>
               ) : (
                 <div>
-                  <label className="text-[10px] font-bold text-label-secondary dark:text-[#86868B] uppercase tracking-wider block mb-1">
+                  <label className="text-[10px] font-bold text-label-secondary  uppercase tracking-wider block mb-1">
                     Select Target Assessment *
                   </label>
                   <select
                     value={selectedAssessmentId}
                     onChange={(e) => setSelectedAssessmentId(e.target.value)}
-                    className="w-full text-xs py-2.5 px-3 rounded-xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] focus:outline-none focus:border-purple-500 cursor-pointer font-medium"
+                    className="w-full text-xs py-2.5 px-3 rounded-xl bg-surface  border border-separator dark:border-white/10 text-label-primary  focus:outline-none focus:border-purple-500 cursor-pointer font-medium"
                   >
                     {assessments.map((a) => (
                       <option key={a._id} value={a._id}>
@@ -296,11 +296,11 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
         </div>
 
         {/* Step 2: Download Sample Template */}
-        <div className="p-4 rounded-2xl bg-canvas dark:bg-[#18181A] border border-separator dark:border-white/10 space-y-2.5">
+        <div className="p-4 rounded-2xl bg-surface-secondary border border-separator space-y-2.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Download size={15} className="text-emerald-500" />
-              <span className="font-extrabold text-xs text-label-primary dark:text-[#F5F5F7]">
+              <span className="font-extrabold text-xs text-label-primary">
                 2. Download Sample Excel Template
               </span>
             </div>
@@ -309,29 +309,30 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
             </span>
           </div>
 
-          <p className="text-[11px] text-label-secondary dark:text-[#86868B] leading-relaxed">
+          <p className="text-[11px] text-label-secondary leading-relaxed">
             The template contains sample questions covering multiple choices (Option A, B, C, D), correct
             answer mappings, points, and explanations, plus an instructions tab.
           </p>
 
-          <button
+          <Button
             type="button"
-            onClick={handleDownloadTemplate}
-            disabled={isDownloadingTemplate}
-            className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-surface dark:bg-[#202024] border border-separator dark:border-white/10 hover:border-emerald-500/40 text-label-primary dark:text-[#F5F5F7] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+            variant="secondary"
+            onPress={handleDownloadTemplate}
+            isDisabled={isDownloadingTemplate}
+            className="w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
           >
             {isDownloadingTemplate ? (
-              <Loader2 size={14} className="animate-spin text-emerald-500" />
+              <Spinner size="sm" color="default" />
             ) : (
               <FileSpreadsheet size={15} className="text-emerald-500" />
             )}
             <span>Download MCQ Template (.xlsx)</span>
-          </button>
+          </Button>
         </div>
 
         {/* Step 3: Drag & Drop Upload Zone */}
         <div className="space-y-2">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-label-secondary dark:text-[#86868B] flex items-center gap-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-wider text-label-secondary flex items-center gap-1.5">
             <Upload size={13} className="text-purple-500" />
             <span>3. Upload Filled Excel File</span>
           </label>
@@ -352,17 +353,17 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
               onClick={() => fileInputRef.current?.click()}
               className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all text-center cursor-pointer space-y-2 ${
                 isDragging
-                  ? 'border-purple-500 bg-purple-500/10'
-                  : 'border-separator dark:border-white/10 hover:border-purple-500/40 bg-surface dark:bg-[#161617]'
+                  ? 'border-accent bg-accent-subtle'
+                  : 'border-separator hover:border-accent/40 bg-surface'
               }`}
             >
-              <div className="w-12 h-12 rounded-2xl bg-canvas dark:bg-[#202024] border border-separator dark:border-white/10 flex items-center justify-center mx-auto text-purple-600 dark:text-purple-400 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-center mx-auto text-accent shadow-sm">
                 <Upload size={22} />
               </div>
-              <p className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+              <p className="text-xs font-bold text-label-primary ">
                 Click to browse or drag and drop your spreadsheet here
               </p>
-              <p className="text-[11px] text-label-secondary dark:text-[#86868B]">
+              <p className="text-[11px] text-label-secondary ">
                 Supported formats: <strong className="text-label-primary dark:text-white">.xlsx</strong> or{' '}
                 <strong className="text-label-primary dark:text-white">.xls</strong> (Up to 10 MB)
               </p>
@@ -374,10 +375,10 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
                   <FileSpreadsheet size={20} />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-xs text-label-primary dark:text-[#F5F5F7] truncate">
+                  <p className="font-bold text-xs text-label-primary  truncate">
                     {file.name}
                   </p>
-                  <p className="text-[10px] text-label-secondary dark:text-[#86868B]">
+                  <p className="text-[10px] text-label-secondary ">
                     {(file.size / 1024).toFixed(1)} KB • Ready for processing
                   </p>
                 </div>
@@ -453,32 +454,34 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
 
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-separator dark:border-white/10">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-bold rounded-xl text-label-secondary hover:text-label-primary bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
+            variant="secondary"
+            onPress={onClose}
+            className="px-4 py-2 text-xs font-bold rounded-xl"
           >
             Cancel
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
-            onClick={handleUpload}
-            disabled={!file || isUploading}
-            className="btn-primary py-2 px-5 text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-md shadow-purple-500/20 disabled:opacity-50 cursor-pointer"
+            variant="primary"
+            onPress={handleUpload}
+            isDisabled={!file || isUploading}
+            className="py-2 px-5 text-xs font-bold flex items-center gap-2 rounded-xl shadow-md"
           >
             {isUploading ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
                 <span>Processing & Importing...</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <Upload size={14} />
                 <span>Start Bulk Import</span>
-              </>
+              </div>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>
@@ -486,3 +489,4 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
 };
 
 export default McqBulkUploadModal;
+

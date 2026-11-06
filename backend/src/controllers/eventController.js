@@ -34,6 +34,7 @@ const createEvent = async (request, reply) => {
       maxParticipants, 
       registrationDeadline,
       certificateTemplateUrl,
+      certificateTemplateId,
       customFields
     } = request.body;
 
@@ -63,6 +64,7 @@ const createEvent = async (request, reply) => {
       maxTeamSize: eventFormat === 'Duo' ? 2 : (Number(request.body.maxTeamSize) > 0 ? Number(request.body.maxTeamSize) : 4),
       registrationDeadline: registrationDeadline || eventDate,
       certificateTemplateUrl: certificateTemplateUrl ? String(certificateTemplateUrl).trim() : '',
+      certificateTemplateId: certificateTemplateId || null,
       customFields: Array.isArray(customFields) ? customFields : [],
       createdBy: user._id
     });

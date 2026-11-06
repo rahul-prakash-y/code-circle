@@ -33,6 +33,7 @@ import { format } from 'date-fns';
 import { formatISTDateTime } from '../../lib/dateUtils';
 import toast from 'react-hot-toast';
 import { getStudentCollege, getStudentYear } from '../../utils/studentUtils';
+import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
 import { useDebounce } from '../../hooks/useDebounce';
 import api from '../../lib/axios';
 
@@ -539,17 +540,17 @@ const AttendanceRecordsView: React.FC = () => {
                 <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
                   <Calendar size={13} className="text-text-muted" /> Select Event
                 </label>
-                <select
+                <HeroUISelect
                   value={selectedEventId}
-                  onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="input-field py-2 text-xs"
-                >
-                  {events.map((ev:any) => (
-                    <option key={ev._id} value={ev._id}>
-                      {ev.title} ({formatSafeDate(ev.date || ev.startDate, 'MMM dd, yyyy')}) — {ev.type}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSelectedEventId}
+                  options={events.map((ev: any) => ({
+                    value: ev._id,
+                    label: `${ev.title} (${formatSafeDate(ev.date || ev.startDate, 'MMM dd, yyyy')}) — ${ev.type}`,
+                  }))}
+                  size="sm"
+                  isSearchable
+                  placeholder="Select an event..."
+                />
               </div>
 
               {/* Table search filter */}
@@ -725,19 +726,24 @@ const AttendanceRecordsView: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 rounded-full font-mono font-bold text-[11px]">
-                            <Award size={11} className="text-amber-400" />
+                          <Chip
+                            size="sm"
+                            color="warning"
+                            variant="flat"
+                            startContent={<Award size={11} className="text-amber-400" />}
+                            className="font-mono font-bold"
+                          >
                             +{r.pointsAwarded ?? r.session?.totalPoints ?? 0} pts
-                          </span>
+                          </Chip>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
                           {r.timestamp ? formatISTDateTime(r.timestamp) : '—'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-2 justify-end">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
+                            <Chip size="sm" color="success" variant="flat" className="text-[10px] font-semibold uppercase">
                               Verified
-                            </span>
+                            </Chip>
                             <button
                               type="button"
                               onClick={() => handleDeleteRecord(r._id, r.user?.name)}
@@ -884,21 +890,20 @@ const AttendanceRecordsView: React.FC = () => {
                 <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
                   <Users size={13} className="text-text-muted" /> Select Student
                 </label>
-                <select
+                <HeroUISelect
                   value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="input-field py-2 text-xs"
-                >
-                  <option value="" disabled>-- Select a student from directory --</option>
-                  {studentsList.map((stu: any) => {
+                  onChange={setSelectedStudentId}
+                  options={studentsList.map((stu: any) => {
                     const stuId = stu._id || stu.id;
-                    return (
-                      <option key={stuId} value={stuId}>
-                        {stu.name} {stu.rollNo ? `(${stu.rollNo})` : ''} — {stu.department || 'General'}
-                      </option>
-                    );
+                    return {
+                      value: stuId,
+                      label: `${stu.name} ${stu.rollNo ? `(${stu.rollNo})` : ''} — ${stu.department || 'General'}`,
+                    };
                   })}
-                </select>
+                  size="sm"
+                  isSearchable
+                  placeholder="Select a student from directory..."
+                />
               </div>
 
               {/* Student Directory Live Search Input */}
@@ -1081,19 +1086,24 @@ const AttendanceRecordsView: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 rounded-full font-mono font-bold text-[11px]">
-                            <Award size={11} className="text-amber-400" />
+                          <Chip
+                            size="sm"
+                            color="warning"
+                            variant="flat"
+                            startContent={<Award size={11} className="text-amber-400" />}
+                            className="font-mono font-bold"
+                          >
                             +{r.pointsAwarded || 0} pts
-                          </span>
+                          </Chip>
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-xs text-text-muted font-mono whitespace-nowrap">
                           {r.timestamp ? formatISTDateTime(r.timestamp) : '—'}
                         </td>
                         <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-2 justify-end">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-semibold uppercase">
+                            <Chip size="sm" color="success" variant="flat" className="text-[10px] font-semibold uppercase">
                               Verified
-                            </span>
+                            </Chip>
                             <button
                               type="button"
                               onClick={() => handleDeleteRecord(r._id, recordsData?.student?.name)}

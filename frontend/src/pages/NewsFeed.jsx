@@ -22,6 +22,7 @@ import NewsModal from '../components/news/NewsModal';
 import NewsArticleReader from '../components/news/NewsArticleReader';
 import { NewsCardSkeleton } from '../components/ui/LoadingSkeleton';
 import toast from 'react-hot-toast';
+import { Button } from '@heroui/react';
 
 const TAGS = ['All', 'Announcement', 'Hackathon', 'Workshop', 'Competitive', 'General'];
 
@@ -112,13 +113,15 @@ const NewsFeed = () => {
         </div>
 
         {canPublish && (
-          <button
-            onClick={handleOpenCreate}
-            className="btn-primary flex items-center justify-center gap-2 self-start md:self-auto text-xs py-2.5 px-5 min-h-[40px] cursor-pointer"
+          <Button
+            variant="primary"
+            size="sm"
+            onPress={handleOpenCreate}
+            className="flex items-center justify-center gap-2 self-start md:self-auto text-xs min-h-[40px]"
           >
             <Plus size={15} />
             <span>Publish Announcement</span>
-          </button>
+          </Button>
         )}
       </div>
 
@@ -174,22 +177,28 @@ const NewsFeed = () => {
                 <div className="flex items-center gap-2">
                   {canPublish && (
                     <>
-                      <button
-                        onClick={(e) => handleOpenEdit(pinnedArticle, e)}
-                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors cursor-pointer"
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        isIconOnly
+                        onPress={(e) => handleOpenEdit(pinnedArticle, e)}
+                        className="min-h-[36px] min-w-[36px] text-label-secondary hover:text-label-primary"
                         title="Edit Article"
                         aria-label="Edit Article"
                       >
                         <Edit3 size={14} />
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(pinnedArticle._id, e)}
-                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-label-secondary hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        isIconOnly
+                        onPress={(e) => handleDelete(pinnedArticle._id, e)}
+                        className="min-h-[36px] min-w-[36px] text-label-secondary hover:text-destructive hover:bg-destructive/10"
                         title="Delete Article"
                         aria-label="Delete Article"
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
                     </>
                   )}
                   <span className="text-xs font-semibold text-accent flex items-center gap-1">
@@ -207,17 +216,15 @@ const NewsFeed = () => {
         {/* Category Pills */}
         <div className="flex items-center gap-1 bg-surface border border-separator p-1 rounded-full overflow-x-auto no-scrollbar max-w-full">
           {TAGS.map((t) => (
-            <button
+            <Button
               key={t}
-              onClick={() => setSelectedTag(t)}
-              className={`px-3.5 py-1.5 min-h-[34px] rounded-full text-xs font-medium transition-colors whitespace-nowrap cursor-pointer touch-manipulation ${
-                selectedTag === t
-                  ? 'bg-accent text-white shadow-xs font-bold'
-                  : 'text-label-secondary hover:text-label-primary hover:bg-canvas'
-              }`}
+              size="sm"
+              variant={selectedTag === t ? 'primary' : 'ghost'}
+              onPress={() => setSelectedTag(t)}
+              className="px-3.5 min-h-[34px] rounded-full text-xs font-medium whitespace-nowrap"
             >
               {t}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -249,9 +256,9 @@ const NewsFeed = () => {
             Try adjusting your search filter or check back later.
           </p>
           {canPublish && (
-            <button onClick={handleOpenCreate} className="btn-primary text-xs mt-4 py-2.5 px-5 min-h-[40px]">
+            <Button variant="primary" size="sm" onPress={handleOpenCreate} className="text-xs mt-4 min-h-[40px]">
               Publish First Announcement
-            </button>
+            </Button>
           )}
         </div>
       ) : (
@@ -308,22 +315,28 @@ const NewsFeed = () => {
                 <div className="flex items-center gap-1.5 shrink-0">
                   {canPublish && (
                     <>
-                      <button
-                        onClick={(e) => handleOpenEdit(article, e)}
-                        className="p-1.5 min-h-[34px] min-w-[34px] flex items-center justify-center rounded-lg text-label-secondary hover:text-label-primary hover:bg-canvas transition-colors cursor-pointer"
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        isIconOnly
+                        onPress={(e) => handleOpenEdit(article, e)}
+                        className="min-h-[34px] min-w-[34px] text-label-secondary hover:text-label-primary"
                         title="Edit Article"
                         aria-label="Edit Article"
                       >
                         <Edit3 size={13} />
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(article._id, e)}
-                        className="p-1.5 min-h-[34px] min-w-[34px] flex items-center justify-center rounded-lg text-label-secondary hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        isIconOnly
+                        onPress={(e) => handleDelete(article._id, e)}
+                        className="min-h-[34px] min-w-[34px] text-label-secondary hover:text-destructive hover:bg-destructive/10"
                         title="Delete Article"
                         aria-label="Delete Article"
                       >
                         <Trash2 size={13} />
-                      </button>
+                      </Button>
                     </>
                   )}
                   <span className="font-medium text-accent flex items-center gap-1 pl-1">

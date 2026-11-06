@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Search,
   CheckCircle2,
+  Check,
   AlertTriangle,
   X,
   FileCheck,
@@ -27,6 +28,7 @@ import useCertificateStore, { CertificateTemplate } from '../../../store/useCert
 import useEventStore from '../../../store/useEventStore';
 import useDomainStore from '../../../store/useDomainStore';
 import useUserStore from '../../../store/useUserStore';
+import { HeroUISelect, HeroChip as Chip } from '../../ui/HeroUIComponents';
 
 export const THEMES = [
   { id: 'classic-ivory', label: 'Classic Pearl Ivory', primary: '#1e3a8a', secondary: '#d97706', bg: '#f8fafc', card: '#ffffff', text: '#0f172a', textMuted: '#475569', border: '#1e40af' },
@@ -209,7 +211,7 @@ export const CertificateStudio: React.FC = () => {
     }
   };
 
-  const currentTheme = THEMES.find((t) => t.id === theme) || THEMES[0];
+  const currentTheme : any = THEMES.find((t) => t.id === theme) || THEMES[0];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -294,7 +296,7 @@ export const CertificateStudio: React.FC = () => {
                   <button
                     key={tmpl._id}
                     onClick={() => handleSelectTemplate(tmpl)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all truncate max-w-[200px] ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all truncate max-w-50 ${
                       selectedTemplateId === tmpl._id
                         ? 'bg-primary text-white border-primary shadow-xs'
                         : 'bg-surface-raised border-separator text-label-secondary hover:border-primary/40'
@@ -723,18 +725,17 @@ export const CertificateStudio: React.FC = () => {
               <label className="text-xs font-bold text-label-secondary uppercase tracking-wider">
                 1. Select Certificate Template
               </label>
-              <select
+              <HeroUISelect
                 value={issueTemplateId}
-                onChange={(e) => setIssueTemplateId(e.target.value)}
-                className="w-full px-4 py-2.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary font-medium"
-              >
-                <option value="">-- Choose a template --</option>
-                {templates.map((t) => (
-                  <option key={t._id} value={t._id}>
-                    {t.title} ({t.theme})
-                  </option>
-                ))}
-              </select>
+                onChange={setIssueTemplateId}
+                placeholder="-- Choose a template --"
+                options={templates.map((t) => ({
+                  value: t._id,
+                  label: `${t.title} (${t.theme})`,
+                }))}
+                size="sm"
+                isSearchable
+              />
             </div>
 
             {/* Step 2: Target Audience Type */}
@@ -786,18 +787,17 @@ export const CertificateStudio: React.FC = () => {
             {targetType === 'EVENT' && (
               <div className="space-y-1.5 animate-in fade-in">
                 <label className="text-xs font-medium text-label-secondary">Choose Event</label>
-                <select
+                <HeroUISelect
                   value={targetId}
-                  onChange={(e) => setTargetId(e.target.value)}
-                  className="w-full px-4 py-2.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary"
-                >
-                  <option value="">-- Select Event --</option>
-                  {events.map((ev) => (
-                    <option key={ev._id} value={ev._id}>
-                      {ev.title} ({new Date(ev.date).toLocaleDateString()})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTargetId}
+                  placeholder="-- Select Event --"
+                  options={events.map((ev: { _id: any; title: any; date: string | number | Date; }) => ({
+                    value: ev._id,
+                    label: `${ev.title} (${new Date(ev.date).toLocaleDateString()})`,
+                  }))}
+                  size="sm"
+                  isSearchable
+                />
               </div>
             )}
 
@@ -805,18 +805,17 @@ export const CertificateStudio: React.FC = () => {
               <div className="space-y-3 animate-in fade-in">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-label-secondary">Choose Domain Course</label>
-                  <select
+                  <HeroUISelect
                     value={targetId}
-                    onChange={(e) => setTargetId(e.target.value)}
-                    className="w-full px-4 py-2.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary font-medium"
-                  >
-                    <option value="">-- Select Domain Course --</option>
-                    {domains.map((d) => (
-                      <option key={d._id} value={d._id}>
-                        {d.name} ({d.levelsCount || d.levels?.length || 0} levels)
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setTargetId}
+                    placeholder="-- Select Domain Course --"
+                    options={domains.map((d) => ({
+                      value: d._id,
+                      label: `${d.name} (${d.levelsCount || d.levels?.length || 0} levels)`,
+                    }))}
+                    size="sm"
+                    isSearchable
+                  />
                 </div>
 
                 {/* Course Completion Condition */}
@@ -888,11 +887,11 @@ export const CertificateStudio: React.FC = () => {
                             </p>
                           </div>
                           <span
-                            className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] ${
+                            className={`w-4 h-4 rounded border flex items-center justify-center ${
                               isSelected ? 'bg-primary text-white border-primary' : 'border-separator'
                             }`}
                           >
-                            {isSelected ? '✓' : ''}
+                            {isSelected ? <Check size={10} strokeWidth={2.5} /> : null}
                           </span>
                         </div>
                       );
@@ -944,18 +943,21 @@ export const CertificateStudio: React.FC = () => {
                 />
               </div>
 
-              <select
+              <HeroUISelect
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  fetchIssuedCertificates({ search: ledgerSearch, status: e.target.value });
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  fetchIssuedCertificates({ search: ledgerSearch, status: val });
                 }}
-                className="px-3 py-1.5 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none w-full sm:w-auto"
-              >
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active Only</option>
-                <option value="REVOKED">Revoked</option>
-              </select>
+                options={[
+                  { value: '', label: 'All Statuses' },
+                  { value: 'ACTIVE', label: 'Active Only' },
+                  { value: 'REVOKED', label: 'Revoked' },
+                ]}
+                size="sm"
+                className="w-full sm:w-36 shrink-0"
+                placement="bottom-end"
+              />
             </div>
           </div>
 

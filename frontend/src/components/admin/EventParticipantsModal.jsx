@@ -19,7 +19,6 @@ import {
   UserCheck,
   ChevronDown,
   ChevronUp,
-  Loader2,
   Award,
   Sliders,
   Sparkles,
@@ -30,7 +29,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Trash2,
+  Loader2,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
+import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
 import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import toast from 'react-hot-toast';
@@ -369,17 +371,15 @@ export const EventParticipantsModal = ({
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span>{isParticipantsTab ? 'Event Participants Directory' : 'Registered Students Directory'}</span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
-                  isParticipantsTab
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
-                    : 'bg-accent/10 text-accent border-accent/25'
-                }`}
+              <Chip
+                size="sm"
+                color={isParticipantsTab ? 'success' : 'accent'}
+                variant="flat"
               >
                 {isParticipantsTab
                   ? `${stats.presentStudents} attended`
                   : `${stats.totalStudents} registered`}
-              </span>
+              </Chip>
             </div>
           </div>
         }
@@ -405,39 +405,43 @@ export const EventParticipantsModal = ({
                   </span>
                 )}
 
-                <button
-                  onClick={handleGenerateCertificates}
-                  disabled={generatingCertificates || stats.presentStudents === 0}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-xs py-2 px-3.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                <Button
+                  onPress={handleGenerateCertificates}
+                  isDisabled={generatingCertificates || stats.presentStudents === 0}
+                  variant="primary"
+                  color="success"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-xs py-2 px-3.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer"
                   title="Generate certificates for attended participants"
                 >
                   {generatingCertificates ? (
-                    <Loader2 size={14} className="animate-spin" />
+                    <Spinner size="sm" color="default" />
                   ) : (
                     <Award size={14} />
                   )}
                   <span>Generate certificates</span>
-                </button>
+                </Button>
               </>
             )}
 
-            <button
-              onClick={() => setIsBulkUploadOpen(true)}
-              className="py-2 px-3.5 rounded-xl text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            <Button
+              onPress={() => setIsBulkUploadOpen(true)}
+              variant="primary"
+              className="py-2 px-3.5 rounded-xl text-xs font-medium text-white shadow-xs flex items-center gap-2 cursor-pointer"
               title="Upload participants from Excel or CSV"
             >
               <FileSpreadsheet size={14} />
               <span>Upload Excel</span>
-            </button>
+            </Button>
 
-            <button
-              onClick={exportCSV}
-              className="py-2 px-3.5 rounded-xl text-xs font-medium text-label-secondary dark:text-[#86868B] hover:text-label-primary bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+            <Button
+              onPress={exportCSV}
+              variant="secondary"
+              className="py-2 px-3.5 rounded-xl text-xs font-medium flex items-center gap-2 cursor-pointer shadow-xs"
               title={isParticipantsTab ? 'Download participants CSV' : 'Download registered students CSV'}
             >
               <Download size={14} />
               <span>{isParticipantsTab ? 'Export participants CSV' : 'Export registered CSV'}</span>
-            </button>
+            </Button>
 
             </div>
           </div>
@@ -448,13 +452,13 @@ export const EventParticipantsModal = ({
         <div className="px-5 sm:px-6 pt-3.5 pb-3 border-b border-separator dark:border-white/10 bg-canvas/30 dark:bg-white/[0.01] flex flex-col gap-3 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Segmented Toggle */}
-            <div className="inline-flex p-1 bg-surface-secondary dark:bg-[#1C1C1E] border border-separator dark:border-white/10 rounded-2xl w-full sm:w-auto max-w-lg">
+            <div className="inline-flex p-1 bg-surface-secondary border border-separator dark:border-white/10 rounded-2xl w-full sm:w-auto max-w-lg">
               <button
                 onClick={() => setActiveTab('participants')}
                 className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 py-2 px-4 sm:px-5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                   isParticipantsTab
                     ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary hover:bg-canvas/60 dark:hover:bg-white/5'
+                    : 'text-label-secondary hover:text-label-primary hover:bg-canvas/60 dark:hover:bg-white/5'
                 }`}
               >
                 <UserCheck size={14} />
@@ -475,7 +479,7 @@ export const EventParticipantsModal = ({
                 className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 py-2 px-4 sm:px-5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                   !isParticipantsTab
                     ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-label-secondary dark:text-[#86868B] hover:text-label-primary hover:bg-canvas/60 dark:hover:bg-white/5'
+                    : 'text-label-secondary hover:text-label-primary hover:bg-canvas/60 dark:hover:bg-white/5'
                 }`}
               >
                 <Users size={14} />
@@ -484,7 +488,7 @@ export const EventParticipantsModal = ({
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-medium tabular-nums ${
                     !isParticipantsTab
                       ? 'bg-black/25 text-white'
-                      : 'bg-separator dark:bg-white/10 text-label-secondary dark:text-[#86868B]'
+                      : 'bg-separator dark:bg-white/10 text-label-secondary'
                   }`}
                 >
                   {stats.totalStudents}
@@ -493,7 +497,7 @@ export const EventParticipantsModal = ({
             </div>
 
             {/* Quick Live Context Indicator */}
-            <div className="text-xs text-label-secondary dark:text-[#86868B] hidden md:flex items-center gap-2 font-normal">
+            <div className="text-xs text-label-secondary hidden md:flex items-center gap-2 font-normal">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>
                 {isParticipantsTab
@@ -553,9 +557,9 @@ export const EventParticipantsModal = ({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 sm:px-6 border-b border-separator dark:border-white/10 bg-canvas/20 dark:bg-white/[0.01] shrink-0">
           {isParticipantsTab ? (
             <>
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 shadow-xs relative overflow-hidden group">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-separator shadow-xs relative overflow-hidden group">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary dark:text-[#86868B]">
+                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary">
                     Verified attendees
                   </p>
                   <UserCheck size={16} className="text-emerald-500 opacity-80" />
@@ -563,44 +567,44 @@ export const EventParticipantsModal = ({
                 <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 mt-1">
                   {stats.presentStudents}
                 </p>
-                <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5 font-normal truncate">
+                <p className="text-xs text-label-secondary mt-0.5 font-normal truncate">
                   Confirmed attendance
                 </p>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 shadow-xs relative overflow-hidden group">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-separator shadow-xs relative overflow-hidden group">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary dark:text-[#86868B]">
+                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary">
                     Attendance turnout
                   </p>
                   <Sparkles size={16} className="text-blue-500 opacity-80" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-label-primary dark:text-[#F5F5F7] mt-1">
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-label-primary mt-1">
                   {stats.turnoutRate}%
                 </p>
-                <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5 font-normal truncate tabular-nums">
+                <p className="text-xs text-label-secondary mt-0.5 font-normal truncate tabular-nums">
                   {stats.presentStudents} of {stats.totalStudents} registered
                 </p>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 shadow-xs relative overflow-hidden group">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-separator shadow-xs relative overflow-hidden group">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary dark:text-[#86868B]">
+                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary">
                     Participant entries
                   </p>
                   <Layers size={16} className="text-purple-500 opacity-80" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-label-primary dark:text-[#F5F5F7] mt-1">
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-label-primary mt-1">
                   {stats.presentRegistrations}
                 </p>
-                <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5 font-normal truncate tabular-nums">
+                <p className="text-xs text-label-secondary mt-0.5 font-normal truncate tabular-nums">
                   {stats.presentSolo} solo · {stats.presentDuo} duo · {stats.presentTeam} squad
                 </p>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 shadow-xs relative overflow-hidden group">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-separator shadow-xs relative overflow-hidden group">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary dark:text-[#86868B]">
+                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary">
                     Pending verification
                   </p>
                   <AlertCircle size={16} className="text-amber-500 opacity-80" />
@@ -608,16 +612,16 @@ export const EventParticipantsModal = ({
                 <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-amber-600 dark:text-amber-400 mt-1">
                   {stats.absentStudents}
                 </p>
-                <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5 font-normal truncate">
+                <p className="text-xs text-label-secondary mt-0.5 font-normal truncate">
                   Registered but not verified
                 </p>
               </div>
             </>
           ) : (
             <>
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 shadow-xs relative overflow-hidden group">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-separator shadow-xs relative overflow-hidden group">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary dark:text-[#86868B]">
+                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary">
                     Total registered
                   </p>
                   <Users size={16} className="text-blue-500 opacity-80" />
@@ -625,29 +629,29 @@ export const EventParticipantsModal = ({
                 <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-blue-600 dark:text-blue-400 mt-1">
                   {stats.totalStudents}
                 </p>
-                <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5 font-normal truncate">
+                <p className="text-xs text-label-secondary mt-0.5 font-normal truncate">
                   Students across all enrollments
                 </p>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 shadow-xs relative overflow-hidden group">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-separator shadow-xs relative overflow-hidden group">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary dark:text-[#86868B]">
+                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary">
                     Registration entries
                   </p>
                   <Layers size={16} className="text-purple-500 opacity-80" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-label-primary dark:text-[#F5F5F7] mt-1">
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-label-primary mt-1">
                   {stats.totalRegistrations}
                 </p>
-                <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5 font-normal truncate tabular-nums">
+                <p className="text-xs text-label-secondary mt-0.5 font-normal truncate tabular-nums">
                   {stats.soloCount} solo · {stats.duoCount} duo · {stats.teamCount} squad
                 </p>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 shadow-xs relative overflow-hidden group">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-separator shadow-xs relative overflow-hidden group">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary dark:text-[#86868B]">
+                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary">
                     Turnout status
                   </p>
                   <CheckCircle2 size={16} className="text-emerald-500 opacity-80" />
@@ -655,22 +659,22 @@ export const EventParticipantsModal = ({
                 <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 mt-1">
                   {stats.presentStudents}
                 </p>
-                <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5 font-normal truncate tabular-nums">
+                <p className="text-xs text-label-secondary mt-0.5 font-normal truncate tabular-nums">
                   {stats.turnoutRate}% confirmed attendance
                 </p>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 shadow-xs relative overflow-hidden group">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-surface border border-separator shadow-xs relative overflow-hidden group">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary dark:text-[#86868B]">
+                  <p className="text-[11px] uppercase font-semibold tracking-wider text-label-tertiary">
                     Event capacity
                   </p>
                   <ShieldCheck size={16} className="text-indigo-500 opacity-80" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-label-primary dark:text-[#F5F5F7] mt-1">
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums text-label-primary mt-1">
                   {event.maxParticipants > 0 ? event.maxParticipants : 'Unlimited'}
                 </p>
-                <p className="text-xs text-label-secondary dark:text-[#86868B] mt-0.5 font-normal truncate tabular-nums">
+                <p className="text-xs text-label-secondary mt-0.5 font-normal truncate tabular-nums">
                   {event.maxParticipants > 0
                     ? `${Math.max(0, event.maxParticipants - stats.totalStudents)} spots remaining`
                     : 'No limit set'}
@@ -683,7 +687,7 @@ export const EventParticipantsModal = ({
         {/* ================================================================= */}
         {/* SEARCH & FILTERS TOOLBAR                                          */}
         {/* ================================================================= */}
-        <div className="p-4 sm:px-6 border-b border-separator dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface dark:bg-[#121214] shrink-0">
+        <div className="p-4 sm:px-6 border-b border-separator dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface shrink-0 relative z-30">
           {/* Search Box */}
           <div className="relative w-full sm:w-88">
             <Search
@@ -699,7 +703,7 @@ export const EventParticipantsModal = ({
                   ? 'Search participants by name, roll no, team...'
                   : 'Search registered students by name, roll no, team...'
               }
-              className="w-full text-xs py-2 pl-9.5 pr-8 rounded-xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] placeholder:text-label-tertiary focus:outline-none focus:border-blue-500/40 transition-colors font-normal"
+              className="w-full text-xs py-2 pl-9.5 pr-8 rounded-xl bg-canvas border border-separator dark:border-white/10 text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-blue-500/40 transition-colors font-normal"
             />
             {searchQuery && (
               <button
@@ -712,28 +716,34 @@ export const EventParticipantsModal = ({
           </div>
 
           {/* Format & Attendance Filter Dropdowns */}
-          <div className="flex items-center gap-2.5 w-full sm:w-auto overflow-x-auto justify-end">
-            <select
+          <div className="flex items-center gap-2.5 w-full sm:w-auto overflow-visible justify-end flex-wrap sm:flex-nowrap">
+            <HeroUISelect
               value={formatFilter}
-              onChange={(e) => setFormatFilter(e.target.value)}
-              className="text-xs font-medium py-2 px-3 rounded-xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-secondary dark:text-[#86868B] focus:outline-none cursor-pointer shrink-0"
-            >
-              <option value="all">All formats</option>
-              <option value="Individual">Solo</option>
-              <option value="Duo">Duo (pair)</option>
-              <option value="Team">Squad (team)</option>
-            </select>
+              onChange={setFormatFilter}
+              options={[
+                { value: 'all', label: 'All formats' },
+                { value: 'Individual', label: 'Solo' },
+                { value: 'Duo', label: 'Duo (pair)' },
+                { value: 'Team', label: 'Squad (team)' },
+              ]}
+              size="sm"
+              className="w-36 shrink-0"
+              placement="bottom-end"
+            />
 
             {!isParticipantsTab && (
-              <select
+              <HeroUISelect
                 value={attendanceFilter}
-                onChange={(e) => setAttendanceFilter(e.target.value)}
-                className="text-xs font-medium py-2 px-3 rounded-xl bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-secondary dark:text-[#86868B] focus:outline-none cursor-pointer shrink-0"
-              >
-                <option value="all">All attendance</option>
-                <option value="present">Attended (present only)</option>
-                <option value="absent">Unmarked (absent only)</option>
-              </select>
+                onChange={setAttendanceFilter}
+                options={[
+                  { value: 'all', label: 'All attendance' },
+                  { value: 'present', label: 'Attended (present only)' },
+                  { value: 'absent', label: 'Unmarked (absent only)' },
+                ]}
+                size="sm"
+                className="w-48 shrink-0"
+                placement="bottom-end"
+              />
             )}
 
             {(searchQuery || formatFilter !== 'all' || attendanceFilter !== 'all') && (
@@ -743,7 +753,7 @@ export const EventParticipantsModal = ({
                   setFormatFilter('all');
                   setAttendanceFilter('all');
                 }}
-                className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer px-2"
+                className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer px-2 whitespace-nowrap"
               >
                 Reset filters
               </button>
@@ -758,17 +768,17 @@ export const EventParticipantsModal = ({
           {loading ? (
             <div className="py-20 text-center space-y-3">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
-              <p className="text-xs text-label-secondary dark:text-[#86868B]">Loading student profiles...</p>
+              <p className="text-xs text-label-secondary">Loading student profiles...</p>
             </div>
           ) : filteredList.length === 0 ? (
             <div className="py-20 text-center space-y-3">
-              <div className="w-14 h-14 rounded-3xl bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 flex items-center justify-center text-label-tertiary mx-auto shadow-xs">
+              <div className="w-14 h-14 rounded-3xl bg-surface border border-separator dark:border-white/10 flex items-center justify-center text-label-tertiary mx-auto shadow-xs">
                 {isParticipantsTab ? <UserCheck size={24} /> : <Users size={24} />}
               </div>
-              <p className="text-base font-semibold tracking-tight text-label-primary dark:text-[#F5F5F7]">
+              <p className="text-base font-semibold tracking-tight text-label-primary">
                 {isParticipantsTab ? 'No verified participants found' : 'No registered students found'}
               </p>
-              <p className="text-xs text-label-secondary dark:text-[#86868B] max-w-md mx-auto leading-relaxed">
+              <p className="text-xs text-label-secondary max-w-md mx-auto leading-relaxed">
                 {isParticipantsTab ? (
                   stats.presentStudents === 0 ? (
                     <>
@@ -787,7 +797,7 @@ export const EventParticipantsModal = ({
               {isParticipantsTab && stats.presentStudents === 0 && stats.totalStudents > 0 && (
                 <button
                   onClick={() => setActiveTab('registered')}
-                  className="py-2 px-4 rounded-xl text-xs font-medium bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-label-primary hover:border-separator-opaque transition-all inline-flex items-center gap-2 cursor-pointer shadow-xs mx-auto mt-2"
+                  className="py-2 px-4 rounded-xl text-xs font-medium bg-surface border border-separator dark:border-white/10 text-label-primary hover:border-separator-opaque transition-all inline-flex items-center gap-2 cursor-pointer shadow-xs mx-auto mt-2"
                 >
                   <Users size={14} className="text-blue-500" />
                   <span>View registered students ({stats.totalStudents})</span>
@@ -805,7 +815,7 @@ export const EventParticipantsModal = ({
               return (
                 <div
                   key={e._id || idx}
-                  className="p-4 sm:p-5 rounded-2xl bg-surface dark:bg-[#161617] border border-separator dark:border-white/10 hover:border-blue-500/35 dark:hover:border-blue-500/35 transition-all shadow-xs space-y-3"
+                  className="p-4 sm:p-5 rounded-2xl bg-surface border border-separator dark:border-white/10 hover:border-blue-500/35 dark:hover:border-blue-500/35 transition-all shadow-xs space-y-3"
                 >
                   {/* Primary Row Header */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -824,7 +834,7 @@ export const EventParticipantsModal = ({
                       {/* Student and Team Info */}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm sm:text-base text-label-primary dark:text-[#F5F5F7] tracking-tight">
+                          <span className="font-semibold text-sm sm:text-base text-label-primary tracking-tight">
                             {e.enrolledBy?.name || 'Unknown Student'}
                           </span>
 
@@ -841,7 +851,7 @@ export const EventParticipantsModal = ({
                                 ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20'
                                 : e.type === 'Team'
                                 ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20'
-                                : 'bg-separator dark:bg-white/10 text-label-secondary dark:text-[#86868B]'
+                                : 'bg-separator dark:bg-white/10 text-label-secondary'
                             }`}
                           >
                             {e.type === 'Duo'
@@ -853,22 +863,22 @@ export const EventParticipantsModal = ({
                         </div>
 
                         {/* Detail Badges */}
-                        <div className="flex items-center gap-2 text-xs text-label-secondary dark:text-[#86868B] mt-1.5 flex-wrap font-normal">
-                          <span className="font-mono px-2 py-0.5 rounded-md bg-canvas dark:bg-[#1F1F22] border border-separator dark:border-white/10 text-label-primary dark:text-[#F5F5F7] text-xs font-medium tabular-nums">
+                        <div className="flex items-center gap-2 text-xs text-label-secondary mt-1.5 flex-wrap font-normal">
+                          <span className="font-mono px-2 py-0.5 rounded-md bg-surface-secondary border border-separator text-label-primary text-xs font-medium tabular-nums">
                             {e.enrolledBy?.rollNo || 'No roll number'}
                           </span>
                           <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 font-medium text-xs border border-blue-500/20 flex items-center gap-1">
                             <Building2 size={12} />
                             {getStudentCollege(e.enrolledBy)}
                           </span>
-                          <span className="px-2 py-0.5 rounded-md bg-canvas dark:bg-[#1F1F22] text-label-secondary dark:text-[#86868B] font-medium text-xs border border-separator dark:border-white/10">
+                          <span className="px-2 py-0.5 rounded-md bg-surface-secondary text-label-secondary font-medium text-xs border border-separator">
                             {getStudentYear(e.enrolledBy)}
                           </span>
-                          <span className="flex items-center gap-1 text-label-secondary dark:text-[#86868B]">
+                          <span className="flex items-center gap-1 text-label-secondary">
                             <Mail size={12} className="text-label-tertiary" />
                             {e.enrolledBy?.email || 'No email'}
                           </span>
-                          <span className="flex items-center gap-1 text-label-secondary dark:text-[#86868B]">
+                          <span className="flex items-center gap-1 text-label-secondary">
                             <GraduationCap size={13} className="text-label-tertiary" />
                             {getStudentDepartment(e.enrolledBy)}
                           </span>
@@ -879,41 +889,38 @@ export const EventParticipantsModal = ({
                     {/* Right Status Badges & Teammate Drawer Toggle */}
                     <div className="flex items-center gap-2 sm:gap-2.5 self-end sm:self-auto flex-wrap">
                       {isParticipantsTab && (
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${
-                            e.isWalkIn
-                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25'
-                              : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25'
-                          }`}
+                        <Chip
+                          size="sm"
+                          color={e.isWalkIn ? 'warning' : 'primary'}
+                          variant="flat"
                         >
                           {e.isWalkIn ? 'Walk-in attendance' : 'Pre-registered'}
-                        </span>
+                        </Chip>
                       )}
 
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                          isPresent
-                            ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                            : 'bg-canvas dark:bg-[#1F1F22] text-label-tertiary dark:text-[#86868B] border-separator dark:border-white/10'
-                        }`}
+                      <Chip
+                        size="sm"
+                        color={isPresent ? 'success' : 'default'}
+                        variant="flat"
+                        startContent={
+                          isPresent ? (
+                            <CheckCircle2 size={13} className="text-emerald-500" />
+                          ) : (
+                            <XCircle size={13} className="text-label-tertiary" />
+                          )
+                        }
                       >
-                        {isPresent ? (
-                          <>
-                            <CheckCircle2 size={14} className="text-emerald-500" />
-                            <span>{isParticipantsTab ? 'Verified participant' : 'Attended'}</span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle size={14} className="text-label-tertiary" />
-                            <span>Awaiting attendance</span>
-                          </>
-                        )}
-                      </span>
+                        {isPresent
+                          ? isParticipantsTab
+                            ? 'Verified participant'
+                            : 'Attended'
+                          : 'Awaiting attendance'}
+                      </Chip>
 
                       {isGroup && hasMembers && (
                         <button
                           onClick={() => toggleExpand(e._id)}
-                          className="py-1 px-2.5 rounded-xl bg-canvas dark:bg-[#1F1F22] border border-separator dark:border-white/10 text-label-secondary dark:text-[#86868B] hover:text-label-primary hover:border-separator-opaque transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer shadow-xs tabular-nums"
+                          className="py-1 px-2.5 rounded-xl bg-surface-secondary border border-separator text-label-secondary hover:text-label-primary hover:border-separator-opaque transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer shadow-xs tabular-nums"
                         >
                           <span>
                             {e.members.length} teammate{e.members.length > 1 ? 's' : ''}
@@ -938,7 +945,7 @@ export const EventParticipantsModal = ({
                   {/* Custom Questionnaire Responses */}
                   {e.customResponses && Object.keys(e.customResponses).length > 0 && (
                     <div className="pt-2.5 border-t border-separator/60 dark:border-white/10 flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] uppercase font-medium text-label-tertiary dark:text-[#86868B] flex items-center gap-1">
+                      <span className="text-[10px] uppercase font-medium text-label-tertiary flex items-center gap-1">
                         <Sliders size={11} className="text-blue-500" /> Questionnaire:
                       </span>
                       {Object.entries(e.customResponses).map(([key, val]) => {
@@ -951,9 +958,9 @@ export const EventParticipantsModal = ({
                         return (
                           <span
                             key={key}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-canvas dark:bg-[#1C1C1E] border border-separator dark:border-white/10 text-xs font-normal text-label-secondary dark:text-[#86868B]"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-canvas border border-separator dark:border-white/10 text-xs font-normal text-label-secondary"
                           >
-                            <strong className="text-label-primary dark:text-[#F5F5F7] font-medium">{displayKey}:</strong>
+                            <strong className="text-label-primary font-medium">{displayKey}:</strong>
                             <span>{displayVal}</span>
                           </span>
                         );
@@ -969,18 +976,18 @@ export const EventParticipantsModal = ({
                       exit={{ opacity: 0, height: 0 }}
                       className="mt-3 pt-3 border-t border-separator/80 dark:border-white/10 space-y-2.5"
                     >
-                      <p className="text-[11px] uppercase font-semibold text-label-tertiary dark:text-[#86868B] tracking-wider tabular-nums">
+                      <p className="text-[11px] uppercase font-semibold text-label-tertiary tracking-wider tabular-nums">
                         Full team roster ({memberTotal} members)
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {/* Leader card */}
-                        <div className="p-3 rounded-2xl bg-canvas dark:bg-[#1A1A1D] border border-separator dark:border-white/10 flex items-center gap-3">
+                        <div className="p-3 rounded-2xl bg-canvas border border-separator dark:border-white/10 flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium text-xs flex items-center justify-center shrink-0 border border-purple-500/20">
                             <Crown size={14} />
                           </div>
                           <div className="min-w-0 text-xs space-y-0.5">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-semibold text-label-primary dark:text-[#F5F5F7] truncate">
+                              <span className="font-semibold text-label-primary truncate">
                                 {e.enrolledBy?.name}
                               </span>
                               <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">
@@ -989,11 +996,11 @@ export const EventParticipantsModal = ({
                               <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
                                 {getStudentCollege(e.enrolledBy)}
                               </span>
-                              <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-surface dark:bg-[#121214] text-label-secondary dark:text-[#86868B] border border-separator dark:border-white/10">
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-surface text-label-secondary border border-separator dark:border-white/10">
                                 {getStudentYear(e.enrolledBy)}
                               </span>
                             </div>
-                            <p className="font-mono text-label-secondary dark:text-[#86868B] text-[11px] tabular-nums">
+                            <p className="font-mono text-label-secondary text-[11px] tabular-nums">
                               {e.enrolledBy?.rollNo || 'No roll number'}
                             </p>
                             <p className="text-label-tertiary text-[11px] truncate">
@@ -1009,24 +1016,24 @@ export const EventParticipantsModal = ({
                         {e.members.map((m, mIdx) => (
                           <div
                             key={m?._id || mIdx}
-                            className="p-3 rounded-2xl bg-canvas dark:bg-[#1A1A1D] border border-separator dark:border-white/10 flex items-center gap-3"
+                            className="p-3 rounded-2xl bg-canvas border border-separator dark:border-white/10 flex items-center gap-3"
                           >
                             <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium text-xs flex items-center justify-center shrink-0 border border-blue-500/20">
                               {m?.name ? m.name.charAt(0).toUpperCase() : 'M'}
                             </div>
                             <div className="min-w-0 text-xs space-y-0.5">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-semibold text-label-primary dark:text-[#F5F5F7] truncate block">
+                                <span className="font-semibold text-label-primary truncate block">
                                   {m?.name || 'Unknown member'}
                                 </span>
                                 <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
                                   {getStudentCollege(m)}
                                 </span>
-                                <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-surface dark:bg-[#121214] text-label-secondary dark:text-[#86868B] border border-separator dark:border-white/10">
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-surface text-label-secondary border border-separator dark:border-white/10">
                                   {getStudentYear(m)}
                                 </span>
                               </div>
-                              <p className="font-mono text-label-secondary dark:text-[#86868B] text-[11px] tabular-nums">
+                              <p className="font-mono text-label-secondary text-[11px] tabular-nums">
                                 {m?.rollNo || 'No roll number'}
                               </p>
                               <p className="text-label-tertiary text-[11px] truncate">
@@ -1048,7 +1055,7 @@ export const EventParticipantsModal = ({
         {/* ================================================================= */}
         {/* MODAL FOOTER                                                      */}
         {/* ================================================================= */}
-        <div className="p-4 sm:p-5 border-t border-separator dark:border-white/10 bg-canvas/40 dark:bg-white/[0.02] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary dark:text-[#86868B] shrink-0">
+        <div className="p-4 sm:p-5 border-t border-separator dark:border-white/10 bg-canvas/40 dark:bg-white/[0.02] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-label-secondary shrink-0">
           <div>
             {isParticipantsTab ? (
               <span className="tabular-nums">
@@ -1072,7 +1079,7 @@ export const EventParticipantsModal = ({
             </button>
             <button
               onClick={onClose}
-              className="py-1.5 px-4 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface dark:bg-[#1C1C1E] border border-separator dark:border-white/10 transition-colors cursor-pointer"
+              className="py-1.5 px-4 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface border border-separator dark:border-white/10 transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -1106,7 +1113,7 @@ export const EventParticipantsModal = ({
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-surface dark:bg-[#161618] border border-separator dark:border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+              className="bg-surface border border-separator rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center shrink-0">
@@ -1122,7 +1129,7 @@ export const EventParticipantsModal = ({
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-canvas dark:bg-[#1F1F22] border border-separator dark:border-white/10 space-y-2 text-xs">
+              <div className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-label-tertiary dark:text-white/50">Student name:</span>
                   <span className="font-semibold text-label-primary dark:text-white">
@@ -1164,23 +1171,25 @@ export const EventParticipantsModal = ({
               </p>
 
               <div className="flex justify-end gap-2.5 pt-1">
-                <button
+                <Button
                   type="button"
-                  disabled={isDeleting}
-                  onClick={() => setConfirmDeleteEnrollment(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary dark:text-white/70 dark:hover:text-white hover:bg-canvas dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  isDisabled={isDeleting}
+                  variant="secondary"
+                  onPress={() => setConfirmDeleteEnrollment(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  disabled={isDeleting}
-                  onClick={confirmDelete}
-                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium text-xs shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer transition-all"
+                  isDisabled={isDeleting}
+                  variant="danger"
+                  onPress={confirmDelete}
+                  className="px-5 py-2 rounded-xl text-white font-medium text-xs shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  {isDeleting ? <Spinner size="sm" color="default" /> : <Trash2 size={13} />}
                   <span>{isDeleting ? 'Removing...' : 'Confirm and delete'}</span>
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -1191,3 +1200,4 @@ export const EventParticipantsModal = ({
 };
 
 export default EventParticipantsModal;
+

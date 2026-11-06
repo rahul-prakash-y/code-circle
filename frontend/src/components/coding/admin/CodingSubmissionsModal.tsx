@@ -1,5 +1,6 @@
 import ResponsiveModal from '../../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
+import { Button, Spinner } from '@heroui/react';
 import {
   X,
   Users,
@@ -188,6 +189,21 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
         }
         description="Review student source code, evaluated test cases, and anti-cheating audit trail."
         dialogClassName="sm:max-w-5xl p-6"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <span className="text-xs text-label-secondary font-medium tabular-nums">
+              Showing {filteredSubmissions.length} of {submissions.length} submission{submissions.length === 1 ? '' : 's'}
+            </span>
+            <Button
+              type="button"
+              variant="flat"
+              onPress={onClose}
+              className="rounded-xl text-xs font-semibold px-4"
+            >
+              Close
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4 pt-2">
         {/* Quick Metrics Bar */}
@@ -343,47 +359,55 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
 
                       <td className="p-3.5 pr-4 text-right">
                         <div className="inline-flex items-center gap-1.5 justify-end">
-                          <button
-                            onClick={() => setInspectSubmission(sub)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold bg-surface-secondary hover:bg-surface-raised border border-separator text-label-primary transition-all shadow-sm cursor-pointer"
-                            title="Inspect submitted code"
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            onPress={() => setInspectSubmission(sub)}
+                            className="rounded-xl text-xs font-semibold h-7 px-2.5 bg-surface-secondary hover:bg-surface-raised border border-separator text-label-primary cursor-pointer"
+                            startContent={<Code2 className="w-3.5 h-3.5 text-blue-500" />}
                           >
-                            <Code2 className="w-3.5 h-3.5 text-blue-500" />
                             <span className="hidden sm:inline">View Code</span>
-                          </button>
+                          </Button>
 
-                          <button
-                            type="button"
-                            onClick={() =>
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="secondary"
+                            onPress={() => {
+                              const sId = student._id || (typeof sub.student === 'string' ? sub.student : (sub as any).userId || (sub as any).studentId || '');
                               setConfirmAction({
                                 type: 'reappear',
-                                studentId: student._id || (typeof sub.student === 'string' ? sub.student : ''),
+                                studentId: sId,
                                 studentName: student.name || 'Student',
                                 subId: sub._id,
-                              })
-                            }
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 transition-all shadow-sm cursor-pointer"
+                              });
+                            }}
+                            className="rounded-xl text-xs font-bold h-7 px-2.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 cursor-pointer"
+                            startContent={<RotateCcw className="w-3.5 h-3.5" />}
                             title="Reset attempts so this student can reappear cleanly"
                           >
-                            <RotateCcw className="w-3.5 h-3.5" />
                             <span className="hidden md:inline">Allow Reappear</span>
-                          </button>
+                          </Button>
 
-                          <button
-                            type="button"
-                            onClick={() =>
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="danger"
+                            isIconOnly
+                            onPress={() => {
+                              const sId = student._id || (typeof sub.student === 'string' ? sub.student : (sub as any).userId || (sub as any).studentId || '');
                               setConfirmAction({
                                 type: 'delete',
-                                studentId: student._id || (typeof sub.student === 'string' ? sub.student : ''),
+                                studentId: sId,
                                 studentName: student.name || 'Student',
                                 subId: sub._id,
-                              })
-                            }
-                            className="inline-flex items-center p-1.5 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all shadow-sm cursor-pointer"
+                              });
+                            }}
+                            className="rounded-xl h-7 w-7 min-w-7 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 cursor-pointer"
                             title="Delete this retry submission"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -393,119 +417,133 @@ export const CodingSubmissionsModal: React.FC<CodingSubmissionsModalProps> = ({
             </table>
           )}
         </div>
-
-        {/* Code Inspection Modal */}
-        {inspectSubmission && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-            <div className="w-full max-w-3xl bg-neutral-950 border border-neutral-800 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[85vh]">
-              <div className="flex items-center justify-between pb-4 border-b border-neutral-800 shrink-0">
-                <div>
-                  <h3 className="text-base font-bold text-white">
-                    Code Submission: {inspectSubmission.student?.name || 'Student'}
-                  </h3>
-                  <p className="text-xs text-neutral-400">
-                    Language: <span className="text-blue-400 font-mono uppercase">{inspectSubmission.language}</span> • Score: {inspectSubmission.score}% ({inspectSubmission.passed}/{inspectSubmission.total} test cases)
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleCopyCode(inspectSubmission.code)}
-                    className="p-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                    title="Copy Code"
-                  >
-                    {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-                  </button>
-                  <button
-                    onClick={() => setInspectSubmission(null)}
-                    className="p-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Code display */}
-              <div className="flex-1 overflow-y-auto my-4 rounded-2xl bg-black border border-neutral-800 p-4">
-                <pre className="font-mono text-xs text-neutral-200 leading-relaxed overflow-x-auto whitespace-pre">
-                  {inspectSubmission.code}
-                </pre>
-              </div>
-
-              {/* Test Cases Results Detail */}
-              <div className="shrink-0 pt-2 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
-                <span>
-                  Submitted on {formatISTDateTime(inspectSubmission.submittedAt)}
-                </span>
-                <span className="font-mono text-emerald-400">
-                  Passed {inspectSubmission.passed} of {inspectSubmission.total} Cases
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
         </div>
       </ResponsiveModal>
 
-        {/* Action Confirmation Modal Overlay */}
-        {confirmAction && (
-          <div className="fixed inset-0 z-70 bg-black/85 backdrop-blur-md flex items-center justify-center p-6">
-            <div className="bg-neutral-950 border border-neutral-800 p-6 sm:p-7 rounded-3xl max-w-md w-full text-center space-y-4 shadow-2xl">
-              <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto border ${
-                  confirmAction.type === 'delete'
-                    ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
-                    : 'bg-purple-500/15 border-purple-500/30 text-purple-400'
-                }`}
-              >
-                {confirmAction.type === 'delete' ? (
-                  <Trash2 size={24} />
-                ) : (
-                  <RotateCcw size={24} />
-                )}
+      {/* Code Inspection Modal */}
+      <ResponsiveModal
+        open={Boolean(inspectSubmission)}
+        onOpenChange={(open) => {
+          if (!open) setInspectSubmission(null);
+        }}
+        title={
+          <div className="flex items-center justify-between w-full pr-8">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                <Code2 className="w-4 h-4" />
               </div>
-
-              <div>
-                <h3 className="text-base font-extrabold text-white">
-                  {confirmAction.type === 'delete'
-                    ? 'Delete Coding Retry Submission?'
-                    : 'Allow Student to Reappear?'}
-                </h3>
-                <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">
-                  {confirmAction.type === 'delete'
-                    ? `Are you sure you want to delete this retry attempt for ${confirmAction.studentName}? This will permanently clear this record.`
-                    : `This will reset all coding challenge submission locks for ${confirmAction.studentName}, allowing them to reappear and solve this challenge again.`}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 pt-2">
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={() => setConfirmAction(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-300 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 cursor-pointer transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={handleExecuteAction}
-                  className={`px-5 py-2 rounded-xl text-xs font-black text-white flex items-center gap-2 cursor-pointer shadow-lg transition-all ${
-                    confirmAction.type === 'delete'
-                      ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-500/25'
-                      : 'bg-purple-600 hover:bg-purple-500 shadow-purple-500/25'
-                  }`}
-                >
-                  {actionLoading && <Loader2 size={13} className="animate-spin" />}
-                  <span>
-                    {confirmAction.type === 'delete' ? 'Yes, Delete Retry' : 'Yes, Allow Reappear'}
-                  </span>
-                </button>
-              </div>
+              <span className="truncate">Code Submission: {inspectSubmission?.student?.name || 'Student'}</span>
             </div>
+            {inspectSubmission && (
+              <Button
+                size="sm"
+                variant="flat"
+                isIconOnly
+                onPress={() => handleCopyCode(inspectSubmission.code)}
+                title="Copy code"
+                className="rounded-xl shrink-0"
+              >
+                {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+              </Button>
+            )}
+          </div>
+        }
+        description={
+          inspectSubmission
+            ? `Language: ${inspectSubmission.language.toUpperCase()} • Score: ${inspectSubmission.score}% (${inspectSubmission.passed}/${inspectSubmission.total} test cases)`
+            : ''
+        }
+        dialogClassName="sm:max-w-3xl p-6"
+        footer={
+          inspectSubmission && (
+            <div className="flex items-center justify-between w-full text-xs text-label-secondary font-medium">
+              <span>Submitted: {formatISTDateTime(inspectSubmission.submittedAt)}</span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                Passed {inspectSubmission.passed} of {inspectSubmission.total} test cases
+              </span>
+            </div>
+          )
+        }
+      >
+        {inspectSubmission && (
+          <div className="my-2 rounded-2xl bg-black/95 border border-separator p-4 overflow-hidden">
+            <pre className="font-mono text-xs text-neutral-200 leading-relaxed overflow-x-auto whitespace-pre max-h-[50vh]">
+              {inspectSubmission.code}
+            </pre>
           </div>
         )}
+      </ResponsiveModal>
+
+      {/* Action Confirmation Modal */}
+      <ResponsiveModal
+        open={Boolean(confirmAction)}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null);
+        }}
+        title={
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center border ${
+                confirmAction?.type === 'delete'
+                  ? 'bg-rose-500/15 border-rose-500/30 text-rose-500'
+                  : 'bg-purple-500/15 border-purple-500/30 text-purple-500'
+              }`}
+            >
+              {confirmAction?.type === 'delete' ? (
+                <Trash2 size={16} />
+              ) : (
+                <RotateCcw size={16} />
+              )}
+            </div>
+            <span>
+              {confirmAction?.type === 'delete'
+                ? 'Delete Coding Retry Submission?'
+                : 'Allow Student to Reappear?'}
+            </span>
+          </div>
+        }
+        description={
+          confirmAction?.type === 'delete'
+            ? `Are you sure you want to delete this retry attempt for ${confirmAction.studentName}? This will permanently clear this record.`
+            : `This will reset all coding challenge submission locks for ${confirmAction?.studentName}, allowing them to reappear and solve this challenge again.`
+        }
+        dialogClassName="sm:max-w-md p-6"
+        footer={
+          <div className="flex items-center justify-end gap-2.5 w-full">
+            <Button
+              type="button"
+              variant="flat"
+              isDisabled={actionLoading}
+              onPress={() => setConfirmAction(null)}
+              className="rounded-xl px-4 text-xs font-semibold cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              color={confirmAction?.type === 'delete' ? 'danger' : 'secondary'}
+              variant="solid"
+              isDisabled={actionLoading}
+              isLoading={actionLoading}
+              onPress={handleExecuteAction}
+              className={`rounded-xl text-xs font-bold shadow-md px-5 cursor-pointer ${
+                confirmAction?.type === 'delete'
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-500/25'
+                  : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/25'
+              }`}
+            >
+              {confirmAction?.type === 'delete' ? 'Yes, Delete Retry' : 'Yes, Allow Reappear'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="py-2">
+          <div className="p-4 rounded-2xl bg-surface-secondary border border-separator space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-label-secondary">Target Student:</p>
+            <p className="text-sm font-bold text-label-primary">{confirmAction?.studentName || 'Student'}</p>
+          </div>
+        </div>
+      </ResponsiveModal>
     </>
   );
 };

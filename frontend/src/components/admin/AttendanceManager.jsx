@@ -3,6 +3,7 @@ import { Calendar, Users, Clock, ArrowRight, ShieldCheck, Key, Plus, ListFilter,
 import useEventStore from '../../store/useEventStore';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
 import { format } from 'date-fns';
+import { HeroChip as Chip } from '../ui/HeroUIComponents';
 
 const AttendanceManager = () => {
   const { upcomingEvents, fetchEvents, loading } = useEventStore();
@@ -26,10 +27,15 @@ const AttendanceManager = () => {
           <h2 className="text-3xl font-extrabold text-text-primary tracking-tight">Attendance Intelligence</h2>
           <p className="text-text-muted font-medium">Generate OTPs and track real-time student presence.</p>
         </div>
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent-muted border border-accent/20 rounded-2xl text-[10px] font-black uppercase tracking-widest">
-           <UserCheck size={14} />
-           Administrative View
-        </div>
+        <Chip
+          size="sm"
+          color="accent"
+          variant="flat"
+          startContent={<UserCheck size={14} />}
+          className="font-bold uppercase tracking-wider px-3.5 py-1.5"
+        >
+          Administrative View
+        </Chip>
       </div>
 
       {/* Events Selection Grid */}
@@ -49,9 +55,9 @@ const AttendanceManager = () => {
                   <div className="p-2.5 bg-accent/10 rounded-xl text-accent-muted border border-accent/20">
                     <Calendar size={20} />
                   </div>
-                  <span className="text-[10px] font-black text-text-muted uppercase tracking-widest bg-surface-elevated px-3 py-1 rounded-full border border-border">
+                  <Chip size="sm" variant="flat" color="default" className="font-bold uppercase tracking-wider">
                     {format(new Date(event.date), 'MMM dd')}
-                  </span>
+                  </Chip>
                 </div>
                 <h3 className="text-xl font-black text-text-primary mb-2 group-hover:text-accent-muted transition-colors">
                   {event.title}

@@ -42,7 +42,7 @@ const NewsArticleReader = ({ article, onClose }) => {
               alt={article.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-linear-to-t from-[#030303] via-[#030303]/40 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-canvas via-canvas/40 to-transparent" />
 
             <button
               onClick={onClose}

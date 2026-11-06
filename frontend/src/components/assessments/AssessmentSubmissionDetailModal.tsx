@@ -10,6 +10,7 @@ import {
   Search,
   Info,
 } from 'lucide-react';
+import { Button } from '@heroui/react';
 import { formatISTDateTime } from '../../lib/dateUtils';
 import toast from 'react-hot-toast';
 
@@ -403,7 +404,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
       <div class="q-head">
         <span class="q-num">QUESTION #${idx + 1} (${q.points} pt${q.points > 1 ? 's' : ''})</span>
         <span class="badge ${q.isCorrect ? 'badge-pass' : 'badge-fail'}">
-          ${q.isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}
+          ${q.isCorrect ? 'CORRECT' : 'INCORRECT'}
         </span>
       </div>
       <div class="q-text">${q.questionText}</div>
@@ -419,13 +420,13 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
 
                   if (isSelected && isAnswer) {
                     cls += ' correct';
-                    tag = '✓ Student Answer (Correct)';
+                    tag = 'Student Answer (Correct)';
                   } else if (isSelected && !isAnswer) {
                     cls += ' incorrect';
-                    tag = '✗ Student Answer';
+                    tag = 'Student Answer';
                   } else if (isAnswer) {
                     cls += ' correct';
-                    tag = '✓ Correct Answer';
+                    tag = 'Correct Answer';
                   }
 
                   return `
@@ -500,23 +501,28 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
         <div className="flex items-center justify-between gap-2 p-3 bg-surface-secondary rounded-2xl border border-separator flex-wrap">
           <span className="text-xs font-semibold text-label-secondary">Report Actions:</span>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrintPdf}
-              className="px-3.5 py-1.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            <Button
+              size="sm"
+              variant="secondary"
+              onPress={handlePrintPdf}
+              className="rounded-full text-xs font-medium flex items-center gap-1.5 shadow-xs"
               title="Print or save PDF report"
             >
               <Printer size={13} />
               <span>Print / PDF</span>
-            </button>
+            </Button>
 
-            <button
-              onClick={handleDownloadCsv}
-              className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            <Button
+              size="sm"
+              variant="secondary"
+              color="success"
+              onPress={handleDownloadCsv}
+              className="rounded-full text-xs font-medium flex items-center gap-1.5 shadow-xs"
               title="Download CSV breakdown"
             >
               <FileSpreadsheet size={13} />
               <span>Export CSV</span>
-            </button>
+            </Button>
           </div>
         </div>
         {/* Quick Stats Grid */}
@@ -709,12 +715,13 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
         {/* Footer */}
         <div className="pt-4 border-t border-separator flex items-center justify-between text-xs text-label-secondary shrink-0">
           <span>Detailed assessment ledger · Student performance audit</span>
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+          <Button
+            variant="secondary"
+            onPress={onClose}
+            className="px-5 py-2 rounded-full text-xs font-medium"
           >
             Close Report
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

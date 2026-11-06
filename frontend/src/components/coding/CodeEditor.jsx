@@ -25,7 +25,7 @@ const CodeEditor = ({ code, setCode, languageId }) => {
           scrollBeyondLastLine: false,
           automaticLayout: true,
           padding: { top: 16 },
-          fontFamily: "'Fira Code', 'Courier New', monospace",
+          fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
         }}
       />
     </div>

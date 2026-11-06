@@ -4,6 +4,7 @@ dotenv.config();
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import rateLimit from '@fastify/rate-limit';
 import connectDB from './config/db';
 import errorHandler from './middleware/errorHandler';
 import { authRoutes } from './routes/authRoutes';
@@ -27,6 +28,8 @@ import { diagnosticsRoutes } from './routes/diagnosticsRoutes';
 import { contestRoutes } from './routes/contestRoutes';
 import { pointsRoutes } from './routes/pointsRoutes';
 import { missedEventRequestRoutes } from './routes/missedEventRequestRoutes';
+import { eventDocumentRoutes } from './routes/eventDocumentRoutes';
+import { eventReportRoutes } from './routes/eventReportRoutes';
 import path from 'path';
 import fs from 'fs';
 import fastifyStatic from '@fastify/static';
@@ -54,6 +57,18 @@ server.register(multipart, {
 });
 
 // Centralized Global Error Handler
+// Register Rate Limiting for Thundering Herd protection on Free Tier
+server.register(rateLimit, {
+  global: false,
+  max: 100,
+  timeWindow: '1 minute',
+  errorResponseBuilder: (request, context) => ({
+    statusCode: 429,
+    error: 'Too Many Requests',
+    message: `Rate limit reached. Please wait ${Math.ceil(context.ttl / 1000)} seconds before trying again.`,
+  }),
+});
+
 server.setErrorHandler(errorHandler);
 
 // --- API ROUTES ---
@@ -86,6 +101,8 @@ server.register(diagnosticsRoutes, { prefix: '/api/admin/diagnostics' });
 server.register(contestRoutes, { prefix: '/api/contests' });
 server.register(pointsRoutes, { prefix: '/api/points' });
 server.register(missedEventRequestRoutes, { prefix: '/api/missed-event-requests' });
+server.register(eventDocumentRoutes, { prefix: '/api/docs' });
+server.register(eventReportRoutes, { prefix: '/api/reports' });
 
 // API 404 Handler
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
@@ -109,7 +126,7 @@ if (fs.existsSync(frontendDistPath)) {
 export const start = async (): Promise<void> => {
   try {
     const port = Number(process.env.PORT) || 5000;
-    const host = '0.0.0.0';
+    const host = process.env.HOST || '127.0.0.1';
 
     await server.listen({ port, host });
     console.log(`[Server] Fastify server listening on http://${host}:${port}`);

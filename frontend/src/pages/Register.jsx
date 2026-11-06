@@ -5,6 +5,8 @@ import AuthLayout from '../layouts/AuthLayout';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Mail, Lock, User, Hash, Loader2 } from 'lucide-react';
+import { HeroInput } from '../components/ui/HeroUIComponents';
+import { Button } from '@heroui/react';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -64,19 +66,18 @@ const Register = () => {
         }}
       >
         {fields.map((field) => (
-          <motion.div key={field.label} variants={fieldVariants} className="space-y-1.5">
-            <label className="input-label text-xs sm:text-sm">{field.label}</label>
-            <div className="relative group">
-              <field.icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors duration-300" />
-              <input
-                type={field.type}
-                placeholder={field.placeholder}
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value)}
-                className="input-field pl-12 min-h-[46px] text-sm"
-                required
-              />
-            </div>
+          <motion.div key={field.label} variants={fieldVariants}>
+            <HeroInput
+              label={field.label}
+              labelPlacement="inside"
+              variant="flat"
+              type={field.type}
+              placeholder={field.placeholder}
+              value={field.value}
+              onChange={(e) => field.onChange(e.target.value)}
+              startContent={<field.icon className="w-4 h-4 text-text-muted" />}
+              isRequired
+            />
           </motion.div>
         ))}
 
@@ -84,13 +85,15 @@ const Register = () => {
           variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
           className="pt-2"
         >
-          <button 
+          <Button 
             type="submit" 
-            disabled={loading} 
-            className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/15 cursor-pointer"
+            variant="primary"
+            isLoading={loading}
+            size="lg"
+            className="w-full py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/15"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
-          </button>
+            Create Account
+          </Button>
         </motion.div>
 
         <motion.p 

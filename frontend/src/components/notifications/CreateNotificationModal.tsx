@@ -62,36 +62,36 @@ export const CreateNotificationModal: React.FC<CreateNotificationModalProps> = (
     value: NotificationType;
     label: string;
     icon: React.ComponentType<any>;
-    color: string;
-    bg: string;
+    colorClass: string;
+    bgClass: string;
   }[] = [
     {
       value: 'info',
       label: 'Info',
       icon: Info,
-      color: '#0071E3',
-      bg: 'rgba(0, 113, 227, 0.12)',
+      colorClass: 'text-info',
+      bgClass: 'bg-info-subtle',
     },
     {
       value: 'success',
       label: 'Success',
       icon: CheckCircle2,
-      color: '#34C759',
-      bg: 'rgba(52, 199, 89, 0.12)',
+      colorClass: 'text-success',
+      bgClass: 'bg-success-subtle',
     },
     {
       value: 'warning',
       label: 'Reminder',
       icon: AlertTriangle,
-      color: '#FF9F0A',
-      bg: 'rgba(255, 159, 10, 0.12)',
+      colorClass: 'text-warning',
+      bgClass: 'bg-warning-subtle',
     },
     {
       value: 'urgent',
       label: 'Urgent',
       icon: AlertCircle,
-      color: '#FF3B30',
-      bg: 'rgba(255, 59, 48, 0.12)',
+      colorClass: 'text-destructive',
+      bgClass: 'bg-destructive-subtle',
     },
   ];
 
@@ -114,13 +114,7 @@ export const CreateNotificationModal: React.FC<CreateNotificationModalProps> = (
       }}
       title={
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-            style={{
-              background: 'linear-gradient(135deg, rgba(0, 113, 227, 0.2) 0%, rgba(94, 92, 230, 0.2) 100%)',
-              color: 'var(--accent)',
-            }}
-          >
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-accent-subtle text-accent">
             <Bell size={20} strokeWidth={2} />
           </div>
           <div>
@@ -150,16 +144,16 @@ export const CreateNotificationModal: React.FC<CreateNotificationModalProps> = (
                   key={opt.value}
                   type="button"
                   onClick={() => setType(opt.value)}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-[12px] font-medium transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-[12px] font-medium transition-all duration-150 ease-out cursor-pointer ${
                     isSelected
-                      ? 'border-accent bg-accent/10 text-accent font-semibold shadow-sm'
-                      : 'border-separator bg-canvas/60 text-label-secondary hover:text-label-primary hover:bg-canvas'
+                      ? 'border-accent bg-accent-subtle text-accent font-semibold shadow-sm'
+                      : 'border-separator bg-canvas text-label-secondary hover:text-label-primary hover:bg-surface-secondary'
                   }`}
                 >
                   <Icon
                     size={16}
                     strokeWidth={2}
-                    style={{ color: isSelected ? 'var(--accent)' : opt.color }}
+                    className={isSelected ? 'text-accent' : opt.colorClass}
                   />
                   <span>{opt.label}</span>
                 </button>
@@ -182,10 +176,10 @@ export const CreateNotificationModal: React.FC<CreateNotificationModalProps> = (
                   key={opt.value}
                   type="button"
                   onClick={() => setTargetRole(opt.value)}
-                  className={`flex items-center justify-center gap-1.5 p-2 rounded-xl border text-[12px] font-medium transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 p-2 rounded-xl border text-[12px] font-medium transition-all duration-150 ease-out cursor-pointer ${
                     isSelected
-                      ? 'border-accent bg-accent/10 text-accent font-semibold shadow-sm'
-                      : 'border-separator bg-canvas/60 text-label-secondary hover:text-label-primary hover:bg-canvas'
+                      ? 'border-accent bg-accent-subtle text-accent font-semibold shadow-sm'
+                      : 'border-separator bg-canvas text-label-secondary hover:text-label-primary hover:bg-surface-secondary'
                   }`}
                 >
                   <Icon size={14} strokeWidth={1.8} />
@@ -199,7 +193,7 @@ export const CreateNotificationModal: React.FC<CreateNotificationModalProps> = (
         {/* Title */}
         <div>
           <label className="block text-[12px] font-semibold uppercase tracking-wider text-label-secondary mb-1.5">
-            Headline / Title <span className="text-red-500">*</span>
+            Headline / Title <span className="text-destructive">*</span>
           </label>
           <input
             type="text"
@@ -208,14 +202,14 @@ export const CreateNotificationModal: React.FC<CreateNotificationModalProps> = (
             placeholder="e.g. Nebula Hackathon Registrations Open"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl bg-canvas border border-separator text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-accent text-[14px] transition-colors"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-canvas border border-separator text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-accent text-[14px] transition-colors duration-150 ease-out"
           />
         </div>
 
         {/* Message Body */}
         <div>
           <label className="block text-[12px] font-semibold uppercase tracking-wider text-label-secondary mb-1.5">
-            Detailed Message <span className="text-red-500">*</span>
+            Detailed Message <span className="text-destructive">*</span>
           </label>
           <textarea
             required
@@ -224,7 +218,7 @@ export const CreateNotificationModal: React.FC<CreateNotificationModalProps> = (
             placeholder="Write the full announcement details here..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl bg-canvas border border-separator text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-accent text-[14px] transition-colors resize-none"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-canvas border border-separator text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-accent text-[14px] transition-colors duration-150 ease-out resize-none"
           />
           <div className="flex justify-end text-[11px] text-label-tertiary mt-1">
             {message.length} / 500
@@ -246,7 +240,7 @@ export const CreateNotificationModal: React.FC<CreateNotificationModalProps> = (
               placeholder="e.g. /events or /assessments"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-canvas border border-separator text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-accent text-[13px] transition-colors"
+              className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-canvas border border-separator text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-accent text-[13px] transition-colors duration-150 ease-out"
             />
           </div>
         </div>

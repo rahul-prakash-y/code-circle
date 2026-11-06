@@ -3,16 +3,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Calendar, MapPin, Users, Type, AlignLeft, Info, 
-  Layers, Activity, CheckCircle2, Loader2, Eye,
+  Layers, Activity, CheckCircle2, Eye,
   Award, Upload, Trash2, ExternalLink, Sliders, Plus,
   Sparkles, Hash, CheckSquare, ChevronUp, ChevronDown, ListPlus,
   UserCheck
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useEventStore from '../../store/useEventStore';
+import useCertificateStore from '../../store/useCertificateStore';
 import { EmilButton } from '../ui/emil-ui';
 import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
 import { formatDateToISTDateInput } from '../../lib/dateUtils';
+import { HeroUISelect, HeroDatePicker as DatePicker, HeroChip as Chip } from '../ui/HeroUIComponents';
 
 const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];
@@ -172,26 +175,21 @@ const CustomFieldItem = ({
         </div>
 
         <div className="space-y-1">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-            Field Type
-          </label>
-          <select
+          <HeroUISelect
+            label="Field Type"
             value={field.type}
-            onChange={(e) => {
-              const newType = e.target.value;
+            onChange={(newType) => {
               onUpdate({
                 type: newType,
                 options: newType === 'select' ? (field.options?.length ? field.options : ['Option 1', 'Option 2']) : [],
               });
             }}
-            className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all cursor-pointer"
-          >
-            {FIELD_TYPES.map((ft) => (
-              <option key={ft.value} value={ft.value}>
-                {ft.label}
-              </option>
-            ))}
-          </select>
+            size="sm"
+            options={FIELD_TYPES.map((ft) => ({
+              value: ft.value,
+              label: ft.label,
+            }))}
+          />
         </div>
       </div>
 
@@ -303,6 +301,7 @@ export const EventModal = ({
   eventToEdit = null,
 }) => {
   const { addEvent, updateEvent, uploadCertificateTemplate } = useEventStore();
+  const { templates, fetchTemplates } = useCertificateStore();
   const [loading, setLoading] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
@@ -323,8 +322,13 @@ export const EventModal = ({
     maxTeamSize: 4,
     registrationDeadline: '',
     certificateTemplateUrl: '',
+    certificateTemplateId: '',
     customFields: [],
   });
+
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
 
   useEffect(() => {
     if (eventToEdit) {
@@ -353,6 +357,7 @@ export const EventModal = ({
           ? formatDateToISTDateInput(eventToEdit.registrationDeadline)
           : effectiveDate,
         certificateTemplateUrl: eventToEdit.certificateTemplateUrl || '',
+        certificateTemplateId: eventToEdit.certificateTemplateId?._id || eventToEdit.certificateTemplateId || '',
         customFields: Array.isArray(eventToEdit.customFields)
           ? JSON.parse(JSON.stringify(eventToEdit.customFields))
           : [],
@@ -374,6 +379,7 @@ export const EventModal = ({
         maxTeamSize: 4,
         registrationDeadline: '',
         certificateTemplateUrl: '',
+        certificateTemplateId: '',
         customFields: [],
       });
     }
@@ -454,9 +460,13 @@ export const EventModal = ({
   };
 
   const handleRemoveTemplate = () => {
-    setFormData((prev) => ({ ...prev, certificateTemplateUrl: '' }));
+    setFormData((prev) => ({
+      ...prev,
+      certificateTemplateUrl: '',
+      certificateTemplateId: '',
+    }));
     if (fileInputRef.current) fileInputRef.current.value = '';
-    toast('Certificate template removed', { icon: '🗑️' });
+    toast('Certificate template unmapped');
   };
 
   const handleSubmit = async (e) => {
@@ -507,6 +517,7 @@ export const EventModal = ({
         maxTeamSize: formData.format === 'Duo' ? 2 : (Number(formData.maxTeamSize) || 4),
         registrationDeadline: formData.registrationDeadline || effectiveStartDate,
         certificateTemplateUrl: formData.certificateTemplateUrl || '',
+        certificateTemplateId: formData.certificateTemplateId || null,
         customFields: sanitizedCustomFields,
       };
 
@@ -631,22 +642,19 @@ export const EventModal = ({
                 </div>
 
                 {/* Status Selector */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Activity size={14} className="text-emerald-400" /> Status
-                  </label>
-                  <select
-                    name="status"
+                <div className="space-y-1.5">
+                  <HeroUISelect
+                    label="Status"
                     value={formData.status}
-                    onChange={handleChange}
-                    className="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-xs font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all duration-200 uppercase tracking-wider"
-                  >
-                    {EVENT_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData((prev) => ({ ...prev, status: val }))}
+                    size="md"
+                    startContent={<Activity size={14} className="text-emerald-400" />}
+                    options={EVENT_STATUSES.map((s) => ({
+                      value: s,
+                      label: s,
+                      badge: s,
+                    }))}
+                  />
                 </div>
               </div>
 
@@ -656,13 +664,14 @@ export const EventModal = ({
                   <label className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
                     <UserCheck size={15} className="text-accent" /> Enrollment & Registration Mode *
                   </label>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                    formData.registrationType === 'admin_upload'
-                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                      : 'bg-accent/10 text-accent border-accent/30'
-                  }`}>
+                  <Chip
+                    size="sm"
+                    color={formData.registrationType === 'admin_upload' ? 'warning' : 'accent'}
+                    variant="flat"
+                    className="font-bold uppercase tracking-wider"
+                  >
                     {formData.registrationType === 'admin_upload' ? 'Admin Upload Only' : 'Student Self-Registration'}
-                  </span>
+                  </Chip>
                 </div>
                 <p className="text-[11px] text-text-muted leading-relaxed">
                   Define whether students can register directly on the portal, or if the participants list must be uploaded by an administrator.
@@ -777,61 +786,46 @@ export const EventModal = ({
 
               {/* Dates & Schedule */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Calendar size={14} className="text-accent" /> Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    value={formData.startDate || formData.date}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData((prev) => ({
-                        ...prev,
-                        startDate: val,
-                        date: val,
-                        endDate: prev.endDate && prev.endDate >= val ? prev.endDate : val,
-                        registrationDeadline: prev.registrationDeadline || val,
-                      }));
-                    }}
-                    required
-                    className="input-field text-xs py-2.5 focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
-                  />
-                </div>
+                <DatePicker
+                  label="Start Date *"
+                  value={formData.startDate || formData.date}
+                  onChange={(val) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      startDate: val,
+                      date: val,
+                      endDate: prev.endDate && prev.endDate >= val ? prev.endDate : val,
+                      registrationDeadline: prev.registrationDeadline || val,
+                    }));
+                  }}
+                  size="sm"
+                  variant="faded"
+                  startContent={<Calendar size={14} className="text-accent" />}
+                />
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Calendar size={14} className="text-emerald-400" /> End Date
-                  </label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    min={formData.startDate || formData.date}
-                    value={formData.endDate || formData.startDate || formData.date}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData((prev) => ({ ...prev, endDate: val }));
-                    }}
-                    className="input-field text-xs py-2.5 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all"
-                  />
-                </div>
+                <DatePicker
+                  label="End Date"
+                  minDate={formData.startDate || formData.date}
+                  value={formData.endDate || formData.startDate || formData.date}
+                  onChange={(val) => {
+                    setFormData((prev) => ({ ...prev, endDate: val }));
+                  }}
+                  size="sm"
+                  variant="faded"
+                  startContent={<Calendar size={14} className="text-emerald-400" />}
+                />
               </div>
 
               {/* Deadline & Hourly Points Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Info size={14} className="text-amber-400" /> RSVP Deadline
-                  </label>
-                  <input
-                    type="date"
-                    name="registrationDeadline"
-                    value={formData.registrationDeadline}
-                    onChange={handleChange}
-                    className="input-field text-xs py-2.5 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
-                  />
-                </div>
+                <DatePicker
+                  label="RSVP Deadline"
+                  value={formData.registrationDeadline}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, registrationDeadline: val }))}
+                  size="sm"
+                  variant="faded"
+                  startContent={<Info size={14} className="text-amber-400" />}
+                />
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -903,7 +897,7 @@ export const EventModal = ({
                   <button
                     type="button"
                     onClick={() => handleAddField()}
-                    className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent/90 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-accent/20"
+                    className="self-start whitespace-nowrap sm:self-auto px-3 py-1.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent/90 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-accent/20"
                   >
                     <Plus size={14} /> Add Field
                   </button>
@@ -959,8 +953,8 @@ export const EventModal = ({
                 </div>
               </div>
 
-              {/* Certificate Template */}
-              <div className="p-4 rounded-2xl bg-surface-elevated border border-border space-y-3">
+              {/* Certificate Template Mapping & Upload */}
+              <div className="p-4 rounded-2xl bg-surface-elevated border border-border space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Award size={16} className="text-amber-400" />
@@ -968,83 +962,186 @@ export const EventModal = ({
                       Certificate Template
                     </label>
                   </div>
-                  {formData.certificateTemplateUrl ? (
+                  {formData.certificateTemplateId || formData.certificateTemplateUrl ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      <CheckCircle2 size={11} /> Uploaded
+                      <CheckCircle2 size={11} /> {formData.certificateTemplateId ? 'Template Mapped' : 'Uploaded'}
                     </span>
                   ) : (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                      Required for Event
+                      Optional / On-Demand
                     </span>
                   )}
                 </div>
 
                 <p className="text-[11px] text-text-muted leading-relaxed">
-                  Upload the official certificate template for this event (PNG or JPG). When attendance is confirmed, certificates are automatically generated using this custom template.
+                  Map an official Certificate Studio template directly to this event, or upload a custom image background. When attendees are confirmed, certificates will be issued with this mapped template.
                 </p>
 
-                {formData.certificateTemplateUrl ? (
-                  <div className="relative group rounded-xl overflow-hidden border border-border bg-canvas">
-                    <img 
-                      src={formData.certificateTemplateUrl} 
-                      alt="Certificate Template Preview" 
-                      className="w-full h-36 object-contain bg-black/40"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                      <a 
-                        href={formData.certificateTemplateUrl} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
-                        title="View Full Template"
-                      >
-                        <ExternalLink size={16} />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-2 rounded-lg bg-accent/80 hover:bg-accent text-white transition-colors cursor-pointer"
-                        title="Replace Template"
-                      >
-                        <Upload size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleRemoveTemplate}
-                        className="p-2 rounded-lg bg-rose-500/80 hover:bg-rose-500 text-white transition-colors cursor-pointer"
-                        title="Remove Template"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                {/* 1. Map from Certificate Studio templates */}
+                <div className="space-y-1.5 pt-1">
+                  <HeroUISelect
+                    label="Map Certificate Studio Template"
+                    placeholder="Choose an existing certificate template..."
+                    isSearchable
+                    isClearable
+                    value={formData.certificateTemplateId}
+                    onChange={(tmplId) => {
+                      if (!tmplId) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          certificateTemplateId: '',
+                        }));
+                        return;
+                      }
+                      const matched = templates.find((t) => t._id === tmplId);
+                      setFormData((prev) => ({
+                        ...prev,
+                        certificateTemplateId: tmplId,
+                        certificateTemplateUrl: matched?.bgImageUrl || prev.certificateTemplateUrl || '',
+                      }));
+                      toast.success(`Mapped template: ${matched?.title || 'Certificate Template'}`);
+                    }}
+                    options={templates.map((t) => ({
+                      value: t._id,
+                      label: t.title,
+                      description: `Theme: ${t.theme || 'Classic'} • Signatory: ${t.signatoryName || 'Faculty'} (${t.signatoryTitle || 'Coordinator'})`,
+                      badge: t.type || 'EVENT',
+                    }))}
+                  />
+                </div>
+
+                {/* Selected Template Summary Card */}
+                {(() => {
+                  const mappedTmpl = templates.find((t) => t._id === formData.certificateTemplateId);
+                  if (!mappedTmpl && !formData.certificateTemplateUrl) return null;
+                  return (
+                    <div className="p-3.5 rounded-xl bg-canvas border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                          <Award size={20} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-text-primary">
+                              {mappedTmpl ? mappedTmpl.title : 'Custom Uploaded Template'}
+                            </span>
+                            {mappedTmpl?.type && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-accent/10 text-accent uppercase">
+                                {mappedTmpl.type}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-text-muted mt-0.5">
+                            {mappedTmpl
+                              ? `Theme: ${mappedTmpl.theme} • Signatory: ${mappedTmpl.signatoryName || 'Faculty Coordinator'}`
+                              : 'Custom image template loaded'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        {formData.certificateTemplateUrl && (
+                          <a
+                            href={formData.certificateTemplateUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 rounded-lg bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary border border-border transition-colors text-xs flex items-center gap-1"
+                            title="Preview Template"
+                          >
+                            <ExternalLink size={13} />
+                            <span>Preview</span>
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleRemoveTemplate}
+                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer text-xs flex items-center gap-1"
+                          title="Unmap Template"
+                        >
+                          <Trash2 size={13} />
+                          <span>Unlink</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-border hover:border-accent/50 rounded-xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-canvas/50 hover:bg-accent/5"
-                  >
-                    {uploadingTemplate ? (
-                      <>
-                        <Loader2 size={24} className="animate-spin text-accent" />
-                        <span className="text-xs text-text-muted font-medium">Uploading template to Cloudinary...</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
-                          <Upload size={18} />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs font-semibold text-text-primary">
-                            Click or drop certificate template here
-                          </p>
-                          <p className="text-[10px] text-text-muted mt-0.5">
-                            PNG, JPG, or WebP (Recommended: A4 Landscape / 1920x1080)
-                          </p>
-                        </div>
-                      </>
+                  );
+                })()}
+
+                {/* 2. Upload Custom Image / Background (Optional Alternative) */}
+                <div className="pt-2 border-t border-border/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                      Or Upload Custom Image Template (PNG / JPG)
+                    </span>
+                    {formData.certificateTemplateUrl && !formData.certificateTemplateId && (
+                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 size={11} /> Image Attached
+                      </span>
                     )}
                   </div>
-                )}
+
+                  {formData.certificateTemplateUrl && !formData.certificateTemplateId ? (
+                    <div className="relative group rounded-xl overflow-hidden border border-border bg-canvas">
+                      <img 
+                        src={formData.certificateTemplateUrl} 
+                        alt="Certificate Template Preview" 
+                        className="w-full h-36 object-contain bg-black/40"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                        <a 
+                          href={formData.certificateTemplateUrl} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                          title="View Full Template"
+                        >
+                          <ExternalLink size={16} />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-2 rounded-lg bg-accent/80 hover:bg-accent text-white transition-colors cursor-pointer"
+                          title="Replace Template"
+                        >
+                          <Upload size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveTemplate}
+                          className="p-2 rounded-lg bg-rose-500/80 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+                          title="Remove Template"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-border hover:border-accent/50 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-canvas/50 hover:bg-accent/5"
+                    >
+                      {uploadingTemplate ? (
+                        <>
+                          <Loader2 size={22} className="animate-spin text-accent" />
+                          <span className="text-xs text-text-muted font-medium">Uploading template to Cloudinary...</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+                            <Upload size={16} />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs font-semibold text-text-primary">
+                              Click or drop custom certificate background here
+                            </p>
+                            <p className="text-[10px] text-text-muted mt-0.5">
+                              PNG, JPG, or WebP (Recommended: A4 Landscape / 1920x1080)
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <input 
                   type="file" 
@@ -1057,35 +1154,41 @@ export const EventModal = ({
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-4 border-t border-border">
-                <button
+                <Button
                   type="button"
-                  onClick={onClose}
-                  className="py-3 px-4 rounded-xl bg-surface-elevated text-text-muted text-xs font-bold uppercase tracking-wider hover:text-text-primary transition-all border border-border cursor-pointer"
+                  variant="secondary"
+                  onPress={onClose}
+                  className="py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  onClick={() => setShowPreviewModal(true)}
-                  className="py-3 px-4 rounded-xl bg-surface-elevated text-accent text-xs font-bold uppercase tracking-wider hover:bg-canvas transition-all border border-border flex items-center justify-center gap-1.5 cursor-pointer"
+                  variant="secondary"
+                  onPress={() => setShowPreviewModal(true)}
+                  className="py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
                   title="Preview how this event will look"
                 >
                   <Eye size={15} />
                   <span>Preview</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={loading}
-                  className="flex-1 btn-primary py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+                  variant="primary"
+                  isDisabled={loading}
+                  className="flex-1 py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
                 >
                   {loading ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <div className="flex items-center gap-2">
+                      <Spinner size="sm" color="default" />
+                      <span>Saving...</span>
+                    </div>
                   ) : eventToEdit ? (
                     'Save Event Changes'
                   ) : (
                     'Publish Event'
                   )}
-                </button>
+                </Button>
               </div>
             </form>
         </div>

@@ -112,6 +112,7 @@ async function runTests() {
     buffer.writeQueue.push({
       userId: 'test-user-1',
       eventId: testEventId,
+      dayNumber: 1,
       timestamp: new Date(),
     });
     const flushRes = await buffer.flush();
@@ -123,6 +124,7 @@ async function runTests() {
     buffer.writeQueue.push({
       userId: 'test-user-lock',
       eventId: testEventId,
+      dayNumber: 1,
       timestamp: new Date(),
     });
     buffer.isFlushing = true;
@@ -270,6 +272,7 @@ async function runTests() {
     attendanceBuffer.writeQueue.push({
       userId: 'route-user-1',
       eventId: routeEventId,
+      dayNumber: 1,
       timestamp: new Date(),
     });
 

@@ -39,6 +39,8 @@ import LeetCodeCard from '../components/profile/LeetCodeCard';
 import HackerRankCard from '../components/profile/HackerRankCard';
 import GitHubCard from '../components/profile/GitHubCard';
 import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
+import { HeroAvatar, HeroInput, HeroTextarea, HeroDatePicker as DatePicker, HeroUISelect as Select, HeroChip as Chip } from '../components/ui/HeroUIComponents';
+import { Button } from '@heroui/react';
 
 // Timezone-safe date formatter for YYYY-MM-DD strings
 const formatDob = (dobStr) => {
@@ -211,18 +213,19 @@ const Profile = () => {
       <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card relative">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <div className="relative group cursor-pointer" onClick={() => setIsModalOpen(true)}>
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border border-separator bg-surface-elevated">
-              <img 
-                src={profile.profilePicUrl || `https://ui-avatars.com/api/?name=${profile.name}&background=1D1D1F&color=fff&size=200`} 
-                alt={profile.name} 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-180">
+            <HeroAvatar
+              src={profile.profilePicUrl}
+              name={profile.name}
+              isBordered
+              color="primary"
+              size="xl"
+              className="w-24 h-24 sm:w-28 sm:h-28 text-2xl shadow-md"
+            />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-180">
               <Camera className="text-white" size={22} />
             </div>
             {profileLoading && (
-              <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
                 <Loader2 className="animate-spin text-white" size={22} />
               </div>
             )}
@@ -336,114 +339,81 @@ const Profile = () => {
             </div>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="Your full name"
-                />
-              </div>
+              <HeroInput
+                label="Full Name"
+                labelPlacement="inside"
+                variant="flat"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Your full name"
+              />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Department</label>
-                  <input
-                    type="text"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="e.g. AI & DS"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Roll Number</label>
-                  <input
-                    type="text"
-                    name="rollNo"
-                    value={formData.rollNo}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="e.g. 7376222AL101"
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <HeroInput
+                  label="Department"
+                  labelPlacement="inside"
+                  variant="flat"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  placeholder="e.g. AI & DS"
+                />
+                <HeroInput
+                  label="Roll Number"
+                  labelPlacement="inside"
+                  variant="flat"
+                  name="rollNo"
+                  value={formData.rollNo}
+                  onChange={handleChange}
+                  placeholder="e.g. 7376222AL101"
+                />
               </div>
 
               {/* Phone Number & Date of Birth */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                    <Phone size={13} className="text-accent" />
-                    <span>Phone Number</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="input-field font-mono text-sm"
-                    placeholder="+91 98765 43210"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                    <Calendar size={13} className="text-accent" />
-                    <span>Date of Birth</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="dob"
-                    max={new Date().toISOString().split('T')[0]}
-                    value={formData.dob}
-                    onChange={handleChange}
-                    className="input-field text-sm"
-                  />
-                </div>
+                <HeroInput
+                  label="Phone Number"
+                  labelPlacement="inside"
+                  variant="flat"
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  startContent={<Phone size={14} className="text-accent" />}
+                  placeholder="+91 98765 43210"
+                />
+                <DatePicker
+                  label="Date of Birth"
+                  value={formData.dob}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, dob: val }))}
+                  startContent={<Calendar size={14} className="text-accent" />}
+                  placeholder="Select Date of Birth"
+                  size="sm"
+                  variant="faded"
+                />
               </div>
 
               {/* Gender & Academic Year */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                    <UserIcon size={13} className="text-text-muted" />
-                    <span>Gender</span>
-                  </label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="input-field text-sm cursor-pointer"
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                    <GraduationCap size={13} className="text-text-muted" />
-                    <span>Academic Year</span>
-                  </label>
-                  <select
-                    name="year"
-                    value={formData.year}
-                    onChange={handleChange}
-                    className="input-field text-sm cursor-pointer"
-                  >
-                    <option value="">Select Year</option>
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                    <option value="Post Graduate">Post Graduate</option>
-                  </select>
-                </div>
+                <Select
+                  label="Gender"
+                  value={formData.gender}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, gender: val }))}
+                  options={['Male', 'Female', 'Other', 'Prefer not to say']}
+                  placeholder="Select Gender"
+                  size="sm"
+                  startContent={<UserIcon size={13} className="text-text-muted" />}
+                />
+                <Select
+                  label="Academic Year"
+                  value={formData.year}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, year: val }))}
+                  options={['1st Year', '2nd Year', '3rd Year', '4th Year', 'Post Graduate']}
+                  placeholder="Select Year"
+                  size="sm"
+                  startContent={<GraduationCap size={13} className="text-text-muted" />}
+                />
               </div>
 
               {/* Residence Type (Hosteller or Day Scholar) */}
@@ -453,68 +423,51 @@ const Profile = () => {
                   <span>Accommodation / Residence</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Hosteller' ? '' : 'Hosteller' }))}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      formData.residenceType === 'Hosteller'
-                        ? 'bg-accent/15 border-accent text-accent font-semibold shadow-sm'
-                        : 'border-separator hover:border-separator-hover text-text-secondary bg-surface'
-                    }`}
+                    variant={formData.residenceType === 'Hosteller' ? 'primary' : 'outline'}
+                    onPress={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Hosteller' ? '' : 'Hosteller' }))}
+                    className="text-xs font-medium flex items-center justify-center gap-2 min-h-[42px]"
                   >
                     <Building size={14} />
                     <span>Hosteller</span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Day Scholar' ? '' : 'Day Scholar' }))}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      formData.residenceType === 'Day Scholar'
-                        ? 'bg-accent/15 border-accent text-accent font-semibold shadow-sm'
-                        : 'border-separator hover:border-separator-hover text-text-secondary bg-surface'
-                    }`}
+                    variant={formData.residenceType === 'Day Scholar' ? 'primary' : 'outline'}
+                    onPress={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Day Scholar' ? '' : 'Day Scholar' }))}
+                    className="text-xs font-medium flex items-center justify-center gap-2 min-h-[42px]"
                   >
                     <Bus size={14} />
                     <span>Day Scholar</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               {/* College / Institution */}
-              <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                  <Building2 size={13} className="text-text-muted" />
-                  <span>College / Institution</span>
-                </label>
-                <input
-                  type="text"
-                  name="college"
-                  value={formData.college}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="e.g. Bannari Amman Institute of Technology"
-                />
-              </div>
+              <HeroInput
+                label="College / Institution"
+                labelPlacement="inside"
+                variant="flat"
+                name="college"
+                value={formData.college}
+                onChange={handleChange}
+                startContent={<Building2 size={14} className="text-text-muted" />}
+                placeholder="e.g. Bannari Amman Institute of Technology"
+              />
 
-              {/* Bio / Tagline */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
-                    <FileText size={13} className="text-text-muted" />
-                    <span>Bio / Tagline</span>
-                  </label>
-                  <span className="text-[10px] text-text-muted">{formData.bio?.length || 0}/200</span>
-                </div>
-                <textarea
-                  name="bio"
-                  rows={2}
-                  maxLength={200}
-                  value={formData.bio}
-                  onChange={handleChange}
-                  className="input-field resize-none text-xs leading-relaxed"
-                  placeholder="Short bio, tech interests, or student headline..."
-                />
-              </div>
+              {/* Bio / Tagline with HeroTextarea */}
+              <HeroTextarea
+                label={`Bio / Tagline (${formData.bio?.length || 0}/200)`}
+                labelPlacement="inside"
+                variant="flat"
+                name="bio"
+                rows={2}
+                maxLength={200}
+                value={formData.bio}
+                onChange={handleChange}
+                placeholder="Short bio, tech interests, or student headline..."
+              />
 
               {/* Registered Email */}
               <div>
@@ -653,13 +606,16 @@ const Profile = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface text-label-primary border border-separator hover:border-separator-opaque hover:bg-canvas transition-colors duration-150 text-xs font-medium"
                 >
                   {skill}
-                  <button 
-                    type="button" 
-                    onClick={() => removeSkill(skill)}
-                    className="p-0.5 hover:bg-destructive/10 rounded text-text-muted hover:text-destructive transition-colors"
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    isIconOnly
+                    onPress={() => removeSkill(skill)}
+                    className="min-w-[20px] min-h-[20px] p-0.5 rounded text-text-muted hover:text-destructive"
                   >
                     <X size={12} />
-                  </button>
+                  </Button>
                 </span>
               ))}
               {formData.skills.length === 0 && (
@@ -671,37 +627,36 @@ const Profile = () => {
 
         {/* Actions */}
         <div className="flex items-center justify-between pt-2">
-          <button
+          <Button
             type="button"
-            onClick={handleLogout}
-            className="text-xs text-destructive hover:underline flex items-center gap-1.5 transition-colors cursor-pointer"
+            variant="ghost"
+            size="sm"
+            onPress={handleLogout}
+            className="text-xs text-destructive hover:underline flex items-center gap-1.5"
           >
             <LogOut size={14} />
             <span>Sign out of session</span>
-          </button>
+          </Button>
           
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
-              onClick={() => navigate('/dashboard')}
-              className="btn-secondary py-2.5 px-5 text-sm"
+              variant="outline"
+              onPress={() => navigate('/dashboard')}
+              className="py-2.5 px-5 text-sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={profileLoading}
-              className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2 cursor-pointer"
+              variant="primary"
+              isDisabled={profileLoading}
+              isLoading={profileLoading}
+              className="py-2.5 px-6 text-sm flex items-center gap-2"
             >
-              {profileLoading ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                <>
-                  <Save size={16} />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </button>
+              <Save size={16} />
+              <span>Save Changes</span>
+            </Button>
           </div>
         </div>
       </form>
@@ -773,13 +728,16 @@ const Profile = () => {
                   className="input-field pl-10 pr-10 text-sm"
                   required
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                 >
                   {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -797,13 +755,16 @@ const Profile = () => {
                   required
                   minLength={6}
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                 >
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -821,13 +782,16 @@ const Profile = () => {
                   required
                   minLength={6}
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -843,20 +807,16 @@ const Profile = () => {
           )}
 
           <div className="flex items-center justify-end pt-1">
-            <button
+            <Button
               type="submit"
-              disabled={passwordLoading || !passwordData.currentPassword || passwordData.newPassword.length < 6 || passwordData.newPassword !== passwordData.confirmNewPassword}
-              className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              isDisabled={passwordLoading || !passwordData.currentPassword || passwordData.newPassword.length < 6 || passwordData.newPassword !== passwordData.confirmNewPassword}
+              isLoading={passwordLoading}
+              className="py-2.5 px-6 text-sm flex items-center gap-2"
             >
-              {passwordLoading ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                <>
-                  <ShieldCheck size={16} />
-                  <span>Update Password</span>
-                </>
-              )}
-            </button>
+              <ShieldCheck size={16} />
+              <span>Update Password</span>
+            </Button>
           </div>
         </form>
       </div>

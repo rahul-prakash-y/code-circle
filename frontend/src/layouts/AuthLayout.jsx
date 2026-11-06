@@ -3,7 +3,7 @@ import BackgroundGradient from '../components/ui/BackgroundGradient';
 import { motion } from 'framer-motion';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
-import { EmilCard } from '../components/ui/emil-ui';
+import { Card, Avatar } from '@heroui/react';
 
 const AuthLayout = ({ children, title, subtitle }) => {
   return (
@@ -22,9 +22,8 @@ const AuthLayout = ({ children, title, subtitle }) => {
         transition={{ duration: DURATION_MODAL, ease: EMIL_EASE_OUT }}
         className="w-full max-w-[460px] my-auto"
       >
-        <EmilCard
+        <Card
           className="w-full p-6 sm:p-8 lg:p-10 relative overflow-hidden rounded-2xl sm:rounded-3xl border border-separator/80 bg-surface/80 backdrop-blur-xl shadow-2xl"
-          isHoverable={false}
         >
           {/* Subtle Inner Glow — accent colored */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 sm:w-1/2 h-[2px] bg-gradient-to-r from-transparent via-accent/50 to-transparent blur-[1px]" />
@@ -33,26 +32,27 @@ const AuthLayout = ({ children, title, subtitle }) => {
             <div className="mb-5 sm:mb-6 text-center">
               {/* Official Club Logo */}
               <div className="flex justify-center mb-4 sm:mb-5">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-accent/10 flex items-center justify-center shadow-md overflow-hidden border border-accent/20 backdrop-blur-md">
-                  <img 
+                <Avatar className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-accent-subtle flex items-center justify-center shadow-md overflow-hidden border border-accent/20 backdrop-blur-md">
+                  <Avatar.Image 
                     src="/codecirclelogo.jpeg" 
                     alt="Code Circle Logo" 
                     className="w-full h-full object-cover"
                   />
-                </div>
+                  <Avatar.Fallback className="text-accent font-bold">CC</Avatar.Fallback>
+                </Avatar>
               </div>
               
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-text-primary mb-2 sm:mb-2.5 tracking-tight font-heading">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-label-primary mb-2 sm:mb-2.5 tracking-tight font-heading">
                 {title}
               </h2>
-              <p className="text-text-muted text-xs sm:text-sm font-medium leading-relaxed max-w-[320px] mx-auto">
+              <p className="text-label-secondary text-xs sm:text-sm font-medium leading-relaxed max-w-[320px] mx-auto">
                 {subtitle}
               </p>
             </div>
             
             {children}
           </div>
-        </EmilCard>
+        </Card>
       </motion.div>
     </div>
   );

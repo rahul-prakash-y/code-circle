@@ -29,6 +29,11 @@ const enrollmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isBlocked: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
   isWalkIn: {
     type: Boolean,
     default: false
@@ -46,11 +51,16 @@ const enrollmentSchema = new mongoose.Schema({
 // Optimized compound indexes for registration checks and query performance
 enrollmentSchema.index({ event: 1, enrolledBy: 1 });
 enrollmentSchema.index({ event: 1, members: 1 });
+enrollmentSchema.index({ event: 1, isBlocked: 1 });
 enrollmentSchema.index({ enrolledBy: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ members: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ event: 1, attendanceStatus: 1 });
 enrollmentSchema.index({ event: 1, isWalkIn: 1 });
-enrollmentSchema.index({ event: 1, attendanceStatus: 1, createdAt: -1 });
-enrollmentSchema.index({ event: 1, createdAt: -1 });
 
-module.exports = mongoose.model('Enrollment', enrollmentSchema);
+const Enrollment = mongoose.models.Enrollment || mongoose.model('Enrollment', enrollmentSchema);
+
+module.exports = Enrollment;
+module.exports.default = Enrollment;
+module.exports.Enrollment = Enrollment;
+module.exports.EventRegistration = Enrollment;
+module.exports.EventParticipation = Enrollment;

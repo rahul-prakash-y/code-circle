@@ -38,6 +38,7 @@ const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
 const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
 const EventArenaPage = lazy(() => import('./pages/EventArenaPage'));
+const EventDocumentationPage = lazy(() => import('./pages/EventDocumentationPage'));
 
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
@@ -227,6 +228,63 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EventsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/documentation"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/docs"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events/:id/docs"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events/:id/documentation"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/events/:id/report"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/:id"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
                 </ProtectedRoute>
               }
             />

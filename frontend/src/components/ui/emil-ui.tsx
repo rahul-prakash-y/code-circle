@@ -129,7 +129,7 @@ export const EmilTooltip: React.FC<EmilTooltipProps> = ({
               duration: isWarm ? 0.08 : 0.14,
               ease: EMIL_EASE_OUT,
             }}
-            className={`absolute z-50 pointer-events-none px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap shadow-[0_4px_16px_rgba(0,0,0,0.08)] dark:shadow-none dark:ring-1 dark:ring-white/10 backdrop-blur-xl bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] border border-black/5 dark:border-white/10 ${getPositionClasses()}`}
+            className={`absolute z-50 pointer-events-none px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap shadow-md dark:shadow-none dark:ring-1 dark:ring-white/10 backdrop-blur-xl bg-surface-raised text-label-primary border border-separator ${getPositionClasses()}`}
           >
             {content}
           </motion.div>
@@ -174,9 +174,9 @@ export const EmilButton = forwardRef<HTMLButtonElement, EmilButtonProps>(
 
     const variantClasses = {
       solid: 'bg-primary text-white font-medium shadow-sm dark:shadow-none hover:opacity-95 active:opacity-90',
-      flat: 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#1D1D1F] dark:text-[#F5F5F7] font-medium',
-      outline: 'border border-black/10 dark:border-white/15 bg-transparent hover:bg-black/5 dark:hover:bg-white/10 text-[#1D1D1F] dark:text-[#F5F5F7] font-medium',
-      ghost: 'bg-transparent hover:bg-black/5 dark:hover:bg-white/10 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] font-medium',
+      flat: 'bg-separator hover:bg-surface-secondary text-label-primary font-medium',
+      outline: 'border border-separator-opaque bg-transparent hover:bg-surface-secondary text-label-primary font-medium',
+      ghost: 'bg-transparent hover:bg-separator text-label-secondary hover:text-label-primary font-medium',
       danger: 'bg-destructive text-white font-medium hover:opacity-90 active:opacity-85',
     }[variant];
 
@@ -239,8 +239,8 @@ export const EmilCard = forwardRef<HTMLDivElement, EmilCardProps>(
         whileTap={whileTap !== undefined ? whileTap : isPressable ? { scale: 0.97 } : undefined}
         whileHover={whileHover}
         transition={transition !== undefined ? transition : { duration: 0.2, ease: EMIL_EASE_OUT }}
-        className={`rounded-2xl border border-black/5 dark:border-white/10 bg-[#FFFFFF] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:ring-1 dark:ring-white/10 transition-all duration-200 ${
-          isHoverable ? 'hover:shadow-[0_12px_36px_rgb(0,0,0,0.06)] dark:hover:shadow-none hover:border-black/10 dark:hover:ring-white/20' : ''
+        className={`rounded-2xl border border-separator bg-surface text-label-primary p-4 shadow-card dark:shadow-none dark:ring-1 dark:ring-white/10 transition-all duration-200 ${
+          isHoverable ? 'hover:shadow-md dark:hover:shadow-none hover:border-separator-opaque dark:hover:ring-white/20' : ''
         } ${isPressable ? 'cursor-pointer select-none' : ''} ${className}`}
         {...props}
       >
@@ -329,7 +329,7 @@ export const EmilDropdownMenu: React.FC<{
           initial="initial"
           animate="animate"
           exit="exit"
-          className={`absolute top-full mt-1.5 z-50 min-w-[200px] p-1.5 rounded-2xl bg-white/80 dark:bg-[#161617]/90 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.08)] dark:shadow-none dark:ring-1 dark:ring-white/10 outline-none ${alignClasses} ${className}`}
+          className={`absolute top-full mt-1.5 z-50 min-w-[200px] p-1.5 rounded-2xl bg-surface/90 backdrop-blur-xl border border-separator shadow-lg dark:shadow-none dark:ring-1 dark:ring-white/10 outline-none ${alignClasses} ${className}`}
         >
           {children}
         </motion.div>
@@ -359,8 +359,8 @@ export const EmilDropdownItem: React.FC<{
       onClick={handleClick}
       className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-left cursor-pointer transition-colors duration-100 ${
         isDestructive
-          ? 'text-destructive hover:bg-destructive/10'
-          : 'text-[#1D1D1F] dark:text-[#F5F5F7] hover:bg-black/5 dark:hover:bg-white/10'
+          ? 'text-destructive hover:bg-destructive-subtle'
+          : 'text-label-primary hover:bg-separator'
       } ${className}`}
     >
       {icon && <span className="shrink-0">{icon}</span>}
@@ -425,9 +425,9 @@ export const EmilInput = forwardRef<HTMLInputElement, EmilInputProps>(
     return (
       <input
         ref={ref}
-        className={`w-full px-3.5 py-2.5 rounded-xl text-[14px] bg-[#FFFFFF] dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] border ${
-          error ? 'border-destructive' : 'border-black/10 dark:border-white/10 focus:border-primary'
-        } placeholder-[#86868B] dark:placeholder-[#86868B] outline-none transition-all duration-150 focus:ring-2 focus:ring-primary/20 ${className}`}
+        className={`w-full px-3.5 py-2.5 rounded-xl text-[14px] bg-surface text-label-primary border ${
+          error ? 'border-destructive' : 'border-separator-opaque focus:border-primary'
+        } placeholder:text-label-tertiary outline-none transition-all duration-150 focus:ring-2 focus:ring-primary/20 ${className}`}
         {...props}
       />
     );
@@ -444,9 +444,9 @@ export const EmilTextarea = forwardRef<HTMLTextAreaElement, EmilTextareaProps>(
     return (
       <textarea
         ref={ref}
-        className={`w-full px-3.5 py-2.5 rounded-xl text-[14px] bg-[#FFFFFF] dark:bg-[#1C1C1E] text-[#1D1D1F] dark:text-[#F5F5F7] border ${
-          error ? 'border-destructive' : 'border-black/10 dark:border-white/10 focus:border-primary'
-        } placeholder-[#86868B] dark:placeholder-[#86868B] outline-none transition-all duration-150 focus:ring-2 focus:ring-primary/20 ${className}`}
+        className={`w-full px-3.5 py-2.5 rounded-xl text-[14px] bg-surface text-label-primary border ${
+          error ? 'border-destructive' : 'border-separator-opaque focus:border-primary'
+        } placeholder:text-label-tertiary outline-none transition-all duration-150 focus:ring-2 focus:ring-primary/20 ${className}`}
         {...props}
       />
     );

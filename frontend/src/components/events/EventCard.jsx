@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles, FileText } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import EnrollmentModal from './EnrollmentModal';
 import EventDetailsModal from './EventDetailsModal';
@@ -267,6 +267,14 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   aria-label="Event Arena Hub"
                 >
                   <Sparkles size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => navigate(`/events/${event._id}/docs`)}
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-blue-400 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Documentation & PDF Export"
+                  aria-label="Event Documentation"
+                >
+                  <FileText size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => onEdit(event)}

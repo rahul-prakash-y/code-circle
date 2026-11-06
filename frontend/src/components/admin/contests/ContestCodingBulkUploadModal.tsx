@@ -6,10 +6,10 @@ import {
   Upload,
   CheckCircle2,
   AlertCircle,
-  Loader2,
   Trash2,
   Sparkles,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import useContestStore, { CodingProblem } from '../../../store/useContestStore';
 
@@ -172,23 +172,25 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
           <div className="flex items-center gap-2.5">
             <Download size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
             <div>
-              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] block">
+              <span className="text-xs font-bold text-label-primary block">
                 Need the Excel Format?
               </span>
-              <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
+              <span className="text-[11px] text-label-secondary">
                 Download our coding challenge template with test case columns & sample problems.
               </span>
             </div>
           </div>
-          <button
+          <Button
             type="button"
-            onClick={handleDownloadTemplate}
-            disabled={isDownloading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+            variant="primary"
+            color="success"
+            onPress={handleDownloadTemplate}
+            isDisabled={isDownloading}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs shrink-0 cursor-pointer"
           >
-            {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            {isDownloading ? <Spinner size="sm" color="default" /> : <Download size={13} />}
             <span>Download Template</span>
-          </button>
+          </Button>
         </div>
 
         {/* Dropzone */}
@@ -212,22 +214,22 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
           />
           {isParsing ? (
             <div className="flex flex-col items-center justify-center py-4 space-y-2">
-              <Loader2 size={28} className="animate-spin text-emerald-500" />
-              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+              <Spinner size="md" color="success" />
+              <span className="text-xs font-bold text-label-primary">
                 Extracting problem statements & test cases...
               </span>
             </div>
           ) : file ? (
-            <div className="flex items-center justify-between p-3 bg-surface-secondary dark:bg-[#1C1C1E] rounded-xl border border-separator dark:border-white/10 text-left">
+            <div className="flex items-center justify-between p-3 bg-surface-secondary rounded-xl border border-separator dark:border-white/10 text-left">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <FileCode size={18} />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7] block">
+                  <span className="text-xs font-bold text-label-primary block">
                     {file.name}
                   </span>
-                  <span className="text-[10px] text-label-secondary dark:text-[#86868B]">
+                  <span className="text-[10px] text-label-secondary">
                     {(file.size / 1024).toFixed(1)} KB • {parsedProblems.length} challenge(s) parsed
                   </span>
                 </div>
@@ -249,10 +251,10 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-1">
                 <Upload size={22} />
               </div>
-              <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+              <span className="text-xs font-bold text-label-primary">
                 Drag & drop your coding sheet here, or <span className="text-emerald-500 underline">browse</span>
               </span>
-              <span className="text-[11px] text-label-secondary dark:text-[#86868B]">
+              <span className="text-[11px] text-label-secondary">
                 Supports Microsoft Excel (.xlsx, .xls) and JSON challenge arrays
               </span>
             </div>
@@ -277,20 +279,20 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
         {/* Staging & Mode Controls */}
         {parsedProblems.length > 0 && (
           <div className="space-y-3 pt-1">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-surface-secondary dark:bg-[#1C1C1E] rounded-2xl border border-separator dark:border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-surface-secondary rounded-2xl border border-separator dark:border-white/10">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-emerald-500" />
-                <span className="text-xs font-bold text-label-primary dark:text-[#F5F5F7]">
+                <span className="text-xs font-bold text-label-primary">
                   Parsed: {parsedProblems.length} Challenges ({totalPoints} total pts)
                 </span>
               </div>
 
               {/* Import Mode Radio */}
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-label-secondary dark:text-[#86868B] text-[11px] font-semibold">
+                <span className="text-label-secondary text-[11px] font-semibold">
                   Target Mode:
                 </span>
-                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary dark:text-[#F5F5F7]">
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary">
                   <input
                     type="radio"
                     name="codingImportMode"
@@ -301,7 +303,7 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
                   />
                   <span>Append to existing ({currentProblemsCount})</span>
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary dark:text-[#F5F5F7]">
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-label-primary">
                   <input
                     type="radio"
                     name="codingImportMode"
@@ -325,14 +327,14 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
                 return (
                   <div
                     key={idx}
-                    className="p-3 bg-surface dark:bg-[#161617] rounded-xl border border-separator dark:border-white/10 flex items-start justify-between gap-3 text-xs"
+                    className="p-3 bg-surface rounded-xl border border-separator dark:border-white/10 flex items-start justify-between gap-3 text-xs"
                   >
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold font-mono text-[10px] text-label-secondary dark:text-[#86868B]">
+                        <span className="font-bold font-mono text-[10px] text-label-secondary">
                           #{idx + 1}
                         </span>
-                        <span className="font-bold text-label-primary dark:text-[#F5F5F7] truncate">
+                        <span className="font-bold text-label-primary truncate">
                           {p.title}
                         </span>
                         <span
@@ -342,14 +344,14 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
                         >
                           {p.difficulty}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-secondary dark:bg-white/10 text-label-secondary dark:text-[#86868B]">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-secondary dark:bg-white/10 text-label-secondary">
                           {p.points || 30} pts
                         </span>
                       </div>
-                      <p className="text-[11px] text-label-secondary dark:text-[#86868B] line-clamp-1">
+                      <p className="text-[11px] text-label-secondary line-clamp-1">
                         {p.description}
                       </p>
-                      <div className="flex items-center gap-3 pt-0.5 text-[10px] text-label-secondary dark:text-[#86868B]">
+                      <div className="flex items-center gap-3 pt-0.5 text-[10px] text-label-secondary">
                         <span>
                           <strong>{testCases.length}</strong> test cases ({publicCount} public, {hiddenCount} hidden)
                         </span>
@@ -378,24 +380,27 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
 
         {/* Footer */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+            variant="secondary"
+            onPress={onClose}
+            className="px-4 py-2 rounded-full text-xs font-medium cursor-pointer"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            onClick={handleConfirmImport}
-            disabled={parsedProblems.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            variant="primary"
+            color="success"
+            onPress={handleConfirmImport}
+            isDisabled={parsedProblems.length === 0}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow cursor-pointer"
           >
             <CheckCircle2 size={14} />
             <span>
               Import {parsedProblems.length > 0 ? `${parsedProblems.length} Challenges` : 'Challenges'}
             </span>
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>
@@ -403,3 +408,4 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
 };
 
 export default ContestCodingBulkUploadModal;
+

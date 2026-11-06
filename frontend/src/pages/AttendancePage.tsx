@@ -6,6 +6,7 @@ import AttendanceHistory from '../components/dashboard/AttendanceHistory';
 import MissedEventRequestModal from '../components/events/MissedEventRequestModal';
 import AdminMissedEventRequestsModal from '../components/admin/AdminMissedEventRequestsModal';
 import { Clock, ShieldAlert } from 'lucide-react';
+import { Button } from '@heroui/react';
 
 export const AttendancePage: React.FC = () => {
   const { user } = useAuthStore();
@@ -39,25 +40,29 @@ export const AttendancePage: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           {/* Apply for Missed Event Request */}
-          <button
+          <Button
             type="button"
-            onClick={() => setIsMissedRequestOpen(true)}
-            className="w-full sm:w-auto px-4 py-2 min-h-[40px] rounded-xl bg-surface-secondary border border-separator text-label-primary hover:bg-surface-raised transition-all text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+            variant="outline"
+            size="sm"
+            onPress={() => setIsMissedRequestOpen(true)}
+            className="w-full sm:w-auto min-h-[40px] text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-2"
           >
             <Clock size={15} className="text-indigo-400 shrink-0" />
             <span>Apply for Missed Event</span>
-          </button>
+          </Button>
 
           {/* Admin Review Missed Requests */}
           {(isAdmin || isFaculty) && (
-            <button
+            <Button
               type="button"
-              onClick={() => setIsAdminRequestsOpen(true)}
-              className="w-full sm:w-auto px-4 py-2 min-h-[40px] rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500/20 transition-all text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+              variant="outline"
+              size="sm"
+              onPress={() => setIsAdminRequestsOpen(true)}
+              className="w-full sm:w-auto min-h-[40px] text-amber-500 border-amber-500/30 bg-amber-500/10 text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-2"
             >
               <ShieldAlert size={15} className="shrink-0" />
               <span>Review Missed Requests</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -19,18 +19,18 @@ import {
   Maximize2,
   Minimize2,
   Lock,
-  Loader2,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
-import api from '../../lib/axios';
+import FullScreenEnforcementOverlay from './FullScreenEnforcementOverlay';
 import { isMobileScreenOrDevice } from '../../lib/deviceUtils';
+import useAutoSave from '../../hooks/useAutoSave';
 
 const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const {
     fetchAssessmentById,
     submitAssessment,
-    resetMySubmission,
     currentAssessment,
     currentResult,
     clearCurrentResult,
@@ -38,7 +38,6 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   } = useAssessmentStore();
 
   const [loading, setLoading] = useState(true);
-  const [reappearing, setReappearing] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { [qIndex]: selectedOptionIndex }
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(0);
@@ -57,6 +56,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
   // Timer ref to cancel interval safely
   const timerRef = useRef(null);
+
+  // Resiliency: LocalStorage AutoSave hook (every 30 seconds)
+  const autoSaveKey = assessmentId ? `cc_assessment_answers_${assessmentId}` : '';
+  const { clearSavedData } = useAutoSave(
+    autoSaveKey,
+    answers,
+    {
+      intervalMs: 30000,
+      enabled: isOpen && !currentResult && !loading,
+      onRestore: useCallback((saved) => {
+        if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+          setAnswers(saved);
+          toast.success('Restored unsubmitted test answers from local autosave!', { id: 'autosave-restore' });
+        }
+      }, []),
+    }
+  );
 
   // Monitor screen size changes for mobile protection
   useEffect(() => {
@@ -103,15 +119,32 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     setShowTabWarning(false);
     if (timerRef.current) clearInterval(timerRef.current);
 
+    const questions = currentAssessment?.questions || [];
     const timeSpent = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
-    const formattedAnswers = Object.entries(answers).map(([qIndex, optIndex]) => ({
-      questionIndex: Number(qIndex),
-      selectedOption: Number(optIndex),
-    }));
+    
+    // Format answers with questionId and optionId/optionText to evaluate accurately regardless of shuffle order
+    const formattedAnswers = Object.entries(answers).map(([qKey, val]) => {
+      if (typeof val === 'object' && val !== null) {
+        return {
+          questionId: val.questionId,
+          selectedOptionId: val.selectedOptionId,
+          selectedOptionText: val.selectedOptionText,
+          questionIndex: val.questionIndex !== undefined ? val.questionIndex : Number(qKey),
+          selectedOption: val.selectedOption !== undefined ? val.selectedOption : -1,
+        };
+      }
+      const q = questions[Number(qKey)];
+      return {
+        questionId: q?._id,
+        questionIndex: Number(qKey),
+        selectedOption: Number(val),
+      };
+    });
 
     const res = await submitAssessment(assessmentId, formattedAnswers, timeSpent);
     setIsLocked(false);
     if (res.success) {
+      clearSavedData();
       if (forcedByViolation) {
         toast.error('Assessment automatically submitted due to tab-switching violations.', { duration: 5000 });
       } else {
@@ -124,7 +157,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     } else {
       toast.error(res.error || 'Failed to submit assessment.');
     }
-  }, [answers, assessmentId, startTime, submitAssessment]);
+  }, [answers, assessmentId, currentAssessment, startTime, submitAssessment, clearSavedData]);
 
   // Anti-cheat tab visibility and window blur listeners
   useEffect(() => {
@@ -132,21 +165,11 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Tab was hidden or user switched apps
-        if (isMobileMode) {
-          wasInterruptedRef.current = true;
-          return;
-        }
-
-        setTabSwitchCount((prev) => {
-          const newCount = prev + 1;
-          if (newCount >= maxStrikes) {
-            setIsLocked(true);
-            executeSubmit(true);
-          } else {
-            setShowTabWarning(true);
-          }
-          return newCount;
+        // Tab was hidden or user switched apps - immediate anti-cheat block
+        setIsLocked(true);
+        toast.error('You have been blocked for navigating away. Contact Admin.', {
+          id: 'tab-switch-block',
+          duration: 8000,
         });
       } else {
         if (isMobileMode && wasInterruptedRef.current) {
@@ -187,7 +210,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     };
   }, [isOpen, currentResult, loading, isLocked, isMobileMode, executeSubmit]);
 
-  // Timer countdown hook
+  // Timer countdown hook with Thundering Herd Submission Jitter Fix
   useEffect(() => {
     if (!isOpen || currentResult || loading || timeLeftSeconds <= 0 || isLocked) return;
 
@@ -195,8 +218,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       setTimeLeftSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
-          toast.error("Time's up! Submitting your answers automatically...");
-          executeSubmit(false);
+
+          // THUNDERING HERD SUBMISSION FIX:
+          // In a room with 300 test-takers, when the auto-submit timer expires, DO NOT send API requests immediately.
+          // Jitter delay spreads 300 concurrent submissions over an 8-second window (Math.random() * 8000).
+          // This saves Render Free Tier from CPU/OOM crash and MongoDB Atlas M0 from connection starvation.
+          const jitterDelayMs = Math.floor(Math.random() * 8000);
+          console.log(`[Assessment] Auto-submit timer reached 0. Applying jitter delay of ${jitterDelayMs}ms`);
+
+          toast.error("Time's up! Packaging and auto-submitting your assessment...", {
+            id: 'time-up-submit',
+            duration: jitterDelayMs + 3000,
+          });
+
+          setTimeout(() => {
+            executeSubmit(false);
+          }, jitterDelayMs);
+
           return 0;
         }
         return prev - 1;
@@ -222,10 +260,16 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleSelectOption = (optIndex) => {
+  const handleSelectOption = (optIndex, optId, optText) => {
     setAnswers((prev) => ({
       ...prev,
-      [currentQuestionIndex]: optIndex,
+      [currentQuestionIndex]: {
+        questionId: currentQ?._id,
+        questionIndex: currentQuestionIndex,
+        selectedOptionId: optId || `opt_${optIndex}`,
+        selectedOptionText: optText,
+        selectedOption: optIndex,
+      },
     }));
   };
 
@@ -254,6 +298,46 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md">
+      {/* Permanent Lockout Screen if Student is Blocked for Tab Switch */}
+      {isLocked && !currentResult && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-3xl bg-black/90 select-none">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-destructive/40 bg-surface/95 shadow-2xl text-center">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5 text-red-400">
+              <AlertTriangle size={28} />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20 mb-3">
+              Proctoring Violation
+            </div>
+            <h3 className="text-xl font-bold tracking-tight text-white mb-2">
+              Assessment Blocked
+            </h3>
+            <p className="text-xs sm:text-sm text-red-300/90 mb-6 leading-relaxed">
+              You have been blocked for navigating away. Contact Admin.
+            </p>
+            <Button
+              variant="secondary"
+              onPress={onClose}
+              className="w-full py-2.5 text-xs font-semibold cursor-pointer rounded-xl"
+            >
+              Close Assessment
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen Enforcement Overlay */}
+      {!isLocked && !currentResult && !loading && !isFullscreen && (
+        <FullScreenEnforcementOverlay
+          isFullscreen={isFullscreen}
+          onRequestFullscreen={() => {
+            const el = document.documentElement;
+            if (el.requestFullscreen) {
+              el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+            }
+          }}
+        />
+      )}
+
       <motion.div
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -318,20 +402,22 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 </div>
 
                 {/* Fullscreen Toggle */}
-                <button
-                  type="button"
-                  onClick={() => {
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="flat"
+                  onPress={() => {
                     if (!document.fullscreenElement) {
                       document.documentElement.requestFullscreen?.().catch(() => {});
                     } else {
                       document.exitFullscreen?.().catch(() => {});
                     }
                   }}
-                  className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary transition-all border border-separator cursor-pointer hidden md:flex shrink-0"
+                  className="rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary border border-separator cursor-pointer hidden md:flex shrink-0 min-h-[36px] min-w-[36px]"
                   title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
                   {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                </button>
+                </Button>
 
                 {/* Timer */}
                 <div
@@ -348,9 +434,11 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 </div>
 
                 {/* Always-Visible Direct Submit Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmModal(true)}
+                <Button
+                  size="sm"
+                  color="success"
+                  variant="solid"
+                  onPress={() => setShowConfirmModal(true)}
                   className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white shadow-xs transition-all cursor-pointer shrink-0 min-h-[36px]"
                   title="Submit assessment now"
                 >
@@ -359,17 +447,20 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   <span className="hidden xs:inline-block text-[10px] bg-white/20 px-1 rounded font-mono tabular-nums">
                     {answeredCount}/{totalQuestions}
                   </span>
-                </button>
+                </Button>
               </>
             )}
 
-            <button
-              onClick={handleSafeClose}
-              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary transition-all border border-separator cursor-pointer shrink-0"
+            <Button
+              isIconOnly
+              size="sm"
+              variant="flat"
+              onPress={handleSafeClose}
+              className="rounded-xl bg-surface-secondary hover:bg-surface text-label-secondary hover:text-label-primary border border-separator cursor-pointer shrink-0 min-h-[36px] min-w-[36px]"
               title="Close test"
             >
               <X size={16} />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -514,25 +605,27 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
             {/* Bottom Actions for Review Screen */}
             <div className="pt-4 border-t border-separator flex flex-col sm:flex-row items-center justify-between gap-3">
-              <button
+              <Button
                 type="button"
-                onClick={() => {
+                variant="secondary"
+                onPress={() => {
                   clearCurrentResult();
                   setAnswers({});
                   setCurrentQuestionIndex(0);
                   setTimeLeftSeconds((currentAssessment.timeLimitMinutes || 30) * 60);
                   setStartTime(Date.now());
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface flex items-center justify-center gap-2 border border-separator transition-all cursor-pointer w-full sm:w-auto min-h-[42px]"
+                className="px-5 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-2 w-full sm:w-auto min-h-[42px]"
               >
                 <RotateCcw size={14} /> Retake assessment
-              </button>
-              <button
-                onClick={onClose}
-                className="btn-primary py-2.5 px-6 text-xs font-medium cursor-pointer w-full sm:w-auto text-center min-h-[42px]"
+              </Button>
+              <Button
+                variant="primary"
+                onPress={onClose}
+                className="py-2.5 px-6 text-xs font-medium w-full sm:w-auto min-h-[42px]"
               >
                 Return to dashboard
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -564,15 +657,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
               })}
 
               {/* Direct Jump Submit Pill in Progress Bar */}
-              <button
-                type="button"
-                onClick={() => setShowConfirmModal(true)}
+              <Button
+                size="sm"
+                variant="flat"
+                color="success"
+                onPress={() => setShowConfirmModal(true)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 shrink-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer ml-auto min-h-[32px]"
                 title="Finish and submit assessment"
               >
                 <Send size={11} />
                 <span>Submit</span>
-              </button>
+              </Button>
             </div>
 
             {/* Active Question Content */}
@@ -596,16 +691,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
                   {/* Multiple Choice Options */}
                   <div className="space-y-2.5 sm:space-y-3 pt-1 sm:pt-2">
-                    {currentQ.options.map((optText, optIndex) => {
-                      const isSelected = answers[currentQuestionIndex] === optIndex;
+                    {currentQ.options.map((optionItem, optIndex) => {
+                      const optText = typeof optionItem === 'object' && optionItem !== null ? optionItem.text : optionItem;
+                      const optId = typeof optionItem === 'object' && optionItem !== null ? optionItem.optionId : `opt_${optIndex}`;
+                      
+                      const currentSelected = answers[currentQuestionIndex];
+                      const isSelected =
+                        typeof currentSelected === 'object' && currentSelected !== null
+                          ? currentSelected.selectedOptionId === optId || currentSelected.selectedOptionText === optText
+                          : currentSelected === optIndex;
+
                       const optionLetter = String.fromCharCode(65 + optIndex);
 
                       return (
                         <motion.button
-                          key={optIndex}
+                          key={optId || optIndex}
                           whileHover={{ scale: 1.002 }} whileTap={{ scale: 0.97 }}
-                          
-                          onClick={() => handleSelectOption(optIndex)}
+                          onClick={() => handleSelectOption(optIndex, optId, optText)}
                           className={`w-full min-h-[44px] p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left flex items-center gap-3 sm:gap-4 transition-all duration-150 cursor-pointer border ${
                             isSelected
                               ? 'bg-accent/10 border-accent text-label-primary shadow-xs'
@@ -641,15 +743,16 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
             {/* Bottom Controls Bar */}
             <div className="p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] border-t border-separator flex items-center justify-between gap-2 sm:gap-3 bg-surface flex-shrink-0">
-              <button
-                onClick={handlePrevious}
-                disabled={currentQuestionIndex === 0}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 sm:gap-1.5 transition-all shrink-0 cursor-pointer min-h-[38px] border border-separator"
+              <Button
+                variant="secondary"
+                onPress={handlePrevious}
+                isDisabled={currentQuestionIndex === 0}
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-medium flex items-center gap-1 sm:gap-1.5 shrink-0 min-h-[38px]"
               >
                 <ChevronLeft size={15} />
                 <span className="hidden sm:inline">Previous</span>
                 <span className="sm:hidden">Prev</span>
-              </button>
+              </Button>
 
               <div className="text-[11px] sm:text-xs font-medium text-label-secondary text-center px-1 truncate tabular-nums">
                 <span className="hidden sm:inline">
@@ -662,32 +765,38 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 {currentQuestionIndex < totalQuestions - 1 && (
-                  <button
-                    onClick={() => setShowConfirmModal(true)}
-                    className="px-3 py-2 rounded-xl text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 flex items-center gap-1 transition-all cursor-pointer min-h-[38px]"
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    color="success"
+                    onPress={() => setShowConfirmModal(true)}
+                    className="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1 min-h-[38px]"
                     title="Submit assessment now"
                   >
                     <Send size={12} />
                     <span>Submit</span>
-                  </button>
+                  </Button>
                 )}
 
                 {currentQuestionIndex < totalQuestions - 1 ? (
-                  <button
-                    onClick={handleNext}
-                    className="btn-primary py-2 px-4 text-xs font-medium flex items-center gap-1 cursor-pointer min-h-[38px]"
+                  <Button
+                    variant="primary"
+                    onPress={handleNext}
+                    className="py-2 px-4 text-xs font-medium flex items-center gap-1 min-h-[38px]"
                   >
                     <span>Next</span> <ChevronRight size={15} />
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    onClick={() => setShowConfirmModal(true)}
-                    className="btn-primary py-2 px-5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+                  <Button
+                    variant="primary"
+                    color="success"
+                    onPress={() => setShowConfirmModal(true)}
+                    className="py-2 px-5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 flex items-center gap-1.5 min-h-[38px]"
                   >
                     <Send size={13} />
                     <span className="hidden sm:inline">Submit assessment</span>
                     <span className="sm:hidden">Submit</span>
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -722,19 +831,22 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 </div>
 
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2">
-                  <button
-                    onClick={() => setShowConfirmModal(false)}
-                    className="w-full sm:flex-1 py-2.5 px-4 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface border border-separator transition-all cursor-pointer min-h-[42px]"
+                  <Button
+                    variant="secondary"
+                    onPress={() => setShowConfirmModal(false)}
+                    className="w-full sm:flex-1 py-2.5 px-4 rounded-xl text-xs font-medium min-h-[42px]"
                   >
                     Back to test
-                  </button>
-                  <button
-                    onClick={() => executeSubmit(false)}
-                    disabled={submitting}
-                    className="btn-primary w-full sm:flex-1 py-2.5 px-4 text-xs font-medium disabled:opacity-50 cursor-pointer text-center min-h-[42px]"
+                  </Button>
+                  <Button
+                    variant="primary"
+                    color="success"
+                    onPress={() => executeSubmit(false)}
+                    isDisabled={submitting}
+                    className="w-full sm:flex-1 py-2.5 px-4 text-xs font-medium min-h-[42px]"
                   >
                     {submitting ? 'Submitting...' : 'Yes, submit now'}
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             </div>
@@ -776,13 +888,14 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   </p>
                 </div>
 
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowTabWarning(false)}
-                  className="w-full btn-primary py-2.5 text-xs font-medium cursor-pointer min-h-[42px]"
+                  variant="primary"
+                  onPress={() => setShowTabWarning(false)}
+                  className="w-full py-2.5 text-xs font-medium min-h-[42px]"
                 >
                   I understand, return to test
-                </button>
+                </Button>
               </motion.div>
             </div>
           )}
@@ -840,24 +953,26 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   </p>
                 </div>
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2">
-                  <button
-                    onClick={() => setShowExitConfirm(false)}
-                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium text-label-primary bg-surface-secondary border border-separator hover:bg-surface transition-all cursor-pointer min-h-[42px]"
+                  <Button
+                    variant="secondary"
+                    onPress={() => setShowExitConfirm(false)}
+                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium min-h-[42px]"
                   >
                     Continue test
-                  </button>
-                  <button
-                    onClick={() => {
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onPress={() => {
                       setShowExitConfirm(false);
                       if (document.fullscreenElement) {
                         document.exitFullscreen().catch(() => {});
                       }
                       onClose();
                     }}
-                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium text-white bg-destructive hover:bg-red-600 transition-all cursor-pointer min-h-[42px]"
+                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium min-h-[42px]"
                   >
                     Exit anyway
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             </div>

@@ -26,6 +26,8 @@ import {
   getAdminAssessmentSubmissions,
   saveAssessmentDesignChallenge,
   evaluateAssessmentDesign,
+  deleteAdminAssessmentSubmission,
+  getAdminOverallArenaLeaderboard,
   getStudentAssessmentData,
   startAssessmentSession,
   runAssessmentCode,
@@ -39,6 +41,7 @@ import {
   deleteArenaTeam,
 } from '../controllers/eventArenaController';
 import { verifyToken, isAdmin, checkFeatureNotRestricted } from '../middleware/authMiddleware';
+import { checkAssessmentNotBlocked } from '../middleware/antiCheatMiddleware';
 
 export async function eventArenaRoutes(fastify: FastifyInstance) {
   // All arena endpoints require verified user authentication
@@ -60,7 +63,9 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/arena/assessments/:assessmentId/questions/bulk-upload', bulkUploadAssessmentQuestions);
   fastify.put('/:id/arena/assessments/:assessmentId/design', saveAssessmentDesignChallenge);
   fastify.get('/:id/arena/assessments/:assessmentId/admin/submissions', getAdminAssessmentSubmissions);
+  fastify.get('/:id/arena/admin/overall-leaderboard', getAdminOverallArenaLeaderboard);
   fastify.put('/:id/arena/assessments/:assessmentId/submissions/:submissionId/evaluate-design', evaluateAssessmentDesign);
+  fastify.delete('/:id/arena/assessments/:assessmentId/submissions/:submissionId', deleteAdminAssessmentSubmission);
 
   // 4. Sample Templates
   fastify.get('/:id/arena/templates/:type', downloadArenaSampleTemplate);
@@ -78,12 +83,13 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/arena/questions/coding', saveArenaCodingProblems);
   fastify.post('/:id/arena/questions/bulk-upload', bulkUploadArenaQuestions);
   fastify.get('/:id/arena/admin/submissions', getAdminArenaSubmissions);
-  fastify.get('/:id/arena', getStudentArenaData);
+  fastify.get('/:id/arena', { preHandler: [checkAssessmentNotBlocked] }, getStudentArenaData as any);
   fastify.get('/:id/arena/leaderboard', getArenaLeaderboard);
 
-  // 6. Student Assessment Participation Endpoints (Gated against restriction)
+  // 6. Student Assessment Participation Endpoints (Gated against restriction & Anti-Cheat Block)
   fastify.register(async (studentArenaGroup) => {
     studentArenaGroup.addHook('preHandler', checkFeatureNotRestricted('assessments'));
+    studentArenaGroup.addHook('preHandler', checkAssessmentNotBlocked);
 
     // Multi-assessment routes
     studentArenaGroup.get('/:id/arena/assessments/:assessmentId/data', getStudentAssessmentData);

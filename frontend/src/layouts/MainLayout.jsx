@@ -8,6 +8,7 @@ import BackgroundGradient from '../components/ui/BackgroundGradient';
 import PageTransitionWrapper from '../components/ui/PageTransitionWrapper';
 import { PageSkeleton } from '../components/ui/LoadingSkeleton';
 import { preloadRoute, preloadCommonRoutes } from '../lib/routePreload';
+import { Button } from '@heroui/react';
 import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
   Medal, Trophy, Ticket, MessageSquare,
@@ -153,7 +154,7 @@ export const MainLayout = ({ children }) => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 z-50 lg:hidden backdrop-blur-md" style={{ background: 'rgba(0,0,0,0.5)' }}
+              className="fixed inset-0 z-50 lg:hidden backdrop-blur-md" style={{ background: 'var(--surface-overlay)' }}
             />
             <motion.div
               initial={{ x: '-100%' }}
@@ -175,7 +176,7 @@ export const MainLayout = ({ children }) => {
                 <div className="flex items-center gap-3">
                   <div
                     className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-                    style={{ background: 'var(--accent)', boxShadow: '0 2px 8px rgba(0,113,227,0.30)' }}
+                    style={{ background: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-subtle)' }}
                   >
                     <span className="text-white font-bold text-[13px]">CC</span>
                   </div>
@@ -187,14 +188,15 @@ export const MainLayout = ({ children }) => {
                   </span>
                 </div>
                 {/* 44×44 close button per iOS touch target spec */}
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center rounded-xl emil-press cursor-pointer"
-                  style={{ color: 'var(--label-secondary)', minWidth: 44, minHeight: 44 }}
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  onPress={() => setIsMobileMenuOpen(false)}
+                  className="rounded-xl cursor-pointer text-label-secondary hover:text-label-primary min-w-[44px] min-h-[44px]"
                   aria-label="Close menu"
                 >
                   <X size={18} strokeWidth={2} />
-                </button>
+                </Button>
               </div>
 
               {/* Nav links */}

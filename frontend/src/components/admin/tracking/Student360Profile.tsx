@@ -212,8 +212,8 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4 text-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 tracking-tight">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
+        <p className="text-sm font-medium text-label-secondary tracking-tight">
           Loading Student 360 Profile...
         </p>
       </div>
@@ -223,13 +223,13 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
   if (error || !data) {
     return (
       <div className="p-8 text-center space-y-4">
-        <div className="w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-500">
+        <div className="w-12 h-12 mx-auto rounded-full bg-destructive-subtle flex items-center justify-center text-destructive">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h3 className="text-lg font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+        <h3 className="text-lg font-semibold text-label-primary">
           Unable to Load Profile
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mx-auto">
+        <p className="text-sm text-label-secondary max-w-sm mx-auto">
           {error || 'Student data could not be retrieved from the server.'}
         </p>
       </div>
@@ -243,39 +243,39 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
     switch (color) {
       case 'green':
         return {
-          bg: 'bg-emerald-500/15 dark:bg-emerald-500/20',
-          text: 'text-emerald-600 dark:text-emerald-400',
-          ring: 'ring-emerald-500/30',
-          dot: 'bg-emerald-500',
+          bg: 'bg-success-subtle',
+          text: 'text-success',
+          ring: 'ring-success/30',
+          dot: 'bg-success',
         };
       case 'blue':
         return {
-          bg: 'bg-blue-500/15 dark:bg-blue-500/20',
-          text: 'text-blue-600 dark:text-blue-400',
-          ring: 'ring-blue-500/30',
-          dot: 'bg-blue-500',
+          bg: 'bg-accent-subtle',
+          text: 'text-accent',
+          ring: 'ring-accent/30',
+          dot: 'bg-accent',
         };
       case 'red':
         return {
-          bg: 'bg-rose-500/15 dark:bg-rose-500/20',
-          text: 'text-rose-600 dark:text-rose-400',
-          ring: 'ring-rose-500/30',
-          dot: 'bg-rose-500',
+          bg: 'bg-destructive-subtle',
+          text: 'text-destructive',
+          ring: 'ring-destructive/30',
+          dot: 'bg-destructive',
         };
       case 'amber':
         return {
-          bg: 'bg-amber-500/15 dark:bg-amber-500/20',
-          text: 'text-amber-600 dark:text-amber-400',
-          ring: 'ring-amber-500/30',
-          dot: 'bg-amber-500',
+          bg: 'bg-warning-subtle',
+          text: 'text-warning',
+          ring: 'ring-warning/30',
+          dot: 'bg-warning',
         };
       case 'gray':
       default:
         return {
-          bg: 'bg-neutral-500/15 dark:bg-neutral-500/20',
-          text: 'text-neutral-600 dark:text-neutral-400',
-          ring: 'ring-neutral-500/30',
-          dot: 'bg-neutral-400 dark:bg-neutral-500',
+          bg: 'bg-surface-secondary',
+          text: 'text-label-secondary',
+          ring: 'ring-separator',
+          dot: 'bg-label-tertiary',
         };
     }
   };
@@ -298,31 +298,31 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
   };
 
   return (
-    <div className="w-full bg-[#F5F5F7] dark:bg-[#161617] text-[#1D1D1F] dark:text-[#F5F5F7] rounded-3xl p-4 sm:p-6 space-y-8 select-text">
+    <div className="w-full bg-canvas text-label-primary rounded-3xl p-4 sm:p-6 space-y-8 select-text">
       {/* ── 1. HERO SECTION (Macro-Typography, Rank, Stats) ── */}
-      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-6">
+      <section className="bg-surface/80 backdrop-blur-xl border border-separator rounded-3xl p-6 sm:p-8 shadow-card space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-black/5 dark:bg-white/10 text-neutral-700 dark:text-neutral-300">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-surface-secondary text-label-secondary">
                 {student.department || 'General'}
               </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-accent-subtle text-accent">
                 {student.year || 'Student'}
               </span>
               {student.isOnboarded ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-success-subtle text-success">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                   Onboarded
                 </span>
               ) : (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-warning-subtle text-warning">
                   Pending Claim
                 </span>
               )}
 
               {student.isRestricted && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-destructive-subtle text-destructive border border-destructive/30">
                   <ShieldAlert className="w-3.5 h-3.5" />
                   Restricted
                 </span>
@@ -330,11 +330,11 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
             </div>
 
             {/* Macro-Typography Student Name */}
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-label-primary">
               {student.name}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 font-mono">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-label-secondary font-mono">
               <span>{student.rollNo}</span>
               <span>•</span>
               <span>{student.email}</span>
@@ -342,16 +342,16 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
 
             {/* Active Restrictions Alert Banner if Restricted */}
             {student.isRestricted && (
-              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-300 space-y-1">
-                <div className="flex items-center gap-1.5 font-bold text-rose-200">
-                  <ShieldAlert className="w-4 h-4 text-rose-400" />
+              <div className="p-3.5 rounded-2xl bg-destructive-subtle border border-destructive/25 text-xs text-destructive space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-destructive">
+                  <ShieldAlert className="w-4 h-4 text-destructive" />
                   <span>Academic Restrictions Active</span>
                 </div>
-                <p className="text-neutral-300 leading-relaxed">
+                <p className="text-label-secondary leading-relaxed">
                   {student.restrictionReason || 'Restricted from attending assessments, contests, or courses.'}
                 </p>
-                <p className="text-[11px] text-rose-300/80">
-                  Restricted Features: <strong className="text-white">{student.restrictedFeatures?.join(', ') || 'assessments, contests'}</strong>
+                <p className="text-[11px] text-destructive/80">
+                  Restricted Features: <strong className="text-label-primary">{student.restrictedFeatures?.join(', ') || 'assessments, contests'}</strong>
                 </p>
               </div>
             )}
@@ -362,16 +362,16 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={isExportingPdf}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-60 disabled:pointer-events-none cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-accent hover:bg-accent-hover text-surface shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-60 disabled:pointer-events-none cursor-pointer"
               >
                 {isExportingPdf ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <Loader2 className="w-4 h-4 animate-spin text-surface" />
                     <span>Generating PDF Dossier...</span>
                   </>
                 ) : (
                   <>
-                    <FileText className="w-4 h-4 text-white" />
+                    <FileText className="w-4 h-4 text-surface" />
                     <span>Download PDF Report</span>
                   </>
                 )}
@@ -382,16 +382,16 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                   type="button"
                   onClick={handleUnblockRestrictions}
                   disabled={isUnblocking}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-success hover:bg-success-hover text-surface shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
                 >
                   {isUnblocking ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <Loader2 className="w-4 h-4 animate-spin text-surface" />
                       <span>Unblocking...</span>
                     </>
                   ) : (
                     <>
-                      <Unlock className="w-4 h-4 text-white" />
+                      <Unlock className="w-4 h-4 text-surface" />
                       <span>Unblock Student Restrictions</span>
                     </>
                   )}
@@ -401,15 +401,15 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
           </div>
 
           {/* Macro Club Rank / Status */}
-          <div className="shrink-0 bg-[#F5F5F7] dark:bg-[#161617] rounded-2xl p-5 sm:p-6 text-center shadow-inner min-w-[150px]">
-            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-neutral-500 dark:text-neutral-400 mb-1">
-              <Trophy className="w-3.5 h-3.5 text-amber-500" />
+          <div className="shrink-0 bg-surface-secondary border border-separator rounded-2xl p-5 sm:p-6 text-center shadow-inner min-w-[150px]">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-label-secondary mb-1">
+              <Trophy className="w-3.5 h-3.5 text-warning" />
               Club Rank
             </div>
-            <div className="text-4xl sm:text-5xl font-black tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
+            <div className="text-4xl sm:text-5xl font-black tracking-tight text-label-primary">
               #{stats.rank}
             </div>
-            <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 font-medium">
+            <div className="text-xs text-label-secondary mt-1 font-medium">
               of {stats.totalStudents} students • {student.points || 0} pts
             </div>
           </div>
@@ -417,35 +417,35 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
 
         {/* ── Key Metrics Macro Strip ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div className="bg-[#F5F5F7]/80 dark:bg-[#161617]/80 rounded-2xl p-4 text-center">
-            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 block mb-1">
+          <div className="bg-surface-secondary/80 border border-separator rounded-2xl p-4 text-center">
+            <span className="text-xs font-medium text-label-secondary block mb-1">
               Events Attended
             </span>
-            <span className="text-2xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7]">
+            <span className="text-2xl font-bold tracking-tight text-label-primary">
               {stats.totalEventsAttended}
             </span>
           </div>
-          <div className="bg-[#F5F5F7]/80 dark:bg-[#161617]/80 rounded-2xl p-4 text-center">
-            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 block mb-1">
+          <div className="bg-surface-secondary/80 border border-separator rounded-2xl p-4 text-center">
+            <span className="text-xs font-medium text-label-secondary block mb-1">
               Quests Completed
             </span>
-            <span className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+            <span className="text-2xl font-bold tracking-tight text-success">
               {stats.questsCompleted}
             </span>
           </div>
-          <div className="bg-[#F5F5F7]/80 dark:bg-[#161617]/80 rounded-2xl p-4 text-center">
-            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 block mb-1">
+          <div className="bg-surface-secondary/80 border border-separator rounded-2xl p-4 text-center">
+            <span className="text-xs font-medium text-label-secondary block mb-1">
               Avg Assessment
             </span>
-            <span className="text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-400">
+            <span className="text-2xl font-bold tracking-tight text-accent">
               {stats.averageAssessmentScore}%
             </span>
           </div>
-          <div className="bg-[#F5F5F7]/80 dark:bg-[#161617]/80 rounded-2xl p-4 text-center">
-            <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400 block mb-1">
+          <div className="bg-surface-secondary/80 border border-separator rounded-2xl p-4 text-center">
+            <span className="text-xs font-medium text-label-secondary block mb-1">
               Challenges Solved
             </span>
-            <span className="text-2xl font-bold tracking-tight text-purple-600 dark:text-purple-400">
+            <span className="text-2xl font-bold tracking-tight text-info">
               {stats.codingChallengesSolved}
             </span>
           </div>
@@ -454,7 +454,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
         {/* ── Linked Developer Stats (GitHub & LeetCode) ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
           {/* GitHub Card */}
-          <div className="rounded-2xl p-5 bg-[#F5F5F7]/90 dark:bg-[#161617]/90 shadow-sm flex flex-col justify-between">
+          <div className="rounded-2xl p-5 bg-surface-secondary/90 border border-separator shadow-sm flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 font-semibold text-sm">
                 <Github className="w-4 h-4" />
@@ -465,7 +465,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                   href={`https://github.com/${githubUser}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-500 hover:underline flex items-center gap-1 font-medium"
+                  className="text-xs text-accent hover:underline flex items-center gap-1 font-medium"
                 >
                   @{githubUser}
                   <ExternalLink className="w-3 h-3" />
@@ -475,47 +475,47 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
 
             {githubUser ? (
               ghLoading ? (
-                <div className="py-3 flex items-center gap-2 text-xs text-neutral-400">
+                <div className="py-3 flex items-center gap-2 text-xs text-label-tertiary">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" /> Fetching GitHub data...
                 </div>
               ) : ghStats ? (
                 <div className="grid grid-cols-3 gap-2 text-center pt-1">
-                  <div className="bg-white/60 dark:bg-[#202022] rounded-xl py-2">
-                    <div className="text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                  <div className="bg-surface-raised border border-separator rounded-xl py-2">
+                    <div className="text-lg font-bold text-label-primary">
                       {ghStats.public_repos}
                     </div>
-                    <div className="text-[11px] text-neutral-500">Repositories</div>
+                    <div className="text-[11px] text-label-secondary">Repositories</div>
                   </div>
-                  <div className="bg-white/60 dark:bg-[#202022] rounded-xl py-2">
-                    <div className="text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                  <div className="bg-surface-raised border border-separator rounded-xl py-2">
+                    <div className="text-lg font-bold text-label-primary">
                       {ghStats.followers}
                     </div>
-                    <div className="text-[11px] text-neutral-500">Followers</div>
+                    <div className="text-[11px] text-label-secondary">Followers</div>
                   </div>
-                  <div className="bg-white/60 dark:bg-[#202022] rounded-xl py-2">
-                    <div className="text-lg font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                  <div className="bg-surface-raised border border-separator rounded-xl py-2">
+                    <div className="text-lg font-bold text-label-primary">
                       {ghStats.following}
                     </div>
-                    <div className="text-[11px] text-neutral-500">Following</div>
+                    <div className="text-[11px] text-label-secondary">Following</div>
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                <p className="text-xs text-label-secondary">
                   Username linked ({githubUser}), public data unavailable.
                 </p>
               )
             ) : (
-              <p className="text-xs text-neutral-400 dark:text-neutral-500 italic py-2">
+              <p className="text-xs text-label-tertiary italic py-2">
                 GitHub account not linked in student profile.
               </p>
             )}
           </div>
 
           {/* LeetCode Card */}
-          <div className="rounded-2xl p-5 bg-[#F5F5F7]/90 dark:bg-[#161617]/90 shadow-sm flex flex-col justify-between">
+          <div className="rounded-2xl p-5 bg-surface-secondary/90 border border-separator shadow-sm flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 font-semibold text-sm">
-                <Code2 className="w-4 h-4 text-amber-500" />
+                <Code2 className="w-4 h-4 text-warning" />
                 <span>LeetCode Stats</span>
               </div>
               {student.socialLinks?.leetcode && (
@@ -523,7 +523,7 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                   href={`https://leetcode.com/${leetcodeUser}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-500 hover:underline flex items-center gap-1 font-medium"
+                  className="text-xs text-accent hover:underline flex items-center gap-1 font-medium"
                 >
                   @{leetcodeUser}
                   <ExternalLink className="w-3 h-3" />
@@ -533,36 +533,36 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
 
             {leetcodeUser ? (
               lcLoading ? (
-                <div className="py-3 flex items-center gap-2 text-xs text-neutral-400">
+                <div className="py-3 flex items-center gap-2 text-xs text-label-tertiary">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" /> Fetching LeetCode data...
                 </div>
               ) : lcStats ? (
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between text-xs">
-                    <span className="font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] text-base">
+                    <span className="font-semibold text-label-primary text-base">
                       {lcStats.totalSolved} Solved
                     </span>
-                    <span className="text-neutral-500">Rank #{lcStats.ranking?.toLocaleString() || 'N/A'}</span>
+                    <span className="text-label-secondary">Rank #{lcStats.ranking?.toLocaleString() || 'N/A'}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-1.5 text-center text-[11px]">
-                    <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg py-1 font-medium">
+                    <span className="bg-success-subtle text-success rounded-lg py-1 font-medium">
                       Easy: {lcStats.easySolved}
                     </span>
-                    <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg py-1 font-medium">
+                    <span className="bg-warning-subtle text-warning rounded-lg py-1 font-medium">
                       Med: {lcStats.mediumSolved}
                     </span>
-                    <span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg py-1 font-medium">
+                    <span className="bg-destructive-subtle text-destructive rounded-lg py-1 font-medium">
                       Hard: {lcStats.hardSolved}
                     </span>
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                <p className="text-xs text-label-secondary">
                   Username linked ({leetcodeUser}), metrics unavailable.
                 </p>
               )
             ) : (
-              <p className="text-xs text-neutral-400 dark:text-neutral-500 italic py-2">
+              <p className="text-xs text-label-tertiary italic py-2">
                 LeetCode account not linked in student profile.
               </p>
             )}
@@ -571,51 +571,51 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
       </section>
 
       {/* ── 2. PROGRESS SECTION (Minimal Pill-Shaped Bars) ── */}
-      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-6">
+      <section className="bg-surface/80 backdrop-blur-xl border border-separator rounded-3xl p-6 sm:p-8 shadow-card space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
-              <Layers className="w-5 h-5 text-blue-500" />
+            <h2 className="text-xl font-bold tracking-tight text-label-primary flex items-center gap-2">
+              <Layers className="w-5 h-5 text-accent" />
               Domain & Curriculum Progress
             </h2>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs text-label-secondary">
               Interactive quest track and domain level mastery
             </p>
           </div>
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-neutral-600 dark:text-neutral-300">
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-surface-secondary text-label-secondary">
             {domainProgress.length} Tracks
           </span>
         </div>
 
         {domainProgress.length === 0 ? (
-          <p className="text-xs text-neutral-400 italic">No domain tracks registered yet.</p>
+          <p className="text-xs text-label-tertiary italic">No domain tracks registered yet.</p>
         ) : (
           <div className="space-y-4">
             {domainProgress.map((domain) => (
               <div key={domain.id} className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                    <span className="font-semibold text-label-primary">
                       {domain.name}
                     </span>
                     {!domain.isUnlocked && (
-                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800 text-neutral-500">
+                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-surface-secondary text-label-tertiary">
                         Locked
                       </span>
                     )}
                   </div>
-                  <span className="font-mono text-neutral-500 dark:text-neutral-400">
+                  <span className="font-mono text-label-secondary">
                     {domain.completedLevels}/{domain.totalLevels} levels ({domain.progressPercent}%)
                   </span>
                 </div>
 
                 {/* Minimal Pill-Shaped Progress Bar */}
-                <div className="h-2.5 w-full bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden p-0.5">
+                <div className="h-2.5 w-full bg-surface-secondary rounded-full overflow-hidden p-0.5">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${domain.progressPercent}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
-                    className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-600"
+                    className="h-full rounded-full bg-accent"
                   />
                 </div>
               </div>
@@ -625,28 +625,28 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
       </section>
 
       {/* ── 3. ACTIVITY TIMELINE (Unified Chronological Journey) ── */}
-      <section className="bg-white/80 dark:bg-[#1E1E1F]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:ring-1 dark:ring-white/10 space-y-6">
+      <section className="bg-surface/80 backdrop-blur-xl border border-separator rounded-3xl p-6 sm:p-8 shadow-card space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-[#F5F5F7] flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-emerald-500" />
+            <h2 className="text-xl font-bold tracking-tight text-label-primary flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-success" />
               Activity Timeline
             </h2>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs text-label-secondary">
               Chronological journey of attendance, quest passes, and coding tests
             </p>
           </div>
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-neutral-600 dark:text-neutral-300">
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-surface-secondary text-label-secondary">
             {activityTimeline.length} Milestones
           </span>
         </div>
 
         {activityTimeline.length === 0 ? (
-          <div className="text-center py-12 text-neutral-400 text-xs italic">
+          <div className="text-center py-12 text-label-tertiary text-xs italic">
             No activity milestones recorded for this student yet.
           </div>
         ) : (
-          <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-3 sm:before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-neutral-200 dark:before:bg-neutral-800">
+          <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-3 sm:before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-separator">
             {activityTimeline.map((item, idx) => {
               const colors = getNodeColor(item.semanticColor);
               const dateStr = formatISTDate(item.timestamp);
@@ -656,13 +656,13 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                 <div key={item.id || idx} className="relative group">
                   {/* Timeline Node Dot */}
                   <div
-                    className={`absolute -left-6 sm:-left-8 top-1 w-6 h-6 rounded-full flex items-center justify-center ${colors.bg} ${colors.text} ring-4 ring-white dark:ring-[#1E1E1F] transition-transform group-hover:scale-110`}
+                    className={`absolute -left-6 sm:-left-8 top-1 w-6 h-6 rounded-full flex items-center justify-center ${colors.bg} ${colors.text} ring-4 ring-surface transition-transform group-hover:scale-110`}
                   >
                     {getTimelineIcon(item.category, item.status)}
                   </div>
 
                   {/* Timeline Item Content Card */}
-                  <div className="bg-[#F5F5F7]/80 dark:bg-[#161617]/80 rounded-2xl p-4 sm:p-5 transition-shadow hover:shadow-md space-y-2">
+                  <div className="bg-surface-secondary/80 border border-separator rounded-2xl p-4 sm:p-5 transition-shadow hover:shadow-md space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span
@@ -670,34 +670,34 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                         >
                           {item.status}
                         </span>
-                        <h4 className="text-sm sm:text-base font-bold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                        <h4 className="text-sm sm:text-base font-bold text-label-primary">
                           {item.title}
                         </h4>
                       </div>
-                      <time className="text-[11px] font-mono text-neutral-400 dark:text-neutral-500 flex items-center gap-1">
+                      <time className="text-[11px] font-mono text-label-tertiary flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {dateStr} • {timeStr}
                       </time>
                     </div>
 
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                    <p className="text-xs text-label-secondary leading-relaxed">
                       {item.subtitle}
                     </p>
 
                     {item.meta && (
                       <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
                         {item.meta.points !== undefined && (
-                          <span className="px-2 py-0.5 rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-medium">
+                          <span className="px-2 py-0.5 rounded-md bg-surface-raised border border-separator text-label-secondary font-medium">
                             +{item.meta.points} Points
                           </span>
                         )}
                         {item.meta.percentage !== undefined && (
-                          <span className="px-2 py-0.5 rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-medium">
+                          <span className="px-2 py-0.5 rounded-md bg-surface-raised border border-separator text-label-secondary font-medium">
                             Score: {item.meta.percentage}%
                           </span>
                         )}
                         {item.meta.session && (
-                          <span className="px-2 py-0.5 rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-500 font-medium">
+                          <span className="px-2 py-0.5 rounded-md bg-surface-raised border border-separator text-label-tertiary font-medium">
                             {item.meta.session}
                           </span>
                         )}

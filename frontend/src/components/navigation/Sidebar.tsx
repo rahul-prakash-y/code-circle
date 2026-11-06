@@ -22,9 +22,11 @@ import {
   Flame,
   Sparkles,
   KeyRound,
+  FileText,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
+import { Button } from '@heroui/react';
 import {
   Tooltip,
   TooltipContent,
@@ -54,8 +56,8 @@ const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
     <motion.div
       className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 select-none"
       style={{
-        background: 'linear-gradient(145deg, #0077ED 0%, #0062CC 100%)',
-        boxShadow: '0 2px 6px rgba(0, 113, 227, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
+        background: 'linear-gradient(145deg, var(--accent) 0%, var(--accent-hover) 100%)',
+        boxShadow: '0 2px 8px var(--accent-subtle), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
       }}
     >
       <span className="text-white font-bold text-[12.5px] tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>
@@ -108,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       icon: Calendar,
       match: (loc) => loc.pathname === '/events',
     },
+    
     {
       to: '/courses',
       label: 'Courses',
@@ -199,6 +202,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
           },
         ]
       : []),
+    {
+      to: '/documentation',
+      label: 'Documentation',
+      icon: FileText,
+      match: (loc) => loc.pathname.startsWith('/documentation') || loc.pathname.startsWith('/docs') || loc.pathname.includes('/docs'),
+    },
     {
       to: '/users',
       label: 'Directory',
@@ -381,14 +390,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
         >
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                onClick={onToggleCollapse}
-                className={`w-full flex items-center gap-3 rounded-xl cursor-pointer transition-colors duration-150 ${
-                  isCollapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2.5'
+              <Button
+                variant="ghost"
+                onPress={onToggleCollapse}
+                className={`w-full flex items-center gap-3 rounded-xl cursor-pointer text-label-secondary hover:text-label-primary ${
+                  isCollapsed ? 'justify-center w-10 h-10 mx-auto min-w-[40px]' : 'px-3 py-2.5 justify-start'
                 }`}
-                style={{ color: 'var(--label-tertiary)' }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--label-primary)')}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--label-tertiary)')}
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 <motion.div
@@ -408,21 +415,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
                       className="flex items-center justify-between flex-1"
                     >
                       <span
-                        className="text-[13px] font-medium"
-                        style={{ color: 'var(--label-secondary)', letterSpacing: '-0.01em' }}
+                        className="text-[13px] font-medium text-label-secondary"
+                        style={{ letterSpacing: '-0.01em' }}
                       >
                         Collapse
                       </span>
                       <span
-                        className="text-[10px] font-mono px-1.5 py-0.5 rounded-md"
-                        style={{ background: 'var(--separator)', color: 'var(--label-tertiary)' }}
+                        className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-separator text-label-tertiary"
                       >
                         ⌘B
                       </span>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </button>
+              </Button>
             </TooltipTrigger>
             {isCollapsed && (
               <TooltipContent side="right" className="text-[13px]">

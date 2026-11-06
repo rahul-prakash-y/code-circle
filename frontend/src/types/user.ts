@@ -1,4 +1,10 @@
-export type UserRole = 'Student' | 'Admin' | 'SuperAdmin' | 'Member' | 'Faculty' | 'Committee';
+export type UserRole =
+  | "Student"
+  | "Admin"
+  | "SuperAdmin"
+  | "Member"
+  | "Faculty"
+  | "Committee";
 
 export interface SocialLinks {
   github?: string;
@@ -10,6 +16,7 @@ export interface SocialLinks {
 }
 
 export interface User {
+  studentId: string;
   _id: string;
   id?: string;
   name: string;
@@ -28,7 +35,7 @@ export interface User {
   hasChangedDefaultPassword?: boolean;
   mustChangePassword?: boolean;
   isOnboarded?: boolean;
-  onboardingStatus?: 'Completed' | 'Pending' | 'In Progress' | 'Claimed';
+  onboardingStatus?: "Completed" | "Pending" | "In Progress" | "Claimed";
   skills?: string[];
   socialLinks?: SocialLinks;
   profilePicUrl?: string;
@@ -95,7 +102,7 @@ export interface PaginatedUsersResponse {
 export interface UserFilters {
   search: string;
   role: string;
-  status: 'all' | 'active' | 'blocked';
+  status: "all" | "active" | "blocked";
   page: number;
   limit: number;
 }

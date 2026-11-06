@@ -37,6 +37,7 @@ import EventModal from '../components/events/EventModal';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
 import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
 import MagneticCTA from '../components/ui/MagneticCTA';
+import { Button } from '@heroui/react';
 
 // ── Scroll-driven hero (subtle depth, max 12-16px movement) ────────────────────
 const Hero = ({
@@ -70,7 +71,7 @@ const Hero = ({
       <div
         className="absolute -top-6 -left-8 w-full max-w-[680px] h-[280px] pointer-events-none -z-10 rounded-full dark:hidden overflow-hidden"
         style={{
-          background: 'radial-gradient(ellipse at 25% 45%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.45) 50%, transparent 80%)',
+          background: 'radial-gradient(ellipse at 25% 45%, var(--surface) 0%, transparent 80%)',
         }}
       />
 
@@ -108,23 +109,25 @@ const Hero = ({
       {/* 4. Primary CTA */}
       <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
         <MagneticCTA maxDisplacement={3}>
-          <button
-            onClick={onBrowse}
-            className="btn-primary flex items-center justify-center gap-2 text-[14px] min-h-[44px] px-5 cursor-pointer shadow-md shadow-accent/15"
+          <Button
+            variant="primary"
+            onPress={onBrowse}
+            className="flex items-center justify-center gap-2 text-[14px] min-h-[44px] px-5 shadow-md shadow-accent/15"
           >
             Browse Events
             <ArrowUpRight size={14} strokeWidth={2} />
-          </button>
+          </Button>
         </MagneticCTA>
 
         {isAdmin && (
-          <button
-            onClick={onCreateEvent}
-            className="btn-secondary flex items-center justify-center gap-2 text-[14px] min-h-[44px] px-4 cursor-pointer"
+          <Button
+            variant="outline"
+            onPress={onCreateEvent}
+            className="flex items-center justify-center gap-2 text-[14px] min-h-[44px] px-4"
           >
             <Plus size={14} strokeWidth={2} />
             New Event
-          </button>
+          </Button>
         )}
       </div>
     </motion.section>
@@ -226,7 +229,7 @@ const ParticipationBar = () => {
       {/* Progress track */}
       <div
         className="w-full rounded-full overflow-hidden"
-        style={{ height: '6px', background: 'rgba(0, 0, 0, 0.06)' }}
+        style={{ height: '6px', background: 'var(--separator)' }}
       >
         <motion.div
           initial={{ width: 0 }}

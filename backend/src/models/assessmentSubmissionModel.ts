@@ -1,15 +1,23 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface ISubmissionAnswer {
-  questionIndex: number;
-  selectedOption: number;
+  questionId?: mongoose.Types.ObjectId | string;
+  selectedOptionId?: string;
+  selectedOptionText?: string;
+  questionIndex?: number;
+  selectedOption?: number;
 }
 
 export interface IDetailedQuestionResult {
+  questionId?: mongoose.Types.ObjectId | string;
   questionIndex: number;
   questionText: string;
+  selectedOptionId?: string;
+  selectedOptionText?: string;
   selectedOption: number;
   correctOptionIndex: number;
+  correctOptionId?: string;
+  correctOptionText?: string;
   isCorrect: boolean;
   points?: number;
   explanation?: string;
@@ -32,18 +40,26 @@ export interface IAssessmentSubmission extends Document {
 
 const submissionAnswerSchema = new Schema<ISubmissionAnswer>(
   {
-    questionIndex: { type: Number, required: true },
-    selectedOption: { type: Number, required: true },
+    questionId: { type: Schema.Types.ObjectId, required: false },
+    selectedOptionId: { type: String, required: false },
+    selectedOptionText: { type: String, required: false },
+    questionIndex: { type: Number, default: 0 },
+    selectedOption: { type: Number, default: -1 },
   },
   { _id: false }
 );
 
 const detailedQuestionResultSchema = new Schema<IDetailedQuestionResult>(
   {
-    questionIndex: { type: Number, required: true },
+    questionId: { type: Schema.Types.ObjectId, required: false },
+    questionIndex: { type: Number, default: 0 },
     questionText: { type: String, required: true },
-    selectedOption: { type: Number, required: true },
+    selectedOptionId: { type: String, required: false },
+    selectedOptionText: { type: String, required: false },
+    selectedOption: { type: Number, default: -1 },
     correctOptionIndex: { type: Number, required: true },
+    correctOptionId: { type: String, required: false },
+    correctOptionText: { type: String, required: false },
     isCorrect: { type: Boolean, required: true },
     points: { type: Number, default: 1 },
     explanation: { type: String, default: '' },

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import useEventStore from '../../store/useEventStore';
@@ -27,7 +28,8 @@ import {
   UserCheck, 
   ArrowUpRight,
   Eye,
-  Award
+  Award,
+  FileText
 } from 'lucide-react';
 
 const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
@@ -48,6 +50,7 @@ export const EventFeed = ({
   const [viewMode, setViewMode] = useState('grid');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+  const navigate = useNavigate();
 
   // Selected event for modals
   const [enrollEvent, setEnrollEvent] = useState(null);
@@ -56,10 +59,26 @@ export const EventFeed = ({
   const [participantsEvent, setParticipantsEvent] = useState(null);
   const [participantsTab, setParticipantsTab] = useState('participants');
 
-  // Reset page when filters change
-  useEffect(() => {
+  // Filter change handlers that reset page cleanly without cascading effects
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
     setPage(1);
-  }, [activeTab, selectedType, selectedFormat, debouncedSearch]);
+  };
+
+  const handleTypeChange = (type) => {
+    setSelectedType(type);
+    setPage(1);
+  };
+
+  const handleFormatChange = (format) => {
+    setSelectedFormat(format);
+    setPage(1);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setPage(1);
+  };
 
   useEffect(() => {
     fetchEvents({
@@ -169,7 +188,7 @@ export const EventFeed = ({
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-colors duration-150 min-h-[36px] ${
                     isActive
                       ? 'bg-accent text-white shadow-xs'
@@ -221,7 +240,7 @@ export const EventFeed = ({
             type="text"
             placeholder="Search events by title, description, or venue…"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             className="input-base pl-9 text-xs"
           />
         </div>
@@ -232,7 +251,7 @@ export const EventFeed = ({
             {EVENT_TYPES.map((type) => (
               <button
                 key={type}
-                onClick={() => setSelectedType(type)}
+                onClick={() => handleTypeChange(type)}
                 className={`px-3 py-1 min-h-[32px] rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap touch-manipulation ${
                   selectedType === type
                     ? 'bg-separator text-label-primary'
@@ -249,7 +268,7 @@ export const EventFeed = ({
             {EVENT_FORMATS.map((format) => (
               <button
                 key={format}
-                onClick={() => setSelectedFormat(format)}
+                onClick={() => handleFormatChange(format)}
                 className={`px-3 py-1 min-h-[32px] rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap touch-manipulation ${
                   selectedFormat === format
                     ? 'bg-separator text-label-primary'
@@ -380,6 +399,13 @@ export const EventFeed = ({
                             title="Preview Event Details"
                           >
                             <Eye size={15} />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/events/${event._id}/docs`)}
+                            className="p-1.5 rounded-lg text-label-secondary hover:text-blue-500 hover:bg-canvas transition-colors cursor-pointer"
+                            title="Documentation & Reports"
+                          >
+                            <FileText size={15} />
                           </button>
 
                           {/* Admin Controls */}

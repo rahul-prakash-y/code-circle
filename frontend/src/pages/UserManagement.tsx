@@ -7,8 +7,9 @@ import {
   Trash2, KeyRound, Check, X, AlertTriangle,
   Loader2, UserPlus, Crown, Copy, RefreshCw,
   Edit, ChevronLeft, ChevronRight, CheckCircle2,
-  Sparkles, Mail, Lock, Unlock, ArrowRight, Upload, FileSpreadsheet, Share2,
+  Sparkles, Mail, Lock, Unlock, ArrowRight, Upload, FileSpreadsheet, Share2, Download,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import api from '../lib/axios';
 import { User, UserRole } from '../types/user';
@@ -16,10 +17,14 @@ import { useDebounce } from '../hooks/useDebounce';
 import OnboardingStatsWidget from '../components/admin/OnboardingStatsWidget';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
 import StudentCourseAccessModal from '../components/domains/StudentCourseAccessModal';
+import { EmilCard } from '../components/ui/emil-ui';
+import { HeroInput, HeroTabs, HeroUser, HeroAvatar } from '../components/ui/HeroUIComponents';
+import { HeroUISelect } from '../components/ui/HeroUISelect';
+import { Button, Checkbox, Spinner } from '@heroui/react';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
-  SuperAdmin: { color: 'var(--accent)', bg: 'rgba(0,113,227,0.08)', Icon: Crown },
+  SuperAdmin: { color: 'var(--accent)', bg: 'var(--accent-subtle)', Icon: Crown },
   Admin: { color: 'var(--text-primary)', bg: 'var(--surface-elevated)', Icon: ShieldCheck },
   Faculty: { color: 'var(--text-secondary)', bg: 'var(--surface-elevated)', Icon: Shield },
   Committee: { color: 'var(--text-secondary)', bg: 'var(--surface-elevated)', Icon: Shield },
@@ -166,6 +171,7 @@ const UserManagement: React.FC = () => {
   const [bulkResult, setBulkResult] = useState<any>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showOnboardingWidget, setShowOnboardingWidget] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
@@ -359,6 +365,102 @@ const UserManagement: React.FC = () => {
     setBulkUploading(false);
   };
 
+  // ── Excel Export Handler (Students' emails and info) ──────────────────────
+  const handleExportExcel = async () => {
+    try {
+      setExportingExcel(true);
+      toast.loading('Generating Students Excel Sheet...', { id: 'export-excel' });
+
+      // Primary strategy: request pre-formatted spreadsheet from server
+      try {
+        const response = await api.get('/users/export', {
+          params: {
+            role: filters.role !== 'all' ? filters.role : 'Student',
+            status: filters.status !== 'all' ? filters.status : undefined,
+            search: filters.search || undefined,
+          },
+          responseType: 'blob',
+        });
+
+        const blob = new Blob([response.data], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        link.setAttribute('download', `Students_Directory_${timestamp}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success('Students Excel sheet downloaded successfully!', { id: 'export-excel' });
+        return;
+      } catch (backendErr) {
+        console.warn('Direct server export failed, generating Excel client-side:', backendErr);
+      }
+
+      // Resilient fallback: fetch all students and generate using client-side XLSX
+      const res = await api.get('/users', {
+        params: {
+          limit: 2000,
+          role: filters.role !== 'all' ? filters.role : 'Student',
+          status: filters.status !== 'all' ? filters.status : undefined,
+          search: filters.search || undefined,
+        },
+      });
+
+      const usersToExport = res.data?.data?.users || res.data?.users || users;
+      const studentList = usersToExport.filter((u: any) => filters.role !== 'all' ? true : u.role === 'Student' || !u.role);
+
+      if (!studentList || studentList.length === 0) {
+        toast.error('No students found to export', { id: 'export-excel' });
+        return;
+      }
+
+      const rows = studentList.map((u: any, idx: number) => ({
+        'S.No': idx + 1,
+        'Name': u.name || '',
+        'Roll Number': u.rollNo || '',
+        'Email Address': u.email || '',
+        'Department': u.department || 'N/A',
+        'Year': u.year || 'N/A',
+        'College': u.college || 'BIT',
+        'Phone': u.phone || u.phoneNumber || 'N/A',
+        'Role': u.role || 'Student',
+        'Points': u.points || 0,
+        'Status': u.isBlocked ? 'Blocked' : u.isRestricted ? 'Restricted' : 'Active',
+        'Registration Date': u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 6 },
+        { wch: 25 },
+        { wch: 16 },
+        { wch: 32 },
+        { wch: 20 },
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 16 },
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 12 },
+        { wch: 16 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Students');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      XLSX.writeFile(wb, `Students_Directory_${timestamp}.xlsx`);
+      toast.success('Students Excel sheet downloaded successfully!', { id: 'export-excel' });
+    } catch (err: any) {
+      console.error('Failed to export students Excel:', err);
+      toast.error('Failed to generate Excel sheet', { id: 'export-excel' });
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   // ── Bulk Delete Handlers ──────────────────────────────────────────────────
   const currentPageStudents = users.filter((u) => u.role === 'Student');
   const allPageStudentsSelected =
@@ -378,6 +480,50 @@ const UserManagement: React.FC = () => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
+  };
+
+  const handleExportSelectedExcel = () => {
+    if (selectedIds.length === 0) return;
+    const selectedUsers = users.filter((u) => selectedIds.includes(u._id || u.id!));
+    if (selectedUsers.length === 0) {
+      toast.error('No selected student records found in memory');
+      return;
+    }
+    const rows = selectedUsers.map((u: any, idx: number) => ({
+      'S.No': idx + 1,
+      'Name': u.name || '',
+      'Roll Number': u.rollNo || '',
+      'Email Address': u.email || '',
+      'Department': u.department || 'N/A',
+      'Year': u.year || 'N/A',
+      'College': u.college || 'BIT',
+      'Phone': u.phone || u.phoneNumber || 'N/A',
+      'Role': u.role || 'Student',
+      'Points': u.points || 0,
+      'Status': u.isBlocked ? 'Blocked' : u.isRestricted ? 'Restricted' : 'Active',
+      'Registration Date': u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 25 },
+      { wch: 16 },
+      { wch: 32 },
+      { wch: 20 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 16 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 16 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Selected Students');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    XLSX.writeFile(wb, `Selected_Students_${timestamp}.xlsx`);
+    toast.success(`Exported ${selectedUsers.length} selected students!`);
   };
 
   const handleExecuteBulkDelete = async () => {
@@ -412,81 +558,84 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // ── Shared form body ──────────────────────────────────────────────────────
+  // ── Shared form body with HeroUI Inputs & Select ──────────────────────────
   const renderUserForm = (onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
-    <form onSubmit={onSubmit} className="space-y-5 sm:space-y-6 py-2 px-1">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <Field label="Full Name">
-          <input
-            type="text" required placeholder="Jane Doe"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="input-field text-sm min-h-[44px]"
-          />
-        </Field>
-        <Field label="Roll Number">
-          <input
-            type="text" required placeholder="21CSE101"
-            value={formData.rollNo}
-            onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-            className="input-field text-sm font-mono min-h-[44px]"
-          />
-        </Field>
+    <form onSubmit={onSubmit} className="space-y-4 py-2 px-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <HeroInput
+          label="Full Name"
+          labelPlacement="inside"
+          variant="flat"
+          isRequired
+          placeholder="Jane Doe"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
+        <HeroInput
+          label="Roll Number"
+          labelPlacement="inside"
+          variant="flat"
+          isRequired
+          placeholder="21CSE101"
+          value={formData.rollNo}
+          onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
+        />
       </div>
 
-      <Field label="Email Address">
-        <input
-          type="email" required placeholder="user@university.edu"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="input-field text-sm min-h-[44px]"
-        />
-      </Field>
+      <HeroInput
+        label="Email Address"
+        labelPlacement="inside"
+        variant="flat"
+        type="email"
+        isRequired
+        placeholder="user@university.edu"
+        value={formData.email}
+        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <Field label="Assigned Role">
-          <select
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-            className="input-field text-sm min-h-[44px]"
-            style={{ cursor: 'pointer' }}
-          >
-            <option value="Student">Student</option>
-            {isSuperAdmin() && <option value="Admin">Admin</option>}
-            {isSuperAdmin() && <option value="SuperAdmin">SuperAdmin</option>}
-          </select>
-        </Field>
-        <Field label="Department">
-          <input
-            type="text" placeholder="e.g. Computer Science"
-            value={formData.department}
-            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-            className="input-field text-sm min-h-[44px]"
-          />
-        </Field>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <HeroUISelect
+          label="Assigned Role"
+          value={formData.role}
+          onChange={(val) => setFormData({ ...formData, role: val as UserRole })}
+          options={[
+            { value: 'Student', label: 'Student' },
+            ...(isSuperAdmin() ? [{ value: 'Admin', label: 'Admin' }] : []),
+            ...(isSuperAdmin() ? [{ value: 'SuperAdmin', label: 'SuperAdmin' }] : []),
+          ]}
+        />
+        <HeroInput
+          label="Department"
+          labelPlacement="inside"
+          variant="flat"
+          placeholder="e.g. Computer Science"
+          value={formData.department}
+          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+        />
       </div>
 
       {submitLabel === 'Create User' && (
-        <Field label="Initial Password (optional)">
-          <input
-            type="password" placeholder="Leave blank for auto-generated"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="input-field text-sm font-mono min-h-[44px]"
-          />
-        </Field>
+        <HeroInput
+          label="Initial Password (optional)"
+          labelPlacement="inside"
+          variant="flat"
+          type="password"
+          placeholder="Leave blank for auto-generated"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+        />
       )}
 
       <div className="flex gap-3 pt-2">
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
+        <Button
           type="submit"
-          disabled={actionLoading}
-          className="btn-primary flex-1 flex items-center justify-center gap-2 text-sm py-3 min-h-[46px]"
+          variant="primary"
+          isDisabled={actionLoading}
+          isLoading={actionLoading}
+          className="flex-1 text-sm py-3 min-h-[46px]"
         >
-          {actionLoading ? <Loader2 size={16} className="animate-spin" /> : submitLabel}
-        </motion.button>
+          {submitLabel}
+        </Button>
       </div>
     </form>
   );
@@ -525,64 +674,89 @@ const UserManagement: React.FC = () => {
 
               <div className="flex flex-wrap items-center gap-2">
                 {isSuperAdmin() && (
-                  <button
-                    onClick={() => setShowCourseAccessModal(true)}
-                    className="btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[40px] cursor-pointer text-amber-500 hover:bg-amber-500/10 border-amber-500/30"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onPress={() => setShowCourseAccessModal(true)}
+                    className="whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm min-h-[40px] text-amber-500 hover:bg-amber-500/10 border-amber-500/30"
                     title="Manage selective student permissions for courses"
                   >
                     <Crown size={15} strokeWidth={2} />
                     <span>Course Access</span>
-                  </button>
+                  </Button>
                 )}
-                <button
-                  onClick={() => setShowOnboardingWidget((prev) => !prev)}
-                  className={`btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[40px] cursor-pointer ${
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onPress={() => setShowOnboardingWidget((prev) => !prev)}
+                  className={`whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm min-h-[40px] ${
                     showOnboardingWidget ? 'bg-accent/15 text-accent border-accent/40 font-semibold' : ''
                   }`}
                   title="Toggle Student Onboarding Tracker"
                 >
                   <CheckCircle2 size={15} strokeWidth={2} className={showOnboardingWidget ? 'text-accent' : ''} />
                   <span>{showOnboardingWidget ? 'Hide Onboarding' : 'Onboarding Tracker'}</span>
-                </button>
-                <button
-                  onClick={() => {
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onPress={handleExportExcel}
+                  isDisabled={exportingExcel}
+                  isLoading={exportingExcel}
+                  className="whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm min-h-[40px] text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/30 font-medium"
+                  title="Download Excel spreadsheet containing students' emails and roster"
+                >
+                  <FileSpreadsheet size={15} strokeWidth={2} className="text-emerald-400" />
+                  <span>{exportingExcel ? 'Exporting...' : 'Download Excel'}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onPress={() => {
                     resetBulkUpload();
                     setShowBulkUploadPanel(true);
                   }}
-                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-5 py-2 sm:py-2.5 min-h-[40px] cursor-pointer"
+                  className="whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm min-h-[40px]"
                 >
                   <Upload size={15} strokeWidth={2} />
                   <span>Bulk Upload</span>
-                </button>
-                <button
-                  onClick={() => {
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onPress={() => {
                     setDeleteAllConfirmText('');
                     setShowDeleteAllModal(true);
                   }}
-                  className="btn-secondary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[40px] cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  className="whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm min-h-[40px] text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/30"
                   title="Wipe or bulk delete all students"
                 >
                   <Trash2 size={15} strokeWidth={2} />
                   <span>Delete All Students</span>
-                </button>
-                <button
-                  onClick={() => {
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onPress={() => {
                     setFormData({ name: '', email: '', rollNo: '', role: 'Student', department: '', password: '' });
                     setShowAddPanel(true);
                   }}
-                  className="btn-primary whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 min-h-[40px] cursor-pointer"
+                  className="whitespace-nowrap flex items-center gap-2 text-xs sm:text-sm min-h-[40px]"
                 >
                   <UserPlus size={15} strokeWidth={2} />
                   <span>Add User</span>
-                </button>
-                <button
-                  onClick={() => fetchUsers()}
-                  disabled={loading}
-                  className="p-2 sm:p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 btn-secondary"
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => fetchUsers()}
+                  isDisabled={loading}
+                  className="min-h-[40px] min-w-[40px]"
                   aria-label="Refresh user directory"
                 >
                   <RefreshCw size={16} strokeWidth={1.8} className={loading ? 'animate-spin text-accent' : ''} />
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -612,81 +786,63 @@ const UserManagement: React.FC = () => {
         className="flex flex-col md:flex-row md:items-center gap-4 pb-4"
         style={{ borderBottom: '1px solid var(--border-color)' }}
       >
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search
-            size={16} strokeWidth={1.8}
-            className="absolute left-0 top-1/2 -translate-y-1/2"
-            style={{ color: 'var(--text-muted)' }}
-          />
-          <input
-            type="text"
+        {/* Search with Apple Glass styling */}
+        <div className="flex-1">
+          <HeroInput
             placeholder="Search name, roll number, email..."
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-full text-sm sm:text-base font-medium bg-transparent border-none pl-7 py-2 min-h-[44px] focus:outline-none"
-            style={{ color: 'var(--text-primary)' }}
+            startContent={<Search size={16} strokeWidth={1.8} className="text-text-muted" />}
+            isClearable
+            onClear={() => {
+              setSearchTerm('');
+              setSearch('');
+            }}
+            variant="flat"
+            size="sm"
           />
         </div>
 
-        {/* Status filter pills */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
-          {(['all', 'active', 'blocked'] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className="px-3.5 py-1.5 min-h-[36px] rounded-xl text-[12px] font-semibold cursor-pointer capitalize transition-colors duration-150 whitespace-nowrap flex items-center justify-center"
-              style={{
-                background: filters.status === st ? 'var(--accent-subtle)' : 'transparent',
-                color: filters.status === st ? 'var(--accent)' : 'var(--text-muted)',
-                border: `1px solid ${filters.status === st ? 'var(--accent)' : 'transparent'}`,
-                borderOpacity: 0.3,
-              }}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
+        {/* Status filter tabs with Emil Kowalski sub-300ms spring motion */}
+        <HeroTabs
+          size="sm"
+          selectedKey={filters.status}
+          onSelectionChange={(key) => setStatusFilter(key as any)}
+          items={[
+            { id: 'all', label: 'All Status' },
+            { id: 'active', label: 'Active' },
+            { id: 'blocked', label: 'Blocked' },
+          ]}
+        />
 
-        {/* Role filter */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
-          {[
-            { label: 'All', value: 'all' },
-            { label: 'Students', value: 'Student' },
-            { label: 'Admins', value: 'Admin' },
-          ].map((item) => (
-            <button
-              key={item.value}
-              onClick={() => setRoleFilter(item.value)}
-              className="px-3.5 py-1.5 min-h-[36px] rounded-xl text-[12px] font-semibold cursor-pointer transition-colors duration-150 whitespace-nowrap flex items-center justify-center"
-              style={{
-                background: filters.role === item.value ? 'var(--glass-bg)' : 'transparent',
-                color: filters.role === item.value ? 'var(--text-primary)' : 'var(--text-muted)',
-                border: `1px solid ${filters.role === item.value ? 'var(--border-color)' : 'transparent'}`,
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {/* Role filter tabs with Emil Kowalski sub-300ms spring motion */}
+        <HeroTabs
+          size="sm"
+          selectedKey={filters.role}
+          onSelectionChange={(key) => setRoleFilter(key)}
+          items={[
+            { id: 'all', label: 'All Roles' },
+            { id: 'Student', label: 'Students' },
+            { id: 'Admin', label: 'Admins' },
+          ]}
+        />
       </motion.div>
 
-      {/* ── Table ── */}
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full min-w-[760px] text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+      {/* ── Table (Wrapped in EmilCard with monochrome row selection) ── */}
+      <EmilCard className="overflow-hidden p-0 border border-separator/80">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full min-w-[760px] text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
             <tr>
               <th
                 className="py-4 pl-4 sm:pl-5 pr-2 w-10 text-left"
                 style={{ borderBottom: '1px solid var(--border-color)' }}
               >
-                <input
-                  type="checkbox"
-                  checked={allPageStudentsSelected}
+                <Checkbox
+                  isSelected={allPageStudentsSelected}
                   onChange={handleToggleSelectAllPage}
-                  disabled={currentPageStudents.length === 0}
-                  className="w-4 h-4 rounded cursor-pointer accent-[var(--accent)]"
-                  title={allPageStudentsSelected ? 'Deselect all on this page' : 'Select all students on this page'}
+                  isDisabled={currentPageStudents.length === 0}
+                  aria-label={allPageStudentsSelected ? 'Deselect all on this page' : 'Select all students on this page'}
                 />
               </th>
               {['User', 'Roll No', 'Role', 'Department', 'Status', ''].map((h) => (
@@ -734,60 +890,43 @@ const UserManagement: React.FC = () => {
                       className="group"
                       style={{
                         borderBottom: '1px solid var(--border-color)',
-                        background: isSelected ? 'rgba(0, 113, 227, 0.04)' : undefined,
+                        background: isSelected ? 'var(--accent-subtle)' : undefined,
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = 'var(--glass-bg)';
                       }}
                       onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLTableRowElement).style.background = isSelected ? 'rgba(0, 113, 227, 0.04)' : 'transparent';
+                        (e.currentTarget as HTMLTableRowElement).style.background = isSelected ? 'var(--accent-subtle)' : 'transparent';
                       }}
                     >
                       {/* Selection Checkbox */}
                       <td className="py-4 sm:py-5 pl-4 sm:pl-5 pr-2 w-10">
                         {isStudent ? (
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
+                          <Checkbox
+                            isSelected={isSelected}
                             onChange={() => handleToggleSelectUser(uid)}
-                            className="w-4 h-4 rounded cursor-pointer accent-[var(--accent)]"
-                            title={`Select ${item.name}`}
+                            aria-label={`Select ${item.name}`}
                           />
                         ) : (
                           <span title="Staff/Admins cannot be bulk deleted" className="opacity-20 cursor-not-allowed inline-block">
-                            <input type="checkbox" disabled className="w-4 h-4 rounded opacity-20 cursor-not-allowed" />
+                            <Checkbox isDisabled aria-label="Staff cannot be selected" />
                           </span>
                         )}
                       </td>
 
-                      {/* User */}
+                      {/* User — HeroUI User with Avatar isBordered */}
                       <td className="py-4 sm:py-5 px-4 sm:px-5">
-                        <div className="flex items-center gap-3.5">
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden"
-                            style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
-                          >
-                            {item.profilePicUrl ? (
-                              <img src={item.profilePicUrl} alt={item.name} className="w-full h-full object-cover" />
-                            ) : (
-                              item.name.charAt(0).toUpperCase()
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div
-                              className="text-sm font-semibold leading-none truncate max-w-[200px]"
-                              style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
-                            >
-                              {item.name}
-                            </div>
-                            <div
-                              className="text-[12px] font-mono mt-1 truncate max-w-[200px]"
-                              style={{ color: 'var(--text-muted)' }}
-                            >
-                              {item.email}
-                            </div>
-                          </div>
-                        </div>
+                        <HeroUser
+                          name={item.name}
+                          description={<span className="font-mono text-xs">{item.email}</span>}
+                          avatarProps={{
+                            src: item.profilePicUrl,
+                            name: item.name,
+                            isBordered: true,
+                            color: 'primary',
+                            size: 'sm',
+                          }}
+                        />
                       </td>
 
                       {/* Roll No */}
@@ -818,14 +957,14 @@ const UserManagement: React.FC = () => {
                           {item.isBlocked ? (
                             <span
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-                              style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}
+                              style={{ background: 'var(--destructive-subtle)', color: 'var(--destructive)', border: '1px solid var(--destructive-subtle)' }}
                             >
                               <ShieldAlert size={11} strokeWidth={2.5} /> Blocked
                             </span>
                           ) : (
                             <span
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-                              style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399', border: '1px solid rgba(52,211,153,0.2)' }}
+                              style={{ background: 'var(--success-subtle)', color: 'var(--success)', border: '1px solid var(--success-subtle)' }}
                             >
                               <CheckCircle2 size={11} strokeWidth={2.5} /> Active
                             </span>
@@ -834,7 +973,7 @@ const UserManagement: React.FC = () => {
                           {item.isRestricted && (
                             <span
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-                              style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                              style={{ background: 'var(--destructive-subtle)', color: 'var(--destructive)', border: '1px solid var(--destructive-subtle)' }}
                               title={`Restricted: ${item.restrictionReason || 'Academic restriction active'}`}
                             >
                               <Lock size={11} strokeWidth={2.5} /> Restricted
@@ -861,22 +1000,26 @@ const UserManagement: React.FC = () => {
                               >
                                 Delete {item.name.split(' ')[0]}?
                               </span>
-                              <button
-                                onClick={() => handleDeleteSubmit(uid)}
-                                disabled={actionLoading}
-                                className="px-3 py-1.5 min-h-[34px] rounded-lg text-[12px] font-semibold cursor-pointer transition-colors duration-150 flex items-center justify-center"
-                                style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onPress={() => handleDeleteSubmit(uid)}
+                                isDisabled={actionLoading}
+                                isLoading={actionLoading}
+                                className="px-3 min-h-[34px] text-[12px] font-semibold"
                               >
-                                {actionLoading ? <Loader2 size={12} className="animate-spin" /> : 'Confirm'}
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer transition-colors duration-150"
-                                style={{ color: 'var(--text-muted)' }}
+                                Confirm
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                isIconOnly
+                                onPress={() => setConfirmDeleteId(null)}
+                                className="min-w-[34px] min-h-[34px] text-muted-foreground"
                                 aria-label="Cancel deletion"
                               >
                                 <X size={14} strokeWidth={2} />
-                              </button>
+                              </Button>
                             </motion.div>
                           ) : (
                             <motion.div
@@ -888,37 +1031,40 @@ const UserManagement: React.FC = () => {
                               className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
                             >
                               {/* Reset Link */}
-                              <button
-                                onClick={() => handleTriggerResetLink(item)}
-                                className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
-                                style={{ color: 'var(--text-muted)' }}
-                                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--accent)')}
-                                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                isIconOnly
+                                onPress={() => handleTriggerResetLink(item)}
+                                className="min-w-[36px] min-h-[36px] text-muted-foreground hover:text-accent"
                                 title="Generate reset link"
                                 aria-label={`Generate reset link for ${item.name}`}
                               >
                                 <KeyRound size={15} strokeWidth={1.8} />
-                              </button>
+                              </Button>
 
                               {/* Force Reset (Admin & SuperAdmin) */}
                               {(isSuperAdmin?.() || isAdmin?.() || currentUser?.role === 'Admin' || currentUser?.role === 'SuperAdmin') && (currentUser?.role === 'SuperAdmin' || (item.role !== 'SuperAdmin' && item.role !== 'Admin')) && (
-                                <button
-                                  onClick={() => handleForceResetPassword(item)}
-                                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
-                                  style={{ color: 'var(--text-muted)' }}
-                                  onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#f59e0b')}
-                                  onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  isIconOnly
+                                  onPress={() => handleForceResetPassword(item)}
+                                  className="min-w-[36px] min-h-[36px] text-muted-foreground hover:text-amber-500"
                                   title="Generate temporary password"
                                   aria-label={`Generate temp password for ${item.name}`}
                                 >
                                   <Sparkles size={15} strokeWidth={1.8} />
-                                </button>
+                                </Button>
                               )}
 
                               {/* Unblock Restrictions */}
                               {item.isRestricted && (
-                                <button
-                                  onClick={async () => {
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  isIconOnly
+                                  onPress={async () => {
                                     if (
                                       window.confirm(
                                         `Lift all restrictions for ${item.name} (${item.rollNo})? They will immediately regain access to assessments, contests, and courses.`
@@ -933,54 +1079,52 @@ const UserManagement: React.FC = () => {
                                       }
                                     }
                                   }}
-                                  className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                  className="min-w-[36px] min-h-[36px] text-success hover:bg-success-subtle"
                                   title="Lift academic restrictions (assessments, contests, courses)"
                                   aria-label={`Lift restrictions for ${item.name}`}
                                 >
                                   <Unlock size={15} strokeWidth={2} />
-                                </button>
+                                </Button>
                               )}
 
                               {/* Block/Unblock */}
-                              <button
-                                onClick={() => handleToggleBlock(item)}
-                                className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
-                                style={{ color: 'var(--text-muted)' }}
-                                onMouseEnter={(e) => {
-                                  (e.currentTarget as HTMLButtonElement).style.color = item.isBlocked ? '#34d399' : '#f59e0b';
-                                }}
-                                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                isIconOnly
+                                onPress={() => handleToggleBlock(item)}
+                                className="min-w-[36px] min-h-[36px] text-muted-foreground hover:text-warning"
                                 title={item.isBlocked ? 'Unblock' : 'Block'}
                                 aria-label={`${item.isBlocked ? 'Unblock' : 'Block'} ${item.name}`}
                               >
                                 {item.isBlocked ? <Check size={15} strokeWidth={2} /> : <ShieldAlert size={15} strokeWidth={1.8} />}
-                              </button>
+                              </Button>
 
                               {/* Edit — opens modal */}
-                              <button
-                                onClick={() => openEditPanel(item)}
-                                className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
-                                style={{ color: 'var(--text-muted)' }}
-                                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)')}
-                                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                isIconOnly
+                                onPress={() => openEditPanel(item)}
+                                className="min-w-[36px] min-h-[36px] text-muted-foreground hover:text-foreground"
                                 title="Edit user"
                                 aria-label={`Edit ${item.name}`}
                               >
                                 <Edit size={15} strokeWidth={1.8} />
-                              </button>
+                              </Button>
 
                               {/* Delete — inline confirm */}
-                              <button
-                                onClick={() => { setSelectedUser(item); setConfirmDeleteId(uid); }}
-                                className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
-                                style={{ color: 'var(--text-muted)' }}
-                                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = '#f87171')}
-                                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)')}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                isIconOnly
+                                onPress={() => { setSelectedUser(item); setConfirmDeleteId(uid); }}
+                                className="min-w-[36px] min-h-[36px] text-muted-foreground hover:text-danger"
                                 title="Delete user"
                                 aria-label={`Delete ${item.name}`}
                               >
                                 <Trash2 size={15} strokeWidth={1.8} />
-                              </button>
+                              </Button>
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -1002,13 +1146,14 @@ const UserManagement: React.FC = () => {
                     <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                       No users match your filters
                     </p>
-                    <button
-                      onClick={() => { setSearchTerm(''); setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}
-                      className="text-[12px] font-semibold cursor-pointer min-h-[36px]"
-                      style={{ color: 'var(--accent)' }}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => { setSearchTerm(''); setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}
+                      className="text-[12px] font-semibold min-h-[36px] text-primary"
                     >
                       Clear filters
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -1016,6 +1161,7 @@ const UserManagement: React.FC = () => {
           </tbody>
         </table>
       </div>
+      </EmilCard>
 
       {/* ── Pagination ── */}
       <div
@@ -1052,30 +1198,34 @@ const UserManagement: React.FC = () => {
             <option value={50}>50 / page</option>
           </select>
 
-          <button
-            onClick={() => setPage(pagination.page - 1)}
-            disabled={pagination.page <= 1}
-            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 disabled:opacity-30"
-            style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+          <Button
+            size="sm"
+            variant="outline"
+            isIconOnly
+            onPress={() => setPage(pagination.page - 1)}
+            isDisabled={pagination.page <= 1}
+            className="min-h-[38px] min-w-[38px]"
             aria-label="Previous page"
           >
             <ChevronLeft size={16} strokeWidth={2} />
-          </button>
+          </Button>
           <span
             className="text-[12px] font-mono px-3 py-1.5 min-h-[38px] flex items-center justify-center rounded-xl"
             style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
           >
             {pagination.page} / {pagination.totalPages}
           </span>
-          <button
-            onClick={() => setPage(pagination.page + 1)}
-            disabled={!pagination.hasMore}
-            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150 disabled:opacity-30"
-            style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+          <Button
+            size="sm"
+            variant="outline"
+            isIconOnly
+            onPress={() => setPage(pagination.page + 1)}
+            isDisabled={!pagination.hasMore}
+            className="min-h-[38px] min-w-[38px]"
             aria-label="Next page"
           >
             <ChevronRight size={16} strokeWidth={2} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1175,46 +1325,53 @@ const UserManagement: React.FC = () => {
             style={{ color: 'var(--text-secondary)' }}
             placeholder="Reset Link"
           />
-          <button
-            onClick={() => copyToClipboard(activeResetLink!, 'Reset link copied!')}
-            className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
-            style={{ color: 'var(--accent)' }}
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            onPress={() => copyToClipboard(activeResetLink!, 'Reset link copied!')}
+            className="shrink-0 text-accent"
             title="Copy reset link"
             aria-label="Copy reset link"
           >
             <Copy size={15} strokeWidth={2} />
-          </button>
-          <button
-            onClick={() => handleShareResetLink(activeResetLink!, selectedUser?.name)}
-            className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
-            style={{ color: 'var(--accent)' }}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            onPress={() => handleShareResetLink(activeResetLink!, selectedUser?.name)}
+            className="shrink-0 text-accent"
             title="Share reset link"
             aria-label="Share reset link"
           >
             <Share2 size={15} strokeWidth={2} />
-          </button>
+          </Button>
         </div>
 
         {/* Action buttons - responsive layout for all mobile and desktop screens */}
         <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
-          <button
-            onClick={() => setShowResetLinkModal(false)}
-            className="btn-secondary w-full sm:w-auto px-4 py-2.5 min-h-[42px] text-xs sm:text-sm font-semibold"
+          <Button
+            variant="outline"
+            onPress={() => setShowResetLinkModal(false)}
+            className="w-full sm:w-auto px-4 py-2.5 min-h-[42px] text-xs sm:text-sm font-semibold"
           >
             Close
-          </button>
-          <button
-            onClick={() => copyToClipboard(activeResetLink!, 'Reset link copied!')}
-            className="btn-secondary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm flex items-center justify-center gap-2 font-semibold"
+          </Button>
+          <Button
+            variant="outline"
+            onPress={() => copyToClipboard(activeResetLink!, 'Reset link copied!')}
+            className="w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm font-semibold flex items-center justify-center gap-2"
           >
             <Copy size={14} strokeWidth={2} /> <span>Copy Link</span>
-          </button>
-          <button
-            onClick={() => handleShareResetLink(activeResetLink!, selectedUser?.name)}
-            className="btn-primary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm flex items-center justify-center gap-2 font-semibold shadow-sm"
+          </Button>
+          <Button
+            variant="primary"
+            onPress={() => handleShareResetLink(activeResetLink!, selectedUser?.name)}
+            className="w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-sm"
           >
             <Share2 size={14} strokeWidth={2} /> <span>Share Link</span>
-          </button>
+          </Button>
         </div>
       </CenteredModal>
 
@@ -1224,14 +1381,14 @@ const UserManagement: React.FC = () => {
       <CenteredModal open={showForceResetModal && !!selectedUser} onClose={() => { setShowForceResetModal(false); setGeneratedTempPassword(null); }}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest truncate" style={{ color: '#f59e0b' }}>
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-widest truncate" style={{ color: 'var(--warning)' }}>
               Admin / SuperAdmin Action
             </p>
             <h3 className="text-lg sm:text-xl font-black mt-0.5 truncate" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
               Temporary Password Generation
             </h3>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(245,158,11,0.08)', color: '#f59e0b' }}>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--warning-subtle)', color: 'var(--warning)' }}>
             <KeyRound size={18} strokeWidth={1.8} />
           </div>
         </div>
@@ -1240,10 +1397,10 @@ const UserManagement: React.FC = () => {
           <>
             <div
               className="p-3.5 sm:p-4 rounded-2xl text-xs sm:text-[13px] leading-relaxed space-y-2"
-              style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', color: '#fbbf24' }}
+              style={{ background: 'var(--warning-subtle)', border: '1px solid var(--warning-subtle)', color: 'var(--warning)' }}
             >
               <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
-                <ShieldAlert size={15} strokeWidth={2} style={{ color: '#f59e0b' }} />
+                <ShieldAlert size={15} strokeWidth={2} style={{ color: 'var(--warning)' }} />
                 Temporary Access Generation
               </div>
               <p>
@@ -1253,56 +1410,69 @@ const UserManagement: React.FC = () => {
               </p>
             </div>
             <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
-              <button onClick={() => setShowForceResetModal(false)} className="btn-secondary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm">Cancel</button>
-              <button
-                onClick={executeForceReset}
-                disabled={actionLoading}
-                className="w-full sm:flex-1 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors duration-150"
-                style={{ background: '#f59e0b', color: '#000' }}
+              <Button
+                variant="outline"
+                onPress={() => setShowForceResetModal(false)}
+                className="w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
               >
-                {actionLoading ? <Loader2 size={15} className="animate-spin" /> : 'Generate Temp Password'}
-              </button>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                color="warning"
+                onPress={executeForceReset}
+                isDisabled={actionLoading}
+                isLoading={actionLoading}
+                className="w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm font-semibold"
+              >
+                Generate Temp Password
+              </Button>
             </div>
           </>
         ) : (
           <div className="space-y-4">
             <div
               className="p-3.5 sm:p-4 rounded-2xl flex items-start gap-3"
-              style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+              style={{ background: 'var(--success-subtle)', border: '1px solid var(--success-subtle)' }}
             >
-              <CheckCircle2 size={16} strokeWidth={2} style={{ color: '#34d399', flexShrink: 0, marginTop: 2 }} />
-              <p className="text-xs sm:text-[13px]" style={{ color: '#34d399' }}>Temporary password generated. Hand off to the student; they will be prompted to create their own personal password upon login:</p>
+              <CheckCircle2 size={16} strokeWidth={2} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
+              <p className="text-xs sm:text-[13px]" style={{ color: 'var(--success)' }}>Temporary password generated. Hand off to the student; they will be prompted to create their own personal password upon login:</p>
             </div>
             <div
               className="flex items-center gap-2 sm:gap-3 p-3.5 sm:p-4 rounded-xl"
-              style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}
+              style={{ background: 'var(--warning-subtle)', border: '1px solid var(--warning-subtle)' }}
             >
-              <code className="text-sm sm:text-base font-mono font-bold flex-1 tracking-widest break-all" style={{ color: '#fbbf24' }}>
+              <code className="text-sm sm:text-base font-mono font-bold flex-1 tracking-widest break-all" style={{ color: 'var(--warning)' }}>
                 {generatedTempPassword}
               </code>
-              <button
-                onClick={() => copyToClipboard(generatedTempPassword!, 'Temporary password copied!')}
-                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
-                style={{ color: '#f59e0b' }}
+              <Button
+                size="sm"
+                variant="ghost"
+                isIconOnly
+                onPress={() => copyToClipboard(generatedTempPassword!, 'Temporary password copied!')}
+                className="shrink-0 text-amber-500"
                 title="Copy temporary password"
               >
                 <Copy size={15} strokeWidth={2} />
-              </button>
-              <button
-                onClick={() => handleShareResetLink(generatedTempPassword!, selectedUser?.name)}
-                className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
-                style={{ color: '#f59e0b' }}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                isIconOnly
+                onPress={() => handleShareResetLink(generatedTempPassword!, selectedUser?.name)}
+                className="shrink-0 text-amber-500"
                 title="Share temporary password"
               >
                 <Share2 size={15} strokeWidth={2} />
-              </button>
+              </Button>
             </div>
-            <button
-              onClick={() => { setShowForceResetModal(false); setGeneratedTempPassword(null); setSelectedUser(null); }}
-              className="btn-primary w-full py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold"
+            <Button
+              variant="primary"
+              onPress={() => { setShowForceResetModal(false); setGeneratedTempPassword(null); setSelectedUser(null); }}
+              className="w-full py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold"
             >
               Done & Close
-            </button>
+            </Button>
           </div>
         )}
       </CenteredModal>
@@ -1319,35 +1489,50 @@ const UserManagement: React.FC = () => {
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             className="fixed bottom-5 sm:bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border w-[calc(100%-2rem)] max-w-lg sm:w-auto"
             style={{
-              background: 'rgba(18, 18, 20, 0.92)',
-              borderColor: 'var(--border-color)',
-              boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 113, 227, 0.2)',
+              background: 'var(--surface-overlay)',
+              borderColor: 'var(--separator)',
+              boxShadow: 'var(--shadow-xl)',
             }}
           >
             <div className="flex items-center gap-2.5">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
-              <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-accent animate-pulse shrink-0" />
+              <span className="text-xs sm:text-sm font-semibold text-label-primary whitespace-nowrap">
                 {selectedIds.length} student{selectedIds.length > 1 ? 's' : ''} selected
               </span>
             </div>
 
-            <div className="h-4 w-px bg-white/15 hidden sm:block" />
+            <div className="h-4 w-px bg-separator-opaque hidden sm:block" />
 
             <div className="flex items-center gap-2 ml-auto sm:ml-0">
-              <button
-                onClick={() => setSelectedIds([])}
-                className="px-3 py-1.5 min-h-[36px] text-xs font-medium text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center"
+              <Button
+                size="sm"
+                variant="ghost"
+                onPress={() => setSelectedIds([])}
+                className="text-xs font-medium text-label-secondary hover:text-label-primary"
               >
                 Clear
-              </button>
+              </Button>
 
-              <button
-                onClick={() => setShowBulkDeleteModal(true)}
-                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 min-h-[36px] text-xs font-semibold text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl transition-colors cursor-pointer justify-center"
+              <Button
+                size="sm"
+                variant="outline"
+                onPress={handleExportSelectedExcel}
+                className="text-xs font-semibold text-success bg-success-subtle hover:bg-success-subtle/80 border border-success/30"
+                title="Export selected students to Excel spreadsheet"
+              >
+                <FileSpreadsheet size={13} strokeWidth={2.2} />
+                <span>Export ({selectedIds.length})</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant="danger"
+                onPress={() => setShowBulkDeleteModal(true)}
+                className="text-xs font-semibold"
               >
                 <Trash2 size={13} strokeWidth={2.2} />
                 <span>Delete Selected ({selectedIds.length})</span>
-              </button>
+              </Button>
             </div>
           </motion.div>
         )}
@@ -1381,20 +1566,23 @@ const UserManagement: React.FC = () => {
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
-          <button
-            onClick={() => setShowBulkDeleteModal(false)}
-            disabled={bulkDeleting}
-            className="btn-secondary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
+          <Button
+            variant="outline"
+            onPress={() => setShowBulkDeleteModal(false)}
+            isDisabled={bulkDeleting}
+            className="w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
           >
             Cancel
-          </button>
-          <button
-            onClick={handleExecuteBulkDelete}
-            disabled={bulkDeleting}
-            className="w-full sm:flex-1 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors bg-red-600 hover:bg-red-700 text-white"
+          </Button>
+          <Button
+            variant="danger"
+            onPress={handleExecuteBulkDelete}
+            isDisabled={bulkDeleting}
+            isLoading={bulkDeleting}
+            className="w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm font-semibold"
           >
-            {bulkDeleting ? <Loader2 size={15} className="animate-spin" /> : `Delete (${selectedIds.length})`}
-          </button>
+            {`Delete (${selectedIds.length})`}
+          </Button>
         </div>
       </CenteredModal>
 
@@ -1433,38 +1621,37 @@ const UserManagement: React.FC = () => {
           <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
             To confirm, type <span className="font-mono font-bold text-red-400">DELETE</span> below:
           </label>
-          <input
-            type="text"
+          <HeroInput
             value={deleteAllConfirmText}
             onChange={(e) => setDeleteAllConfirmText(e.target.value)}
             placeholder="DELETE"
-            className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl text-sm font-mono border focus:outline-none"
-            style={{
-              background: 'var(--surface-elevated)',
-              borderColor: deleteAllConfirmText === 'DELETE' ? '#ef4444' : 'var(--border-color)',
-              color: 'var(--text-primary)',
-            }}
+            variant="flat"
+            className="w-full font-mono"
+            color={deleteAllConfirmText === 'DELETE' ? 'danger' : 'default'}
           />
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-2">
-          <button
-            onClick={() => {
+          <Button
+            variant="outline"
+            onPress={() => {
               setShowDeleteAllModal(false);
               setDeleteAllConfirmText('');
             }}
-            disabled={bulkDeleting}
-            className="btn-secondary w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
+            isDisabled={bulkDeleting}
+            className="w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
           >
             Cancel
-          </button>
-          <button
-            onClick={handleExecuteDeleteAll}
-            disabled={bulkDeleting || deleteAllConfirmText.trim() !== 'DELETE'}
-            className="w-full sm:flex-1 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-red-600 hover:bg-red-700 text-white"
+          </Button>
+          <Button
+            variant="danger"
+            onPress={handleExecuteDeleteAll}
+            isDisabled={bulkDeleting || deleteAllConfirmText.trim() !== 'DELETE'}
+            isLoading={bulkDeleting}
+            className="w-full sm:flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm font-semibold"
           >
-            {bulkDeleting ? <Loader2 size={15} className="animate-spin" /> : 'Confirm & Wipe Students'}
-          </button>
+            Confirm & Wipe Students
+          </Button>
         </div>
       </CenteredModal>
 
@@ -1487,21 +1674,23 @@ const UserManagement: React.FC = () => {
               Bulk Upload
             </h2>
           </div>
-          <button
-            onClick={() => setShowBulkUploadPanel(false)}
-            className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl cursor-pointer transition-colors duration-150"
-            style={{ color: 'var(--text-muted)', background: 'var(--glass-bg)' }}
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            onPress={() => setShowBulkUploadPanel(false)}
+            className="min-w-[36px] min-h-[36px]"
             aria-label="Close bulk upload panel"
           >
             <X size={18} strokeWidth={2} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 sm:py-6 space-y-6">
           {/* Info Banner */}
           <div
             className="p-4 rounded-2xl text-xs sm:text-[13px] leading-relaxed space-y-2"
-            style={{ background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderColor: 'rgba(0,113,227,0.15)' }}
+            style={{ background: 'var(--accent-subtle)', border: '1px solid var(--accent-subtle)' }}
           >
             <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
               <FileSpreadsheet size={15} strokeWidth={2} style={{ color: 'var(--accent)' }} />
@@ -1562,7 +1751,7 @@ const UserManagement: React.FC = () => {
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(52,211,153,0.08)', color: '#34d399' }}
+                style={{ background: 'var(--success-subtle)', color: 'var(--success)' }}
               >
                 <FileSpreadsheet size={18} strokeWidth={1.8} />
               </div>
@@ -1574,36 +1763,31 @@ const UserManagement: React.FC = () => {
                   {(bulkFile.size / 1024).toFixed(1)} KB
                 </p>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); setBulkFile(null); }}
-                className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg cursor-pointer transition-colors"
-                style={{ color: 'var(--text-muted)' }}
+              <Button
+                size="sm"
+                variant="ghost"
+                isIconOnly
+                onPress={() => setBulkFile(null)}
+                className="min-w-[32px] min-h-[32px]"
                 aria-label="Remove selected file"
               >
                 <X size={14} strokeWidth={2} />
-              </button>
+              </Button>
             </div>
           )}
 
           {/* Upload Button */}
           {bulkFile && !bulkResult && (
-            <button
-              onClick={handleBulkUpload}
-              disabled={bulkUploading}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3 min-h-[46px] text-sm cursor-pointer"
+            <Button
+              variant="primary"
+              onPress={handleBulkUpload}
+              isDisabled={bulkUploading}
+              isLoading={bulkUploading}
+              className="w-full py-3 min-h-[46px] text-sm flex items-center justify-center gap-2"
             >
-              {bulkUploading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Uploading & Processing...</span>
-                </>
-              ) : (
-                <>
-                  <Upload size={16} strokeWidth={2} />
-                  <span>Upload & Create Students</span>
-                </>
-              )}
-            </button>
+              <Upload size={16} strokeWidth={2} />
+              <span>Upload & Create Students</span>
+            </Button>
           )}
 
           {/* Results */}
@@ -1613,23 +1797,23 @@ const UserManagement: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div
                   className="p-4 rounded-xl text-center"
-                  style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+                  style={{ background: 'var(--success-subtle)', border: '1px solid var(--success-subtle)' }}
                 >
-                  <p className="text-2xl font-black" style={{ color: '#34d399' }}>
+                  <p className="text-2xl font-black" style={{ color: 'var(--success)' }}>
                     {bulkResult.summary?.created || 0}
                   </p>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: '#34d399' }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: 'var(--success)' }}>
                     Created
                   </p>
                 </div>
                 <div
                   className="p-4 rounded-xl text-center"
-                  style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}
+                  style={{ background: 'var(--warning-subtle)', border: '1px solid var(--warning-subtle)' }}
                 >
-                  <p className="text-2xl font-black" style={{ color: '#fbbf24' }}>
+                  <p className="text-2xl font-black" style={{ color: 'var(--warning)' }}>
                     {bulkResult.summary?.duplicatesSkipped || 0}
                   </p>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: '#fbbf24' }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: 'var(--warning)' }}>
                     Skipped
                   </p>
                 </div>
@@ -1638,11 +1822,11 @@ const UserManagement: React.FC = () => {
               {/* Success Message */}
               <div
                 className="p-4 rounded-2xl flex items-start gap-3"
-                style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }}
+                style={{ background: 'var(--success-subtle)', border: '1px solid var(--success-subtle)' }}
               >
-                <CheckCircle2 size={16} strokeWidth={2} style={{ color: '#34d399', flexShrink: 0, marginTop: 2 }} />
+                <CheckCircle2 size={16} strokeWidth={2} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
                 <div>
-                  <p className="text-[13px] font-semibold" style={{ color: '#34d399' }}>
+                  <p className="text-[13px] font-semibold" style={{ color: 'var(--success)' }}>
                     {bulkResult.message}
                   </p>
                   <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -1667,7 +1851,7 @@ const UserManagement: React.FC = () => {
                           <span className="font-mono font-semibold" style={{ color: 'var(--text-muted)' }}>{d.rollNo}</span>
                           {' '}{d.name}
                         </span>
-                        <span className="text-[10px]" style={{ color: '#fbbf24' }}>{d.reason}</span>
+                        <span className="text-[10px]" style={{ color: 'var(--warning)' }}>{d.reason}</span>
                       </div>
                     ))}
                   </div>
@@ -1676,19 +1860,21 @@ const UserManagement: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => { setShowBulkUploadPanel(false); resetBulkUpload(); }}
-                  className="btn-secondary flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
+                <Button
+                  variant="outline"
+                  onPress={() => { setShowBulkUploadPanel(false); resetBulkUpload(); }}
+                  className="flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm"
                 >
                   Close
-                </button>
-                <button
-                  onClick={resetBulkUpload}
-                  className="btn-primary flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm flex items-center justify-center gap-2"
+                </Button>
+                <Button
+                  variant="primary"
+                  onPress={resetBulkUpload}
+                  className="flex-1 py-2.5 min-h-[42px] text-xs sm:text-sm flex items-center justify-center gap-2"
                 >
                   <Upload size={14} strokeWidth={2} />
                   <span>Upload Another</span>
-                </button>
+                </Button>
               </div>
             </div>
           )}

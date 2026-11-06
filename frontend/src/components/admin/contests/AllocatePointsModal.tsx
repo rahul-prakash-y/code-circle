@@ -13,6 +13,8 @@ import {
   RefreshCw,
   User,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
+import { HeroUISelect, HeroChip as Chip } from '../../ui/HeroUIComponents';
 import useContestStore, { LeaderboardEntry } from '../../../store/useContestStore';
 
 interface AllocatePointsModalProps {
@@ -114,9 +116,12 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
               <p className="text-[10px] uppercase font-bold text-label-secondary">Contest Score</p>
               <p className="text-sm font-black text-primary font-mono">{entry.totalScore} pts</p>
             </div>
-            <p className="text-[10px] text-label-tertiary sm:mt-0.5">
-              Current XP: <span className="font-bold text-emerald-600 dark:text-emerald-400">+{currentAwarded}</span>
-            </p>
+            <div className="flex items-center gap-1.5 sm:mt-1">
+              <span className="text-[10px] text-label-tertiary">Current XP:</span>
+              <Chip size="sm" color="success" variant="flat" className="font-bold font-mono">
+                +{currentAwarded}
+              </Chip>
+            </div>
           </div>
         </div>
 
@@ -126,34 +131,28 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
             Allocation Method
           </label>
           <div className="grid grid-cols-2 gap-2 bg-surface-secondary p-1 rounded-2xl border border-separator">
-            <button
+            <Button
               type="button"
-              onClick={() => {
+              variant={mode === 'direct' ? 'primary' : 'secondary'}
+              onPress={() => {
                 setMode('direct');
                 setPoints(entry.awardedClubPoints ?? entry.totalScore ?? 0);
               }}
-              className={`py-2 px-3 rounded-xl text-xs font-bold transition-all min-h-[38px] cursor-pointer ${
-                mode === 'direct'
-                  ? 'bg-surface text-label-primary shadow-sm border border-separator'
-                  : 'text-label-secondary hover:text-label-primary'
-              }`}
+              className="py-2 px-3 rounded-xl text-xs font-bold min-h-[38px]"
             >
               Direct Points (Override)
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              onClick={() => {
+              variant={mode === 'bonus' ? 'primary' : 'secondary'}
+              onPress={() => {
                 setMode('bonus');
                 setPoints(25);
               }}
-              className={`py-2 px-3 rounded-xl text-xs font-bold transition-all min-h-[38px] cursor-pointer ${
-                mode === 'bonus'
-                  ? 'bg-surface text-label-primary shadow-sm border border-separator'
-                  : 'text-label-secondary hover:text-label-primary'
-              }`}
+              className="py-2 px-3 rounded-xl text-xs font-bold min-h-[38px]"
             >
               Add Bonus XP (+)
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -187,45 +186,64 @@ export const AllocatePointsModal: React.FC<AllocatePointsModalProps> = ({
           <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider">
             Evaluation Note / Justification (Optional)
           </label>
+          <HeroUISelect
+            placeholder="Select a preset justification..."
+            value={quickReasons.includes(reason) ? reason : ''}
+            onChange={(val) => setReason(val)}
+            options={quickReasons.map((qr) => ({ value: qr, label: qr }))}
+            size="sm"
+            isClearable
+          />
           <input
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. Awarded for optimal algorithmic complexity"
-            className="w-full px-4 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            placeholder="Or type custom justification..."
+            className="w-full px-4 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
           />
 
-          {/* Quick presets */}
+          {/* Quick presets Chips */}
           <div className="flex flex-wrap gap-1.5 pt-1">
             {quickReasons.map((qr) => (
-              <button
+              <Chip
                 key={qr}
-                type="button"
+                size="sm"
+                color={reason === qr ? 'accent' : 'default'}
+                variant={reason === qr ? 'solid' : 'flat'}
                 onClick={() => setReason(qr)}
-                className="px-2.5 py-1 rounded-lg text-[10px] font-medium bg-surface-secondary hover:bg-surface border border-separator text-label-secondary hover:text-label-primary transition cursor-pointer"
+                className="text-[10px] cursor-pointer"
               >
                 {qr}
-              </button>
+              </Chip>
             ))}
           </div>
         </div>
 
         {/* Footer Actions */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer"
+            variant="secondary"
+            onPress={onClose}
+            className="px-4 py-2 rounded-full text-xs font-medium"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={submitting || (mode === 'bonus' && Number(points) === 0)}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-40 transition cursor-pointer shadow"
+            variant="primary"
+            isDisabled={submitting || (mode === 'bonus' && Number(points) === 0)}
+            className="px-5 py-2 rounded-full text-xs font-semibold shadow"
           >
-            {submitting ? 'Updating...' : 'Confirm Allocation'}
-          </button>
+            {submitting ? (
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
+                <span>Updating...</span>
+              </div>
+            ) : (
+              'Confirm Allocation'
+            )}
+          </Button>
         </div>
       </form>
     </ResponsiveModal>

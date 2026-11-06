@@ -4,6 +4,7 @@ import CodingChallengeList from '../components/coding/CodingChallengeList';
 import { Terminal, Award } from 'lucide-react';
 import TutorialButton from '../components/common/TutorialButton';
 import RestrictionBanner from '../components/common/RestrictionBanner';
+import { Button } from '@heroui/react';
 
 export const AssessmentsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'coding' | 'mcq'>('coding');
@@ -27,30 +28,26 @@ export const AssessmentsPage: React.FC = () => {
         </div>
 
         {/* Apple Segmented Pill Switcher */}
-        <div className="flex items-center p-1 rounded-2xl sm:rounded-full bg-surface-secondary border border-separator/80 shrink-0 w-full sm:w-auto shadow-sm">
-          <button
-            onClick={() => setActiveTab('coding')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl sm:rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'coding'
-                ? 'bg-accent text-white shadow-sm'
-                : 'text-label-secondary hover:text-label-primary'
-            }`}
+        <div className="flex items-center p-1 rounded-2xl sm:rounded-full bg-surface-secondary border border-separator/80 shrink-0 w-full sm:w-auto shadow-sm gap-1">
+          <Button
+            size="sm"
+            variant={activeTab === 'coding' ? 'primary' : 'ghost'}
+            onPress={() => setActiveTab('coding')}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 sm:px-4 min-h-[40px] text-xs font-semibold"
           >
             <Terminal className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">Live Coding Sandbox</span>
-          </button>
+          </Button>
 
-          <button
-            onClick={() => setActiveTab('mcq')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl sm:rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'mcq'
-                ? 'bg-accent text-white shadow-sm'
-                : 'text-label-secondary hover:text-label-primary'
-            }`}
+          <Button
+            size="sm"
+            variant={activeTab === 'mcq' ? 'primary' : 'ghost'}
+            onPress={() => setActiveTab('mcq')}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 sm:px-4 min-h-[40px] text-xs font-semibold"
           >
             <Award className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">MCQ Quizzes</span>
-          </button>
+          </Button>
         </div>
       </div>
 

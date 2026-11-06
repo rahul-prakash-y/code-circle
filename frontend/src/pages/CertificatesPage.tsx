@@ -5,6 +5,7 @@ import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import MyCertificatesView from '../components/dashboard/MyCertificatesView';
 import CertificateStudio from '../components/admin/certificates/CertificateStudio';
+import { Button } from '@heroui/react';
 
 export const CertificatesPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -39,29 +40,25 @@ export const CertificatesPage: React.FC = () => {
 
         {/* Privileged Role Switcher */}
         {isPrivileged && (
-          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-raised border border-separator rounded-2xl shadow-xs shrink-0">
-            <button
-              onClick={() => setViewMode('my')}
-              className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'my'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-label-tertiary hover:text-label-primary'
-              }`}
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-raised border border-separator rounded-2xl shadow-xs shrink-0 gap-1">
+            <Button
+              size="sm"
+              variant={viewMode === 'my' ? 'primary' : 'ghost'}
+              onPress={() => setViewMode('my')}
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 min-h-[40px] text-xs font-bold"
             >
               <Medal size={15} />
               <span>My Certificates</span>
-            </button>
-            <button
-              onClick={() => setViewMode('studio')}
-              className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'studio'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-label-tertiary hover:text-label-primary'
-              }`}
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === 'studio' ? 'primary' : 'ghost'}
+              onPress={() => setViewMode('studio')}
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 min-h-[40px] text-xs font-bold"
             >
               <Sliders size={15} />
               <span>Certificate Studio</span>
-            </button>
+            </Button>
           </div>
         )}
       </div>

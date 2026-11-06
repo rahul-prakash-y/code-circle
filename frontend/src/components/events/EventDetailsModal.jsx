@@ -17,10 +17,12 @@ import {
   Award,
   Sliders,
   FileSpreadsheet,
+  FileText,
   Upload,
   Sparkles,
 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
+import { Button } from '@heroui/react';
 import toast from 'react-hot-toast';
 import EventArenaAdminModal from './EventArenaAdminModal';
 
@@ -444,97 +446,108 @@ export const EventDetailsModal = ({
             <div className="flex items-center gap-2 flex-wrap">
               {isAdmin && (
                 <>
-                  <button
-                    onClick={() => {
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => {
                       onClose();
                       if (onUploadParticipants) onUploadParticipants(event);
                     }}
-                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-emerald-500 hover:text-emerald-400 border border-emerald-500/25"
+                    className="flex items-center gap-1.5 text-xs text-emerald-500 hover:text-emerald-400"
                     title="Upload Participants from Excel"
                   >
                     <FileSpreadsheet size={14} />
                     <span>Upload Participants</span>
-                  </button>
-                  <button
-                    onClick={() => {
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => {
                       onClose();
                       if (onViewRegistered) onViewRegistered(event);
                       else if (onViewParticipants) onViewParticipants(event, 'registered');
                     }}
-                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-label-primary hover:text-accent"
+                    className="flex items-center gap-1.5 text-xs text-label-primary hover:text-accent"
                     title="View Full Registered Students Roster"
                   >
                     <Users size={14} />
                     <span>Registered ({event.enrolledCount || 0})</span>
-                  </button>
-                  <button
-                    onClick={() => {
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => {
                       onClose();
                       if (onViewParticipants) onViewParticipants(event, 'participants');
                     }}
-                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-emerald-400 hover:text-emerald-300 border-emerald-500/20"
+                    className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300"
                     title="View Verified Event Participants (Attended)"
                   >
                     <UserCheck size={14} />
                     <span>Participants ({event.participantsCount || 0})</span>
-                  </button>
-                  <button
-                    onClick={() => setIsArenaAdminOpen(true)}
-                    className="btn-secondary flex items-center gap-1.5 text-xs py-2 px-3.5 cursor-pointer text-indigo-500 hover:text-indigo-400 border border-indigo-500/25"
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => setIsArenaAdminOpen(true)}
+                    className="flex items-center gap-1.5 text-xs text-indigo-500 hover:text-indigo-400"
                     title="Manage Arena Configuration and Questions"
                   >
                     <Sparkles size={14} />
                     <span>Arena Hub</span>
-                  </button>
-                  <button
-                    onClick={() => {
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => {
                       onClose();
                       if (onEdit) onEdit(event);
                     }}
-                    className="btn-secondary text-xs py-2 px-3.5 cursor-pointer"
+                    className="text-xs"
                   >
                     Edit Event
-                  </button>
+                  </Button>
                 </>
               )}
 
               {/* Enter Arena button - Only for Enrolled Students or Admins */}
               {event.hasArena && (isEnrolled || isAdmin) && (
-                <button
-                  onClick={() => {
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onPress={() => {
                     onClose();
                     navigate(`/events/${event._id}/arena`);
                   }}
-                  className="btn-primary flex items-center gap-1.5 text-xs py-2 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md shadow-indigo-600/20 cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs px-4"
                   title="Enter Event Arena to take assessments"
                 >
                   <Sparkles size={14} />
                   <span>Enter Arena</span>
-                </button>
+                </Button>
               )}
 
               {!isAdmin && (
                 event.registrationType === 'admin_upload' && !isEnrolled ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="btn-secondary text-xs py-2 px-5 opacity-80 cursor-not-allowed text-amber-500 border border-amber-500/25"
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    isDisabled
+                    className="text-xs px-5 text-amber-500"
                     title="Registration for this event is managed directly by administrators."
                   >
                     <span>Admin Upload Only</span>
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    onClick={() => {
+                  <Button
+                    size="sm"
+                    variant={isEnrolled ? 'secondary' : 'primary'}
+                    onPress={() => {
                       onClose();
                       if (!isEnrolled && onEnroll) onEnroll(event);
                     }}
-                    disabled={isEnrolled || isDeadlinePassed || isPast}
-                    className={
-                      isEnrolled
-                        ? 'btn-secondary text-xs py-2 px-5 opacity-90 cursor-default'
-                        : 'btn-primary text-xs py-2 px-5 flex items-center gap-2 cursor-pointer'
-                    }
+                    isDisabled={isEnrolled || isDeadlinePassed || isPast}
+                    className="text-xs px-5 flex items-center gap-2"
                   >
                     <span>
                       {isEnrolled
@@ -548,7 +561,7 @@ export const EventDetailsModal = ({
                     {!isEnrolled && !isDeadlinePassed && !isPast && (
                       <ArrowUpRight size={14} />
                     )}
-                  </button>
+                  </Button>
                 )
               )}
             </div>

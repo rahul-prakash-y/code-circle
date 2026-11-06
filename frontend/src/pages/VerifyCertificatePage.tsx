@@ -14,6 +14,7 @@ import {
   Search,
 } from 'lucide-react';
 import api from '../lib/axios';
+import { Button } from '@heroui/react';
 
 interface VerificationResult {
   certificateId: string;
@@ -97,12 +98,13 @@ export const VerifyCertificatePage: React.FC = () => {
               onKeyDown={(e) => e.key === 'Enter' && performVerification(searchCode)}
             />
           </div>
-          <button
-            onClick={() => performVerification(searchCode)}
-            className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all shrink-0 cursor-pointer flex items-center justify-center"
+          <Button
+            variant="primary"
+            onPress={() => performVerification(searchCode)}
+            className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] text-xs font-bold shrink-0 flex items-center justify-center"
           >
             Verify
-          </button>
+          </Button>
         </div>
 
         {/* Verification Result Card */}

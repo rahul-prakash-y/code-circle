@@ -5,6 +5,8 @@ export interface IAttendance extends Document {
   eventId: string;
   user?: mongoose.Types.ObjectId;
   event?: mongoose.Types.ObjectId;
+  dayNumber: number;
+  dateAttended: Date;
   timestamp: Date;
   status: string;
   createdAt: Date;
@@ -33,6 +35,18 @@ const attendanceSchema = new Schema<IAttendance>(
       ref: 'Event',
       required: false,
     },
+    dayNumber: {
+      type: Number,
+      required: [true, 'Event day number is required for multi-day attendance'],
+      default: 1,
+      min: [1, 'Day number must be at least 1'],
+      index: true,
+    },
+    dateAttended: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
     timestamp: {
       type: Date,
       default: Date.now,
@@ -47,8 +61,9 @@ const attendanceSchema = new Schema<IAttendance>(
   }
 );
 
-// Prevent duplicate attendance records at database level
-attendanceSchema.index({ userId: 1, eventId: 1 }, { unique: true });
+// Prevent duplicate attendance per student, per event, per specific event day
+attendanceSchema.index({ userId: 1, eventId: 1, dayNumber: 1 }, { unique: true });
+attendanceSchema.index({ eventId: 1, dayNumber: 1, timestamp: -1 });
 attendanceSchema.index({ eventId: 1, timestamp: -1 });
 
 export const AttendanceModel: Model<IAttendance> =

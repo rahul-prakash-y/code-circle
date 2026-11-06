@@ -19,7 +19,7 @@ const BackgroundGradient = () => {
         <div
           className="absolute top-0 left-0 w-[50%] h-[40%] pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse at top left, rgba(41,151,255,0.05) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse at top left, var(--accent-subtle) 0%, transparent 70%)',
           }}
         />
       ) : (

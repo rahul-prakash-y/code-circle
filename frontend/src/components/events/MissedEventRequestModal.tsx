@@ -13,13 +13,15 @@ import {
   Trash2,
   ExternalLink,
   ShieldAlert,
-  Loader2,
   Sparkles,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import useEventStore from '../../store/useEventStore';
 import { formatISTDateTime, formatISTDate } from '../../lib/dateUtils';
+import HeroUISelect from '../ui/HeroUISelect';
+import { HeroDatePicker } from '../ui/HeroUIComponents';
 
 interface MissedEventRequestModalProps {
   isOpen: boolean;
@@ -195,8 +197,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                 onClick={() => setActiveTab('create')}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'create'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+                    ? 'bg-accent text-white shadow-xs'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
                 <Send className="w-3.5 h-3.5" />
@@ -208,8 +210,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                 onClick={() => setActiveTab('history')}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'history'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7]'
+                    ? 'bg-accent text-white shadow-xs'
+                    : 'text-label-secondary hover:text-label-primary'
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -223,59 +225,54 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
             {activeTab === 'create' ? (
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Policy Alert Banner */}
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-start gap-3">
-                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-900 dark:text-amber-300 flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="font-semibold text-amber-200">
+                    <p className="font-bold text-amber-950 dark:text-amber-200">
                       Important Review Policy
                     </p>
-                    <p className="text-amber-300/90 leading-relaxed">
+                    <p className="text-amber-900/90 dark:text-amber-300/90 leading-relaxed">
                       Your request will be scrutinized by the club administration. If an absence request is{' '}
-                      <strong className="text-white underline">rejected</strong> due to invalid justification or unverified absence, your account will be{' '}
-                      <strong className="text-white">restricted from attending assessments, contests, and courses</strong> until manually unblocked by an admin.
+                      <strong className="text-amber-950 dark:text-white underline font-bold">rejected</strong> due to invalid justification or unverified absence, your account will be{' '}
+                      <strong className="text-amber-950 dark:text-white font-bold">restricted from attending assessments, contests, and courses</strong> until manually unblocked by an admin.
                     </p>
                   </div>
                 </div>
 
-                {/* 1. Event Selection */}
+                {/* 1. Event Selection via HeroUISelect */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
-                    Select Missed Event *
-                  </label>
-                  <select
-                    value={selectedEventId}
-                    onChange={(e) => setSelectedEventId(e.target.value)}
+                  <HeroUISelect
+                    label="Select Missed Event"
                     required
-                    className="w-full bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-                  >
-                    <option value="" disabled>
-                      Choose an event or session...
-                    </option>
-                    {events.map((evt) => (
-                      <option key={evt._id} value={evt._id}>
-                        {evt.title} ({evt.type}) - {formatISTDate(evt.date)}
-                      </option>
-                    ))}
-                  </select>
+                    isSearchable
+                    placeholder="Search and choose a missed event..."
+                    value={selectedEventId}
+                    onChange={(val) => setSelectedEventId(val)}
+                    color="primary"
+                    options={events.map((evt) => ({
+                      value: evt._id,
+                      label: evt.title,
+                      description: `${evt.type} • ${formatISTDate(evt.date)} • ${evt.hourlyPoints || 50} pts/hr`,
+                      badge: evt.type,
+                    }))}
+                  />
                 </div>
 
                 {/* 2. Date and Club Hours Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
-                      Missed Date *
-                    </label>
-                    <input
-                      type="date"
+                    <HeroDatePicker
+                      label="Missed Date *"
                       value={missedDate}
-                      onChange={(e) => setMissedDate(e.target.value)}
-                      required
-                      className="w-full bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 transition-colors"
+                      onChange={(val) => setMissedDate(val)}
+                      isRequired
+                      size="sm"
+                      startContent={<Calendar size={14} className="text-accent" />}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                       Club Hours Requested *
                     </label>
                     <input
@@ -285,14 +282,14 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                       value={clubHoursRequested}
                       onChange={(e) => setClubHoursRequested(Number(e.target.value))}
                       required
-                      className="w-full bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 transition-colors"
+                      className="w-full bg-surface-secondary border border-separator rounded-2xl px-4 py-2.5 text-sm text-label-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all"
                     />
                   </div>
                 </div>
 
                 {/* 3. Class Hours Missed Selection */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                     Class Periods / Hours Missed
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -305,8 +302,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                           onClick={() => handleToggleHour(period)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                             isSelected
-                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
-                              : 'bg-black/[0.04] dark:bg-white/[0.04] text-[#86868B] border-black/5 dark:border-white/10 hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-black/10 dark:hover:bg-white/10'
+                              ? 'bg-accent text-white border-accent shadow-xs'
+                              : 'bg-surface-secondary hover:bg-surface-raised text-label-secondary border-separator hover:text-label-primary'
                           }`}
                         >
                           Period {period}
@@ -318,7 +315,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
 
                 {/* 4. Reason for Absence */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                     Reason for Absence / Excused Leave *
                   </label>
                   <textarea
@@ -327,13 +324,13 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                     onChange={(e) => setReason(e.target.value)}
                     required
                     placeholder="Provide a detailed, legitimate reason for your absence (e.g. Attended campus recruitment interview, college sports meet, or medical emergency with approval)."
-                    className="w-full bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/10 rounded-2xl p-4 text-sm text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-[#86868B]"
+                    className="w-full bg-surface-secondary border border-separator rounded-2xl p-4 text-sm text-label-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all placeholder:text-label-tertiary"
                   />
                 </div>
 
                 {/* 5. Proof / Documentation URL */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#F5F5F7] uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-label-primary uppercase tracking-wider mb-2">
                     Supporting Document / Proof URL (Optional)
                   </label>
                   <input
@@ -341,51 +338,53 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                     value={proofUrl}
                     onChange={(e) => setProofUrl(e.target.value)}
                     placeholder="https://drive.google.com/file/d/... or proof document link"
-                    className="w-full bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/10 dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-[#1D1D1F] dark:text-[#F5F5F7] focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-neutral-500"
+                    className="w-full bg-surface-secondary border border-separator rounded-2xl px-4 py-2.5 text-sm text-label-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all placeholder:text-label-tertiary"
                   />
                 </div>
 
                 {/* Submit Action */}
                 <div className="pt-2 flex justify-end gap-3">
-                  <button
+                  <Button
                     type="button"
-                    onClick={onClose}
-                    className="px-5 py-2.5 rounded-2xl text-xs font-semibold text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-[#F5F5F7] hover:bg-white/[0.06] transition-colors cursor-pointer"
+                    variant="secondary"
+                    onPress={onClose}
+                    className="px-5 py-2.5 rounded-2xl text-xs font-semibold"
                   >
                     Cancel
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
                     type="submit"
-                    disabled={submitting}
-                    className="px-6 py-2.5 rounded-2xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    variant="primary"
+                    isDisabled={submitting}
+                    className="px-6 py-2.5 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-2"
                   >
                     {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <div className="flex items-center gap-2">
+                        <Spinner size="sm" color="default" />
                         <span>Submitting Request...</span>
-                      </>
+                      </div>
                     ) : (
-                      <>
+                      <div className="flex items-center gap-2">
                         <Send className="w-4 h-4 text-white" />
                         <span>Submit for Admin Approval</span>
-                      </>
+                      </div>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (
               /* Request History Tab */
               <div className="space-y-4">
                 {loadingHistory ? (
-                  <div className="py-16 text-center text-[#86868B] space-y-2">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-500" />
+                  <div className="py-16 text-center text-label-secondary space-y-2">
+                    <Spinner size="lg" color="default" className="mx-auto" />
                     <p className="text-xs">Loading your request history...</p>
                   </div>
                 ) : myRequests.length === 0 ? (
                   <div className="py-16 text-center text-neutral-500 space-y-3">
                     <Calendar className="w-10 h-10 mx-auto text-neutral-600" />
-                    <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#F5F5F7]">
+                    <p className="text-sm font-semibold text-label-primary ">
                       No missed event requests yet
                     </p>
                     <p className="text-xs max-w-sm mx-auto">
@@ -412,23 +411,23 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                       },
                     }[req.status] || {
                       label: req.status,
-                      badge: 'bg-neutral-800 text-[#1D1D1F] dark:text-[#F5F5F7] border-neutral-700',
+                      badge: 'bg-neutral-800 text-label-primary  border-neutral-700',
                       icon: null,
                     };
 
                     return (
                       <div
                         key={req._id}
-                        className="p-5 rounded-2xl bg-[#FFFFFF] dark:bg-[#1C1C1E] border border-black/5 dark:border-white/10 shadow-xs space-y-3"
+                        className="p-5 rounded-2xl bg-surface border border-separator shadow-xs space-y-3"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <div>
-                            <h4 className="text-sm font-bold text-[#1D1D1F] dark:text-[#F5F5F7] tracking-tight">
+                            <h4 className="text-sm font-bold text-label-primary tracking-tight">
                               {req.event?.title || 'Unknown Event'}
                             </h4>
-                            <p className="text-xs text-[#86868B]">
+                            <p className="text-xs text-label-secondary">
                               Missed on: {formatISTDate(req.missedDate)} • Requested:{' '}
-                              <strong className="text-neutral-200">
+                              <strong className="text-label-primary font-semibold">
                                 {req.clubHoursRequested} Club Hour(s)
                               </strong>
                             </p>
@@ -447,7 +446,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                                 type="button"
                                 onClick={() => handleDelete(req._id)}
                                 disabled={deletingId === req._id}
-                                className="p-1.5 rounded-lg text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg text-label-tertiary hover:text-destructive hover:bg-destructive-subtle transition-colors cursor-pointer"
                                 title="Cancel pending request"
                               >
                                 {deletingId === req._id ? (
@@ -461,8 +460,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                         </div>
 
                         {/* Reason quote */}
-                        <div className="p-3 rounded-xl bg-black/40 border border-white/[0.04] text-xs text-[#1D1D1F] dark:text-[#F5F5F7]">
-                          <span className="text-neutral-500 font-semibold block mb-0.5">
+                        <div className="p-3 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary">
+                          <span className="text-label-secondary font-semibold block mb-0.5">
                             Reason Submitted:
                           </span>
                           {req.reason}
@@ -475,7 +474,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                               href={req.proofUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-indigo-400 hover:underline"
+                              className="inline-flex items-center gap-1.5 text-accent hover:underline font-medium"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                               <span>View Attached Supporting Document</span>
@@ -488,8 +487,8 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                           <div
                             className={`p-3 rounded-xl text-xs border ${
                               req.status === 'REJECTED'
-                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-300'
-                                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                                ? 'bg-destructive-subtle border-destructive/25 text-destructive'
+                                : 'bg-success-subtle border-success/25 text-success'
                             }`}
                           >
                             <span className="font-semibold block mb-0.5">
@@ -499,7 +498,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                             </span>
                             {req.reviewNote}
                             {req.status === 'REJECTED' && (
-                              <p className="mt-1.5 font-medium text-[11px] text-rose-400 flex items-center gap-1">
+                              <p className="mt-1.5 font-medium text-[11px] text-destructive flex items-center gap-1">
                                 <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
                                 Account restricted from assessments, contests, and courses. An admin must unblock your account.
                               </p>
@@ -507,7 +506,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between text-[11px] text-neutral-500 pt-1 border-t border-white/[0.04]">
+                        <div className="flex items-center justify-between text-[11px] text-label-secondary pt-1 border-t border-separator">
                           <span>Periods: {req.classHours?.join(', ') || '1'}</span>
                           <span>Submitted: {formatISTDateTime(req.createdAt)}</span>
                         </div>
@@ -524,3 +523,5 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
 };
 
 export default MissedEventRequestModal;
+
+

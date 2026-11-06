@@ -8,12 +8,15 @@ export interface CreateSessionBody {
   event: string;
   sessionName: string;
   durationMinutes?: number;
+  dayNumber?: number;
+  dateAttended?: Date;
   classHours?: number[];
   hourlyPoints?: number;
 }
 
 export interface MarkAttendanceBody {
   otp: string;
+  dayNumber?: number;
 }
 
 export interface AttendanceRecordsQuery {
@@ -36,7 +39,7 @@ export const createSession = async (
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
 
-    const { event: eventId, sessionName, durationMinutes = 60, classHours, hourlyPoints } = request.body;
+    const { event: eventId, sessionName, durationMinutes = 60, dayNumber, dateAttended, classHours, hourlyPoints } = request.body;
 
     if (!eventId || !sessionName) {
       return reply.status(400).send({
@@ -50,6 +53,8 @@ export const createSession = async (
       sessionName,
       durationMinutes: Number(durationMinutes) || 60,
       adminId: (user.id || user._id) as string,
+      dayNumber: dayNumber ? Number(dayNumber) : 1,
+      dateAttended: dateAttended ? new Date(dateAttended) : undefined,
       classHours: Array.isArray(classHours) ? classHours : undefined,
       hourlyPoints: typeof hourlyPoints === 'number' ? hourlyPoints : (hourlyPoints ? Number(hourlyPoints) : undefined),
     });
@@ -74,11 +79,12 @@ export const markAttendance = async (
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
 
-    const { otp } = request.body;
+    const { otp, dayNumber } = request.body;
 
     const result = await AttendanceService.markAttendance({
       userId: (user.id || user._id) as string,
       otp,
+      dayNumber: dayNumber ? Number(dayNumber) : undefined,
     });
 
     return reply.send(result);

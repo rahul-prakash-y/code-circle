@@ -143,7 +143,9 @@ export const getContests = async (req: FastifyRequest, reply: FastifyReply) => {
         contestId: { $in: contestIds },
         userId,
       })
-        .select('contestId status totalScore startedAt submittedAt expiresAt timeTakenSeconds awardedClubPoints pointsAwarded')
+        .select(
+          'contestId status totalScore startedAt submittedAt expiresAt timeTakenSeconds awardedClubPoints pointsAwarded reentryStatus reentryRequested reentryReason reentryApprovedAt'
+        )
         .lean();
 
       userSubs.forEach((sub: any) => {

@@ -1,15 +1,19 @@
-import { cn } from "@/lib/utils"
+import * as React from 'react';
+import { Skeleton as HeroUISkeleton } from '@heroui/react';
+import { cn } from '@/lib/utils';
 
-function Skeleton({
+export function Skeleton({
   className,
+  animationType = 'pulse',
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: React.HTMLAttributes<HTMLDivElement> & { animationType?: 'pulse' | 'wave' | 'none' }) {
   return (
-    <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
-      {...props}
+    <HeroUISkeleton
+      animationType={animationType}
+      className={cn('rounded-xl bg-surface-secondary', className)}
+      {...(props as any)}
     />
-  )
+  );
 }
 
-export { Skeleton }
+export default Skeleton;

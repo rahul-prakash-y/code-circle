@@ -1,62 +1,41 @@
 import * as React from 'react';
-import { Slot } from '@radix-ui/react-slot';
-import { cva, type VariantProps } from 'class-variance-authority';
+import { Button as HeroButton } from '@heroui/react';
 import { cn } from '@/lib/utils';
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:pointer-events-none disabled:opacity-40 active:translate-y-[1px] active:opacity-90 cursor-pointer select-none',
-  {
-    variants: {
-      variant: {
-        default:
-          'bg-accent text-white shadow-sm hover:bg-accent-hover shadow-accent/20',
-        destructive:
-          'bg-destructive text-white shadow-sm hover:bg-destructive/90',
-        outline:
-          'border border-border bg-transparent hover:bg-separator hover:text-text-primary',
-        secondary:
-          'bg-surface text-text-primary border border-border hover:bg-separator',
-        ghost: 
-          'hover:bg-separator text-text-secondary hover:text-text-primary',
-        link: 
-          'text-accent underline-offset-4 hover:underline',
-        glass:
-          'bg-surface text-text-primary border border-border hover:bg-separator',
-        accent:
-          'bg-accent text-white shadow-sm hover:bg-accent-hover',
-      },
-      size: {
-        default: 'h-9 px-4 py-2 text-sm',
-        sm: 'h-8 px-3 text-xs',
-        lg: 'h-11 px-6 text-base',
-        icon: 'h-9 w-9',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-    },
-  }
-);
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'default' | 'primary' | 'secondary' | 'tertiary' | 'outline' | 'ghost' | 'danger' | 'destructive' | 'link' | 'glass';
+  size?: 'default' | 'sm' | 'md' | 'lg' | 'icon';
+  fullWidth?: boolean;
+  isDisabled?: boolean;
+  isLoading?: boolean;
   asChild?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : 'button';
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'default', size = 'default', fullWidth, isDisabled, disabled, ...props }, ref) => {
+    // Map variants to HeroUI variants
+    let heroVariant: 'primary' | 'secondary' | 'tertiary' | 'outline' | 'ghost' | 'danger' = 'secondary';
+    if (variant === 'default' || variant === 'primary') heroVariant = 'primary';
+    else if (variant === 'destructive' || variant === 'danger') heroVariant = 'danger';
+    else if (variant === 'outline') heroVariant = 'outline';
+    else if (variant === 'ghost' || variant === 'link') heroVariant = 'ghost';
+    else if (variant === 'secondary' || variant === 'glass') heroVariant = 'secondary';
+
+    const heroSize = size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md';
+
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+      <HeroButton
         ref={ref}
-        {...props}
+        variant={heroVariant}
+        size={heroSize}
+        fullWidth={fullWidth}
+        isDisabled={Boolean(isDisabled || disabled)}
+        className={cn(className)}
+        {...(props as any)}
       />
     );
   }
 );
 Button.displayName = 'Button';
 
-export { Button, buttonVariants };
+export default Button;

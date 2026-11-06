@@ -35,8 +35,16 @@ import {
   Users,
   Lock,
   ShieldAlert,
+  Star,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useFullScreenEnforcement } from '../hooks/useFullScreenEnforcement';
+import { useTabSwitchDetection } from '../hooks/useTabSwitchDetection';
+import FullScreenEnforcementOverlay from '../components/assessments/FullScreenEnforcementOverlay';
+import { EmilCard, EmilButton } from '../components/ui/emil-ui';
+import { Button } from '@heroui/react';
+import { HeroTabs } from '../components/ui/HeroUIComponents';
+import useAuthStore from '../store/useAuthStore';
 import useEventArenaStore, {
   ArenaAssessment,
   ArenaMcqQuestion,
@@ -77,18 +85,41 @@ export const EventArenaPage: React.FC = () => {
     studentMcqs,
     studentCoding,
     studentDesignChallenge,
+    studentDesignChallenges,
     studentTeam,
     submission,
     loading,
     actionLoading,
   } = useEventArenaStore();
 
-  // Active Assessment State: null means we are at the Assessment Hub / List view
+  const { user: currentUser } = useAuthStore() as any;
+  const isAdmin = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(currentUser?.role);
+
+  // Active Assessment & Result States (Declared before anti-cheat hooks)
   const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null);
+  const [finalResultModal, setFinalResultModal] = useState<any | null>(null);
+  const [apiBlocked, setApiBlocked] = useState(false);
+
+  const isDesignRound = selectedAssessment?.type === 'UI_UX';
+
+  // Anti-Cheat & Full-Screen Enforcement Hooks (Disabled completely for UI_UX / Figma rounds so students can switch between website and Figma)
+  const { isFullscreen, requestFullscreen } = useFullScreenEnforcement();
+  const { isBlocked: tabSwitchBlocked, blockedMessage, unblockStudent } = useTabSwitchDetection({
+    eventId: id || '',
+    enabled: Boolean(
+      !isAdmin &&
+      !isDesignRound &&
+      activeAssessmentId &&
+      submission?.status !== 'SUBMITTED' &&
+      !finalResultModal
+    ),
+  });
+  const isAssessmentBlocked = !isDesignRound && (tabSwitchBlocked || apiBlocked);
 
   // Anti-Cheat: 5% mark reduction per tab switch (No disqualification)
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [showTabWarning, setShowTabWarning] = useState(false);
+  const [selectedDesignIdx, setSelectedDesignIdx] = useState(0);
   const [studentFigmaLink, setStudentFigmaLink] = useState('');
   const [studentDesignNotes, setStudentDesignNotes] = useState('');
   const [previewReferenceImg, setPreviewReferenceImg] = useState<string | null>(null);
@@ -111,7 +142,6 @@ export const EventArenaPage: React.FC = () => {
   // Timer state
   const [remainingSeconds, setRemainingSeconds] = useState(3600);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [finalResultModal, setFinalResultModal] = useState<any | null>(null);
 
   // Initial load: Fetch all assessments for this event
   useEffect(() => {
@@ -137,29 +167,7 @@ export const EventArenaPage: React.FC = () => {
     }
   }, [id, activeAssessmentId]);
 
-    // Anti-cheat tab switch listener (deducts 5% per switch, no disqualification)
-  useEffect(() => {
-    if (!activeAssessmentId || submission?.status === 'SUBMITTED' || finalResultModal) return;
-
-    const handleVisibility = () => {
-      if (document.hidden) {
-        setTabSwitchCount((prev) => {
-          const next = prev + 1;
-          setShowTabWarning(true);
-          toast.error(`Tab switch detected! -5% marks deducted (Total: -${next * 5}%)`, {
-            duration: 4000,
-            icon: '⚠️',
-          });
-          return next;
-        });
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [activeAssessmentId, submission?.status, finalResultModal]);
+  // Old 5% deduction listener replaced by strict anti-cheat blocking hook
 
   // Sync starter codes and existing answers
   useEffect(() => {
@@ -229,11 +237,15 @@ export const EventArenaPage: React.FC = () => {
   // Sync Figma submission state when submission changes
   useEffect(() => {
     if (submission?.designSubmission) {
-      if (submission.designSubmission.figmaFileUrl) {
-        setStudentFigmaLink(submission.designSubmission.figmaFileUrl);
+      if (submission.designSubmission.figmaFileUrl || (submission.designSubmission as any).figmaLink) {
+        setStudentFigmaLink(submission.designSubmission.figmaFileUrl || (submission.designSubmission as any).figmaLink);
       }
       if (submission.designSubmission.notes) {
         setStudentDesignNotes(submission.designSubmission.notes);
+      }
+      if ((submission.designSubmission as any).selectedChallengeTitle && studentDesignChallenges?.length) {
+        const found = studentDesignChallenges.findIndex((c: any) => c.title === (submission.designSubmission as any).selectedChallengeTitle);
+        if (found !== -1) setSelectedDesignIdx(found);
       }
     }
   }, [submission]);
@@ -256,14 +268,17 @@ export const EventArenaPage: React.FC = () => {
     setIsExecuting(true);
     setRunResults(null);
     try {
-      const res = await runAssessmentCode(id, activeAssessmentId, currentCoding._id, {
-        code: currentCode,
-        language: currentLanguage,
-      });
+      const res = await runAssessmentCode(
+        id,
+        activeAssessmentId,
+        currentCoding._id,
+        currentLanguage,
+        currentCode
+      );
       if (res && res.testCaseResults) {
         setRunResults(res.testCaseResults);
         if (res.allPassed) {
-          toast.success('All public test cases passed! 🎉');
+          toast.success('All public test cases passed!');
         } else {
           toast.error('Some test cases failed. Check output.');
         }
@@ -280,10 +295,13 @@ export const EventArenaPage: React.FC = () => {
 
     setIsSubmittingProblem(true);
     try {
-      const res = await submitAssessmentProblem(id, activeAssessmentId, currentCoding._id, {
-        code: currentCode,
-        language: currentLanguage,
-      });
+      const res = await submitAssessmentProblem(
+        id,
+        activeAssessmentId,
+        currentCoding._id,
+        currentLanguage,
+        currentCode
+      );
       if (res) {
         setProblemStatusMap((prev) => ({
           ...prev,
@@ -304,6 +322,7 @@ export const EventArenaPage: React.FC = () => {
     if (!id || !activeAssessmentId) return;
     const formattedMcqAnswers = Object.entries(mcqAnswers).map(([qId, ansIdx]) => ({
       questionId: qId,
+      selectedOptionIndex: ansIdx,
       selectedOption: ansIdx,
     }));
 
@@ -329,6 +348,7 @@ export const EventArenaPage: React.FC = () => {
     }
     try {
       await submitAssessmentDesign(id, activeAssessmentId, {
+        figmaLink: studentFigmaLink.trim(),
         figmaFileUrl: studentFigmaLink.trim(),
         notes: studentDesignNotes.trim(),
       });
@@ -350,23 +370,25 @@ export const EventArenaPage: React.FC = () => {
   // -------------------------------------------------------------------------
   if (!activeAssessmentId) {
     return (
-      <div className="min-h-[100dvh] bg-[#F5F5F7] dark:bg-[#000000] text-[#1D1D1F] dark:text-[#F5F5F7] flex flex-col">
+      <div className="min-h-[100dvh] bg-canvas text-label-primary flex flex-col">
         {/* Top Header */}
-        <header className="h-16 border-b border-black/5 dark:border-white/10 px-4 sm:px-10 flex items-center justify-between shrink-0 bg-white/70 dark:bg-[#161617]/70 backdrop-blur-xl">
+        <header className="h-16 border-b border-separator px-4 sm:px-10 flex items-center justify-between shrink-0 bg-surface/85 border-b border-separator backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/events')}
-              className="p-2 min-h-[38px] rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+            <Button
+              size="sm"
+              variant="light"
+              onPress={() => navigate('/events')}
+              className="rounded-xl text-label-secondary hover:text-label-primary text-xs font-semibold"
+              startContent={<ArrowLeft size={16} />}
             >
-              <ArrowLeft size={16} />
-              <span>Back to Events</span>
-            </button>
-            <div className="h-5 w-[1px] bg-white/10" />
+              Back to Events
+            </Button>
+            <div className="h-5 w-[1px] bg-surface-secondary" />
             <div className="flex items-center gap-2">
               <span className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
                 <Sparkles size={16} />
               </span>
-              <h1 className="text-sm sm:text-base font-bold text-white tracking-tight">Event Arena Hub</h1>
+              <h1 className="text-sm sm:text-base font-bold text-label-primary tracking-tight">Event Arena Hub</h1>
             </div>
           </div>
 
@@ -384,10 +406,10 @@ export const EventArenaPage: React.FC = () => {
               <ShieldCheck size={14} />
               <span>Official Event Competition Arena</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-black text-label-primary tracking-tight">
               {currentEvent?.title || 'Event Arena Assessments'}
             </h2>
-            <p className="text-xs sm:text-sm text-white/60 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-label-secondary max-w-2xl leading-relaxed">
               Complete each assessment round created by the event coordinators and faculty. Your scores,
               code test-case executions, and performance will be tracked on the live leaderboard.
             </p>
@@ -397,13 +419,13 @@ export const EventArenaPage: React.FC = () => {
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
               <Loader2 size={32} className="animate-spin text-purple-400" />
-              <p className="text-xs text-white/50">Loading event assessments...</p>
+              <p className="text-xs text-label-tertiary">Loading event assessments...</p>
             </div>
           ) : assessments.length === 0 ? (
-            <div className="p-8 sm:p-12 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-3">
-              <Layers size={36} className="mx-auto text-white/30" />
-              <h3 className="text-base font-bold text-white">No Assessments Active</h3>
-              <p className="text-xs text-white/50 max-w-sm mx-auto">
+            <div className="p-8 sm:p-12 rounded-3xl bg-surface-secondary/40 border border-separator text-center space-y-3">
+              <Layers size={36} className="mx-auto text-label-tertiary" />
+              <h3 className="text-base font-bold text-label-primary">No Assessments Active</h3>
+              <p className="text-xs text-label-tertiary max-w-sm mx-auto">
                 The event admins have not published any assessments yet. Please check back when the round goes live.
               </p>
             </div>
@@ -428,7 +450,7 @@ export const EventArenaPage: React.FC = () => {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.08 }}
-                    className="rounded-3xl bg-[#121217] border border-white/10 hover:border-purple-500/40 p-5 sm:p-6 flex flex-col justify-between space-y-5 transition-all shadow-xl group relative overflow-hidden"
+                    className="rounded-3xl bg-surface border border-separator hover:border-purple-500/40 p-5 sm:p-6 flex flex-col justify-between space-y-5 transition-all shadow-xl group relative overflow-hidden"
                   >
                     {/* Top Glow on hover */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -436,7 +458,7 @@ export const EventArenaPage: React.FC = () => {
                     <div className="space-y-4">
                       {/* Top Badges */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-white/10 text-white/80 border border-white/10">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-surface-secondary text-label-primary border border-separator">
                           Round {idx + 1} • {asm.type}
                         </span>
 
@@ -459,15 +481,22 @@ export const EventArenaPage: React.FC = () => {
                               <span>In Progress</span>
                             </span>
                           ) : isLockedBySequence ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-white/50 border border-white/10 flex items-center gap-1">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-secondary text-label-tertiary border border-separator flex items-center gap-1">
                               <Lock size={11} />
                               <span>Locked</span>
                             </span>
                           ) : isNotLive ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                              <Clock size={11} />
-                              <span>Waiting for Admin</span>
-                            </span>
+                            isAdmin ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                                <Sparkles size={11} />
+                                <span>Upcoming (Admin Preview)</span>
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                                <Clock size={11} />
+                                <span>Waiting for Admin</span>
+                              </span>
+                            )
                           ) : (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
                               Live Now
@@ -486,34 +515,34 @@ export const EventArenaPage: React.FC = () => {
 
                       {/* Title & Desc */}
                       <div>
-                        <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
+                        <h3 className="text-base font-bold text-label-primary group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                           {asm.title}
                         </h3>
                         {asm.description && (
-                          <p className="text-xs text-white/60 mt-1 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-label-secondary mt-1 line-clamp-2 leading-relaxed">
                             {asm.description}
                           </p>
                         )}
                       </div>
 
                       {/* Stats Pills */}
-                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-white/70">
-                        <div className="p-2 rounded-xl bg-white/5 border border-white/5 flex items-center gap-1.5">
+                      <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-label-secondary">
+                        <div className="p-2 rounded-xl bg-surface-secondary border border-separator flex items-center gap-1.5">
                           <Clock size={12} className="text-purple-400 shrink-0" />
                           <span>{asm.durationMinutes || 60} Mins</span>
                         </div>
-                        <div className="p-2 rounded-xl bg-white/5 border border-white/5 flex items-center gap-1.5">
+                        <div className="p-2 rounded-xl bg-surface-secondary border border-separator flex items-center gap-1.5">
                           <Trophy size={12} className="text-amber-400 shrink-0" />
                           <span>{asm.totalPoints || 100} Pts</span>
                         </div>
                       </div>
 
                       {/* Question Breakdown */}
-                      <div className="flex items-center gap-3 text-xs text-white/50 pt-1">
+                      <div className="flex items-center gap-3 text-xs text-label-tertiary pt-1">
                         {asm.type === 'UI_UX' ? (
                           <span className="text-pink-400 font-semibold flex items-center gap-1.5">
                             <Palette size={13} />
-                            <span>🎨 UI/UX Figma Design Challenge</span>
+                            <span>UI/UX Figma Design Challenge</span>
                           </span>
                         ) : (
                           <>
@@ -524,18 +553,27 @@ export const EventArenaPage: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Score Result if Completed */}
-                      {isCompleted && sub && (
+                      {/* Submission Status if Completed (Scores visible ONLY to admins) */}
+                      {isCompleted && (
                         <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1">
-                          <div className="flex justify-between items-center text-white font-bold">
-                            <span>Your Score:</span>
-                            <span className="font-mono text-emerald-400">
-                              {sub.totalScore} / {sub.maxPossibleScore} ({sub.scorePercentage}%)
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-white/60">
-                            Status: <span className="font-bold text-emerald-400">{sub.isPassed ? 'Passed ✓' : 'Participated'}</span>
-                          </p>
+                          {isAdmin && sub && sub.totalScore !== undefined ? (
+                            <>
+                              <div className="flex justify-between items-center text-label-primary font-bold">
+                                <span>Score (Admin View):</span>
+                                <span className="font-mono text-emerald-400">
+                                  {sub.totalScore} / {sub.maxPossibleScore} ({sub.scorePercentage}%)
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-label-secondary">
+                                Status: <span className="font-bold text-emerald-400">{sub.isPassed ? 'Passed' : 'Participated'}</span>
+                              </p>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                              <CheckCircle2 size={13} className="shrink-0" />
+                              <span>Submission recorded securely & under review</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -543,46 +581,63 @@ export const EventArenaPage: React.FC = () => {
                     {/* Action Button */}
                     <div className="pt-2">
                       {isCompleted ? (
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <Button
+                          color="default"
+                          variant="flat"
+                          onPress={() => {
                             setActiveAssessmentId(asm._id);
                           }}
-                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold"
+                          startContent={<Trophy size={13} className="text-amber-400" />}
                         >
-                          <Trophy size={13} className="text-amber-400" />
-                          <span>View Scorecard</span>
-                        </button>
+                          View Scorecard
+                        </Button>
                       ) : isLockedBySequence ? (
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed"
+                        <Button
+                          isDisabled
+                          variant="bordered"
+                          className="w-full min-h-[42px] rounded-xl border-separator text-label-tertiary text-xs font-bold"
+                          startContent={<Lock size={13} />}
                         >
-                          <Lock size={13} />
-                          <span>Complete Round {idx} First</span>
-                        </button>
+                          Complete Round {idx} First
+                        </Button>
                       ) : isNotLive ? (
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/5 border border-amber-500/25 text-amber-400/80 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed"
-                          title="Assessment will open when admin starts the round"
-                        >
-                          <Clock size={13} />
-                          <span>Waiting for Admin to Start</span>
-                        </button>
+                        isAdmin ? (
+                          <Button
+                            color="secondary"
+                            variant="flat"
+                            onPress={() => {
+                              setActiveAssessmentId(asm._id);
+                            }}
+                            className="w-full min-h-[42px] rounded-xl text-purple-200 text-xs font-bold shadow-lg shadow-purple-600/20"
+                            title="Admin Test Mode: Attend/Preview upcoming assessment"
+                            startContent={<Sparkles size={13} className="text-purple-300" />}
+                          >
+                            Preview Test (Admin Mode)
+                          </Button>
+                        ) : (
+                          <Button
+                            isDisabled
+                            variant="bordered"
+                            className="w-full min-h-[42px] rounded-xl border-amber-500/25 text-amber-400/80 text-xs font-bold"
+                            title="Assessment will open when admin starts the round"
+                            startContent={<Clock size={13} />}
+                          >
+                            Waiting for Admin to Start
+                          </Button>
+                        )
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <Button
+                          color="secondary"
+                          variant="solid"
+                          onPress={() => {
                             setActiveAssessmentId(asm._id);
                           }}
-                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30"
+                          startContent={<Play size={13} />}
                         >
-                          <Play size={13} />
-                          <span>{isInProgress ? 'Resume Assessment' : 'Start Assessment'}</span>
-                        </button>
+                          {isInProgress ? 'Resume Assessment' : 'Start Assessment'}
+                        </Button>
                       )}
                     </div>
                   </motion.div>
@@ -599,23 +654,79 @@ export const EventArenaPage: React.FC = () => {
   // VIEW 2: FULLSCREEN ASSESSMENT WORKSPACE (When activeAssessmentId is chosen)
   // -------------------------------------------------------------------------
   return (
-    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-[#0A0A0D] text-white overflow-hidden select-none">
+    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-canvas text-label-primary overflow-hidden select-none relative">
+      {/* 1. Permanent Block Screen if Assessment is Blocked */}
+      {isAssessmentBlocked && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-3xl bg-black/90 select-none">
+          <EmilCard className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-red-500/40 bg-surface/95 shadow-[0_20px_50px_rgba(239,68,68,0.35)] text-center relative">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5 text-red-400">
+              <ShieldAlert size={28} />
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20 mb-3">
+              Proctoring Violation
+            </div>
+
+            <h3 className="text-xl font-bold tracking-tight text-label-primary mb-2">
+              Assessment Locked
+            </h3>
+
+            <p className="text-xs sm:text-sm text-red-300/90 mb-6 leading-relaxed">
+              {blockedMessage || 'You have been blocked for navigating away. Contact Admin.'}
+            </p>
+
+            <div className="space-y-3">
+              {isAdmin && (
+                <Button
+                  color="secondary"
+                  variant="solid"
+                  onPress={async () => {
+                    await unblockStudent(currentUser?._id || currentUser?.id);
+                    setApiBlocked(false);
+                  }}
+                  className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30"
+                >
+                  Admin Override: Unblock My Attempt
+                </Button>
+              )}
+
+              <Button
+                variant="flat"
+                onPress={handleReturnToHub}
+                className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold"
+              >
+                Return to Events Hub
+              </Button>
+            </div>
+          </EmilCard>
+        </div>
+      )}
+
+      {/* 2. Full-Screen Enforcement Overlay (Disabled for UI/UX Figma rounds) */}
+      {!isAssessmentBlocked && !isDesignRound && (
+        <FullScreenEnforcementOverlay
+          isFullscreen={isFullscreen}
+          onRequestFullscreen={requestFullscreen}
+        />
+      )}
       {/* Top Header Bar */}
-      <header className="min-h-14 py-2 border-b border-white/10 px-3 sm:px-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 bg-[#0F0F14]/90 backdrop-blur-md z-30">
+      <header className="min-h-14 py-2 border-b border-separator px-3 sm:px-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 bg-canvas/90 backdrop-blur-md z-30">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <button
-            onClick={handleReturnToHub}
-            className="px-2.5 py-1.5 min-h-[36px] rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer shrink-0"
+          <Button
+            size="sm"
+            variant="light"
+            onPress={handleReturnToHub}
+            className="rounded-xl text-label-secondary hover:text-label-primary text-xs font-semibold shrink-0"
+            startContent={<ChevronLeft size={16} />}
           >
-            <ChevronLeft size={16} />
             <span className="hidden sm:inline">All Rounds</span>
-          </button>
-          <div className="h-4 w-[1px] bg-white/10 shrink-0" />
+          </Button>
+          <div className="h-4 w-[1px] bg-surface-secondary shrink-0" />
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
               <Sparkles size={14} />
             </span>
-            <span className="font-bold text-xs sm:text-sm text-white truncate max-w-[120px] sm:max-w-md">
+            <span className="font-bold text-xs sm:text-sm text-label-primary truncate max-w-[120px] sm:max-w-md">
               {selectedAssessment?.title || currentEvent?.title || 'Arena Assessment'}
             </span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase shrink-0">
@@ -643,90 +754,159 @@ export const EventArenaPage: React.FC = () => {
             className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-mono font-bold border transition-colors ${
               remainingSeconds < 300
                 ? 'bg-rose-500/15 border-rose-500/30 text-rose-400 animate-pulse'
-                : 'bg-white/5 border-white/10 text-white/90'
+                : 'bg-surface-secondary border-separator text-label-primary'
             }`}
           >
             <Clock size={13} className={remainingSeconds < 300 ? 'text-rose-400' : 'text-purple-400'} />
             <span>{formatTimer(remainingSeconds)}</span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowSubmitConfirm(true)}
-            className="px-3.5 sm:px-4 py-1.5 min-h-[36px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+          <Button
+            size="sm"
+            color="secondary"
+            variant="solid"
+            onPress={() => setShowSubmitConfirm(true)}
+            className="rounded-xl text-white text-xs font-bold shadow-md shadow-purple-600/30"
+            startContent={<Send size={13} />}
           >
-            <Send size={13} />
-            <span>Finish Round</span>
-          </button>
+            Finish Round
+          </Button>
         </div>
       </header>
 
       {/* Main Workspace */}
       {selectedAssessment?.type === 'UI_UX' ? (
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#F5F5F7] dark:bg-[#000000]">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-canvas">
           {/* Left Column: Design Brief & Reference Mockup */}
-          <div className="w-full lg:w-1/2 border-r border-black/5 dark:border-white/10 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-6 bg-[#FFFFFF] dark:bg-[#161617]">
-            {/* Header info */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-                  <Palette size={18} />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-white">Design Challenge Brief</h2>
-                  <p className="text-[11px] text-white/50">UI/UX Design & Prototype Specification</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg bg-pink-500/10 border border-pink-500/25 text-pink-300 text-xs font-bold">
-                  {studentDesignChallenge?.totalPoints || selectedAssessment.totalPoints || 100} Points
-                </span>
-              </div>
+          <div className="w-full lg:w-1/2 border-r border-separator flex flex-col overflow-y-auto p-4 sm:p-6 space-y-6 bg-surface">
+            {/* Tab switch permitted notice for Figma */}
+            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2.5 text-xs text-emerald-300">
+              <Sparkles size={15} className="text-emerald-400 shrink-0" />
+              <span><strong>Figma / UI-UX Round:</strong> Tab switching restrictions are disabled. You can freely switch between this page and Figma to create your design.</span>
             </div>
 
-            {/* Reference Mockup Image */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <ImageIcon size={13} className="text-purple-400" />
-                  <span>Reference Design Mockup</span>
-                </label>
-                {studentDesignChallenge?.referenceImageUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setPreviewReferenceImg(studentDesignChallenge.referenceImageUrl || null)}
-                    className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer py-1"
-                  >
-                    <Maximize2 size={12} />
-                    <span>Enlarge</span>
-                  </button>
-                )}
-              </div>
-
-              {studentDesignChallenge?.referenceImageUrl ? (
-                <div
-                  onClick={() => setPreviewReferenceImg(studentDesignChallenge.referenceImageUrl || null)}
-                  className="group relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 cursor-zoom-in hover:border-purple-500/40 transition-all max-h-80 flex items-center justify-center"
-                >
-                  <img
-                    src={studentDesignChallenge.referenceImageUrl}
-                    alt="Design Challenge Reference Mockup"
-                    className="w-full h-full object-contain max-h-80 group-hover:scale-[1.02] transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 text-white font-semibold text-xs transition-opacity backdrop-blur-[2px]">
-                    <Maximize2 size={16} />
-                    <span>Click to Zoom / Lightbox</span>
+            {/* Multiple Challenge Picker (If admin configured multiple options) */}
+            {(() => {
+              const allChallenges = studentDesignChallenges?.length ? studentDesignChallenges : (studentDesignChallenge ? [studentDesignChallenge] : []);
+              if (allChallenges.length <= 1) return null;
+              return (
+                <div className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-label-primary flex items-center gap-1.5">
+                      <Palette size={13} className="text-pink-400" /> Choose 1 Design Challenge ({allChallenges.length} Options)
+                    </span>
+                    <span className="text-[10px] text-pink-300 bg-pink-500/10 px-2 py-0.5 rounded-full font-semibold">
+                      Select any 1 to solve
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {allChallenges.map((ch: any, chIdx: number) => {
+                      const isSelected = selectedDesignIdx === chIdx;
+                      const isPrevChosen = (submission?.designSubmission as any)?.selectedChallengeTitle === ch.title;
+                      return (
+                        <div
+                          key={chIdx}
+                          onClick={() => setSelectedDesignIdx(chIdx)}
+                          className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            isSelected
+                              ? 'bg-pink-500/15 border-pink-500/50 text-white shadow-xs'
+                              : 'bg-surface-secondary border-separator text-label-secondary hover:bg-surface-secondary'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 w-full">
+                            <span className="text-xs font-bold line-clamp-1">Option {chIdx + 1}: {ch.title}</span>
+                            {isSelected && <CheckCircle size={13} className="text-pink-400 shrink-0" />}
+                          </div>
+                          {ch.description && (
+                            <p className="text-[10px] text-label-tertiary line-clamp-1">{ch.description}</p>
+                          )}
+                          {isPrevChosen && (
+                            <span className="text-[9px] text-emerald-400 font-bold inline-flex items-center gap-1">
+                              <Star size={10} className="fill-emerald-400 text-emerald-400 shrink-0" />
+                              <span>Selected for submission</span>
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ) : (
-                <div className="p-8 rounded-2xl bg-white/5 border border-dashed border-white/15 text-center text-white/40 space-y-1.5">
-                  <ImageIcon size={28} className="mx-auto text-white/20" />
-                  <p className="text-xs font-semibold text-white/60">No Reference Image Provided</p>
-                  <p className="text-[11px] text-white/40">Refer to the problem statement and deliverables below to craft your design.</p>
+              );
+            })()}
+            {/* Header info */}
+            {(() => {
+              const allChallenges = studentDesignChallenges?.length ? studentDesignChallenges : (studentDesignChallenge ? [studentDesignChallenge] : []);
+              const currentChallenge = allChallenges[selectedDesignIdx] || studentDesignChallenge;
+              return (
+                <div className="flex items-center justify-between pb-4 border-b border-separator">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
+                      <Palette size={18} />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-label-primary">{currentChallenge?.title || 'Design Challenge Brief'}</h2>
+                      <p className="text-[11px] text-label-tertiary">UI/UX Design & Prototype Specification</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-lg bg-pink-500/10 border border-pink-500/25 text-pink-300 text-xs font-bold">
+                      {currentChallenge?.totalPoints || currentChallenge?.points || selectedAssessment?.totalPoints || 100} Points
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
+              );
+            })()}
+
+            {/* Reference Mockup Image */}
+            {(() => {
+              const allChallenges = studentDesignChallenges?.length ? studentDesignChallenges : (studentDesignChallenge ? [studentDesignChallenge] : []);
+              const currentChallenge = allChallenges[selectedDesignIdx] || studentDesignChallenge;
+              const refImg = currentChallenge?.referenceImageUrl || currentChallenge?.designImageUrl;
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
+                      <ImageIcon size={13} className="text-purple-400" />
+                      <span>Reference Design Mockup</span>
+                    </label>
+                    {refImg && (
+                      <Button
+                        size="sm"
+                        variant="light"
+                        onPress={() => setPreviewReferenceImg(refImg)}
+                        className="text-[11px] text-purple-400 hover:text-purple-300 font-semibold p-1 h-auto"
+                        startContent={<Maximize2 size={12} />}
+                      >
+                        Enlarge
+                      </Button>
+                    )}
+                  </div>
+
+                  {refImg ? (
+                    <div
+                      onClick={() => setPreviewReferenceImg(refImg)}
+                      className="group relative rounded-2xl overflow-hidden border border-separator bg-black/40 cursor-zoom-in hover:border-purple-500/40 transition-all max-h-80 flex items-center justify-center"
+                    >
+                      <img
+                        src={refImg}
+                        alt="Design Challenge Reference Mockup"
+                        className="w-full h-full object-contain max-h-80 group-hover:scale-[1.02] transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 text-white font-semibold text-xs transition-opacity backdrop-blur-[2px]">
+                        <Maximize2 size={16} />
+                        <span>Click to Zoom / Lightbox</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-8 rounded-2xl bg-surface-secondary border border-dashed border-separator text-center text-label-tertiary space-y-1.5">
+                      <ImageIcon size={28} className="mx-auto text-label-tertiary" />
+                      <p className="text-xs font-semibold text-label-secondary">No Reference Image Provided</p>
+                      <p className="text-[11px] text-label-tertiary">Refer to the problem statement and deliverables below to craft your design.</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Starter Figma Kit Link */}
             {studentDesignChallenge?.figmaStarterUrl && (
@@ -741,10 +921,10 @@ export const EventArenaPage: React.FC = () => {
                     F
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors">
+                    <p className="text-xs font-bold text-label-primary group-hover:text-purple-300 transition-colors">
                       Starter Figma Template / Design Kit
                     </p>
-                    <p className="text-[10px] text-white/50">Duplicate or copy components to kickstart your work</p>
+                    <p className="text-[10px] text-label-tertiary">Duplicate or copy components to kickstart your work</p>
                   </div>
                 </div>
                 <ExternalLink size={14} className="text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -753,11 +933,11 @@ export const EventArenaPage: React.FC = () => {
 
             {/* Problem Statement */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+              <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                 <FileText size={13} className="text-blue-400" />
                 <span>Problem Statement & Brief</span>
               </label>
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-white/80 leading-relaxed whitespace-pre-wrap">
+              <div className="p-4 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary leading-relaxed whitespace-pre-wrap">
                 {studentDesignChallenge?.problemStatement || 'No challenge description provided.'}
               </div>
             </div>
@@ -765,13 +945,13 @@ export const EventArenaPage: React.FC = () => {
             {/* Expected Deliverables */}
             {studentDesignChallenge?.deliverables && studentDesignChallenge.deliverables.length > 0 && (
               <div className="space-y-2">
-                <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                   <CheckCircle size={13} className="text-emerald-400" />
                   <span>Expected Deliverables</span>
                 </label>
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                <div className="p-4 rounded-2xl bg-surface-secondary border border-separator space-y-2">
                   {studentDesignChallenge.deliverables.map((del, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-xs text-white/80">
+                    <div key={i} className="flex items-start gap-2.5 text-xs text-label-primary">
                       <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
                       <span>{del}</span>
                     </div>
@@ -783,7 +963,7 @@ export const EventArenaPage: React.FC = () => {
             {/* Rubric / Evaluation Criteria */}
             {studentDesignChallenge?.rubric && (
               <div className="space-y-2">
-                <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
                   <Info size={13} className="text-amber-400" />
                   <span>Evaluation Criteria & Guidelines</span>
                 </label>
@@ -795,18 +975,18 @@ export const EventArenaPage: React.FC = () => {
           </div>
 
           {/* Right Column: Submission & Live Figma Interactive Embed */}
-          <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-5 bg-[#0D0D11]">
+          <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto p-4 sm:p-6 space-y-5 bg-canvas">
             {/* Header & Status */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+            <div className="flex items-center justify-between pb-4 border-b border-separator">
               <div>
-                <h2 className="text-sm font-bold text-white">Your Figma Submission</h2>
-                <p className="text-[11px] text-white/50">Submit your prototype link for evaluation</p>
+                <h2 className="text-sm font-bold text-label-primary">Your Figma Submission</h2>
+                <p className="text-[11px] text-label-tertiary">Submit your prototype link for evaluation</p>
               </div>
 
               {submission?.designSubmission?.isEvaluated ? (
                 <div className="px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1.5">
                   <Award size={13} />
-                  <span>Graded: {submission.designSubmission.pointsEarned} / {studentDesignChallenge?.totalPoints || 100} pts</span>
+                  <span>{isAdmin ? `Graded: ${submission.designSubmission.pointsEarned} / ${studentDesignChallenge?.totalPoints || 100} pts` : 'Evaluated by Faculty'}</span>
                 </div>
               ) : submission?.designSubmission?.submittedAt ? (
                 <div className="px-3 py-1 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center gap-1.5">
@@ -827,16 +1007,16 @@ export const EventArenaPage: React.FC = () => {
                   <Award size={13} />
                   <span>Faculty Feedback & Review</span>
                 </p>
-                <p className="text-xs text-white/80 leading-relaxed">
+                <p className="text-xs text-label-primary leading-relaxed">
                   {submission.designSubmission.feedback}
                 </p>
               </div>
             )}
 
             {/* Figma Link & Notes Form */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface-secondary border border-separator space-y-4">
               <div>
-                <label className="text-xs font-bold text-white flex items-center gap-1.5 mb-1.5">
+                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5 mb-1.5">
                   <ExternalLink size={13} className="text-purple-400" />
                   <span>Figma File / Prototype Share Link</span>
                   <span className="text-rose-400">*</span>
@@ -846,31 +1026,31 @@ export const EventArenaPage: React.FC = () => {
                   value={studentFigmaLink}
                   onChange={(e) => setStudentFigmaLink(e.target.value)}
                   placeholder="https://www.figma.com/file/... or /design/... or /proto/..."
-                  className="w-full px-3.5 py-2.5 min-h-[42px] rounded-xl bg-black/40 border border-white/10 text-white text-xs placeholder:text-white/30 focus:outline-none focus:border-purple-500 font-mono transition-all"
+                  className="w-full px-3.5 py-2.5 min-h-10.5 rounded-xl bg-surface-secondary border border-separator text-label-primary text-xs placeholder:text-label-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring font-mono transition-all"
                 />
-                <p className="text-[10px] text-white/40 mt-1 flex items-center gap-1">
-                  <Info size={11} className="text-white/40" />
+                <p className="text-[10px] text-label-tertiary mt-1 flex items-center gap-1">
+                  <Info size={11} className="text-label-tertiary" />
                   <span>Make sure Figma permissions are set to <strong>"Anyone with the link can view"</strong></span>
                 </p>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-white flex items-center gap-1.5 mb-1.5">
+                <label className="text-xs font-bold text-label-primary flex items-center gap-1.5 mb-1.5">
                   <FileText size={13} className="text-blue-400" />
                   <span>Design Rationale & Notes</span>
-                  <span className="text-white/40 font-normal">(Optional)</span>
+                  <span className="text-label-tertiary font-normal">(Optional)</span>
                 </label>
                 <textarea
                   rows={3}
                   value={studentDesignNotes}
                   onChange={(e) => setStudentDesignNotes(e.target.value)}
                   placeholder="Explain your design thinking, component architecture, color choices, and interaction user flow..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs placeholder:text-white/30 focus:outline-none focus:border-purple-500 transition-all resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-label-primary text-xs placeholder:text-label-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-ring transition-all resize-none"
                 />
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <div className="text-[11px] text-white/50">
+                <div className="text-[11px] text-label-tertiary">
                   {submission?.designSubmission?.submittedAt ? (
                     <span className="text-emerald-400 font-medium flex items-center gap-1">
                       <CheckCircle size={12} /> Previously submitted at {new Date(submission.designSubmission.submittedAt).toLocaleTimeString()}. Updates allowed anytime.
@@ -880,31 +1060,32 @@ export const EventArenaPage: React.FC = () => {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={handleStudentDesignSubmit}
-                  className="px-5 py-2.5 min-h-[42px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                <Button
+                  color="secondary"
+                  variant="solid"
+                  isDisabled={actionLoading}
+                  onPress={handleStudentDesignSubmit}
+                  className="min-h-10.5 rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30 shrink-0"
+                  startContent={actionLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                 >
-                  {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                  <span>{submission?.designSubmission?.submittedAt ? 'Update Submission' : 'Submit Figma Link'}</span>
-                </button>
+                  {submission?.designSubmission?.submittedAt ? 'Update Submission' : 'Submit Figma Link'}
+                </Button>
               </div>
             </div>
 
             {/* Live Interactive Figma Embed */}
-            <div className="flex-1 min-h-[380px] sm:min-h-[440px] flex flex-col rounded-2xl bg-black/40 border border-white/10 overflow-hidden shadow-inner">
-              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-[#121216]">
+            <div className="flex-1 min-h-95 sm:min-h-110 flex flex-col rounded-2xl bg-black/40 border border-separator overflow-hidden shadow-inner">
+              <div className="px-4 py-3 border-b border-separator flex items-center justify-between bg-surface-secondary">
                 <div className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${studentFigmaLink.trim().includes('figma.com') ? 'bg-purple-500 animate-pulse' : 'bg-white/20'}`} />
-                  <span className="text-xs font-bold text-white">Live Figma Prototype Preview</span>
+                  <span className="text-xs font-bold text-label-primary">Live Figma Prototype Preview</span>
                 </div>
                 {studentFigmaLink.trim().includes('figma.com') && (
                   <a
                     href={studentFigmaLink.trim()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all"
+                    className="px-3 py-1.5 rounded-lg bg-surface-secondary hover:bg-surface-secondary text-label-primary hover:text-label-primary text-[11px] font-semibold flex items-center gap-1.5 transition-all"
                   >
                     <ExternalLink size={12} />
                     <span>Open in Figma</span>
@@ -913,22 +1094,22 @@ export const EventArenaPage: React.FC = () => {
               </div>
 
               {studentFigmaLink.trim().includes('figma.com') ? (
-                <div className="flex-1 w-full min-h-[380px] sm:min-h-[440px] relative bg-black">
+                <div className="flex-1 w-full min-h-95 sm:min-h-110 relative bg-black">
                   <iframe
                     title="Student Figma Submission Preview"
                     src={`https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(studentFigmaLink.trim())}`}
-                    className="w-full h-full min-h-[380px] sm:min-h-[440px] border-0"
+                    className="w-full h-full min-h-95 sm:min-h-110 border-0"
                     allowFullScreen
                   />
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-white/40 space-y-3">
-                  <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-purple-400">
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-label-tertiary space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-center text-purple-400">
                     <Palette size={26} />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-white/70">No Figma Link Provided Yet</p>
-                    <p className="text-[11px] text-white/40 max-w-sm mt-1">
+                    <p className="text-xs font-semibold text-label-secondary">No Figma Link Provided Yet</p>
+                    <p className="text-[11px] text-label-tertiary max-w-sm mt-1">
                       Enter your public Figma share link in the field above to interact with and preview your design directly inside the arena.
                     </p>
                   </div>
@@ -940,49 +1121,32 @@ export const EventArenaPage: React.FC = () => {
       ) : (
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left / Top Navigation Palette (MCQ vs Coding & Question Buttons) */}
-          <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-[#0D0D11] shrink-0">
-            {/* Section Switcher Tabs (MCQ vs Coding) */}
-            <div className="p-2.5 sm:p-3 border-b border-white/10 flex gap-1.5 bg-[#121216]">
-              {studentMcqs.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedType('mcq');
-                    setSelectedIndex(0);
-                  }}
-                  className={`flex-1 py-2 min-h-[36px] rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    selectedType === 'mcq'
-                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                      : 'text-white/60 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <HelpCircle size={13} />
-                  <span>MCQs ({studentMcqs.length})</span>
-                </button>
-              )}
-
-              {studentCoding.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedType('coding');
-                    setSelectedIndex(0);
-                  }}
-                  className={`flex-1 py-2 min-h-[36px] rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    selectedType === 'coding'
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                      : 'text-white/60 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Code2 size={13} />
-                  <span>Coding ({studentCoding.length})</span>
-                </button>
-              )}
+          <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-separator flex flex-col bg-canvas shrink-0">
+            {/* Section Switcher Tabs (MCQ vs Coding) with Emil Kowalski sub-300ms spring physics */}
+            <div className="p-2 sm:p-2.5 border-b border-separator flex justify-center bg-surface-secondary">
+              <HeroTabs
+                size="sm"
+                selectedKey={selectedType}
+                onSelectionChange={(key) => {
+                  setSelectedType(key as 'mcq' | 'coding');
+                  setSelectedIndex(0);
+                }}
+                motionProps={{ transition: { type: 'spring', stiffness: 260, damping: 30 } }}
+                className="w-full flex"
+                items={[
+                  ...(studentMcqs.length > 0
+                    ? [{ id: 'mcq', label: `MCQs (${studentMcqs.length})`, icon: <HelpCircle size={13} /> }]
+                    : []),
+                  ...(studentCoding.length > 0
+                    ? [{ id: 'coding', label: `Coding (${studentCoding.length})`, icon: <Code2 size={13} /> }]
+                    : []),
+                ]}
+              />
             </div>
 
             {/* Question Palette Grid (Horizontal scroll on mobile, vertical grid on desktop) */}
             <div className="p-3 md:p-4 space-y-2 md:space-y-4 md:flex-1 md:overflow-y-auto">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-white/50 hidden md:block">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary hidden md:block">
                 {selectedType === 'mcq' ? 'Questions' : 'Challenges'}
               </span>
 
@@ -992,40 +1156,46 @@ export const EventArenaPage: React.FC = () => {
                       const isAnswered = q._id && mcqAnswers[q._id] !== undefined;
                       const isCurrent = selectedIndex === idx;
                       return (
-                        <button
+                        <Button
                           key={idx}
-                          type="button"
-                          onClick={() => setSelectedIndex(idx)}
-                          className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer shrink-0 ${
+                          isIconOnly
+                          size="sm"
+                          variant={isCurrent ? 'solid' : isAnswered ? 'flat' : 'bordered'}
+                          color={isCurrent ? 'secondary' : isAnswered ? 'success' : 'default'}
+                          onPress={() => setSelectedIndex(idx)}
+                          className={`w-9 h-9 min-w-9 min-h-9 rounded-xl text-xs font-bold font-mono shrink-0 ${
                             isCurrent
-                              ? 'ring-2 ring-purple-400 bg-purple-600 text-white'
-                              : isAnswered
-                              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                              : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                              ? 'ring-2 ring-purple-400'
+                              : !isAnswered
+                              ? 'border-separator text-label-secondary hover:bg-surface-secondary'
+                              : ''
                           }`}
                         >
                           {idx + 1}
-                        </button>
+                        </Button>
                       );
                     })
                   : studentCoding.map((p, idx) => {
                       const isPassed = p._id && problemStatusMap[p._id]?.status === 'ACCEPTED';
                       const isCurrent = selectedIndex === idx;
                       return (
-                        <button
+                        <Button
                           key={idx}
-                          type="button"
-                          onClick={() => setSelectedIndex(idx)}
-                          className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer shrink-0 ${
+                          isIconOnly
+                          size="sm"
+                          variant={isCurrent ? 'solid' : isPassed ? 'flat' : 'bordered'}
+                          color={isCurrent ? 'primary' : isPassed ? 'success' : 'default'}
+                          onPress={() => setSelectedIndex(idx)}
+                          className={`w-9 h-9 min-w-9 min-h-9 rounded-xl text-xs font-bold font-mono shrink-0 ${
                             isCurrent
-                              ? 'ring-2 ring-blue-400 bg-blue-600 text-white'
-                              : isPassed
-                              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                              : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                              ? 'ring-2 ring-blue-400'
+                              : !isPassed
+                              ? 'border-separator text-label-secondary hover:bg-surface-secondary'
+                              : ''
                           }`}
                         >
                           {idx + 1}
-                        </button>
+                        </Button>
                       );
                     })}
               </div>
@@ -1034,19 +1204,19 @@ export const EventArenaPage: React.FC = () => {
 
           {/* Center / Right Content Panel */}
           {selectedType === 'mcq' && currentMcq && (
-            <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-8 md:p-10 bg-[#0F0F14]">
+            <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-8 md:p-10 bg-canvas">
               <div className="max-w-3xl mx-auto w-full space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                <div className="flex items-center justify-between pb-4 border-b border-separator">
                   <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
                     Question {selectedIndex + 1} of {studentMcqs.length}
                   </span>
-                  <span className="text-xs font-mono text-white/60">
+                  <span className="text-xs font-mono text-label-secondary">
                     {currentMcq.points || 10} Points
                   </span>
                 </div>
 
-                <div className="p-4 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
-                  <h3 className="text-base sm:text-lg font-bold text-white leading-relaxed break-words">
+                <div className="p-4 sm:p-6 rounded-2xl bg-white/2 border border-separator space-y-3">
+                  <h3 className="text-base sm:text-lg font-bold text-label-primary leading-relaxed wrap-break-word">
                     {currentMcq.question}
                   </h3>
                 </div>
@@ -1060,17 +1230,17 @@ export const EventArenaPage: React.FC = () => {
                       <div
                         key={optIdx}
                         onClick={() => currentMcq._id && handleSelectMcqOption(currentMcq._id, optIdx)}
-                        className={`p-3.5 sm:p-4 min-h-[46px] rounded-xl border flex items-center gap-3.5 cursor-pointer transition-all ${
+                        className={`p-3.5 sm:p-4 min-h-11.5 rounded-xl border flex items-center gap-3.5 cursor-pointer transition-all ${
                           isSelected
                             ? 'bg-purple-600/20 border-purple-500 text-white shadow-md shadow-purple-600/15'
-                            : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-white/80 hover:bg-white/[0.04]'
+                            : 'bg-white/2 border-separator hover:border-separator text-label-primary hover:bg-white/4'
                         }`}
                       >
                         <div
                           className={`w-6 h-6 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 border ${
                             isSelected
                               ? 'bg-purple-600 border-purple-500 text-white'
-                              : 'border-white/20 text-white/60'
+                              : 'border-separator text-label-secondary'
                           }`}
                         >
                           {String.fromCharCode(65 + optIdx)}
@@ -1083,25 +1253,27 @@ export const EventArenaPage: React.FC = () => {
 
                 {/* Next/Prev Navigation */}
                 <div className="pt-6 flex justify-between">
-                  <button
-                    type="button"
-                    disabled={selectedIndex === 0}
-                    onClick={() => setSelectedIndex((prev) => Math.max(0, prev - 1))}
-                    className="px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 disabled:opacity-30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  <Button
+                    size="sm"
+                    variant="bordered"
+                    isDisabled={selectedIndex === 0}
+                    onPress={() => setSelectedIndex((prev) => Math.max(0, prev - 1))}
+                    className="min-h-10 rounded-xl text-xs font-bold text-label-secondary border-separator hover:bg-surface-secondary"
+                    startContent={<ChevronLeft size={16} />}
                   >
-                    <ChevronLeft size={16} />
-                    <span>Previous</span>
-                  </button>
+                    Previous
+                  </Button>
 
-                  <button
-                    type="button"
-                    disabled={selectedIndex >= studentMcqs.length - 1}
-                    onClick={() => setSelectedIndex((prev) => Math.min(studentMcqs.length - 1, prev + 1))}
-                    className="px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 disabled:opacity-30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  <Button
+                    size="sm"
+                    variant="bordered"
+                    isDisabled={selectedIndex >= studentMcqs.length - 1}
+                    onPress={() => setSelectedIndex((prev) => Math.min(studentMcqs.length - 1, prev + 1))}
+                    className="min-h-10 rounded-xl text-xs font-bold text-label-secondary border-separator hover:bg-surface-secondary"
+                    endContent={<ChevronRight size={16} />}
                   >
-                    <span>Next</span>
-                    <ChevronRight size={16} />
-                  </button>
+                    Next
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1110,8 +1282,8 @@ export const EventArenaPage: React.FC = () => {
           {selectedType === 'coding' && currentCoding && (
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               {/* Left Column: Problem Statement */}
-              <div className="w-full lg:w-1/2 overflow-y-auto p-4 sm:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-white/10 bg-[#0E0E12] max-h-72 lg:max-h-none shrink-0 lg:shrink">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="w-full lg:w-1/2 overflow-y-auto p-4 sm:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-separator bg-surface max-h-72 lg:max-h-none shrink-0 lg:shrink">
+                <div className="flex items-center justify-between pb-3 border-b border-separator">
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
                       Challenge {selectedIndex + 1}
@@ -1128,22 +1300,22 @@ export const EventArenaPage: React.FC = () => {
                       {currentCoding.difficulty}
                     </span>
                   </div>
-                  <span className="text-xs font-mono text-white/60">
+                  <span className="text-xs font-mono text-label-secondary">
                     {currentCoding.points || 30} Points
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-white">{currentCoding.title}</h3>
-                  <p className="text-xs text-white/80 mt-2 leading-relaxed whitespace-pre-line">
+                  <h3 className="text-base sm:text-lg font-bold text-label-primary">{currentCoding.title}</h3>
+                  <p className="text-xs text-label-primary mt-2 leading-relaxed whitespace-pre-line">
                     {currentCoding.description}
                   </p>
                 </div>
 
                 {currentCoding.inputFormat && (
                   <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-white/80">Input Format</h4>
-                    <p className="text-xs text-white/60 font-mono bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <h4 className="text-xs font-bold text-label-primary">Input Format</h4>
+                    <p className="text-xs text-label-secondary font-mono bg-surface-secondary p-2.5 rounded-xl border border-separator">
                       {currentCoding.inputFormat}
                     </p>
                   </div>
@@ -1151,8 +1323,8 @@ export const EventArenaPage: React.FC = () => {
 
                 {currentCoding.outputFormat && (
                   <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-white/80">Output Format</h4>
-                    <p className="text-xs text-white/60 font-mono bg-white/5 p-2.5 rounded-xl border border-white/5">
+                    <h4 className="text-xs font-bold text-label-primary">Output Format</h4>
+                    <p className="text-xs text-label-secondary font-mono bg-surface-secondary p-2.5 rounded-xl border border-separator">
                       {currentCoding.outputFormat}
                     </p>
                   </div>
@@ -1161,14 +1333,14 @@ export const EventArenaPage: React.FC = () => {
                 {/* Sample I/O */}
                 <div className="space-y-3 pt-2">
                   <div className="space-y-1">
-                    <h4 className="text-[11px] font-bold text-white/70">Sample Input</h4>
-                    <pre className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto">
+                    <h4 className="text-[11px] font-bold text-label-secondary">Sample Input</h4>
+                    <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
                       {currentCoding.sampleInput || '(No input required)'}
                     </pre>
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-[11px] font-bold text-white/70">Sample Output</h4>
-                    <pre className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 overflow-x-auto">
+                    <h4 className="text-[11px] font-bold text-label-secondary">Sample Output</h4>
+                    <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
                       {currentCoding.sampleOutput || ''}
                     </pre>
                   </div>
@@ -1176,18 +1348,18 @@ export const EventArenaPage: React.FC = () => {
               </div>
 
               {/* Right Column: Monaco Code Editor & Terminal */}
-              <div className="w-full lg:w-1/2 flex flex-col flex-1 bg-[#111114] min-h-[320px]">
+              <div className="w-full lg:w-1/2 flex flex-col flex-1 bg-surface min-h-80">
                 {/* Language Toolbar */}
-                <div className="h-11 px-3 sm:px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#141418]">
+                <div className="h-11 px-3 sm:px-4 border-b border-separator flex items-center justify-between shrink-0 bg-surface">
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="text-[11px] font-bold text-white/60 hidden sm:inline">Language:</span>
+                    <span className="text-[11px] font-bold text-label-secondary hidden sm:inline">Language:</span>
                     <select
                       value={currentLanguage}
                       onChange={(e) => setCurrentLanguage(e.target.value)}
-                      className="px-2 sm:px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-bold text-white outline-none cursor-pointer"
+                      className="px-2 sm:px-2.5 py-1 rounded-lg bg-surface-secondary border border-separator text-xs font-bold text-label-primary outline-none cursor-pointer"
                     >
                       {['python', 'javascript', 'cpp', 'java', 'c'].map((lang) => (
-                        <option key={lang} value={lang} className="bg-[#1A1A1E]">
+                        <option key={lang} value={lang} className="bg-surface-secondary">
                           {LANG_DISPLAY_NAMES[lang]}
                         </option>
                       ))}
@@ -1195,34 +1367,33 @@ export const EventArenaPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <button
-                      type="button"
-                      disabled={isExecuting}
-                      onClick={handleRunCode}
-                      className="px-2.5 sm:px-3 py-1.5 min-h-[34px] rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      isDisabled={isExecuting}
+                      onPress={handleRunCode}
+                      className="rounded-xl text-white text-xs font-bold"
+                      startContent={isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
                     >
-                      {isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
-                      <span>Run</span>
-                    </button>
+                      Run
+                    </Button>
 
-                    <button
-                      type="button"
-                      disabled={isSubmittingProblem}
-                      onClick={handleSubmitProblem}
-                      className="px-3 sm:px-3.5 py-1.5 min-h-[34px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    <Button
+                      size="sm"
+                      color="secondary"
+                      variant="solid"
+                      isDisabled={isSubmittingProblem}
+                      onPress={handleSubmitProblem}
+                      className="rounded-xl text-white text-xs font-bold shadow-md shadow-purple-600/20"
+                      startContent={isSubmittingProblem ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                     >
-                      {isSubmittingProblem ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <Send size={12} />
-                      )}
-                      <span>Submit</span>
-                    </button>
+                      Submit
+                    </Button>
                   </div>
                 </div>
 
                 {/* Monaco Editor */}
-                <div className="flex-1 overflow-hidden min-h-[200px]">
+                <div className="flex-1 overflow-hidden min-h-50">
                   <Editor
                     height="100%"
                     language={MONACO_LANG_MAP[currentLanguage] || 'python'}
@@ -1245,7 +1416,7 @@ export const EventArenaPage: React.FC = () => {
                     }}
                     options={{
                       fontSize: 13,
-                      fontFamily: 'Fira Code, Menlo, Monaco, monospace',
+                      fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, Monaco, monospace",
                       minimap: { enabled: false },
                       scrollBeyondLastLine: false,
                       automaticLayout: true,
@@ -1257,18 +1428,22 @@ export const EventArenaPage: React.FC = () => {
 
                 {/* Terminal / Run Results Drawer */}
                 {runResults && (
-                  <div className="h-44 border-t border-white/10 bg-[#0C0C0E] p-3 overflow-y-auto space-y-2 shrink-0 font-mono text-xs">
-                    <div className="flex items-center justify-between pb-1 border-b border-white/5">
-                      <span className="font-bold text-white/70 flex items-center gap-1.5">
+                  <div className="h-44 border-t border-separator bg-canvas p-3 overflow-y-auto space-y-2 shrink-0 font-mono text-xs">
+                    <div className="flex items-center justify-between pb-1 border-b border-separator">
+                      <span className="font-bold text-label-secondary flex items-center gap-1.5">
                         <Terminal size={13} />
                         <span>Execution Output</span>
                       </span>
-                      <button
-                        onClick={() => setRunResults(null)}
-                        className="text-white/40 hover:text-white p-1"
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        aria-label="Close execution output"
+                        onPress={() => setRunResults(null)}
+                        className="text-label-tertiary hover:text-label-primary p-1 min-w-6 h-6"
                       >
-                        ✕
-                      </button>
+                        <X size={14} />
+                      </Button>
                     </div>
 
                     {runResults.map((res, i) => (
@@ -1282,11 +1457,11 @@ export const EventArenaPage: React.FC = () => {
                       >
                         <div className="flex items-center justify-between font-bold">
                           <span>
-                            Test Case #{res.testCaseNumber}: {res.passed ? 'PASSED ✓' : 'FAILED ✗'}
+                            Test Case #{res.testCaseNumber}: {res.passed ? 'PASSED' : 'FAILED'}
                           </span>
-                          <span className="text-[10px] text-white/50">{res.executionTimeMs}ms</span>
+                          <span className="text-[10px] text-label-tertiary">{res.executionTimeMs}ms</span>
                         </div>
-                        <div className="mt-1 space-y-0.5 text-[11px] text-white/80">
+                        <div className="mt-1 space-y-0.5 text-[11px] text-label-primary">
                           <p>
                             Expected: <span className="text-white">{res.expectedOutput}</span>
                           </p>
@@ -1308,42 +1483,42 @@ export const EventArenaPage: React.FC = () => {
       {/* SUBMIT CONFIRMATION MODAL */}
       {showSubmitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
-          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="bg-surface border border-separator rounded-3xl p-6 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
               <Send size={18} className="text-purple-400" />
               <span>Submit Assessment Round?</span>
             </h3>
 
-            <p className="text-xs text-white/70 leading-relaxed">
+            <p className="text-xs text-label-secondary leading-relaxed">
               {selectedAssessment?.type === 'UI_UX'
                 ? `Are you sure you want to finalize "${selectedAssessment?.title}"? Your Figma link and design notes will be recorded for evaluation.`
                 : `Are you sure you want to finalize "${selectedAssessment?.title}"? All your MCQ choices and coding submissions will be evaluated and recorded.`}
             </p>
 
             {selectedAssessment?.type === 'UI_UX' ? (
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-xs space-y-1.5">
-                <div className="flex justify-between text-white/80">
+              <div className="p-3 rounded-2xl bg-surface-secondary border border-separator text-xs space-y-1.5">
+                <div className="flex justify-between text-label-primary">
                   <span>Figma Prototype Link:</span>
                   <span className={`font-bold ${studentFigmaLink.trim() ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {studentFigmaLink.trim() ? 'Provided ✓' : 'Missing ✗'}
+                    {studentFigmaLink.trim() ? 'Provided' : 'Missing'}
                   </span>
                 </div>
-                <div className="flex justify-between text-white/80">
+                <div className="flex justify-between text-label-primary">
                   <span>Design Notes:</span>
                   <span className="font-bold text-purple-400">
-                    {studentDesignNotes.trim() ? 'Included ✓' : 'None'}
+                    {studentDesignNotes.trim() ? 'Included' : 'None'}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-xs space-y-1.5">
-                <div className="flex justify-between text-white/80">
+              <div className="p-3 rounded-2xl bg-surface-secondary border border-separator text-xs space-y-1.5">
+                <div className="flex justify-between text-label-primary">
                   <span>MCQs Answered:</span>
                   <span className="font-bold text-purple-400">
                     {Object.keys(mcqAnswers).length} / {studentMcqs.length}
                   </span>
                 </div>
-                <div className="flex justify-between text-white/80">
+                <div className="flex justify-between text-label-primary">
                   <span>Coding Challenges Evaluated:</span>
                   <span className="font-bold text-blue-400">
                     {Object.keys(problemStatusMap).length} / {studentCoding.length}
@@ -1353,17 +1528,20 @@ export const EventArenaPage: React.FC = () => {
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowSubmitConfirm(false)}
-                className="px-4 py-2 min-h-[40px] rounded-xl text-xs font-semibold text-white/70 hover:text-white cursor-pointer"
+              <Button
+                size="sm"
+                variant="light"
+                onPress={() => setShowSubmitConfirm(false)}
+                className="min-h-10 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary"
               >
                 Keep Working
-              </button>
-              <button
-                type="button"
-                disabled={actionLoading}
-                onClick={async () => {
+              </Button>
+              <Button
+                size="sm"
+                color="success"
+                variant="solid"
+                isDisabled={actionLoading}
+                onPress={async () => {
                   if (selectedAssessment?.type === 'UI_UX') {
                     if (!studentFigmaLink.trim()) {
                       return toast.error('Please enter your Figma link before submitting.');
@@ -1375,11 +1553,11 @@ export const EventArenaPage: React.FC = () => {
                     handleFinalSubmit(false);
                   }
                 }}
-                className="px-5 py-2 min-h-[40px] rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                className="min-h-10 rounded-xl text-label-primary font-bold text-xs shadow-md shadow-emerald-500/20"
+                startContent={actionLoading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
               >
-                {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-                <span>Confirm & Submit</span>
-              </button>
+                Confirm & Submit
+              </Button>
             </div>
           </div>
         </div>
@@ -1388,7 +1566,7 @@ export const EventArenaPage: React.FC = () => {
       {/* FINAL SCORE & EVALUATION RESULTS MODAL */}
       {finalResultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-lg p-4">
-          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center space-y-5 shadow-2xl">
+          <div className="bg-surface border border-separator rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center space-y-5 shadow-2xl">
             <div
               className={`w-16 h-16 rounded-3xl mx-auto flex items-center justify-center shadow-lg border ${
                 finalResultModal.isPassed
@@ -1403,68 +1581,82 @@ export const EventArenaPage: React.FC = () => {
               <h3 className="text-xl font-black text-white">
                 {finalResultModal.isPassed ? 'Congratulations! Round Completed' : 'Assessment Completed'}
               </h3>
-              <p className="text-xs text-white/60 mt-1">
+              <p className="text-xs text-label-secondary mt-1">
                 Your submission for "{selectedAssessment?.title}" has been recorded.
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-              <div>
-                <p className="text-[10px] text-white/50 uppercase font-bold">Total Score</p>
-                <p className="text-lg font-black text-white mt-0.5">
-                  {finalResultModal.totalScore}
-                </p>
-                <p className="text-[10px] text-white/40">of {finalResultModal.maxPossibleScore}</p>
-              </div>
+            {/* Score Metrics (Visible ONLY to admins; Hidden from students) */}
+            {isAdmin && finalResultModal.totalScore !== undefined ? (
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-surface-secondary border border-separator text-center">
+                <div>
+                  <p className="text-[10px] text-label-tertiary uppercase font-bold">Total Score</p>
+                  <p className="text-lg font-black text-white mt-0.5">
+                    {finalResultModal.totalScore}
+                  </p>
+                  <p className="text-[10px] text-label-tertiary">of {finalResultModal.maxPossibleScore}</p>
+                </div>
 
-              <div>
-                <p className="text-[10px] text-white/50 uppercase font-bold">Percentage</p>
-                <p className="text-lg font-black text-purple-400 mt-0.5">
-                  {finalResultModal.scorePercentage}%
-                </p>
-                <p className="text-[10px] text-white/40">Accuracy</p>
-              </div>
+                <div>
+                  <p className="text-[10px] text-label-tertiary uppercase font-bold">Percentage</p>
+                  <p className="text-lg font-black text-purple-400 mt-0.5">
+                    {finalResultModal.scorePercentage}%
+                  </p>
+                  <p className="text-[10px] text-label-tertiary">Accuracy</p>
+                </div>
 
-              <div>
-                <p className="text-[10px] text-white/50 uppercase font-bold">Outcome</p>
-                <p
-                  className={`text-sm font-black mt-1 ${
-                    finalResultModal.isPassed ? 'text-emerald-400' : 'text-amber-400'
-                  }`}
-                >
-                  {finalResultModal.isPassed ? 'PASSED' : 'PARTICIPATED'}
-                </p>
-                <p className="text-[10px] text-white/40">Status</p>
+                <div>
+                  <p className="text-[10px] text-label-tertiary uppercase font-bold">Outcome</p>
+                  <p
+                    className={`text-sm font-black mt-1 ${
+                      finalResultModal.isPassed ? 'text-emerald-400' : 'text-amber-400'
+                    }`}
+                  >
+                    {finalResultModal.isPassed ? 'PASSED' : 'PARTICIPATED'}
+                  </p>
+                  <p className="text-[10px] text-label-tertiary">Status</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-1.5">
+                <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold text-sm">
+                  <CheckCircle2 size={16} />
+                  <span>Submission Successfully Recorded</span>
+                </div>
+                <p className="text-xs text-label-secondary max-w-sm mx-auto leading-relaxed">
+                  Your attempt has been submitted. Per competition rules, evaluation scores and rankings are tracked by event administrators on the official leaderboard.
+                </p>
+              </div>
+            )}
 
-            {/* Anti-cheat tab switch penalty & completion time metrics */}
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 grid grid-cols-2 gap-3 text-xs">
+            {/* Anti-cheat tab switch penalty bg-white/3me metrics */}
+            <div className="p-3.5 rounded-2xl bg-white/3 border border-separator grid grid-cols-2 gap-3 text-xs">
               <div className="text-left">
-                <span className="text-[10px] text-white/50 block font-mono">TAB SWITCHES</span>
+                <span className="text-[10px] text-label-tertiary block font-mono">TAB SWITCHES</span>
                 <span className={`font-bold font-mono ${finalResultModal.tabSwitchCount ? 'text-amber-400' : 'text-emerald-400'}`}>
                   {finalResultModal.tabSwitchCount || 0} (-{(finalResultModal.tabSwitchCount || 0) * 5}%)
                 </span>
                 {finalResultModal.rawTotalScore !== undefined && (
-                  <span className="text-[10px] text-white/40 block">Raw: {finalResultModal.rawTotalScore} pts</span>
+                  <span className="text-[10px] text-label-tertiary block">Raw: {finalResultModal.rawTotalScore} pts</span>
                 )}
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-white/50 block font-mono">TIME TAKEN</span>
+                <span className="text-[10px] text-label-tertiary block font-mono">TIME TAKEN</span>
                 <span className="font-bold font-mono text-purple-300">
                   {Math.floor((finalResultModal.timeTakenSeconds || 0) / 60)}m {(finalResultModal.timeTakenSeconds || 0) % 60}s
                 </span>
-                <span className="text-[10px] text-white/40 block">Total test duration</span>
+                <span className="text-[10px] text-label-tertiary block">Total test duration</span>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleReturnToHub}
-              className="w-full py-3 min-h-[44px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 transition-all cursor-pointer"
+            <Button
+              color="secondary"
+              variant="solid"
+              onPress={handleReturnToHub}
+              className="w-full min-h-11 rounded-xl text-label-primary font-bold text-xs shadow-md shadow-purple-600/30"
             >
               Return to Arena Rounds
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -1472,29 +1664,31 @@ export const EventArenaPage: React.FC = () => {
       {/* REFERENCE DESIGN IMAGE LIGHTBOX MODAL */}
       {previewReferenceImg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-[#141418] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#121216]">
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-surface border border-separator rounded-3xl overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-separator flex items-center justify-between bg-surface-secondary">
               <div className="flex items-center gap-2">
                 <ImageIcon size={16} className="text-purple-400" />
-                <span className="text-xs font-bold text-white">Reference Design Mockup (Full HD View)</span>
+                <span className="text-xs font-bold text-label-primary">Reference Design Mockup (Full HD View)</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <a
                   href={previewReferenceImg}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 min-h-[34px] rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+                  className="px-3 py-1.5 min-h-8.5 rounded-xl bg-surface-secondary hover:bg-surface-secondary text-label-primary hover:text-label-primary text-xs font-semibold flex items-center gap-1.5 transition-all"
                 >
                   <ExternalLink size={13} />
                   <span>Open Full Image</span>
                 </a>
-                <button
-                  type="button"
-                  onClick={() => setPreviewReferenceImg(null)}
-                  className="p-1.5 min-w-[34px] min-h-[34px] rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer inline-flex items-center justify-center"
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  onPress={() => setPreviewReferenceImg(null)}
+                  className="min-w-8.5 min-h-8.5 rounded-xl text-label-secondary hover:text-label-primary"
                 >
                   <X size={16} />
-                </button>
+                </Button>
               </div>
             </div>
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/70">
@@ -1512,3 +1706,4 @@ export const EventArenaPage: React.FC = () => {
 };
 
 export default EventArenaPage;
+
