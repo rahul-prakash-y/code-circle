@@ -30,15 +30,6 @@ import CreateNotificationModal from '../notifications/CreateNotificationModal';
 import ThemeToggle from '../ui/ThemeToggle';
 import TutorialButton from '../common/TutorialButton';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { auth } from '../../lib/firebase';
 import toast from 'react-hot-toast';
@@ -579,10 +570,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
 
         {/* Avatar / Dropdown — 44px minimum touch target on mobile */}
         {user || profile ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <EmilDropdownRoot>
+            <EmilDropdownTrigger>
               <button
-                className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-1.5 pr-2 sm:pr-2.5 py-1 rounded-full cursor-pointer outline-none bg-separator active:bg-separator-opaque transition-colors duration-150"
+                type="button"
+                className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-1.5 pr-2 sm:pr-2.5 py-1 rounded-full cursor-pointer outline-none bg-surface-secondary hover:bg-surface-elevated active:scale-98 transition-all border border-separator"
                 style={{ minHeight: 44 }}
               >
                 <Avatar className="w-7 h-7 rounded-full">
@@ -597,30 +589,25 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                   </AvatarFallback>
                 </Avatar>
                 <span
-                  className="hidden sm:block text-[13px] font-medium tracking-tight max-w-[100px] truncate"
-                  style={{ color: 'var(--label-primary)', letterSpacing: '-0.01em' }}
+                  className="hidden sm:block text-[13px] font-medium tracking-tight max-w-[100px] truncate text-label-primary"
+                  style={{ letterSpacing: '-0.01em' }}
                 >
                   {displayName.split(' ')[0]}
                 </span>
                 <ChevronDown size={12} strokeWidth={2} style={{ color: 'var(--label-tertiary)' }} />
               </button>
-            </DropdownMenuTrigger>
+            </EmilDropdownTrigger>
 
-            <DropdownMenuContent
-              align="end"
-              className="w-56 p-1.5 rounded-2xl"
-              style={{
-                background: 'var(--surface)',
-                boxShadow: 'var(--shadow-xl)',
-                border: '1px solid var(--separator)',
-              }}
+            <EmilDropdownMenu
+              align="right"
+              className="w-64 p-2 rounded-2xl bg-surface/95 backdrop-blur-xl border border-separator shadow-2xl"
             >
               {/* User info */}
-              <div className="px-3 py-3 mb-1">
+              <div className="px-3 py-2.5 mb-1 bg-surface-secondary/50 rounded-xl border border-separator/40">
                 <div className="flex items-center gap-3">
-                  <Avatar className="w-10 h-10 rounded-full">
+                  <Avatar className="w-10 h-10 rounded-full shrink-0 border border-separator">
                     {profile?.profilePicUrl && (
-                      <AvatarImage src={profile.profilePicUrl} alt={displayName} />
+                      <AvatarImage src={profile.profilePicUrl} alt={displayName} className="object-cover" />
                     )}
                     <AvatarFallback
                       className="rounded-full font-bold text-sm"
@@ -629,21 +616,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                       {initial}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="min-w-0">
-                    <p
-                      className="text-[14px] font-semibold tracking-tight truncate"
-                      style={{ color: 'var(--label-primary)', letterSpacing: '-0.01em' }}
-                    >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-bold tracking-tight truncate text-label-primary">
                       {displayName}
                     </p>
-                    <p
-                      className="text-[11px] truncate"
-                      style={{ color: 'var(--label-secondary)' }}
-                    >
+                    <p className="text-[11px] truncate text-label-secondary">
                       {user?.email || profile?.email || ''}
                     </p>
                     <span
-                      className="inline-flex px-2 py-0.5 mt-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+                      className="inline-flex px-2 py-0.5 mt-1 rounded-full text-[10px] font-semibold uppercase tracking-wider"
                       style={{
                         background: 'var(--accent-subtle)',
                         color: 'var(--accent)',
@@ -656,49 +637,42 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                 </div>
               </div>
 
-              <div className="sep mx-1 mb-1" />
+              <div className="h-px bg-separator my-1 -mx-0.5" />
 
-              <DropdownMenuGroup>
-                <DropdownMenuItem
+              <div className="space-y-0.5">
+                <EmilDropdownItem
                   onClick={() => navigate('/profile')}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] cursor-pointer"
-                  style={{ color: 'var(--label-primary)' }}
+                  icon={<UserIcon size={15} strokeWidth={1.75} style={{ color: 'var(--accent)' }} />}
                 >
-                  <UserIcon size={15} strokeWidth={1.75} style={{ color: 'var(--accent)' }} />
                   Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem
+                </EmilDropdownItem>
+                <EmilDropdownItem
                   onClick={() => navigate('/dashboard?tab=passport')}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] cursor-pointer"
-                  style={{ color: 'var(--label-primary)' }}
+                  icon={<Ticket size={15} strokeWidth={1.75} style={{ color: 'var(--label-secondary)' }} />}
                 >
-                  <Ticket size={15} strokeWidth={1.75} style={{ color: 'var(--label-secondary)' }} />
                   My Registrations
-                </DropdownMenuItem>
+                </EmilDropdownItem>
                 {(displayRole === 'SuperAdmin' || displayRole === 'Admin') && (
-                  <DropdownMenuItem
+                  <EmilDropdownItem
                     onClick={() => navigate('/users')}
-                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] cursor-pointer"
-                    style={{ color: 'var(--label-primary)' }}
+                    icon={<Shield size={15} strokeWidth={1.75} style={{ color: 'var(--success)' }} />}
                   >
-                    <Shield size={15} strokeWidth={1.75} style={{ color: 'var(--success)' }} />
                     User Management
-                  </DropdownMenuItem>
+                  </EmilDropdownItem>
                 )}
-              </DropdownMenuGroup>
+              </div>
 
-              <div className="sep mx-1 my-1" />
+              <div className="h-px bg-separator my-1 -mx-0.5" />
 
-              <DropdownMenuItem
+              <EmilDropdownItem
                 onClick={handleLogout}
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] cursor-pointer font-medium"
-                style={{ color: 'var(--destructive)' }}
+                icon={<LogOut size={15} strokeWidth={1.75} />}
+                isDestructive
               >
-                <LogOut size={15} strokeWidth={1.75} />
                 Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </EmilDropdownItem>
+            </EmilDropdownMenu>
+          </EmilDropdownRoot>
         ) : (
           <Link to="/login" className="btn-primary text-sm px-5 py-2">
             Sign In
