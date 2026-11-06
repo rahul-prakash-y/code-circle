@@ -17,6 +17,9 @@ import { useDebounce } from '../hooks/useDebounce';
 import OnboardingStatsWidget from '../components/admin/OnboardingStatsWidget';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
 import StudentCourseAccessModal from '../components/domains/StudentCourseAccessModal';
+import { EmilCard } from '../components/ui/emil-ui';
+import { HeroInput, HeroTabs, HeroUser, HeroAvatar } from '../components/ui/HeroUIComponents';
+import { HeroUISelect } from '../components/ui/HeroUISelect';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
@@ -554,69 +557,72 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // ── Shared form body ──────────────────────────────────────────────────────
+  // ── Shared form body with HeroUI Inputs & Select ──────────────────────────
   const renderUserForm = (onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
-    <form onSubmit={onSubmit} className="space-y-5 sm:space-y-6 py-2 px-1">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <Field label="Full Name">
-          <input
-            type="text" required placeholder="Jane Doe"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="input-field text-sm min-h-[44px]"
-          />
-        </Field>
-        <Field label="Roll Number">
-          <input
-            type="text" required placeholder="21CSE101"
-            value={formData.rollNo}
-            onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-            className="input-field text-sm font-mono min-h-[44px]"
-          />
-        </Field>
+    <form onSubmit={onSubmit} className="space-y-4 py-2 px-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <HeroInput
+          label="Full Name"
+          labelPlacement="inside"
+          variant="flat"
+          isRequired
+          placeholder="Jane Doe"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
+        <HeroInput
+          label="Roll Number"
+          labelPlacement="inside"
+          variant="flat"
+          isRequired
+          placeholder="21CSE101"
+          value={formData.rollNo}
+          onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
+        />
       </div>
 
-      <Field label="Email Address">
-        <input
-          type="email" required placeholder="user@university.edu"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="input-field text-sm min-h-[44px]"
-        />
-      </Field>
+      <HeroInput
+        label="Email Address"
+        labelPlacement="inside"
+        variant="flat"
+        type="email"
+        isRequired
+        placeholder="user@university.edu"
+        value={formData.email}
+        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        <Field label="Assigned Role">
-          <select
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-            className="input-field text-sm min-h-[44px]"
-            style={{ cursor: 'pointer' }}
-          >
-            <option value="Student">Student</option>
-            {isSuperAdmin() && <option value="Admin">Admin</option>}
-            {isSuperAdmin() && <option value="SuperAdmin">SuperAdmin</option>}
-          </select>
-        </Field>
-        <Field label="Department">
-          <input
-            type="text" placeholder="e.g. Computer Science"
-            value={formData.department}
-            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-            className="input-field text-sm min-h-[44px]"
-          />
-        </Field>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <HeroUISelect
+          label="Assigned Role"
+          value={formData.role}
+          onChange={(val) => setFormData({ ...formData, role: val as UserRole })}
+          options={[
+            { value: 'Student', label: 'Student' },
+            ...(isSuperAdmin() ? [{ value: 'Admin', label: 'Admin' }] : []),
+            ...(isSuperAdmin() ? [{ value: 'SuperAdmin', label: 'SuperAdmin' }] : []),
+          ]}
+        />
+        <HeroInput
+          label="Department"
+          labelPlacement="inside"
+          variant="flat"
+          placeholder="e.g. Computer Science"
+          value={formData.department}
+          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+        />
       </div>
 
       {submitLabel === 'Create User' && (
-        <Field label="Initial Password (optional)">
-          <input
-            type="password" placeholder="Leave blank for auto-generated"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="input-field text-sm font-mono min-h-[44px]"
-          />
-        </Field>
+        <HeroInput
+          label="Initial Password (optional)"
+          labelPlacement="inside"
+          variant="flat"
+          type="password"
+          placeholder="Leave blank for auto-generated"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+        />
       )}
 
       <div className="flex gap-3 pt-2">
@@ -769,68 +775,52 @@ const UserManagement: React.FC = () => {
         className="flex flex-col md:flex-row md:items-center gap-4 pb-4"
         style={{ borderBottom: '1px solid var(--border-color)' }}
       >
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search
-            size={16} strokeWidth={1.8}
-            className="absolute left-0 top-1/2 -translate-y-1/2"
-            style={{ color: 'var(--text-muted)' }}
-          />
-          <input
-            type="text"
+        {/* Search with Apple Glass styling */}
+        <div className="flex-1">
+          <HeroInput
             placeholder="Search name, roll number, email..."
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-full text-sm sm:text-base font-medium bg-transparent border-none pl-7 py-2 min-h-[44px] focus:outline-none"
-            style={{ color: 'var(--text-primary)' }}
+            startContent={<Search size={16} strokeWidth={1.8} className="text-text-muted" />}
+            isClearable
+            onClear={() => {
+              setSearchTerm('');
+              setSearch('');
+            }}
+            variant="flat"
+            size="sm"
           />
         </div>
 
-        {/* Status filter pills */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
-          {(['all', 'active', 'blocked'] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className="px-3.5 py-1.5 min-h-[36px] rounded-xl text-[12px] font-semibold cursor-pointer capitalize transition-colors duration-150 whitespace-nowrap flex items-center justify-center"
-              style={{
-                background: filters.status === st ? 'var(--accent-subtle)' : 'transparent',
-                color: filters.status === st ? 'var(--accent)' : 'var(--text-muted)',
-                border: `1px solid ${filters.status === st ? 'var(--accent)' : 'transparent'}`,
-                borderOpacity: 0.3,
-              }}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
+        {/* Status filter tabs with Emil Kowalski sub-300ms spring motion */}
+        <HeroTabs
+          size="sm"
+          selectedKey={filters.status}
+          onSelectionChange={(key) => setStatusFilter(key as any)}
+          items={[
+            { id: 'all', label: 'All Status' },
+            { id: 'active', label: 'Active' },
+            { id: 'blocked', label: 'Blocked' },
+          ]}
+        />
 
-        {/* Role filter */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
-          {[
-            { label: 'All', value: 'all' },
-            { label: 'Students', value: 'Student' },
-            { label: 'Admins', value: 'Admin' },
-          ].map((item) => (
-            <button
-              key={item.value}
-              onClick={() => setRoleFilter(item.value)}
-              className="px-3.5 py-1.5 min-h-[36px] rounded-xl text-[12px] font-semibold cursor-pointer transition-colors duration-150 whitespace-nowrap flex items-center justify-center"
-              style={{
-                background: filters.role === item.value ? 'var(--glass-bg)' : 'transparent',
-                color: filters.role === item.value ? 'var(--text-primary)' : 'var(--text-muted)',
-                border: `1px solid ${filters.role === item.value ? 'var(--border-color)' : 'transparent'}`,
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {/* Role filter tabs with Emil Kowalski sub-300ms spring motion */}
+        <HeroTabs
+          size="sm"
+          selectedKey={filters.role}
+          onSelectionChange={(key) => setRoleFilter(key)}
+          items={[
+            { id: 'all', label: 'All Roles' },
+            { id: 'Student', label: 'Students' },
+            { id: 'Admin', label: 'Admins' },
+          ]}
+        />
       </motion.div>
 
-      {/* ── Table ── */}
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full min-w-[760px] text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+      {/* ── Table (Wrapped in EmilCard with monochrome row selection) ── */}
+      <EmilCard className="overflow-hidden p-0 border border-separator/80">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full min-w-[760px] text-left" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
             <tr>
               <th
@@ -917,34 +907,19 @@ const UserManagement: React.FC = () => {
                         )}
                       </td>
 
-                      {/* User */}
+                      {/* User — HeroUI User with Avatar isBordered */}
                       <td className="py-4 sm:py-5 px-4 sm:px-5">
-                        <div className="flex items-center gap-3.5">
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden"
-                            style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
-                          >
-                            {item.profilePicUrl ? (
-                              <img src={item.profilePicUrl} alt={item.name} className="w-full h-full object-cover" />
-                            ) : (
-                              item.name.charAt(0).toUpperCase()
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div
-                              className="text-sm font-semibold leading-none truncate max-w-[200px]"
-                              style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
-                            >
-                              {item.name}
-                            </div>
-                            <div
-                              className="text-[12px] font-mono mt-1 truncate max-w-[200px]"
-                              style={{ color: 'var(--text-muted)' }}
-                            >
-                              {item.email}
-                            </div>
-                          </div>
-                        </div>
+                        <HeroUser
+                          name={item.name}
+                          description={<span className="font-mono text-xs">{item.email}</span>}
+                          avatarProps={{
+                            src: item.profilePicUrl,
+                            name: item.name,
+                            isBordered: true,
+                            color: 'primary',
+                            size: 'sm',
+                          }}
+                        />
                       </td>
 
                       {/* Roll No */}
@@ -1173,6 +1148,7 @@ const UserManagement: React.FC = () => {
           </tbody>
         </table>
       </div>
+      </EmilCard>
 
       {/* ── Pagination ── */}
       <div

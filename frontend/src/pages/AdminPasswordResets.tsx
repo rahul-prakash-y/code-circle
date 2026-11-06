@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../lib/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { EmilCard } from '../components/ui/emil-ui';
+import { HeroInput, HeroTabs, HeroUser, HeroAvatar } from '../components/ui/HeroUIComponents';
 import {
   KeyRound,
   ShieldCheck,
@@ -386,62 +388,46 @@ const AdminPasswordResets: React.FC = () => {
       )}
 
       {/* Controls: Search, Filters & Batch Bar */}
-      <div className="surface p-4 rounded-xl border border-separator space-y-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="surface p-4 rounded-2xl border border-separator/80 space-y-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           {/* Search Box */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-            <input
-              type="text"
+          <div className="flex-1">
+            <HeroInput
               placeholder="Search by student name, roll number, email, or department..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field pl-10 text-xs min-h-[44px] w-full"
+              startContent={<Search className="w-4 h-4 text-text-muted" />}
+              isClearable
+              onClear={() => setSearchTerm('')}
+              variant="flat"
+              size="sm"
             />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary text-xs p-1"
-                aria-label="Clear search"
-              >
-                Clear
-              </button>
-            )}
           </div>
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x pb-1 sm:pb-0">
-            {(['all', 'pending', 'approved', 'rejected'] as const).map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`text-xs px-3 py-1.5 min-h-[36px] rounded-lg font-medium transition-colors cursor-pointer shrink-0 flex items-center justify-center ${
-                  statusFilter === st
-                    ? 'bg-accent text-white font-semibold'
-                    : 'bg-surface-elevated text-text-muted hover:text-text-primary border border-separator'
-                }`}
-              >
-                {st === 'all' ? 'All Status' : st.charAt(0).toUpperCase() + st.slice(1)}
-              </button>
-            ))}
-          </div>
+          {/* Status Filter Tabs */}
+          <HeroTabs
+            size="sm"
+            selectedKey={statusFilter}
+            onSelectionChange={(key) => setStatusFilter(key as any)}
+            items={[
+              { id: 'all', label: 'All Status' },
+              { id: 'pending', label: 'Pending' },
+              { id: 'approved', label: 'Approved' },
+              { id: 'rejected', label: 'Rejected' },
+            ]}
+          />
 
-          {/* Email Filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x pb-1 sm:pb-0">
-            {(['all', 'sent', 'failed'] as const).map((ef) => (
-              <button
-                key={ef}
-                onClick={() => setEmailFilter(ef)}
-                className={`text-xs px-2.5 py-1.5 min-h-[36px] rounded-lg font-medium transition-colors cursor-pointer shrink-0 flex items-center justify-center ${
-                  emailFilter === ef
-                    ? 'bg-text-primary text-canvas font-semibold'
-                    : 'bg-surface-elevated text-text-muted hover:text-text-primary border border-separator'
-                }`}
-              >
-                {ef === 'all' ? 'All Delivery' : ef === 'sent' ? 'Email Sent' : 'Email Failed'}
-              </button>
-            ))}
-          </div>
+          {/* Email Filter Tabs */}
+          <HeroTabs
+            size="sm"
+            selectedKey={emailFilter}
+            onSelectionChange={(key) => setEmailFilter(key as any)}
+            items={[
+              { id: 'all', label: 'All Delivery' },
+              { id: 'sent', label: 'Sent' },
+              { id: 'failed', label: 'Failed' },
+            ]}
+          />
         </div>
 
         {/* Batch Selection Action Bar */}
@@ -471,8 +457,8 @@ const AdminPasswordResets: React.FC = () => {
         )}
       </div>
 
-      {/* Requests Table / Cards */}
-      <div className="surface rounded-2xl border border-separator overflow-hidden shadow-card">
+      {/* Requests Table Wrapped in EmilCard (Apple monochrome look) */}
+      <EmilCard className="overflow-hidden p-0 border border-separator/80">
         {loading ? (
           <div className="py-20 text-center space-y-3">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto text-accent" />
@@ -537,21 +523,26 @@ const AdminPasswordResets: React.FC = () => {
                         />
                       </td>
 
-                      {/* Student Info */}
+                      {/* Student Info — HeroUI User with Avatar isBordered */}
                       <td className="p-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center font-bold text-accent shrink-0">
-                            {req.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-text-primary text-xs">{req.name}</p>
-                            <p className="font-mono text-[11px] text-accent">{req.rollNo}</p>
-                            <p className="text-[11px] text-text-muted">{req.email}</p>
-                            {req.department && (
-                              <p className="text-[10px] text-text-muted">{req.department}</p>
-                            )}
-                          </div>
-                        </div>
+                        <HeroUser
+                          name={req.name}
+                          description={
+                            <div className="flex flex-col">
+                              <span className="font-mono text-accent text-[11px]">{req.rollNo}</span>
+                              <span className="text-[11px] text-text-muted">{req.email}</span>
+                              {req.department && (
+                                <span className="text-[10px] text-text-muted">{req.department}</span>
+                              )}
+                            </div>
+                          }
+                          avatarProps={{
+                            name: req.name,
+                            isBordered: true,
+                            color: 'primary',
+                            size: 'sm',
+                          }}
+                        />
                       </td>
 
                       {/* Verification method & reason */}
@@ -617,7 +608,7 @@ const AdminPasswordResets: React.FC = () => {
                         {isApproved ? (
                           req.emailSent ? (
                             <div className="space-y-0.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <span className="inline-flex items-center whitespace-nowrap gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                 <CheckCheck className="w-3 h-3" /> Email Sent
                               </span>
                               {req.emailSentAt && (
@@ -694,7 +685,7 @@ const AdminPasswordResets: React.FC = () => {
                             <button
                               onClick={() => handleResendEmail(req)}
                               disabled={isActionLoading}
-                              className={`py-1 px-2.5 min-h-[34px] text-xs rounded-lg font-medium flex items-center gap-1 cursor-pointer transition-colors ${
+                              className={`py-1 px-2.5 whitespace-nowrap min-h-[34px] text-xs rounded-lg font-medium flex items-center gap-1 cursor-pointer transition-colors ${
                                 !req.emailSent
                                   ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30'
                                   : 'btn-secondary'
@@ -759,7 +750,7 @@ const AdminPasswordResets: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </EmilCard>
 
       {/* Confirmation Modal: Approve All Pending */}
       <AnimatePresence>

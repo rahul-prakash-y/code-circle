@@ -4,12 +4,14 @@ import useAuthStore from '../store/useAuthStore';
 import AuthLayout from '../layouts/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck } from 'lucide-react';
+import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { EmilButton, EmilModal } from '../components/ui/emil-ui';
+import { HeroInput } from '../components/ui/HeroUIComponents';
 
 const Login = () => {
   const [identifier, setIdentifier] = useState(''); // email or rollNo
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
   // Forgot Password modal state
@@ -64,22 +66,19 @@ const Login = () => {
             hidden: { opacity: 0, y: 8 },
             visible: { opacity: 1, y: 0 }
           }}
-          className="space-y-1.5 sm:space-y-2"
         >
-          <label className="text-xs sm:text-sm font-semibold text-text-primary block tracking-tight">
-            Roll Number or Email
-          </label>
-          <div className="relative group">
-            <User className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-text-muted group-focus-within:text-accent transition-colors duration-200" />
-            <input 
-              type="text" 
-              required
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="e.g. 21CS001 or name@college.edu"
-              className="input-field pl-10 sm:pl-12 py-3 sm:py-3.5 min-h-[44px] text-sm sm:text-base w-full bg-surface-secondary/60 border border-separator rounded-xl focus:border-accent outline-none"
-            />
-          </div>
+          <HeroInput
+            label="Roll Number or Email"
+            labelPlacement="inside"
+            variant="flat"
+            isRequired
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="e.g. 21CS001 or name@college.edu"
+            startContent={<User className="w-4 h-4 text-text-muted" />}
+            isClearable
+            onClear={() => setIdentifier('')}
+          />
         </motion.div>
 
         <motion.div 
@@ -87,12 +86,30 @@ const Login = () => {
             hidden: { opacity: 0, y: 8 },
             visible: { opacity: 1, y: 0 }
           }}
-          className="space-y-1.5 sm:space-y-2"
+          className="space-y-1"
         >
-          <div className="flex justify-between items-center">
-            <label className="text-xs sm:text-sm font-semibold text-text-primary block tracking-tight">
-              Password
-            </label>
+          <HeroInput
+            label="Password"
+            labelPlacement="inside"
+            variant="flat"
+            type={showPassword ? 'text' : 'password'}
+            isRequired
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            startContent={<Lock className="w-4 h-4 text-text-muted" />}
+            endContent={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                aria-label="Toggle password visibility"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            }
+          />
+          <div className="flex justify-end pt-0.5 px-1">
             <button 
               type="button"
               onClick={() => setShowForgotModal(true)}
@@ -100,17 +117,6 @@ const Login = () => {
             >
               Forgot password?
             </button>
-          </div>
-          <div className="relative group">
-            <Lock className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-text-muted group-focus-within:text-accent transition-colors duration-200" />
-            <input 
-              type="password" 
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="input-field pl-10 sm:pl-12 py-3 sm:py-3.5 min-h-[44px] text-sm sm:text-base w-full bg-surface-secondary/60 border border-separator rounded-xl focus:border-accent outline-none"
-            />
           </div>
         </motion.div>
 

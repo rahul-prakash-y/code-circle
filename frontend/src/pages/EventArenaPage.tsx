@@ -41,6 +41,7 @@ import { useFullScreenEnforcement } from '../hooks/useFullScreenEnforcement';
 import { useTabSwitchDetection } from '../hooks/useTabSwitchDetection';
 import FullScreenEnforcementOverlay from '../components/assessments/FullScreenEnforcementOverlay';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
+import { HeroTabs } from '../components/ui/HeroUIComponents';
 import useAuthStore from '../store/useAuthStore';
 import useEventArenaStore, {
   ArenaAssessment,
@@ -1105,43 +1106,26 @@ export const EventArenaPage: React.FC = () => {
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left / Top Navigation Palette (MCQ vs Coding & Question Buttons) */}
           <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-[#0D0D11] shrink-0">
-            {/* Section Switcher Tabs (MCQ vs Coding) */}
-            <div className="p-2.5 sm:p-3 border-b border-white/10 flex gap-1.5 bg-[#121216]">
-              {studentMcqs.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedType('mcq');
-                    setSelectedIndex(0);
-                  }}
-                  className={`flex-1 py-2 min-h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    selectedType === 'mcq'
-                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                      : 'text-white/60 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <HelpCircle size={13} />
-                  <span>MCQs ({studentMcqs.length})</span>
-                </button>
-              )}
-
-              {studentCoding.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedType('coding');
-                    setSelectedIndex(0);
-                  }}
-                  className={`flex-1 py-2 min-h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    selectedType === 'coding'
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                      : 'text-white/60 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Code2 size={13} />
-                  <span>Coding ({studentCoding.length})</span>
-                </button>
-              )}
+            {/* Section Switcher Tabs (MCQ vs Coding) with Emil Kowalski sub-300ms spring physics */}
+            <div className="p-2 sm:p-2.5 border-b border-white/10 flex justify-center bg-[#121216]">
+              <HeroTabs
+                size="sm"
+                selectedKey={selectedType}
+                onSelectionChange={(key) => {
+                  setSelectedType(key as 'mcq' | 'coding');
+                  setSelectedIndex(0);
+                }}
+                motionProps={{ transition: { type: 'spring', stiffness: 260, damping: 30 } }}
+                className="w-full flex"
+                items={[
+                  ...(studentMcqs.length > 0
+                    ? [{ id: 'mcq', label: `MCQs (${studentMcqs.length})`, icon: <HelpCircle size={13} /> }]
+                    : []),
+                  ...(studentCoding.length > 0
+                    ? [{ id: 'coding', label: `Coding (${studentCoding.length})`, icon: <Code2 size={13} /> }]
+                    : []),
+                ]}
+              />
             </div>
 
             {/* Question Palette Grid (Horizontal scroll on mobile, vertical grid on desktop) */}

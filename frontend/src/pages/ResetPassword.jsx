@@ -5,6 +5,7 @@ import AuthLayout from '../layouts/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { EmilButton } from '../components/ui/emil-ui';
+import { HeroInput, HeroTextarea, HeroTabs } from '../components/ui/HeroUIComponents';
 import { 
   Lock, 
   KeyRound, 
@@ -207,63 +208,64 @@ const ResetPassword = () => {
 
           <motion.div
             variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }}
-            className="space-y-1.5 sm:space-y-2"
           >
-            <label className="input-label text-xs sm:text-sm">New Password</label>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
-              <input
-                type={showNewPassword ? 'text' : 'password'}
-                placeholder="At least 6 characters"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="input-field pl-12 pr-12 min-h-[46px] text-sm"
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                aria-label="Toggle password visibility"
-              >
-                {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
+            <HeroInput
+              label="New Password"
+              labelPlacement="inside"
+              variant="flat"
+              type={showNewPassword ? 'text' : 'password'}
+              placeholder="At least 6 characters"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              minLength={6}
+              isRequired
+              startContent={<Lock className="w-4 h-4 text-text-muted" />}
+              endContent={
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  aria-label="Toggle password visibility"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
+            />
           </motion.div>
 
           <motion.div
             variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }}
-            className="space-y-1.5 sm:space-y-2"
+            className="space-y-1"
           >
-            <label className="input-label text-xs sm:text-sm">Confirm New Password</label>
-            <div className="relative group">
-              <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors" />
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Re-enter password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="input-field pl-12 pr-12 min-h-[46px] text-sm"
-                required
-                minLength={6}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                aria-label="Toggle password visibility"
-              >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
+            <HeroInput
+              label="Confirm New Password"
+              labelPlacement="inside"
+              variant="flat"
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="Re-enter password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              minLength={6}
+              isRequired
+              startContent={<KeyRound className="w-4 h-4 text-text-muted" />}
+              endContent={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  aria-label="Toggle password visibility"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
+            />
             {confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-xs text-red-400 mt-1 flex items-center gap-1 font-medium">
+              <p className="text-xs text-red-400 mt-1 px-1 flex items-center gap-1 font-medium">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" /> Passwords do not match
               </p>
             )}
             {confirmPassword && newPassword === confirmPassword && newPassword.length >= 6 && (
-              <p className="text-xs text-green-400 mt-1 flex items-center gap-1 font-medium">
+              <p className="text-xs text-green-400 mt-1 px-1 flex items-center gap-1 font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> Passwords match
               </p>
             )}
@@ -385,32 +387,17 @@ const ResetPassword = () => {
       subtitle="Verify your credentials to request an administrator-approved reset link."
     >
       <div className="space-y-4 sm:space-y-5">
-        {/* Navigation Tabs */}
-        <div className="grid grid-cols-2 gap-1 p-1 bg-surface-elevated rounded-xl border border-separator text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setActiveTab('request')}
-            className={`py-2 px-3 min-h-[42px] rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation ${
-              activeTab === 'request'
-                ? 'bg-canvas text-accent shadow-sm border border-separator/60 font-bold'
-                : 'text-text-muted hover:text-text-primary'
-            }`}
-          >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Request Reset</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('track')}
-            className={`py-2 px-3 min-h-[42px] rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation ${
-              activeTab === 'track'
-                ? 'bg-canvas text-accent shadow-sm border border-separator/60 font-bold'
-                : 'text-text-muted hover:text-text-primary'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Track Status</span>
-          </button>
+        {/* Navigation Tabs - Native HeroUI Tabs with Emil Kowalski sub-300ms motion */}
+        <div className="flex justify-center">
+          <HeroTabs
+            selectedKey={activeTab}
+            onSelectionChange={(key) => setActiveTab(key)}
+            className="w-full grid grid-cols-2"
+            items={[
+              { id: 'request', label: 'Request Reset', icon: <KeyRound className="w-3.5 h-3.5" /> },
+              { id: 'track', label: 'Track Status', icon: <Clock className="w-3.5 h-3.5" /> },
+            ]}
+          />
         </div>
 
         {/* Tab 1: Request Reset Link */}
@@ -433,25 +420,22 @@ const ResetPassword = () => {
             </div>
 
             {/* Email Field */}
-            <div className="space-y-1.5">
-              <label className="input-label text-xs sm:text-sm">Registered Email Address</label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
-                <input
-                  type="email"
-                  placeholder="your.email@bitsathy.ac.in"
-                  value={reqEmail}
-                  onChange={(e) => setReqEmail(e.target.value)}
-                  className="input-field pl-11 min-h-[46px] text-xs sm:text-sm"
-                  required
-                />
-              </div>
-            </div>
+            <HeroInput
+              label="Registered Email Address"
+              labelPlacement="inside"
+              variant="flat"
+              type="email"
+              placeholder="your.email@bitsathy.ac.in"
+              value={reqEmail}
+              onChange={(e) => setReqEmail(e.target.value)}
+              isRequired
+              startContent={<Mail className="w-4 h-4 text-text-muted" />}
+            />
 
             {/* Verification Method Switch */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="input-label text-xs sm:text-sm">Identity Verification</label>
+              <div className="flex items-center justify-between px-1">
+                <label className="text-xs font-semibold text-text-secondary">Identity Verification</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -468,39 +452,41 @@ const ResetPassword = () => {
               </div>
 
               {verifyMethod === 'password' ? (
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
-                  <input
-                    type={showReqPassword ? 'text' : 'password'}
-                    placeholder="Enter current password to verify"
-                    value={reqPassword}
-                    onChange={(e) => setReqPassword(e.target.value)}
-                    className="input-field pl-11 pr-11 min-h-[46px] text-xs sm:text-sm"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowReqPassword(!showReqPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-                    aria-label="Toggle password visibility"
-                  >
-                    {showReqPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
+                <HeroInput
+                  label="Current Password"
+                  labelPlacement="inside"
+                  variant="flat"
+                  type={showReqPassword ? 'text' : 'password'}
+                  placeholder="Enter current password to verify"
+                  value={reqPassword}
+                  onChange={(e) => setReqPassword(e.target.value)}
+                  isRequired
+                  startContent={<Lock className="w-4 h-4 text-text-muted" />}
+                  endContent={
+                    <button
+                      type="button"
+                      onClick={() => setShowReqPassword(!showReqPassword)}
+                      className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                      aria-label="Toggle password visibility"
+                    >
+                      {showReqPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  }
+                />
               ) : (
-                <div className="relative group">
-                  <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
-                  <input
-                    type="text"
-                    placeholder="e.g. 7376221CS101"
-                    value={reqRollNo}
-                    onChange={(e) => setReqRollNo(e.target.value.toUpperCase())}
-                    className="input-field pl-11 uppercase min-h-[46px] text-xs sm:text-sm font-mono"
-                    required
-                  />
-                </div>
+                <HeroInput
+                  label="University Roll Number"
+                  labelPlacement="inside"
+                  variant="flat"
+                  type="text"
+                  placeholder="e.g. 7376221CS101"
+                  value={reqRollNo}
+                  onChange={(e) => setReqRollNo(e.target.value.toUpperCase())}
+                  isRequired
+                  startContent={<Hash className="w-4 h-4 text-text-muted" />}
+                />
               )}
-              <p className="text-[10px] text-text-muted italic">
+              <p className="text-[10px] text-text-muted italic px-1">
                 {verifyMethod === 'password'
                   ? 'Verifies you are the legitimate account holder before dispatching reset link.'
                   : 'Alternative verification if you cannot recall your existing password.'}
@@ -508,17 +494,16 @@ const ResetPassword = () => {
             </div>
 
             {/* Optional Reason Field */}
-            <div className="space-y-1.5">
-              <label className="input-label text-xs sm:text-sm">Reason / Notes (Optional)</label>
-              <input
-                type="text"
-                placeholder="e.g. Routine update, forgotten password, device switch"
-                value={reqReason}
-                onChange={(e) => setReqReason(e.target.value)}
-                className="input-field min-h-[46px] text-xs sm:text-sm"
-                maxLength={100}
-              />
-            </div>
+            <HeroInput
+              label="Reason / Notes (Optional)"
+              labelPlacement="inside"
+              variant="flat"
+              type="text"
+              placeholder="e.g. Routine update, forgotten password, device switch"
+              value={reqReason}
+              onChange={(e) => setReqReason(e.target.value)}
+              maxLength={100}
+            />
 
             {/* Submit Button */}
             <div className="pt-2">
@@ -558,20 +543,17 @@ const ResetPassword = () => {
             className="space-y-3.5 sm:space-y-4"
           >
             <form onSubmit={handleCheckStatus} className="space-y-3">
-              <div className="space-y-1.5">
-                <label className="input-label text-xs sm:text-sm">Email or Roll Number</label>
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
-                  <input
-                    type="text"
-                    placeholder="Enter email or roll number"
-                    value={trackIdentifier}
-                    onChange={(e) => setTrackIdentifier(e.target.value)}
-                    className="input-field pl-11 min-h-[46px] text-xs sm:text-sm"
-                    required
-                  />
-                </div>
-              </div>
+              <HeroInput
+                label="Email or Roll Number"
+                labelPlacement="inside"
+                variant="flat"
+                type="text"
+                placeholder="Enter email or roll number"
+                value={trackIdentifier}
+                onChange={(e) => setTrackIdentifier(e.target.value)}
+                isRequired
+                startContent={<Search className="w-4 h-4 text-text-muted" />}
+              />
 
               <button
                 type="submit"

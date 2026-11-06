@@ -24,6 +24,7 @@ import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
+import { HeroInput, HeroTextarea, HeroAvatar } from '../components/ui/HeroUIComponents';
 import { useDebounce } from '../hooks/useDebounce';
 
 export const BearerManagement: React.FC = () => {
@@ -283,14 +284,16 @@ export const BearerManagement: React.FC = () => {
 
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
-          <input
-            type="text"
+        <div className="flex-1 max-w-md">
+          <HeroInput
             placeholder="Search bearers by name, title, or bio..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-field pl-10 min-h-[44px] text-xs"
+            startContent={<Search className="text-text-muted" size={15} />}
+            isClearable
+            onClear={() => setSearchQuery('')}
+            variant="flat"
+            size="sm"
           />
         </div>
         <p className="text-xs text-text-muted">
@@ -320,19 +323,14 @@ export const BearerManagement: React.FC = () => {
               <div>
                 {/* Portrait & Action Buttons */}
                 <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-surface-elevated border border-separator shrink-0 shadow-sm">
-                    {bearer.photoUrl ? (
-                      <img
-                        src={bearer.photoUrl}
-                        alt={bearer.name}
-                        className="w-full h-full object-cover object-top"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center font-bold text-text-muted text-lg">
-                        {bearer.name.charAt(0)}
-                      </div>
-                    )}
-                  </div>
+                  <HeroAvatar
+                    src={bearer.photoUrl}
+                    name={bearer.name}
+                    isBordered
+                    color="primary"
+                    size="lg"
+                    className="shrink-0 shadow-sm"
+                  />
 
                   <div className="flex items-center gap-1">
                     <button
@@ -477,89 +475,63 @@ export const BearerManagement: React.FC = () => {
           </div>
 
           {/* Direct Photo URL Input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-text-secondary">
-              Photo URL (Direct Link) *
-            </label>
-            <input
-              type="url"
-              required
-              value={formData.photoUrl}
-              onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-              placeholder="https://images.unsplash.com/photo-..."
-              className="input-field text-xs min-h-[44px]"
-            />
-          </div>
+          <HeroInput
+            label="Photo URL (Direct Link)"
+            labelPlacement="inside"
+            variant="flat"
+            type="url"
+            isRequired
+            value={formData.photoUrl}
+            onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
+            placeholder="https://images.unsplash.com/photo-..."
+          />
 
           {/* Name & Position Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-text-secondary">Full Name *</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. Aarav Sharma"
-                className="input-field text-xs min-h-[44px]"
-              />
-            </div>
+            <HeroInput
+              label="Full Name"
+              labelPlacement="inside"
+              variant="flat"
+              isRequired
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g. Aarav Sharma"
+            />
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-text-secondary">Position / Title *</label>
-              <input
-                type="text"
-                required
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                placeholder="e.g. President, Vice President"
-                className="input-field text-xs min-h-[44px]"
-              />
-            </div>
+            <HeroInput
+              label="Position / Title"
+              labelPlacement="inside"
+              variant="flat"
+              isRequired
+              value={formData.position}
+              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              placeholder="e.g. President, Vice President"
+            />
           </div>
 
           {/* LinkedIn URL */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-text-secondary flex items-center justify-between">
-              <span>LinkedIn URL (Optional)</span>
-              <Linkedin size={13} className="text-text-muted" />
-            </label>
-            <input
-              type="url"
-              value={formData.linkedinUrl}
-              onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
-              placeholder="https://linkedin.com/in/username"
-              className="input-field text-xs min-h-[44px]"
-            />
-          </div>
+          <HeroInput
+            label="LinkedIn URL (Optional)"
+            labelPlacement="inside"
+            variant="flat"
+            type="url"
+            value={formData.linkedinUrl}
+            onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
+            placeholder="https://linkedin.com/in/username"
+            startContent={<Linkedin size={15} className="text-text-muted" />}
+          />
 
           {/* Bio with strict 120 character counter */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">
-                Bio / Summary (Max 120 chars)
-              </label>
-              <span
-                className={`text-[11px] font-mono ${
-                  (formData.bio?.length || 0) > 110
-                    ? 'text-destructive font-semibold'
-                    : (formData.bio?.length || 0) > 90
-                    ? 'text-amber-500'
-                    : 'text-text-muted'
-                }`}
-              >
-                {formData.bio?.length || 0} / 120
-              </span>
-            </div>
-            <textarea
-              rows={3}
-              maxLength={120}
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              placeholder="Brief highlight of club leadership responsibilities..."
-              className="input-field resize-none text-xs"
-            />
-          </div>
+          <HeroTextarea
+            label={`Bio / Summary (${formData.bio?.length || 0}/120 chars)`}
+            labelPlacement="inside"
+            variant="flat"
+            rows={3}
+            maxLength={120}
+            value={formData.bio}
+            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+            placeholder="Brief highlight of club leadership responsibilities..."
+          />
 
           {/* Modal Actions */}
           <div className="flex gap-3 pt-3 border-t border-separator">

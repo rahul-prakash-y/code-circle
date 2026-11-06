@@ -21,6 +21,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import { formatISTDateTime, formatISTDate } from '../../lib/dateUtils';
+import { HeroTabs, HeroInput, HeroTextarea, HeroUser, HeroAvatar } from '../ui/HeroUIComponents';
 
 interface AdminMissedEventRequestsModalProps {
   isOpen: boolean;
@@ -259,32 +260,33 @@ export const AdminMissedEventRequestsModal: React.FC<
 
           {/* Filter & Search Bar */}
           <div className="px-6 py-3.5 bg-zinc-100/70 dark:bg-[#18181B] border-b border-zinc-200 dark:border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3">
-            {/* Status Pills */}
-            <div className="flex items-center gap-1.5 p-1 bg-zinc-200/60 dark:bg-black/40 border border-zinc-300/70 dark:border-white/[0.06] rounded-2xl w-full sm:w-auto overflow-x-auto">
-              {(['PENDING', 'ALL', 'APPROVED', 'REJECTED'] as const).map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                    statusFilter === st
-                      ? 'bg-amber-600 text-white shadow-sm'
-                      : 'text-zinc-600 dark:text-[#86868B] hover:text-zinc-900 dark:hover:text-white'
-                  }`}
-                >
-                  {st === 'ALL' ? 'All Requests' : st.charAt(0) + st.slice(1).toLowerCase()}
-                </button>
-              ))}
-            </div>
+            {/* Status Tabs with Emil Kowalski spring motion */}
+            <HeroTabs
+              size="sm"
+              selectedKey={statusFilter}
+              onSelectionChange={(key) => setStatusFilter(key as any)}
+              items={[
+                { id: 'PENDING', label: 'Pending' },
+                { id: 'ALL', label: 'All Requests' },
+                { id: 'APPROVED', label: 'Approved' },
+                { id: 'REJECTED', label: 'Rejected' },
+              ]}
+            />
 
             {/* Search Input */}
-            <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-[#86868B]" />
-              <input
-                type="text"
+            <form onSubmit={handleSearchSubmit} className="w-full sm:w-72">
+              <HeroInput
+                size="sm"
+                variant="flat"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search student or roll no..."
-                className="w-full bg-white dark:bg-[#202024] border border-zinc-300 dark:border-white/[0.08] rounded-xl pl-9 pr-4 py-1.5 text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500 transition-colors placeholder:text-zinc-400 dark:placeholder:text-neutral-500"
+                startContent={<Search className="w-4 h-4 text-zinc-400 dark:text-[#86868B]" />}
+                isClearable
+                onClear={() => {
+                  setSearchQuery('');
+                  loadRequests('');
+                }}
               />
             </form>
           </div>
@@ -317,9 +319,12 @@ export const AdminMissedEventRequestsModal: React.FC<
                     {/* Top Row: Student Identity & Badges */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 dark:border-white/[0.04] pb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm">
-                          {req.student?.name?.charAt(0) || 'S'}
-                        </div>
+                        <HeroAvatar
+                          name={req.student?.name || 'Student'}
+                          isBordered
+                          color="primary"
+                          size="md"
+                        />
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-sm text-zinc-900 dark:text-white">
@@ -533,22 +538,20 @@ export const AdminMissedEventRequestsModal: React.FC<
                 </label>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-neutral-300 uppercase tracking-wider mb-1.5">
-                  Reviewer Note / Justification *
-                </label>
-                <textarea
-                  rows={3}
-                  value={reviewNote}
-                  onChange={(e) => setReviewNote(e.target.value)}
-                  placeholder={
-                    reviewAction === 'REJECT'
-                      ? 'Enter reason for rejection (e.g. Unverified absence / insufficient proof)'
-                      : 'Approval comments...'
-                  }
-                  className="w-full bg-zinc-50 dark:bg-[#141416] border border-zinc-300 dark:border-white/[0.1] rounded-2xl p-3 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
-                />
-              </div>
+              <HeroTextarea
+                label="Reviewer Note / Justification"
+                labelPlacement="inside"
+                variant="flat"
+                isRequired
+                rows={3}
+                value={reviewNote}
+                onChange={(e) => setReviewNote(e.target.value)}
+                placeholder={
+                  reviewAction === 'REJECT'
+                    ? 'Enter reason for rejection (e.g. Unverified absence / insufficient proof)'
+                    : 'Approval comments...'
+                }
+              />
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button

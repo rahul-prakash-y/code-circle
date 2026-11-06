@@ -22,6 +22,8 @@ import {
 import useAnalyticsStore from '../../store/useAnalyticsStore';
 import useAuthStore from '../../store/useAuthStore';
 import { TableSkeleton } from '../ui/LoadingSkeleton';
+import { EmilCard } from '../ui/emil-ui';
+import { HeroAvatar, HeroUser, HeroInput, HeroTabs } from '../ui/HeroUIComponents';
 
 // ── 3D Olympic Podium Component for Top 3 ──────────────────────────────
 const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
@@ -90,18 +92,19 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
           {config.icon}
         </div>
 
-        {/* Circular Avatar */}
-        <div className={`w-13 h-13 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-surface-secondary border border-separator ${config.ring} transition-all duration-300 group-hover:shadow-xl flex items-center justify-center relative`}>
-          {user.profilePicUrl ? (
-            <img src={user.profilePicUrl} alt={user.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center font-semibold text-base sm:text-2xl text-label-primary bg-surface-raised">
-              {user.name ? user.name[0]?.toUpperCase() : 'U'}
-            </div>
-          )}
+        {/* Circular Avatar with HeroUI concentric primary ring */}
+        <div className="relative">
+          <HeroAvatar
+            src={user.profilePicUrl}
+            name={user.name}
+            isBordered
+            color="primary"
+            size="xl"
+            className="shadow-xl"
+          />
 
           {isCurrentUser && (
-            <span className="absolute bottom-1 right-1 px-1 sm:px-1.5 py-0.2 text-[8px] sm:text-[9px] font-semibold uppercase rounded bg-primary text-white shadow-xs">
+            <span className="absolute bottom-0 right-0 z-10 px-1 sm:px-1.5 py-0.2 text-[8px] sm:text-[9px] font-semibold uppercase rounded-full bg-primary text-white shadow-xs">
               You
             </span>
           )}
@@ -518,26 +521,18 @@ export const Leaderboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Search Input */}
-            <div className="relative flex items-center w-full sm:w-56">
-              <Search size={14} className="absolute left-3 text-label-tertiary pointer-events-none" />
-              <input
-                type="text"
+            {/* Search Input with HeroUI Apple Glass styling */}
+            <div className="w-full sm:w-64">
+              <HeroInput
+                size="sm"
+                variant="flat"
                 placeholder="Search name or roll no..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input-field pl-9 pr-8 text-xs py-2 min-h-[38px] w-full font-normal"
+                startContent={<Search size={14} className="text-label-tertiary" />}
+                isClearable
+                onClear={() => setSearch('')}
               />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-2.5 text-label-tertiary hover:text-label-primary p-1 rounded-full cursor-pointer min-h-[24px] min-w-[24px] flex items-center justify-center"
-                  title="Clear search"
-                >
-                  <X size={12} />
-                </button>
-              )}
             </div>
 
             {/* Refresh Button */}
@@ -580,39 +575,27 @@ export const Leaderboard = () => {
             </div>
           </div>
 
-          {/* Sort By Toggle Pill */}
+          {/* Sort By HeroTabs with Emil Kowalski sub-300ms spring motion */}
           <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0">
             <span className="text-[11px] font-medium uppercase tracking-wider text-label-tertiary mr-1">
               Sort:
             </span>
-            <div className="flex items-center gap-0.5 p-0.5 bg-surface-secondary border border-separator rounded-xl">
-              {[
+            <HeroTabs
+              size="sm"
+              selectedKey={sortBy}
+              onSelectionChange={(key) => setSortBy(key)}
+              items={[
                 { id: 'points', label: 'Points' },
                 { id: 'problems', label: 'Problems' },
                 { id: 'events', label: 'Events' },
-              ].map(({ id, label }) => {
-                const isActive = sortBy === id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setSortBy(id)}
-                    className={`px-2.5 py-1 min-h-[32px] rounded-lg text-xs font-medium transition-all cursor-pointer touch-manipulation ${
-                      isActive
-                        ? 'bg-surface text-primary shadow-xs border border-separator'
-                        : 'text-label-secondary hover:text-label-primary'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+              ]}
+            />
           </div>
         </div>
       </div>
 
-      {/* ── Rankings Table (Rank #4 and beyond) ─────────────────────── */}
-      <div className="bg-surface rounded-2xl sm:rounded-3xl border border-separator shadow-card overflow-hidden">
+      {/* ── Rankings Table (Wrapped in EmilCard with monochrome look) ── */}
+      <EmilCard className="overflow-hidden p-0 border border-separator shadow-card">
         {/* Table Header */}
         <div className="grid grid-cols-12 px-3 sm:px-6 py-3 bg-surface-secondary border-b border-separator text-[11px] font-medium uppercase tracking-wider text-label-tertiary">
           <div className="col-span-2 sm:col-span-1 text-center">Rank</div>
@@ -657,36 +640,32 @@ export const Leaderboard = () => {
                   </span>
                 </div>
 
-                {/* Student Info */}
-                <div className="col-span-6 sm:col-span-5 flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden bg-surface-secondary border border-separator flex items-center justify-center text-xs font-medium text-label-secondary shrink-0 shadow-2xs">
-                    {u.profilePicUrl ? (
-                      <img src={u.profilePicUrl} alt={u.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-label-primary font-medium">
-                        {u.name ? u.name[0]?.toUpperCase() : 'U'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-label-primary font-medium text-xs sm:text-sm truncate group-hover:text-primary transition-colors">
-                        {u.name}
-                      </span>
-                      {isMe && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-medium uppercase bg-primary text-white">
-                          You
+                {/* Student Info — HeroUser with Avatar isBordered */}
+                <div className="col-span-6 sm:col-span-5 flex items-center min-w-0 pr-2">
+                  <HeroUser
+                    name={u.name}
+                    description={
+                      <span className="flex items-center gap-1.5 text-[11px] font-mono text-label-tertiary">
+                        <span className="truncate">{u.rollNo}</span>
+                        <span>•</span>
+                        <span className="uppercase text-label-secondary font-sans font-medium text-[10px]">
+                          {dept}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-label-tertiary font-mono">
-                      <span className="truncate">{u.rollNo}</span>
-                      <span>•</span>
-                      <span className="uppercase text-label-secondary font-sans font-medium text-[10px]">
-                        {dept}
+                        {isMe && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-medium uppercase bg-primary text-white ml-1">
+                            You
+                          </span>
+                        )}
                       </span>
-                    </div>
-                  </div>
+                    }
+                    avatarProps={{
+                      src: u.profilePicUrl,
+                      name: u.name,
+                      isBordered: true,
+                      color: 'primary',
+                      size: 'sm',
+                    }}
+                  />
                 </div>
 
                 {/* Problems Solved */}
@@ -741,7 +720,7 @@ export const Leaderboard = () => {
             </div>
           )}
         </div>
-      </div>
+      </EmilCard>
     </div>
   );
 };

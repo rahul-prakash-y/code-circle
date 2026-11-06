@@ -5,6 +5,7 @@ import AuthLayout from '../layouts/AuthLayout';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Mail, Lock, User, Hash, Loader2 } from 'lucide-react';
+import { HeroInput } from '../components/ui/HeroUIComponents';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -64,19 +65,18 @@ const Register = () => {
         }}
       >
         {fields.map((field) => (
-          <motion.div key={field.label} variants={fieldVariants} className="space-y-1.5">
-            <label className="input-label text-xs sm:text-sm">{field.label}</label>
-            <div className="relative group">
-              <field.icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-accent transition-colors duration-300" />
-              <input
-                type={field.type}
-                placeholder={field.placeholder}
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value)}
-                className="input-field pl-12 min-h-[46px] text-sm"
-                required
-              />
-            </div>
+          <motion.div key={field.label} variants={fieldVariants}>
+            <HeroInput
+              label={field.label}
+              labelPlacement="inside"
+              variant="flat"
+              type={field.type}
+              placeholder={field.placeholder}
+              value={field.value}
+              onChange={(e) => field.onChange(e.target.value)}
+              startContent={<field.icon className="w-4 h-4 text-text-muted" />}
+              isRequired
+            />
           </motion.div>
         ))}
 

@@ -4,6 +4,7 @@ import { ShieldCheck, Lock, KeyRound, Eye, EyeOff, CheckCircle2, Loader2, LogOut
 import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import { EmilButton } from '../components/ui/emil-ui';
+import { HeroInput } from '../components/ui/HeroUIComponents';
 import { useNavigate, Navigate } from 'react-router-dom';
 import AuthLayout from '../layouts/AuthLayout';
 import { decodeJwtPayload } from '../lib/jwt';
@@ -91,89 +92,82 @@ const SetupPassword = () => {
         </div>
 
         {/* Current (Temporary) Password */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-text-secondary">
-            Current / Temporary Password
-          </label>
-          <div className="relative group">
-            <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
-            <input
-              type={showCurrentPassword ? 'text' : 'password'}
-              placeholder="Enter temporary password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="input-field pl-10 pr-11 min-h-[46px] text-xs sm:text-sm"
-              required
-            />
+        <HeroInput
+          label="Current / Temporary Password"
+          labelPlacement="inside"
+          variant="flat"
+          isRequired
+          type={showCurrentPassword ? 'text' : 'password'}
+          placeholder="Enter temporary password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          startContent={<KeyRound className="w-4 h-4 text-text-muted" />}
+          endContent={
             <button
               type="button"
               onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
               aria-label="Toggle password visibility"
             >
               {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* New Password */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-text-secondary">
-            Create New Password
-          </label>
-          <div className="relative group">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
-            <input
-              type={showNewPassword ? 'text' : 'password'}
-              placeholder="Minimum 6 characters"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="input-field pl-10 pr-11 min-h-[46px] text-xs sm:text-sm"
-              required
-              minLength={6}
-            />
+        <HeroInput
+          label="Create New Password"
+          labelPlacement="inside"
+          variant="flat"
+          isRequired
+          type={showNewPassword ? 'text' : 'password'}
+          placeholder="Minimum 6 characters"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          minLength={6}
+          startContent={<Lock className="w-4 h-4 text-text-muted" />}
+          endContent={
             <button
               type="button"
               onClick={() => setShowNewPassword(!showNewPassword)}
-              className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
               aria-label="Toggle password visibility"
             >
               {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Confirm New Password */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-text-secondary">
-            Confirm New Password
-          </label>
-          <div className="relative group">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
-            <input
-              type={showConfirmPassword ? 'text' : 'password'}
-              placeholder="Re-enter your new password"
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-              className="input-field pl-10 pr-11 min-h-[46px] text-xs sm:text-sm"
-              required
-              minLength={6}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-              aria-label="Toggle password visibility"
-            >
-              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
+        <div className="space-y-1">
+          <HeroInput
+            label="Confirm New Password"
+            labelPlacement="inside"
+            variant="flat"
+            isRequired
+            type={showConfirmPassword ? 'text' : 'password'}
+            placeholder="Re-enter your new password"
+            value={confirmNewPassword}
+            onChange={(e) => setConfirmNewPassword(e.target.value)}
+            minLength={6}
+            startContent={<Lock className="w-4 h-4 text-text-muted" />}
+            endContent={
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                aria-label="Toggle password visibility"
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            }
+          />
 
           {confirmNewPassword && newPassword !== confirmNewPassword && (
-            <p className="text-xs text-destructive mt-1 font-medium">Passwords do not match</p>
+            <p className="text-xs text-destructive mt-1 px-1 font-medium">Passwords do not match</p>
           )}
           {confirmNewPassword && newPassword === confirmNewPassword && newPassword.length >= 6 && (
-            <p className="text-xs text-success mt-1 flex items-center gap-1 font-medium">
+            <p className="text-xs text-success mt-1 px-1 flex items-center gap-1 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5" /> Passwords match
             </p>
           )}
