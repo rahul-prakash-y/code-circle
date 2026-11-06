@@ -24,6 +24,7 @@ import {
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
+import FullScreenEnforcementOverlay from './FullScreenEnforcementOverlay';
 import { isMobileScreenOrDevice } from '../../lib/deviceUtils';
 
 const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {

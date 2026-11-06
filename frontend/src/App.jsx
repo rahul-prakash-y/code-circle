@@ -38,6 +38,7 @@ const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
 const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
 const EventArenaPage = lazy(() => import('./pages/EventArenaPage'));
+const EventDocumentationPage = lazy(() => import('./pages/EventDocumentationPage'));
 
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';

@@ -414,10 +414,141 @@ export const deleteEvent = async (
   }
 };
 
+export const blockStudent = async (
+  request: FastifyRequest<{
+    Params: { eventId?: string; id?: string };
+    Body?: { studentId?: string; reason?: string };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const eventId = request.params.eventId || request.params.id;
+    if (!eventId || !mongoose.Types.ObjectId.isValid(eventId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid or missing Event ID' });
+    }
+
+    let targetStudentId = user.id || user._id;
+    if (request.body?.studentId && (user.role === 'Admin' || user.role === 'SuperAdmin' || user.role === 'Faculty')) {
+      targetStudentId = request.body.studentId;
+    }
+
+    if (!targetStudentId || !mongoose.Types.ObjectId.isValid(targetStudentId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid student ID' });
+    }
+
+    const eventObjectId = new mongoose.Types.ObjectId(eventId);
+    const studentObjectId = new mongoose.Types.ObjectId(targetStudentId);
+
+    let enrollment = await Enrollment.findOne({
+      event: eventObjectId,
+      $or: [{ enrolledBy: studentObjectId }, { members: studentObjectId }],
+    });
+
+    if (enrollment) {
+      enrollment.isBlocked = true;
+      await enrollment.save();
+    } else {
+      enrollment = await Enrollment.create({
+        event: eventObjectId,
+        enrolledBy: studentObjectId,
+        type: 'Individual',
+        members: [studentObjectId],
+        isBlocked: true,
+      });
+    }
+
+    request.log.warn(
+      `Anti-Cheat Triggered: Student ${targetStudentId} has been blocked for navigating away in event ${eventId}`
+    );
+
+    return reply.send({
+      success: true,
+      message: 'You have been blocked for navigating away. Contact Admin.',
+      isBlocked: true,
+      eventId,
+      studentId: targetStudentId,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to block student',
+    });
+  }
+};
+
+export const unblockStudent = async (
+  request: FastifyRequest<{
+    Params: { eventId?: string; id?: string };
+    Body: { studentId: string };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const eventId = request.params.eventId || request.params.id;
+    if (!eventId || !mongoose.Types.ObjectId.isValid(eventId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid or missing Event ID' });
+    }
+
+    const { studentId } = request.body || {};
+    if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
+      return reply.status(400).send({ success: false, error: 'Valid studentId is required' });
+    }
+
+    const eventObjectId = new mongoose.Types.ObjectId(eventId);
+    const studentObjectId = new mongoose.Types.ObjectId(studentId);
+
+    const enrollment = await Enrollment.findOne({
+      event: eventObjectId,
+      $or: [{ enrolledBy: studentObjectId }, { members: studentObjectId }],
+    });
+
+    if (!enrollment) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Student registration for this event was not found',
+      });
+    }
+
+    enrollment.isBlocked = false;
+    await enrollment.save();
+
+    request.log.info(
+      `Admin ${user.id || user._id} unblocked student ${studentId} for event ${eventId}`
+    );
+
+    return reply.send({
+      success: true,
+      message: 'Student unblocked successfully.',
+      isBlocked: false,
+      eventId,
+      studentId,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to unblock student',
+    });
+  }
+};
+
 export default {
   createEvent,
   getEvents,
   getEventById,
   updateEvent,
   deleteEvent,
+  blockStudent,
+  unblockStudent,
 };

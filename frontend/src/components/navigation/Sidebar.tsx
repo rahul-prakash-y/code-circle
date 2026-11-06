@@ -22,6 +22,7 @@ import {
   Flame,
   Sparkles,
   KeyRound,
+  FileText,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';

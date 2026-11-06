@@ -37,6 +37,11 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useFullScreenEnforcement } from '../hooks/useFullScreenEnforcement';
+import { useTabSwitchDetection } from '../hooks/useTabSwitchDetection';
+import FullScreenEnforcementOverlay from '../components/assessments/FullScreenEnforcementOverlay';
+import { EmilCard, EmilButton } from '../components/ui/emil-ui';
+import useAuthStore from '../store/useAuthStore';
 import useEventArenaStore, {
   ArenaAssessment,
   ArenaMcqQuestion,
@@ -82,6 +87,18 @@ export const EventArenaPage: React.FC = () => {
     loading,
     actionLoading,
   } = useEventArenaStore();
+
+  const { user: currentUser } = useAuthStore() as any;
+  const isAdmin = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(currentUser?.role);
+
+  // Anti-Cheat & Full-Screen Enforcement Hooks
+  const { isFullscreen, requestFullscreen } = useFullScreenEnforcement();
+  const { isBlocked: tabSwitchBlocked, blockedMessage } = useTabSwitchDetection({
+    eventId: id || '',
+    enabled: Boolean(!isAdmin && activeAssessmentId && submission?.status !== 'SUBMITTED' && !finalResultModal),
+  });
+  const [apiBlocked, setApiBlocked] = useState(false);
+  const isAssessmentBlocked = tabSwitchBlocked || apiBlocked;
 
   // Active Assessment State: null means we are at the Assessment Hub / List view
   const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null);

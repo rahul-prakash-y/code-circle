@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import useEventStore from '../../store/useEventStore';
@@ -27,7 +28,8 @@ import {
   UserCheck, 
   ArrowUpRight,
   Eye,
-  Award
+  Award,
+  FileText
 } from 'lucide-react';
 
 const EVENT_TYPES = ['all', 'Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
@@ -48,6 +50,7 @@ export const EventFeed = ({
   const [viewMode, setViewMode] = useState('grid');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+  const navigate = useNavigate();
 
   // Selected event for modals
   const [enrollEvent, setEnrollEvent] = useState(null);
@@ -380,6 +383,13 @@ export const EventFeed = ({
                             title="Preview Event Details"
                           >
                             <Eye size={15} />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/events/${event._id}/docs`)}
+                            className="p-1.5 rounded-lg text-label-secondary hover:text-blue-500 hover:bg-canvas transition-colors cursor-pointer"
+                            title="Documentation & Reports"
+                          >
+                            <FileText size={15} />
                           </button>
 
                           {/* Admin Controls */}

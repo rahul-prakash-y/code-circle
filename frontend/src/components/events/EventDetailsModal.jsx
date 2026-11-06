@@ -17,6 +17,7 @@ import {
   Award,
   Sliders,
   FileSpreadsheet,
+  FileText,
   Upload,
   Sparkles,
 } from 'lucide-react';
