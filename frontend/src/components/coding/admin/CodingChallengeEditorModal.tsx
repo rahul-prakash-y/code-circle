@@ -12,6 +12,7 @@ import {
   Clock,
   Layers,
   Settings,
+  Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
@@ -542,14 +543,14 @@ export const CodingChallengeEditorModal: React.FC<CodingChallengeEditorModalProp
                           key={lang.id}
                           type="button"
                           onClick={() => toggleLanguage(lang.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                          className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all inline-flex items-center gap-1.5 ${
                             isSelected
                               ? 'bg-blue-500/10 text-blue-500 border-blue-500/30'
                               : 'bg-surface-secondary text-label-secondary border-separator'
                           }`}
                         >
-                          {isSelected ? '✓ ' : '+ '}
-                          {lang.label}
+                          {isSelected ? <Check size={12} strokeWidth={2.5} /> : <Plus size={12} />}
+                          <span>{lang.label}</span>
                         </button>
                       );
                     })}

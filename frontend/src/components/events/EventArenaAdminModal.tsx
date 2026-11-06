@@ -880,7 +880,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         { value: 'HYBRID', label: 'Hybrid (MCQ + Coding)', badge: 'Hybrid' },
                         { value: 'MCQ', label: 'MCQ Questions Only', badge: 'MCQ' },
                         { value: 'CODING', label: 'Coding Challenges Only', badge: 'Code' },
-                        { value: 'UI_UX', label: '🎨 UI/UX Design (Figma)', badge: 'Design' },
+                        { value: 'UI_UX', label: 'UI/UX Design (Figma)', badge: 'Design' },
                       ]}
                     />
                   </div>
@@ -934,7 +934,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       color="purple"
                       options={[
                         { value: 'individual', label: 'Individual Participation', badge: 'Solo' },
-                        { value: 'team', label: '👥 Team Mode (Manual Assignment)', badge: 'Team' },
+                        { value: 'team', label: 'Team Mode (Manual Assignment)', badge: 'Team' },
                       ]}
                     />
                   </div>
@@ -1260,7 +1260,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             { value: 'HYBRID', label: 'Hybrid (MCQ + Coding)', badge: 'Hybrid' },
                             { value: 'MCQ', label: 'MCQ Questions Only', badge: 'MCQ' },
                             { value: 'CODING', label: 'Coding Challenges Only', badge: 'Code' },
-                            { value: 'UI_UX', label: '🎨 UI/UX Design (Figma)', badge: 'Design' },
+                            { value: 'UI_UX', label: 'UI/UX Design (Figma)', badge: 'Design' },
                           ]}
                         />
                       </div>
@@ -1318,7 +1318,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           color="purple"
                           options={[
                             { value: 'individual', label: 'Individual Participation', badge: 'Solo' },
-                            { value: 'team', label: '👥 Team Mode (Manual Allocation)', badge: 'Team' },
+                            { value: 'team', label: 'Team Mode (Manual Allocation)', badge: 'Team' },
                           ]}
                         />
                       </div>
@@ -2054,7 +2054,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             </div>
 
                             <div className="flex items-center justify-between text-[10px] text-label-tertiary pt-2 border-t border-separator/40">
-                              <span>{ch.designImageUrl || ch.referenceImageUrl ? '✓ Image Attached' : 'No image'}</span>
+                              <span className="inline-flex items-center gap-1">
+                                {ch.designImageUrl || ch.referenceImageUrl ? (
+                                  <>
+                                    <Check size={11} className="text-emerald-500" />
+                                    <span>Image Attached</span>
+                                  </>
+                                ) : (
+                                  'No image'
+                                )}
+                              </span>
                               <span className={`font-bold ${isActive ? 'text-pink-400' : 'text-label-secondary'}`}>
                                 {isActive ? '● Editing' : 'Click to Edit'}
                               </span>
@@ -2469,8 +2478,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold text-xs">
-                                👥
+                              <span className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center">
+                                <Users size={16} />
                               </span>
                               <div>
                                 <h5 className="text-sm font-bold text-label-primary ">{team.name}</h5>
@@ -3432,7 +3441,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                             <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                                               isCorrect ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'
                                             }`}>
-                                              {isCorrect ? 'Student Choice ✓' : 'Student Choice ✗'}
+                                              {isCorrect ? 'Student Choice (Correct)' : 'Student Choice (Incorrect)'}
                                             </span>
                                           )}
                                           {!isStudentChoice && isCorrectChoice && (

@@ -7,8 +7,9 @@ import Console from './Console';
 import useCodingStore from '../../store/useCodingStore';
 import useAntiCheat from '../../hooks/useAntiCheat';
 import AntiCheatModal from './AntiCheatModal';
-import { Loader2, Play, ChevronLeft, Star, Clock, FileText, Code2, Terminal } from 'lucide-react';
-import { EmilButton } from '../ui/emil-ui';
+import { Play, ChevronLeft, Clock, FileText, Code2, Terminal } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
+import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
 import BackgroundGradient from '../ui/BackgroundGradient';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 
@@ -52,7 +53,7 @@ const CodingWorkspace = () => {
 
   if (!currentProblem) return (
     <div className="h-[100dvh] min-h-[100dvh] bg-surface flex items-center justify-center">
-      <Loader2 className="animate-spin text-accent" size={40} />
+      <Spinner size="lg" color="primary" />
     </div>
   );
 
@@ -71,45 +72,52 @@ const CodingWorkspace = () => {
             <ChevronLeft size={20} />
           </button>
           <div className="h-8 w-[1px] bg-surface-elevated" />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <h1 className="text-sm font-semibold text-text-primary tracking-tight leading-none mt-0.5">{currentProblem.title}</h1>
-            <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wider border shadow-xs ${
-              currentProblem.difficulty === 'Easy' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-              currentProblem.difficulty === 'Medium' ? 'bg-accent/10 text-accent-muted border-accent/20' :
-              'bg-pink-500/10 text-pink-400 border-pink-500/20'
-            }`}>
+            <Chip
+              size="sm"
+              variant="flat"
+              color={
+                currentProblem.difficulty === 'Easy'
+                  ? 'success'
+                  : currentProblem.difficulty === 'Hard'
+                  ? 'danger'
+                  : 'warning'
+              }
+            >
               {currentProblem.difficulty}
-            </span>
+            </Chip>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative group">
-            <select 
-              value={languageId} 
-              onChange={(e) => setLanguageId(Number(e.target.value))}
-              className="input-field !py-1.5 !px-4 !text-xs !font-medium !bg-surface-elevated !border-border group-hover:!border-accent/30 transition-all cursor-pointer appearance-none pr-10 min-h-[38px]"
-            >
-              <option value={63} className="bg-surface">JavaScript</option>
-              <option value={62} className="bg-surface">Java</option>
-              <option value={71} className="bg-surface">Python</option>
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted group-hover:text-accent transition-colors">
-              <Star size={12} strokeWidth={2} />
-            </div>
-          </div>
+        <div className="flex items-center gap-3">
+          <HeroUISelect
+            value={String(languageId)}
+            onChange={(val) => setLanguageId(Number(val))}
+            options={[
+              { value: '63', label: 'JavaScript' },
+              { value: '62', label: 'Java' },
+              { value: '71', label: 'Python' },
+            ]}
+            size="sm"
+            className="w-36 shrink-0"
+            placement="bottom-end"
+          />
 
-          <button
-            onClick={handleSubmit}
-            disabled={isLoading || cooldown > 0}
-            className="btn-primary !py-2 !px-6 !text-xs !font-medium flex items-center gap-2 group/run disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[38px] tabular-nums"
+          <Button
+            size="sm"
+            color="primary"
+            variant="solid"
+            onPress={handleSubmit}
+            isDisabled={isLoading || cooldown > 0}
+            className="min-h-[38px] px-5 rounded-xl font-medium text-xs cursor-pointer shadow-sm"
           >
             {isLoading ? (
-              <Loader2 className="animate-spin" size={14} />
+              <Spinner size="sm" color="current" />
             ) : cooldown > 0 ? (
-              <Clock size={12} className="text-white/70 animate-pulse" />
+              <Clock size={13} className="text-white/70 animate-pulse" />
             ) : (
-              <Play size={12} strokeWidth={2} className="group-hover/run:scale-110 transition-transform" />
+              <Play size={13} strokeWidth={2} />
             )}
             <span>
               {isLoading
@@ -118,7 +126,7 @@ const CodingWorkspace = () => {
                 ? `Execute (${cooldown}s)`
                 : 'Execute'}
             </span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -136,48 +144,62 @@ const CodingWorkspace = () => {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <h1 className="text-xs font-semibold text-text-primary tracking-tight truncate max-w-[130px] sm:max-w-xs">{currentProblem.title}</h1>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider shrink-0 border ${
-                  currentProblem.difficulty === 'Easy' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                  currentProblem.difficulty === 'Medium' ? 'bg-accent/10 text-accent-muted border-accent/20' :
-                  'bg-pink-500/10 text-pink-400 border-pink-500/20'
-                }`}>
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color={
+                    currentProblem.difficulty === 'Easy'
+                      ? 'success'
+                      : currentProblem.difficulty === 'Hard'
+                      ? 'danger'
+                      : 'warning'
+                  }
+                  className="scale-90 origin-left"
+                >
                   {currentProblem.difficulty}
-                </span>
+                </Chip>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <select
-              value={languageId}
-              onChange={(e) => setLanguageId(Number(e.target.value))}
-              className="bg-surface-elevated text-text-primary text-[11px] font-medium py-1 px-2 rounded-xl border border-border focus:outline-none cursor-pointer min-h-[36px]"
-            >
-              <option value={63}>JS</option>
-              <option value={62}>Java</option>
-              <option value={71}>Python</option>
-            </select>
+          <div className="flex items-center gap-2 shrink-0">
+            <HeroUISelect
+              value={String(languageId)}
+              onChange={(val) => setLanguageId(Number(val))}
+              options={[
+                { value: '63', label: 'JS' },
+                { value: '62', label: 'Java' },
+                { value: '71', label: 'Python' },
+              ]}
+              size="sm"
+              className="w-24 shrink-0"
+              placement="bottom-end"
+            />
 
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading || cooldown > 0}
-              className="btn-primary py-1.5 px-3 min-h-[36px] text-[11px] font-medium flex items-center gap-1 disabled:opacity-50 cursor-pointer tabular-nums"
+            <Button
+              size="sm"
+              color="primary"
+              variant="solid"
+              onPress={handleSubmit}
+              isDisabled={isLoading || cooldown > 0}
+              className="min-h-[36px] px-3 rounded-xl font-medium text-xs cursor-pointer"
             >
               {isLoading ? (
-                <Loader2 className="animate-spin" size={12} />
+                <Spinner size="sm" color="current" />
               ) : cooldown > 0 ? (
                 <Clock size={12} className="text-white/70 animate-pulse" />
               ) : (
                 <Play size={12} />
               )}
               <span>{isLoading ? '...' : cooldown > 0 ? `${cooldown}s` : 'Run'}</span>
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Mobile Tab Switcher */}
         <div className="px-3 py-1.5 bg-canvas/40 border-t border-border grid grid-cols-3 gap-1">
           <button
+            type="button"
             onClick={() => setMobileTab('problem')}
             className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-medium transition-all cursor-pointer ${
               mobileTab === 'problem' ? 'bg-surface text-text-primary shadow-xs border border-border' : 'text-text-muted hover:text-text-primary'
@@ -187,15 +209,17 @@ const CodingWorkspace = () => {
             <span>Problem</span>
           </button>
           <button
+            type="button"
             onClick={() => setMobileTab('code')}
             className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              mobileTab === 'code' ? 'bg-accent text-white shadow-xs' : 'text-text-muted hover:text-text-primary'
+              mobileTab === 'code' ? 'bg-accent text-white shadow-xs font-semibold' : 'text-text-muted hover:text-text-primary'
             }`}
           >
             <Code2 size={13} />
             <span>Editor</span>
           </button>
           <button
+            type="button"
             onClick={() => setMobileTab('console')}
             className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-medium transition-all cursor-pointer ${
               mobileTab === 'console' ? 'bg-surface text-text-primary shadow-xs border border-border' : 'text-text-muted hover:text-text-primary'

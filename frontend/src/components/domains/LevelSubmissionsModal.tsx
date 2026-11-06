@@ -548,7 +548,7 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
         <div class="q-head">
           <span class="q-num">QUEST QUESTION #${idx + 1}</span>
           <span class="badge ${qr.isCorrect ? 'badge-pass' : 'badge-fail'}">
-            ${qr.isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}
+            ${qr.isCorrect ? 'CORRECT' : 'INCORRECT'}
           </span>
         </div>
         <div class="q-text">${qr.question || fullQ?.question || `Question #${idx + 1}`}</div>
@@ -564,13 +564,13 @@ export const LevelSubmissionsModal: React.FC<LevelSubmissionsModalProps> = ({
 
                     if (isSelected && isAnswer) {
                       cls += ' correct';
-                      tag = '✓ Student answer (correct)';
+                      tag = 'Student answer (correct)';
                     } else if (isSelected && !isAnswer) {
                       cls += ' incorrect';
-                      tag = '✗ Student answer';
+                      tag = 'Student answer';
                     } else if (isAnswer) {
                       cls += ' correct';
-                      tag = '✓ Correct answer';
+                      tag = 'Correct answer';
                     }
 
                     return `

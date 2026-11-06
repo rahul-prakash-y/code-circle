@@ -1495,9 +1495,12 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               <div className="mt-5 space-y-4">
                 {selectedDeleteTarget === 'all_pending' ? (
                   <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-label-primary space-y-2">
-                    <p className="font-semibold text-rose-700 dark:text-rose-300">
-                      ⚠️ You are about to delete all pending initial login students
-                      {selectedDept !== 'all' ? ` in department "${selectedDept}"` : ''}.
+                    <p className="font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                      <AlertTriangle size={15} className="shrink-0" />
+                      <span>
+                        You are about to delete all pending initial login students
+                        {selectedDept !== 'all' ? ` in department "${selectedDept}"` : ''}.
+                      </span>
                     </p>
                     <p className="text-label-secondary">
                       This will permanently remove{' '}
@@ -1509,8 +1512,9 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                   </div>
                 ) : selectedDeleteTarget === 'selected' ? (
                   <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-xs text-label-primary space-y-2">
-                    <p className="font-semibold text-rose-700 dark:text-rose-300">
-                      ⚠️ You are about to delete {selectedStudentIds.length} selected pending student account(s).
+                    <p className="font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                      <AlertTriangle size={15} className="shrink-0" />
+                      <span>You are about to delete {selectedStudentIds.length} selected pending student account(s).</span>
                     </p>
                     <p className="text-label-secondary">
                       These students have not completed initial login. Their records and pending requests will be completely removed.

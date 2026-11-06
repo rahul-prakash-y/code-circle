@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Search,
   CheckCircle2,
+  Check,
   AlertTriangle,
   X,
   FileCheck,
@@ -886,11 +887,11 @@ export const CertificateStudio: React.FC = () => {
                             </p>
                           </div>
                           <span
-                            className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] ${
+                            className={`w-4 h-4 rounded border flex items-center justify-center ${
                               isSelected ? 'bg-primary text-white border-primary' : 'border-separator'
                             }`}
                           >
-                            {isSelected ? '✓' : ''}
+                            {isSelected ? <Check size={10} strokeWidth={2.5} /> : null}
                           </span>
                         </div>
                       );

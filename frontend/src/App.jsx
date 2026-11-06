@@ -264,6 +264,30 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/events/:id/report"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/:id"
+              element={
+                <ProtectedRoute>
+                  <EventDocumentationPage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/courses"

@@ -28,6 +28,7 @@ import { contestRoutes } from './routes/contestRoutes';
 import { pointsRoutes } from './routes/pointsRoutes';
 import { missedEventRequestRoutes } from './routes/missedEventRequestRoutes';
 import { eventDocumentRoutes } from './routes/eventDocumentRoutes';
+import { eventReportRoutes } from './routes/eventReportRoutes';
 import path from 'path';
 import fs from 'fs';
 import fastifyStatic from '@fastify/static';
@@ -88,6 +89,7 @@ server.register(contestRoutes, { prefix: '/api/contests' });
 server.register(pointsRoutes, { prefix: '/api/points' });
 server.register(missedEventRequestRoutes, { prefix: '/api/missed-event-requests' });
 server.register(eventDocumentRoutes, { prefix: '/api/docs' });
+server.register(eventReportRoutes, { prefix: '/api/reports' });
 
 // API 404 Handler
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');

@@ -570,6 +570,7 @@ export const useContestStore = create<ContestState>((set, get) => ({
         data || {}
       );
       toast.success(res.data.message || 'Contest re-entry approved!');
+      get().fetchContests();
       return { success: true, message: res.data.message };
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to approve re-entry';
@@ -585,6 +586,7 @@ export const useContestStore = create<ContestState>((set, get) => ({
         { note }
       );
       toast.success(res.data.message || 'Re-entry request declined');
+      get().fetchContests();
       return { success: true, message: res.data.message };
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to decline re-entry';
@@ -597,6 +599,7 @@ export const useContestStore = create<ContestState>((set, get) => ({
     try {
       const res = await api.delete(`/contests/${contestId}/submissions/${submissionId}`);
       toast.success(res.data.message || 'Student contest entry deleted successfully');
+      get().fetchContests();
       return { success: true, message: res.data.message };
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to delete student entry';

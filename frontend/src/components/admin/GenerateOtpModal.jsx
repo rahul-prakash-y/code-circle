@@ -16,6 +16,7 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
+import { HeroUISelect } from '../ui/HeroUIComponents';
 import useEventStore from '../../store/useEventStore';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
@@ -166,24 +167,23 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
         {!generatedSession ? (
           /* Form view */
           <form onSubmit={handleGenerate} className="space-y-4 sm:space-y-5 relative z-10">
-            <div>
-              <label className="input-label flex items-center gap-2 text-xs">
+            <div className="relative z-30">
+              <label className="input-label flex items-center gap-2 text-xs mb-1.5">
                 <Calendar size={14} className="text-accent" />
                 Target Event
               </label>
               {events && events.length > 0 ? (
-                <select
+                <HeroUISelect
                   value={selectedEventId}
-                  onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="input-field bg-surface text-text-primary border-border cursor-pointer text-xs py-2.5 min-h-[44px]"
+                  onChange={setSelectedEventId}
+                  placeholder="Select target event..."
+                  options={events.map((ev) => ({
+                    value: ev._id,
+                    label: `${ev.title} (${formatISTDate(ev.startDate || ev.date)}) • ${ev.hourlyPoints || 50} pts/hr`,
+                  }))}
+                  isSearchable
                   required
-                >
-                  {events.map((ev) => (
-                    <option key={ev._id} value={ev._id} className="bg-surface text-text-primary">
-                      {ev.title} ({formatISTDate(ev.startDate || ev.date)}) • {ev.hourlyPoints || 50} pts/hr
-                    </option>
-                  ))}
-                </select>
+                />
               ) : (
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-3">
                   <AlertCircle size={18} className="shrink-0" />
@@ -210,57 +210,50 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                 <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                   <Layers size={14} className="text-accent shrink-0" /> Mapped Class Hours (7 Periods)
                 </label>
-                <div className="flex items-center gap-1.5 text-[11px]">
-                  <span className="text-text-muted text-[10px]">Presets:</span>
-                  <Button
+                <div className="flex items-center gap-1.5 text-[11px] shrink-0">
+                  <span className="text-text-muted text-[10px] hidden sm:inline">Presets:</span>
+                  <button
                     type="button"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() => setHourPreset([1, 2, 3, 4])}
-                    className="h-7 px-2 text-[10px] font-bold"
+                    onClick={() => setHourPreset([1, 2, 3, 4])}
+                    className="h-6.5 px-2 text-[10px] font-bold rounded-lg border border-separator/80 bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors cursor-pointer select-none"
                   >
                     1 - 4
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="button"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() => setHourPreset([5, 6, 7])}
-                    className="h-7 px-2 text-[10px] font-bold"
+                    onClick={() => setHourPreset([5, 6, 7])}
+                    className="h-6.5 px-2 text-[10px] font-bold rounded-lg border border-separator/80 bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors cursor-pointer select-none"
                   >
                     5 - 7
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="button"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() => setHourPreset([1, 2, 3, 4, 5, 6, 7])}
-                    className="h-7 px-2 text-[10px] font-bold"
+                    onClick={() => setHourPreset([1, 2, 3, 4, 5, 6, 7])}
+                    className="h-6.5 px-2 text-[10px] font-bold rounded-lg border border-separator/80 bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors cursor-pointer select-none"
                   >
                     All 7
-                  </Button>
+                  </button>
                 </div>
               </div>
 
               {/* 7 Class Hours Toggle Buttons */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+              <div className="grid w-full [grid-template-columns:repeat(7,minmax(0,1fr))] gap-1 sm:gap-1.5">
                 {COLLEGE_HOURS.map((hr) => {
                   const isSelected = selectedClassHours.includes(hr);
                   return (
-                    <Button
+                    <button
                       key={hr}
                       type="button"
-                      variant={isSelected ? 'primary' : 'secondary'}
-                      onPress={() => toggleClassHour(hr)}
-                      className={`flex flex-col items-center justify-center py-2 sm:py-2.5 px-0.5 sm:px-1 rounded-xl font-bold min-h-[44px] ${
+                      onClick={() => toggleClassHour(hr)}
+                      className={`w-full min-w-0 py-2 sm:py-2.5 px-0.5 rounded-xl font-bold transition-all duration-150 flex flex-col items-center justify-center cursor-pointer select-none min-h-[44px] ${
                         isSelected
-                          ? 'shadow-[0_0_12px_rgba(59,130,246,0.4)]'
-                          : ''
+                          ? 'bg-accent text-white shadow-md shadow-accent/25 ring-2 ring-accent/40 font-black scale-[1.02]'
+                          : 'bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary border border-separator/60 hover:border-separator active:scale-95'
                       }`}
                     >
-                      <span className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-80">Hr</span>
-                      <span className="text-sm sm:text-base font-black font-mono">{hr}</span>
-                    </Button>
+                      <span className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-75 font-semibold">Hr</span>
+                      <span className="text-sm sm:text-base font-black font-mono leading-none mt-0.5">{hr}</span>
+                    </button>
                   );
                 })}
               </div>

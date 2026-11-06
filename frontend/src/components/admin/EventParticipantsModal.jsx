@@ -687,7 +687,7 @@ export const EventParticipantsModal = ({
         {/* ================================================================= */}
         {/* SEARCH & FILTERS TOOLBAR                                          */}
         {/* ================================================================= */}
-        <div className="p-4 sm:px-6 border-b border-separator dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface shrink-0">
+        <div className="p-4 sm:px-6 border-b border-separator dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface shrink-0 relative z-30">
           {/* Search Box */}
           <div className="relative w-full sm:w-88">
             <Search
@@ -716,7 +716,7 @@ export const EventParticipantsModal = ({
           </div>
 
           {/* Format & Attendance Filter Dropdowns */}
-          <div className="flex items-center gap-2.5 w-full sm:w-auto overflow-x-auto justify-end">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto overflow-visible justify-end flex-wrap sm:flex-nowrap">
             <HeroUISelect
               value={formatFilter}
               onChange={setFormatFilter}
@@ -728,6 +728,7 @@ export const EventParticipantsModal = ({
               ]}
               size="sm"
               className="w-36 shrink-0"
+              placement="bottom-end"
             />
 
             {!isParticipantsTab && (
@@ -740,7 +741,8 @@ export const EventParticipantsModal = ({
                   { value: 'absent', label: 'Unmarked (absent only)' },
                 ]}
                 size="sm"
-                className="w-44 shrink-0"
+                className="w-48 shrink-0"
+                placement="bottom-end"
               />
             )}
 
@@ -751,7 +753,7 @@ export const EventParticipantsModal = ({
                   setFormatFilter('all');
                   setAttendanceFilter('all');
                 }}
-                className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer px-2"
+                className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer px-2 whitespace-nowrap"
               >
                 Reset filters
               </button>

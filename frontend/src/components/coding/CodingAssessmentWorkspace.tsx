@@ -26,6 +26,8 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
+import { Button, Spinner, Chip } from '@heroui/react';
+import { HeroUISelect } from '../ui/HeroUIComponents';
 
 import api from '../../lib/axios';
 import { useVisibilityChange, IntegrityEvent } from '../../hooks/useVisibilityChange';
@@ -623,7 +625,6 @@ export const CodingAssessmentWorkspace: React.FC = () => {
         if (isMobile) setMobileTab('testcases');
       } else {
         toast(`Passed ${data.passed}/${data.total} visible test cases`, {
-          icon: '⚠️',
           id: 'run-code',
         });
         setConsoleOutput(`Verdict: ${data.passed}/${data.total} passed.`);
@@ -686,8 +687,8 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           manuallyLock();
           toast.success(
             data.pointsAwarded && data.pointsAwarded > 0
-              ? `🎉 Level completed! +${data.pointsAwarded} points awarded!`
-              : '🎉 Level completed successfully!',
+              ? `Level completed! +${data.pointsAwarded} points awarded!`
+              : 'Level completed successfully!',
             {
               id: 'submit-assessment',
               duration: 7000,
@@ -706,7 +707,6 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           toast(
             `Problem ${activeQuestionIdx + 1} evaluated: ${problemResult.passed}/${problemResult.total} passed (${problemResult.score}%)`,
             {
-              icon: '📋',
               id: 'submit-assessment',
               duration: 6000,
             }
@@ -741,7 +741,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
         if (verdict.status === 'passed') {
           const ptsEarned = verdict.pointsAwarded ?? 0;
           if (ptsEarned > 0) {
-            toast.success(`🎉 Submission Accepted! +${ptsEarned} points awarded!`, {
+            toast.success(`Submission Accepted! +${ptsEarned} points awarded!`, {
               id: 'submit-assessment',
               duration: 7000,
             });
@@ -757,7 +757,6 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           toast(
             `Assessment Submitted. Score: ${verdict.score}% (${verdict.passed}/${verdict.total} passed)`,
             {
-              icon: '📋',
               id: 'submit-assessment',
               duration: 6000,
             }
@@ -936,17 +935,19 @@ export const CodingAssessmentWorkspace: React.FC = () => {
               <span className="text-[13px] font-semibold tracking-tight text-white truncate max-w-[220px] md:max-w-[340px]">
                 {challenge.title}
               </span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+              <Chip
+                size="sm"
+                variant="flat"
+                color={
                   challenge.difficulty === 'Easy'
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                    ? 'success'
                     : challenge.difficulty === 'Hard'
-                    ? 'bg-rose-500/15 text-rose-400 border border-rose-500/25'
-                    : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                }`}
+                    ? 'danger'
+                    : 'warning'
+                }
               >
                 {challenge.difficulty}
-              </span>
+              </Chip>
             </div>
           )}
         </div>
@@ -1002,46 +1003,46 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Glass Language Selector, Run & Submit Actions */}
-        <div className="flex items-center gap-2.5">
-          {/* Glass Style Language Selector */}
-          <div className="relative">
-            <select
-              value={activeLanguage}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              disabled={isWorkspaceLocked || isExecuting || isSubmitting}
-              className="appearance-none bg-white/[0.06] hover:bg-white/[0.09] active:bg-white/[0.12] disabled:opacity-50 disabled:cursor-not-allowed border border-white/[0.1] rounded-full px-3.5 py-1.5 text-xs font-medium text-neutral-200 transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500/50 pr-7"
-            >
-              {challenge.allowedLanguages.map((lang) => (
-                <option key={lang} value={lang} className="bg-neutral-900 text-white">
-                  {LANG_DISPLAY_NAMES[lang] || lang.toUpperCase()}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-neutral-400">
-              ▼
-            </span>
-          </div>
+        {/* Right: HeroUI Language Selector, Run & Submit Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* HeroUI Style Language Selector */}
+          <HeroUISelect
+            value={activeLanguage}
+            onChange={(val) => handleLanguageChange(val)}
+            options={challenge.allowedLanguages.map((lang) => ({
+              value: lang,
+              label: LANG_DISPLAY_NAMES[lang] || lang.toUpperCase(),
+            }))}
+            disabled={isWorkspaceLocked || isExecuting || isSubmitting}
+            size="sm"
+            className="w-36! shrink-0"
+            placement="bottom-end"
+          />
 
           {/* Reset Template Button */}
-          <button
-            onClick={handleResetStarterCode}
-            disabled={isWorkspaceLocked || isExecuting || isSubmitting}
-            title="Reset to starter code"
-            className="p-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] disabled:opacity-40 text-neutral-400 hover:text-white transition-all border border-white/[0.06]"
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={handleResetStarterCode}
+            isDisabled={isWorkspaceLocked || isExecuting || isSubmitting}
+            title="Reset code template"
+            className="h-8 px-2.5 rounded-full text-xs font-semibold shrink-0 cursor-pointer text-text-secondary hover:text-text-primary bg-surface-secondary hover:bg-surface-elevated border border-separator shadow-xs flex items-center gap-1.5"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
+            <RotateCcw className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+            <span className="text-xs">Reset</span>
+          </Button>
 
           {/* Run Code Button (10s Cooldown Enforced) */}
-          <button
-            onClick={handleRunCode}
-            disabled={isExecuting || isSubmitting || isWorkspaceLocked || runCooldown > 0}
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={handleRunCode}
+            isDisabled={isExecuting || isSubmitting || isWorkspaceLocked || runCooldown > 0}
             title={runCooldown > 0 ? `Cooldown active (${runCooldown}s remaining)` : 'Run Code'}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.18] disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all border border-white/[0.1] shadow-sm"
+            className="rounded-full h-8 px-3.5 text-xs font-medium text-white transition-all border border-white/[0.1] bg-white/[0.08] hover:bg-white/[0.14] cursor-pointer"
           >
             {isExecuting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-300" />
+              <Spinner size="sm" color="current" />
             ) : runCooldown > 0 ? (
               <Clock className="w-3.5 h-3.5 text-neutral-400" />
             ) : (
@@ -1054,22 +1055,24 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                 ? `Run Code (${runCooldown}s)`
                 : 'Run Code'}
             </span>
-          </button>
-
+          </Button>
 
           {/* Submit Button */}
-          <button
-            onClick={() => setShowSubmitModal(true)}
-            disabled={isExecuting || isSubmitting || isWorkspaceLocked}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all shadow-md shadow-blue-600/20"
+          <Button
+            size="sm"
+            color="primary"
+            variant="solid"
+            onPress={() => setShowSubmitModal(true)}
+            isDisabled={isExecuting || isSubmitting || isWorkspaceLocked}
+            className="rounded-full h-8 px-4 text-xs font-semibold cursor-pointer shadow-md shadow-blue-600/20"
           >
             {isSubmitting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Spinner size="sm" color="current" />
             ) : (
               <Send className="w-3.5 h-3.5" />
             )}
             <span>{isSubmitting ? 'Evaluating...' : 'Submit'}</span>
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -1323,7 +1326,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setActiveConsoleTab('cases')}
-                        className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-medium transition-all ${
+                        className={`flex whitespace-nowrap items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-medium transition-all ${
                           activeConsoleTab === 'cases'
                             ? 'bg-white/[0.12] text-white'
                             : 'text-neutral-400 hover:text-neutral-200'
@@ -1335,7 +1338,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
 
                       <button
                         onClick={() => setActiveConsoleTab('terminal')}
-                        className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-medium transition-all ${
+                        className={`flex whitespace-nowrap items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-medium transition-all ${
                           activeConsoleTab === 'terminal'
                             ? 'bg-white/[0.12] text-white'
                             : 'text-neutral-400 hover:text-neutral-200'
@@ -1993,44 +1996,42 @@ export const CodingAssessmentWorkspace: React.FC = () => {
         {/* ── Mobile Sticky Bottom Action Dock ─────────────────────── */}
         <div className="px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.6rem)] bg-neutral-950/95 backdrop-blur-2xl border-t border-white/[0.08] flex items-center justify-between gap-2 shrink-0 z-30">
           {/* Language Selector */}
-          <div className="relative shrink-0">
-            <select
-              value={activeLanguage}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              disabled={isWorkspaceLocked || isExecuting || isSubmitting}
-              className="appearance-none bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.12] rounded-xl px-2.5 py-2 text-xs font-semibold text-neutral-200 transition-all cursor-pointer focus:outline-none pr-6"
-            >
-              {challenge.allowedLanguages.map((lang) => (
-                <option key={lang} value={lang} className="bg-neutral-900 text-white">
-                  {LANG_DISPLAY_NAMES[lang] || lang.toUpperCase()}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-neutral-400">
-              ▼
-            </span>
-          </div>
+          <HeroUISelect
+            value={activeLanguage}
+            onChange={(val) => handleLanguageChange(val)}
+            options={challenge.allowedLanguages.map((lang) => ({
+              value: lang,
+              label: LANG_DISPLAY_NAMES[lang] || lang.toUpperCase(),
+            }))}
+            disabled={isWorkspaceLocked || isExecuting || isSubmitting}
+            size="sm"
+            className="w-32 shrink-0"
+            placement="bottom-start"
+          />
 
           {/* Reset Template */}
-          <button
-            type="button"
-            onClick={handleResetStarterCode}
-            disabled={isWorkspaceLocked || isExecuting || isSubmitting}
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={handleResetStarterCode}
+            isDisabled={isWorkspaceLocked || isExecuting || isSubmitting}
             title="Reset code template"
-            className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-all border border-white/[0.08] shrink-0 cursor-pointer"
+            className="h-9 px-2.5 rounded-xl text-xs font-semibold shrink-0 cursor-pointer text-text-secondary hover:text-text-primary bg-surface-secondary hover:bg-surface-elevated border border-separator shadow-xs flex items-center gap-1"
           >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+            <RotateCcw className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+            <span className="text-[11px]">Reset</span>
+          </Button>
 
           {/* Run Code Button */}
-          <button
-            type="button"
-            onClick={handleRunCode}
-            disabled={isExecuting || isSubmitting || isWorkspaceLocked || runCooldown > 0}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] disabled:opacity-40 text-white transition-all border border-white/[0.1] cursor-pointer"
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={handleRunCode}
+            isDisabled={isExecuting || isSubmitting || isWorkspaceLocked || runCooldown > 0}
+            className="flex-1 h-9 rounded-xl text-xs font-semibold bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.1] cursor-pointer"
           >
             {isExecuting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-300" />
+              <Spinner size="sm" color="current" />
             ) : runCooldown > 0 ? (
               <Clock className="w-3.5 h-3.5 text-neutral-400" />
             ) : (
@@ -2043,22 +2044,24 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                 ? `Run (${runCooldown}s)`
                 : 'Run'}
             </span>
-          </button>
+          </Button>
 
           {/* Submit Button */}
-          <button
-            type="button"
-            onClick={() => setShowSubmitModal(true)}
-            disabled={isExecuting || isSubmitting || isWorkspaceLocked}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 active:scale-98 disabled:opacity-40 text-white transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+          <Button
+            size="sm"
+            color="primary"
+            variant="solid"
+            onPress={() => setShowSubmitModal(true)}
+            isDisabled={isExecuting || isSubmitting || isWorkspaceLocked}
+            className="flex-1 h-9 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 cursor-pointer"
           >
             {isSubmitting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Spinner size="sm" color="current" />
             ) : (
               <Send className="w-3.5 h-3.5" />
             )}
             <span>{isSubmitting ? 'Evaluating...' : 'Submit'}</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -2090,24 +2093,29 @@ export const CodingAssessmentWorkspace: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => setShowSubmitModal(false)}
-                className="px-4 py-2 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-all"
+              <Button
+                size="sm"
+                variant="flat"
+                onPress={() => setShowSubmitModal(false)}
+                className="px-4 py-2 rounded-full text-xs font-medium text-neutral-400 hover:text-white transition-all cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
-                onClick={() => handleFinalSubmit()}
-                disabled={isSubmitting}
-                className="flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-600/30"
+              </Button>
+              <Button
+                size="sm"
+                color="primary"
+                variant="solid"
+                onPress={() => handleFinalSubmit()}
+                isDisabled={isSubmitting}
+                className="px-5 py-2 rounded-full text-xs font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
               >
                 {isSubmitting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Spinner size="sm" color="current" />
                 ) : (
                   <Send className="w-3.5 h-3.5" />
                 )}
                 <span>Confirm & Submit</span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -2190,7 +2198,8 @@ export const CodingAssessmentWorkspace: React.FC = () => {
             {activeLevelId && !submissionVerdict.levelCompleted && (
               <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs space-y-1 text-center">
                 <div className="font-bold flex items-center justify-center gap-1.5 text-xs text-amber-400">
-                  ⚠️ Both Questions Required
+                  <AlertTriangle size={14} className="shrink-0" />
+                  <span>Both Questions Required</span>
                 </div>
                 <p className="text-[11px] text-amber-300/80 leading-relaxed">
                   You must pass both questions to complete this level and unlock the next level.
@@ -2199,52 +2208,69 @@ export const CodingAssessmentWorkspace: React.FC = () => {
             )}
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => setSubmissionVerdict(null)}
-                className="flex-1 py-2.5 rounded-full text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] text-neutral-200 transition-all border border-white/[0.08]"
+              <Button
+                size="sm"
+                variant="flat"
+                onPress={() => setSubmissionVerdict(null)}
+                className="flex-1 py-2.5 rounded-full text-xs font-medium text-neutral-200 transition-all border border-white/[0.08] cursor-pointer"
               >
                 Review Code
-              </button>
+              </Button>
 
               {activeLevelId && !submissionVerdict.levelCompleted && levelQuestions.length > 1 && (
-                <button
-                  onClick={() => {
+                <Button
+                  size="sm"
+                  color="primary"
+                  variant="solid"
+                  onPress={() => {
                     setSubmissionVerdict(null);
                     handleSwitchQuestion(activeQuestionIdx === 0 ? 1 : 0);
                   }}
-                  className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-600/30"
+                  className="flex-1 py-2.5 rounded-full text-xs font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
                 >
                   {`Solve Problem ${activeQuestionIdx === 0 ? 2 : 1}`}
-                </button>
+                </Button>
               )}
 
               {activeLevelId && !submissionVerdict.levelCompleted && (
-                <button
-                  onClick={handleRetryAttempt}
-                  disabled={isRetrying}
-                  className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 text-amber-400 border border-amber-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                <Button
+                  size="sm"
+                  variant="flat"
+                  onPress={handleRetryAttempt}
+                  isDisabled={isRetrying}
+                  className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 text-amber-400 border border-amber-500/30 transition-all cursor-pointer"
                   title="Abandon attempt and get 2 fresh random questions (-10% points penalty)"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  {isRetrying ? (
+                    <Spinner size="sm" color="current" />
+                  ) : (
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  )}
                   <span>{isRetrying ? 'Loading...' : 'New Attempt'}</span>
-                </button>
+                </Button>
               )}
 
               {(submissionVerdict.levelCompleted || !activeLevelId) && (
                 submissionVerdict.domainId || queryDomainId ? (
-                  <button
-                    onClick={() => navigate(`/courses/${submissionVerdict.domainId || queryDomainId}`)}
-                    className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-600/30"
+                  <Button
+                    size="sm"
+                    color="success"
+                    variant="solid"
+                    onPress={() => navigate(`/courses/${submissionVerdict.domainId || queryDomainId}`)}
+                    className="flex-1 py-2.5 rounded-full text-xs font-semibold text-white shadow-md shadow-emerald-600/30 cursor-pointer"
                   >
                     Return to Course
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    onClick={() => navigate('/courses')}
-                    className="flex-1 py-2.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-600/30"
+                  <Button
+                    size="sm"
+                    color="primary"
+                    variant="solid"
+                    onPress={() => navigate('/courses')}
+                    className="flex-1 py-2.5 rounded-full text-xs font-semibold text-white shadow-md shadow-blue-600/30 cursor-pointer"
                   >
                     Return to Courses
-                  </button>
+                  </Button>
                 )
               )}
             </div>
@@ -2289,8 +2315,9 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                     : Math.max(0, Math.round((levelSession?.initialPoints || 100) * (1 - (levelSession?.attemptNumber || 1) * 0.1)))} / {levelSession?.initialPoints || 100} pts
                 </span>
               </div>
-              <div className="text-[11px] text-amber-400/80 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">
-                ⚠️ Each attempt deducts 10% of initial points. You will receive 2 fresh random questions from the level pool.
+              <div className="text-[11px] text-amber-400/80 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 flex items-center gap-1.5">
+                <AlertTriangle size={13} className="shrink-0 text-amber-400" />
+                <span>Each attempt deducts 10% of initial points. You will receive 2 fresh random questions from the level pool.</span>
               </div>
             </div>
 

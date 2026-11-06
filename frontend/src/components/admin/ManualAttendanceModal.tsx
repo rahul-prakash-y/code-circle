@@ -21,6 +21,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button, Spinner, Checkbox } from '@heroui/react';
+import { HeroUISelect } from '../ui/HeroUIComponents';
 import useAttendanceStore from '../../store/useAttendanceStore';
 import useEventStore from '../../store/useEventStore';
 import api from '../../lib/axios';
@@ -454,24 +455,24 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
     >
       <div className="space-y-4 pt-2">
           {/* Event & Session Selector Bar */}
-          <div className="p-4 sm:px-6 border-b border-separator bg-surface grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div className="p-4 sm:px-6 border-b border-separator bg-surface grid grid-cols-1 md:grid-cols-2 gap-3.5 relative z-30 overflow-visible">
             {/* Event Selector */}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-label-secondary flex items-center gap-1.5">
                 <Calendar size={13} className="text-accent" />
                 <span>Select Event</span>
               </label>
-              <select
+              <HeroUISelect
                 value={selectedEventId}
-                onChange={(e) => setSelectedEventId(e.target.value)}
-                className="input-field py-2 text-xs w-full font-medium"
-              >
-                {events.map((ev: any) => (
-                  <option key={ev._id} value={ev._id}>
-                    {ev.title} ({format(new Date(ev.date), 'MMM dd, yyyy')}) — {ev.type}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedEventId}
+                placeholder="Choose an event..."
+                options={events.map((ev: any) => ({
+                  value: ev._id,
+                  label: `${ev.title} (${format(new Date(ev.date), 'MMM dd, yyyy')}) — ${ev.type}`,
+                }))}
+                isSearchable
+                size="sm"
+              />
             </div>
 
             {/* Session Selector */}
@@ -501,26 +502,24 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                   />
 
                   {/* 7 Class Hours Mapping */}
-                  <div className="p-2.5 rounded-xl bg-canvas/70 border border-separator space-y-2">
-                    <div className="flex items-center justify-between text-[11px]">
+                  <div className="p-3 rounded-xl bg-canvas/70 border border-separator space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px] gap-2 flex-wrap">
                       <span className="font-semibold text-label-secondary flex items-center gap-1">
-                        <Layers size={12} className="text-accent" /> Map Class Hours:
+                        <Layers size={12} className="text-accent shrink-0" /> Map Class Hours:
                       </span>
-                      <span className="font-mono text-amber-500 dark:text-amber-400 font-bold">
+                      <span className="font-mono text-amber-500 dark:text-amber-400 font-bold text-xs">
                         +{selectedClassHours.length * (Number(hourlyPoints) || 0)} pts/student
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-7 gap-1">
+                    <div className="grid w-full [grid-template-columns:repeat(7,minmax(0,1fr))] gap-1">
                       {[1, 2, 3, 4, 5, 6, 7].map((hr) => {
                         const isSelected = selectedClassHours.includes(hr);
                         return (
-                          <Button
+                          <button
                             key={hr}
                             type="button"
-                            size="sm"
-                            variant={isSelected ? 'primary' : 'secondary'}
-                            onPress={() => {
+                            onClick={() => {
                               setSelectedClassHours((prev) => {
                                 if (prev.includes(hr)) {
                                   if (prev.length === 1) return prev;
@@ -530,39 +529,40 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                                 }
                               });
                             }}
-                            className={`py-1.5 h-auto rounded-lg text-xs font-bold ${
+                            className={`w-full min-w-0 py-1.5 px-0.5 rounded-lg text-xs font-bold transition-all text-center flex flex-col items-center justify-center cursor-pointer select-none ${
                               isSelected
-                                ? 'shadow-xs'
-                                : ''
+                                ? 'bg-accent text-white shadow-xs ring-1 ring-accent/40 font-black'
+                                : 'bg-surface hover:bg-surface-elevated text-label-secondary hover:text-label-primary border border-separator'
                             }`}
                           >
-                            H{hr}
-                          </Button>
+                            <span className="text-[9px] uppercase opacity-70 leading-none">H</span>
+                            <span className="font-mono leading-none mt-0.5">{hr}</span>
+                          </button>
                         );
                       })}
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-label-secondary">
+                    <div className="flex items-center justify-between text-[10px] text-label-secondary pt-0.5">
                       <span>{selectedClassHours.length} hr{selectedClassHours.length > 1 ? 's' : ''} × {hourlyPoints} pts</span>
-                      <div className="flex gap-1.5">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedClassHours([1, 2, 3, 4])}
-                          className="hover:text-accent font-semibold underline"
+                          className="px-1.5 py-0.5 rounded border border-separator hover:text-accent font-semibold transition-colors cursor-pointer text-[10px]"
                         >
                           1-4
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedClassHours([5, 6, 7])}
-                          className="hover:text-accent font-semibold underline"
+                          className="px-1.5 py-0.5 rounded border border-separator hover:text-accent font-semibold transition-colors cursor-pointer text-[10px]"
                         >
                           5-7
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectedClassHours([1, 2, 3, 4, 5, 6, 7])}
-                          className="hover:text-accent font-semibold underline"
+                          className="px-1.5 py-0.5 rounded border border-separator hover:text-accent font-semibold transition-colors cursor-pointer text-[10px]"
                         >
                           All 7
                         </button>
@@ -572,22 +572,17 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <select
+                  <HeroUISelect
                     value={selectedSessionId}
-                    onChange={(e) => setSelectedSessionId(e.target.value)}
-                    className="input-field py-2 text-xs w-full font-medium"
+                    onChange={setSelectedSessionId}
+                    placeholder={sessions.length === 0 ? "No sessions yet (auto-generates manual session)" : "Select attendance session..."}
+                    options={sessions.length === 0 ? [] : sessions.map((s: any) => ({
+                      value: s._id,
+                      label: `${s.sessionName} ${s.isActive ? '(Active)' : '(Closed)'} • ${s.classHours?.length || 1} hr${s.classHours?.length > 1 ? 's' : ''} (+${s.totalPoints || ((s.hourlyPoints || 50) * (s.classHours?.length || 1))} pts)`,
+                    }))}
                     disabled={sessions.length === 0}
-                  >
-                    {sessions.length === 0 ? (
-                      <option value="">No sessions yet (auto-generates manual session)</option>
-                    ) : (
-                      sessions.map((s: any) => (
-                        <option key={s._id} value={s._id}>
-                          {s.sessionName} {s.isActive ? '(Active)' : '(Closed)'} • {s.classHours?.length || 1} hr{s.classHours?.length > 1 ? 's' : ''} (+{s.totalPoints || ((s.hourlyPoints || 50) * (s.classHours?.length || 1))} pts)
-                        </option>
-                      ))
-                    )}
-                  </select>
+                    size="sm"
+                  />
 
                   {/* Selected session summary badge */}
                   {selectedSessionId && (() => {

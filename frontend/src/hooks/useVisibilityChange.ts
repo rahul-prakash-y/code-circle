@@ -110,7 +110,6 @@ export const useVisibilityChange = ({
           toast(
             `Warning 1/${maxWarnings}: Window switch detected. Tab switching is strictly prohibited!`,
             {
-              icon: '⚠️',
               duration: 5000,
               style: {
                 background: 'var(--surface)',
@@ -123,7 +122,6 @@ export const useVisibilityChange = ({
           toast(
             `Warning 2/${maxWarnings}: Final warning! 1 more tab switch will BLOCK your account from all assessments & contests.`,
             {
-              icon: '🚨',
               duration: 6000,
               style: {
                 background: 'var(--surface)',

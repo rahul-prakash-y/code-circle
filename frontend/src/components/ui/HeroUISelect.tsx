@@ -28,6 +28,7 @@ export interface HeroUISelectProps {
   variant?: 'flat' | 'bordered' | 'faded';
   color?: 'primary' | 'accent' | 'purple' | 'emerald';
   startContent?: React.ReactNode;
+  placement?: 'bottom-start' | 'bottom-end';
 }
 
 export const HeroUISelect: React.FC<HeroUISelectProps> = ({
@@ -46,6 +47,7 @@ export const HeroUISelect: React.FC<HeroUISelectProps> = ({
   size = 'md',
   color = 'accent',
   startContent,
+  placement = 'bottom-start',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,16 +79,18 @@ export const HeroUISelect: React.FC<HeroUISelectProps> = ({
 
   // Handle outside click
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside, { passive: true });
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isOpen]);
 
@@ -141,12 +145,17 @@ export const HeroUISelect: React.FC<HeroUISelectProps> = ({
         id={triggerId}
         role="button"
         tabIndex={disabled ? -1 : 0}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!disabled) setIsOpen(!isOpen);
+        }}
         onKeyDown={(e) => {
           if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
+            e.stopPropagation();
             setIsOpen(!isOpen);
           } else if (e.key === 'Escape') {
+            e.stopPropagation();
             setIsOpen(false);
           }
         }}
@@ -209,7 +218,8 @@ export const HeroUISelect: React.FC<HeroUISelectProps> = ({
             animate={{ opacity: 1, y: 4, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 right-0 z-50 overflow-hidden rounded-2xl bg-surface-raised border border-separator shadow-2xl backdrop-blur-xl p-1.5"
+            onClick={(e) => e.stopPropagation()}
+            className={`absolute top-full mt-1.5 ${placement === 'bottom-end' ? 'right-0' : 'left-0'} min-w-full w-max max-w-xs sm:max-w-sm z-[9999] overflow-hidden rounded-2xl bg-surface-raised border border-separator shadow-2xl backdrop-blur-xl p-1.5`}
           >
             {/* Search Input for Autocomplete */}
             {isSearchable && (

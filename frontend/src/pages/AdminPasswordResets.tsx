@@ -168,7 +168,7 @@ const AdminPasswordResets: React.FC = () => {
         } else {
           toast(
             `Approved & reset link generated! Note: Email delivery failed (${res.data.emailError}). You can copy the link manually or resend.`,
-            { icon: '⚠️', duration: 4000 }
+            { duration: 4000 }
           );
         }
         await fetchRequests();

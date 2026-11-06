@@ -404,7 +404,7 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
       <div class="q-head">
         <span class="q-num">QUESTION #${idx + 1} (${q.points} pt${q.points > 1 ? 's' : ''})</span>
         <span class="badge ${q.isCorrect ? 'badge-pass' : 'badge-fail'}">
-          ${q.isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}
+          ${q.isCorrect ? 'CORRECT' : 'INCORRECT'}
         </span>
       </div>
       <div class="q-text">${q.questionText}</div>
@@ -420,13 +420,13 @@ export const AssessmentSubmissionDetailModal: React.FC<AssessmentSubmissionDetai
 
                   if (isSelected && isAnswer) {
                     cls += ' correct';
-                    tag = '✓ Student Answer (Correct)';
+                    tag = 'Student Answer (Correct)';
                   } else if (isSelected && !isAnswer) {
                     cls += ' incorrect';
-                    tag = '✗ Student Answer';
+                    tag = 'Student Answer';
                   } else if (isAnswer) {
                     cls += ' correct';
-                    tag = '✓ Correct Answer';
+                    tag = 'Correct Answer';
                   }
 
                   return `

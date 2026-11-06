@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   Sparkles,
   Download,
+  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CodingBulkUploadModal from '../coding/admin/CodingBulkUploadModal';
@@ -693,8 +694,9 @@ export const LevelEditorModal: React.FC<LevelEditorModalProps> = ({
                     Pool Questions ({codingPool.length})
                   </span>
                   {codingPool.length < 2 && (
-                    <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                      ⚠️ Add at least 2 questions for random 2-question assignment
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium inline-flex items-center gap-1">
+                      <AlertTriangle size={12} className="shrink-0" />
+                      <span>Add at least 2 questions for random 2-question assignment</span>
                     </span>
                   )}
                 </div>

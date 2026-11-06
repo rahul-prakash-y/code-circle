@@ -75,9 +75,7 @@ export const EventDocumentAdminReview: React.FC<EventDocumentAdminReviewProps> =
   const handleReject = async () => {
     if (!rejectionFeedback.trim()) {
       setShowRejectInput(true);
-      toast('Please provide a reason or revision note for rejection', {
-        icon: '⚠️',
-      });
+      toast('Please provide a reason or revision note for rejection');
       return;
     }
 

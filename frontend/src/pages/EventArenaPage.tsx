@@ -35,6 +35,7 @@ import {
   Users,
   Lock,
   ShieldAlert,
+  Star,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useFullScreenEnforcement } from '../hooks/useFullScreenEnforcement';
@@ -277,7 +278,7 @@ export const EventArenaPage: React.FC = () => {
       if (res && res.testCaseResults) {
         setRunResults(res.testCaseResults);
         if (res.allPassed) {
-          toast.success('All public test cases passed! 🎉');
+          toast.success('All public test cases passed!');
         } else {
           toast.error('Some test cases failed. Check output.');
         }
@@ -541,7 +542,7 @@ export const EventArenaPage: React.FC = () => {
                         {asm.type === 'UI_UX' ? (
                           <span className="text-pink-400 font-semibold flex items-center gap-1.5">
                             <Palette size={13} />
-                            <span>🎨 UI/UX Figma Design Challenge</span>
+                            <span>UI/UX Figma Design Challenge</span>
                           </span>
                         ) : (
                           <>
@@ -564,7 +565,7 @@ export const EventArenaPage: React.FC = () => {
                                 </span>
                               </div>
                               <p className="text-[10px] text-white/60">
-                                Status: <span className="font-bold text-emerald-400">{sub.isPassed ? 'Passed ✓' : 'Participated'}</span>
+                                Status: <span className="font-bold text-emerald-400">{sub.isPassed ? 'Passed' : 'Participated'}</span>
                               </p>
                             </>
                           ) : (
@@ -820,7 +821,10 @@ export const EventArenaPage: React.FC = () => {
                             <p className="text-[10px] text-white/50 line-clamp-1">{ch.description}</p>
                           )}
                           {isPrevChosen && (
-                            <span className="text-[9px] text-emerald-400 font-bold">★ Selected for submission</span>
+                            <span className="text-[9px] text-emerald-400 font-bold inline-flex items-center gap-1">
+                              <Star size={10} className="fill-emerald-400 text-emerald-400 shrink-0" />
+                              <span>Selected for submission</span>
+                            </span>
                           )}
                         </div>
                       );
@@ -1434,10 +1438,11 @@ export const EventArenaPage: React.FC = () => {
                         isIconOnly
                         size="sm"
                         variant="light"
+                        aria-label="Close execution output"
                         onPress={() => setRunResults(null)}
                         className="text-white/40 hover:text-white p-1 min-w-6 h-6"
                       >
-                        ✕
+                        <X size={14} />
                       </Button>
                     </div>
 
@@ -1452,7 +1457,7 @@ export const EventArenaPage: React.FC = () => {
                       >
                         <div className="flex items-center justify-between font-bold">
                           <span>
-                            Test Case #{res.testCaseNumber}: {res.passed ? 'PASSED ✓' : 'FAILED ✗'}
+                            Test Case #{res.testCaseNumber}: {res.passed ? 'PASSED' : 'FAILED'}
                           </span>
                           <span className="text-[10px] text-white/50">{res.executionTimeMs}ms</span>
                         </div>
@@ -1495,13 +1500,13 @@ export const EventArenaPage: React.FC = () => {
                 <div className="flex justify-between text-white/80">
                   <span>Figma Prototype Link:</span>
                   <span className={`font-bold ${studentFigmaLink.trim() ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {studentFigmaLink.trim() ? 'Provided ✓' : 'Missing ✗'}
+                    {studentFigmaLink.trim() ? 'Provided' : 'Missing'}
                   </span>
                 </div>
                 <div className="flex justify-between text-white/80">
                   <span>Design Notes:</span>
                   <span className="font-bold text-purple-400">
-                    {studentDesignNotes.trim() ? 'Included ✓' : 'None'}
+                    {studentDesignNotes.trim() ? 'Included' : 'None'}
                   </span>
                 </div>
               </div>

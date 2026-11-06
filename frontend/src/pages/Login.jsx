@@ -29,7 +29,7 @@ const Login = () => {
     
     if (result.success) {
       if (result.requirePasswordChange || result.mustChangePassword || result.user?.mustChangePassword) {
-        toast('Please create your own secure password to complete onboarding', { icon: '🔐' });
+        toast('Please create your own secure password to complete onboarding');
         navigate('/setup-password');
       } else {
         toast.success('Welcome back to the circle!');

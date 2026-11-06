@@ -205,9 +205,9 @@ export const useDomainStore = create<DomainState>((set, get) => ({
         if (result.passed) {
           const ptsMsg = result.pointsAwarded && result.pointsAwarded > 0 ? ` (+${result.pointsAwarded} pts earned!)` : '';
           if (result.requiresCodingAssessment) {
-            toast.success(`🎉 Quest Passed (${result.passRate}%)! Coding assessment unlocked.${ptsMsg}`);
+            toast.success(`Quest Passed (${result.passRate}%)! Coding assessment unlocked.${ptsMsg}`);
           } else {
-            toast.success(`🎉 Level Mastered (${result.passRate}%)!${ptsMsg} Next level unlocked.`);
+            toast.success(`Level Mastered (${result.passRate}%)!${ptsMsg} Next level unlocked.`);
           }
 
           // Refresh current domain levels to update unlocked & completed indicators

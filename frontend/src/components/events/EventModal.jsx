@@ -466,7 +466,7 @@ export const EventModal = ({
       certificateTemplateId: '',
     }));
     if (fileInputRef.current) fileInputRef.current.value = '';
-    toast('Certificate template unmapped', { icon: '🗑️' });
+    toast('Certificate template unmapped');
   };
 
   const handleSubmit = async (e) => {

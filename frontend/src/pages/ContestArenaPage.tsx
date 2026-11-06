@@ -1170,7 +1170,7 @@ export const ContestArenaPage: React.FC = () => {
                                   <div className="flex items-center gap-2">
                                     {executionResult.isPassed ? (
                                       <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                                        <CheckCircle2 size={14} /> ✓ Sample Output Matched
+                                        <CheckCircle2 size={14} /> Sample Output Matched
                                       </span>
                                     ) : (
                                       <span className="text-rose-400 font-bold flex items-center gap-1.5">

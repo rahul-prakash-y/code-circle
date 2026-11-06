@@ -9,6 +9,7 @@ import {
   Users,
   CheckCircle2,
 } from 'lucide-react';
+import { HackerRankBrandIcon } from '../ui/Icon';
 import {
   useHackerRankStats,
   normalizeHackerRankHandle,
@@ -202,10 +203,7 @@ export const HackerRankCard: React.FC<HackerRankCardProps> = ({
             <div className="flex items-center gap-3">
               {/* HackerRank Icon with signature green accent container */}
               <div className="w-9 h-9 rounded-[11px] flex items-center justify-center shrink-0 relative bg-success-subtle">
-                {/* Minimal HackerRank 'H' icon */}
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="text-success">
-                  <path d="M4 3h4.5v7h7V3H20v18h-4.5v-7h-7v7H4V3z" />
-                </svg>
+                <HackerRankBrandIcon size={18} className="text-success" />
                 {/* Subtle pulsing live indicator */}
                 <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
@@ -328,8 +326,9 @@ export const HackerRankCard: React.FC<HackerRankCardProps> = ({
                 Stars
               </p>
             </div>
-            <p className="text-[14px] sm:text-[15px] font-bold font-mono tabular-nums mt-0.5 text-label-primary tracking-tight">
-              {stats?.totalStars ?? 0} ★
+            <p className="text-[14px] sm:text-[15px] font-bold font-mono tabular-nums mt-0.5 text-label-primary tracking-tight inline-flex items-center gap-1">
+              {stats?.totalStars ?? 0}
+              <Star size={11} className="text-warning fill-warning shrink-0" />
             </p>
           </div>
 

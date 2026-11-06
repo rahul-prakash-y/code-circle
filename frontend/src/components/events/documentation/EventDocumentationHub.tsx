@@ -12,6 +12,7 @@ import {
   Trash2,
   Sparkles,
   ArrowRight,
+  ArrowLeft,
   Filter,
 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
@@ -20,6 +21,7 @@ import { EmilCard, EmilButton } from '../../ui/emil-ui';
 import EventDocumentEditor from './EventDocumentEditor';
 import EventDocumentAdminReview from './EventDocumentAdminReview';
 import EventDocumentPrintable from './EventDocumentPrintable';
+import EventReportForm from './EventReportForm';
 import api from '../../../lib/axios';
 import useAuthStore from '../../../store/useAuthStore';
 
@@ -114,12 +116,34 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
       {/* ══════════════════════════════════════════════════════════════
           VIEW 1: CREATE OR EDIT SCREEN
           ══════════════════════════════════════════════════════════════ */}
-      {currentView === 'create' || currentView === 'edit' ? (
+      {currentView === 'create' ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-separator">
+            <EmilButton
+              variant="flat"
+              size="sm"
+              onClick={() => setCurrentView('list')}
+              className="gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Documents List</span>
+            </EmilButton>
+          </div>
+          <EventReportForm
+            eventId={eventId}
+            eventsList={eventsList}
+            onSuccess={() => {
+              fetchDocuments();
+              setCurrentView('list');
+            }}
+          />
+        </div>
+      ) : currentView === 'edit' ? (
         <EventDocumentEditor
           eventId={eventId}
           eventTitle={eventTitle}
           eventsList={eventsList}
-          initialDocument={currentView === 'edit' ? activeDoc : undefined}
+          initialDocument={activeDoc}
           onSaved={() => {
             fetchDocuments();
             setCurrentView('list');

@@ -82,6 +82,13 @@ export const ContestsPage: React.FC = () => {
 
   useEffect(() => {
     fetchContests();
+    const handleFocus = () => {
+      fetchContests();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const liveContests = contests.filter((c) => c.status === 'LIVE');
@@ -245,51 +252,72 @@ export const ContestsPage: React.FC = () => {
                       </Button>
 
                       <div className="flex items-center gap-2">
-                        {c.mySubmission?.reentryStatus === 'PENDING' ? (
-                          <div className="w-full sm:w-auto px-4 py-2 min-h-[42px] rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium flex items-center justify-center gap-1.5">
-                            <Clock size={14} className="animate-spin" />
-                            <span>Re-entry pending review</span>
-                          </div>
-                        ) : c.mySubmission?.reentryStatus === 'REJECTED' ? (
-                          <div className="w-full sm:w-auto px-4 py-2 min-h-[42px] rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center justify-center gap-1.5">
-                            <span>Re-entry declined</span>
-                          </div>
-                        ) : c.mySubmission && !c.mySubmission.canReenter ? (
-                          <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <Button
-                              size="sm"
-                              variant="bordered"
-                              onPress={() => handleOpenMySubmission(c)}
-                              className="flex-1 sm:flex-initial rounded-xl bg-surface-secondary hover:bg-surface border-separator text-xs font-medium text-label-secondary hover:text-label-primary"
-                              title="Review submitted choices and code"
-                              startContent={<FileCode2 size={14} />}
-                            >
-                              Review work
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="flat"
-                              color="warning"
-                              onPress={() => setSelectedContestForReentry(c)}
-                              className="flex-1 sm:flex-initial rounded-xl text-xs font-medium"
-                              title="Request administrator permission to resume session"
-                              startContent={<RotateCcw size={14} />}
-                            >
-                              Request re-entry
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            color="primary"
-                            variant="solid"
-                            onPress={() => navigate(`/contests/${c._id}/arena`)}
-                            className="w-full sm:w-auto text-xs font-medium rounded-xl shadow-sm"
-                            startContent={<Play size={14} className="fill-current" />}
-                          >
-                            {c.mySubmission?.status === 'IN_PROGRESS' ? 'Resume battle' : 'Enter arena'}
-                          </Button>
-                        )}
+                        {(() => {
+                          const sub = c.mySubmission;
+                          const canEnterOrResume =
+                            !sub ||
+                            sub.status === 'IN_PROGRESS' ||
+                            sub.reentryStatus === 'APPROVED' ||
+                            Boolean(sub.canReenter);
+
+                          if (canEnterOrResume) {
+                            return (
+                              <Button
+                                size="sm"
+                                color="primary"
+                                variant="solid"
+                                onPress={() => navigate(`/contests/${c._id}/arena`)}
+                                className="w-full sm:w-auto text-xs font-medium rounded-xl shadow-sm"
+                                startContent={<Play size={14} className="fill-current" />}
+                              >
+                                {sub?.status === 'IN_PROGRESS' ? 'Resume battle' : 'Enter arena'}
+                              </Button>
+                            );
+                          }
+
+                          if (sub.reentryStatus === 'PENDING') {
+                            return (
+                              <div className="w-full sm:w-auto px-4 py-2 min-h-[42px] rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium flex items-center justify-center gap-1.5">
+                                <Clock size={14} className="animate-spin" />
+                                <span>Re-entry pending review</span>
+                              </div>
+                            );
+                          }
+
+                          if (sub.reentryStatus === 'REJECTED') {
+                            return (
+                              <div className="w-full sm:w-auto px-4 py-2 min-h-[42px] rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center justify-center gap-1.5">
+                                <span>Re-entry declined</span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <Button
+                                size="sm"
+                                variant="bordered"
+                                onPress={() => handleOpenMySubmission(c)}
+                                className="flex-1 sm:flex-initial rounded-xl bg-surface-secondary hover:bg-surface border-separator text-xs font-medium text-label-secondary hover:text-label-primary"
+                                title="Review submitted choices and code"
+                                startContent={<FileCode2 size={14} />}
+                              >
+                                Review work
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                color="warning"
+                                onPress={() => setSelectedContestForReentry(c)}
+                                className="flex-1 sm:flex-initial rounded-xl text-xs font-medium"
+                                title="Request administrator permission to resume session"
+                                startContent={<RotateCcw size={14} />}
+                              >
+                                Request re-entry
+                              </Button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </motion.div>
