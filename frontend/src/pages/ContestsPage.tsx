@@ -23,6 +23,7 @@ import {
   FileCode2,
   RotateCcw,
 } from 'lucide-react';
+import { Button } from '@heroui/react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import useContestStore, { Contest } from '../store/useContestStore';
@@ -111,42 +112,51 @@ export const ContestsPage: React.FC = () => {
         <div className="flex items-start sm:items-end gap-3 flex-col pb-1 w-full sm:w-auto">
           {isPrivileged && (
             <div className="flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-2xs shrink-0 w-full sm:w-auto">
-              <button
-                onClick={() => setViewMode('arena')}
-                className={`flex-1 sm:flex-initial flex items-center justify-center whitespace-nowrap gap-2 px-4 py-2 min-h-[40px] rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              <Button
+                size="sm"
+                variant={viewMode === 'arena' ? 'solid' : 'light'}
+                color={viewMode === 'arena' ? 'primary' : 'default'}
+                onPress={() => setViewMode('arena')}
+                className={`flex-1 sm:flex-initial text-xs font-medium rounded-xl ${
                   viewMode === 'arena'
-                    ? 'bg-primary text-white shadow-xs'
+                    ? 'shadow-xs'
                     : 'text-label-secondary hover:text-label-primary'
                 }`}
+                startContent={<Trophy size={15} />}
               >
-                <Trophy size={15} />
-                <span>Arena hub</span>
-              </button>
-              <button
-                onClick={() => setViewMode('manage')}
-                className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 whitespace-nowrap px-4 py-2 min-h-[40px] rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                Arena hub
+              </Button>
+              <Button
+                size="sm"
+                variant={viewMode === 'manage' ? 'solid' : 'light'}
+                color={viewMode === 'manage' ? 'primary' : 'default'}
+                onPress={() => setViewMode('manage')}
+                className={`flex-1 sm:flex-initial text-xs font-medium rounded-xl ${
                   viewMode === 'manage'
-                    ? 'bg-primary text-white shadow-xs'
+                    ? 'shadow-xs'
                     : 'text-label-secondary hover:text-label-primary'
                 }`}
+                startContent={<Award size={15} />}
               >
-                <Award size={15} />
-                <span>Manage contests</span>
-              </button>
+                Manage contests
+              </Button>
             </div>
           )}
 
           {isPrivileged && viewMode === 'manage' && (
-            <button
-              onClick={() => {
+            <Button
+              size="sm"
+              color="primary"
+              variant="solid"
+              onPress={() => {
                 setEditingContest(null);
                 setIsBuilderOpen(true);
               }}
-              className="w-full sm:w-auto flex items-center justify-center whitespace-nowrap gap-2 px-4 py-2.5 min-h-[40px] bg-primary text-white text-xs font-medium rounded-xl shadow-sm hover:bg-primary-hover active:scale-98 transition-all cursor-pointer"
+              className="w-full sm:w-auto text-xs font-medium rounded-xl shadow-sm"
+              startContent={<Plus size={15} />}
             >
-              <Plus size={15} />
-              <span>New contest</span>
-            </button>
+              New contest
+            </Button>
           )}
         </div>
       </div>
@@ -224,14 +234,15 @@ export const ContestsPage: React.FC = () => {
                     </div>
 
                     <div className="pt-6 mt-6 border-t border-separator flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 relative z-10">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                        className="text-xs font-medium text-label-secondary hover:text-label-primary flex items-center justify-center gap-1.5 cursor-pointer py-2 min-h-[42px] px-3 rounded-xl border border-separator hover:bg-surface-secondary transition-colors"
+                      <Button
+                        size="sm"
+                        variant="bordered"
+                        onPress={() => navigate(`/contests/${c._id}/leaderboard`)}
+                        className="text-xs font-medium text-label-secondary hover:text-label-primary border-separator rounded-xl"
+                        startContent={<Trophy size={14} className="text-amber-500" />}
                       >
-                        <Trophy size={14} className="text-amber-500" />
-                        <span>Live rankings</span>
-                      </button>
+                        Live rankings
+                      </Button>
 
                       <div className="flex items-center gap-2">
                         {c.mySubmission?.reentryStatus === 'PENDING' ? (
@@ -245,34 +256,39 @@ export const ContestsPage: React.FC = () => {
                           </div>
                         ) : c.mySubmission && !c.mySubmission.canReenter ? (
                           <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenMySubmission(c)}
-                              className="flex-1 sm:flex-initial px-3 py-2 min-h-[42px] rounded-xl bg-surface-secondary hover:bg-surface border border-separator text-xs font-medium text-label-secondary hover:text-label-primary transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                            <Button
+                              size="sm"
+                              variant="bordered"
+                              onPress={() => handleOpenMySubmission(c)}
+                              className="flex-1 sm:flex-initial rounded-xl bg-surface-secondary hover:bg-surface border-separator text-xs font-medium text-label-secondary hover:text-label-primary"
                               title="Review submitted choices and code"
+                              startContent={<FileCode2 size={14} />}
                             >
-                              <FileCode2 size={14} />
-                              <span>Review work</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedContestForReentry(c)}
-                              className="flex-1 sm:flex-initial px-3.5 py-2 min-h-[42px] rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              Review work
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="flat"
+                              color="warning"
+                              onPress={() => setSelectedContestForReentry(c)}
+                              className="flex-1 sm:flex-initial rounded-xl text-xs font-medium"
                               title="Request administrator permission to resume session"
+                              startContent={<RotateCcw size={14} />}
                             >
-                              <RotateCcw size={14} />
-                              <span>Request re-entry</span>
-                            </button>
+                              Request re-entry
+                            </Button>
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/contests/${c._id}/arena`)}
-                            className="w-full sm:w-auto px-6 py-2.5 min-h-[42px] bg-primary text-white text-xs font-medium rounded-xl shadow-sm hover:bg-primary-hover active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          <Button
+                            size="sm"
+                            color="primary"
+                            variant="solid"
+                            onPress={() => navigate(`/contests/${c._id}/arena`)}
+                            className="w-full sm:w-auto text-xs font-medium rounded-xl shadow-sm"
+                            startContent={<Play size={14} className="fill-current" />}
                           >
-                            <Play size={14} className="fill-current" />
-                            <span>{c.mySubmission?.status === 'IN_PROGRESS' ? 'Resume battle' : 'Enter arena'}</span>
-                          </button>
+                            {c.mySubmission?.status === 'IN_PROGRESS' ? 'Resume battle' : 'Enter arena'}
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -362,35 +378,41 @@ export const ContestsPage: React.FC = () => {
                     </span>
                     <div className="flex items-center gap-2">
                       {c.mySubmission && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenMySubmission(c)}
-                          className="px-2.5 py-1 min-h-[32px] rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          color="success"
+                          onPress={() => handleOpenMySubmission(c)}
+                          className="text-xs font-medium rounded-lg"
                           title="View your submitted MCQ choices and code solutions"
+                          startContent={<FileCode2 size={13} />}
                         >
-                          <FileCode2 size={13} />
-                          <span>My submission</span>
-                        </button>
+                          My submission
+                        </Button>
                       )}
                       {isPrivileged && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedContestForSubmissions(c)}
-                          className="px-2.5 py-1 min-h-[32px] rounded-lg text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          color="warning"
+                          onPress={() => setSelectedContestForSubmissions(c)}
+                          className="text-xs font-medium rounded-lg"
                           title="Submissions & Point Allocation"
+                          startContent={<Sliders size={13} />}
                         >
-                          <Sliders size={13} />
-                          <span>Submissions</span>
-                        </button>
+                          Submissions
+                        </Button>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                        className="text-xs font-medium text-primary hover:underline flex items-center gap-1 cursor-pointer py-1 min-h-[32px]"
+                      <Button
+                        size="sm"
+                        variant="light"
+                        color="primary"
+                        onPress={() => navigate(`/contests/${c._id}/leaderboard`)}
+                        className="text-xs font-medium"
+                        startContent={<Trophy size={13} />}
                       >
-                        <Trophy size={13} />
-                        <span>Rankings</span>
-                      </button>
+                        Rankings
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -465,39 +487,51 @@ export const ContestsPage: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => setSelectedContestForSubmissions(c)}
-                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-amber-500/10 text-amber-500 rounded-lg transition-colors cursor-pointer"
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="warning"
+                            onPress={() => setSelectedContestForSubmissions(c)}
                             title="Submissions & point allocation"
                           >
                             <Sliders size={14} />
-                          </button>
-                          <button
-                            onClick={() => navigate(`/contests/${c._id}/leaderboard`)}
-                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-secondary text-amber-500 rounded-lg transition-colors cursor-pointer"
+                          </Button>
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="warning"
+                            onPress={() => navigate(`/contests/${c._id}/leaderboard`)}
                             title="Leaderboard"
                           >
                             <Trophy size={14} />
-                          </button>
-                          <button
-                            onClick={() => {
+                          </Button>
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="primary"
+                            onPress={() => {
                               setEditingContest(c);
                               setIsBuilderOpen(true);
                             }}
-                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
                             title="Edit"
                           >
                             <Edit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => {
+                          </Button>
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="danger"
+                            onPress={() => {
                               if (confirm(`Delete contest "${c.title}"?`)) deleteContest(c._id);
                             }}
-                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-destructive/10 text-destructive rounded-lg transition-colors cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 size={14} />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>

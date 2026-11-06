@@ -11,11 +11,11 @@ import {
   Clock,
   RotateCcw,
   Trash2,
-  Loader2,
   Sparkles,
   FileText,
   Download,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import usePointsStore from '../../store/usePointsStore';
 import TutorialButton from '../common/TutorialButton';
@@ -184,15 +184,17 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => exportAssessmentSubmissionsCsv(assessmentId)}
-              className="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            <Button
+              size="sm"
+              variant="secondary"
+              color="success"
+              onPress={() => exportAssessmentSubmissionsCsv(assessmentId)}
+              className="text-xs font-medium flex items-center gap-1.5 shadow-xs"
               title="Download full assessment report as CSV"
             >
               <Download size={14} className="text-emerald-400" />
               <span>Export all (CSV)</span>
-            </button>
+            </Button>
             <span className="text-xs font-medium text-text-muted">
               Total submissions: <span className="text-text-primary font-semibold tabular-nums">{filteredSubmissions.length}</span>
             </span>
@@ -203,7 +205,7 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
         <div className="overflow-y-auto custom-scrollbar flex-1 relative z-10">
           {loading ? (
             <div className="py-12 text-center text-xs text-text-muted font-medium flex flex-col items-center gap-3">
-              <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+              <Spinner size="lg" color="default" />
               <span>Loading student submissions...</span>
             </div>
           ) : filteredSubmissions.length === 0 ? (
@@ -264,19 +266,21 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
 
                       {/* Management Action Buttons */}
                       <div className="flex items-center gap-1.5 ml-2 border-l border-border/80 pl-3">
-                        <button
-                          type="button"
-                          onClick={() => setInspectingSubmission(sub)}
-                          className="px-2.5 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-[11px] font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => setInspectingSubmission(sub)}
+                          className="text-[11px] font-medium flex items-center gap-1.5 shadow-xs"
                           title="View detailed questions and answers report"
                         >
                           <FileText size={12} className="text-purple-400" />
                           <span>View report</span>
-                        </button>
+                        </Button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => {
                             setAwardPointsTarget({
                               studentId,
                               studentName,
@@ -290,16 +294,17 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
                               `Custom points awarded for ${sub.score}/${sub.totalPoints} pts (${sub.percentage}%).`
                             );
                           }}
-                          className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/25 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                          className="text-[11px] font-medium flex items-center gap-1 shadow-xs"
                           title="Award custom points directly to this student"
                         >
                           <Sparkles size={12} className="text-amber-400" />
                           <span className="hidden xs:inline">Award points</span>
-                        </button>
+                        </Button>
 
-                        <button
-                          type="button"
-                          onClick={() =>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onPress={() =>
                             setConfirmAction({
                               type: 'reappear',
                               studentId,
@@ -307,16 +312,18 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
                               subId: sub._id,
                             })
                           }
-                          className="px-2.5 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/25 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer shadow-xs"
+                          className="text-[11px] font-medium flex items-center gap-1 shadow-xs"
                           title="Reset attempts so this student can reappear cleanly"
                         >
                           <RotateCcw size={12} />
                           <span className="hidden xs:inline">Allow reappear</span>
-                        </button>
+                        </Button>
 
-                        <button
-                          type="button"
-                          onClick={() =>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          isIconOnly
+                          onPress={() =>
                             setConfirmAction({
                               type: 'delete',
                               studentId,
@@ -324,11 +331,11 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
                               subId: sub._id,
                             })
                           }
-                          className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition-all cursor-pointer shadow-xs"
+                          className="rounded-xl shadow-xs"
                           title="Delete this retry attempt"
                         >
                           <Trash2 size={13} />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -396,29 +403,27 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
                 </div>
 
                 <div className="flex items-center justify-center gap-3 pt-2">
-                  <button
+                  <Button
                     type="button"
-                    disabled={actionLoading}
-                    onClick={() => setConfirmAction(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-surface-elevated border border-border cursor-pointer transition-all"
+                    variant="secondary"
+                    isDisabled={actionLoading}
+                    onPress={() => setConfirmAction(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-medium"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    disabled={actionLoading}
-                    onClick={handleExecuteAction}
-                    className={`px-5 py-2 rounded-xl text-xs font-medium text-white flex items-center gap-2 cursor-pointer shadow-xs transition-all ${
-                      confirmAction.type === 'delete'
-                        ? 'bg-red-600 hover:bg-red-500'
-                        : 'bg-purple-600 hover:bg-purple-500'
-                    }`}
+                    variant={confirmAction.type === 'delete' ? 'danger' : 'primary'}
+                    isDisabled={actionLoading}
+                    onPress={handleExecuteAction}
+                    className="px-5 py-2 rounded-xl text-xs font-medium shadow-xs"
                   >
-                    {actionLoading && <Loader2 size={13} className="animate-spin" />}
+                    {actionLoading && <Spinner size="sm" color="default" />}
                     <span>
                       {confirmAction.type === 'delete' ? 'Delete retry' : 'Allow reappear'}
                     </span>
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             </motion.div>
@@ -536,22 +541,24 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
 
                   {/* Submit / Cancel */}
                   <div className="flex items-center justify-end gap-3 pt-2">
-                    <button
+                    <Button
                       type="button"
-                      disabled={awardingLoading}
-                      onClick={() => setAwardPointsTarget(null)}
-                      className="px-4 py-2 rounded-xl text-xs font-medium text-text-secondary bg-surface-elevated hover:bg-surface-elevated border border-border cursor-pointer transition-all"
+                      variant="secondary"
+                      isDisabled={awardingLoading}
+                      onPress={() => setAwardPointsTarget(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-medium"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="submit"
-                      disabled={awardingLoading}
-                      className="px-5 py-2 rounded-xl text-xs font-medium text-amber-950 bg-amber-400 hover:bg-amber-300 tabular-nums shadow-xs flex items-center gap-2 cursor-pointer transition-all"
+                      variant="primary"
+                      isDisabled={awardingLoading}
+                      className="px-5 py-2 rounded-xl text-xs font-medium tabular-nums shadow-xs flex items-center gap-2"
                     >
-                      {awardingLoading && <Loader2 size={13} className="animate-spin text-amber-950" />}
+                      {awardingLoading && <Spinner size="sm" color="default" />}
                       <span>Award {awardAmount} points</span>
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </motion.div>

@@ -22,6 +22,7 @@ import {
 import toast from 'react-hot-toast';
 import { EmilCard, EmilButton } from '../../ui/emil-ui';
 import api from '../../../lib/axios';
+import { HeroUISelect, HeroChip as Chip } from '../../ui/HeroUIComponents';
 
 export interface EventDocumentEditorProps {
   eventId?: string;
@@ -198,18 +199,17 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-label-secondary mb-1">
               Select Event
             </label>
-            <select
+            <HeroUISelect
               value={targetEventId}
-              onChange={(e) => setTargetEventId(e.target.value)}
-              className="w-full h-10 px-3.5 text-sm rounded-xl border border-separator bg-surface-secondary text-label-primary focus:outline-none focus:ring-1 focus:ring-accent-ring focus:border-accent cursor-pointer"
-            >
-              <option value="">-- Choose Target Event --</option>
-              {eventsList.map((ev) => (
-                <option key={ev._id} value={ev._id}>
-                  {ev.title}
-                </option>
-              ))}
-            </select>
+              onChange={setTargetEventId}
+              placeholder="-- Choose Target Event --"
+              options={eventsList.map((ev) => ({
+                value: ev._id,
+                label: ev.title,
+              }))}
+              size="sm"
+              isSearchable
+            />
           </div>
         )}
         <div className="md:col-span-2">
@@ -236,6 +236,19 @@ export const EventDocumentEditor: React.FC<EventDocumentEditorProps> = ({
             placeholder="Report, Assessment, Technical"
             className="w-full h-10 px-3.5 text-sm rounded-xl border border-separator bg-surface-secondary text-label-primary focus:outline-none focus:ring-1 focus:ring-accent-ring focus:border-accent transition-all"
           />
+          {tagsInput && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {tagsInput
+                .split(',')
+                .map((t) => t.trim())
+                .filter(Boolean)
+                .map((tag) => (
+                  <Chip key={tag} size="sm" color="accent" variant="flat">
+                    #{tag}
+                  </Chip>
+                ))}
+            </div>
+          )}
         </div>
       </div>
 

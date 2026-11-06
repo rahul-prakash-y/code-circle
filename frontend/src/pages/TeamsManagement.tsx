@@ -28,6 +28,7 @@ import useTeamStore, { Team, TeamStatus } from '../store/useTeamStore';
 import useEventStore from '../store/useEventStore';
 import useUserStore from '../store/useUserStore';
 import toast from 'react-hot-toast';
+import { Button } from '@heroui/react';
 import { useDebounce } from '../hooks/useDebounce';
 
 const TeamsManagement: React.FC = () => {
@@ -213,16 +214,17 @@ const TeamsManagement: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
+        <Button
+          variant="primary"
+          onPress={() => {
             setFormData({ name: '', description: '', eventId: '', status: 'Active', leaderRollNo: '' });
             setShowCreateModal(true);
           }}
-          className="btn-primary py-2.5 px-5 min-h-[42px] flex items-center gap-2 text-xs font-semibold self-start sm:self-auto cursor-pointer rounded-xl"
+          className="py-2.5 px-5 min-h-[42px] flex items-center gap-2 text-xs font-semibold self-start sm:self-auto rounded-xl"
         >
           <Plus size={16} />
           <span>New Team</span>
-        </button>
+        </Button>
       </div>
 
       {/* KPI Metrics Strip */}
@@ -269,17 +271,15 @@ const TeamsManagement: React.FC = () => {
             { id: 'Inactive', label: 'Inactive' },
             { id: 'Blocked', label: 'Blocked' },
           ].map((tab) => (
-            <button
+            <Button
               key={tab.id}
-              onClick={() => setFilter('status', tab.id)}
-              className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer flex items-center justify-center ${
-                filters.status === tab.id
-                  ? 'bg-text-primary text-surface shadow-xs font-semibold'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
+              size="sm"
+              variant={filters.status === tab.id ? 'primary' : 'ghost'}
+              onPress={() => setFilter('status', tab.id)}
+              className="px-3 min-h-[36px] text-xs font-medium whitespace-nowrap"
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -370,12 +370,14 @@ const TeamsManagement: React.FC = () => {
                   <div className="space-y-2 mb-5">
                     <div className="flex items-center justify-between text-xs text-text-muted">
                       <span>Roster ({team.members?.length || 0})</span>
-                      <button
-                        onClick={() => openManageMembers(team)}
-                        className="text-accent hover:underline text-xs font-medium cursor-pointer min-h-[28px] inline-flex items-center"
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onPress={() => openManageMembers(team)}
+                        className="text-accent hover:underline text-xs font-medium min-h-[28px] h-auto p-1 inline-flex items-center"
                       >
                         + Assign
-                      </button>
+                      </Button>
                     </div>
 
                     <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto custom-scrollbar">
@@ -400,70 +402,87 @@ const TeamsManagement: React.FC = () => {
                 <div className="pt-3 border-t border-separator flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     {/* Map Members Button */}
-                    <button
-                      onClick={() => openManageMembers(team)}
-                      className="px-2.5 py-1 min-h-[34px] rounded-lg bg-surface-elevated hover:bg-canvas border border-separator text-xs font-medium text-text-primary flex items-center gap-1.5 transition-colors cursor-pointer"
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onPress={() => openManageMembers(team)}
+                      className="px-2.5 min-h-[34px] text-xs font-medium text-text-primary flex items-center gap-1.5"
                       title="Manage Roster"
                     >
                       <UserPlus size={13} />
                       <span>Roster</span>
-                    </button>
+                    </Button>
 
                     {/* Status Management Buttons */}
                     {team.status !== 'Active' && (
-                      <button
-                        onClick={() => handleStatusChange(team._id, 'Active')}
-                        className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg bg-surface-elevated hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-separator text-xs transition-colors cursor-pointer"
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        isIconOnly
+                        onPress={() => handleStatusChange(team._id, 'Active')}
+                        className="min-w-[34px] min-h-[34px] hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-separator text-xs"
                         title="Activate Team"
                         aria-label="Activate Team"
                       >
                         <ShieldCheck size={14} />
-                      </button>
+                      </Button>
                     )}
 
                     {team.status !== 'Inactive' && (
-                      <button
-                        onClick={() => handleStatusChange(team._id, 'Inactive')}
-                        className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg bg-surface-elevated hover:bg-canvas text-text-muted border border-separator text-xs transition-colors cursor-pointer"
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        isIconOnly
+                        onPress={() => handleStatusChange(team._id, 'Inactive')}
+                        className="min-w-[34px] min-h-[34px] text-text-muted border border-separator text-xs"
                         title="Deactivate Team"
                         aria-label="Deactivate Team"
                       >
                         <Shield size={14} />
-                      </button>
+                      </Button>
                     )}
 
                     {team.status !== 'Blocked' && (
-                      <button
-                        onClick={() => handleStatusChange(team._id, 'Blocked')}
-                        className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg bg-surface-elevated hover:bg-destructive/10 text-destructive border border-separator text-xs transition-colors cursor-pointer"
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        isIconOnly
+                        onPress={() => handleStatusChange(team._id, 'Blocked')}
+                        className="min-w-[34px] min-h-[34px] hover:bg-destructive/10 text-destructive border border-separator text-xs"
                         title="Block Team"
                         aria-label="Block Team"
                       >
                         <Ban size={14} />
-                      </button>
+                      </Button>
                     )}
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => openEdit(team)}
-                      className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center text-text-muted hover:text-text-primary rounded-lg hover:bg-surface-elevated transition-colors cursor-pointer"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      isIconOnly
+                      onPress={() => openEdit(team)}
+                      className="min-w-[34px] min-h-[34px] text-text-muted hover:text-text-primary rounded-lg"
                       title="Edit Team Details"
                       aria-label="Edit Team"
                     >
                       <Edit2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => {
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      isIconOnly
+                      onPress={() => {
                         setSelectedTeam(team);
                         setShowDeleteModal(true);
                       }}
-                      className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center text-text-muted hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer"
+                      className="min-w-[34px] min-h-[34px] text-text-muted hover:text-destructive rounded-lg hover:bg-destructive/10"
                       title="Delete Team"
                       aria-label="Delete Team"
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -502,13 +521,16 @@ const TeamsManagement: React.FC = () => {
                     <p className="text-xs text-text-muted">Initialize team details and assign squad name</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-text-muted hover:text-text-primary rounded-lg hover:bg-surface-elevated transition-colors cursor-pointer"
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  isIconOnly
+                  onPress={() => setShowCreateModal(false)}
+                  className="min-w-[32px] min-h-[32px]"
                   aria-label="Close dialog"
                 >
                   <X size={18} />
-                </button>
+                </Button>
               </div>
 
               <form onSubmit={handleCreateSubmit} className="space-y-4">
@@ -578,20 +600,23 @@ const TeamsManagement: React.FC = () => {
                 </div>
 
                 <div className="flex gap-3 pt-3 border-t border-separator">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 btn-secondary py-2.5 min-h-[42px] text-xs font-medium"
+                    variant="outline"
+                    onPress={() => setShowCreateModal(false)}
+                    className="flex-1 min-h-[42px] text-xs font-medium"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={actionLoading}
-                    className="flex-1 btn-primary py-2.5 min-h-[42px] text-xs font-medium flex items-center justify-center gap-2 cursor-pointer"
+                    variant="primary"
+                    isDisabled={actionLoading}
+                    isLoading={actionLoading}
+                    className="flex-1 min-h-[42px] text-xs font-medium flex items-center justify-center gap-2"
                   >
-                    {actionLoading ? <Loader2 size={15} className="animate-spin" /> : 'Create Team'}
-                  </button>
+                    Create Team
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -619,13 +644,16 @@ const TeamsManagement: React.FC = () => {
                     <p className="text-xs text-text-muted">Modify team properties and assignments</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setShowEditModal(false)} 
-                  className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-text-muted hover:text-text-primary rounded-lg hover:bg-surface-elevated transition-colors cursor-pointer"
+                <Button 
+                  size="sm"
+                  variant="ghost"
+                  isIconOnly
+                  onPress={() => setShowEditModal(false)} 
+                  className="min-w-[32px] min-h-[32px]"
                   aria-label="Close dialog"
                 >
                   <X size={18} />
-                </button>
+                </Button>
               </div>
 
               <form onSubmit={handleEditSubmit} className="space-y-4">
@@ -682,20 +710,23 @@ const TeamsManagement: React.FC = () => {
                 </div>
 
                 <div className="flex gap-3 pt-3 border-t border-separator">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="flex-1 btn-secondary py-2.5 min-h-[42px] text-xs font-medium"
+                    variant="outline"
+                    onPress={() => setShowEditModal(false)}
+                    className="flex-1 min-h-[42px] text-xs font-medium"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={actionLoading}
-                    className="flex-1 btn-primary py-2.5 min-h-[42px] text-xs font-medium flex items-center justify-center gap-2 cursor-pointer"
+                    variant="primary"
+                    isDisabled={actionLoading}
+                    isLoading={actionLoading}
+                    className="flex-1 min-h-[42px] text-xs font-medium flex items-center justify-center gap-2"
                   >
-                    {actionLoading ? <Loader2 size={15} className="animate-spin" /> : 'Save Changes'}
-                  </button>
+                    Save Changes
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -726,13 +757,16 @@ const TeamsManagement: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowMembersModal(false)}
-                  className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-text-muted hover:text-text-primary rounded-lg hover:bg-surface-elevated transition-colors cursor-pointer"
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  isIconOnly
+                  onPress={() => setShowMembersModal(false)}
+                  className="min-w-[32px] min-h-[32px]"
                   aria-label="Close dialog"
                 >
                   <X size={18} />
-                </button>
+                </Button>
               </div>
 
               {/* Quick Add by Roll Number */}
@@ -748,13 +782,16 @@ const TeamsManagement: React.FC = () => {
                     placeholder="Enter student roll number (e.g. 21CS042)..."
                     className="flex-1 input-field font-mono uppercase text-xs min-h-[42px]"
                   />
-                  <button
-                    onClick={() => handleAddMember(manualRollNo)}
-                    disabled={!manualRollNo.trim() || actionLoading}
-                    className="btn-primary px-4 py-2 min-h-[42px] text-xs font-medium disabled:opacity-50 cursor-pointer"
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onPress={() => handleAddMember(manualRollNo)}
+                    isDisabled={!manualRollNo.trim() || actionLoading}
+                    isLoading={actionLoading}
+                    className="min-h-[42px] text-xs font-medium px-4"
                   >
                     Add
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -785,15 +822,18 @@ const TeamsManagement: React.FC = () => {
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => handleRemoveMember(member._id)}
-                          disabled={actionLoading}
-                          className="p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg text-text-muted hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer shrink-0 ml-2"
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          isIconOnly
+                          onPress={() => handleRemoveMember(member._id)}
+                          isDisabled={actionLoading}
+                          className="min-w-[32px] min-h-[32px] text-text-muted hover:text-destructive hover:bg-destructive/10 shrink-0 ml-2"
                           title="Remove from team"
                           aria-label={`Remove ${member.name} from team`}
                         >
                           <UserMinus size={15} />
-                        </button>
+                        </Button>
                       </div>
                     ))
                   ) : (
@@ -857,12 +897,13 @@ const TeamsManagement: React.FC = () => {
 
               {/* Close Button */}
               <div className="pt-2 border-t border-separator">
-                <button
-                  onClick={() => setShowMembersModal(false)}
-                  className="w-full btn-secondary py-2.5 min-h-[42px] text-xs font-medium cursor-pointer"
+                <Button
+                  variant="outline"
+                  onPress={() => setShowMembersModal(false)}
+                  className="w-full min-h-[42px] text-xs font-medium"
                 >
                   Done
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -894,19 +935,22 @@ const TeamsManagement: React.FC = () => {
               </p>
 
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 btn-secondary py-2.5 min-h-[42px] text-xs font-medium cursor-pointer"
+                <Button
+                  variant="outline"
+                  onPress={() => setShowDeleteModal(false)}
+                  className="flex-1 min-h-[42px] text-xs font-medium"
                 >
                   Cancel
-                </button>
-                <button
-                  onClick={handleDeleteConfirm}
-                  disabled={actionLoading}
-                  className="flex-1 py-2.5 min-h-[42px] bg-destructive hover:bg-destructive/90 text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                </Button>
+                <Button
+                  variant="danger"
+                  onPress={handleDeleteConfirm}
+                  isDisabled={actionLoading}
+                  isLoading={actionLoading}
+                  className="flex-1 min-h-[42px] text-xs font-medium"
                 >
-                  {actionLoading ? <Loader2 size={15} className="animate-spin" /> : 'Delete Team'}
-                </button>
+                  Delete Team
+                </Button>
               </div>
             </motion.div>
           </div>

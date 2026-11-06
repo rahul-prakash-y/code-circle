@@ -25,6 +25,7 @@ import toast from 'react-hot-toast';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
 import { HeroInput, HeroTextarea, HeroAvatar } from '../components/ui/HeroUIComponents';
+import { Button } from '@heroui/react';
 import { useDebounce } from '../hooks/useDebounce';
 
 export const BearerManagement: React.FC = () => {
@@ -232,13 +233,14 @@ export const BearerManagement: React.FC = () => {
             <ExternalLink size={13} />
           </Link>
 
-          <button
-            onClick={handleOpenCreate}
-            className="btn-primary py-2.5 px-5 min-h-[42px] flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer rounded-xl shadow-sm"
+          <Button
+            variant="primary"
+            onPress={handleOpenCreate}
+            className="py-2.5 px-5 min-h-[42px] flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-semibold rounded-xl shadow-sm"
           >
             <Plus size={16} />
             <span>Add Bearer</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -333,22 +335,28 @@ export const BearerManagement: React.FC = () => {
                   />
 
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleOpenEdit(bearer)}
-                      className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-text-muted hover:text-text-primary rounded-xl hover:bg-surface-elevated transition-colors cursor-pointer"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      isIconOnly
+                      onPress={() => handleOpenEdit(bearer)}
+                      className="min-w-[36px] min-h-[36px] text-text-muted hover:text-text-primary rounded-xl"
                       title="Edit bearer"
                       aria-label={`Edit ${bearer.name}`}
                     >
                       <Edit2 size={15} />
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirmId(bearer._id)}
-                      className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-text-muted hover:text-destructive rounded-xl hover:bg-destructive/10 transition-colors cursor-pointer"
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      isIconOnly
+                      onPress={() => setDeleteConfirmId(bearer._id)}
+                      className="min-w-[36px] min-h-[36px] text-text-muted hover:text-destructive rounded-xl"
                       title="Delete bearer"
                       aria-label={`Delete ${bearer.name}`}
                     >
                       <Trash2 size={15} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -403,13 +411,14 @@ export const BearerManagement: React.FC = () => {
               ? 'No student bearers match your search query.'
               : 'Add your first executive bearer to populate the club leadership board.'}
           </p>
-          <button
-            onClick={handleOpenCreate}
-            className="mt-4 btn-primary py-2.5 px-4 min-h-[42px] text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer rounded-xl"
+          <Button
+            variant="primary"
+            onPress={handleOpenCreate}
+            className="mt-4 py-2.5 px-4 min-h-[42px] text-xs font-medium inline-flex items-center gap-1.5 rounded-xl"
           >
             <Plus size={14} />
             <span>Add Executive Bearer</span>
-          </button>
+          </Button>
         </div>
       )}
 
@@ -460,15 +469,18 @@ export const BearerManagement: React.FC = () => {
                   accept="image/*"
                   className="hidden"
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingImage}
-                  className="btn-secondary py-1.5 px-3 min-h-[36px] text-xs font-medium cursor-pointer rounded-lg inline-flex items-center gap-1.5"
+                  variant="outline"
+                  size="sm"
+                  onPress={() => fileInputRef.current?.click()}
+                  isDisabled={uploadingImage}
+                  isLoading={uploadingImage}
+                  className="py-1.5 px-3 min-h-[36px] text-xs font-medium rounded-lg inline-flex items-center gap-1.5"
                 >
                   <Upload size={12} />
                   <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
-                </button>
+                </Button>
                 <span className="text-[11px] text-text-muted">or paste URL below</span>
               </div>
             </div>
@@ -535,26 +547,23 @@ export const BearerManagement: React.FC = () => {
 
           {/* Modal Actions */}
           <div className="flex gap-3 pt-3 border-t border-separator">
-            <button
+            <Button
               type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 btn-secondary py-2.5 min-h-[44px] text-xs font-medium rounded-xl cursor-pointer"
+              variant="outline"
+              onPress={() => setIsModalOpen(false)}
+              className="flex-1 min-h-[44px] text-xs font-medium rounded-xl"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={actionLoading || uploadingImage}
-              className="flex-1 btn-primary py-2.5 min-h-[44px] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              variant="primary"
+              isDisabled={actionLoading || uploadingImage}
+              isLoading={actionLoading}
+              className="flex-1 min-h-[44px] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm"
             >
-              {actionLoading ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : editingBearer ? (
-                'Save Changes'
-              ) : (
-                'Create Bearer'
-              )}
-            </button>
+              {editingBearer ? 'Save Changes' : 'Create Bearer'}
+            </Button>
           </div>
         </form>
       </ResponsiveModal>
@@ -575,21 +584,24 @@ export const BearerManagement: React.FC = () => {
           </div>
 
           <div className="flex gap-2.5 pt-2">
-            <button
+            <Button
               type="button"
-              onClick={() => setDeleteConfirmId(null)}
-              className="flex-1 btn-secondary py-2.5 min-h-[42px] text-xs font-medium rounded-xl cursor-pointer"
+              variant="outline"
+              onPress={() => setDeleteConfirmId(null)}
+              className="flex-1 min-h-[42px] text-xs font-medium rounded-xl"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
-              disabled={actionLoading}
-              className="flex-1 py-2.5 px-4 min-h-[42px] rounded-xl text-xs font-semibold bg-destructive hover:bg-destructive/90 text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              variant="danger"
+              onPress={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+              isDisabled={actionLoading}
+              isLoading={actionLoading}
+              className="flex-1 min-h-[42px] rounded-xl text-xs font-semibold"
             >
-              {actionLoading ? <Loader2 size={14} className="animate-spin" /> : 'Delete'}
-            </button>
+              Delete
+            </Button>
           </div>
         </div>
       </ResponsiveModal>

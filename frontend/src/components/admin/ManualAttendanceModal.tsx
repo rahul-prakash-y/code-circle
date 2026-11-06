@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Users,
   Check,
-  Loader2,
   AlertCircle,
   Building2,
   GraduationCap,
@@ -19,7 +18,9 @@ import {
   Clock,
   Sparkles,
   Award,
+  Loader2,
 } from 'lucide-react';
+import { Button, Spinner, Checkbox } from '@heroui/react';
 import useAttendanceStore from '../../store/useAttendanceStore';
 import useEventStore from '../../store/useEventStore';
 import api from '../../lib/axios';
@@ -514,10 +515,12 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                       {[1, 2, 3, 4, 5, 6, 7].map((hr) => {
                         const isSelected = selectedClassHours.includes(hr);
                         return (
-                          <button
+                          <Button
                             key={hr}
                             type="button"
-                            onClick={() => {
+                            size="sm"
+                            variant={isSelected ? 'primary' : 'secondary'}
+                            onPress={() => {
                               setSelectedClassHours((prev) => {
                                 if (prev.includes(hr)) {
                                   if (prev.length === 1) return prev;
@@ -527,14 +530,14 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                                 }
                               });
                             }}
-                            className={`py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                            className={`py-1.5 h-auto rounded-lg text-xs font-bold ${
                               isSelected
-                                ? 'bg-accent text-white border-blue-400 shadow-xs'
-                                : 'bg-surface text-label-secondary border-separator hover:text-label-primary'
+                                ? 'shadow-xs'
+                                : ''
                             }`}
                           >
                             H{hr}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -637,18 +640,19 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
 
             {/* Quick Bulk Action (Only in Roster Tab) */}
             {activeTab === 'roster' && selectedStudentIds.size > 0 && (
-              <button
-                onClick={handleBulkMark}
-                disabled={isBulkMarking}
-                className="btn-primary text-xs py-1.5 px-3.5 flex items-center gap-2 cursor-pointer shadow-sm animate-in fade-in"
+              <Button
+                variant="primary"
+                onPress={handleBulkMark}
+                isDisabled={isBulkMarking}
+                className="text-xs py-1.5 px-3.5 flex items-center gap-2 cursor-pointer shadow-sm animate-in fade-in"
               >
                 {isBulkMarking ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <Spinner size="sm" color="default" />
                 ) : (
                   <CheckCircle2 size={14} />
                 )}
                 <span>Mark Selected ({selectedStudentIds.size}) Present</span>
-              </button>
+              </Button>
             )}
           </div>
 
@@ -768,11 +772,10 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                         <div className="flex items-center gap-3 min-w-0">
                           {/* Checkbox for bulk marking (only if not present) */}
                           {!isPresent ? (
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
+                            <Checkbox
+                              isSelected={isSelected}
                               onChange={() => toggleStudentSelection(student._id)}
-                              className="w-4 h-4 rounded border-separator text-accent focus:ring-accent cursor-pointer shrink-0"
+                              className="shrink-0"
                             />
                           ) : (
                             <div className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
@@ -826,19 +829,21 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                               <span>Verified Present</span>
                             </span>
                           ) : (
-                            <button
+                            <Button
                               type="button"
-                              onClick={() => handleMarkSingle(student)}
-                              disabled={isMarking || isBulkMarking}
-                              className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              variant="primary"
+                              size="sm"
+                              onPress={() => handleMarkSingle(student)}
+                              isDisabled={isMarking || isBulkMarking}
+                              className="text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer"
                             >
                               {isMarking ? (
-                                <Loader2 size={13} className="animate-spin" />
+                                <Spinner size="sm" color="default" />
                               ) : (
                                 <UserCheck size={13} />
                               )}
                               <span>Mark Present</span>
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -951,19 +956,21 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                               <span>Verified Present</span>
                             </span>
                           ) : (
-                            <button
+                            <Button
                               type="button"
-                              onClick={() => handleMarkSingle(stu)}
-                              disabled={isMarking}
-                              className="btn-primary text-xs py-1.5 px-3.5 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              variant="primary"
+                              size="sm"
+                              onPress={() => handleMarkSingle(stu)}
+                              isDisabled={isMarking}
+                              className="text-xs py-1.5 px-3.5 flex items-center gap-1.5 cursor-pointer"
                             >
                               {isMarking ? (
-                                <Loader2 size={13} className="animate-spin" />
+                                <Spinner size="sm" color="default" />
                               ) : (
                                 <UserCheck size={13} />
                               )}
                               <span>Mark Present</span>
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -983,12 +990,13 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
             </span>
           </div>
 
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition self-end sm:self-auto"
+          <Button
+            variant="secondary"
+            onPress={onClose}
+            className="px-5 py-2 rounded-full text-xs font-medium self-end sm:self-auto"
           >
             Done & Close
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

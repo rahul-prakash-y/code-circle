@@ -39,7 +39,8 @@ import LeetCodeCard from '../components/profile/LeetCodeCard';
 import HackerRankCard from '../components/profile/HackerRankCard';
 import GitHubCard from '../components/profile/GitHubCard';
 import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
-import { HeroAvatar, HeroInput, HeroTextarea } from '../components/ui/HeroUIComponents';
+import { HeroAvatar, HeroInput, HeroTextarea, HeroDatePicker as DatePicker, HeroUISelect as Select, HeroChip as Chip } from '../components/ui/HeroUIComponents';
+import { Button } from '@heroui/react';
 
 // Timezone-safe date formatter for YYYY-MM-DD strings
 const formatDob = (dobStr) => {
@@ -382,58 +383,37 @@ const Profile = () => {
                   startContent={<Phone size={14} className="text-accent" />}
                   placeholder="+91 98765 43210"
                 />
-                <HeroInput
+                <DatePicker
                   label="Date of Birth"
-                  labelPlacement="inside"
-                  variant="flat"
-                  type="date"
-                  name="dob"
-                  max={new Date().toISOString().split('T')[0]}
                   value={formData.dob}
-                  onChange={handleChange}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, dob: val }))}
                   startContent={<Calendar size={14} className="text-accent" />}
+                  placeholder="Select Date of Birth"
+                  size="sm"
+                  variant="faded"
                 />
               </div>
 
               {/* Gender & Academic Year */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                    <UserIcon size={13} className="text-text-muted" />
-                    <span>Gender</span>
-                  </label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="input-field text-sm cursor-pointer"
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                    <GraduationCap size={13} className="text-text-muted" />
-                    <span>Academic Year</span>
-                  </label>
-                  <select
-                    name="year"
-                    value={formData.year}
-                    onChange={handleChange}
-                    className="input-field text-sm cursor-pointer"
-                  >
-                    <option value="">Select Year</option>
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                    <option value="Post Graduate">Post Graduate</option>
-                  </select>
-                </div>
+                <Select
+                  label="Gender"
+                  value={formData.gender}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, gender: val }))}
+                  options={['Male', 'Female', 'Other', 'Prefer not to say']}
+                  placeholder="Select Gender"
+                  size="sm"
+                  startContent={<UserIcon size={13} className="text-text-muted" />}
+                />
+                <Select
+                  label="Academic Year"
+                  value={formData.year}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, year: val }))}
+                  options={['1st Year', '2nd Year', '3rd Year', '4th Year', 'Post Graduate']}
+                  placeholder="Select Year"
+                  size="sm"
+                  startContent={<GraduationCap size={13} className="text-text-muted" />}
+                />
               </div>
 
               {/* Residence Type (Hosteller or Day Scholar) */}
@@ -443,30 +423,24 @@ const Profile = () => {
                   <span>Accommodation / Residence</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Hosteller' ? '' : 'Hosteller' }))}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      formData.residenceType === 'Hosteller'
-                        ? 'bg-accent/15 border-accent text-accent font-semibold shadow-sm'
-                        : 'border-separator hover:border-separator-hover text-text-secondary bg-surface'
-                    }`}
+                    variant={formData.residenceType === 'Hosteller' ? 'primary' : 'outline'}
+                    onPress={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Hosteller' ? '' : 'Hosteller' }))}
+                    className="text-xs font-medium flex items-center justify-center gap-2 min-h-[42px]"
                   >
                     <Building size={14} />
                     <span>Hosteller</span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Day Scholar' ? '' : 'Day Scholar' }))}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      formData.residenceType === 'Day Scholar'
-                        ? 'bg-accent/15 border-accent text-accent font-semibold shadow-sm'
-                        : 'border-separator hover:border-separator-hover text-text-secondary bg-surface'
-                    }`}
+                    variant={formData.residenceType === 'Day Scholar' ? 'primary' : 'outline'}
+                    onPress={() => setFormData(prev => ({ ...prev, residenceType: prev.residenceType === 'Day Scholar' ? '' : 'Day Scholar' }))}
+                    className="text-xs font-medium flex items-center justify-center gap-2 min-h-[42px]"
                   >
                     <Bus size={14} />
                     <span>Day Scholar</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -632,13 +606,16 @@ const Profile = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface text-label-primary border border-separator hover:border-separator-opaque hover:bg-canvas transition-colors duration-150 text-xs font-medium"
                 >
                   {skill}
-                  <button 
-                    type="button" 
-                    onClick={() => removeSkill(skill)}
-                    className="p-0.5 hover:bg-destructive/10 rounded text-text-muted hover:text-destructive transition-colors"
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    isIconOnly
+                    onPress={() => removeSkill(skill)}
+                    className="min-w-[20px] min-h-[20px] p-0.5 rounded text-text-muted hover:text-destructive"
                   >
                     <X size={12} />
-                  </button>
+                  </Button>
                 </span>
               ))}
               {formData.skills.length === 0 && (
@@ -650,37 +627,36 @@ const Profile = () => {
 
         {/* Actions */}
         <div className="flex items-center justify-between pt-2">
-          <button
+          <Button
             type="button"
-            onClick={handleLogout}
-            className="text-xs text-destructive hover:underline flex items-center gap-1.5 transition-colors cursor-pointer"
+            variant="ghost"
+            size="sm"
+            onPress={handleLogout}
+            className="text-xs text-destructive hover:underline flex items-center gap-1.5"
           >
             <LogOut size={14} />
             <span>Sign out of session</span>
-          </button>
+          </Button>
           
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
-              onClick={() => navigate('/dashboard')}
-              className="btn-secondary py-2.5 px-5 text-sm"
+              variant="outline"
+              onPress={() => navigate('/dashboard')}
+              className="py-2.5 px-5 text-sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={profileLoading}
-              className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2 cursor-pointer"
+              variant="primary"
+              isDisabled={profileLoading}
+              isLoading={profileLoading}
+              className="py-2.5 px-6 text-sm flex items-center gap-2"
             >
-              {profileLoading ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                <>
-                  <Save size={16} />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </button>
+              <Save size={16} />
+              <span>Save Changes</span>
+            </Button>
           </div>
         </div>
       </form>
@@ -752,13 +728,16 @@ const Profile = () => {
                   className="input-field pl-10 pr-10 text-sm"
                   required
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                 >
                   {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -776,13 +755,16 @@ const Profile = () => {
                   required
                   minLength={6}
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                 >
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -800,13 +782,16 @@ const Profile = () => {
                   required
                   minLength={6}
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -822,20 +807,16 @@ const Profile = () => {
           )}
 
           <div className="flex items-center justify-end pt-1">
-            <button
+            <Button
               type="submit"
-              disabled={passwordLoading || !passwordData.currentPassword || passwordData.newPassword.length < 6 || passwordData.newPassword !== passwordData.confirmNewPassword}
-              className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              isDisabled={passwordLoading || !passwordData.currentPassword || passwordData.newPassword.length < 6 || passwordData.newPassword !== passwordData.confirmNewPassword}
+              isLoading={passwordLoading}
+              className="py-2.5 px-6 text-sm flex items-center gap-2"
             >
-              {passwordLoading ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                <>
-                  <ShieldCheck size={16} />
-                  <span>Update Password</span>
-                </>
-              )}
-            </button>
+              <ShieldCheck size={16} />
+              <span>Update Password</span>
+            </Button>
           </div>
         </form>
       </div>

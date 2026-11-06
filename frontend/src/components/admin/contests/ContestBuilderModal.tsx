@@ -24,8 +24,8 @@ import {
   FileCode,
   FileSpreadsheet,
   Terminal,
-  Loader2,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import useContestStore, {
   Contest,
@@ -439,7 +439,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 <span>{editingContest ? 'Edit Weekly Contest' : 'Create Weekly Contest'}</span>
                 {loadingDetails && (
                   <span className="flex items-center gap-1 text-[11px] text-accent font-semibold">
-                    <Loader2 size={12} className="animate-spin" /> Loading specs...
+                    <Spinner size="sm" color="default" /> Loading specs...
                   </span>
                 )}
               </div>
@@ -454,39 +454,33 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
         {/* Tab Switcher */}
         <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-surface-secondary rounded-2xl border border-separator shrink-0 overflow-x-auto no-scrollbar touch-pan-x flex-nowrap">
-          <button
-            onClick={() => setActiveTab('info')}
-            className={`flex-1 min-w-[120px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all duration-150 ease-out cursor-pointer whitespace-nowrap ${
-              activeTab === 'info'
-                ? 'bg-accent text-white shadow-xs'
-                : 'text-label-secondary hover:text-label-primary'
-            }`}
+          <Button
+            type="button"
+            variant={activeTab === 'info' ? 'primary' : 'secondary'}
+            onPress={() => setActiveTab('info')}
+            className="flex-1 min-w-[120px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap"
           >
             1. Basic Settings
-          </button>
+          </Button>
           {type !== 'CODING' && (
-            <button
-              onClick={() => setActiveTab('mcq')}
-              className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all duration-150 ease-out cursor-pointer whitespace-nowrap ${
-                activeTab === 'mcq'
-                  ? 'bg-accent text-white shadow-xs'
-                  : 'text-label-secondary hover:text-label-primary'
-              }`}
+            <Button
+              type="button"
+              variant={activeTab === 'mcq' ? 'primary' : 'secondary'}
+              onPress={() => setActiveTab('mcq')}
+              className="flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap"
             >
               2. MCQ Questions ({mcqQuestions.length})
-            </button>
+            </Button>
           )}
           {type !== 'MCQ' && (
-            <button
-              onClick={() => setActiveTab('coding')}
-              className={`flex-1 min-w-[160px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold transition-all duration-150 ease-out cursor-pointer whitespace-nowrap ${
-                activeTab === 'coding'
-                  ? 'bg-accent text-white shadow-xs'
-                  : 'text-label-secondary hover:text-label-primary'
-              }`}
+            <Button
+              type="button"
+              variant={activeTab === 'coding' ? 'primary' : 'secondary'}
+              onPress={() => setActiveTab('coding')}
+              className="flex-1 min-w-[160px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap"
             >
               3. Coding Challenges ({codingProblems.length})
-            </button>
+            </Button>
           )}
         </div>
 
@@ -695,23 +689,27 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setShowMcqBulkModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-info-subtle hover:bg-info/15 text-info border border-info/30 text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => setShowMcqBulkModal(true)}
+                    className="flex items-center gap-1.5 text-xs font-bold"
                     title="Bulk upload questions via Excel or JSON"
                   >
                     <FileSpreadsheet size={14} />
                     <span>Bulk Upload MCQs</span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={handleAddMcq}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
+                    size="sm"
+                    variant="primary"
+                    onPress={handleAddMcq}
+                    className="flex items-center gap-1.5 text-xs font-bold shadow-xs"
                   >
                     <Plus size={14} />
                     <span>Add Question</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -854,23 +852,27 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setShowCodingBulkModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-success-subtle hover:bg-success/15 text-success border border-success/30 text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => setShowCodingBulkModal(true)}
+                    className="flex items-center gap-1.5 text-xs font-bold"
                     title="Bulk upload coding challenges via Excel or JSON"
                   >
                     <FileSpreadsheet size={14} />
                     <span>Bulk Upload Challenges</span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={handleAddCoding}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors duration-150 ease-out cursor-pointer"
+                    size="sm"
+                    variant="primary"
+                    onPress={handleAddCoding}
+                    className="flex items-center gap-1.5 text-xs font-bold shadow-xs"
                   >
                     <Plus size={14} />
                     <span>Add Challenge</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -1258,21 +1260,23 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           </div>
 
           <div className="flex items-center justify-end gap-3">
-            <button
+            <Button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors duration-150 ease-out"
+              variant="secondary"
+              onPress={onClose}
+              className="px-4 py-2 rounded-full text-xs font-medium"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              onClick={handleSave}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition-colors duration-150 ease-out cursor-pointer shadow-xs"
+              variant="primary"
+              onPress={handleSave}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold shadow-xs"
             >
               <Save size={14} />
               <span>{editingContest ? 'Update Contest' : 'Publish Contest'}</span>
-            </button>
+            </Button>
           </div>
         </div>
       </div>

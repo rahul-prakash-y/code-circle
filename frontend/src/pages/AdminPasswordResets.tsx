@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { EmilCard } from '../components/ui/emil-ui';
 import { HeroInput, HeroTabs, HeroUser, HeroAvatar } from '../components/ui/HeroUIComponents';
+import { Button, Checkbox } from '@heroui/react';
 import {
   KeyRound,
   ShieldCheck,
@@ -303,25 +304,30 @@ const AdminPasswordResets: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 self-start md:self-center">
-          <button
-            onClick={() => fetchRequests(true)}
-            disabled={refreshing}
-            className="btn-secondary py-2 px-3 min-h-[38px] text-xs flex items-center gap-1.5 cursor-pointer rounded-xl"
+          <Button
+            variant="outline"
+            size="sm"
+            onPress={() => fetchRequests(true)}
+            isDisabled={refreshing}
+            isLoading={refreshing}
+            className="text-xs flex items-center gap-1.5 min-h-[38px]"
             title="Refresh requests"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-accent' : ''}`} />
+            <RotateCw className="w-3.5 h-3.5" />
             <span>Refresh</span>
-          </button>
+          </Button>
 
           {pendingRequests.length > 0 && (
-            <button
-              onClick={() => setConfirmApproveAllOpen(true)}
-              disabled={batchLoading}
-              className="btn-primary py-2 px-3.5 min-h-[38px] text-xs flex items-center gap-2 cursor-pointer shadow-md shadow-accent/20 rounded-xl"
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={() => setConfirmApproveAllOpen(true)}
+              isDisabled={batchLoading}
+              className="text-xs flex items-center gap-2 min-h-[38px] shadow-md shadow-accent/20"
             >
               <CheckCheck className="w-4 h-4" />
               <span>Approve All Pending ({pendingRequests.length})</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -438,20 +444,25 @@ const AdminPasswordResets: React.FC = () => {
               <span className="text-text-secondary">pending request(s) selected</span>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                onClick={() => handleApproveBatch(selectedIds)}
-                disabled={batchLoading}
-                className="btn-primary py-1.5 px-3 min-h-[36px] text-xs flex-1 sm:flex-initial flex items-center justify-center gap-1.5 cursor-pointer rounded-lg"
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={() => handleApproveBatch(selectedIds)}
+                isDisabled={batchLoading}
+                isLoading={batchLoading}
+                className="text-xs flex-1 sm:flex-initial flex items-center justify-center gap-1.5 min-h-[36px]"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
                 <span>Approve Selected ({selectedIds.length})</span>
-              </button>
-              <button
-                onClick={() => setSelectedIds([])}
-                className="btn-secondary py-1.5 px-2.5 min-h-[36px] text-xs cursor-pointer rounded-lg flex items-center justify-center"
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => setSelectedIds([])}
+                className="text-xs min-h-[36px]"
               >
                 Deselect
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -480,13 +491,11 @@ const AdminPasswordResets: React.FC = () => {
               <thead>
                 <tr className="border-b border-separator bg-surface-elevated/50 text-text-muted font-semibold uppercase tracking-wider text-[11px]">
                   <th className="p-3.5 pl-4 w-10">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.length > 0 && selectedIds.length === pendingRequests.length}
+                    <Checkbox
+                      isSelected={selectedIds.length > 0 && selectedIds.length === pendingRequests.length}
                       onChange={toggleSelectAllPending}
-                      disabled={pendingRequests.length === 0}
-                      className="rounded border-separator text-accent focus:ring-accent cursor-pointer"
-                      title="Select all pending"
+                      isDisabled={pendingRequests.length === 0}
+                      aria-label="Select all pending"
                     />
                   </th>
                   <th className="p-3.5">Student Details</th>
@@ -514,12 +523,11 @@ const AdminPasswordResets: React.FC = () => {
                     >
                       {/* Checkbox */}
                       <td className="p-3.5 pl-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(req._id)}
+                        <Checkbox
+                          isSelected={selectedIds.includes(req._id)}
                           onChange={() => toggleSelect(req._id)}
-                          disabled={!isPending}
-                          className="rounded border-separator text-accent focus:ring-accent cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                          isDisabled={!isPending}
+                          aria-label={`Select request for ${req.name}`}
                         />
                       </td>
 
@@ -622,21 +630,25 @@ const AdminPasswordResets: React.FC = () => {
                             </div>
                           ) : (
                             <div className="space-y-1">
-                              <button
-                                onClick={() => setErrorDetailReq(req)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onPress={() => setErrorDetailReq(req)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 min-h-[26px] h-auto rounded text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20"
                                 title="Click to view delivery error details"
                               >
                                 <AlertCircle className="w-3 h-3" /> Delivery Failed
-                              </button>
+                              </Button>
                               {req.resetToken && (
-                                <button
-                                  onClick={() => copyResetLink(req.resetToken!, req.email)}
-                                  className="flex items-center gap-1 text-[10px] text-accent hover:text-accent/80 transition-colors cursor-pointer font-medium"
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onPress={() => copyResetLink(req.resetToken!, req.email)}
+                                  className="flex items-center gap-1 text-[10px] text-accent hover:text-accent/80 font-medium min-h-[24px] h-auto p-0"
                                   title="Copy direct reset link"
                                 >
                                   <Copy className="w-2.5 h-2.5" /> Copy Link
-                                </button>
+                                </Button>
                               )}
                             </div>
                           )
@@ -663,84 +675,87 @@ const AdminPasswordResets: React.FC = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Approve Button (when pending) */}
                           {isPending && (
-                            <button
-                              onClick={() => handleApprove(req)}
-                              disabled={isActionLoading}
-                              className="btn-primary py-1 px-2.5 min-h-[34px] text-xs flex items-center gap-1 cursor-pointer rounded-lg"
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onPress={() => handleApprove(req)}
+                              isDisabled={isActionLoading}
+                              isLoading={isActionLoading}
+                              className="text-xs min-h-[34px]"
                               title="Approve request and dispatch email"
                             >
-                              {isActionLoading ? (
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <Send className="w-3 h-3" />
-                                  <span>Approve & Send</span>
-                                </>
-                              )}
-                            </button>
+                              <Send className="w-3 h-3" />
+                              <span>Approve & Send</span>
+                            </Button>
                           )}
 
                           {/* Resend Email Button (when approved) */}
                           {isApproved && (
-                            <button
-                              onClick={() => handleResendEmail(req)}
-                              disabled={isActionLoading}
-                              className={`py-1 px-2.5 whitespace-nowrap min-h-[34px] text-xs rounded-lg font-medium flex items-center gap-1 cursor-pointer transition-colors ${
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onPress={() => handleResendEmail(req)}
+                              isDisabled={isActionLoading}
+                              isLoading={isActionLoading}
+                              className={`text-xs whitespace-nowrap min-h-[34px] font-medium flex items-center gap-1 ${
                                 !req.emailSent
                                   ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30'
-                                  : 'btn-secondary'
+                                  : ''
                               }`}
                               title="Resend password reset email to student"
                             >
-                              {isActionLoading ? (
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <Mail className="w-3 h-3" />
-                                  <span>Resend Email</span>
-                                </>
-                              )}
-                            </button>
+                              <Mail className="w-3 h-3" />
+                              <span>Resend Email</span>
+                            </Button>
                           )}
 
                           {/* Copy Link Button (when approved) */}
                           {isApproved && req.resetToken && (
-                            <button
-                              onClick={() => copyResetLink(req.resetToken!, req.email)}
-                              className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg bg-surface-elevated hover:bg-surface text-text-muted hover:text-accent border border-separator transition-colors cursor-pointer"
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              isIconOnly
+                              onPress={() => copyResetLink(req.resetToken!, req.email)}
+                              className="min-w-[34px] min-h-[34px]"
                               title="Copy password reset link URL"
                               aria-label="Copy reset link"
                             >
                               <Copy className="w-3.5 h-3.5" />
-                            </button>
+                            </Button>
                           )}
 
                           {/* Reject Button (when pending) */}
                           {isPending && (
-                            <button
-                              onClick={() => {
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              isIconOnly
+                              onPress={() => {
                                 setRejectModalReq(req);
                                 setRejectReason('');
                               }}
-                              disabled={isActionLoading}
-                              className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors cursor-pointer"
+                              isDisabled={isActionLoading}
+                              className="min-w-[34px] min-h-[34px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20"
                               title="Reject request"
                               aria-label="Reject request"
                             >
                               <XCircle className="w-3.5 h-3.5" />
-                            </button>
+                            </Button>
                           )}
 
                           {/* Delete Button */}
-                          <button
-                            onClick={() => handleDelete(req._id, req.name)}
-                            disabled={isActionLoading}
-                            className="p-1.5 min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg hover:bg-surface text-text-muted hover:text-rose-400 transition-colors cursor-pointer"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            isIconOnly
+                            onPress={() => handleDelete(req._id, req.name)}
+                            isDisabled={isActionLoading}
+                            className="min-w-[34px] min-h-[34px] text-text-muted hover:text-rose-400"
                             title="Delete request record"
                             aria-label="Delete request record"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -799,29 +814,26 @@ const AdminPasswordResets: React.FC = () => {
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-2">
-                <button
+                <Button
                   type="button"
-                  onClick={() => setConfirmApproveAllOpen(false)}
-                  disabled={batchLoading}
-                  className="btn-secondary w-full sm:w-auto py-2.5 px-4 min-h-[40px] text-xs cursor-pointer rounded-xl"
+                  variant="outline"
+                  onPress={() => setConfirmApproveAllOpen(false)}
+                  isDisabled={batchLoading}
+                  className="w-full sm:w-auto min-h-[40px] text-xs"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  onClick={() => handleApproveBatch()}
-                  disabled={batchLoading}
-                  className="btn-primary w-full sm:w-auto py-2.5 px-4 min-h-[40px] text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-accent/20 rounded-xl"
+                  variant="primary"
+                  onPress={() => handleApproveBatch()}
+                  isDisabled={batchLoading}
+                  isLoading={batchLoading}
+                  className="w-full sm:w-auto min-h-[40px] text-xs flex items-center justify-center gap-2 shadow-md shadow-accent/20"
                 >
-                  {batchLoading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Proceed & Dispatch Emails</span>
-                    </>
-                  )}
-                </button>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Proceed & Dispatch Emails</span>
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -858,31 +870,34 @@ const AdminPasswordResets: React.FC = () => {
               </div>
 
               <div className="space-y-1.5 text-xs">
-                <label className="input-label">Rejection Reason / Internal Note</label>
-                <input
-                  type="text"
+                <HeroInput
+                  label="Rejection Reason / Internal Note"
+                  labelPlacement="inside"
+                  variant="flat"
                   placeholder="e.g. Unverified identity, duplicate request, suspicious activity"
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  className="input-field text-xs min-h-[44px]"
+                  className="text-xs"
                 />
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-2">
-                <button
+                <Button
                   type="button"
-                  onClick={() => setRejectModalReq(null)}
-                  className="btn-secondary w-full sm:w-auto py-2.5 px-4 min-h-[40px] text-xs cursor-pointer rounded-xl"
+                  variant="outline"
+                  onPress={() => setRejectModalReq(null)}
+                  className="w-full sm:w-auto min-h-[40px] text-xs"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  onClick={handleReject}
-                  className="w-full sm:w-auto py-2.5 px-4 min-h-[40px] text-xs font-semibold rounded-xl bg-rose-500 hover:bg-rose-600 text-white cursor-pointer transition-colors shadow-md shadow-rose-500/20 flex items-center justify-center"
+                  variant="danger"
+                  onPress={handleReject}
+                  className="w-full sm:w-auto min-h-[40px] text-xs font-semibold"
                 >
                   Confirm Rejection
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -941,38 +956,43 @@ const AdminPasswordResets: React.FC = () => {
                     <span className="truncate pr-2">
                       {window.location.origin}/reset-password?token={errorDetailReq.resetToken}
                     </span>
-                    <button
+                    <Button
                       type="button"
-                      onClick={() => copyResetLink(errorDetailReq.resetToken!, errorDetailReq.email)}
-                      className="text-text-muted hover:text-accent shrink-0 cursor-pointer p-1"
+                      variant="ghost"
+                      size="sm"
+                      isIconOnly
+                      onPress={() => copyResetLink(errorDetailReq.resetToken!, errorDetailReq.email)}
+                      className="shrink-0 text-text-muted hover:text-accent"
                       title="Copy link"
                       aria-label="Copy manual reset link"
                     >
                       <Copy className="w-3.5 h-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
 
               <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
-                  onClick={() => setErrorDetailReq(null)}
-                  className="btn-secondary w-full sm:w-auto py-2.5 px-3 min-h-[40px] text-xs cursor-pointer rounded-xl"
+                  variant="outline"
+                  onPress={() => setErrorDetailReq(null)}
+                  className="w-full sm:w-auto min-h-[40px] text-xs"
                 >
                   Close
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  onClick={() => {
+                  variant="primary"
+                  onPress={() => {
                     handleResendEmail(errorDetailReq);
                     setErrorDetailReq(null);
                   }}
-                  className="btn-primary w-full sm:w-auto py-2.5 px-3 min-h-[40px] text-xs flex items-center justify-center gap-1.5 cursor-pointer rounded-xl"
+                  className="w-full sm:w-auto min-h-[40px] text-xs flex items-center justify-center gap-1.5"
                 >
                   <RotateCw className="w-3.5 h-3.5" />
                   <span>Resend Email</span>
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>

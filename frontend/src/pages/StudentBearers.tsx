@@ -13,6 +13,7 @@ import {
 import useBearerStore from '../store/useBearerStore';
 import useAuthStore from '../store/useAuthStore';
 import BearerCard from '../components/bearers/BearerCard';
+import { Button } from '@heroui/react';
 
 export const StudentBearers: React.FC = () => {
   const { bearers, loading, fetchBearers } = useBearerStore();
@@ -172,17 +173,15 @@ export const StudentBearers: React.FC = () => {
             {positions.map((pos) => {
               const isActive = selectedFilter === pos;
               return (
-                <button
+                <Button
                   key={pos}
-                  onClick={() => setSelectedFilter(pos)}
-                  className={`relative px-3.5 py-1.5 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center justify-center ${
-                    isActive
-                      ? 'bg-surface text-label-primary shadow-sm border border-separator/60'
-                      : 'text-label-secondary hover:text-label-primary'
-                  }`}
+                  size="sm"
+                  variant={isActive ? 'primary' : 'ghost'}
+                  onPress={() => setSelectedFilter(pos)}
+                  className="min-h-[38px] text-xs font-semibold whitespace-nowrap"
                 >
-                  <span className="relative z-10">{pos}</span>
-                </button>
+                  {pos}
+                </Button>
               );
             })}
           </div>
@@ -230,15 +229,17 @@ export const StudentBearers: React.FC = () => {
                 : 'No student bearers have been added to the club roster yet.'}
             </p>
             {(searchQuery || selectedFilter !== 'All') && (
-              <button
-                onClick={() => {
+              <Button
+                size="sm"
+                variant="outline"
+                onPress={() => {
                   setSearchQuery('');
                   setSelectedFilter('All');
                 }}
-                className="mt-5 px-4 py-2 min-h-[40px] rounded-xl text-xs font-semibold text-label-primary bg-surface-secondary hover:bg-surface border border-separator transition-colors cursor-pointer shadow-sm"
+                className="mt-5 min-h-[40px] text-xs font-semibold"
               >
                 Clear Filters
-              </button>
+              </Button>
             )}
           </motion.div>
         )}

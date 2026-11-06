@@ -1272,7 +1272,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                         automaticLayout: true,
                         padding: { top: 14, bottom: 14 },
                         fontFamily:
-                          "'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace",
+                          "'JetBrains Mono', 'SF Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace",
                         fontLigatures: true,
                         cursorBlinking: 'smooth',
                         cursorSmoothCaretAnimation: 'on',
@@ -1810,7 +1810,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                     automaticLayout: true,
                     padding: { top: 10, bottom: 10 },
                     fontFamily:
-                      "'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace",
+                      "'JetBrains Mono', 'SF Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace",
                     fontLigatures: true,
                     cursorBlinking: 'smooth',
                     renderLineHighlight: 'all',

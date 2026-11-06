@@ -6,10 +6,10 @@ import {
   Upload,
   CheckCircle2,
   AlertCircle,
-  Loader2,
   Sparkles,
   Trash2,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import useContestStore, { MCQQuestion } from '../../../store/useContestStore';
 
@@ -169,15 +169,16 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
               </span>
             </div>
           </div>
-          <button
+          <Button
             type="button"
-            onClick={handleDownloadTemplate}
-            disabled={isDownloading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+            variant="primary"
+            onPress={handleDownloadTemplate}
+            isDisabled={isDownloading}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs shrink-0 cursor-pointer"
           >
-            {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            {isDownloading ? <Spinner size="sm" color="default" /> : <Download size={13} />}
             <span>Download Template</span>
-          </button>
+          </Button>
         </div>
 
         {/* Dropzone */}
@@ -201,7 +202,7 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
           />
           {isParsing ? (
             <div className="flex flex-col items-center justify-center py-4 space-y-2">
-              <Loader2 size={28} className="animate-spin text-purple-500" />
+              <Spinner size="md" color="secondary" />
               <span className="text-xs font-bold text-label-primary">
                 Parsing spreadsheet records...
               </span>
@@ -354,24 +355,26 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
 
         {/* Footer */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+            variant="secondary"
+            onPress={onClose}
+            className="px-4 py-2 rounded-full text-xs font-medium cursor-pointer"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            onClick={handleConfirmImport}
-            disabled={parsedQuestions.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            variant="primary"
+            onPress={handleConfirmImport}
+            isDisabled={parsedQuestions.length === 0}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow cursor-pointer"
           >
             <CheckCircle2 size={14} />
             <span>
               Import {parsedQuestions.length > 0 ? `${parsedQuestions.length} Questions` : 'Questions'}
             </span>
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

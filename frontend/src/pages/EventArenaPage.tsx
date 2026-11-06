@@ -41,6 +41,7 @@ import { useFullScreenEnforcement } from '../hooks/useFullScreenEnforcement';
 import { useTabSwitchDetection } from '../hooks/useTabSwitchDetection';
 import FullScreenEnforcementOverlay from '../components/assessments/FullScreenEnforcementOverlay';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
+import { Button } from '@heroui/react';
 import { HeroTabs } from '../components/ui/HeroUIComponents';
 import useAuthStore from '../store/useAuthStore';
 import useEventArenaStore, {
@@ -372,13 +373,15 @@ export const EventArenaPage: React.FC = () => {
         {/* Top Header */}
         <header className="h-16 border-b border-separator px-4 sm:px-10 flex items-center justify-between shrink-0 bg-white/70 dark:bg-surface/70 backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/events')}
-              className="p-2 min-h-[38px] rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+            <Button
+              size="sm"
+              variant="light"
+              onPress={() => navigate('/events')}
+              className="rounded-xl text-white/60 hover:text-white text-xs font-semibold"
+              startContent={<ArrowLeft size={16} />}
             >
-              <ArrowLeft size={16} />
-              <span>Back to Events</span>
-            </button>
+              Back to Events
+            </Button>
             <div className="h-5 w-[1px] bg-white/10" />
             <div className="flex items-center gap-2">
               <span className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
@@ -577,60 +580,63 @@ export const EventArenaPage: React.FC = () => {
                     {/* Action Button */}
                     <div className="pt-2">
                       {isCompleted ? (
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <Button
+                          color="default"
+                          variant="flat"
+                          onPress={() => {
                             setActiveAssessmentId(asm._id);
                           }}
-                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold"
+                          startContent={<Trophy size={13} className="text-amber-400" />}
                         >
-                          <Trophy size={13} className="text-amber-400" />
-                          <span>View Scorecard</span>
-                        </button>
+                          View Scorecard
+                        </Button>
                       ) : isLockedBySequence ? (
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed"
+                        <Button
+                          isDisabled
+                          variant="bordered"
+                          className="w-full min-h-[42px] rounded-xl border-white/10 text-white/40 text-xs font-bold"
+                          startContent={<Lock size={13} />}
                         >
-                          <Lock size={13} />
-                          <span>Complete Round {idx} First</span>
-                        </button>
+                          Complete Round {idx} First
+                        </Button>
                       ) : isNotLive ? (
                         isAdmin ? (
-                          <button
-                            type="button"
-                            onClick={() => {
+                          <Button
+                            color="secondary"
+                            variant="flat"
+                            onPress={() => {
                               setActiveAssessmentId(asm._id);
                             }}
-                            className="w-full py-2.5 min-h-[42px] rounded-xl bg-purple-600/40 hover:bg-purple-600/60 border border-purple-500/50 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-purple-600/20"
+                            className="w-full min-h-[42px] rounded-xl text-purple-200 text-xs font-bold shadow-lg shadow-purple-600/20"
                             title="Admin Test Mode: Attend/Preview upcoming assessment"
+                            startContent={<Sparkles size={13} className="text-purple-300" />}
                           >
-                            <Sparkles size={13} className="text-purple-300" />
-                            <span>Preview Test (Admin Mode)</span>
-                          </button>
+                            Preview Test (Admin Mode)
+                          </Button>
                         ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="w-full py-2.5 min-h-[42px] rounded-xl bg-white/5 border border-amber-500/25 text-amber-400/80 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed"
+                          <Button
+                            isDisabled
+                            variant="bordered"
+                            className="w-full min-h-[42px] rounded-xl border-amber-500/25 text-amber-400/80 text-xs font-bold"
                             title="Assessment will open when admin starts the round"
+                            startContent={<Clock size={13} />}
                           >
-                            <Clock size={13} />
-                            <span>Waiting for Admin to Start</span>
-                          </button>
+                            Waiting for Admin to Start
+                          </Button>
                         )
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <Button
+                          color="secondary"
+                          variant="solid"
+                          onPress={() => {
                             setActiveAssessmentId(asm._id);
                           }}
-                          className="w-full py-2.5 min-h-[42px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30"
+                          startContent={<Play size={13} />}
                         >
-                          <Play size={13} />
-                          <span>{isInProgress ? 'Resume Assessment' : 'Start Assessment'}</span>
-                        </button>
+                          {isInProgress ? 'Resume Assessment' : 'Start Assessment'}
+                        </Button>
                       )}
                     </div>
                   </motion.div>
@@ -670,25 +676,26 @@ export const EventArenaPage: React.FC = () => {
 
             <div className="space-y-3">
               {isAdmin && (
-                <button
-                  type="button"
-                  onClick={async () => {
+                <Button
+                  color="secondary"
+                  variant="solid"
+                  onPress={async () => {
                     await unblockStudent(currentUser?._id || currentUser?.id);
                     setApiBlocked(false);
                   }}
-                  className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all cursor-pointer shadow-lg shadow-purple-600/30"
+                  className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30"
                 >
                   Admin Override: Unblock My Attempt
-                </button>
+                </Button>
               )}
 
-              <button
-                type="button"
-                onClick={handleReturnToHub}
-                className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all cursor-pointer"
+              <Button
+                variant="flat"
+                onPress={handleReturnToHub}
+                className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold"
               >
                 Return to Events Hub
-              </button>
+              </Button>
             </div>
           </EmilCard>
         </div>
@@ -704,13 +711,15 @@ export const EventArenaPage: React.FC = () => {
       {/* Top Header Bar */}
       <header className="min-h-14 py-2 border-b border-white/10 px-3 sm:px-6 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 bg-canvas/90 backdrop-blur-md z-30">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <button
-            onClick={handleReturnToHub}
-            className="px-2.5 py-1.5 min-h-[36px] rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer shrink-0"
+          <Button
+            size="sm"
+            variant="light"
+            onPress={handleReturnToHub}
+            className="rounded-xl text-white/60 hover:text-white text-xs font-semibold shrink-0"
+            startContent={<ChevronLeft size={16} />}
           >
-            <ChevronLeft size={16} />
             <span className="hidden sm:inline">All Rounds</span>
-          </button>
+          </Button>
           <div className="h-4 w-[1px] bg-white/10 shrink-0" />
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
@@ -751,14 +760,16 @@ export const EventArenaPage: React.FC = () => {
             <span>{formatTimer(remainingSeconds)}</span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowSubmitConfirm(true)}
-            className="px-3.5 sm:px-4 py-1.5 min-h-[36px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+          <Button
+            size="sm"
+            color="secondary"
+            variant="solid"
+            onPress={() => setShowSubmitConfirm(true)}
+            className="rounded-xl text-white text-xs font-bold shadow-md shadow-purple-600/30"
+            startContent={<Send size={13} />}
           >
-            <Send size={13} />
-            <span>Finish Round</span>
-          </button>
+            Finish Round
+          </Button>
         </div>
       </header>
 
@@ -792,9 +803,8 @@ export const EventArenaPage: React.FC = () => {
                       const isSelected = selectedDesignIdx === chIdx;
                       const isPrevChosen = (submission?.designSubmission as any)?.selectedChallengeTitle === ch.title;
                       return (
-                        <button
+                        <div
                           key={chIdx}
-                          type="button"
                           onClick={() => setSelectedDesignIdx(chIdx)}
                           className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
                             isSelected
@@ -812,7 +822,7 @@ export const EventArenaPage: React.FC = () => {
                           {isPrevChosen && (
                             <span className="text-[9px] text-emerald-400 font-bold">★ Selected for submission</span>
                           )}
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -856,14 +866,15 @@ export const EventArenaPage: React.FC = () => {
                       <span>Reference Design Mockup</span>
                     </label>
                     {refImg && (
-                      <button
-                        type="button"
-                        onClick={() => setPreviewReferenceImg(refImg)}
-                        className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer py-1"
+                      <Button
+                        size="sm"
+                        variant="light"
+                        onPress={() => setPreviewReferenceImg(refImg)}
+                        className="text-[11px] text-purple-400 hover:text-purple-300 font-semibold p-1 h-auto"
+                        startContent={<Maximize2 size={12} />}
                       >
-                        <Maximize2 size={12} />
-                        <span>Enlarge</span>
-                      </button>
+                        Enlarge
+                      </Button>
                     )}
                   </div>
 
@@ -1045,15 +1056,16 @@ export const EventArenaPage: React.FC = () => {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={handleStudentDesignSubmit}
-                  className="px-5 py-2.5 min-h-10.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                <Button
+                  color="secondary"
+                  variant="solid"
+                  isDisabled={actionLoading}
+                  onPress={handleStudentDesignSubmit}
+                  className="min-h-10.5 rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30 shrink-0"
+                  startContent={actionLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                 >
-                  {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                  <span>{submission?.designSubmission?.submittedAt ? 'Update Submission' : 'Submit Figma Link'}</span>
-                </button>
+                  {submission?.designSubmission?.submittedAt ? 'Update Submission' : 'Submit Figma Link'}
+                </Button>
               </div>
             </div>
 
@@ -1140,40 +1152,46 @@ export const EventArenaPage: React.FC = () => {
                       const isAnswered = q._id && mcqAnswers[q._id] !== undefined;
                       const isCurrent = selectedIndex === idx;
                       return (
-                        <button
+                        <Button
                           key={idx}
-                          type="button"
-                          onClick={() => setSelectedIndex(idx)}
-                          className={`w-9 h-9 min-w-9 min-h-9 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer shrink-0 ${
+                          isIconOnly
+                          size="sm"
+                          variant={isCurrent ? 'solid' : isAnswered ? 'flat' : 'bordered'}
+                          color={isCurrent ? 'secondary' : isAnswered ? 'success' : 'default'}
+                          onPress={() => setSelectedIndex(idx)}
+                          className={`w-9 h-9 min-w-9 min-h-9 rounded-xl text-xs font-bold font-mono shrink-0 ${
                             isCurrent
-                              ? 'ring-2 ring-purple-400 bg-purple-600 text-white'
-                              : isAnswered
-                              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                              : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                              ? 'ring-2 ring-purple-400'
+                              : !isAnswered
+                              ? 'border-white/10 text-white/70 hover:bg-white/10'
+                              : ''
                           }`}
                         >
                           {idx + 1}
-                        </button>
+                        </Button>
                       );
                     })
                   : studentCoding.map((p, idx) => {
                       const isPassed = p._id && problemStatusMap[p._id]?.status === 'ACCEPTED';
                       const isCurrent = selectedIndex === idx;
                       return (
-                        <button
+                        <Button
                           key={idx}
-                          type="button"
-                          onClick={() => setSelectedIndex(idx)}
-                          className={`w-9 h-9 min-w-9 min-h-9 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center cursor-pointer shrink-0 ${
+                          isIconOnly
+                          size="sm"
+                          variant={isCurrent ? 'solid' : isPassed ? 'flat' : 'bordered'}
+                          color={isCurrent ? 'primary' : isPassed ? 'success' : 'default'}
+                          onPress={() => setSelectedIndex(idx)}
+                          className={`w-9 h-9 min-w-9 min-h-9 rounded-xl text-xs font-bold font-mono shrink-0 ${
                             isCurrent
-                              ? 'ring-2 ring-blue-400 bg-blue-600 text-white'
-                              : isPassed
-                              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                              : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10'
+                              ? 'ring-2 ring-blue-400'
+                              : !isPassed
+                              ? 'border-white/10 text-white/70 hover:bg-white/10'
+                              : ''
                           }`}
                         >
                           {idx + 1}
-                        </button>
+                        </Button>
                       );
                     })}
               </div>
@@ -1231,25 +1249,27 @@ export const EventArenaPage: React.FC = () => {
 
                 {/* Next/Prev Navigation */}
                 <div className="pt-6 flex justify-between">
-                  <button
-                    type="button"
-                    disabled={selectedIndex === 0}
-                    onClick={() => setSelectedIndex((prev) => Math.max(0, prev - 1))}
-                    className="px-4 py-2 min-h-10 rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 disabled:opacity-30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  <Button
+                    size="sm"
+                    variant="bordered"
+                    isDisabled={selectedIndex === 0}
+                    onPress={() => setSelectedIndex((prev) => Math.max(0, prev - 1))}
+                    className="min-h-10 rounded-xl text-xs font-bold text-white/70 border-white/10 hover:bg-white/10"
+                    startContent={<ChevronLeft size={16} />}
                   >
-                    <ChevronLeft size={16} />
-                    <span>Previous</span>
-                  </button>
+                    Previous
+                  </Button>
 
-                  <button
-                    type="button"
-                    disabled={selectedIndex >= studentMcqs.length - 1}
-                    onClick={() => setSelectedIndex((prev) => Math.min(studentMcqs.length - 1, prev + 1))}
-                    className="px-4 py-2 min-h-10 rounded-xl text-xs font-bold text-white/70 hover:bg-white/10 disabled:opacity-30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  <Button
+                    size="sm"
+                    variant="bordered"
+                    isDisabled={selectedIndex >= studentMcqs.length - 1}
+                    onPress={() => setSelectedIndex((prev) => Math.min(studentMcqs.length - 1, prev + 1))}
+                    className="min-h-10 rounded-xl text-xs font-bold text-white/70 border-white/10 hover:bg-white/10"
+                    endContent={<ChevronRight size={16} />}
                   >
-                    <span>Next</span>
-                    <ChevronRight size={16} />
-                  </button>
+                    Next
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1343,29 +1363,28 @@ export const EventArenaPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <button
-                      type="button"
-                      disabled={isExecuting}
-                      onClick={handleRunCode}
-                      className="px-2.5 sm:px-3 py-1.5 min-h-8.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      isDisabled={isExecuting}
+                      onPress={handleRunCode}
+                      className="rounded-xl text-white text-xs font-bold"
+                      startContent={isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
                     >
-                      {isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
-                      <span>Run</span>
-                    </button>
+                      Run
+                    </Button>
 
-                    <button
-                      type="button"
-                      disabled={isSubmittingProblem}
-                      onClick={handleSubmitProblem}
-                      className="px-3 sm:px-3.5 py-1.5 min-h-8.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/20 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    <Button
+                      size="sm"
+                      color="secondary"
+                      variant="solid"
+                      isDisabled={isSubmittingProblem}
+                      onPress={handleSubmitProblem}
+                      className="rounded-xl text-white text-xs font-bold shadow-md shadow-purple-600/20"
+                      startContent={isSubmittingProblem ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                     >
-                      {isSubmittingProblem ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <Send size={12} />
-                      )}
-                      <span>Submit</span>
-                    </button>
+                      Submit
+                    </Button>
                   </div>
                 </div>
 
@@ -1393,7 +1412,7 @@ export const EventArenaPage: React.FC = () => {
                     }}
                     options={{
                       fontSize: 13,
-                      fontFamily: 'Fira Code, Menlo, Monaco, monospace',
+                      fontFamily: "'JetBrains Mono', 'Fira Code', Menlo, Monaco, monospace",
                       minimap: { enabled: false },
                       scrollBeyondLastLine: false,
                       automaticLayout: true,
@@ -1411,12 +1430,15 @@ export const EventArenaPage: React.FC = () => {
                         <Terminal size={13} />
                         <span>Execution Output</span>
                       </span>
-                      <button
-                        onClick={() => setRunResults(null)}
-                        className="text-white/40 hover:text-white p-1"
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        onPress={() => setRunResults(null)}
+                        className="text-white/40 hover:text-white p-1 min-w-6 h-6"
                       >
                         ✕
-                      </button>
+                      </Button>
                     </div>
 
                     {runResults.map((res, i) => (
@@ -1501,17 +1523,20 @@ export const EventArenaPage: React.FC = () => {
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowSubmitConfirm(false)}
-                className="px-4 py-2 min-h-10 rounded-xl text-xs font-semibold text-white/70 hover:text-white cursor-pointer"
+              <Button
+                size="sm"
+                variant="light"
+                onPress={() => setShowSubmitConfirm(false)}
+                className="min-h-10 rounded-xl text-xs font-semibold text-white/70 hover:text-white"
               >
                 Keep Working
-              </button>
-              <button
-                type="button"
-                disabled={actionLoading}
-                onClick={async () => {
+              </Button>
+              <Button
+                size="sm"
+                color="success"
+                variant="solid"
+                isDisabled={actionLoading}
+                onPress={async () => {
                   if (selectedAssessment?.type === 'UI_UX') {
                     if (!studentFigmaLink.trim()) {
                       return toast.error('Please enter your Figma link before submitting.');
@@ -1523,11 +1548,11 @@ export const EventArenaPage: React.FC = () => {
                     handleFinalSubmit(false);
                   }
                 }}
-                className="px-5 py-2 min-h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                className="min-h-10 rounded-xl text-white font-bold text-xs shadow-md shadow-emerald-500/20"
+                startContent={actionLoading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
               >
-                {actionLoading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-                <span>Confirm & Submit</span>
-              </button>
+                Confirm & Submit
+              </Button>
             </div>
           </div>
         </div>
@@ -1619,13 +1644,14 @@ export const EventArenaPage: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleReturnToHub}
-              className="w-full py-3 min-h-11 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 transition-all cursor-pointer"
+            <Button
+              color="secondary"
+              variant="solid"
+              onPress={handleReturnToHub}
+              className="w-full min-h-11 rounded-xl text-white font-bold text-xs shadow-md shadow-purple-600/30"
             >
               Return to Arena Rounds
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -1649,13 +1675,15 @@ export const EventArenaPage: React.FC = () => {
                   <ExternalLink size={13} />
                   <span>Open Full Image</span>
                 </a>
-                <button
-                  type="button"
-                  onClick={() => setPreviewReferenceImg(null)}
-                  className="p-1.5 min-w-8.5 min-h-8.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer inline-flex items-center justify-center"
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  onPress={() => setPreviewReferenceImg(null)}
+                  className="min-w-8.5 min-h-8.5 rounded-xl text-white/70 hover:text-white"
                 >
                   <X size={16} />
-                </button>
+                </Button>
               </div>
             </div>
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/70">

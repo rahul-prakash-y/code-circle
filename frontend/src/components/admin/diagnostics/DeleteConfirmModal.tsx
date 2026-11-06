@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ResponsiveModal from '../../ui/ResponsiveModal';
-import { AlertTriangle, Trash2, Loader2 } from 'lucide-react';
+import { AlertTriangle, Trash2 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import { UserBadge } from './UserBadge';
 import { UserLookupItem } from '../../../store/useDiagnosticsStore';
 
@@ -98,32 +99,34 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 
         {/* Actions */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            disabled={deleting}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors"
+            variant="secondary"
+            onPress={onClose}
+            isDisabled={deleting}
+            className="px-4 py-2 rounded-full text-xs font-medium cursor-pointer"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-destructive text-white hover:opacity-90 disabled:opacity-50 transition cursor-pointer shadow"
+            variant="danger"
+            onPress={handleDelete}
+            isDisabled={deleting}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold shadow cursor-pointer"
           >
             {deleting ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Deleting...
-              </>
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
+                <span>Deleting...</span>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <Trash2 size={13} />
                 <span>Delete Permanently</span>
-              </>
+              </div>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

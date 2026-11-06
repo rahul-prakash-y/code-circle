@@ -28,6 +28,7 @@ import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import { User, OnboardingStats, OnboardingStatusItem } from '../../types/user';
 import { useDebounce } from '../../hooks/useDebounce';
+import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
 
 interface OnboardingStatsWidgetProps {
   className?: string;
@@ -984,18 +985,16 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               </div>
 
               {/* Department Dropdown */}
-              <select
+              <HeroUISelect
                 value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value)}
-                className="rounded-xl border border-separator bg-surface py-2 px-3 min-h-[38px] text-xs text-label-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-              >
-                <option value="all">All Departments</option>
-                {departmentsList.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedDept}
+                options={[
+                  { value: 'all', label: 'All Departments' },
+                  ...departmentsList.map((dept) => ({ value: dept, label: dept })),
+                ]}
+                size="sm"
+                className="w-44 shrink-0"
+              />
             </div>
           </div>
 
@@ -1197,17 +1196,15 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
 
                           {/* Status Badge */}
                           <td className="px-3 py-3.5">
-                            {isClaimed ? (
-                              <span className="inline-flex whitespace-nowrap items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                <CheckCircle2 size={12} />
-                                <span>Account Claimed</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex whitespace-nowrap items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                                <Clock size={12} />
-                                <span>Pending Initial Login</span>
-                              </span>
-                            )}
+                            <Chip
+                              size="sm"
+                              color={isClaimed ? 'success' : 'warning'}
+                              variant="flat"
+                              startContent={isClaimed ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                              className="font-semibold"
+                            >
+                              {isClaimed ? 'Account Claimed' : 'Pending Initial Login'}
+                            </Chip>
                           </td>
 
                           {/* Email Copy */}

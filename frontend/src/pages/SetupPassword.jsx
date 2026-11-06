@@ -5,6 +5,7 @@ import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import { EmilButton } from '../components/ui/emil-ui';
 import { HeroInput } from '../components/ui/HeroUIComponents';
+import { Button } from '@heroui/react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import AuthLayout from '../layouts/AuthLayout';
 import { decodeJwtPayload } from '../lib/jwt';
@@ -103,14 +104,17 @@ const SetupPassword = () => {
           onChange={(e) => setCurrentPassword(e.target.value)}
           startContent={<KeyRound className="w-4 h-4 text-text-muted" />}
           endContent={
-            <button
+            <Button
               type="button"
-              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              variant="ghost"
+              size="sm"
+              isIconOnly
+              onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+              className="text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
               aria-label="Toggle password visibility"
             >
               {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+            </Button>
           }
         />
 
@@ -127,14 +131,17 @@ const SetupPassword = () => {
           minLength={6}
           startContent={<Lock className="w-4 h-4 text-text-muted" />}
           endContent={
-            <button
+            <Button
               type="button"
-              onClick={() => setShowNewPassword(!showNewPassword)}
-              className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              variant="ghost"
+              size="sm"
+              isIconOnly
+              onPress={() => setShowNewPassword(!showNewPassword)}
+              className="text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
               aria-label="Toggle password visibility"
             >
               {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+            </Button>
           }
         />
 
@@ -152,14 +159,17 @@ const SetupPassword = () => {
             minLength={6}
             startContent={<Lock className="w-4 h-4 text-text-muted" />}
             endContent={
-              <button
+              <Button
                 type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                variant="ghost"
+                size="sm"
+                isIconOnly
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                 aria-label="Toggle password visibility"
               >
                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+              </Button>
             }
           />
 
@@ -175,29 +185,27 @@ const SetupPassword = () => {
 
         {/* Action buttons */}
         <div className="pt-3 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-          <button
+          <Button
             type="button"
-            onClick={handleSignOut}
-            className="min-h-[44px] py-2 px-3 text-xs text-text-muted hover:text-destructive flex items-center justify-center sm:justify-start gap-1.5 transition-colors cursor-pointer"
+            variant="ghost"
+            size="sm"
+            onPress={handleSignOut}
+            className="min-h-[44px] text-xs text-text-muted hover:text-destructive flex items-center justify-center sm:justify-start gap-1.5"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="submit"
-            disabled={loading || !currentPassword || newPassword.length < 6 || newPassword !== confirmNewPassword}
-            className="btn-primary w-full sm:w-auto min-h-[48px] py-3 px-6 text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent/15"
+            variant="primary"
+            isDisabled={loading || !currentPassword || newPassword.length < 6 || newPassword !== confirmNewPassword}
+            isLoading={loading}
+            className="w-full sm:w-auto min-h-[48px] py-3 px-6 text-sm flex items-center justify-center gap-2 shadow-lg shadow-accent/15"
           >
-            {loading ? (
-              <Loader2 className="animate-spin w-4 h-4" />
-            ) : (
-              <>
-                <span>Claim Account</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
+            <span>Claim Account</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
         </div>
       </form>
     </AuthLayout>

@@ -8,7 +8,6 @@ import {
   Upload,
   CheckCircle2,
   AlertCircle,
-  Loader2,
   X,
   FileText,
   Sparkles,
@@ -17,6 +16,7 @@ import {
   HelpCircle,
   Plus,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useAssessmentStore, { Assessment } from '../../store/useAssessmentStore';
 import TutorialButton from '../common/TutorialButton';
 
@@ -314,19 +314,20 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
             answer mappings, points, and explanations, plus an instructions tab.
           </p>
 
-          <button
+          <Button
             type="button"
-            onClick={handleDownloadTemplate}
-            disabled={isDownloadingTemplate}
-            className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-surface border border-separator hover:border-emerald-500/40 text-label-primary transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+            variant="secondary"
+            onPress={handleDownloadTemplate}
+            isDisabled={isDownloadingTemplate}
+            className="w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
           >
             {isDownloadingTemplate ? (
-              <Loader2 size={14} className="animate-spin text-emerald-500" />
+              <Spinner size="sm" color="default" />
             ) : (
               <FileSpreadsheet size={15} className="text-emerald-500" />
             )}
             <span>Download MCQ Template (.xlsx)</span>
-          </button>
+          </Button>
         </div>
 
         {/* Step 3: Drag & Drop Upload Zone */}
@@ -453,32 +454,34 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
 
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-separator dark:border-white/10">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-bold rounded-xl text-label-secondary hover:text-label-primary bg-surface  border border-separator dark:border-white/10 transition-colors cursor-pointer"
+            variant="secondary"
+            onPress={onClose}
+            className="px-4 py-2 text-xs font-bold rounded-xl"
           >
             Cancel
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
-            onClick={handleUpload}
-            disabled={!file || isUploading}
-            className="btn-primary py-2 px-5 text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-md shadow-purple-500/20 disabled:opacity-50 cursor-pointer"
+            variant="primary"
+            onPress={handleUpload}
+            isDisabled={!file || isUploading}
+            className="py-2 px-5 text-xs font-bold flex items-center gap-2 rounded-xl shadow-md"
           >
             {isUploading ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
                 <span>Processing & Importing...</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <Upload size={14} />
                 <span>Start Bulk Import</span>
-              </>
+              </div>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

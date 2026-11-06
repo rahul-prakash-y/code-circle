@@ -10,14 +10,13 @@ import {
   Calendar,
   ShieldCheck,
   AlertCircle,
-  Loader2,
   Award,
   Sparkles,
   Layers,
   CheckSquare,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useEventStore from '../../store/useEventStore';
-import { EmilButton } from '../ui/emil-ui';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { formatISTDate } from '../../lib/dateUtils';
@@ -213,27 +212,33 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                 </label>
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <span className="text-text-muted text-[10px]">Presets:</span>
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setHourPreset([1, 2, 3, 4])}
-                    className="px-2 py-1 min-h-[28px] rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all cursor-pointer"
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => setHourPreset([1, 2, 3, 4])}
+                    className="h-7 px-2 text-[10px] font-bold"
                   >
                     1 - 4
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={() => setHourPreset([5, 6, 7])}
-                    className="px-2 py-1 min-h-[28px] rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all cursor-pointer"
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => setHourPreset([5, 6, 7])}
+                    className="h-7 px-2 text-[10px] font-bold"
                   >
                     5 - 7
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={() => setHourPreset([1, 2, 3, 4, 5, 6, 7])}
-                    className="px-2 py-1 min-h-[28px] rounded-lg bg-surface border border-border hover:border-accent text-text-secondary text-[10px] font-bold transition-all cursor-pointer"
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => setHourPreset([1, 2, 3, 4, 5, 6, 7])}
+                    className="h-7 px-2 text-[10px] font-bold"
                   >
                     All 7
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -242,19 +247,20 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                 {COLLEGE_HOURS.map((hr) => {
                   const isSelected = selectedClassHours.includes(hr);
                   return (
-                    <button
+                    <Button
                       key={hr}
                       type="button"
-                      onClick={() => toggleClassHour(hr)}
-                      className={`flex flex-col items-center justify-center py-2 sm:py-2.5 px-0.5 sm:px-1 rounded-xl font-bold transition-all border cursor-pointer touch-manipulation min-h-[44px] ${
+                      variant={isSelected ? 'primary' : 'secondary'}
+                      onPress={() => toggleClassHour(hr)}
+                      className={`flex flex-col items-center justify-center py-2 sm:py-2.5 px-0.5 sm:px-1 rounded-xl font-bold min-h-[44px] ${
                         isSelected
-                          ? 'bg-accent text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.4)] scale-102'
-                          : 'bg-surface text-text-muted border-border hover:bg-surface-elevated hover:text-text-primary'
+                          ? 'shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+                          : ''
                       }`}
                     >
                       <span className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-80">Hr</span>
                       <span className="text-sm sm:text-base font-black font-mono">{hr}</span>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -297,33 +303,30 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[15, 30, 60].map((mins) => (
-                    <button
+                    <Button
                       key={mins}
                       type="button"
-                      onClick={() => setDurationMinutes(mins)}
-                      className={`py-2 min-h-[44px] rounded-xl text-xs font-bold transition-all border cursor-pointer touch-manipulation ${
-                        durationMinutes === mins
-                          ? 'bg-purple-600 text-white border-purple-400 shadow-sm'
-                          : 'bg-surface-elevated text-text-muted border-border hover:bg-surface'
-                      }`}
+                      variant={durationMinutes === mins ? 'primary' : 'secondary'}
+                      onPress={() => setDurationMinutes(mins)}
+                      className="py-2 min-h-[44px] rounded-xl text-xs font-bold"
                     >
                       {mins}m
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
             </div>
 
             {/* Dynamic Points Awarded Live Card */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-orange-500/10 border border-amber-500/30 flex items-center justify-between gap-3 shadow-inner">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-surface-elevated border border-border flex items-center justify-between gap-3 shadow-inner">
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent shrink-0">
                   <Sparkles size={18} />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-text-primary">Leaderboard Award</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30">
                       {selectedClassHours.length} {selectedClassHours.length === 1 ? 'Period' : 'Periods'}
                     </span>
                   </div>
@@ -333,39 +336,41 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono tracking-tight">
+                <div className="text-xl sm:text-2xl font-black text-accent font-mono tracking-tight">
                   +{calculatedTotalPoints}
                 </div>
-                <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-400/80">
+                <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-accent/80">
                   Per Student
                 </span>
               </div>
             </div>
 
             <div className="pt-2">
-              <button
+              <Button
                 type="submit"
-                disabled={loading || events.length === 0}
-                className="w-full btn-primary flex items-center justify-center gap-2 py-3 min-h-[48px] rounded-2xl text-xs sm:text-sm font-bold shadow-lg cursor-pointer"
+                variant="primary"
+                fullWidth
+                isDisabled={loading || events.length === 0}
+                className="py-3 min-h-[48px] rounded-2xl text-xs sm:text-sm font-bold shadow-lg"
               >
                 {loading ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Generating Session OTP...
-                  </>
+                  <div className="flex items-center gap-2">
+                    <Spinner size="sm" color="default" />
+                    <span>Generating Session OTP...</span>
+                  </div>
                 ) : (
-                  <>
+                  <div className="flex items-center gap-2">
                     <ShieldCheck size={18} />
-                    Generate Attendance OTP ({calculatedTotalPoints} pts)
-                  </>
+                    <span>Generate Attendance OTP ({calculatedTotalPoints} pts)</span>
+                  </div>
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
           /* Active OTP Display view */
           <div className="space-y-5 sm:space-y-6 text-center relative z-10">
-            <div className="p-5 sm:p-6 rounded-3xl bg-linear-to-b from-blue-500/10 to-indigo-500/5 border border-accent/30">
+            <div className="p-5 sm:p-6 rounded-3xl bg-surface-elevated border border-accent/30">
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent block mb-2">
                 ACTIVE VERIFICATION CODE
               </span>
@@ -376,10 +381,10 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
               </div>
 
               <div className="flex items-center justify-center gap-2 text-xs font-bold text-text-muted">
-                <Clock size={14} className="text-amber-400" />
+                <Clock size={14} className="text-accent" />
                 <span>
                   Expires in:{' '}
-                  <span className="text-amber-400 font-mono text-sm">
+                  <span className="text-accent font-mono text-sm">
                     {formatCountdown(secondsRemaining)}
                   </span>
                 </span>
@@ -389,7 +394,7 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
             <div className="text-left bg-surface-elevated p-3.5 sm:p-4 rounded-2xl border border-border space-y-2 text-xs text-text-muted">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-border/50 gap-1">
                 <span className="text-text-primary font-bold text-sm">{generatedSession.sessionName}</span>
-                <span className="w-fit px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-mono font-bold text-[11px]">
+                <span className="w-fit px-2.5 py-1 rounded-full bg-accent/15 text-accent border border-accent/30 font-mono font-bold text-[11px]">
                   +{generatedSession.totalPoints || ((generatedSession.hourlyPoints || 50) * (generatedSession.classHours?.length || 1))} Leaderboard Pts
                 </span>
               </div>
@@ -408,20 +413,22 @@ const GenerateOtpModal = ({ isOpen, onClose }) => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-2">
-              <button
-                onClick={copyToClipboard}
-                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-5 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition cursor-pointer shadow"
+              <Button
+                variant="primary"
+                onPress={copyToClipboard}
+                className="flex-1 py-2.5 px-5 rounded-full text-xs font-semibold"
               >
-                {copied ? <Check size={15} className="text-white" /> : <Copy size={15} />}
+                {copied ? <Check size={15} /> : <Copy size={15} />}
                 <span>{copied ? 'Copied Code!' : 'Copy Code'}</span>
-              </button>
+              </Button>
 
-              <button
-                onClick={() => setGeneratedSession(null)}
-                className="px-5 py-2.5 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+              <Button
+                variant="secondary"
+                onPress={() => setGeneratedSession(null)}
+                className="px-5 py-2.5 rounded-full text-xs font-medium"
               >
                 Generate Another
-              </button>
+              </Button>
             </div>
           </div>
         )}

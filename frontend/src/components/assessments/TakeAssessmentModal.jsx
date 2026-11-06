@@ -19,8 +19,8 @@ import {
   Maximize2,
   Minimize2,
   Lock,
-  Loader2,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
 import FullScreenEnforcementOverlay from './FullScreenEnforcementOverlay';
@@ -541,25 +541,27 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
             {/* Bottom Actions for Review Screen */}
             <div className="pt-4 border-t border-separator flex flex-col sm:flex-row items-center justify-between gap-3">
-              <button
+              <Button
                 type="button"
-                onClick={() => {
+                variant="secondary"
+                onPress={() => {
                   clearCurrentResult();
                   setAnswers({});
                   setCurrentQuestionIndex(0);
                   setTimeLeftSeconds((currentAssessment.timeLimitMinutes || 30) * 60);
                   setStartTime(Date.now());
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface flex items-center justify-center gap-2 border border-separator transition-all cursor-pointer w-full sm:w-auto min-h-[42px]"
+                className="px-5 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-2 w-full sm:w-auto min-h-[42px]"
               >
                 <RotateCcw size={14} /> Retake assessment
-              </button>
-              <button
-                onClick={onClose}
-                className="btn-primary py-2.5 px-6 text-xs font-medium cursor-pointer w-full sm:w-auto text-center min-h-[42px]"
+              </Button>
+              <Button
+                variant="primary"
+                onPress={onClose}
+                className="py-2.5 px-6 text-xs font-medium w-full sm:w-auto min-h-[42px]"
               >
                 Return to dashboard
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -668,15 +670,16 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
             {/* Bottom Controls Bar */}
             <div className="p-3 sm:p-4 md:p-6 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] border-t border-separator flex items-center justify-between gap-2 sm:gap-3 bg-surface flex-shrink-0">
-              <button
-                onClick={handlePrevious}
-                disabled={currentQuestionIndex === 0}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 sm:gap-1.5 transition-all shrink-0 cursor-pointer min-h-[38px] border border-separator"
+              <Button
+                variant="secondary"
+                onPress={handlePrevious}
+                isDisabled={currentQuestionIndex === 0}
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-medium flex items-center gap-1 sm:gap-1.5 shrink-0 min-h-[38px]"
               >
                 <ChevronLeft size={15} />
                 <span className="hidden sm:inline">Previous</span>
                 <span className="sm:hidden">Prev</span>
-              </button>
+              </Button>
 
               <div className="text-[11px] sm:text-xs font-medium text-label-secondary text-center px-1 truncate tabular-nums">
                 <span className="hidden sm:inline">
@@ -689,32 +692,38 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 {currentQuestionIndex < totalQuestions - 1 && (
-                  <button
-                    onClick={() => setShowConfirmModal(true)}
-                    className="px-3 py-2 rounded-xl text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 flex items-center gap-1 transition-all cursor-pointer min-h-[38px]"
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    color="success"
+                    onPress={() => setShowConfirmModal(true)}
+                    className="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1 min-h-[38px]"
                     title="Submit assessment now"
                   >
                     <Send size={12} />
                     <span>Submit</span>
-                  </button>
+                  </Button>
                 )}
 
                 {currentQuestionIndex < totalQuestions - 1 ? (
-                  <button
-                    onClick={handleNext}
-                    className="btn-primary py-2 px-4 text-xs font-medium flex items-center gap-1 cursor-pointer min-h-[38px]"
+                  <Button
+                    variant="primary"
+                    onPress={handleNext}
+                    className="py-2 px-4 text-xs font-medium flex items-center gap-1 min-h-[38px]"
                   >
                     <span>Next</span> <ChevronRight size={15} />
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    onClick={() => setShowConfirmModal(true)}
-                    className="btn-primary py-2 px-5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+                  <Button
+                    variant="primary"
+                    color="success"
+                    onPress={() => setShowConfirmModal(true)}
+                    className="py-2 px-5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 flex items-center gap-1.5 min-h-[38px]"
                   >
                     <Send size={13} />
                     <span className="hidden sm:inline">Submit assessment</span>
                     <span className="sm:hidden">Submit</span>
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -749,19 +758,22 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                 </div>
 
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2">
-                  <button
-                    onClick={() => setShowConfirmModal(false)}
-                    className="w-full sm:flex-1 py-2.5 px-4 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface border border-separator transition-all cursor-pointer min-h-[42px]"
+                  <Button
+                    variant="secondary"
+                    onPress={() => setShowConfirmModal(false)}
+                    className="w-full sm:flex-1 py-2.5 px-4 rounded-xl text-xs font-medium min-h-[42px]"
                   >
                     Back to test
-                  </button>
-                  <button
-                    onClick={() => executeSubmit(false)}
-                    disabled={submitting}
-                    className="btn-primary w-full sm:flex-1 py-2.5 px-4 text-xs font-medium disabled:opacity-50 cursor-pointer text-center min-h-[42px]"
+                  </Button>
+                  <Button
+                    variant="primary"
+                    color="success"
+                    onPress={() => executeSubmit(false)}
+                    isDisabled={submitting}
+                    className="w-full sm:flex-1 py-2.5 px-4 text-xs font-medium min-h-[42px]"
                   >
                     {submitting ? 'Submitting...' : 'Yes, submit now'}
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             </div>
@@ -803,13 +815,14 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   </p>
                 </div>
 
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowTabWarning(false)}
-                  className="w-full btn-primary py-2.5 text-xs font-medium cursor-pointer min-h-[42px]"
+                  variant="primary"
+                  onPress={() => setShowTabWarning(false)}
+                  className="w-full py-2.5 text-xs font-medium min-h-[42px]"
                 >
                   I understand, return to test
-                </button>
+                </Button>
               </motion.div>
             </div>
           )}
@@ -867,24 +880,26 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
                   </p>
                 </div>
                 <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2">
-                  <button
-                    onClick={() => setShowExitConfirm(false)}
-                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium text-label-primary bg-surface-secondary border border-separator hover:bg-surface transition-all cursor-pointer min-h-[42px]"
+                  <Button
+                    variant="secondary"
+                    onPress={() => setShowExitConfirm(false)}
+                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium min-h-[42px]"
                   >
                     Continue test
-                  </button>
-                  <button
-                    onClick={() => {
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onPress={() => {
                       setShowExitConfirm(false);
                       if (document.fullscreenElement) {
                         document.exitFullscreen().catch(() => {});
                       }
                       onClose();
                     }}
-                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium text-white bg-destructive hover:bg-red-600 transition-all cursor-pointer min-h-[42px]"
+                    className="w-full sm:flex-1 py-2.5 rounded-xl text-xs font-medium min-h-[42px]"
                   >
                     Exit anyway
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             </div>

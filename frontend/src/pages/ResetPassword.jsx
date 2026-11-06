@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { EmilButton } from '../components/ui/emil-ui';
 import { HeroInput, HeroTextarea, HeroTabs } from '../components/ui/HeroUIComponents';
+import { Button } from '@heroui/react';
 import { 
   Lock, 
   KeyRound, 
@@ -170,12 +171,14 @@ const ResetPassword = () => {
               Your password has been successfully reset. All previous device sessions have been invalidated for security.
             </p>
           </div>
-          <button
-            onClick={() => navigate('/login')}
-            className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 min-h-[48px] cursor-pointer font-semibold shadow-lg shadow-accent/20"
+          <Button
+            variant="primary"
+            onPress={() => navigate('/login')}
+            className="w-full py-3.5 min-h-[48px] font-semibold shadow-lg shadow-accent/20 flex items-center justify-center gap-2"
           >
-            Sign In Now <ArrowRight className="w-4 h-4" />
-          </button>
+            <span>Sign In Now</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
         </div>
       </AuthLayout>
     );
@@ -221,14 +224,17 @@ const ResetPassword = () => {
               isRequired
               startContent={<Lock className="w-4 h-4 text-text-muted" />}
               endContent={
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowNewPassword(!showNewPassword)}
+                  className="text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                   aria-label="Toggle password visibility"
                 >
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               }
             />
           </motion.div>
@@ -249,14 +255,17 @@ const ResetPassword = () => {
               isRequired
               startContent={<KeyRound className="w-4 h-4 text-text-muted" />}
               endContent={
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  isIconOnly
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                   aria-label="Toggle password visibility"
                 >
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                </Button>
               }
             />
             {confirmPassword && newPassword !== confirmPassword && (
@@ -275,13 +284,16 @@ const ResetPassword = () => {
             variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
             className="pt-2"
           >
-            <button
+            <Button
               type="submit"
-              disabled={tokenLoading || newPassword.length < 6 || newPassword !== confirmPassword}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 min-h-[48px] text-sm sm:text-base font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent/15"
+              variant="primary"
+              size="lg"
+              isDisabled={tokenLoading || newPassword.length < 6 || newPassword !== confirmPassword}
+              isLoading={tokenLoading}
+              className="w-full py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/15"
             >
-              {tokenLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Update Password & Access Hub'}
-            </button>
+              Update Password & Access Hub
+            </Button>
           </motion.div>
 
           <motion.div
@@ -356,17 +368,18 @@ const ResetPassword = () => {
           </div>
 
           <div className="space-y-2.5">
-            <button
-              onClick={() => {
+            <Button
+              variant="outline"
+              onPress={() => {
                 setTrackIdentifier(submittedRequest.email);
                 setActiveTab('track');
                 setSubmittedRequest(null);
                 handleCheckStatus();
               }}
-              className="btn-secondary w-full py-3 min-h-[44px] flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm font-semibold"
+              className="w-full py-3 min-h-[44px] flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
             >
               <Search className="w-4 h-4" /> Check Real-Time Approval Status
-            </button>
+            </Button>
 
             <Link
               to="/login"
@@ -437,17 +450,15 @@ const ResetPassword = () => {
               <div className="flex items-center justify-between px-1">
                 <label className="text-xs font-semibold text-text-secondary">Identity Verification</label>
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setVerifyMethod('rollNo')}
-                    className={`text-[11px] px-2.5 py-1 min-h-[32px] rounded-md transition-colors cursor-pointer touch-manipulation ${
-                      verifyMethod === 'rollNo'
-                        ? 'bg-accent/20 text-accent font-bold'
-                        : 'text-text-muted hover:text-text-primary'
-                    }`}
+                    variant={verifyMethod === 'rollNo' ? 'primary' : 'outline'}
+                    size="sm"
+                    onPress={() => setVerifyMethod('rollNo')}
+                    className="text-[11px] px-2.5 py-1 min-h-[32px] h-auto font-semibold"
                   >
                     Via Roll No
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -463,14 +474,17 @@ const ResetPassword = () => {
                   isRequired
                   startContent={<Lock className="w-4 h-4 text-text-muted" />}
                   endContent={
-                    <button
+                    <Button
                       type="button"
-                      onClick={() => setShowReqPassword(!showReqPassword)}
-                      className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                      variant="ghost"
+                      size="sm"
+                      isIconOnly
+                      onPress={() => setShowReqPassword(!showReqPassword)}
+                      className="text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                       aria-label="Toggle password visibility"
                     >
                       {showReqPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
+                    </Button>
                   }
                 />
               ) : (
@@ -507,20 +521,17 @@ const ResetPassword = () => {
 
             {/* Submit Button */}
             <div className="pt-2">
-              <button
+              <Button
                 type="submit"
-                disabled={reqLoading}
-                className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 min-h-[48px] cursor-pointer text-xs sm:text-sm font-semibold shadow-lg shadow-accent/20"
+                variant="primary"
+                size="lg"
+                isDisabled={reqLoading}
+                isLoading={reqLoading}
+                className="w-full py-3.5 min-h-[48px] text-xs sm:text-sm font-semibold shadow-lg shadow-accent/20 flex items-center justify-center gap-2"
               >
-                {reqLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    <span>Verify & Raise Reset Request</span>
-                  </>
-                )}
-              </button>
+                <Send className="w-4 h-4" />
+                <span>Verify & Raise Reset Request</span>
+              </Button>
             </div>
 
             {/* Return to login link */}
@@ -555,13 +566,15 @@ const ResetPassword = () => {
                 startContent={<Search className="w-4 h-4 text-text-muted" />}
               />
 
-              <button
+              <Button
                 type="submit"
-                disabled={trackLoading}
-                className="btn-secondary w-full py-2.5 min-h-[44px] flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer"
+                variant="outline"
+                isDisabled={trackLoading}
+                isLoading={trackLoading}
+                className="w-full py-2.5 min-h-[44px] flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold"
               >
-                {trackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Check Status'}
-              </button>
+                Check Status
+              </Button>
             </form>
 
             {/* Track Result Display */}
@@ -627,14 +640,16 @@ const ResetPassword = () => {
             <div className="p-3.5 rounded-xl bg-surface border border-separator space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-text-muted font-medium">Need immediate assistance?</span>
-                <button
+                <Button
                   type="button"
-                  onClick={handleCopyEmail}
-                  className="text-text-muted hover:text-accent flex items-center gap-1 transition-colors cursor-pointer text-[11px] min-h-[32px] px-1 touch-manipulation"
+                  variant="ghost"
+                  size="sm"
+                  onPress={handleCopyEmail}
+                  className="text-text-muted hover:text-accent flex items-center gap-1 text-[11px] min-h-[32px] px-1 h-auto"
                 >
                   <Copy className="w-3 h-3" />
                   <span>{copiedEmail ? 'Copied' : 'Copy Email'}</span>
-                </button>
+                </Button>
               </div>
               <p className="font-mono text-accent text-[11px] break-all">{adminEmail}</p>
             </div>

@@ -13,9 +13,9 @@ import {
   Trash2,
   ExternalLink,
   ShieldAlert,
-  Loader2,
   Sparkles,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import useEventStore from '../../store/useEventStore';
@@ -345,31 +345,33 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
 
                 {/* Submit Action */}
                 <div className="pt-2 flex justify-end gap-3">
-                  <button
+                  <Button
                     type="button"
-                    onClick={onClose}
-                    className="px-5 py-2.5 rounded-2xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+                    variant="secondary"
+                    onPress={onClose}
+                    className="px-5 py-2.5 rounded-2xl text-xs font-semibold"
                   >
                     Cancel
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
                     type="submit"
-                    disabled={submitting}
-                    className="px-6 py-2.5 rounded-2xl text-xs font-bold bg-accent hover:opacity-95 text-white shadow-xs active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    variant="primary"
+                    isDisabled={submitting}
+                    className="px-6 py-2.5 rounded-2xl text-xs font-bold shadow-xs flex items-center gap-2"
                   >
                     {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <div className="flex items-center gap-2">
+                        <Spinner size="sm" color="default" />
                         <span>Submitting Request...</span>
-                      </>
+                      </div>
                     ) : (
-                      <>
+                      <div className="flex items-center gap-2">
                         <Send className="w-4 h-4 text-white" />
                         <span>Submit for Admin Approval</span>
-                      </>
+                      </div>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (
@@ -377,7 +379,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
               <div className="space-y-4">
                 {loadingHistory ? (
                   <div className="py-16 text-center text-label-secondary space-y-2">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-accent" />
+                    <Spinner size="lg" color="default" className="mx-auto" />
                     <p className="text-xs">Loading your request history...</p>
                   </div>
                 ) : myRequests.length === 0 ? (

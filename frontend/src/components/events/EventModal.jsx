@@ -3,18 +3,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Calendar, MapPin, Users, Type, AlignLeft, Info, 
-  Layers, Activity, CheckCircle2, Loader2, Eye,
+  Layers, Activity, CheckCircle2, Eye,
   Award, Upload, Trash2, ExternalLink, Sliders, Plus,
   Sparkles, Hash, CheckSquare, ChevronUp, ChevronDown, ListPlus,
   UserCheck
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useEventStore from '../../store/useEventStore';
 import useCertificateStore from '../../store/useCertificateStore';
 import { EmilButton } from '../ui/emil-ui';
 import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
 import { formatDateToISTDateInput } from '../../lib/dateUtils';
-import HeroUISelect from '../ui/HeroUISelect';
+import { HeroUISelect, HeroDatePicker as DatePicker, HeroChip as Chip } from '../ui/HeroUIComponents';
 
 const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];
@@ -663,13 +664,14 @@ export const EventModal = ({
                   <label className="text-xs font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
                     <UserCheck size={15} className="text-accent" /> Enrollment & Registration Mode *
                   </label>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                    formData.registrationType === 'admin_upload'
-                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                      : 'bg-accent/10 text-accent border-accent/30'
-                  }`}>
+                  <Chip
+                    size="sm"
+                    color={formData.registrationType === 'admin_upload' ? 'warning' : 'accent'}
+                    variant="flat"
+                    className="font-bold uppercase tracking-wider"
+                  >
                     {formData.registrationType === 'admin_upload' ? 'Admin Upload Only' : 'Student Self-Registration'}
-                  </span>
+                  </Chip>
                 </div>
                 <p className="text-[11px] text-text-muted leading-relaxed">
                   Define whether students can register directly on the portal, or if the participants list must be uploaded by an administrator.
@@ -784,61 +786,46 @@ export const EventModal = ({
 
               {/* Dates & Schedule */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Calendar size={14} className="text-accent" /> Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    value={formData.startDate || formData.date}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData((prev) => ({
-                        ...prev,
-                        startDate: val,
-                        date: val,
-                        endDate: prev.endDate && prev.endDate >= val ? prev.endDate : val,
-                        registrationDeadline: prev.registrationDeadline || val,
-                      }));
-                    }}
-                    required
-                    className="input-field text-xs py-2.5 focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
-                  />
-                </div>
+                <DatePicker
+                  label="Start Date *"
+                  value={formData.startDate || formData.date}
+                  onChange={(val) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      startDate: val,
+                      date: val,
+                      endDate: prev.endDate && prev.endDate >= val ? prev.endDate : val,
+                      registrationDeadline: prev.registrationDeadline || val,
+                    }));
+                  }}
+                  size="sm"
+                  variant="faded"
+                  startContent={<Calendar size={14} className="text-accent" />}
+                />
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Calendar size={14} className="text-emerald-400" /> End Date
-                  </label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    min={formData.startDate || formData.date}
-                    value={formData.endDate || formData.startDate || formData.date}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData((prev) => ({ ...prev, endDate: val }));
-                    }}
-                    className="input-field text-xs py-2.5 focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all"
-                  />
-                </div>
+                <DatePicker
+                  label="End Date"
+                  minDate={formData.startDate || formData.date}
+                  value={formData.endDate || formData.startDate || formData.date}
+                  onChange={(val) => {
+                    setFormData((prev) => ({ ...prev, endDate: val }));
+                  }}
+                  size="sm"
+                  variant="faded"
+                  startContent={<Calendar size={14} className="text-emerald-400" />}
+                />
               </div>
 
               {/* Deadline & Hourly Points Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                    <Info size={14} className="text-amber-400" /> RSVP Deadline
-                  </label>
-                  <input
-                    type="date"
-                    name="registrationDeadline"
-                    value={formData.registrationDeadline}
-                    onChange={handleChange}
-                    className="input-field text-xs py-2.5 focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 transition-all"
-                  />
-                </div>
+                <DatePicker
+                  label="RSVP Deadline"
+                  value={formData.registrationDeadline}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, registrationDeadline: val }))}
+                  size="sm"
+                  variant="faded"
+                  startContent={<Info size={14} className="text-amber-400" />}
+                />
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -1167,35 +1154,41 @@ export const EventModal = ({
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-4 border-t border-border">
-                <button
+                <Button
                   type="button"
-                  onClick={onClose}
-                  className="py-3 px-4 rounded-xl bg-surface-elevated text-text-muted text-xs font-bold uppercase tracking-wider hover:text-text-primary transition-all border border-border cursor-pointer"
+                  variant="secondary"
+                  onPress={onClose}
+                  className="py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  onClick={() => setShowPreviewModal(true)}
-                  className="py-3 px-4 rounded-xl bg-surface-elevated text-accent text-xs font-bold uppercase tracking-wider hover:bg-canvas transition-all border border-border flex items-center justify-center gap-1.5 cursor-pointer"
+                  variant="secondary"
+                  onPress={() => setShowPreviewModal(true)}
+                  className="py-3 px-4 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
                   title="Preview how this event will look"
                 >
                   <Eye size={15} />
                   <span>Preview</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={loading}
-                  className="flex-1 btn-primary py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer"
+                  variant="primary"
+                  isDisabled={loading}
+                  className="flex-1 py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
                 >
                   {loading ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <div className="flex items-center gap-2">
+                      <Spinner size="sm" color="default" />
+                      <span>Saving...</span>
+                    </div>
                   ) : eventToEdit ? (
                     'Save Event Changes'
                   ) : (
                     'Publish Event'
                   )}
-                </button>
+                </Button>
               </div>
             </form>
         </div>

@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
   X,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import useEventStore from '../../store/useEventStore';
 import toast from 'react-hot-toast';
@@ -469,21 +470,26 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
                 </h3>
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <Button
                   type="button"
-                  onClick={() => setIsBulkUploadOpen(true)}
-                  className="text-xs font-medium text-success hover:opacity-90 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-success-subtle border border-success/20 hover:bg-success/20 transition-all cursor-pointer active:scale-95"
+                  size="sm"
+                  variant="secondary"
+                  color="success"
+                  onPress={() => setIsBulkUploadOpen(true)}
+                  className="text-xs font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
                   title="Import or append questions from Excel sheet"
                 >
                   <FileSpreadsheet size={14} /> Bulk import (Excel)
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  onClick={handleAddQuestion}
-                  className="text-xs font-medium text-accent hover:opacity-90 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-subtle border border-accent/20 hover:bg-accent/20 transition-all cursor-pointer active:scale-95"
+                  size="sm"
+                  variant="primary"
+                  onPress={handleAddQuestion}
+                  className="text-xs font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
                 >
                   <Plus size={14} /> Add question
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -646,21 +652,32 @@ const AssessmentEditorModal = ({ isOpen, assessmentToEdit, onClose }) => {
 
           {/* Modal Footer Buttons */}
           <div className="pt-6 border-t border-separator flex items-center justify-end gap-3">
-            <button
+            <Button
               type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface-raised transition-all cursor-pointer"
+              variant="secondary"
+              onPress={onClose}
+              className="px-5 py-2.5 rounded-xl text-xs font-medium"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={submitting}
-              className="py-2.5 px-6 text-xs font-medium rounded-xl text-white bg-accent hover:opacity-95 active:scale-[0.98] shadow-xs flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+              variant="primary"
+              isDisabled={submitting}
+              className="py-2.5 px-6 text-xs font-medium rounded-xl shadow-xs flex items-center gap-2"
             >
-              <Save size={16} />
-              {submitting ? 'Saving assessment...' : assessmentToEdit ? 'Save changes' : 'Publish assessment'}
-            </button>
+              {submitting ? (
+                <div className="flex items-center gap-2">
+                  <Spinner size="sm" color="default" />
+                  <span>Saving assessment...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Save size={16} />
+                  <span>{assessmentToEdit ? 'Save changes' : 'Publish assessment'}</span>
+                </div>
+              )}
+            </Button>
           </div>
         </form>
 

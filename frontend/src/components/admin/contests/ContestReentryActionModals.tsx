@@ -10,8 +10,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   MessageSquare,
-  Loader2,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useContestStore, { Contest } from '../../../store/useContestStore';
 
 interface ApproveReentryModalProps {
@@ -156,31 +156,34 @@ export const ApproveReentryModal: React.FC<ApproveReentryModalProps> = ({
 
         {/* Footer Buttons */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+            variant="secondary"
+            onPress={onClose}
+            isDisabled={submitting}
+            className="px-4 py-2 rounded-full text-xs font-medium"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={submitting}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+            variant="primary"
+            color="success"
+            isDisabled={submitting}
+            className="px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow"
           >
             {submitting ? (
-              <>
-                <Loader2 size={13} className="animate-spin" />
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
                 <span>Approving...</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <CheckCircle2 size={14} />
                 <span>Approve & Allow Re-entry</span>
-              </>
+              </div>
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </ResponsiveModal>
@@ -256,31 +259,33 @@ export const RejectReentryModal: React.FC<RejectReentryModalProps> = ({
         </div>
 
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+            variant="secondary"
+            onPress={onClose}
+            isDisabled={submitting}
+            className="px-4 py-2 rounded-full text-xs font-medium"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            disabled={submitting}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+            variant="danger"
+            isDisabled={submitting}
+            className="px-5 py-2 rounded-full text-xs font-semibold shadow"
           >
             {submitting ? (
-              <>
-                <Loader2 size={13} className="animate-spin" />
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
                 <span>Declining...</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <XCircle size={14} />
                 <span>Decline Request</span>
-              </>
+              </div>
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </ResponsiveModal>
@@ -371,32 +376,34 @@ export const DeleteSubmissionModal: React.FC<DeleteSubmissionModalProps> = ({
         </div>
 
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <button
+          <Button
             type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition"
+            variant="secondary"
+            onPress={onClose}
+            isDisabled={submitting}
+            className="px-4 py-2 rounded-full text-xs font-medium"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            onClick={handleDelete}
-            disabled={submitting}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow transition cursor-pointer disabled:opacity-50"
+            variant="danger"
+            onPress={handleDelete}
+            isDisabled={submitting}
+            className="px-5 py-2 rounded-full text-xs font-semibold shadow"
           >
             {submitting ? (
-              <>
-                <Loader2 size={13} className="animate-spin" />
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" color="default" />
                 <span>Deleting...</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <Trash2 size={14} />
                 <span>Confirm Delete Entry</span>
-              </>
+              </div>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

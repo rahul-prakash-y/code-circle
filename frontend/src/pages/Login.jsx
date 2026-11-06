@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { EmilButton, EmilModal } from '../components/ui/emil-ui';
 import { HeroInput } from '../components/ui/HeroUIComponents';
+import { Button } from '@heroui/react';
 
 const Login = () => {
   const [identifier, setIdentifier] = useState(''); // email or rollNo
@@ -99,24 +100,29 @@ const Login = () => {
             placeholder="••••••••"
             startContent={<Lock className="w-4 h-4 text-text-muted" />}
             endContent={
-              <button
+              <Button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="p-1 text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                variant="ghost"
+                size="sm"
+                isIconOnly
+                onPress={() => setShowPassword(!showPassword)}
+                className="text-text-muted hover:text-text-primary min-w-[28px] min-h-[28px]"
                 aria-label="Toggle password visibility"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+              </Button>
             }
           />
           <div className="flex justify-end pt-0.5 px-1">
-            <button 
+            <Button 
               type="button"
-              onClick={() => setShowForgotModal(true)}
-              className="text-xs text-text-muted hover:text-accent transition-colors font-medium cursor-pointer"
+              variant="ghost"
+              size="sm"
+              onPress={() => setShowForgotModal(true)}
+              className="text-xs text-text-muted hover:text-accent font-medium min-h-[28px] px-2 h-auto"
             >
               Forgot password?
-            </button>
+            </Button>
           </div>
         </motion.div>
 

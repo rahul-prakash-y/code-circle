@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { Button } from '@heroui/react';
 
 interface ThemeToggleProps {
   className?: string;
@@ -12,11 +13,11 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
   const isDark = theme === 'dark';
 
   return (
-    <button
-      onClick={toggleTheme}
-      className={`relative p-2 rounded-xl transition-colors duration-150 
-        hover:bg-separator active:opacity-80 text-label-secondary hover:text-label-primary cursor-pointer ${className}`}
-      title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+    <Button
+      isIconOnly
+      variant="ghost"
+      onPress={toggleTheme}
+      className={`relative p-2 rounded-xl transition-colors duration-150 text-label-secondary hover:text-label-primary cursor-pointer min-w-[36px] min-h-[36px] ${className}`}
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
     >
       <AnimatePresence mode="wait" initial={false}>
@@ -44,7 +45,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
           </motion.div>
         )}
       </AnimatePresence>
-    </button>
+    </Button>
   );
 };
 

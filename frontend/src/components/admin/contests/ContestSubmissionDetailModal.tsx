@@ -21,6 +21,7 @@ import {
   UserCheck,
   Trash2,
 } from 'lucide-react';
+import { Button } from '@heroui/react';
 import { formatISTDateTime } from '../../../lib/dateUtils';
 
 interface ContestSubmissionDetailModalProps {
@@ -127,35 +128,43 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
             <span className="text-xs font-semibold text-label-secondary">Coordinator Actions:</span>
             <div className="flex items-center gap-2 flex-wrap">
               {onApproveReentry && (
-                <button
+                <Button
                   type="button"
-                  onClick={() => onApproveReentry(submission)}
-                  className="px-3 py-1.5 bg-success-subtle hover:bg-success text-success hover:text-white border border-success/20 rounded-full text-xs font-bold transition-colors duration-150 ease-out flex items-center gap-1.5 cursor-pointer"
+                  size="sm"
+                  variant="secondary"
+                  color="success"
+                  onPress={() => onApproveReentry(submission)}
+                  className="rounded-full text-xs font-bold flex items-center gap-1.5"
                   title="Approve or grant re-entry"
                 >
                   <UserCheck size={13} />
                   <span>Allow Re-entry</span>
-                </button>
+                </Button>
               )}
               {onAllocatePoints && (
-                <button
+                <Button
                   type="button"
-                  onClick={() => onAllocatePoints(submission)}
-                  className="px-3 py-1.5 bg-accent text-white hover:bg-accent-hover rounded-full text-xs font-bold transition-colors duration-150 ease-out flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  size="sm"
+                  variant="primary"
+                  onPress={() => onAllocatePoints(submission)}
+                  className="rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs"
                 >
                   <Zap size={13} className="fill-current" />
                   <span>Allocate Points</span>
-                </button>
+                </Button>
               )}
               {onDeleteSubmission && (
-                <button
+                <Button
                   type="button"
-                  onClick={() => onDeleteSubmission(submission)}
-                  className="p-1.5 bg-destructive-subtle hover:bg-destructive text-destructive hover:text-white border border-destructive/20 rounded-full transition-colors duration-150 ease-out flex items-center justify-center cursor-pointer"
+                  size="sm"
+                  variant="danger"
+                  isIconOnly
+                  onPress={() => onDeleteSubmission(submission)}
+                  className="rounded-full"
                   title="Delete Student Entry from Contest"
                 >
                   <Trash2 size={14} />
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -171,13 +180,16 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                 </span>
               </div>
               {isAdminView && onApproveReentry && (
-                <button
+                <Button
                   type="button"
-                  onClick={() => onApproveReentry(submission)}
-                  className="px-3 py-1 bg-success hover:bg-success-hover text-white rounded-lg font-bold text-xs shrink-0 transition-colors duration-150 ease-out cursor-pointer shadow-xs"
+                  size="sm"
+                  variant="primary"
+                  color="success"
+                  onPress={() => onApproveReentry(submission)}
+                  className="rounded-lg font-bold text-xs shrink-0 shadow-xs"
                 >
                   Approve Re-entry
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -549,14 +561,16 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
                               </span>
                             </div>
 
-                            <button
+                            <Button
                               type="button"
-                              onClick={() => handleCopyCode(selectedCoding.code || '')}
-                              className="px-2.5 py-1 rounded-lg bg-surface-secondary hover:bg-surface-raised border border-separator text-label-secondary hover:text-label-primary transition-colors duration-150 ease-out font-mono text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
+                              size="sm"
+                              variant="secondary"
+                              onPress={() => handleCopyCode(selectedCoding.code || '')}
+                              className="px-2.5 py-1 h-auto rounded-lg font-mono text-[11px] font-bold flex items-center gap-1.5"
                             >
                               {copied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
                               <span>{copied ? 'Copied' : 'Copy Code'}</span>
-                            </button>
+                            </Button>
                           </div>
 
                           {/* Raw Syntax Highlighted / Monospaced Code */}
@@ -680,12 +694,13 @@ export const ContestSubmissionDetailModal: React.FC<ContestSubmissionDetailModal
           <span className="text-label-secondary font-medium text-[11px] sm:text-xs truncate">
             Contest Review Engine • Code Circle
           </span>
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors duration-150 ease-out"
+          <Button
+            variant="secondary"
+            onPress={onClose}
+            className="px-5 py-2 rounded-full text-xs font-medium"
           >
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

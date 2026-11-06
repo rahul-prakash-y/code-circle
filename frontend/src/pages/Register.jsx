@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Mail, Lock, User, Hash, Loader2 } from 'lucide-react';
 import { HeroInput } from '../components/ui/HeroUIComponents';
+import { Button } from '@heroui/react';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -84,13 +85,15 @@ const Register = () => {
           variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
           className="pt-2"
         >
-          <button 
+          <Button 
             type="submit" 
-            disabled={loading} 
-            className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/15 cursor-pointer"
+            variant="primary"
+            isLoading={loading}
+            size="lg"
+            className="w-full py-3.5 min-h-[48px] text-sm sm:text-base font-semibold shadow-lg shadow-accent/15"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
-          </button>
+            Create Account
+          </Button>
         </motion.div>
 
         <motion.p 

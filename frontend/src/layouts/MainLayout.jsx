@@ -8,6 +8,7 @@ import BackgroundGradient from '../components/ui/BackgroundGradient';
 import PageTransitionWrapper from '../components/ui/PageTransitionWrapper';
 import { PageSkeleton } from '../components/ui/LoadingSkeleton';
 import { preloadRoute, preloadCommonRoutes } from '../lib/routePreload';
+import { Button } from '@heroui/react';
 import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
   Medal, Trophy, Ticket, MessageSquare,
@@ -187,14 +188,15 @@ export const MainLayout = ({ children }) => {
                   </span>
                 </div>
                 {/* 44×44 close button per iOS touch target spec */}
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center rounded-xl emil-press cursor-pointer"
-                  style={{ color: 'var(--label-secondary)', minWidth: 44, minHeight: 44 }}
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  onPress={() => setIsMobileMenuOpen(false)}
+                  className="rounded-xl cursor-pointer text-label-secondary hover:text-label-primary min-w-[44px] min-h-[44px]"
                   aria-label="Close menu"
                 >
                   <X size={18} strokeWidth={2} />
-                </button>
+                </Button>
               </div>
 
               {/* Nav links */}

@@ -19,6 +19,7 @@ import useAttendanceStore from '../../store/useAttendanceStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
 
 const AttendanceDashboard = ({ isOpen, onClose, event }) => {
   const { fetchEventEnrollments, updateAttendance, loading: enrollmentLoading } = useEnrollmentStore();
@@ -232,9 +233,9 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                 <h2 className="text-xl sm:text-2xl font-semibold text-label-primary tracking-tight">
                   Attendance intelligence
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                <Chip size="sm" color="primary" variant="flat">
                   Live engine
-                </span>
+                </Chip>
               </div>
               <p className="text-xs text-label-secondary font-normal mt-0.5 truncate max-w-md">
                 Event: <strong className="text-label-primary dark:text-white font-medium">{event?.title}</strong>
@@ -341,15 +342,17 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                     )}
                   </div>
 
-                  <select
+                  <HeroUISelect
                     value={manualStatusFilter}
-                    onChange={(e) => setManualStatusFilter(e.target.value)}
-                    className="text-xs font-medium py-2 px-3 rounded-xl bg-surface border border-separator dark:border-white/10 text-label-secondary focus:outline-none cursor-pointer shrink-0"
-                  >
-                    <option value="all">All ({totalStudents})</option>
-                    <option value="present">Present only ({presentStudents})</option>
-                    <option value="absent">Absent only ({totalStudents - presentStudents})</option>
-                  </select>
+                    onChange={setManualStatusFilter}
+                    options={[
+                      { value: 'all', label: `All (${totalStudents})` },
+                      { value: 'present', label: `Present only (${presentStudents})` },
+                      { value: 'absent', label: `Absent only (${totalStudents - presentStudents})` },
+                    ]}
+                    size="sm"
+                    className="w-44 shrink-0"
+                  />
                 </div>
 
                 {/* Batch Actions & Cloud Sync Button */}
@@ -462,18 +465,20 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                             </td>
 
                             <td className="py-3.5 px-6">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              <Chip
+                                size="sm"
+                                color={
                                   e.type === 'Team'
-                                    ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                                    ? 'secondary'
                                     : e.type === 'Duo'
-                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                                    : 'bg-separator dark:bg-white/10 text-label-secondary'
-                                }`}
+                                    ? 'primary'
+                                    : 'default'
+                                }
+                                variant="flat"
                               >
                                 {e.type || 'Individual'}
                                 {isGroup && e.teamName ? ` • ${e.teamName}` : ''}
-                              </span>
+                              </Chip>
                             </td>
 
                             <td className="py-3.5 px-6 text-center">
@@ -551,15 +556,14 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                             <h4 className="font-medium text-sm text-label-primary truncate">
                               {s.sessionName}
                             </h4>
-                            <span
-                              className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 border ${
-                                s.isActive
-                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                  : 'bg-red-500/10 text-red-500 dark:text-red-400 border-red-500/20'
-                              }`}
+                            <Chip
+                              size="sm"
+                              color={s.isActive ? 'success' : 'danger'}
+                              variant="flat"
+                              className="font-semibold uppercase tracking-wider"
                             >
                               {s.isActive ? 'Live' : 'Closed'}
-                            </span>
+                            </Chip>
                           </div>
 
                           <div className="flex items-center justify-between text-xs font-normal text-label-secondary mb-2">

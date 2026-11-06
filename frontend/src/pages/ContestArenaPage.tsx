@@ -30,6 +30,7 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
+import { Button } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import useContestStore, {
   Contest,
@@ -350,12 +351,14 @@ export const ContestArenaPage: React.FC = () => {
     return (
       <div className="h-[100dvh] min-h-[100dvh] flex flex-col items-center justify-center bg-background text-center p-4">
         <p className="text-sm font-bold text-label-secondary">Contest not found or closed.</p>
-        <button
-          onClick={() => navigate('/contests')}
-          className="mt-4 px-4 py-2 min-h-[40px] bg-primary text-white text-xs font-bold rounded-xl cursor-pointer"
+        <Button
+          color="primary"
+          variant="solid"
+          onPress={() => navigate('/contests')}
+          className="mt-4 text-xs font-bold rounded-xl"
         >
           Return to Contests
-        </button>
+        </Button>
       </div>
     );
   }
@@ -507,15 +510,18 @@ export const ContestArenaPage: React.FC = () => {
       {/* 1. TOP ARENA APP BAR */}
       <header className="h-14 border-b border-separator bg-surface px-3 sm:px-6 flex items-center justify-between gap-2 shrink-0 shadow-xs z-30">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <button
-            onClick={() => {
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            onPress={() => {
               if (confirm('Leave arena? Your timer will continue running.')) navigate('/contests');
             }}
-            className="p-1.5 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-surface-raised rounded-xl text-label-secondary shrink-0 cursor-pointer"
+            className="rounded-xl text-label-secondary shrink-0"
             title="Return to Contests"
           >
             <ArrowLeft size={16} />
-          </button>
+          </Button>
           <div className="min-w-0">
             <h1 className="text-xs sm:text-sm font-extrabold text-label-primary tracking-tight truncate max-w-[110px] sm:max-w-xs md:max-w-md">
               {activeContest.title}
@@ -529,26 +535,32 @@ export const ContestArenaPage: React.FC = () => {
         {/* Section Switcher (if Hybrid) */}
         {activeContest.type === 'HYBRID' && (
           <div className="flex items-center gap-1 p-1 bg-surface-secondary border border-separator rounded-xl text-xs font-bold shrink-0">
-            <button
-              onClick={() => setSelectedSection('mcq')}
-              className={`px-2.5 sm:px-3 py-1 min-h-[34px] rounded-lg transition-all cursor-pointer ${
+            <Button
+              size="sm"
+              variant={selectedSection === 'mcq' ? 'solid' : 'light'}
+              color={selectedSection === 'mcq' ? 'primary' : 'default'}
+              onPress={() => setSelectedSection('mcq')}
+              className={`rounded-lg ${
                 selectedSection === 'mcq'
-                  ? 'bg-primary text-white shadow-xs'
+                  ? 'shadow-xs'
                   : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               MCQs ({mcqs.length})
-            </button>
-            <button
-              onClick={() => setSelectedSection('coding')}
-              className={`px-2.5 sm:px-3 py-1 min-h-[34px] rounded-lg transition-all cursor-pointer ${
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedSection === 'coding' ? 'solid' : 'light'}
+              color={selectedSection === 'coding' ? 'primary' : 'default'}
+              onPress={() => setSelectedSection('coding')}
+              className={`rounded-lg ${
                 selectedSection === 'coding'
-                  ? 'bg-primary text-white shadow-xs'
+                  ? 'shadow-xs'
                   : 'text-label-secondary hover:text-label-primary'
               }`}
             >
               Coding ({codings.length})
-            </button>
+            </Button>
           </div>
         )}
 
@@ -564,27 +576,31 @@ export const ContestArenaPage: React.FC = () => {
                 (submission?.passedTestCases === submission?.totalTestCases && (submission?.totalTestCases || 0) > 0);
               const isActive = currentCodingIdx === idx;
               return (
-                <button
+                <Button
                   key={p._id}
-                  type="button"
-                  onClick={() => handleSwitchCodingProblem(idx)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  size="sm"
+                  variant={isActive ? 'solid' : 'light'}
+                  color={isActive ? 'primary' : 'default'}
+                  onPress={() => handleSwitchCodingProblem(idx)}
+                  className={`rounded-lg text-xs font-semibold ${
                     isActive
-                      ? 'bg-primary text-white shadow-xs'
+                      ? 'shadow-xs'
                       : 'text-label-secondary hover:text-label-primary'
                   }`}
+                  endContent={
+                    isPassed ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : submission ? (
+                      <span className="text-[10px] text-amber-500 font-mono">
+                        ({submission.pointsEarned}p)
+                      </span>
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-separator" />
+                    )
+                  }
                 >
-                  <span>{`Problem ${idx + 1}`}</span>
-                  {isPassed ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : submission ? (
-                    <span className="text-[10px] text-amber-500 font-mono">
-                      ({submission.pointsEarned}p)
-                    </span>
-                  ) : (
-                    <span className="w-1.5 h-1.5 rounded-full bg-separator" />
-                  )}
-                </button>
+                  {`Problem ${idx + 1}`}
+                </Button>
               );
             })}
           </div>
@@ -614,15 +630,18 @@ export const ContestArenaPage: React.FC = () => {
             <span>{formatTimer(secondsRemaining)}</span>
           </div>
 
-          <button
-            onClick={() => setIsSubmitModalOpen(true)}
-            disabled={submitting || antiCheatLocked}
-            className="px-3 sm:px-4 py-1.5 min-h-[36px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer disabled:opacity-50"
+          <Button
+            size="sm"
+            color="primary"
+            variant="solid"
+            onPress={() => setIsSubmitModalOpen(true)}
+            isDisabled={submitting || antiCheatLocked}
+            className="text-xs font-bold rounded-xl shadow-xs"
+            startContent={<Send size={12} className="sm:w-[13px] sm:h-[13px]" />}
           >
-            <Send size={12} className="sm:w-[13px] sm:h-[13px]" />
             <span className="hidden sm:inline">Submit Contest</span>
             <span className="sm:hidden">Submit</span>
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -684,22 +703,26 @@ export const ContestArenaPage: React.FC = () => {
 
               {/* Prev / Next Buttons */}
               <div className="flex items-center justify-between pt-4 sm:pt-6 border-t border-separator">
-                <button
-                  disabled={currentMcqIdx === 0}
-                  onClick={() => setCurrentMcqIdx(currentMcqIdx - 1)}
-                  className="px-4 py-2 min-h-[40px] bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1 cursor-pointer"
+                <Button
+                  size="sm"
+                  variant="bordered"
+                  isDisabled={currentMcqIdx === 0}
+                  onPress={() => setCurrentMcqIdx(currentMcqIdx - 1)}
+                  className="border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary"
+                  startContent={<ChevronLeft size={14} />}
                 >
-                  <ChevronLeft size={14} />
-                  <span>Previous</span>
-                </button>
-                <button
-                  disabled={currentMcqIdx === mcqs.length - 1}
-                  onClick={() => setCurrentMcqIdx(currentMcqIdx + 1)}
-                  className="px-4 py-2 min-h-[40px] bg-surface border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary disabled:opacity-30 hover:bg-surface-secondary transition-colors flex items-center gap-1 cursor-pointer"
+                  Previous
+                </Button>
+                <Button
+                  size="sm"
+                  variant="bordered"
+                  isDisabled={currentMcqIdx === mcqs.length - 1}
+                  onPress={() => setCurrentMcqIdx(currentMcqIdx + 1)}
+                  className="border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary"
+                  endContent={<ChevronRight size={14} />}
                 >
-                  <span>Next</span>
-                  <ChevronRight size={14} />
-                </button>
+                  Next
+                </Button>
               </div>
             </div>
 
@@ -713,19 +736,23 @@ export const ContestArenaPage: React.FC = () => {
                   const isAnswered = mcqAnswers[q._id] !== undefined;
                   const isCurrent = idx === currentMcqIdx;
                   return (
-                    <button
+                    <Button
                       key={q._id}
-                      onClick={() => setCurrentMcqIdx(idx)}
-                      className={`h-8 sm:h-10 min-h-[34px] rounded-lg sm:rounded-xl text-xs font-mono font-bold transition-all border cursor-pointer ${
+                      size="sm"
+                      isIconOnly
+                      variant={isCurrent ? 'flat' : isAnswered ? 'flat' : 'bordered'}
+                      color={isCurrent ? 'primary' : isAnswered ? 'success' : 'default'}
+                      onPress={() => setCurrentMcqIdx(idx)}
+                      className={`h-8 sm:h-10 min-h-[34px] rounded-lg sm:rounded-xl text-xs font-mono font-bold ${
                         isCurrent
-                          ? 'ring-2 ring-primary border-primary text-primary bg-primary/10'
-                          : isAnswered
-                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                          : 'bg-surface-secondary border-separator text-label-secondary hover:border-primary/40 hover:text-label-primary'
+                          ? 'ring-2 ring-primary border-primary'
+                          : !isAnswered
+                          ? 'border-separator text-label-secondary'
+                          : ''
                       }`}
                     >
                       {idx + 1}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -754,30 +781,26 @@ export const ContestArenaPage: React.FC = () => {
                 <Panel defaultSize={42} minSize={25} className="flex flex-col bg-surface border-r border-separator overflow-hidden">
                   {/* Left Tabs Bar */}
                   <div className="h-10 border-b border-separator flex items-center px-4 gap-2 shrink-0 bg-surface">
-                    <button
-                      type="button"
-                      onClick={() => setActiveLeftTab('problem')}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                        activeLeftTab === 'problem'
-                          ? 'bg-primary/10 text-primary border border-primary/20'
-                          : 'text-label-secondary hover:text-label-primary'
-                      }`}
+                    <Button
+                      size="sm"
+                      variant={activeLeftTab === 'problem' ? 'flat' : 'light'}
+                      color={activeLeftTab === 'problem' ? 'primary' : 'default'}
+                      onPress={() => setActiveLeftTab('problem')}
+                      className="rounded-full text-xs font-semibold"
+                      startContent={<FileText className="w-3.5 h-3.5" />}
                     >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Problem Details</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveLeftTab('testcases')}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                        activeLeftTab === 'testcases'
-                          ? 'bg-primary/10 text-primary border border-primary/20'
-                          : 'text-label-secondary hover:text-label-primary'
-                      }`}
+                      Problem Details
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={activeLeftTab === 'testcases' ? 'flat' : 'light'}
+                      color={activeLeftTab === 'testcases' ? 'primary' : 'default'}
+                      onPress={() => setActiveLeftTab('testcases')}
+                      className="rounded-full text-xs font-semibold"
+                      startContent={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Public Test Cases ({displayTestCases.length})</span>
-                    </button>
+                      Public Test Cases ({displayTestCases.length})
+                    </Button>
                   </div>
 
                   {/* Left Scrollable Content */}
@@ -850,18 +873,21 @@ export const ContestArenaPage: React.FC = () => {
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between text-[11px] text-label-tertiary">
                                   <span>Sample Input</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopyText(currentCoding.sampleInput || '', 'sample-in')}
-                                    className="flex items-center gap-1 text-[10px] text-label-secondary hover:text-label-primary cursor-pointer p-1"
+                                  <Button
+                                    size="sm"
+                                    variant="light"
+                                    onPress={() => handleCopyText(currentCoding.sampleInput || '', 'sample-in')}
+                                    className="text-[10px] text-label-secondary hover:text-label-primary p-1 min-w-0 h-auto"
+                                    startContent={
+                                      copiedKey === 'sample-in' ? (
+                                        <Check className="w-3 h-3 text-emerald-500" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )
+                                    }
                                   >
-                                    {copiedKey === 'sample-in' ? (
-                                      <Check className="w-3 h-3 text-emerald-500" />
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                    <span>{copiedKey === 'sample-in' ? 'Copied' : 'Copy'}</span>
-                                  </button>
+                                    {copiedKey === 'sample-in' ? 'Copied' : 'Copy'}
+                                  </Button>
                                 </div>
                                 <pre className="p-3 bg-surface-secondary rounded-xl font-mono text-xs text-label-primary border border-separator overflow-x-auto">
                                   {currentCoding.sampleInput}
@@ -871,18 +897,21 @@ export const ContestArenaPage: React.FC = () => {
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between text-[11px] text-label-tertiary">
                                   <span>Sample Output</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopyText(currentCoding.sampleOutput || '', 'sample-out')}
-                                    className="flex items-center gap-1 text-[10px] text-label-secondary hover:text-label-primary cursor-pointer p-1"
+                                  <Button
+                                    size="sm"
+                                    variant="light"
+                                    onPress={() => handleCopyText(currentCoding.sampleOutput || '', 'sample-out')}
+                                    className="text-[10px] text-label-secondary hover:text-label-primary p-1 min-w-0 h-auto"
+                                    startContent={
+                                      copiedKey === 'sample-out' ? (
+                                        <Check className="w-3 h-3 text-emerald-500" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )
+                                    }
                                   >
-                                    {copiedKey === 'sample-out' ? (
-                                      <Check className="w-3 h-3 text-emerald-500" />
-                                    ) : (
-                                      <Copy className="w-3 h-3" />
-                                    )}
-                                    <span>{copiedKey === 'sample-out' ? 'Copied' : 'Copy'}</span>
-                                  </button>
+                                    {copiedKey === 'sample-out' ? 'Copied' : 'Copy'}
+                                  </Button>
                                 </div>
                                 <pre className="p-3 bg-surface-secondary rounded-xl font-mono text-xs text-emerald-500 dark:text-emerald-400 border border-separator overflow-x-auto">
                                   {currentCoding.sampleOutput}
@@ -981,50 +1010,57 @@ export const ContestArenaPage: React.FC = () => {
                           </div>
 
                           {/* Reset Template */}
-                          <button
-                            type="button"
-                            onClick={handleResetStarterCode}
-                            disabled={antiCheatLocked || executing || submitting}
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            onPress={handleResetStarterCode}
+                            isDisabled={antiCheatLocked || executing || submitting}
                             title="Reset code template"
-                            className="p-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-all border border-white/[0.08] cursor-pointer disabled:opacity-40"
+                            className="rounded-xl text-neutral-400 hover:text-white"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
-                          </button>
+                          </Button>
 
                           {/* Run Code */}
-                          <button
-                            type="button"
-                            onClick={handleRunCode}
-                            disabled={executing || submitting || antiCheatLocked || runCooldown > 0}
+                          <Button
+                            size="sm"
+                            variant="bordered"
+                            onPress={handleRunCode}
+                            isDisabled={executing || submitting || antiCheatLocked || runCooldown > 0}
                             title={runCooldown > 0 ? `Cooldown (${runCooldown}s)` : 'Run Code against sample'}
-                            className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] disabled:opacity-40 text-neutral-200 transition-all border border-white/[0.1] cursor-pointer"
+                            className="rounded-xl text-xs font-bold border-white/[0.1] text-neutral-200"
+                            startContent={
+                              executing ? (
+                                <Loader2 className="w-3 h-3 animate-spin text-neutral-300" />
+                              ) : runCooldown > 0 ? (
+                                <Clock className="w-3 h-3 text-neutral-400" />
+                              ) : (
+                                <Play className="w-3 h-3 fill-current text-emerald-400" />
+                              )
+                            }
                           >
-                            {executing ? (
-                              <Loader2 className="w-3 h-3 animate-spin text-neutral-300" />
-                            ) : runCooldown > 0 ? (
-                              <Clock className="w-3 h-3 text-neutral-400" />
-                            ) : (
-                              <Play className="w-3 h-3 fill-current text-emerald-400" />
-                            )}
-                            <span>
-                              {executing ? 'Running...' : runCooldown > 0 ? `Run (${runCooldown}s)` : 'Run'}
-                            </span>
-                          </button>
+                            {executing ? 'Running...' : runCooldown > 0 ? `Run (${runCooldown}s)` : 'Run'}
+                          </Button>
 
                           {/* Submit Problem Code */}
-                          <button
-                            type="button"
-                            onClick={handleSubmitProblemCode}
-                            disabled={executing || submitting || antiCheatLocked}
-                            className="flex items-center gap-1.5 px-3.5 py-1 rounded-xl text-xs font-bold bg-primary hover:brightness-110 active:scale-95 disabled:opacity-40 text-white transition-all shadow-xs cursor-pointer"
+                          <Button
+                            size="sm"
+                            color="primary"
+                            variant="solid"
+                            onPress={handleSubmitProblemCode}
+                            isDisabled={executing || submitting || antiCheatLocked}
+                            className="rounded-xl text-xs font-bold shadow-xs"
+                            startContent={
+                              executing ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Send className="w-3 h-3" />
+                              )
+                            }
                           >
-                            {executing ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Send className="w-3 h-3" />
-                            )}
-                            <span>Submit</span>
-                          </button>
+                            Submit
+                          </Button>
                         </div>
                       </div>
 
@@ -1085,31 +1121,33 @@ export const ContestArenaPage: React.FC = () => {
                       {/* Terminal Header Tabs */}
                       <div className="h-9 border-b border-white/[0.08] bg-black/80 px-4 flex items-center justify-between shrink-0 text-xs">
                         <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setActiveConsoleTab('cases')}
-                            className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                          <Button
+                            size="sm"
+                            variant={activeConsoleTab === 'cases' ? 'flat' : 'light'}
+                            onPress={() => setActiveConsoleTab('cases')}
+                            className={`rounded-full text-xs font-semibold ${
                               activeConsoleTab === 'cases'
                                 ? 'bg-white/[0.14] text-white'
                                 : 'text-neutral-400 hover:text-neutral-200'
                             }`}
+                            startContent={<CheckCircle2 className="w-3 h-3 text-emerald-400" />}
                           >
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                            <span>Test Results</span>
-                          </button>
+                            Test Results
+                          </Button>
 
-                          <button
-                            type="button"
-                            onClick={() => setActiveConsoleTab('terminal')}
-                            className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                          <Button
+                            size="sm"
+                            variant={activeConsoleTab === 'terminal' ? 'flat' : 'light'}
+                            onPress={() => setActiveConsoleTab('terminal')}
+                            className={`rounded-full text-xs font-semibold ${
                               activeConsoleTab === 'terminal'
                                 ? 'bg-white/[0.14] text-white'
                                 : 'text-neutral-400 hover:text-neutral-200'
                             }`}
+                            startContent={<Terminal className="w-3 h-3 text-neutral-400" />}
                           >
-                            <Terminal className="w-3 h-3 text-neutral-400" />
-                            <span>Console Output</span>
-                          </button>
+                            Console Output
+                          </Button>
                         </div>
 
                         {executionResult && (
@@ -1206,26 +1244,31 @@ export const ContestArenaPage: React.FC = () => {
                                 {/* Test Case Tab Pills */}
                                 <div className="flex items-center gap-1.5 border-b border-white/[0.08] pb-2 overflow-x-auto">
                                   {executionResult.testCaseResults.map((tc: any, i: number) => (
-                                    <button
+                                    <Button
                                       key={i}
-                                      type="button"
-                                      onClick={() => setSelectedTestCaseIdx(i)}
-                                      className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                                      size="sm"
+                                      variant={selectedTestCaseIdx === i ? 'flat' : 'light'}
+                                      onPress={() => setSelectedTestCaseIdx(i)}
+                                      className={`rounded-xl text-xs font-semibold ${
                                         selectedTestCaseIdx === i
                                           ? 'bg-white/[0.14] text-white border border-white/[0.15]'
                                           : 'bg-white/[0.03] text-neutral-400 hover:text-white border border-transparent'
                                       }`}
+                                      startContent={
+                                        tc.passed ? (
+                                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                        ) : (
+                                          <XCircle className="w-3 h-3 text-rose-400" />
+                                        )
+                                      }
+                                      endContent={
+                                        tc.isHidden && (
+                                          <span className="text-[9px] opacity-60">(Hidden)</span>
+                                        )
+                                      }
                                     >
-                                      {tc.passed ? (
-                                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                                      ) : (
-                                        <XCircle className="w-3 h-3 text-rose-400" />
-                                      )}
-                                      <span>Case {i + 1}</span>
-                                      {tc.isHidden && (
-                                        <span className="text-[9px] opacity-60">(Hidden)</span>
-                                      )}
-                                    </button>
+                                      Case {i + 1}
+                                    </Button>
                                   ))}
                                 </div>
 
@@ -1303,27 +1346,31 @@ export const ContestArenaPage: React.FC = () => {
                       (submission?.passedTestCases === submission?.totalTestCases && (submission?.totalTestCases || 0) > 0);
                     const isActive = currentCodingIdx === idx;
                     return (
-                      <button
+                      <Button
                         key={p._id}
-                        type="button"
-                        onClick={() => handleSwitchCodingProblem(idx)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                        size="sm"
+                        variant={isActive ? 'solid' : 'light'}
+                        color={isActive ? 'primary' : 'default'}
+                        onPress={() => handleSwitchCodingProblem(idx)}
+                        className={`rounded-lg text-xs font-semibold shrink-0 ${
                           isActive
-                            ? 'bg-primary text-white shadow-xs'
+                            ? 'shadow-xs'
                             : 'bg-white/[0.04] text-neutral-400 hover:text-white'
                         }`}
+                        endContent={
+                          isPassed ? (
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          ) : submission ? (
+                            <span className="text-[10px] text-amber-400 font-mono">
+                              ({submission.pointsEarned}p)
+                            </span>
+                          ) : (
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                          )
+                        }
                       >
-                        <span>{`Problem ${idx + 1}`}</span>
-                        {isPassed ? (
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                        ) : submission ? (
-                          <span className="text-[10px] text-amber-400 font-mono">
-                            ({submission.pointsEarned}p)
-                          </span>
-                        ) : (
-                          <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                        )}
-                      </button>
+                        {`Problem ${idx + 1}`}
+                      </Button>
                     );
                   })}
                 </div>
@@ -1331,66 +1378,75 @@ export const ContestArenaPage: React.FC = () => {
 
               {/* Segmented Mobile Tab Navigation Bar */}
               <div className="px-2.5 py-1.5 bg-black/95 border-b border-white/[0.08] grid grid-cols-4 gap-1 shrink-0 z-20">
-                <button
-                  type="button"
-                  onClick={() => setMobileTab('problem')}
-                  className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                <Button
+                  size="sm"
+                  variant={mobileTab === 'problem' ? 'flat' : 'light'}
+                  onPress={() => setMobileTab('problem')}
+                  className={`rounded-xl text-xs font-semibold ${
                     mobileTab === 'problem'
                       ? 'bg-white/[0.14] text-white shadow-xs'
                       : 'text-neutral-400 hover:text-neutral-200'
                   }`}
+                  startContent={<FileText className="w-3.5 h-3.5" />}
                 >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Problem</span>
-                </button>
+                  Problem
+                </Button>
 
-                <button
-                  type="button"
-                  onClick={() => setMobileTab('code')}
-                  className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                <Button
+                  size="sm"
+                  variant={mobileTab === 'code' ? 'solid' : 'light'}
+                  color={mobileTab === 'code' ? 'primary' : 'default'}
+                  onPress={() => setMobileTab('code')}
+                  className={`rounded-xl text-xs font-semibold ${
                     mobileTab === 'code'
-                      ? 'bg-primary text-white shadow-xs'
+                      ? 'shadow-xs'
                       : 'text-neutral-400 hover:text-neutral-200'
                   }`}
+                  startContent={<Code2 className="w-3.5 h-3.5" />}
                 >
-                  <Code2 className="w-3.5 h-3.5" />
-                  <span>Code</span>
-                </button>
+                  Code
+                </Button>
 
-                <button
-                  type="button"
-                  onClick={() => setMobileTab('testcases')}
-                  className={`flex items-center justify-center gap-1 py-2 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                <Button
+                  size="sm"
+                  variant={mobileTab === 'testcases' ? 'flat' : 'light'}
+                  onPress={() => setMobileTab('testcases')}
+                  className={`rounded-xl text-xs font-semibold ${
                     mobileTab === 'testcases'
                       ? 'bg-white/[0.14] text-white shadow-xs'
                       : 'text-neutral-400 hover:text-neutral-200'
                   }`}
+                  startContent={
+                    executionResult?.isPassed || executionResult?.status === 'ACCEPTED' ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    )
+                  }
+                  endContent={
+                    executionResult?.source === 'submit' ? (
+                      <span className="text-[9px] px-1 rounded font-mono font-bold bg-white/10">
+                        {executionResult.passedCount}/{executionResult.totalTests}
+                      </span>
+                    ) : undefined
+                  }
                 >
-                  {executionResult?.isPassed || executionResult?.status === 'ACCEPTED' ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  )}
-                  <span>Tests</span>
-                  {executionResult?.source === 'submit' && (
-                    <span className="text-[9px] px-1 rounded font-mono font-bold bg-white/10">
-                      {executionResult.passedCount}/{executionResult.totalTests}
-                    </span>
-                  )}
-                </button>
+                  Tests
+                </Button>
 
-                <button
-                  type="button"
-                  onClick={() => setMobileTab('console')}
-                  className={`flex items-center justify-center gap-1.5 py-2 min-h-[38px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                <Button
+                  size="sm"
+                  variant={mobileTab === 'console' ? 'flat' : 'light'}
+                  onPress={() => setMobileTab('console')}
+                  className={`rounded-xl text-xs font-semibold ${
                     mobileTab === 'console'
                       ? 'bg-white/[0.14] text-white shadow-xs'
                       : 'text-neutral-400 hover:text-neutral-200'
                   }`}
+                  startContent={<Terminal className="w-3.5 h-3.5" />}
                 >
-                  <Terminal className="w-3.5 h-3.5" />
-                  <span>Console</span>
-                </button>
+                  Console
+                </Button>
               </div>
 
               {/* Mobile Tab Views */}
@@ -1448,14 +1504,15 @@ export const ContestArenaPage: React.FC = () => {
                     )}
 
                     <div className="pt-2 pb-4">
-                      <button
-                        type="button"
-                        onClick={() => setMobileTab('code')}
-                        className="w-full py-3 px-4 min-h-[44px] rounded-xl text-xs font-bold bg-primary text-white flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                      <Button
+                        color="primary"
+                        variant="solid"
+                        onPress={() => setMobileTab('code')}
+                        className="w-full min-h-[44px] rounded-xl text-xs font-bold shadow-xs"
+                        startContent={<Code2 className="w-4 h-4" />}
                       >
-                        <Code2 className="w-4 h-4" />
-                        <span>Write Code in Editor →</span>
-                      </button>
+                        Write Code in Editor →
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1525,15 +1582,16 @@ export const ContestArenaPage: React.FC = () => {
                     {/* Mobile Quick Coding Accessory Keyboard Row */}
                     <div className="h-10 border-t border-white/[0.08] bg-neutral-950 px-2 flex items-center gap-1.5 overflow-x-auto custom-scrollbar touch-pan-x shrink-0 z-20">
                       {ACCESSORY_KEYS.map((acc, i) => (
-                        <button
+                        <Button
                           key={i}
-                          type="button"
-                          onClick={() => insertAccessorySnippet(acc.value)}
-                          disabled={antiCheatLocked || executing || submitting}
-                          className="h-8 px-3 min-h-[32px] rounded-lg bg-white/[0.07] hover:bg-white/[0.14] active:bg-white/[0.22] text-xs font-mono font-medium text-neutral-200 border border-white/[0.08] transition-all shrink-0 cursor-pointer disabled:opacity-40"
+                          size="sm"
+                          variant="flat"
+                          onPress={() => insertAccessorySnippet(acc.value)}
+                          isDisabled={antiCheatLocked || executing || submitting}
+                          className="h-8 px-3 min-h-[32px] rounded-lg bg-white/[0.07] hover:bg-white/[0.14] text-xs font-mono font-medium text-neutral-200 border border-white/[0.08] shrink-0"
                         >
                           {acc.label}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -1626,23 +1684,26 @@ export const ContestArenaPage: React.FC = () => {
 
                           <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar touch-pan-x pb-1">
                             {executionResult.testCaseResults.map((tc: any, i: number) => (
-                              <button
+                              <Button
                                 key={i}
-                                type="button"
-                                onClick={() => setSelectedTestCaseIdx(i)}
-                                className={`flex items-center gap-1 px-3 py-1.5 min-h-[34px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
+                                size="sm"
+                                variant={selectedTestCaseIdx === i ? 'flat' : 'light'}
+                                onPress={() => setSelectedTestCaseIdx(i)}
+                                className={`rounded-xl text-xs font-semibold shrink-0 ${
                                   selectedTestCaseIdx === i
                                     ? 'bg-white/[0.14] text-white border border-white/[0.15]'
                                     : 'bg-white/[0.03] text-neutral-400 hover:text-white border border-transparent'
                                 }`}
+                                startContent={
+                                  tc.passed ? (
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <XCircle className="w-3 h-3 text-rose-400" />
+                                  )
+                                }
                               >
-                                {tc.passed ? (
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                                ) : (
-                                  <XCircle className="w-3 h-3 text-rose-400" />
-                                )}
-                                <span>Case {i + 1}</span>
-                              </button>
+                                Case {i + 1}
+                              </Button>
                             ))}
                           </div>
 
@@ -1679,14 +1740,16 @@ export const ContestArenaPage: React.FC = () => {
                     ) : (
                       <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-neutral-400 text-xs text-center space-y-2">
                         <p>No executions yet for this problem.</p>
-                        <button
-                          type="button"
-                          onClick={handleRunCode}
-                          disabled={executing || submitting || antiCheatLocked || runCooldown > 0}
-                          className="text-primary font-bold hover:underline cursor-pointer py-1 inline-block"
+                        <Button
+                          size="sm"
+                          variant="light"
+                          color="primary"
+                          onPress={handleRunCode}
+                          isDisabled={executing || submitting || antiCheatLocked || runCooldown > 0}
+                          className="font-bold"
                         >
                           Run sample code now →
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -1724,49 +1787,56 @@ export const ContestArenaPage: React.FC = () => {
                 </div>
 
                 {/* Reset Template */}
-                <button
-                  type="button"
-                  onClick={handleResetStarterCode}
-                  disabled={antiCheatLocked || executing || submitting}
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  onPress={handleResetStarterCode}
+                  isDisabled={antiCheatLocked || executing || submitting}
                   title="Reset code template"
-                  className="p-2 min-w-[42px] min-h-[42px] rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-all border border-white/[0.08] shrink-0 inline-flex items-center justify-center cursor-pointer"
+                  className="rounded-xl text-neutral-400 hover:text-white border border-white/[0.08] min-w-[42px] min-h-[42px]"
                 >
                   <RotateCcw className="w-4 h-4" />
-                </button>
+                </Button>
 
                 {/* Run Code */}
-                <button
-                  type="button"
-                  onClick={handleRunCode}
-                  disabled={executing || submitting || antiCheatLocked || runCooldown > 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 min-h-[42px] rounded-xl text-xs font-semibold bg-white/[0.08] hover:bg-white/[0.14] active:bg-white/[0.2] disabled:opacity-40 text-white transition-all border border-white/[0.1] cursor-pointer"
+                <Button
+                  size="sm"
+                  variant="bordered"
+                  onPress={handleRunCode}
+                  isDisabled={executing || submitting || antiCheatLocked || runCooldown > 0}
+                  className="flex-1 min-h-[42px] rounded-xl text-xs font-semibold border-white/[0.1] text-white"
+                  startContent={
+                    executing ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-300" />
+                    ) : runCooldown > 0 ? (
+                      <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                    )
+                  }
                 >
-                  {executing ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-300" />
-                  ) : runCooldown > 0 ? (
-                    <Clock className="w-3.5 h-3.5 text-neutral-400" />
-                  ) : (
-                    <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
-                  )}
-                  <span>
-                    {executing ? 'Running...' : runCooldown > 0 ? `Run (${runCooldown}s)` : 'Run'}
-                  </span>
-                </button>
+                  {executing ? 'Running...' : runCooldown > 0 ? `Run (${runCooldown}s)` : 'Run'}
+                </Button>
 
                 {/* Submit Problem Code */}
-                <button
-                  type="button"
-                  onClick={handleSubmitProblemCode}
-                  disabled={executing || submitting || antiCheatLocked}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3.5 min-h-[42px] rounded-xl text-xs font-bold bg-primary hover:brightness-110 active:scale-98 disabled:opacity-40 text-white transition-all shadow-xs cursor-pointer"
+                <Button
+                  size="sm"
+                  color="primary"
+                  variant="solid"
+                  onPress={handleSubmitProblemCode}
+                  isDisabled={executing || submitting || antiCheatLocked}
+                  className="flex-1 min-h-[42px] rounded-xl text-xs font-bold shadow-xs"
+                  startContent={
+                    executing ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )
+                  }
                 >
-                  {executing ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Send className="w-3.5 h-3.5" />
-                  )}
-                  <span>{executing ? 'Evaluating...' : 'Submit'}</span>
-                </button>
+                  {executing ? 'Evaluating...' : 'Submit'}
+                </Button>
               </div>
             </div>
           </div>
@@ -1808,21 +1878,24 @@ export const ContestArenaPage: React.FC = () => {
                 {' '}Once submitted, your final score will be recorded and rankings finalized!
               </p>
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSubmitModalOpen(false)}
-                  className="py-2.5 min-h-[42px] bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors cursor-pointer"
+                <Button
+                  size="sm"
+                  variant="bordered"
+                  onPress={() => setIsSubmitModalOpen(false)}
+                  className="min-h-[42px] border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary bg-surface-secondary"
                 >
                   Back to Arena
-                </button>
-                <button
-                  type="button"
-                  onClick={handleFinalSubmit}
-                  disabled={submitting}
-                  className="py-2.5 min-h-[42px] bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                </Button>
+                <Button
+                  size="sm"
+                  color="primary"
+                  variant="solid"
+                  onPress={handleFinalSubmit}
+                  isDisabled={submitting}
+                  className="min-h-[42px] text-xs font-bold rounded-xl shadow-xs"
                 >
                   Confirm & Submit
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -1868,9 +1941,11 @@ export const ContestArenaPage: React.FC = () => {
               </div>
 
               <div className="space-y-2 pt-2">
-                <button
-                  type="button"
-                  onClick={async () => {
+                <Button
+                  size="sm"
+                  color="success"
+                  variant="solid"
+                  onPress={async () => {
                     if (!detailedSubmission && activeContest) {
                       const res = await fetchMyContestSubmission(activeContest._id);
                       if (res.success && res.data) {
@@ -1879,35 +1954,42 @@ export const ContestArenaPage: React.FC = () => {
                     }
                     setIsDetailModalOpen(true);
                   }}
-                  className="w-full py-2.5 min-h-[42px] bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full min-h-[42px] text-xs font-bold rounded-xl shadow-md"
+                  startContent={<FileCode2 size={14} />}
                 >
-                  <FileCode2 size={14} />
-                  <span>Review MCQ & Code Solutions</span>
-                </button>
+                  Review MCQ & Code Solutions
+                </Button>
 
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => navigate('/contests')}
-                    className="flex-1 py-2.5 min-h-[42px] bg-surface-secondary border border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface transition-colors cursor-pointer"
+                  <Button
+                    size="sm"
+                    variant="bordered"
+                    onPress={() => navigate('/contests')}
+                    className="flex-1 min-h-[42px] bg-surface-secondary border-separator rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary"
                   >
                     All Battles
-                  </button>
-                  <button
-                    onClick={() => navigate(`/contests/${activeContest._id}/leaderboard`)}
-                    className="flex-1 py-2.5 min-h-[42px] bg-primary text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                  </Button>
+                  <Button
+                    size="sm"
+                    color="primary"
+                    variant="solid"
+                    onPress={() => navigate(`/contests/${activeContest._id}/leaderboard`)}
+                    className="flex-1 min-h-[42px] text-xs font-bold rounded-xl shadow-md"
                   >
                     View Rankings
-                  </button>
+                  </Button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsReentryModalOpen(true)}
-                  className="w-full py-2 min-h-[40px] bg-surface-secondary hover:bg-surface border border-separator hover:border-primary/40 text-label-secondary hover:text-primary text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                <Button
+                  size="sm"
+                  variant="bordered"
+                  color="warning"
+                  onPress={() => setIsReentryModalOpen(true)}
+                  className="w-full min-h-[40px] text-xs font-bold rounded-xl border-separator"
+                  startContent={<RotateCcw size={13} />}
                 >
-                  <RotateCcw size={13} />
-                  <span>Appeal / Request Contest Re-entry</span>
-                </button>
+                  Appeal / Request Contest Re-entry
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -1937,21 +2019,24 @@ export const ContestArenaPage: React.FC = () => {
               <span className="text-red-400 font-semibold">restricted from attending any assessments or contests</span> until an administrator unblocks your restrictions.
             </p>
             <div className="flex flex-col sm:flex-row gap-2.5">
-              <button
-                type="button"
-                onClick={() => setIsReentryModalOpen(true)}
-                className="flex-1 py-3 min-h-[44px] px-4 bg-surface hover:bg-surface-raised border border-separator text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+              <Button
+                size="sm"
+                variant="bordered"
+                onPress={() => setIsReentryModalOpen(true)}
+                className="flex-1 min-h-[44px] bg-surface border-separator text-white font-semibold text-xs rounded-xl"
+                startContent={<RotateCcw size={14} className="text-amber-400" />}
               >
-                <RotateCcw size={14} className="text-amber-400" />
-                <span>Appeal & Re-entry</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/contests')}
-                className="flex-1 py-3 min-h-[44px] px-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-xs rounded-xl transition-all shadow-lg shadow-red-500/20 cursor-pointer"
+                Appeal & Re-entry
+              </Button>
+              <Button
+                size="sm"
+                color="danger"
+                variant="solid"
+                onPress={() => navigate('/contests')}
+                className="flex-1 min-h-[44px] text-white font-semibold text-xs rounded-xl shadow-lg shadow-red-500/20"
               >
                 Exit to Contests
-              </button>
+              </Button>
             </div>
           </div>
         </div>

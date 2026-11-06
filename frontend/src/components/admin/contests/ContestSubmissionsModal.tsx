@@ -22,6 +22,7 @@ import {
   XCircle,
   AlertTriangle,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
 import useContestStore, { Contest } from '../../../store/useContestStore';
 import {AllocatePointsModal} from './AllocatePointsModal';
 import ContestSubmissionDetailModal from './ContestSubmissionDetailModal';
@@ -207,34 +208,40 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
 
             {/* Bulk Actions */}
             <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
-              <button
+              <Button
                 type="button"
-                onClick={handleBulkMatchScores}
-                disabled={bulkLoading || submissions.length === 0}
-                className="px-3 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-label-primary rounded-xl text-xs font-bold transition-colors duration-150 ease-out flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                size="sm"
+                variant="secondary"
+                onPress={handleBulkMatchScores}
+                isDisabled={bulkLoading || submissions.length === 0}
+                className="text-xs font-bold flex items-center gap-1.5"
                 title="Automatically set awarded points = student's total score"
               >
                 <Zap size={13} className="text-warning fill-current" />
                 <span>Match Scores</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                onClick={handleBulkBonus}
-                disabled={bulkLoading || submissions.length === 0}
-                className="px-3 py-1.5 bg-surface border border-separator hover:bg-surface-secondary text-label-primary rounded-xl text-xs font-bold transition-colors duration-150 ease-out flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                size="sm"
+                variant="secondary"
+                onPress={handleBulkBonus}
+                isDisabled={bulkLoading || submissions.length === 0}
+                className="text-xs font-bold flex items-center gap-1.5"
               >
                 <Sparkles size={13} className="text-info" />
                 <span>Bulk +Bonus</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                onClick={loadData}
-                disabled={loading}
-                className="p-1.5 text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors duration-150 ease-out cursor-pointer"
+                size="sm"
+                variant="ghost"
+                isIconOnly
+                onPress={loadData}
+                isDisabled={loading}
                 title="Refresh"
               >
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -387,51 +394,63 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                               {/* Re-entry Action Buttons */}
                               {s.reentryStatus === 'PENDING' ? (
                                 <>
-                                  <button
+                                  <Button
                                     type="button"
-                                    onClick={() => setSelectedSubmissionForApproveReentry(s)}
-                                    className="px-2.5 py-1.5 min-h-[34px] bg-success hover:bg-success-hover text-white rounded-xl text-xs font-bold transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer shadow-xs"
+                                    size="sm"
+                                    variant="primary"
+                                    color="success"
+                                    onPress={() => setSelectedSubmissionForApproveReentry(s)}
+                                    className="min-h-[34px] bg-success hover:bg-success-hover text-white rounded-xl text-xs font-bold inline-flex items-center gap-1 shadow-xs"
                                     title="Approve Re-entry Request"
                                   >
                                     <UserCheck size={12} />
                                     <span>Approve</span>
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
                                     type="button"
-                                    onClick={() => setSelectedSubmissionForRejectReentry(s)}
-                                    className="p-2 min-w-[34px] min-h-[34px] flex items-center justify-center bg-destructive-subtle hover:bg-destructive text-destructive hover:text-white rounded-xl transition-colors duration-150 ease-out cursor-pointer border border-destructive/20"
+                                    size="sm"
+                                    variant="danger"
+                                    isIconOnly
+                                    onPress={() => setSelectedSubmissionForRejectReentry(s)}
+                                    className="min-w-[34px] min-h-[34px] rounded-xl"
                                     title="Decline Re-entry Request"
                                   >
                                     <XCircle size={12} />
-                                  </button>
+                                  </Button>
                                 </>
                               ) : (
-                                <button
+                                <Button
                                   type="button"
-                                  onClick={() => setSelectedSubmissionForApproveReentry(s)}
-                                  className="px-2.5 py-1.5 min-h-[34px] bg-surface-secondary hover:bg-surface border border-separator hover:border-success/40 text-label-secondary hover:text-success rounded-xl text-xs font-bold transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer"
+                                  size="sm"
+                                  variant="secondary"
+                                  onPress={() => setSelectedSubmissionForApproveReentry(s)}
+                                  className="min-h-[34px] rounded-xl text-xs font-bold inline-flex items-center gap-1"
                                   title="Allow Re-entry & Resume Session"
                                 >
                                   <RotateCcw size={12} />
                                   <span className="hidden lg:inline">Re-entry</span>
-                                </button>
+                                </Button>
                               )}
 
                               {/* Inspect Submission */}
-                              <button
+                              <Button
                                 type="button"
-                                onClick={() => setSelectedSubmissionForDetails(s)}
-                                className="px-2.5 py-1.5 min-h-[34px] bg-surface-secondary hover:bg-surface border border-separator hover:border-accent/40 text-label-secondary hover:text-label-primary rounded-xl text-xs font-bold transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer"
+                                size="sm"
+                                variant="secondary"
+                                onPress={() => setSelectedSubmissionForDetails(s)}
+                                className="min-h-[34px] rounded-xl text-xs font-bold inline-flex items-center gap-1"
                                 title="Inspect Complete Submission (MCQs + Code)"
                               >
                                 <FileCode2 size={12} className="text-accent" />
                                 <span className="hidden md:inline">Inspect</span>
-                              </button>
+                              </Button>
 
                               {/* Allocate Points */}
-                              <button
+                              <Button
                                 type="button"
-                                onClick={() =>
+                                size="sm"
+                                variant="primary"
+                                onPress={() =>
                                   setSelectedSubmissionForPoints({
                                     submissionId: s._id,
                                     user: s.userId,
@@ -440,22 +459,25 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
                                     manualPointsReason: s.manualPointsReason,
                                   })
                                 }
-                                className="px-2.5 py-1.5 min-h-[34px] bg-accent-subtle hover:bg-accent text-accent hover:text-white rounded-xl text-xs font-bold transition-colors duration-150 ease-out inline-flex items-center gap-1 cursor-pointer"
+                                className="min-h-[34px] rounded-xl text-xs font-bold inline-flex items-center gap-1"
                                 title="Manual Points Allocation"
                               >
                                 <Zap size={12} className="fill-current" />
                                 <span className="hidden md:inline">Points</span>
-                              </button>
+                              </Button>
 
                               {/* Delete Student Entry */}
-                              <button
+                              <Button
                                 type="button"
-                                onClick={() => setSelectedSubmissionForDelete(s)}
-                                className="p-2 min-w-[34px] min-h-[34px] flex items-center justify-center bg-surface-secondary hover:bg-destructive-subtle text-label-tertiary hover:text-destructive rounded-xl transition-colors duration-150 ease-out cursor-pointer border border-separator hover:border-destructive/30"
+                                size="sm"
+                                variant="danger"
+                                isIconOnly
+                                onPress={() => setSelectedSubmissionForDelete(s)}
+                                className="min-w-[34px] min-h-[34px] rounded-xl"
                                 title="Delete Student Contest Entry"
                               >
                                 <Trash2 size={12} />
-                              </button>
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -487,12 +509,13 @@ export const ContestSubmissionsModal: React.FC<ContestSubmissionsModalProps> = (
               <span>
                 Total: {pagination?.total ?? submissions.length} participant{pagination?.total === 1 ? '' : 's'}
               </span>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-full text-xs font-medium border border-separator text-label-secondary hover:text-label-primary cursor-pointer transition-colors duration-150 ease-out"
+              <Button
+                variant="secondary"
+                onPress={onClose}
+                className="px-4 py-2 rounded-full text-xs font-medium"
               >
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         </div>

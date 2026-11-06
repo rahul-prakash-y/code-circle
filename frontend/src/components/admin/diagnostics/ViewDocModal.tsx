@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ResponsiveModal from '../../ui/ResponsiveModal';
 import { Copy, Check, FileText, Code, Edit2 } from 'lucide-react';
+import { Button } from '@heroui/react';
 import { UserBadge } from './UserBadge';
 import { UserLookupItem } from '../../../store/useDiagnosticsStore';
 
@@ -55,39 +56,38 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
         {/* Tab switch header */}
         <div className="flex items-center justify-between p-1 bg-surface-secondary border border-separator rounded-2xl">
           <div className="flex items-center gap-1">
-            <button
+            <Button
               type="button"
-              onClick={() => setActiveTab('details')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'details'
-                  ? 'bg-accent text-white shadow-xs'
-                  : 'text-label-secondary hover:text-label-primary'
-              }`}
+              size="sm"
+              variant={activeTab === 'details' ? 'primary' : 'secondary'}
+              onPress={() => setActiveTab('details')}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold"
             >
               <FileText size={13} />
               <span>Details View</span>
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              onClick={() => setActiveTab('json')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'json'
-                  ? 'bg-accent text-white shadow-xs'
-                  : 'text-label-secondary hover:text-label-primary'
-              }`}
+              size="sm"
+              variant={activeTab === 'json' ? 'primary' : 'secondary'}
+              onPress={() => setActiveTab('json')}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold"
             >
               <Code size={13} />
               <span>BSON / JSON</span>
-            </button>
+            </Button>
           </div>
 
-          <button
-            onClick={handleCopyJson}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface border border-separator transition-all cursor-pointer mr-1"
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onPress={handleCopyJson}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold mr-1"
           >
             {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
-          </button>
+          </Button>
         </div>
 
         {/* Body content */}
@@ -148,23 +148,25 @@ export const ViewDocModal: React.FC<ViewDocModalProps> = ({
         {/* Footer */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
           {onEdit && (
-            <button
-              onClick={() => {
+            <Button
+              variant="secondary"
+              onPress={() => {
                 onClose();
                 onEdit();
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold"
             >
               <Edit2 size={13} />
               <span>Edit Document</span>
-            </button>
+            </Button>
           )}
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition cursor-pointer shadow"
+          <Button
+            variant="primary"
+            onPress={onClose}
+            className="px-5 py-2 rounded-full text-xs font-semibold shadow"
           >
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </ResponsiveModal>

@@ -50,6 +50,8 @@ import {
   UserCheck,
   FileSpreadsheet,
 } from 'lucide-react';
+import { Button } from '@heroui/react';
+import { HeroInput } from '../components/ui/HeroUIComponents';
 
 export const DomainsPage: React.FC = () => {
   const { domainId } = useParams<{ domainId?: string }>();
@@ -194,17 +196,19 @@ export const DomainsPage: React.FC = () => {
       return (
         <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto py-2 sm:py-6 pb-16">
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
+            <Button
+              isIconOnly
+              size="sm"
+              variant="bordered"
+              onPress={() => {
                 setCurrentDomain(null);
                 navigate('/courses');
               }}
-              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-surface border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer"
+              className="rounded-full border-separator text-label-secondary hover:text-label-primary bg-surface"
               aria-label="Back to courses"
             >
               <ArrowLeft className="w-4 h-4" />
-            </button>
+            </Button>
             <div className="space-y-1.5">
               <div className="h-3 w-20 bg-surface-secondary rounded animate-pulse" />
               <div className="h-6 w-44 bg-surface-secondary rounded-md animate-pulse" />
@@ -233,18 +237,19 @@ export const DomainsPage: React.FC = () => {
           {/* Top Row: Back Navigation, Breadcrumbs & Level Badge */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-separator/60">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
+              <Button
+                size="sm"
+                variant="bordered"
+                onPress={() => {
                   setCurrentDomain(null);
                   navigate('/courses');
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-full text-xs font-semibold bg-surface border border-separator text-label-secondary hover:text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
+                className="rounded-full text-xs font-semibold bg-surface border-separator text-label-secondary hover:text-label-primary shadow-2xs"
                 aria-label="Back to courses"
+                startContent={<ArrowLeft className="w-3.5 h-3.5" />}
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>All Courses</span>
-              </button>
+                All Courses
+              </Button>
 
               <div className="flex items-center gap-2 text-xs font-semibold text-accent uppercase tracking-wider">
                 <span>/</span>
@@ -308,19 +313,23 @@ export const DomainsPage: React.FC = () => {
                     <span>Enrolled Student</span>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={(e) => handleRegisterCourse(e, activeCourse)}
-                    disabled={registeringDomainId === activeCourse._id}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[42px] rounded-full text-xs font-bold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/25 cursor-pointer disabled:opacity-50"
+                  <Button
+                    size="sm"
+                    color="primary"
+                    variant="solid"
+                    onPress={(e) => handleRegisterCourse(e, activeCourse)}
+                    isDisabled={registeringDomainId === activeCourse._id}
+                    className="rounded-full text-xs font-bold shadow-md"
+                    startContent={
+                      registeringDomainId === activeCourse._id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )
+                    }
                   >
-                    {registeringDomainId === activeCourse._id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    <span>Register for Course</span>
-                  </button>
+                    Register for Course
+                  </Button>
                 )
               )}
             </div>
@@ -332,83 +341,86 @@ export const DomainsPage: React.FC = () => {
               <span className="text-[11px] font-bold uppercase tracking-wider text-label-tertiary mr-1">
                 Admin Controls:
               </span>
-              <button
-                type="button"
-                onClick={() => {
+              <Button
+                size="sm"
+                variant="bordered"
+                onPress={() => {
                   setSelectedDomainForStudents(activeCourse);
                   setIsStudentsModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
+                className="rounded-xl text-xs font-semibold bg-surface border-separator text-label-primary shadow-2xs"
                 title="View registered student roster"
+                startContent={<Users className="w-3.5 h-3.5 text-accent" />}
               >
-                <Users className="w-3.5 h-3.5 text-accent" />
-                <span>Students ({activeCourse.enrolledStudentsCount || 0})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleDomainLock(activeCourse._id)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold border transition cursor-pointer shadow-2xs ${
-                  activeCourse.isLocked
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
-                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
-                }`}
+                Students ({activeCourse.enrolledStudentsCount || 0})
+              </Button>
+              <Button
+                size="sm"
+                variant="flat"
+                color={activeCourse.isLocked ? 'warning' : 'success'}
+                onPress={() => toggleDomainLock(activeCourse._id)}
+                className="rounded-xl text-xs font-semibold shadow-2xs"
                 title={activeCourse.isLocked ? 'Approve & Unlock course for students' : 'Lock course for students'}
-              >
-                {activeCourse.isLocked ? (
-                  <>
+                startContent={
+                  activeCourse.isLocked ? (
                     <Lock className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Unlock for Students</span>
-                  </>
-                ) : (
-                  <>
+                  ) : (
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>Course Approved</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
+                  )
+                }
+              >
+                {activeCourse.isLocked ? 'Unlock for Students' : 'Course Approved'}
+              </Button>
+              <Button
+                size="sm"
+                variant="flat"
+                color="success"
+                onPress={() => {
                   setBulkUploadTargetDomain({ id: activeCourse._id, name: activeCourse.name });
                   setIsBulkUploadOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition cursor-pointer shadow-2xs"
+                className="rounded-xl text-xs font-semibold shadow-2xs"
                 title="Bulk Upload Levels from Excel"
+                startContent={<FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />}
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Bulk Upload</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
+                Bulk Upload
+              </Button>
+              <Button
+                size="sm"
+                color="primary"
+                variant="solid"
+                onPress={() => {
                   setLevelToEdit(null);
                   setIsLevelModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-accent text-white hover:bg-accent-hover transition shadow-sm cursor-pointer"
+                className="rounded-xl text-xs font-semibold shadow-sm"
+                startContent={<Plus className="w-3.5 h-3.5" />}
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Level</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
+                Add Level
+              </Button>
+              <Button
+                size="sm"
+                variant="bordered"
+                onPress={() => {
                   setDomainToEdit(activeCourse);
                   setIsDomainModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary transition cursor-pointer shadow-2xs"
+                className="rounded-xl text-xs font-semibold bg-surface border-separator text-label-primary shadow-2xs"
+                startContent={<Edit3 className="w-3.5 h-3.5" />}
               >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Edit Course</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/certificates')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold bg-accent/10 border border-accent/25 text-accent hover:bg-accent hover:text-white transition shadow-2xs cursor-pointer"
+                Edit Course
+              </Button>
+              <Button
+                size="sm"
+                variant="flat"
+                color="primary"
+                onPress={() => navigate('/certificates')}
+                className="rounded-xl text-xs font-semibold shadow-2xs"
                 title="Issue Course Completion Certificates"
+                startContent={<Award className="w-3.5 h-3.5" />}
               >
-                <Award className="w-3.5 h-3.5" />
-                <span>Certificates</span>
-              </button>
+                Certificates
+              </Button>
             </div>
           )}
         </div>
@@ -430,34 +442,37 @@ export const DomainsPage: React.FC = () => {
                   : (lvl.levelNumber === 3 ? 250 : 150);
 
               return (
-                <button
+                <Button
                   key={lvl._id}
-                  type="button"
-                  onClick={() => isLvlUnlocked && setActiveLevel(lvl)}
-                  className={`shrink-0 inline-flex items-center gap-2 px-3.5 py-2 min-h-[36px] rounded-xl text-xs font-semibold transition cursor-pointer border ${
+                  size="sm"
+                  variant={isLvlActive ? 'solid' : isLvlDone ? 'flat' : 'bordered'}
+                  color={isLvlActive ? 'primary' : isLvlDone ? 'success' : 'default'}
+                  onPress={() => isLvlUnlocked && setActiveLevel(lvl)}
+                  isDisabled={!isLvlUnlocked}
+                  className={`shrink-0 rounded-xl text-xs font-semibold ${
                     isLvlActive
-                      ? 'bg-accent text-white border-accent shadow-xs font-bold'
-                      : isLvlDone
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
-                      : isLvlUnlocked
-                      ? 'bg-surface border-separator text-label-primary hover:bg-surface-secondary'
-                      : 'bg-surface-secondary/40 border-separator/40 text-label-tertiary cursor-not-allowed opacity-60'
+                      ? 'shadow-xs font-bold'
+                      : !isLvlDone && isLvlUnlocked
+                      ? 'border-separator text-label-primary'
+                      : ''
                   }`}
+                  startContent={
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                        isLvlActive
+                          ? 'bg-white/20 text-white'
+                          : isLvlDone
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-surface-secondary text-label-secondary'
+                      }`}
+                    >
+                      {isLvlDone ? <Check className="w-3 h-3 stroke-[3]" /> : lvl.levelNumber}
+                    </span>
+                  }
+                  endContent={<span className="text-[10px] opacity-75 font-mono">+{lvlPts}XP</span>}
                 >
-                  <span
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                      isLvlActive
-                        ? 'bg-white/20 text-white'
-                        : isLvlDone
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-surface-secondary text-label-secondary'
-                    }`}
-                  >
-                    {isLvlDone ? <Check className="w-3 h-3 stroke-[3]" /> : lvl.levelNumber}
-                  </span>
                   <span className="truncate max-w-[160px] sm:max-w-[240px] font-medium">{lvl.title}</span>
-                  <span className="text-[10px] opacity-75 font-mono">+{lvlPts}XP</span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -485,19 +500,23 @@ export const DomainsPage: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleClaimCourseCertificate}
-              disabled={claimingCert}
-              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 min-h-[42px] rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-primary text-white hover:brightness-110 active:scale-98 transition shadow-md shadow-primary/25 cursor-pointer disabled:opacity-50"
+            <Button
+              size="sm"
+              color="primary"
+              variant="solid"
+              onPress={handleClaimCourseCertificate}
+              isDisabled={claimingCert}
+              className="shrink-0 rounded-full text-xs font-bold shadow-md shadow-primary/25"
+              startContent={
+                claimingCert ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 text-amber-200" />
+                )
+              }
             >
-              {claimingCert ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 text-amber-200" />
-              )}
-              <span>Claim & View Certificate</span>
-            </button>
+              Claim & View Certificate
+            </Button>
           </div>
         )}
 
@@ -518,19 +537,23 @@ export const DomainsPage: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={(e) => handleRegisterCourse(e, activeCourse)}
-              disabled={registeringDomainId === activeCourse._id}
-              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 min-h-[42px] rounded-full text-xs font-bold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer disabled:opacity-50"
+            <Button
+              size="sm"
+              color="primary"
+              variant="solid"
+              onPress={(e) => handleRegisterCourse(e, activeCourse)}
+              isDisabled={registeringDomainId === activeCourse._id}
+              className="shrink-0 rounded-full text-xs font-bold shadow-md shadow-accent/20"
+              startContent={
+                registeringDomainId === activeCourse._id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )
+              }
             >
-              {registeringDomainId === activeCourse._id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              <span>Register for Course</span>
-            </button>
+              Register for Course
+            </Button>
           </div>
         )}
 
@@ -554,14 +577,16 @@ export const DomainsPage: React.FC = () => {
             </div>
 
             {isAdmin && (
-              <button
-                type="button"
-                onClick={() => toggleDomainLock(activeCourse._id)}
-                className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 min-h-[40px] rounded-full text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition shadow cursor-pointer"
+              <Button
+                size="sm"
+                color="success"
+                variant="solid"
+                onPress={() => toggleDomainLock(activeCourse._id)}
+                className="shrink-0 rounded-full text-xs font-bold shadow"
+                startContent={<ShieldCheck className="w-4 h-4" />}
               >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Approve & Unlock Course Now</span>
-              </button>
+                Approve & Unlock Course Now
+              </Button>
             )}
           </div>
         )}
@@ -703,72 +728,77 @@ export const DomainsPage: React.FC = () => {
           {isSuperAdmin && (
             <>
               {/* Show Courses / Coming Soon Button */}
-              <button
-                type="button"
-                onClick={() => toggleCourseVisibility(!courseAccessConfig?.coursesVisibleToAll)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 min-h-[40px] rounded-full text-xs font-semibold transition shadow-sm cursor-pointer ${
-                  courseAccessConfig?.coursesVisibleToAll
-                    ? 'bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20 active:scale-98'
-                }`}
+              <Button
+                size="sm"
+                radius="full"
+                variant={courseAccessConfig?.coursesVisibleToAll ? 'bordered' : 'solid'}
+                color={courseAccessConfig?.coursesVisibleToAll ? 'warning' : 'success'}
+                onPress={() => toggleCourseVisibility(!courseAccessConfig?.coursesVisibleToAll)}
+                startContent={
+                  courseAccessConfig?.coursesVisibleToAll ? (
+                    <EyeOff className="w-3.5 h-3.5" />
+                  ) : (
+                    <Eye className="w-3.5 h-3.5" />
+                  )
+                }
                 title={
                   courseAccessConfig?.coursesVisibleToAll
                     ? 'Switch courses to Coming Soon mode'
                     : 'Make courses visible to all students'
                 }
+                className="font-semibold min-h-[40px] px-4"
               >
-                {courseAccessConfig?.coursesVisibleToAll ? (
-                  <>
-                    <EyeOff className="w-3.5 h-3.5" />
-                    <span>Hide Courses (Coming Soon)</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Show Courses</span>
-                  </>
-                )}
-              </button>
+                {courseAccessConfig?.coursesVisibleToAll
+                  ? 'Hide Courses (Coming Soon)'
+                  : 'Show Courses'}
+              </Button>
 
               {/* Selective Student Access Manager */}
-              <button
-                type="button"
-                onClick={() => setIsAccessModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[40px] rounded-full text-xs font-semibold bg-surface border border-separator text-label-primary hover:bg-surface-secondary active:scale-98 transition shadow-xs cursor-pointer"
+              <Button
+                size="sm"
+                radius="full"
+                variant="flat"
+                onPress={() => setIsAccessModalOpen(true)}
+                startContent={<Crown className="w-3.5 h-3.5 text-amber-500" />}
                 title="Manage selective student permissions for courses"
+                className="font-semibold min-h-[40px] px-4 bg-surface border border-separator text-label-primary hover:bg-surface-secondary"
               >
-                <Crown className="w-3.5 h-3.5 text-amber-500" />
-                <span>Allow Students ({courseAccessConfig?.allowedStudentsCount || 0})</span>
-              </button>
+                Allow Students ({courseAccessConfig?.allowedStudentsCount || 0})
+              </Button>
             </>
           )}
 
           {isAdmin && (
             <>
-              <button
-                type="button"
-                onClick={() => {
+              <Button
+                size="sm"
+                radius="full"
+                variant="flat"
+                color="success"
+                onPress={() => {
                   setBulkUploadTargetDomain(null);
                   setIsBulkUploadOpen(true);
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[40px] rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-98 transition shadow-xs cursor-pointer"
+                startContent={<FileSpreadsheet className="w-4 h-4 text-emerald-500" />}
                 title="Bulk Upload Courses & Levels from Excel"
+                className="font-semibold min-h-[40px] px-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
               >
-                <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
-                <span>Bulk Upload (Excel)</span>
-              </button>
+                Bulk Upload (Excel)
+              </Button>
 
-              <button
-                type="button"
-                onClick={() => {
+              <Button
+                size="sm"
+                radius="full"
+                color="primary"
+                onPress={() => {
                   setDomainToEdit(null);
                   setIsDomainModalOpen(true);
                 }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[40px] rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow-md shadow-accent/20 cursor-pointer"
+                startContent={<Plus className="w-4 h-4" />}
+                className="font-semibold min-h-[40px] px-5 shadow-md shadow-accent/20"
               >
-                <Plus className="w-4 h-4" />
-                <span>Create Course</span>
-              </button>
+                Create Course
+              </Button>
             </>
           )}
 
@@ -819,14 +849,16 @@ export const DomainsPage: React.FC = () => {
             </div>
           </div>
           {isSuperAdmin && (
-            <button
-              type="button"
-              onClick={() => toggleCourseVisibility(true)}
-              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 min-h-[38px] rounded-full text-xs font-bold bg-amber-500 text-white hover:bg-amber-600 transition shadow-xs cursor-pointer"
+            <Button
+              size="sm"
+              radius="full"
+              color="warning"
+              onPress={() => toggleCourseVisibility(true)}
+              startContent={<Eye className="w-3.5 h-3.5" />}
+              className="shrink-0 font-bold text-white shadow-xs min-h-[38px] px-4"
             >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Show Courses Now</span>
-            </button>
+              Show Courses Now
+            </Button>
           )}
         </div>
       )}
@@ -850,52 +882,62 @@ export const DomainsPage: React.FC = () => {
 
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="w-4 h-4 text-label-tertiary absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
+        <div className="w-full sm:max-w-md">
+          <HeroInput
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onValueChange={setSearchQuery}
             placeholder="Search courses, topics, or technologies..."
-            className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-full bg-surface border border-separator/80 text-sm text-label-primary placeholder:text-label-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition shadow-sm"
+            startContent={<Search className="w-4 h-4 text-label-tertiary pointer-events-none" />}
+            radius="full"
+            size="sm"
+            isClearable
           />
         </div>
 
         {/* Filter Badges */}
         <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-surface border border-separator shadow-sm text-xs font-medium overflow-x-auto custom-scrollbar no-scrollbar touch-pan-x flex-nowrap max-w-full">
-          <button
-            type="button"
-            onClick={() => setFilterMode('all')}
-            className={`px-3.5 py-1.5 min-h-[36px] whitespace-nowrap rounded-xl transition cursor-pointer ${
+          <Button
+            size="sm"
+            radius="lg"
+            variant={filterMode === 'all' ? 'solid' : 'light'}
+            color={filterMode === 'all' ? 'primary' : 'default'}
+            onPress={() => setFilterMode('all')}
+            className={`min-h-[36px] whitespace-nowrap px-3.5 py-1.5 ${
               filterMode === 'all'
-                ? 'bg-accent text-white font-semibold shadow-xs'
+                ? 'font-semibold shadow-xs'
                 : 'text-label-secondary hover:text-label-primary'
             }`}
           >
             All Courses ({domains.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterMode('in_progress')}
-            className={`px-3.5 py-1.5 min-h-[36px] whitespace-nowrap rounded-xl transition cursor-pointer ${
+          </Button>
+          <Button
+            size="sm"
+            radius="lg"
+            variant={filterMode === 'in_progress' ? 'solid' : 'light'}
+            color={filterMode === 'in_progress' ? 'primary' : 'default'}
+            onPress={() => setFilterMode('in_progress')}
+            className={`min-h-[36px] whitespace-nowrap px-3.5 py-1.5 ${
               filterMode === 'in_progress'
-                ? 'bg-accent text-white font-semibold shadow-xs'
+                ? 'font-semibold shadow-xs'
                 : 'text-label-secondary hover:text-label-primary'
             }`}
           >
             In Progress
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterMode('completed')}
-            className={`px-3.5 py-1.5 min-h-[36px] whitespace-nowrap rounded-xl transition cursor-pointer ${
+          </Button>
+          <Button
+            size="sm"
+            radius="lg"
+            variant={filterMode === 'completed' ? 'solid' : 'light'}
+            color={filterMode === 'completed' ? 'primary' : 'default'}
+            onPress={() => setFilterMode('completed')}
+            className={`min-h-[36px] whitespace-nowrap px-3.5 py-1.5 ${
               filterMode === 'completed'
-                ? 'bg-accent text-white font-semibold shadow-xs'
+                ? 'font-semibold shadow-xs'
                 : 'text-label-secondary hover:text-label-primary'
             }`}
           >
             Mastered
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -946,17 +988,20 @@ export const DomainsPage: React.FC = () => {
                     {/* Lock Status Pill / Admin Quick-Toggle */}
                     {domain.isLocked ? (
                       isAdmin ? (
-                        <button
-                          type="button"
+                        <Button
+                          size="sm"
+                          radius="full"
+                          color="warning"
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleDomainLock(domain._id);
                           }}
-                          className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-amber-500/90 text-white border border-amber-400/30 flex items-center gap-1 hover:bg-amber-600 transition shadow cursor-pointer min-h-[30px]"
+                          startContent={<Lock className="w-3 h-3" />}
+                          className="px-2.5 min-h-[30px] h-7 text-xs font-semibold backdrop-blur-md border border-amber-400/30 shadow"
                           title="Course is locked for students. Click to approve & unlock."
                         >
-                          <Lock className="w-3 h-3" /> Locked
-                        </button>
+                          Locked
+                        </Button>
                       ) : (
                         <span className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-amber-500/90 text-white border border-amber-400/30 flex items-center gap-1 min-h-[30px]">
                           <Lock className="w-3 h-3" /> Locked
@@ -964,17 +1009,20 @@ export const DomainsPage: React.FC = () => {
                       )
                     ) : (
                       isAdmin && (
-                        <button
-                          type="button"
+                        <Button
+                          size="sm"
+                          radius="full"
+                          color="success"
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleDomainLock(domain._id);
                           }}
-                          className="px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md bg-emerald-500/85 text-white border border-emerald-400/30 flex items-center gap-1 hover:bg-emerald-600 transition shadow cursor-pointer min-h-[30px]"
+                          startContent={<ShieldCheck className="w-3 h-3" />}
+                          className="px-2.5 min-h-[30px] h-7 text-xs font-semibold backdrop-blur-md border border-emerald-400/30 shadow"
                           title="Course is approved for students. Click to lock."
                         >
-                          <ShieldCheck className="w-3 h-3" /> Approved
-                        </button>
+                          Approved
+                        </Button>
                       )
                     )}
 
@@ -986,35 +1034,45 @@ export const DomainsPage: React.FC = () => {
 
                     {/* Admin inline action pills */}
                     {isAdmin && (
-                      <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md p-1 rounded-full border border-white/10">
-                        <button
-                          type="button"
+                      <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md p-1 rounded-full border border-white/10" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          radius="full"
+                          variant="light"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedDomainForStudents(domain);
                             setIsStudentsModalOpen(true);
                           }}
-                          className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/20 transition cursor-pointer"
+                          className="w-7 h-7 min-w-[28px] min-h-[28px] text-white/80 hover:text-white hover:bg-white/20"
                           title="View Registered Students"
                         >
                           <Users className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          radius="full"
+                          variant="light"
                           onClick={(e) => handleEditDomain(e, domain)}
-                          className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/20 transition cursor-pointer"
+                          className="w-7 h-7 min-w-[28px] min-h-[28px] text-white/80 hover:text-white hover:bg-white/20"
                           title="Edit Course"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          radius="full"
+                          variant="light"
+                          color="danger"
                           onClick={(e) => handleDeleteDomain(e, domain)}
-                          className="w-7 h-7 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full text-rose-300 hover:text-rose-100 hover:bg-rose-500/30 transition cursor-pointer"
+                          className="w-7 h-7 min-w-[28px] min-h-[28px] text-rose-300 hover:text-rose-100 hover:bg-rose-500/30"
                           title="Delete Course"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -1073,19 +1131,18 @@ export const DomainsPage: React.FC = () => {
                       <span className="text-xs font-semibold text-label-secondary flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-accent" /> Open Registration
                       </span>
-                      <button
-                        type="button"
+                      <Button
+                        size="sm"
+                        radius="full"
+                        color="primary"
+                        isLoading={registeringDomainId === domain._id}
+                        isDisabled={registeringDomainId === domain._id}
                         onClick={(e) => handleRegisterCourse(e, domain)}
-                        disabled={registeringDomainId === domain._id}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent-hover active:scale-98 transition shadow cursor-pointer disabled:opacity-50"
+                        startContent={registeringDomainId === domain._id ? undefined : <Check className="w-3.5 h-3.5" />}
+                        className="font-semibold px-3.5 min-h-[34px] shadow"
                       >
-                        {registeringDomainId === domain._id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5" />
-                        )}
-                        <span>Register</span>
-                      </button>
+                        Register
+                      </Button>
                     </div>
                   ) : (
                     <div className="pt-2 flex items-center justify-between text-xs font-semibold text-accent group-hover:text-accent-hover">

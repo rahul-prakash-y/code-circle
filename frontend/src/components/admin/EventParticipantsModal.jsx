@@ -19,7 +19,6 @@ import {
   UserCheck,
   ChevronDown,
   ChevronUp,
-  Loader2,
   Award,
   Sliders,
   Sparkles,
@@ -30,7 +29,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Trash2,
+  Loader2,
 } from 'lucide-react';
+import { Button, Spinner } from '@heroui/react';
+import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
 import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import toast from 'react-hot-toast';
@@ -369,17 +371,15 @@ export const EventParticipantsModal = ({
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span>{isParticipantsTab ? 'Event Participants Directory' : 'Registered Students Directory'}</span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
-                  isParticipantsTab
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
-                    : 'bg-accent/10 text-accent border-accent/25'
-                }`}
+              <Chip
+                size="sm"
+                color={isParticipantsTab ? 'success' : 'accent'}
+                variant="flat"
               >
                 {isParticipantsTab
                   ? `${stats.presentStudents} attended`
                   : `${stats.totalStudents} registered`}
-              </span>
+              </Chip>
             </div>
           </div>
         }
@@ -405,39 +405,43 @@ export const EventParticipantsModal = ({
                   </span>
                 )}
 
-                <button
-                  onClick={handleGenerateCertificates}
-                  disabled={generatingCertificates || stats.presentStudents === 0}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-xs py-2 px-3.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                <Button
+                  onPress={handleGenerateCertificates}
+                  isDisabled={generatingCertificates || stats.presentStudents === 0}
+                  variant="primary"
+                  color="success"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-xs py-2 px-3.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer"
                   title="Generate certificates for attended participants"
                 >
                   {generatingCertificates ? (
-                    <Loader2 size={14} className="animate-spin" />
+                    <Spinner size="sm" color="default" />
                   ) : (
                     <Award size={14} />
                   )}
                   <span>Generate certificates</span>
-                </button>
+                </Button>
               </>
             )}
 
-            <button
-              onClick={() => setIsBulkUploadOpen(true)}
-              className="py-2 px-3.5 rounded-xl text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            <Button
+              onPress={() => setIsBulkUploadOpen(true)}
+              variant="primary"
+              className="py-2 px-3.5 rounded-xl text-xs font-medium text-white shadow-xs flex items-center gap-2 cursor-pointer"
               title="Upload participants from Excel or CSV"
             >
               <FileSpreadsheet size={14} />
               <span>Upload Excel</span>
-            </button>
+            </Button>
 
-            <button
-              onClick={exportCSV}
-              className="py-2 px-3.5 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary bg-canvas border border-separator dark:border-white/10 transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+            <Button
+              onPress={exportCSV}
+              variant="secondary"
+              className="py-2 px-3.5 rounded-xl text-xs font-medium flex items-center gap-2 cursor-pointer shadow-xs"
               title={isParticipantsTab ? 'Download participants CSV' : 'Download registered students CSV'}
             >
               <Download size={14} />
               <span>{isParticipantsTab ? 'Export participants CSV' : 'Export registered CSV'}</span>
-            </button>
+            </Button>
 
             </div>
           </div>
@@ -713,27 +717,31 @@ export const EventParticipantsModal = ({
 
           {/* Format & Attendance Filter Dropdowns */}
           <div className="flex items-center gap-2.5 w-full sm:w-auto overflow-x-auto justify-end">
-            <select
+            <HeroUISelect
               value={formatFilter}
-              onChange={(e) => setFormatFilter(e.target.value)}
-              className="text-xs font-medium py-2 px-3 rounded-xl bg-canvas border border-separator dark:border-white/10 text-label-secondary focus:outline-none cursor-pointer shrink-0"
-            >
-              <option value="all">All formats</option>
-              <option value="Individual">Solo</option>
-              <option value="Duo">Duo (pair)</option>
-              <option value="Team">Squad (team)</option>
-            </select>
+              onChange={setFormatFilter}
+              options={[
+                { value: 'all', label: 'All formats' },
+                { value: 'Individual', label: 'Solo' },
+                { value: 'Duo', label: 'Duo (pair)' },
+                { value: 'Team', label: 'Squad (team)' },
+              ]}
+              size="sm"
+              className="w-36 shrink-0"
+            />
 
             {!isParticipantsTab && (
-              <select
+              <HeroUISelect
                 value={attendanceFilter}
-                onChange={(e) => setAttendanceFilter(e.target.value)}
-                className="text-xs font-medium py-2 px-3 rounded-xl bg-canvas border border-separator dark:border-white/10 text-label-secondary focus:outline-none cursor-pointer shrink-0"
-              >
-                <option value="all">All attendance</option>
-                <option value="present">Attended (present only)</option>
-                <option value="absent">Unmarked (absent only)</option>
-              </select>
+                onChange={setAttendanceFilter}
+                options={[
+                  { value: 'all', label: 'All attendance' },
+                  { value: 'present', label: 'Attended (present only)' },
+                  { value: 'absent', label: 'Unmarked (absent only)' },
+                ]}
+                size="sm"
+                className="w-44 shrink-0"
+              />
             )}
 
             {(searchQuery || formatFilter !== 'all' || attendanceFilter !== 'all') && (
@@ -879,36 +887,33 @@ export const EventParticipantsModal = ({
                     {/* Right Status Badges & Teammate Drawer Toggle */}
                     <div className="flex items-center gap-2 sm:gap-2.5 self-end sm:self-auto flex-wrap">
                       {isParticipantsTab && (
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${
-                            e.isWalkIn
-                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25'
-                              : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25'
-                          }`}
+                        <Chip
+                          size="sm"
+                          color={e.isWalkIn ? 'warning' : 'primary'}
+                          variant="flat"
                         >
                           {e.isWalkIn ? 'Walk-in attendance' : 'Pre-registered'}
-                        </span>
+                        </Chip>
                       )}
 
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                          isPresent
-                            ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                            : 'bg-surface-secondary text-label-tertiary border border-separator'
-                        }`}
+                      <Chip
+                        size="sm"
+                        color={isPresent ? 'success' : 'default'}
+                        variant="flat"
+                        startContent={
+                          isPresent ? (
+                            <CheckCircle2 size={13} className="text-emerald-500" />
+                          ) : (
+                            <XCircle size={13} className="text-label-tertiary" />
+                          )
+                        }
                       >
-                        {isPresent ? (
-                          <>
-                            <CheckCircle2 size={14} className="text-emerald-500" />
-                            <span>{isParticipantsTab ? 'Verified participant' : 'Attended'}</span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle size={14} className="text-label-tertiary" />
-                            <span>Awaiting attendance</span>
-                          </>
-                        )}
-                      </span>
+                        {isPresent
+                          ? isParticipantsTab
+                            ? 'Verified participant'
+                            : 'Attended'
+                          : 'Awaiting attendance'}
+                      </Chip>
 
                       {isGroup && hasMembers && (
                         <button
@@ -1164,23 +1169,25 @@ export const EventParticipantsModal = ({
               </p>
 
               <div className="flex justify-end gap-2.5 pt-1">
-                <button
+                <Button
                   type="button"
-                  disabled={isDeleting}
-                  onClick={() => setConfirmDeleteEnrollment(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-label-secondary hover:text-label-primary dark:text-white/70 dark:hover:text-white hover:bg-canvas dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  isDisabled={isDeleting}
+                  variant="secondary"
+                  onPress={() => setConfirmDeleteEnrollment(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  disabled={isDeleting}
-                  onClick={confirmDelete}
-                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium text-xs shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer transition-all"
+                  isDisabled={isDeleting}
+                  variant="danger"
+                  onPress={confirmDelete}
+                  className="px-5 py-2 rounded-xl text-white font-medium text-xs shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  {isDeleting ? <Spinner size="sm" color="default" /> : <Trash2 size={13} />}
                   <span>{isDeleting ? 'Removing...' : 'Confirm and delete'}</span>
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>

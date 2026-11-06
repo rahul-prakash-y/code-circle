@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
+import { Button } from '@heroui/react';
 import {
   Tooltip,
   TooltipContent,
@@ -389,14 +390,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
         >
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                onClick={onToggleCollapse}
-                className={`w-full flex items-center gap-3 rounded-xl cursor-pointer transition-colors duration-150 ${
-                  isCollapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2.5'
+              <Button
+                variant="ghost"
+                onPress={onToggleCollapse}
+                className={`w-full flex items-center gap-3 rounded-xl cursor-pointer text-label-secondary hover:text-label-primary ${
+                  isCollapsed ? 'justify-center w-10 h-10 mx-auto min-w-[40px]' : 'px-3 py-2.5 justify-start'
                 }`}
-                style={{ color: 'var(--label-tertiary)' }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--label-primary)')}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--label-tertiary)')}
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 <motion.div
@@ -416,21 +415,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
                       className="flex items-center justify-between flex-1"
                     >
                       <span
-                        className="text-[13px] font-medium"
-                        style={{ color: 'var(--label-secondary)', letterSpacing: '-0.01em' }}
+                        className="text-[13px] font-medium text-label-secondary"
+                        style={{ letterSpacing: '-0.01em' }}
                       >
                         Collapse
                       </span>
                       <span
-                        className="text-[10px] font-mono px-1.5 py-0.5 rounded-md"
-                        style={{ background: 'var(--separator)', color: 'var(--label-tertiary)' }}
+                        className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-separator text-label-tertiary"
                       >
                         ⌘B
                       </span>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </button>
+              </Button>
             </TooltipTrigger>
             {isCollapsed && (
               <TooltipContent side="right" className="text-[13px]">

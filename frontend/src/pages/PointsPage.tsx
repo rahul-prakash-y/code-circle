@@ -28,6 +28,8 @@ import {
 import { format } from 'date-fns';
 import { formatISTDateTime } from '../lib/dateUtils';
 import toast from 'react-hot-toast';
+import { Button } from '@heroui/react';
+import { HeroUISelect, HeroChip as Chip } from '../components/ui/HeroUIComponents';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import usePointsStore, { StudentPointsData, AdminStudentItem } from '../store/usePointsStore';
@@ -218,28 +220,24 @@ export const PointsPage: React.FC = () => {
 
         {/* Admin View Mode Switcher */}
         {isAdmin && (
-          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex p-1 rounded-xl bg-surface-secondary border border-separator shadow-sm shrink-0">
-            <button
-              onClick={() => setActiveTab('student')}
-              className={`px-3 sm:px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer text-center ${
-                activeTab === 'student'
-                  ? 'bg-surface text-label-primary shadow-sm border border-separator'
-                  : 'text-label-secondary hover:text-label-primary'
-              }`}
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex p-1 rounded-xl bg-surface-secondary border border-separator shadow-sm shrink-0 gap-1">
+            <Button
+              size="sm"
+              variant={activeTab === 'student' ? 'primary' : 'ghost'}
+              onPress={() => setActiveTab('student')}
+              className="text-xs font-semibold text-center"
             >
               My Points
-            </button>
-            <button
-              onClick={() => setActiveTab('admin')}
-              className={`px-3 sm:px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${
-                activeTab === 'admin'
-                  ? 'bg-accent text-white shadow-sm'
-                  : 'text-label-secondary hover:text-label-primary'
-              }`}
+            </Button>
+            <Button
+              size="sm"
+              variant={activeTab === 'admin' ? 'primary' : 'ghost'}
+              onPress={() => setActiveTab('admin')}
+              className="text-xs font-semibold flex items-center justify-center gap-1.5 text-center"
             >
               <ShieldCheck size={14} />
               <span>Admin Console</span>
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -334,9 +332,9 @@ export const PointsPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-accent-subtle border border-accent/20 text-accent flex items-center justify-center">
                   <CalendarCheck size={18} />
                 </div>
-                <span className="text-xs font-mono font-bold text-success bg-success-subtle px-2 py-0.5 rounded-full border border-success/20">
+                <Chip size="sm" color="success" variant="flat" className="font-mono font-bold">
                   +{myPointsData?.summary?.attendance?.points ?? 0} pts
-                </span>
+                </Chip>
               </div>
               <h3 className="text-sm font-bold text-label-primary group-hover:text-accent transition-colors">
                 Club Hours & Sessions
@@ -356,9 +354,9 @@ export const PointsPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                   <Code2 size={18} />
                 </div>
-                <span className="text-xs font-mono font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                <Chip size="sm" color="secondary" variant="flat" className="font-mono font-bold">
                   +{myPointsData?.summary?.coding?.points ?? 0} pts
-                </span>
+                </Chip>
               </div>
               <h3 className="text-sm font-bold text-label-primary group-hover:text-accent transition-colors">
                 Coding Challenges
@@ -378,9 +376,9 @@ export const PointsPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                   <Flame size={18} />
                 </div>
-                <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                <Chip size="sm" color="warning" variant="flat" className="font-mono font-bold">
                   +{myPointsData?.summary?.contests?.points ?? 0} pts
-                </span>
+                </Chip>
               </div>
               <h3 className="text-sm font-bold text-label-primary group-hover:text-accent transition-colors">
                 Contests & Sprints
@@ -400,9 +398,9 @@ export const PointsPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                   <Award size={18} />
                 </div>
-                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                <Chip size="sm" color="primary" variant="flat" className="font-mono font-bold">
                   +{myPointsData?.summary?.assessment?.points ?? 0} pts
-                </span>
+                </Chip>
               </div>
               <h3 className="text-sm font-bold text-label-primary group-hover:text-accent transition-colors">
                 MCQ Assessments
@@ -422,9 +420,9 @@ export const PointsPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <Sparkles size={18} />
                 </div>
-                <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <Chip size="sm" color="success" variant="flat" className="font-mono font-bold">
                   +{(myPointsData?.summary?.courses?.points ?? 0) + (myPointsData?.summary?.bonus?.points ?? 0)} pts
-                </span>
+                </Chip>
               </div>
               <h3 className="text-sm font-bold text-label-primary group-hover:text-accent transition-colors">
                 Courses & Merit Badges
@@ -465,14 +463,12 @@ export const PointsPage: React.FC = () => {
 
                 <div className="flex items-center gap-1 bg-surface-secondary p-1 rounded-xl border border-separator overflow-x-auto no-scrollbar w-full sm:w-auto">
                   {['all', 'attendance', 'coding', 'contest', 'course', 'assessment', 'bonus'].map((cat) => (
-                    <button
+                    <Button
                       key={cat}
-                      onClick={() => setCategoryFilter(cat)}
-                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg capitalize transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                        categoryFilter === cat
-                          ? 'bg-surface text-label-primary shadow-xs border border-separator'
-                          : 'text-label-secondary hover:text-label-primary'
-                      }`}
+                      size="sm"
+                      variant={categoryFilter === cat ? 'primary' : 'ghost'}
+                      onPress={() => setCategoryFilter(cat)}
+                      className="text-[11px] font-semibold capitalize whitespace-nowrap shrink-0 min-h-[32px] h-auto px-2.5 py-1"
                     >
                       {cat === 'all'
                         ? 'All'
@@ -481,7 +477,7 @@ export const PointsPage: React.FC = () => {
                         : cat === 'assessment'
                         ? 'MCQ Assessments'
                         : cat}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -674,41 +670,47 @@ export const PointsPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
-                  <select
+                  <HeroUISelect
                     value={deptFilter}
-                    onChange={(e) => setDeptFilter(e.target.value)}
-                    className="input-field py-1.5 px-3 text-xs w-full sm:w-auto"
-                  >
-                    <option value="all">All Departments</option>
-                    <option value="CSE">CSE</option>
-                    <option value="IT">IT</option>
-                    <option value="AI&DS">AI & DS</option>
-                    <option value="ECE">ECE</option>
-                    <option value="EEE">EEE</option>
-                    <option value="MECH">MECH</option>
-                    <option value="CIVIL">CIVIL</option>
-                  </select>
+                    onChange={setDeptFilter}
+                    options={[
+                      { value: 'all', label: 'All Departments' },
+                      { value: 'CSE', label: 'CSE' },
+                      { value: 'IT', label: 'IT' },
+                      { value: 'AI&DS', label: 'AI & DS' },
+                      { value: 'ECE', label: 'ECE' },
+                      { value: 'EEE', label: 'EEE' },
+                      { value: 'MECH', label: 'MECH' },
+                      { value: 'CIVIL', label: 'CIVIL' },
+                    ]}
+                    size="sm"
+                    className="w-full sm:w-40"
+                  />
 
-                  <select
+                  <HeroUISelect
                     value={yearFilter}
-                    onChange={(e) => setYearFilter(e.target.value)}
-                    className="input-field py-1.5 px-3 text-xs w-full sm:w-auto"
-                  >
-                    <option value="all">All Years</option>
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                  </select>
+                    onChange={setYearFilter}
+                    options={[
+                      { value: 'all', label: 'All Years' },
+                      { value: '1st Year', label: '1st Year' },
+                      { value: '2nd Year', label: '2nd Year' },
+                      { value: '3rd Year', label: '3rd Year' },
+                      { value: '4th Year', label: '4th Year' },
+                    ]}
+                    size="sm"
+                    className="w-full sm:w-36"
+                  />
 
-                  <select
+                  <HeroUISelect
                     value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as any)}
-                    className="input-field py-1.5 px-3 text-xs col-span-2 sm:col-auto w-full sm:w-auto"
-                  >
-                    <option value="desc">Highest Points First</option>
-                    <option value="asc">Lowest Points First</option>
-                  </select>
+                    onChange={(v) => setSortOrder(v as any)}
+                    options={[
+                      { value: 'desc', label: 'Highest Points First' },
+                      { value: 'asc', label: 'Lowest Points First' },
+                    ]}
+                    size="sm"
+                    className="w-full sm:w-44"
+                  />
                 </div>
               </div>
             </div>
@@ -782,19 +784,23 @@ export const PointsPage: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleOpenAudit(s._id, s)}
-                            className="btn-secondary py-1.5 px-3 text-xs font-semibold cursor-pointer"
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onPress={() => handleOpenAudit(s._id, s)}
+                            className="text-xs font-semibold"
                           >
                             Points Audit
-                          </button>
-                          <button
-                            onClick={() => handleOpenAward(s)}
-                            className="btn-primary py-1.5 px-3 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onPress={() => handleOpenAward(s)}
+                            className="text-xs font-semibold flex items-center gap-1"
                           >
                             <Plus size={13} />
                             <span>Award</span>
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -844,13 +850,16 @@ export const PointsPage: React.FC = () => {
                     {selectedAudit?.student?.name || targetStudent?.name} ({selectedAudit?.student?.rollNo || targetStudent?.rollNo})
                   </p>
                 </div>
-                <button
-                  onClick={handleCloseAudit}
-                  className="min-h-[40px] min-w-[40px] rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer shrink-0"
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  isIconOnly
+                  onPress={handleCloseAudit}
+                  className="min-h-[40px] min-w-[40px] rounded-full shrink-0"
                   aria-label="Close modal"
                 >
                   <X size={16} />
-                </button>
+                </Button>
               </div>
 
               {/* Modal Body */}
@@ -980,22 +989,24 @@ export const PointsPage: React.FC = () => {
               {/* Modal Footer */}
               <div className="p-3.5 sm:p-4 border-t border-separator bg-surface-secondary/40 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
                 {targetStudent && (
-                  <button
-                    onClick={() => {
+                  <Button
+                    variant="primary"
+                    onPress={() => {
                       handleCloseAudit();
                       handleOpenAward(targetStudent);
                     }}
-                    className="btn-primary py-2 px-4 text-xs font-semibold cursor-pointer w-full sm:w-auto text-center"
+                    className="text-xs font-semibold w-full sm:w-auto text-center"
                   >
                     Award Merit Points
-                  </button>
+                  </Button>
                 )}
-                <button
-                  onClick={handleCloseAudit}
-                  className="btn-secondary py-2 px-4 text-xs font-semibold cursor-pointer w-full sm:w-auto text-center"
+                <Button
+                  variant="outline"
+                  onPress={handleCloseAudit}
+                  className="text-xs font-semibold w-full sm:w-auto text-center"
                 >
                   Close
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -1029,13 +1040,16 @@ export const PointsPage: React.FC = () => {
                     Award points directly to {targetStudent?.name} ({targetStudent?.rollNo})
                   </p>
                 </div>
-                <button
-                  onClick={() => setIsAwardModalOpen(false)}
-                  className="min-h-[40px] min-w-[40px] rounded-full bg-surface-secondary border border-separator flex items-center justify-center text-label-secondary hover:text-label-primary cursor-pointer shrink-0"
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  isIconOnly
+                  onPress={() => setIsAwardModalOpen(false)}
+                  className="min-h-[40px] min-w-[40px] rounded-full shrink-0"
                   aria-label="Close modal"
                 >
                   <X size={16} />
-                </button>
+                </Button>
               </div>
 
               <form onSubmit={handleAwardSubmit} className="p-4 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
@@ -1056,18 +1070,19 @@ export const PointsPage: React.FC = () => {
 
                 <div>
                   <label className="block font-semibold text-label-primary mb-1">Category</label>
-                  <select
+                  <HeroUISelect
                     value={awardCategory}
-                    onChange={(e) => setAwardCategory(e.target.value)}
-                    className="input-field w-full py-2 px-3"
-                  >
-                    <option value="Bonus">Bonus & Club Merit</option>
-                    <option value="Attendance">Club Hour / Session</option>
-                    <option value="Coding">Coding Challenge Mastery</option>
-                    <option value="Contest">Contest & Hackathon</option>
-                    <option value="Course">Course Quest</option>
-                    <option value="Adjustment">Administrative Adjustment</option>
-                  </select>
+                    onChange={setAwardCategory}
+                    options={[
+                      { value: 'Bonus', label: 'Bonus & Club Merit' },
+                      { value: 'Attendance', label: 'Club Hour / Session' },
+                      { value: 'Coding', label: 'Coding Challenge Mastery' },
+                      { value: 'Contest', label: 'Contest & Hackathon' },
+                      { value: 'Course', label: 'Course Quest' },
+                      { value: 'Adjustment', label: 'Administrative Adjustment' },
+                    ]}
+                    size="sm"
+                  />
                 </div>
 
                 <div>
@@ -1096,21 +1111,24 @@ export const PointsPage: React.FC = () => {
                 </div>
 
                 <div className="pt-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => setIsAwardModalOpen(false)}
-                    className="btn-secondary py-2 px-4 font-semibold cursor-pointer w-full sm:w-auto text-center"
+                    variant="outline"
+                    onPress={() => setIsAwardModalOpen(false)}
+                    className="font-semibold w-full sm:w-auto text-center"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={isSubmittingAward}
-                    className="btn-primary py-2 px-5 font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 w-full sm:w-auto"
+                    variant="primary"
+                    isDisabled={isSubmittingAward}
+                    isLoading={isSubmittingAward}
+                    className="font-semibold flex items-center justify-center gap-1.5 w-full sm:w-auto"
                   >
-                    {isSubmittingAward ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    <Sparkles size={14} />
                     <span>Confirm Award</span>
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>

@@ -17,6 +17,8 @@ import {
   FileCode2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Button } from '@heroui/react';
+import { HeroInput } from '../components/ui/HeroUIComponents';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import useContestStore, { LeaderboardEntry, Contest } from '../store/useContestStore';
@@ -121,26 +123,30 @@ export const ContestLeaderboardPage: React.FC = () => {
         </Link>
         <div className="flex flex-wrap items-center gap-2.5">
           {myLeaderboardEntry && (
-            <button
-              type="button"
-              onClick={() => handleInspectSubmission(myLeaderboardEntry)}
-              className="px-3 py-1.5 min-h-[36px] rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer shadow-xs tabular-nums"
+            <Button
+              size="sm"
+              variant="flat"
+              color="success"
+              onPress={() => handleInspectSubmission(myLeaderboardEntry)}
+              className="text-xs font-medium rounded-xl shadow-xs tabular-nums"
               title="View your submitted MCQ answers and code solution"
+              startContent={<FileCode2 size={13} />}
             >
-              <FileCode2 size={13} />
-              <span>My submission ({myLeaderboardEntry.totalScore} pts)</span>
-            </button>
+              My submission ({myLeaderboardEntry.totalScore} pts)
+            </Button>
           )}
           {isPrivileged && (
-            <button
-              type="button"
-              onClick={() => setIsSubmissionsRosterOpen(true)}
-              className="px-3 py-1.5 min-h-[36px] rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            <Button
+              size="sm"
+              variant="flat"
+              color="warning"
+              onPress={() => setIsSubmissionsRosterOpen(true)}
+              className="text-xs font-medium rounded-xl shadow-xs"
               title="Open full student submissions roster & point allocations"
+              startContent={<Sliders size={13} />}
             >
-              <Sliders size={13} />
-              <span>Submissions ledger</span>
-            </button>
+              Submissions ledger
+            </Button>
           )}
           <span className="text-[11px] font-mono uppercase tracking-wider text-primary font-medium">
             Official rankings
@@ -244,24 +250,26 @@ export const ContestLeaderboardPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search size={14} className="absolute left-3 top-2.5 text-label-tertiary" />
-              <input
-                type="text"
+            <div className="w-full sm:w-64">
+              <HeroInput
+                size="sm"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onValueChange={setSearch}
                 placeholder="Search participant..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-primary font-normal min-h-[36px]"
+                startContent={<Search size={14} className="text-label-tertiary" />}
               />
             </div>
-            <button
-              onClick={() => id && fetchLeaderboard(id, { page, limit })}
-              disabled={loading}
-              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-label-secondary hover:text-label-primary rounded-xl hover:bg-surface-secondary transition-colors cursor-pointer border border-separator"
+            <Button
+              isIconOnly
+              size="sm"
+              variant="bordered"
+              onPress={() => id && fetchLeaderboard(id, { page, limit })}
+              isDisabled={loading}
+              className="border-separator rounded-xl"
               title="Refresh"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -352,31 +360,31 @@ export const ContestLeaderboardPage: React.FC = () => {
                       <td className="py-3 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
                           {(isPrivileged || isMe) && (
-                            <button
-                              type="button"
-                              onClick={() => handleInspectSubmission(entry)}
-                              className={`px-3 py-1.5 min-h-[34px] rounded-xl text-xs font-medium transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer ${
-                                isMe
-                                  ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                                  : 'bg-surface-secondary hover:bg-surface border border-separator text-label-secondary hover:text-label-primary'
-                              }`}
+                            <Button
+                              size="sm"
+                              variant={isMe ? 'flat' : 'bordered'}
+                              color={isMe ? 'success' : 'default'}
+                              onPress={() => handleInspectSubmission(entry)}
+                              className="text-xs font-medium rounded-xl shadow-xs border-separator"
                               title={isMe ? 'View your submission' : 'Inspect student submission (MCQs + Code)'}
+                              startContent={<FileCode2 size={12} className={isMe ? 'text-emerald-500' : 'text-primary'} />}
                             >
-                              <FileCode2 size={12} className={isMe ? 'text-emerald-500' : 'text-primary'} />
-                              <span>{isMe ? 'My work' : 'Inspect'}</span>
-                            </button>
+                              {isMe ? 'My work' : 'Inspect'}
+                            </Button>
                           )}
 
                           {isPrivileged && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedEntryForPoints(entry)}
-                              className="px-3 py-1.5 min-h-[34px] rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-medium transition-all inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                            <Button
+                              size="sm"
+                              variant="flat"
+                              color="primary"
+                              onPress={() => setSelectedEntryForPoints(entry)}
+                              className="text-xs font-medium rounded-xl shadow-xs"
                               title="Manually allocate or adjust points"
+                              startContent={<Zap size={12} className="fill-current" />}
                             >
-                              <Zap size={12} className="fill-current" />
                               <span className="hidden sm:inline">Allocate</span>
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </td>
