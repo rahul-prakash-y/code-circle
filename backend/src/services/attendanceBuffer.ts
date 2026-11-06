@@ -4,6 +4,8 @@ import AttendanceModel from '../models/attendanceModel';
 export interface AttendanceEntry {
   userId: string;
   eventId: string;
+  dayNumber: number;
+  dateAttended?: Date;
   timestamp: Date;
 }
 
@@ -12,6 +14,7 @@ export interface VerifyAndQueueResult {
   message?: string;
   error?: string;
   queueLength?: number;
+  dayNumber?: number;
 }
 
 export interface FlushResult {
@@ -20,7 +23,10 @@ export interface FlushResult {
 }
 
 export class AttendanceBuffer {
+  // In-memory key-value stores for sub-millisecond lookups
+  // Key format for activeOTPs: `${eventId}:day:${dayNumber}` (with fallback `${eventId}`)
   public activeOTPs: Map<string, string> = new Map();
+  // Key format for markedSet: `${userId}:${eventId}:day:${dayNumber}`
   public markedSet: Set<string> = new Set();
   public writeQueue: AttendanceEntry[] = [];
   public isFlushing: boolean = false;
@@ -41,34 +47,75 @@ export class AttendanceBuffer {
   }
 
   /**
-   * Saves the active OTP for an event to in-memory cache for instant lookup
+   * Helper to construct composite key for multi-day events
    */
-  public setEventOTP(eventId: string, otp: string): void {
+  private makeOtpKey(eventId: string, dayNumber: number = 1): string {
+    return `${String(eventId).trim()}:day:${dayNumber}`;
+  }
+
+  /**
+   * Helper to construct student marked attendance key for a specific event day
+   */
+  private makeMarkedKey(userId: string, eventId: string, dayNumber: number = 1): string {
+    return `${String(userId).trim()}:${String(eventId).trim()}:day:${dayNumber}`;
+  }
+
+  /**
+   * Saves the active OTP for an event and specific day to in-memory cache
+   */
+  public setEventOTP(eventId: string, otp: string, dayNumber: number = 1): void {
     if (!eventId || !otp) return;
-    this.activeOTPs.set(String(eventId).trim(), String(otp).trim());
+    const cleanEventId = String(eventId).trim();
+    const cleanOtp = String(otp).trim();
+    const parsedDay = Math.max(1, Number(dayNumber) || 1);
+
+    // Store day-specific key as well as default event key for backward compatibility
+    this.activeOTPs.set(this.makeOtpKey(cleanEventId, parsedDay), cleanOtp);
+    if (parsedDay === 1) {
+      this.activeOTPs.set(cleanEventId, cleanOtp);
+    }
   }
 
   /**
-   * Retrieves the active OTP for an event from memory
+   * Retrieves the active OTP for an event day from memory
    */
-  public getEventOTP(eventId: string): string | undefined {
-    return this.activeOTPs.get(String(eventId).trim());
+  public getEventOTP(eventId: string, dayNumber: number = 1): string | undefined {
+    const cleanEventId = String(eventId).trim();
+    const parsedDay = Math.max(1, Number(dayNumber) || 1);
+    return (
+      this.activeOTPs.get(this.makeOtpKey(cleanEventId, parsedDay)) ||
+      this.activeOTPs.get(cleanEventId)
+    );
   }
 
   /**
-   * Removes active OTP from memory
+   * Removes active OTP from memory for an event day
    */
-  public clearEventOTP(eventId: string): void {
-    this.activeOTPs.delete(String(eventId).trim());
+  public clearEventOTP(eventId: string, dayNumber?: number): void {
+    const cleanEventId = String(eventId).trim();
+    if (dayNumber !== undefined) {
+      this.activeOTPs.delete(this.makeOtpKey(cleanEventId, dayNumber));
+    } else {
+      this.activeOTPs.delete(cleanEventId);
+      for (let d = 1; d <= 10; d++) {
+        this.activeOTPs.delete(this.makeOtpKey(cleanEventId, d));
+      }
+    }
   }
 
   /**
-   * Validates the OTP against the activeOTPs map.
-   * If valid and not in markedSet, pushes to writeQueue.
-   * If the queue hits 50 items, triggers a flush.
+   * Validates the OTP against the activeOTPs map for the specified event day.
+   * If valid and student hasn't marked for that day in markedSet, pushes to writeQueue.
+   * If the queue hits 50 items, triggers a batch flush.
    * Responds in sub-millisecond time without awaiting database calls.
    */
-  public verifyAndQueue(userId: string, eventId: string, otp: string): VerifyAndQueueResult {
+  public verifyAndQueue(
+    userId: string,
+    eventId: string,
+    otp: string,
+    dayNumber: number = 1,
+    dateAttended?: Date
+  ): VerifyAndQueueResult {
     if (!userId || !eventId || !otp) {
       return {
         success: false,
@@ -79,32 +126,35 @@ export class AttendanceBuffer {
     const cleanUserId = String(userId).trim();
     const cleanEventId = String(eventId).trim();
     const cleanOtp = String(otp).trim();
+    const parsedDay = Math.max(1, Number(dayNumber) || 1);
 
-    // 1. Instant O(1) in-memory OTP validation
-    const activeOtp = this.activeOTPs.get(cleanEventId);
+    // 1. Instant O(1) in-memory OTP validation for the specific event day
+    const activeOtp = this.getEventOTP(cleanEventId, parsedDay);
     if (!activeOtp || activeOtp !== cleanOtp) {
       return {
         success: false,
-        error: 'Invalid or expired OTP',
+        error: `Invalid or expired OTP for Day ${parsedDay} of this event`,
       };
     }
 
-    // 2. Instant O(1) duplicate submission check
-    const markKey = `${cleanUserId}:${cleanEventId}`;
+    // 2. Instant O(1) duplicate submission check for that specific day
+    const markKey = this.makeMarkedKey(cleanUserId, cleanEventId, parsedDay);
     if (this.markedSet.has(markKey)) {
       return {
         success: false,
-        error: 'Attendance has already been marked for this event',
+        error: `Attendance has already been marked for Day ${parsedDay} of this event`,
       };
     }
 
-    // 3. Mark in memory to block concurrent duplicates immediately
+    // 3. Mark in memory to block concurrent duplicates for this day immediately
     this.markedSet.add(markKey);
 
     // 4. Push to batched write queue
     this.writeQueue.push({
       userId: cleanUserId,
       eventId: cleanEventId,
+      dayNumber: parsedDay,
+      dateAttended: dateAttended ? new Date(dateAttended) : new Date(),
       timestamp: new Date(),
     });
 
@@ -117,13 +167,15 @@ export class AttendanceBuffer {
 
     return {
       success: true,
-      message: 'Attendance recorded and queued successfully',
+      message: `Attendance for Day ${parsedDay} recorded and queued successfully`,
+      dayNumber: parsedDay,
       queueLength: this.writeQueue.length,
     };
   }
 
   /**
    * Flushes queued attendance records to MongoDB Atlas using bulkWrite with upsert: true.
+   * Upsert filter includes dayNumber to safely record attendance across multi-day events.
    * Protected with `isFlushing` lock to prevent race conditions.
    */
   public async flush(): Promise<FlushResult> {
@@ -150,11 +202,17 @@ export class AttendanceBuffer {
 
         return {
           updateOne: {
-            filter: { userId: item.userId, eventId: item.eventId },
+            filter: {
+              userId: item.userId,
+              eventId: item.eventId,
+              dayNumber: item.dayNumber,
+            },
             update: {
               $setOnInsert: {
                 userId: item.userId,
                 eventId: item.eventId,
+                dayNumber: item.dayNumber,
+                dateAttended: item.dateAttended || item.timestamp,
                 ...(isUserObjId ? { user: new mongoose.Types.ObjectId(item.userId) } : {}),
                 ...(isEventObjId ? { event: new mongoose.Types.ObjectId(item.eventId) } : {}),
                 timestamp: item.timestamp || new Date(),

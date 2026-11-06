@@ -477,6 +477,18 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           clearInterval(timer);
           setIsSessionExpired(true);
           toast.error('Time limit reached for this assessment attempt!');
+
+          // Thundering Herd Submission Jitter:
+          // In a room with 300 students whose timers end at the exact same time,
+          // jitter spreads the submission over an 8-second window (Math.random() * 8000)
+          // saving Render Free Tier and MongoDB M0 from crashing.
+          const jitterDelayMs = Math.floor(Math.random() * 8000);
+          console.log(`[CodingAssessment] Attempt timer expired. Applying jitter delay: ${jitterDelayMs}ms`);
+
+          setTimeout(() => {
+            handleFinalSubmit();
+          }, jitterDelayMs);
+
           return 0;
         }
         return prev - 1;

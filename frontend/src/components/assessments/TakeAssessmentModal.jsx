@@ -25,6 +25,7 @@ import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
 import FullScreenEnforcementOverlay from './FullScreenEnforcementOverlay';
 import { isMobileScreenOrDevice } from '../../lib/deviceUtils';
+import useAutoSave from '../../hooks/useAutoSave';
 
 const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const {
@@ -55,6 +56,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
   // Timer ref to cancel interval safely
   const timerRef = useRef(null);
+
+  // Resiliency: LocalStorage AutoSave hook (every 30 seconds)
+  const autoSaveKey = assessmentId ? `cc_assessment_answers_${assessmentId}` : '';
+  const { clearSavedData } = useAutoSave(
+    autoSaveKey,
+    answers,
+    {
+      intervalMs: 30000,
+      enabled: isOpen && !currentResult && !loading,
+      onRestore: useCallback((saved) => {
+        if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+          setAnswers(saved);
+          toast.success('Restored unsubmitted test answers from local autosave!', { id: 'autosave-restore' });
+        }
+      }, []),
+    }
+  );
 
   // Monitor screen size changes for mobile protection
   useEffect(() => {
@@ -101,15 +119,32 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     setShowTabWarning(false);
     if (timerRef.current) clearInterval(timerRef.current);
 
+    const questions = currentAssessment?.questions || [];
     const timeSpent = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
-    const formattedAnswers = Object.entries(answers).map(([qIndex, optIndex]) => ({
-      questionIndex: Number(qIndex),
-      selectedOption: Number(optIndex),
-    }));
+    
+    // Format answers with questionId and optionId/optionText to evaluate accurately regardless of shuffle order
+    const formattedAnswers = Object.entries(answers).map(([qKey, val]) => {
+      if (typeof val === 'object' && val !== null) {
+        return {
+          questionId: val.questionId,
+          selectedOptionId: val.selectedOptionId,
+          selectedOptionText: val.selectedOptionText,
+          questionIndex: val.questionIndex !== undefined ? val.questionIndex : Number(qKey),
+          selectedOption: val.selectedOption !== undefined ? val.selectedOption : -1,
+        };
+      }
+      const q = questions[Number(qKey)];
+      return {
+        questionId: q?._id,
+        questionIndex: Number(qKey),
+        selectedOption: Number(val),
+      };
+    });
 
     const res = await submitAssessment(assessmentId, formattedAnswers, timeSpent);
     setIsLocked(false);
     if (res.success) {
+      clearSavedData();
       if (forcedByViolation) {
         toast.error('Assessment automatically submitted due to tab-switching violations.', { duration: 5000 });
       } else {
@@ -122,7 +157,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     } else {
       toast.error(res.error || 'Failed to submit assessment.');
     }
-  }, [answers, assessmentId, startTime, submitAssessment]);
+  }, [answers, assessmentId, currentAssessment, startTime, submitAssessment, clearSavedData]);
 
   // Anti-cheat tab visibility and window blur listeners
   useEffect(() => {
@@ -175,7 +210,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     };
   }, [isOpen, currentResult, loading, isLocked, isMobileMode, executeSubmit]);
 
-  // Timer countdown hook
+  // Timer countdown hook with Thundering Herd Submission Jitter Fix
   useEffect(() => {
     if (!isOpen || currentResult || loading || timeLeftSeconds <= 0 || isLocked) return;
 
@@ -183,8 +218,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       setTimeLeftSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
-          toast.error("Time's up! Submitting your answers automatically...");
-          executeSubmit(false);
+
+          // THUNDERING HERD SUBMISSION FIX:
+          // In a room with 300 test-takers, when the auto-submit timer expires, DO NOT send API requests immediately.
+          // Jitter delay spreads 300 concurrent submissions over an 8-second window (Math.random() * 8000).
+          // This saves Render Free Tier from CPU/OOM crash and MongoDB Atlas M0 from connection starvation.
+          const jitterDelayMs = Math.floor(Math.random() * 8000);
+          console.log(`[Assessment] Auto-submit timer reached 0. Applying jitter delay of ${jitterDelayMs}ms`);
+
+          toast.error("Time's up! Packaging and auto-submitting your assessment...", {
+            id: 'time-up-submit',
+            duration: jitterDelayMs + 3000,
+          });
+
+          setTimeout(() => {
+            executeSubmit(false);
+          }, jitterDelayMs);
+
           return 0;
         }
         return prev - 1;
@@ -210,10 +260,16 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleSelectOption = (optIndex) => {
+  const handleSelectOption = (optIndex, optId, optText) => {
     setAnswers((prev) => ({
       ...prev,
-      [currentQuestionIndex]: optIndex,
+      [currentQuestionIndex]: {
+        questionId: currentQ?._id,
+        questionIndex: currentQuestionIndex,
+        selectedOptionId: optId || `opt_${optIndex}`,
+        selectedOptionText: optText,
+        selectedOption: optIndex,
+      },
     }));
   };
 
@@ -635,16 +691,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
                   {/* Multiple Choice Options */}
                   <div className="space-y-2.5 sm:space-y-3 pt-1 sm:pt-2">
-                    {currentQ.options.map((optText, optIndex) => {
-                      const isSelected = answers[currentQuestionIndex] === optIndex;
+                    {currentQ.options.map((optionItem, optIndex) => {
+                      const optText = typeof optionItem === 'object' && optionItem !== null ? optionItem.text : optionItem;
+                      const optId = typeof optionItem === 'object' && optionItem !== null ? optionItem.optionId : `opt_${optIndex}`;
+                      
+                      const currentSelected = answers[currentQuestionIndex];
+                      const isSelected =
+                        typeof currentSelected === 'object' && currentSelected !== null
+                          ? currentSelected.selectedOptionId === optId || currentSelected.selectedOptionText === optText
+                          : currentSelected === optIndex;
+
                       const optionLetter = String.fromCharCode(65 + optIndex);
 
                       return (
                         <motion.button
-                          key={optIndex}
+                          key={optId || optIndex}
                           whileHover={{ scale: 1.002 }} whileTap={{ scale: 0.97 }}
-                          
-                          onClick={() => handleSelectOption(optIndex)}
+                          onClick={() => handleSelectOption(optIndex, optId, optText)}
                           className={`w-full min-h-[44px] p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left flex items-center gap-3 sm:gap-4 transition-all duration-150 cursor-pointer border ${
                             isSelected
                               ? 'bg-accent/10 border-accent text-label-primary shadow-xs'

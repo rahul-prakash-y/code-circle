@@ -33,7 +33,20 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
   );
   fastify.post(
     '/:id/submit',
-    { preHandler: [checkFeatureNotRestricted('assessments'), checkAssessmentNotBlocked] },
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+          errorResponseBuilder: (request: any, context: any) => ({
+            statusCode: 429,
+            error: 'Too Many Requests',
+            message: 'Submission rate limit exceeded. Please wait a moment before trying again.',
+          }),
+        },
+      },
+      preHandler: [checkFeatureNotRestricted('assessments'), checkAssessmentNotBlocked],
+    },
     assessmentController.submitAssessment as any
   );
   fastify.delete('/:id/my-submission', assessmentController.resetMyAssessmentSubmission as any);

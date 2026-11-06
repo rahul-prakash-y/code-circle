@@ -4,6 +4,7 @@ dotenv.config();
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import rateLimit from '@fastify/rate-limit';
 import connectDB from './config/db';
 import errorHandler from './middleware/errorHandler';
 import { authRoutes } from './routes/authRoutes';
@@ -56,6 +57,18 @@ server.register(multipart, {
 });
 
 // Centralized Global Error Handler
+// Register Rate Limiting for Thundering Herd protection on Free Tier
+server.register(rateLimit, {
+  global: false,
+  max: 100,
+  timeWindow: '1 minute',
+  errorResponseBuilder: (request, context) => ({
+    statusCode: 429,
+    error: 'Too Many Requests',
+    message: `Rate limit reached. Please wait ${Math.ceil(context.ttl / 1000)} seconds before trying again.`,
+  }),
+});
+
 server.setErrorHandler(errorHandler);
 
 // --- API ROUTES ---

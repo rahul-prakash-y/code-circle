@@ -6,6 +6,7 @@ import AssessmentSubmission from '../models/assessmentSubmissionModel';
 import User from '../models/userModel';
 import PointTransaction from '../models/pointTransactionModel';
 import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+import { shuffleQuestionsAndOptions } from '../utils/shuffle';
 
 export interface CreateAssessmentBody {
   title: string;
@@ -27,8 +28,11 @@ export interface CreateAssessmentBody {
 
 export interface SubmitAssessmentBody {
   answers: {
-    questionIndex: number;
-    selectedOption: number;
+    questionId?: string;
+    selectedOptionId?: string;
+    selectedOptionText?: string;
+    questionIndex?: number;
+    selectedOption?: number;
   }[];
   timeSpentSeconds?: number;
 }
@@ -212,16 +216,13 @@ export const getAssessmentById = async (
       0
     );
 
-    // ANTI-CHEAT SANITIZATION FOR STUDENTS:
+    // ANTI-CHEAT SANITIZATION & NEIGHBOR COPYING PREVENTION FOR STUDENTS:
+    // Securely shuffles question order AND shuffles options within each question (A/B/C/D).
+    // Stably maps each option to an optionId ('opt_0', 'opt_1'...) so screens in the exam room are randomized.
     // Strip correctOptionIndex and explanation during test taking!
     const questions = isAdmin
       ? assessment.questions
-      : assessment.questions.map((q: any) => ({
-          _id: q._id,
-          questionText: q.questionText,
-          options: q.options,
-          points: q.points || 1,
-        }));
+      : shuffleQuestionsAndOptions(assessment.questions);
 
     return reply.send({
       success: true,
@@ -480,34 +481,90 @@ export const submitAssessment = async (
 
     const { answers = [], timeSpentSeconds = 0 } = request.body;
 
-    // Create a map of student answers: questionIndex -> selectedOption
-    const answerMap = new Map<number, number>();
+    // SERVER-SIDE SCORING ENGINE (Resistant to Question and Option Order Randomization)
+    // Supports lookup by questionId (ObjectId string) or fallback to questionIndex.
+    // Supports evaluation by optionId (e.g., 'opt_0'), optionText, or fallback index.
+    const answerByQuestionId = new Map<string, any>();
+    const answerByIndex = new Map<number, any>();
+
     for (const ans of answers) {
-      answerMap.set(ans.questionIndex, ans.selectedOption);
+      if (ans.questionId) {
+        answerByQuestionId.set(String(ans.questionId), ans);
+      }
+      if (typeof ans.questionIndex === 'number') {
+        answerByIndex.set(ans.questionIndex, ans);
+      }
     }
 
-    // SERVER-SIDE SCORING ENGINE
     let earnedPoints = 0;
     let totalPoints = 0;
     const detailedResults = [];
 
     for (let i = 0; i < assessment.questions.length; i++) {
       const q = assessment.questions[i];
+      const qIdStr = q._id ? q._id.toString() : '';
       const qPoints = q.points || 1;
       totalPoints += qPoints;
 
-      const selectedOption = answerMap.has(i) ? answerMap.get(i)! : -1;
-      const isCorrect = selectedOption === q.correctOptionIndex;
+      // Find answer for this canonical question
+      const studentAns = (qIdStr && answerByQuestionId.get(qIdStr)) || answerByIndex.get(i);
+
+      let isCorrect = false;
+      let selectedOptionIndex = -1;
+      let selectedOptionId = '';
+      let selectedOptionText = '';
+
+      const correctOptionText = Array.isArray(q.options) && q.options[q.correctOptionIndex]
+        ? String(q.options[q.correctOptionIndex])
+        : '';
+      const correctOptionId = `opt_${q.correctOptionIndex}`;
+
+      if (studentAns) {
+        selectedOptionId = studentAns.selectedOptionId || '';
+        selectedOptionText = studentAns.selectedOptionText || '';
+
+        // 1. Evaluate by optionId ('opt_0', 'opt_1', ...)
+        if (selectedOptionId) {
+          isCorrect = selectedOptionId.toLowerCase() === correctOptionId.toLowerCase();
+          const matchIndex = parseInt(selectedOptionId.replace(/^opt_/i, ''), 10);
+          if (!isNaN(matchIndex) && matchIndex >= 0 && matchIndex < q.options.length) {
+            selectedOptionIndex = matchIndex;
+            if (!selectedOptionText) {
+              selectedOptionText = q.options[matchIndex];
+            }
+          }
+        }
+        // 2. Evaluate by option text value comparison
+        else if (selectedOptionText && typeof selectedOptionText === 'string') {
+          isCorrect = selectedOptionText.trim().toLowerCase() === correctOptionText.trim().toLowerCase();
+          selectedOptionIndex = q.options.findIndex(
+            (opt: string) => opt.trim().toLowerCase() === selectedOptionText.trim().toLowerCase()
+          );
+        }
+        // 3. Fallback to legacy selectedOption index
+        else if (typeof studentAns.selectedOption === 'number' && studentAns.selectedOption >= 0) {
+          selectedOptionIndex = studentAns.selectedOption;
+          isCorrect = selectedOptionIndex === q.correctOptionIndex;
+          if (Array.isArray(q.options) && q.options[selectedOptionIndex]) {
+            selectedOptionText = q.options[selectedOptionIndex];
+          }
+        }
+      }
 
       if (isCorrect) {
         earnedPoints += qPoints;
       }
 
       detailedResults.push({
+        questionId: q._id,
         questionIndex: i,
         questionText: q.questionText,
-        selectedOption,
+        selectedOption: selectedOptionIndex,
+        selectedOptionId,
+        selectedOptionText,
         correctOptionIndex: q.correctOptionIndex,
+        correctOptionId,
+        correctOptionText,
         isCorrect,
         points: qPoints,
         explanation: q.explanation || '',
@@ -565,9 +622,12 @@ export const submitAssessment = async (
     const submission = await AssessmentSubmission.create({
       assessment: assessment._id,
       user: new mongoose.Types.ObjectId(user.id),
-      answers: Array.from(answerMap.entries()).map(([questionIndex, selectedOption]) => ({
-        questionIndex,
-        selectedOption,
+      answers: answers.map((ans, idx) => ({
+        questionId: ans.questionId && mongoose.Types.ObjectId.isValid(ans.questionId) ? new mongoose.Types.ObjectId(ans.questionId) : undefined,
+        selectedOptionId: ans.selectedOptionId,
+        selectedOptionText: ans.selectedOptionText,
+        questionIndex: ans.questionIndex !== undefined ? ans.questionIndex : idx,
+        selectedOption: ans.selectedOption !== undefined ? ans.selectedOption : -1,
       })),
       score: earnedPoints,
       totalPoints,

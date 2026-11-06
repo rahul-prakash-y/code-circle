@@ -6,6 +6,8 @@ export interface IAttendanceSession extends Document {
   otp: string;
   otpExpiry: Date;
   isActive: boolean;
+  dayNumber: number;
+  dateAttended: Date;
   classHours: number[];
   hourlyPoints: number;
   totalPoints: number;
@@ -25,6 +27,17 @@ const attendanceSessionSchema = new Schema<IAttendanceSession>(
       type: String,
       required: true,
       trim: true,
+    },
+    dayNumber: {
+      type: Number,
+      default: 1,
+      min: [1, 'Day number must be at least 1'],
+      index: true,
+    },
+    dateAttended: {
+      type: Date,
+      default: Date.now,
+      index: true,
     },
     otp: {
       type: String,

@@ -6,23 +6,26 @@ export interface SubmitAttendanceBody {
   eventId: string;
   otp: string;
   userId: string;
+  dayNumber?: number;
+  dateAttended?: string | Date;
 }
 
 export interface SetEventOTPBody {
   eventId: string;
   otp: string;
+  dayNumber?: number;
 }
 
 /**
- * High-performance attendance submission handler.
- * Validates against in-memory OTP cache and queues record in memory.
+ * High-performance attendance submission handler for multi-day events.
+ * Validates against in-memory OTP cache for the specific day and queues record in memory.
  * Guarantees sub-5ms response time by avoiding awaiting any database calls.
  */
 export const submitAttendanceHandler = async (
   request: FastifyRequest<{ Body: SubmitAttendanceBody }>,
   reply: FastifyReply
 ) => {
-  const { eventId, otp, userId } = request.body || {};
+  const { eventId, otp, userId, dayNumber = 1, dateAttended } = request.body || {};
 
   if (!eventId || !otp || !userId) {
     return reply.status(400).send({
@@ -31,7 +34,21 @@ export const submitAttendanceHandler = async (
     });
   }
 
-  const result = attendanceBuffer.verifyAndQueue(userId, eventId, otp);
+  const parsedDay = Math.max(1, Number(dayNumber) || 1);
+  if (parsedDay < 1 || parsedDay > 30) {
+    return reply.status(400).send({
+      success: false,
+      error: 'Invalid dayNumber: must be a positive integer corresponding to an event day (e.g. 1-5)',
+    });
+  }
+
+  const result = attendanceBuffer.verifyAndQueue(
+    userId,
+    eventId,
+    otp,
+    parsedDay,
+    dateAttended ? new Date(dateAttended) : new Date()
+  );
 
   if (!result.success) {
     return reply.status(400).send(result);
@@ -70,13 +87,13 @@ export const syncDbHandler = async (
 };
 
 /**
- * Admin/Faculty handler to set an event's active OTP into memory buffer
+ * Admin/Faculty handler to set an event's active OTP for a specific day into memory buffer
  */
 export const setEventOTPHandler = async (
   request: FastifyRequest<{ Body: SetEventOTPBody }>,
   reply: FastifyReply
 ) => {
-  const { eventId, otp } = request.body || {};
+  const { eventId, otp, dayNumber = 1 } = request.body || {};
 
   if (!eventId || !otp) {
     return reply.status(400).send({
@@ -85,12 +102,21 @@ export const setEventOTPHandler = async (
     });
   }
 
-  attendanceBuffer.setEventOTP(eventId, otp);
+  const parsedDay = Math.max(1, Number(dayNumber) || 1);
+  if (parsedDay < 1 || parsedDay > 30) {
+    return reply.status(400).send({
+      success: false,
+      error: 'Invalid dayNumber: must be a positive integer corresponding to an event day (e.g. 1-5)',
+    });
+  }
+
+  attendanceBuffer.setEventOTP(eventId, otp, parsedDay);
 
   return reply.status(200).send({
     success: true,
-    message: `Active OTP cached for event ${eventId}`,
+    message: `Active OTP cached for event ${eventId} (Day ${parsedDay})`,
     eventId,
+    dayNumber: parsedDay,
   });
 };
 
