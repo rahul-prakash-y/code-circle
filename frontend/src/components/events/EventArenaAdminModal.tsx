@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -719,7 +718,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     setDesignChallengesList(currentList);
   };
 
-  const handleExportTournamentLeaderboard = () => {
+  const handleExportTournamentLeaderboard = async () => {
     if (!overallLeaderboard || overallLeaderboard.length === 0) {
       return toast.error('No leaderboard data to export');
     }
@@ -749,6 +748,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       return row;
     });
 
+    const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Tournament Leaderboard');

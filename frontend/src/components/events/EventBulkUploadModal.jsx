@@ -17,7 +17,6 @@ import {
   FileText,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
-import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import useEventStore from '../../store/useEventStore';
@@ -73,6 +72,7 @@ export const EventBulkUploadModal = ({
             'Attendance Status (Optional)': 'Absent',
           },
         ];
+        const XLSX = await import('xlsx');
         const ws = XLSX.utils.json_to_sheet(sampleData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Participants Roster');
@@ -101,20 +101,22 @@ export const EventBulkUploadModal = ({
     setUploadResult(null);
 
     // Read and parse client-side preview
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-        setParsedPreview(data.slice(0, 10)); // preview first 10 rows
-      } catch {
-        setParsedPreview([]);
-      }
-    };
-    reader.readAsBinaryString(selectedFile);
+    import('xlsx').then((XLSX) => {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+          setParsedPreview(data.slice(0, 10)); // preview first 10 rows
+        } catch {
+          setParsedPreview([]);
+        }
+      };
+      reader.readAsBinaryString(selectedFile);
+    }).catch(() => setParsedPreview([]));
   };
 
   const handleDrop = (e) => {
@@ -130,20 +132,22 @@ export const EventBulkUploadModal = ({
       setFileName(droppedFile.name);
       setUploadResult(null);
 
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        try {
-          const bstr = evt.target?.result;
-          const wb = XLSX.read(bstr, { type: 'binary' });
-          const wsname = wb.SheetNames[0];
-          const ws = wb.Sheets[wsname];
-          const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-          setParsedPreview(data.slice(0, 10));
-        } catch {
-          setParsedPreview([]);
-        }
-      };
-      reader.readAsBinaryString(droppedFile);
+      import('xlsx').then((XLSX) => {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const bstr = evt.target?.result;
+            const wb = XLSX.read(bstr, { type: 'binary' });
+            const wsname = wb.SheetNames[0];
+            const ws = wb.Sheets[wsname];
+            const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+            setParsedPreview(data.slice(0, 10));
+          } catch {
+            setParsedPreview([]);
+          }
+        };
+        reader.readAsBinaryString(droppedFile);
+      }).catch(() => setParsedPreview([]));
     }
   };
 
