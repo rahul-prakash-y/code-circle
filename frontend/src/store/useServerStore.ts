@@ -24,6 +24,15 @@ const getAvailableNodes = (): string[] => {
   if (typeof envServers === 'string' && envServers.trim().length > 0) {
     return envServers.split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean);
   }
+  const envBaseUrl = import.meta.env.VITE_API_BASE_URL
+    ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/+$/, '')
+    : null;
+  if (import.meta.env.DEV) {
+    return [envBaseUrl || 'http://localhost:5000', ...DEFAULT_BACKEND_NODES];
+  }
+  if (envBaseUrl) {
+    return [envBaseUrl, ...DEFAULT_BACKEND_NODES];
+  }
   return DEFAULT_BACKEND_NODES;
 };
 
@@ -70,7 +79,7 @@ export const useServerStore = create<ServerStoreState>((set, get) => {
         const probeNode = async (nodeUrl: string): Promise<string> => {
           const cleanUrl = nodeUrl.replace(/\/+$/, '');
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6500); // 6.5s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5s timeout
 
           try {
             const response = await fetch(`${cleanUrl}/api/health`, {
