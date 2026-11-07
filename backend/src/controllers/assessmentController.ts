@@ -1,12 +1,13 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import Assessment, { IAssessment, IAssessmentQuestion } from '../models/assessmentModel';
 import AssessmentSubmission from '../models/assessmentSubmissionModel';
 import User from '../models/userModel';
 import PointTransaction from '../models/pointTransactionModel';
 import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 import { shuffleQuestionsAndOptions } from '../utils/shuffle';
+import { parseSpreadsheetBuffer } from '../utils/safeSpreadsheetParser';
 
 export interface CreateAssessmentBody {
   title: string;
@@ -1203,7 +1204,24 @@ export const resetMyAssessmentSubmission = async (
  * Download sample Excel template for MCQ questions bulk upload.
  */
 export const downloadSampleTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet('MCQ Assessments');
+
+  ws.columns = [
+    { header: 'AssessmentTitle', key: 'AssessmentTitle', width: 35 },
+    { header: 'Category', key: 'Category', width: 20 },
+    { header: 'TimeLimitMinutes', key: 'TimeLimitMinutes', width: 18 },
+    { header: 'PassingScorePercentage', key: 'PassingScorePercentage', width: 22 },
+    { header: 'CustomPoints', key: 'CustomPoints', width: 15 },
+    { header: 'QuestionText', key: 'QuestionText', width: 45 },
+    { header: 'OptionA', key: 'OptionA', width: 25 },
+    { header: 'OptionB', key: 'OptionB', width: 25 },
+    { header: 'OptionC', key: 'OptionC', width: 25 },
+    { header: 'OptionD', key: 'OptionD', width: 25 },
+    { header: 'CorrectOption', key: 'CorrectOption', width: 15 },
+    { header: 'Points', key: 'Points', width: 10 },
+    { header: 'Explanation', key: 'Explanation', width: 40 },
+  ];
 
   const sampleData = [
     {
@@ -1283,8 +1301,7 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
     },
   ];
 
-  const ws = XLSX.utils.json_to_sheet(sampleData);
-  XLSX.utils.book_append_sheet(wb, ws, 'MCQ Assessments');
+  sampleData.forEach((row) => ws.addRow(row));
 
   const instructions = [
     {
@@ -1354,23 +1371,29 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
     },
   ];
 
-  const wsInstr = XLSX.utils.json_to_sheet(instructions);
-  XLSX.utils.book_append_sheet(wb, wsInstr, 'Instructions');
+  const wsInstr = workbook.addWorksheet('Instructions');
+  wsInstr.columns = [
+    { header: 'Column', key: 'Column', width: 25 },
+    { header: 'Required', key: 'Required', width: 25 },
+    { header: 'Description', key: 'Description', width: 60 },
+  ];
+  instructions.forEach((instr) => wsInstr.addRow(instr));
 
-  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const buffer = await workbook.xlsx.writeBuffer();
 
   return reply
     .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     .header('Content-Disposition', 'attachment; filename="mcq_assessment_sample_template.xlsx"')
-    .send(buffer);
+    .send(Buffer.from(buffer));
 };
 
 /**
  * POST /api/assessments/admin/bulk-upload
- * Bulk upload MCQ questions from an Excel sheet (.xlsx / .xls).
+ * Bulk upload MCQ questions from an Excel (.xlsx) or CSV (.csv) file.
  * Supports:
  * - Appending to an existing assessment (if targetAssessmentId is specified)
  * - Creating new assessments grouped by AssessmentTitle in the sheet
+ * Enforces 5MB max file size and 500 rows limit.
  */
 export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
@@ -1393,14 +1416,14 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
     }
 
     if (!data) {
-      return reply.status(400).send({ success: false, error: 'No Excel file uploaded' });
+      return reply.status(400).send({ success: false, error: 'No spreadsheet file uploaded' });
     }
 
     const filename = (data.filename || '').toLowerCase();
-    if (!filename.endsWith('.xlsx') && !filename.endsWith('.xls')) {
+    if (!filename.endsWith('.xlsx') && !filename.endsWith('.csv')) {
       return reply.status(400).send({
         success: false,
-        error: 'Only .xlsx and .xls files are supported',
+        error: 'Only .xlsx and .csv spreadsheet files are supported',
       });
     }
 
@@ -1418,28 +1441,18 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
     }
     const buffer = Buffer.concat(chunks);
 
-    if (buffer.length === 0) {
-      return reply.status(400).send({ success: false, error: 'Uploaded Excel file is empty' });
+    let rawRows: any[] = [];
+    try {
+      rawRows = await parseSpreadsheetBuffer(buffer, filename);
+    } catch (parseErr: any) {
+      return reply.status(400).send({
+        success: false,
+        error: parseErr.message || 'Malformed or invalid spreadsheet file',
+      });
     }
 
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const sheetName =
-      workbook.SheetNames.find(
-        (s) =>
-          s.toLowerCase().includes('mcq') ||
-          s.toLowerCase().includes('assessment') ||
-          s.toLowerCase().includes('question')
-      ) ||
-      workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct')) ||
-      workbook.SheetNames[0];
-
-    if (!sheetName) {
-      return reply.status(400).send({ success: false, error: 'Excel file has no valid sheets' });
-    }
-
-    const rawRows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
     if (!rawRows.length) {
-      return reply.status(400).send({ success: false, error: 'The uploaded Excel sheet contains no data rows' });
+      return reply.status(400).send({ success: false, error: 'The uploaded spreadsheet contains no data rows' });
     }
 
     // Helper to find value from row case-insensitively
