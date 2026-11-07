@@ -19,7 +19,16 @@ export const register = async (request: FastifyRequest, reply: FastifyReply) => 
   try {
     const { name, email, rollNo, password, department } = request.body as any;
 
-    if (!name || !email || !rollNo || !password) {
+    if (
+      typeof name !== 'string' ||
+      typeof email !== 'string' ||
+      typeof rollNo !== 'string' ||
+      typeof password !== 'string' ||
+      !name.trim() ||
+      !email.trim() ||
+      !rollNo.trim() ||
+      !password
+    ) {
       return reply.status(400).send({
         success: false,
         error: 'Name, email, rollNo, and password are required',
@@ -91,7 +100,13 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const { identifier, password } = (request.body || {}) as any;
 
-    if (!identifier || !password) {
+    if (
+      !identifier ||
+      !password ||
+      typeof identifier !== 'string' ||
+      typeof password !== 'string' ||
+      !identifier.trim()
+    ) {
       return reply.status(400).send({
         success: false,
         error: 'Email or Roll Number and password are required',

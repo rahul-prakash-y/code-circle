@@ -7,6 +7,7 @@ import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import connectDB from './config/db';
 import errorHandler from './middleware/errorHandler';
+import sanitizeInputsHook from './middleware/sanitizeInput';
 import { authRoutes } from './routes/authRoutes';
 import { userRoutes } from './routes/userRoutes';
 import { newsRoutes } from './routes/newsRoutes';
@@ -124,6 +125,9 @@ server.register(rateLimit, {
 });
 
 server.setErrorHandler(errorHandler);
+
+// Global NoSQL Operator Injection Sanitization Hook
+server.addHook('preValidation', sanitizeInputsHook);
 
 // --- API ROUTES ---
 server.register(authRoutes, { prefix: '/api/auth' });
