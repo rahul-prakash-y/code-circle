@@ -1077,13 +1077,26 @@ export const deleteAssessmentSubmission = async (
 };
 
 export const allowStudentReappear = async (
-  request: FastifyRequest<{ Params: { id: string; studentId: string } }>,
+  request: FastifyRequest<{ Params: { id: string; studentId: string }; Body: { reason?: string } }>,
   reply: FastifyReply
 ) => {
   try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
     const { id, studentId } = request.params;
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(studentId)) {
       return reply.status(400).send({ success: false, error: 'Invalid ID parameters' });
+    }
+
+    const { reason } = (request.body || {}) as { reason?: string };
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
+      return reply.status(400).send({
+        success: false,
+        error: 'A valid reason (minimum 5 characters) is required to grant student reappearance',
+      });
     }
 
     const assessment = await Assessment.findById(id);
@@ -1097,10 +1110,32 @@ export const allowStudentReappear = async (
       user: studentId,
     });
 
+    // Record audit log entry
+    try {
+      const AuditLog = (await import('../models/auditLogModel')).default;
+      await AuditLog.create({
+        action: 'ASSESSMENT_REAPPEAR_GRANTED',
+        actorId: new mongoose.Types.ObjectId(user.id),
+        actorRole: user.role,
+        targetId: new mongoose.Types.ObjectId(studentId),
+        targetModel: 'User',
+        reason: reason.trim(),
+        details: {
+          assessmentId: id,
+          assessmentTitle: assessment.title,
+          deletedSubmissionsCount: deleteResult.deletedCount,
+        },
+        timestamp: new Date(),
+      });
+    } catch (auditErr) {
+      request.log.warn({ err: auditErr }, '[AssessmentController] Could not write audit log for reappearance');
+    }
+
     return reply.send({
       success: true,
       message: 'Student attempt has been reset. The student is now permitted to reappear for this assessment.',
       deletedCount: deleteResult.deletedCount,
+      reason: reason.trim(),
     });
   } catch (error: any) {
     return reply.status(500).send({
@@ -1123,6 +1158,25 @@ export const resetMyAssessmentSubmission = async (
     const { id } = request.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
+    }
+
+    const assessment = await Assessment.findById(id);
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
+    const isPrivileged =
+      user.role === 'Admin' ||
+      user.role === 'SuperAdmin' ||
+      user.role === 'Faculty' ||
+      user.role === 'Committee';
+
+    // Graded assessments (any published assessment, or assessment awarding custom points) cannot be self-reset by students
+    if (!isPrivileged && (assessment.isPublished || (assessment.customPoints && assessment.customPoints > 0))) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Self-service reset is disabled for graded assessments. Reappearance requires faculty authorization.',
+      });
     }
 
     // Delete student's own submissions for this assessment
