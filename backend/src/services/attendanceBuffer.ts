@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import AttendanceModel from '../models/attendanceModel';
+import EventOtp from '../models/eventOtpModel';
+import AttendanceLockout from '../models/attendanceLockoutModel';
 
 export interface AttendanceEntry {
   userId: string;
@@ -106,6 +108,97 @@ export class AttendanceBuffer {
     if (parsedDay === 1) {
       this.activeOTPs.set(cleanEventId, record);
     }
+
+    // Asynchronously synchronize with shared MongoDB collection if connected or mocked
+    if (mongoose.connection.readyState === 1 || (EventOtp.findOneAndUpdate as any).mock) {
+      void EventOtp.findOneAndUpdate(
+        { eventId: cleanEventId, dayNumber: parsedDay },
+        {
+          $set: {
+            eventId: cleanEventId,
+            dayNumber: parsedDay,
+            otp: cleanOtp,
+            expiresAt: new Date(expiresAt),
+          },
+        },
+        { upsert: true, new: true }
+      ).catch((err) => {
+        console.warn('[AttendanceBuffer] Error syncing EventOTP to MongoDB:', err);
+      });
+    }
+  }
+
+  /**
+   * Asynchronously saves active OTP to memory and shared MongoDB collection across all nodes.
+   */
+  public async setEventOTPAsync(
+    eventId: string,
+    otp: string,
+    dayNumber: number = 1,
+    ttlMinutes: number = 30
+  ): Promise<void> {
+    if (!eventId || !otp) return;
+    const cleanEventId = String(eventId).trim();
+    const cleanOtp = String(otp).trim();
+    const parsedDay = Math.max(1, Number(dayNumber) || 1);
+    const ttlMs = Math.max(1, Number(ttlMinutes) || 30) * 60 * 1000;
+    const expiresAt = Date.now() + ttlMs;
+
+    const record: EventOtpRecord = { otp: cleanOtp, expiresAt };
+    this.activeOTPs.set(this.makeOtpKey(cleanEventId, parsedDay), record);
+    if (parsedDay === 1) {
+      this.activeOTPs.set(cleanEventId, record);
+    }
+
+    if (mongoose.connection.readyState !== 1 && !(EventOtp.findOneAndUpdate as any).mock) {
+      return;
+    }
+
+    await EventOtp.findOneAndUpdate(
+      { eventId: cleanEventId, dayNumber: parsedDay },
+      {
+        $set: {
+          eventId: cleanEventId,
+          dayNumber: parsedDay,
+          otp: cleanOtp,
+          expiresAt: new Date(expiresAt),
+        },
+      },
+      { upsert: true, new: true }
+    );
+  }
+
+  /**
+   * Retrieves active OTP across nodes: checks local memory first, then queries shared MongoDB collection.
+   */
+  public async getEventOTPAsync(eventId: string, dayNumber: number = 1): Promise<string | undefined> {
+    const memoryOtp = this.getEventOTP(eventId, dayNumber);
+    if (memoryOtp) return memoryOtp;
+
+    if (mongoose.connection.readyState !== 1 && !(EventOtp.findOne as any).mock) {
+      return memoryOtp;
+    }
+
+    const cleanEventId = String(eventId).trim();
+    const parsedDay = Math.max(1, Number(dayNumber) || 1);
+
+    try {
+      const doc = await EventOtp.findOne({
+        eventId: cleanEventId,
+        dayNumber: parsedDay,
+        expiresAt: { $gt: new Date() },
+      }).lean();
+
+      if (doc && doc.otp) {
+        const exp = doc.expiresAt ? new Date(doc.expiresAt).getTime() : Date.now() + 30 * 60 * 1000;
+        this.activeOTPs.set(this.makeOtpKey(cleanEventId, parsedDay), { otp: doc.otp, expiresAt: exp });
+        return doc.otp;
+      }
+    } catch (err) {
+      console.warn('[AttendanceBuffer] Error querying EventOTP from MongoDB:', err);
+    }
+
+    return undefined;
   }
 
   /**
@@ -248,6 +341,180 @@ export class AttendanceBuffer {
     return {
       success: true,
       message: `Attendance for Day ${parsedDay} recorded and queued successfully`,
+      dayNumber: parsedDay,
+      queueLength: this.writeQueue.length,
+    };
+  }
+
+  /**
+   * Multi-Node Asynchronous Attendance Verification:
+   * Validates OTP across cluster nodes (via EventOtp shared MongoDB collection),
+   * enforces cluster-wide attempt limits (via AttendanceLockout shared MongoDB collection),
+   * and prevents duplicate attendance via AttendanceModel unique compound index.
+   */
+  public async verifyAndQueueAsync(
+    userId: string,
+    eventId: string,
+    otp: string,
+    dayNumber: number = 1,
+    dateAttended?: Date
+  ): Promise<VerifyAndQueueResult> {
+    if (!userId || !eventId || !otp) {
+      return {
+        success: false,
+        error: 'Missing required parameters: userId, eventId, and otp are required',
+      };
+    }
+
+    // If Mongoose is not connected and models are not mocked, fall back to high-speed in-memory verification
+    if (mongoose.connection.readyState !== 1 && !(AttendanceLockout.findOne as any).mock) {
+      return this.verifyAndQueue(userId, eventId, otp, dayNumber, dateAttended);
+    }
+
+    const cleanUserId = String(userId).trim();
+    const cleanEventId = String(eventId).trim();
+    const cleanOtp = String(otp).trim();
+    const parsedDay = Math.max(1, Number(dayNumber) || 1);
+    const attemptKey = this.makeAttemptKey(cleanUserId, cleanEventId);
+
+    // 1. Check in-memory attempt lockout
+    const memoryAttempt = this.failedAttempts.get(attemptKey);
+    if (memoryAttempt && memoryAttempt.lockedUntil > Date.now()) {
+      const remainingSec = Math.max(1, Math.ceil((memoryAttempt.lockedUntil - Date.now()) / 1000));
+      return {
+        success: false,
+        error: `Too many invalid OTP attempts for this event. Account locked for ${remainingSec} seconds.`,
+      };
+    }
+
+    // 2. Check MongoDB shared attempt lockout across nodes
+    try {
+      const dbLockout = await AttendanceLockout.findOne({ userId: cleanUserId, eventId: cleanEventId }).lean();
+      if (dbLockout && dbLockout.lockedUntil && new Date(dbLockout.lockedUntil).getTime() > Date.now()) {
+        const remainingSec = Math.max(1, Math.ceil((new Date(dbLockout.lockedUntil).getTime() - Date.now()) / 1000));
+        return {
+          success: false,
+          error: `Too many invalid OTP attempts for this event. Account locked for ${remainingSec} seconds.`,
+        };
+      }
+    } catch (dbErr) {
+      // Continue
+    }
+
+    // 3. Check duplicate submission in MongoDB and memory
+    const markKey = this.makeMarkedKey(cleanUserId, cleanEventId, parsedDay);
+    if (this.markedSet.has(markKey)) {
+      return {
+        success: false,
+        error: `Attendance has already been marked for Day ${parsedDay} of this event`,
+      };
+    }
+
+    try {
+      const existingAttendance = await AttendanceModel.findOne({
+        userId: cleanUserId,
+        eventId: cleanEventId,
+        dayNumber: parsedDay,
+      }).lean();
+      if (existingAttendance) {
+        this.markedSet.add(markKey);
+        return {
+          success: false,
+          error: `Attendance has already been marked for Day ${parsedDay} of this event`,
+        };
+      }
+    } catch (attErr) {
+      // Continue
+    }
+
+    // 4. Validate OTP across cluster nodes (checks memory then MongoDB)
+    const activeOtp = await this.getEventOTPAsync(cleanEventId, parsedDay);
+    if (!activeOtp || activeOtp !== cleanOtp) {
+      let currentAttempts = memoryAttempt?.attempts || 0;
+      try {
+        const existingLockout = await AttendanceLockout.findOne({ userId: cleanUserId, eventId: cleanEventId });
+        if (existingLockout) {
+          currentAttempts = Math.max(currentAttempts, existingLockout.attempts);
+        }
+      } catch {}
+
+      currentAttempts += 1;
+      const isLocked = currentAttempts >= 5;
+      const lockedUntilMs = isLocked ? Date.now() + 15 * 60 * 1000 : 0;
+      const lockedUntilDate = isLocked ? new Date(lockedUntilMs) : null;
+      const expiresAtDate = new Date(Date.now() + (isLocked ? 16 * 60 * 1000 : 30 * 60 * 1000));
+
+      this.failedAttempts.set(attemptKey, { attempts: currentAttempts, lockedUntil: lockedUntilMs });
+
+      // Save to shared MongoDB AttendanceLockout across nodes
+      try {
+        await AttendanceLockout.findOneAndUpdate(
+          { userId: cleanUserId, eventId: cleanEventId },
+          {
+            $set: {
+              userId: cleanUserId,
+              eventId: cleanEventId,
+              attempts: currentAttempts,
+              lockedUntil: lockedUntilDate,
+              expiresAt: expiresAtDate,
+            },
+          },
+          { upsert: true, new: true }
+        );
+      } catch (saveLockErr) {
+        console.warn('[AttendanceBuffer] Error updating AttendanceLockout:', saveLockErr);
+      }
+
+      if (isLocked) {
+        return {
+          success: false,
+          error: 'Maximum OTP verification attempts exceeded (5). Account locked for this event for 15 minutes.',
+        };
+      }
+
+      return {
+        success: false,
+        error: `Invalid or expired OTP for Day ${parsedDay} of this event. Attempts remaining: ${5 - currentAttempts}`,
+      };
+    }
+
+    // 5. Successful verification: clear lockout in memory and in MongoDB
+    this.failedAttempts.delete(attemptKey);
+    this.markedSet.add(markKey);
+
+    try {
+      await AttendanceLockout.deleteMany({ userId: cleanUserId, eventId: cleanEventId });
+    } catch {}
+
+    // Durably insert into MongoDB AttendanceModel (idempotent via unique compound index)
+    try {
+      await AttendanceModel.create({
+        userId: cleanUserId,
+        eventId: cleanEventId,
+        dayNumber: parsedDay,
+        dateAttended: dateAttended ? new Date(dateAttended) : new Date(),
+        timestamp: new Date(),
+        status: 'Present',
+      });
+    } catch (writeErr: any) {
+      if (writeErr.code === 11000) {
+        return {
+          success: false,
+          error: `Attendance has already been marked for Day ${parsedDay} of this event`,
+        };
+      }
+      this.writeQueue.push({
+        userId: cleanUserId,
+        eventId: cleanEventId,
+        dayNumber: parsedDay,
+        dateAttended: dateAttended ? new Date(dateAttended) : new Date(),
+        timestamp: new Date(),
+      });
+    }
+
+    return {
+      success: true,
+      message: `Attendance for Day ${parsedDay} recorded successfully`,
       dayNumber: parsedDay,
       queueLength: this.writeQueue.length,
     };

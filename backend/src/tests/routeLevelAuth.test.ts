@@ -213,6 +213,7 @@ describe('Route-Level HTTP Handler Authorization & Security Test Suite', () => {
           method: 'POST',
           url: '/api/attendance/submit',
           remoteAddress: testIp,
+          headers: { authorization: `Bearer ${validStudentToken}` },
           payload: { eventId: testEventId, otp: testOtp, userId: studentId },
         });
 

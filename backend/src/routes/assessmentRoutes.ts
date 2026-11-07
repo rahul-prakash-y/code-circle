@@ -103,6 +103,24 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
     },
     assessmentController.submitAssessment as any
   );
+  fastify.post(
+    '/:id/submit-figma',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+          errorResponseBuilder: () => ({
+            statusCode: 429,
+            error: 'Too Many Requests',
+            message: 'Figma submission rate limit exceeded. Please wait a moment before trying again.',
+          }),
+        },
+      },
+      preHandler: [checkFeatureNotRestricted('assessments'), checkAssessmentNotBlocked],
+    },
+    assessmentController.submitFigmaAssessment as any
+  );
   fastify.get(
     '/:id/submission-status/:submissionId',
     {

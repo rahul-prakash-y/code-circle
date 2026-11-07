@@ -77,7 +77,7 @@ export const submitAttendanceHandler = async (
     });
   }
 
-  const result = attendanceBuffer.verifyAndQueue(
+  const result = await attendanceBuffer.verifyAndQueueAsync(
     effectiveUserId,
     eventId,
     otp,
@@ -146,11 +146,11 @@ export const setEventOTPHandler = async (
   }
 
   const parsedTtl = Math.max(1, Number(ttlMinutes) || 30);
-  attendanceBuffer.setEventOTP(eventId, otp, parsedDay, parsedTtl);
+  await attendanceBuffer.setEventOTPAsync(eventId, otp, parsedDay, parsedTtl);
 
   return reply.status(200).send({
     success: true,
-    message: `Active OTP cached for event ${eventId} (Day ${parsedDay}, TTL: ${parsedTtl}m)`,
+    message: `Active OTP synchronized across cluster for event ${eventId} (Day ${parsedDay}, TTL: ${parsedTtl}m)`,
     eventId,
     dayNumber: parsedDay,
     ttlMinutes: parsedTtl,

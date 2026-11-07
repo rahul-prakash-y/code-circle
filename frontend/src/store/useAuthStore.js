@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../lib/axios';
+import useServerStore from './useServerStore';
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -15,6 +16,10 @@ const useAuthStore = create((set, get) => ({
   login: async (identifier, password) => {
     set({ loading: true, error: null });
     try {
+      // Deterministically route user by hash(username) to pin session to assigned cluster node
+      if (identifier) {
+        await useServerStore.getState().assignNodeForUser(identifier);
+      }
       const response = await api.post('/auth/login', { identifier, password });
       const { user, token, sessionId, requirePasswordChange, mustChangePassword } = response.data;
       
@@ -35,9 +40,13 @@ const useAuthStore = create((set, get) => ({
         mustChangePassword: needsPasswordChange,
       };
     } catch (err) {
-      const message = err.response?.data?.error || 'Login failed. Please check your credentials.';
+      const retryAfter = err.response?.headers?.['retry-after'];
+      let message = err.response?.data?.error || 'Login failed. Please check your credentials.';
+      if (err.response?.status === 429 && retryAfter) {
+        message = `${message} (Retry after ${retryAfter} seconds)`;
+      }
       set({ error: message, loading: false });
-      return { success: false, error: message };
+      return { success: false, error: message, statusCode: err.response?.status, retryAfter };
     }
   },
 

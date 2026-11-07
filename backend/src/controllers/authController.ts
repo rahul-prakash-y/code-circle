@@ -3,6 +3,7 @@ import User, { IUser } from '../models/userModel';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { getJwtSecret } from '../middleware/authMiddleware';
+import authLockoutService from '../services/authLockoutService';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
@@ -114,15 +115,29 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
     }
 
     const trimmedIdentifier = identifier.trim();
+    const normalizedIdentifier = trimmedIdentifier.toLowerCase();
+
+    // Check shared MongoDB lockout status across cluster nodes
+    const lockoutStatus = await authLockoutService.checkLockout(normalizedIdentifier, request.ip);
+    if (lockoutStatus.isLocked) {
+      reply.header('Retry-After', String(lockoutStatus.retryAfterSeconds));
+      return reply.status(429).send({
+        success: false,
+        code: 'ACCOUNT_LOCKED',
+        error: lockoutStatus.message,
+        retryAfter: lockoutStatus.retryAfterSeconds,
+      });
+    }
 
     const user = await User.findOne({
       $or: [
-        { email: trimmedIdentifier.toLowerCase() },
+        { email: normalizedIdentifier },
         { rollNo: trimmedIdentifier.toUpperCase() },
       ],
     });
 
     if (!user) {
+      await authLockoutService.recordFailedAttempt(normalizedIdentifier, request.ip);
       return reply.status(401).send({ success: false, error: 'Invalid credentials' });
     }
 
@@ -135,8 +150,12 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      await authLockoutService.recordFailedAttempt(normalizedIdentifier, request.ip);
       return reply.status(401).send({ success: false, error: 'Invalid credentials' });
     }
+
+    // Success: Clear any failed login attempt tracking
+    await authLockoutService.clearLockout(normalizedIdentifier);
 
     // Generate fresh session ID to invalidate previous sessions on other devices
     const sessionId = crypto.randomUUID();
@@ -205,6 +224,21 @@ export const getMe = async (request: FastifyRequest, reply: FastifyReply) => {
 
 export const forgotPassword = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
+    const { identifier } = (request.body || {}) as any;
+    if (identifier && typeof identifier === 'string' && identifier.trim()) {
+      const normalizedIdentifier = identifier.trim().toLowerCase();
+      const lockoutStatus = await authLockoutService.checkLockout(normalizedIdentifier, request.ip);
+      if (lockoutStatus.isLocked) {
+        reply.header('Retry-After', String(lockoutStatus.retryAfterSeconds));
+        return reply.status(429).send({
+          success: false,
+          code: 'ACCOUNT_LOCKED',
+          error: lockoutStatus.message,
+          retryAfter: lockoutStatus.retryAfterSeconds,
+        });
+      }
+    }
+
     return reply.send({
       success: true,
       message: 'Password reset links cannot be self-generated. Please contact your club administrator to receive a secure temporary password.',
@@ -214,6 +248,35 @@ export const forgotPassword = async (request: FastifyRequest, reply: FastifyRepl
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({ success: false, error: 'Failed to process request' });
+  }
+};
+
+/**
+ * Admin / Faculty endpoint to manually clear account lockout
+ * Audit-logged in MongoDB.
+ */
+export const adminUnlockAccountHandler = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const caller = request.user;
+    if (!caller) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { identifier } = (request.body || {}) as any;
+    if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
+      return reply.status(400).send({ success: false, error: 'User identifier is required' });
+    }
+
+    const result = await authLockoutService.adminUnlockAccount(identifier, {
+      id: caller.id,
+      email: caller.email,
+      role: caller.role,
+    });
+
+    return reply.status(200).send(result);
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({ success: false, error: err.message || 'Failed to clear lockout' });
   }
 };
 

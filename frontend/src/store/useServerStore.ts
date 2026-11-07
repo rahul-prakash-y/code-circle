@@ -7,9 +7,25 @@ export interface ServerStoreState {
   serverNodes: string[];
   latencyMs: number | null;
   findFastestServer: () => Promise<string>;
+  assignNodeForUser: (username: string) => Promise<string>;
   setActiveServerUrl: (url: string) => void;
   clearActiveServer: () => void;
 }
+
+/**
+ * Deterministic hash function for uniform candidate assignment across cluster nodes.
+ * Takes a normalized candidate identifier and maps it to a node index [0, nodeCount - 1].
+ */
+export const hashUsernameToNodeIndex = (username: string, nodeCount: number): number => {
+  if (nodeCount <= 0) return 0;
+  const clean = String(username).trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < clean.length; i++) {
+    hash = (hash << 5) - hash + clean.charCodeAt(i);
+    hash |= 0; // Convert to 32-bit integer
+  }
+  return Math.abs(hash) % nodeCount;
+};
 
 // Default Render Backend Clusters (Free Tier instances distributed for horizontal load distribution)
 export const DEFAULT_BACKEND_NODES: string[] = [
@@ -153,6 +169,65 @@ export const useServerStore = create<ServerStoreState>((set, get) => {
       })();
 
       return inFlightProbePromise;
+    },
+
+    /**
+     * Deterministic Node Assignment:
+     * Maps candidate username to primary node via hash(username).
+     * Probes node health; if healthy, pins user to this node.
+     * If candidate node fails health check, seamlessly fails over to next healthy node in cluster.
+     */
+    assignNodeForUser: async (username: string): Promise<string> => {
+      const nodes = get().serverNodes;
+      if (!nodes || nodes.length === 0) {
+        return 'http://localhost:5000';
+      }
+
+      if (!username || typeof username !== 'string' || !username.trim()) {
+        return get().findFastestServer();
+      }
+
+      const primaryIdx = hashUsernameToNodeIndex(username, nodes.length);
+      const probeOrder: number[] = [];
+      for (let offset = 0; offset < nodes.length; offset++) {
+        probeOrder.push((primaryIdx + offset) % nodes.length);
+      }
+
+      for (const idx of probeOrder) {
+        const candidateUrl = nodes[idx].replace(/\/+$/, '');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+        try {
+          const res = await fetch(`${candidateUrl}/api/health`, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { Accept: 'application/json' },
+          });
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+            set({ activeServerUrl: candidateUrl });
+            if (typeof window !== 'undefined') {
+              window.localStorage.setItem(LOCAL_STORAGE_KEY, candidateUrl);
+            }
+            console.log(
+              `[Node Assignment] Candidate "${username}" assigned to Node ${idx + 1}: ${candidateUrl}`
+            );
+            return candidateUrl;
+          }
+        } catch {
+          clearTimeout(timeoutId);
+          console.warn(
+            `[Node Failover] Candidate Node ${idx + 1} (${candidateUrl}) unreachable. Failing over...`
+          );
+        }
+      }
+
+      // If all probe attempts fail, fallback to primary hashed node
+      const fallback = nodes[primaryIdx].replace(/\/+$/, '');
+      set({ activeServerUrl: fallback });
+      return fallback;
     },
 
     setActiveServerUrl: (url: string) => {

@@ -1,117 +1,159 @@
-# Live Exam Day Operational Checklist & Runbook
+# Live 5-Day Exam Operational Checklist & Multi-Node Runbook
 
 **Platform:** Code Circle ⭕  
 **Branch:** `audit/production-hardening`  
-**Target Infrastructure:** Vercel (Frontend), 3x Render Free Tier (Backend), MongoDB Atlas M0 (Free Tier Database), Judge0 CE  
+**Target Infrastructure:** Vercel (Frontend), 3x Render Free Tier Instances (Backend Cluster), MongoDB Atlas M0 (Free Tier Database), Judge0 CE  
 **Capacity Envelope:** Up to 300 Simultaneous Candidates, 60-Minute Exam Window  
 
 ---
 
-## 1. Pre-Exam Preparation (T-60 to T-15 Minutes)
+## 1. Five-Day Exam Schedule & Resource Profiles
 
-- [ ] **1.1 Deploy Freeze Enforcement**
-  - Absolute code freeze across `main` and production environments.
-  - No pull requests, package updates, or configuration changes may be merged within 2 hours of exam start.
-  - Disable automatic Render branch deployments during the exam duration.
-
-- [ ] **1.2 Pre-Warm All 3 Render Backend Instances**
-  - Render free tier instances spin down after 15 minutes of inactivity (taking 50-90s to spin up on cold start).
-  - Verify UptimeRobot pings are actively hitting `/api/health` across all 3 nodes:
-    - Node 1: `https://<render-node-1-url>/api/health`
-    - Node 2: `https://<render-node-2-url>/api/health`
-    - Node 3: `https://<render-node-3-url>/api/health`
-  - Send test HTTP GET requests to each node 15 minutes before students log in to ensure warm memory state.
-
-- [ ] **1.3 Database Connection & Quota Verification**
-  - Log in to MongoDB Atlas Console:
-    - Verify cluster status is **HEALTHY** (Atlas M0 limit: 100 ops/sec, 50 socket connections).
-    - Ensure active connection count is `< 15` before candidate ingress.
-  - Verify compound unique index `{ user: 1, assessment: 1, submissionId: 1 }` exists on `assessmentsubmissions` collection.
-
-- [ ] **1.4 Assessment Configuration Audit**
-  - Navigate to Assessment Settings in Faculty Dashboard:
-    - **`serverCheckpointIntervalSeconds`**: Set to `0` (default: off). Server-side autosave is removed from client by default to prevent write saturation; students use client-side IndexedDB persistence.
-    - **`submissionGraceWindowSeconds`**: Configured to `120` (default: 120s grace period). Late submissions inside 120s are accepted and flagged `late` for faculty review; submissions after 120s are rejected (`DEADLINE_EXCEEDED`).
-    - **`deadline`**: Set exact official end time. Server enforces deadline using UTC clock (`Date.now()`); client device clocks are never trusted.
+| Day | Track & Type | Evaluation Engine | Concurrency & Capacity Limits | Risk Level |
+| :--- | :--- | :--- | :--- | :--- |
+| **Day 1** | **Aptitude MCQ** | Server-side canonical scoring engine | Bounded queue (cap 60 doc writes/sec). Autosave off (`0s`). Local IndexedDB persistence. | Low |
+| **Day 2** | **General Knowledge (GK) MCQ** | Server-side canonical scoring engine | Bounded queue (cap 60 doc writes/sec). 120s grace period. Local IndexedDB persistence. | Low |
+| **Day 3** | **C Programming (MCQ + Code)** | Judge0 CE Batch execution | **Run Caps Enforced:** Max 1 in-flight per user. Run rate limit: 20 req/2 min (2s cooldown). Submit: 5 req/1 min (5s cooldown). Max 50 queue slots. | Medium |
+| **Day 4** | **Python Programming (MCQ + Code)** | Judge0 CE Batch execution | **Run Caps Enforced:** Max 1 in-flight per user. Execution timeout: 5s CPU / 10s Wall. Max 256MB RAM per run. Max 50 queue slots. | Medium |
+| **Day 5** | **UI/UX Design (Figma Link)** | Regex allowlist & idempotent storage | Single URL validation (`https://www.figma.com/file\|design\|proto\|board/...`), max 2048 chars, 1 submission per student. Server deadline. | Very Low |
 
 ---
 
-## 2. Live Exam Monitoring (T-0 to T+60 Minutes)
+## 2. Cluster Prerequisites & Maintenance Protocol
 
-- [ ] **2.1 Admin Submission Queue Panel Monitoring**
-  - Log in as Faculty/Admin and open the **Submission Queue Panel** at the top of the `/assessments` page.
-  - The dashboard auto-polls every 3 seconds, monitoring:
-    - `Node ID`: Identifies which of the 3 Render instances is responding.
-    - `Pending in Queue`: Number of submissions currently waiting in memory for the 1s flusher.
-    - `Oldest Pending Age`: Elapsed time of oldest item waiting in memory (should remain `< 5s`).
-    - `Failed Queue Count`: Submissions that encountered write errors (target: 0).
-    - `Last Successful Flush`: Timestamp of most recent batch write to MongoDB.
+### 2.1 One-Time Pre-Day-1 JWT Secret Rotation
+- [ ] **Rotate `JWT_SECRET` Once Before Day 1:**
+  - Generate a secure 256-bit random key: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+  - Set the identical key across all 3 Render instances and staging environments.
+  - Verify secret consistency: Open the Admin Queue Monitor and verify all online nodes display the **identical `JWT Secret Fingerprint`** (e.g. `1e78b904`).
+  - **CRITICAL:** Do **NOT** rotate `JWT_SECRET` during the 5-day examination window.
 
-- [ ] **2.2 In-Flight Warning Banner Awareness**
-  - If `pendingCount > 0`, the dashboard displays a prominent Amber Warning Banner:
-    > `⚠️ WARNING: [N] submission(s) pending durable write in memory. Do not end exam or deploy!`
-  - Ensure all proctors and administrators observe this banner and do not restart servers while pending items exist.
+### 2.2 Nightly Database Backups (`mongodump`)
+- [ ] **Nightly Automated/Manual Database Export (23:00 UTC):**
+  - Execute full cluster export nightly after all submissions are durably flushed:
+    ```bash
+    mongodump --uri="<MONGODB_ATLAS_M0_URI>" --gzip --archive="backup-codecircle-day-$DAY-$(date +%Y%m%d).gz"
+    ```
+  - Verify archive integrity by checking that file size is non-zero. Store archive securely on local faculty offline storage.
 
-- [ ] **2.3 Client-Side Storage Verification**
-  - Student browsers automatically save every code keystroke and MCQ option selection to local **IndexedDB** (fallback `localStorage`).
-  - Advise students:
-    - Refreshing the page or accidental browser close will safely restore all answers from local IndexedDB.
-    - Browser cache/storage is only cleared **after** receiving `status: 'saved'` from the backend.
-
----
-
-## 3. Post-Exam Window & Closing Procedures (T+60 to T+75 Minutes)
-
-- [ ] **3.1 MANDATORY: Verify Pending Count = 0 on ALL Nodes Before Ending Exam**
-  - When the deadline expires, up to 300 students submit their final exams simultaneously.
-  - The bounded in-memory flusher processes up to 60 doc writes/sec (draining 300 submissions across ~5 seconds).
-  - **CRITICAL STEP:** **DO NOT** end the assessment or terminate exam sessions until the Submission Queue Panel confirms:
-    - **`Pending in Queue: 0`**
-    - **`Warning Banner: Cleared (Normal State)`**
-  - If running across multiple Render nodes, check the panel through each node endpoint or wait at least 30 seconds after the final student submits to guarantee all background flush intervals have settled.
-
-- [ ] **3.2 Handle Failed Submissions (If Any)**
-  - If `Failed Queue Count > 0`:
-    1. Inspect the error messages in the Failed Items viewer.
-    2. Click the **"Retry Failed"** button.
-    3. The failed items will re-enter the pending queue and flush to MongoDB automatically.
-    4. Verify `Failed Queue Count` drops back to 0.
-
-- [ ] **3.3 Manual Flush Verification**
-  - If any items remain pending after 10 seconds, click **"Flush Now"** to immediately trigger an out-of-band bulk write batch to MongoDB.
-  - The flusher is completely idempotent: multiple clicks create zero duplicate documents in the database.
-
-- [ ] **3.4 MANDATORY: Click "Download Backup" Before Any Deploy or Server Restart**
-  - **CRITICAL PROTOCOL:** Before restarting any Render instance, updating environment variables, or triggering a new deployment:
-    1. Click the **"Download Backup"** button on the Submission Queue Panel.
-    2. Save the generated `queue-backup-<nodeId>-<timestamp>.json` file to local faculty storage.
-    3. This file contains a complete JSON snapshot of all pending submissions, answers, scores, and evaluation results held in process memory.
-    4. Repeat this step for each active backend node if instances are managed individually.
-
-- [ ] **3.5 Review Late Submissions**
-  - Submissions submitted within the 120-second grace window are marked with `isLate: true` and `submissionStatus: 'late'`.
-  - Faculty review committee may filter submissions by `submissionStatus === 'late'` to approve or penalize late submissions based on institutional policy.
+### 2.3 Strict Inter-Exam Deployment Window
+- [ ] **Zero Deployment During Active Exams:**
+  - Code deployments and Render redeploys are **STRICTLY PROHIBITED** between T-60m and T+75m of each exam.
+  - Deployments may only occur in the designated maintenance window between exam days **AFTER** completing:
+    1. Confirm `Pending in RAM: 0` across ALL 3 nodes in the Admin Queue Dashboard.
+    2. Click **"Download All Backups"** to store JSON snapshots of all process memory.
+    3. Complete the nightly `mongodump` export.
 
 ---
 
-## 4. Emergency Incident Runbook
+## 3. Pre-Exam Operations (T-60 to T-15 Minutes Daily)
+
+- [ ] **3.1 Pre-Warm All 3 Render Backend Instances**
+  - Render free tier instances sleep after 15 minutes of inactivity (taking 50-90s on cold start).
+  - Verify UptimeRobot 5-minute pings are active.
+  - Manually send probe requests to each node 15 minutes before candidate login:
+    - Node 1: `curl -s https://<render-node-1>/api/health`
+    - Node 2: `curl -s https://<render-node-2>/api/health`
+    - Node 3: `curl -s https://<render-node-3>/api/health`
+  - Ensure all 3 nodes respond with `{"status":"ok"}`.
+
+- [ ] **3.2 Database Connection & Quota Verification**
+  - Verify MongoDB Atlas M0 Console:
+    - Current connection count `< 15` (Atlas M0 hard cap: 50 connections).
+    - Current ops/sec `< 10` (Atlas M0 hard cap: 100 ops/sec).
+  - Verify compound unique indexes exist:
+    - `assessmentsubmissions`: `{ user: 1, assessment: 1, submissionId: 1 }`
+    - `attendances`: `{ userId: 1, eventId: 1, dayNumber: 1 }`
+    - `authlockouts`: `{ key: 1 }` (TTL: 0s)
+    - `eventotps`: `{ eventId: 1, dayNumber: 1 }` (TTL: 0s)
+
+- [ ] **3.3 Assessment Configuration Checklist**
+  - **`serverCheckpointIntervalSeconds`**: Set to `0` (default: off). Candidates rely on local IndexedDB persistence; avoids database write exhaustion.
+  - **`submissionGraceWindowSeconds`**: Configured to `120` (120s grace period). Late submissions inside 120s are accepted and flagged `late`; submissions outside 120s are rejected (`DEADLINE_EXCEEDED`).
+  - **`deadline`**: Set exact official end time. Enforced via UTC server clock (`Date.now()`); client device clocks are never trusted.
+  - **For Days 3 & 4 (Code Days):** Verify Judge0 provider is reachable: `GET /api/assessments/code/health` returns status 200 with semver >= `1.13.1`.
+  - **For Day 5 (Figma Day):** Ensure `assessmentType: 'figma'`. Verify regex allowlist (`FIGMA_URL_REGEX`) is enforced.
+
+---
+
+## 4. Live Exam Monitoring (T-0 to T+60 Minutes)
+
+- [ ] **4.1 Admin Submission Queue Multi-Node Dashboard**
+  - Open `/assessments` as Admin/Faculty to inspect the **Submission Queue Panel**.
+  - Dashboard auto-polls every 4 seconds across all 3 nodes via `Promise.allSettled`:
+    - **Node Status:** All cards must show `Online` (Emerald badge).
+    - **Pending in RAM:** Real-time count of submissions queued for batch flusher.
+    - **Oldest in Queue:** Should remain `< 5s`.
+    - **Failed Items:** Target: 0.
+    - **JWT Secret:** Must show identical 8-character fingerprint across all 3 cards.
+
+- [ ] **4.2 In-Flight Warning Banner Awareness**
+  - If `Pending in RAM > 0` on any node, the Amber Warning Banner activates:
+    > `⚠️ WARNING: [N] submission(s) pending durable write in memory! Do not end exam or deploy!`
+  - Proctors must not terminate or reboot any instance while this banner is active.
+
+- [ ] **4.3 Candidate Ingress & Authentication Monitoring**
+  - 300 candidates behind a single campus WiFi IP (`NAT`) can all log in simultaneously without IP throttling.
+  - Failed logins are restricted per normalized username: 5 consecutive failures triggers a 5-minute lock.
+  - If a student is legitimately locked out:
+    1. Admin clicks **"Unlock Account"** (`POST /api/auth/unlock-lockout`).
+    2. Candidate can immediately retry authentication.
+    3. Action is recorded in `AuditLog`.
+
+---
+
+## 5. Post-Exam Window & Closing Procedures (T+60 to T+75 Minutes)
+
+- [ ] **5.1 MANDATORY: Verify Pending Count = 0 on ALL Nodes Before Ending Exam**
+  - When countdown expires, up to 300 students submit simultaneously.
+  - The flusher writes batches of up to 60 docs/sec to MongoDB (draining 300 items in ~5 seconds).
+  - **CRITICAL:** **DO NOT** click "End Exam" until the panel shows:
+    - **`Pending in RAM: 0` on Node 1**
+    - **`Pending in RAM: 0` on Node 2**
+    - **`Pending in RAM: 0` on Node 3**
+  - If any node is offline, the "End Exam" button is guarded by a confirmation modal requiring explicit administrator acknowledgement.
+
+- [ ] **5.2 Failed Items Recovery**
+  - If any node shows `Failed Items > 0`:
+    1. Inspect the error logs in the card viewer.
+    2. Click **"Retry"** on that specific node (or **"Flush All"**).
+    3. Verify `Failed Items` drops to 0.
+
+- [ ] **5.3 MANDATORY: Click "Download All Backups" Before Any Deploy or Restart**
+  - Click **"Download All Backups"** on the cluster toolbar.
+  - Generates separate JSON backup files (`submission-queue-backup-<nodeId>-<timestamp>.json`) for all online nodes.
+  - Store backups securely on local disk.
+
+- [ ] **5.4 Review Flagged Late Submissions**
+  - Submissions submitted within the 120s grace period are marked `isLate: true`, `submissionStatus: 'late'`.
+  - Faculty exam committee filters by `submissionStatus === 'late'` to approve or adjust scores per policy.
+
+---
+
+## 6. Emergency Incident Runbook
 
 | Incident | Root Cause | Immediate Action |
 | :--- | :--- | :--- |
-| **Node Crashes During Submission** | Memory spike or Render free tier timeout | **Client Auto-Recovery:** The student's browser holds all answers and UUID `submissionId` in IndexedDB. When connection resumes or student reloads, client auto-retries. MongoDB unique compound index `{ user, assessment, submissionId }` guarantees exactly 1 stored document without duplicate scoring. |
-| **Queue Overflow (HTTP 503)** | Burst exceeds 1,000 pending items | **Backpressure Engaged:** Server returns `503 Service Unavailable` with `Retry-After: 2`. Student UI automatically displays a countdown toast and retries after 2 seconds. Faculty clicks **"Flush Now"** to immediately relieve memory pressure. |
-| **MongoDB Atlas Free Tier Throttling** | Atlas M0 exceeds 100 ops/sec | The flusher is hard-capped at **60 doc writes/sec**, preventing Atlas quota breach. If an external query spike occurs, flusher places transient failures into `failedQueue`. Once DB recovers, click **"Retry Failed"**. |
-| **Student Lost Internet at Deadline** | Local Wi-Fi disconnect | Answers remain safe in student's browser IndexedDB. Instruct student **NOT to clear browser cookies/history**. Once internet reconnects, opening the exam page allows them to submit or export local answers. |
+| **Node Crashes During Submission** | Memory spike or Render free tier timeout | **Client Auto-Recovery:** Candidate browser holds complete answers and UUID `submissionId` in IndexedDB. When student reloads or internet reconnects, client auto-retries. Unique index `{ user, assessment, submissionId }` guarantees exactly 1 stored document without duplicate scoring. |
+| **Queue Backpressure (HTTP 503)** | Burst exceeds 1,000 pending items | Server returns `503 Service Unavailable` with `Retry-After: 2`. Client automatically retries after 2 seconds. Admin clicks **"Flush All"** to immediately relieve memory pressure. |
+| **One Render Node Goes Offline** | Render platform maintenance | **Client Failover:** `useServerStore.ts` detects health-check failure on primary hashed node and automatically routes candidate to next healthy node. |
+| **Judge0 Upstream Throttling (Days 3 & 4)** | Rapid consecutive code runs | RCE concurrency limiter holds at most 50 queued runs with 30s timeout. If exceeded, returns `503 Retry-After: 5`. Run caps prevent candidate spam. Advise students to test code locally before submission. |
+| **Candidate WiFi Disconnects at Deadline** | Campus router disconnect | Answers remain safe in student's browser IndexedDB. Instruct student **NOT to clear browser cookies or close tab**. Once WiFi reconnects, clicking submit transmits stored answers. |
 
 ---
 
-## 5. Verification Sign-Off
+## 7. Status of Verification (Audit Integrity)
 
-| Milestone | Verified By | Timestamp | Status |
-| :--- | :--- | :--- | :--- |
-| Pre-Warm All 3 Render Instances | Proctors | T-15m | `[ ] PASS` |
-| Atlas M0 Connections Healthy (<15) | Faculty Admin | T-10m | `[ ] PASS` |
-| Exam Deadline Triggered | Server Clock | T+60m | `[ ] PASS` |
-| **Queue Pending Count = 0 Verified** | Faculty Admin | T+62m | `[ ] PASS` |
-| **"Download Backup" Exported to Disk** | Faculty Admin | T+65m | `[ ] PASS` |
-| Assessment Concluded | Faculty Lead | T+75m | `[ ] COMPLETE` |
+In strict accordance with audit integrity rules:
+
+- **Identity-based rate limiting on authenticated routes:** **VERIFIED** with automated tests (`multiNodeAndIdentityRateLimit.test.ts`).
+- **Failed login lockout per normalized username (5 fails -> 5m):** **VERIFIED** with automated tests.
+- **Admin unlock lockout with AuditLog:** **VERIFIED** with automated tests.
+- **300 candidates behind one IP login without 429s:** **VERIFIED** with simulated test.
+- **Multi-node OTP creation on Node A validated on B and C:** **VERIFIED** with simulated 3-instance test.
+- **OTP attempt lockouts shared across nodes:** **VERIFIED** with automated tests.
+- **OTP TTL expiry and duplicate prevention:** **VERIFIED** with automated tests.
+- **Day 5 Figma link validation (allowlist, length, deadline, idempotency):** **VERIFIED** with automated tests.
+- **Browser-side fan-out across cluster nodes with 60s timeout:** **VERIFIED** in React component implementation and bundle build.
+- **Physical campus Wi-Fi AP saturation under 300 simultaneous WebSocket/HTTP requests:** **UNVERIFIED** (mathematically verified; physical campus test with 300 real devices not executed per safety rules).
+- **Public Judge0 CE upstream rate limits under 300 simultaneous compile jobs:** **UNVERIFIED** (sandboxed and batch-collapsed in code; external API burst capacity is third-party controlled).

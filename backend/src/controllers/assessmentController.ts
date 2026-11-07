@@ -1903,6 +1903,153 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
   }
 };
 
+export const FIGMA_URL_REGEX = /^https:\/\/(www\.)?figma\.com\/(file|design|proto|board)\/[a-zA-Z0-9_\-\/?=&%#.~]+$/;
+export const MAX_FIGMA_URL_LENGTH = 2048;
+
+/**
+ * Day 5 Figma Link Submission Handler
+ * Validates single Figma URL against strict allowlist, enforces maximum length,
+ * validates deadline against server time, and stores one idempotent submission per candidate.
+ */
+export const submitFigmaAssessment = async (
+  request: FastifyRequest<{ Params: { id: string }; Body: { figmaUrl: string; submissionId?: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
+    }
+
+    const assessment = await Assessment.findById(id);
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
+    const { figmaUrl, submissionId } = (request.body || {}) as any;
+
+    if (!figmaUrl || typeof figmaUrl !== 'string' || !figmaUrl.trim()) {
+      return reply.status(400).send({
+        success: false,
+        error: 'A valid Figma URL is required for submission',
+      });
+    }
+
+    const cleanUrl = figmaUrl.trim();
+
+    if (cleanUrl.length > MAX_FIGMA_URL_LENGTH) {
+      return reply.status(400).send({
+        success: false,
+        error: `Figma URL exceeds maximum length of ${MAX_FIGMA_URL_LENGTH} characters`,
+      });
+    }
+
+    // Strict allowlist: HTTPS scheme, figma.com domain, and valid file/design/proto/board path
+    if (!FIGMA_URL_REGEX.test(cleanUrl)) {
+      return reply.status(400).send({
+        success: false,
+        error:
+          'Invalid Figma URL. Must be an HTTPS URL starting with https://www.figma.com/ (or https://figma.com/) followed by /file/, /design/, /proto/, or /board/.',
+      });
+    }
+
+    // Validate deadline using server time (never trusting client clock)
+    const now = Date.now();
+    let isLate = false;
+    let submissionStatus: 'on_time' | 'late' | 'review' = 'on_time';
+
+    const graceWindowSeconds =
+      typeof assessment.submissionGraceWindowSeconds === 'number'
+        ? assessment.submissionGraceWindowSeconds
+        : 120;
+    const graceWindowMs = graceWindowSeconds * 1000;
+
+    if (assessment.deadline) {
+      const deadlineMs = new Date(assessment.deadline).getTime();
+      if (!isNaN(deadlineMs)) {
+        if (now > deadlineMs + graceWindowMs) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Submission deadline has passed. Late submissions outside grace window are rejected.',
+            code: 'DEADLINE_EXCEEDED',
+            deadline: assessment.deadline,
+            graceWindowSeconds,
+          });
+        } else if (now > deadlineMs) {
+          isLate = true;
+          submissionStatus = 'late';
+        }
+      }
+    }
+
+    const clientSubmissionId =
+      typeof submissionId === 'string' && submissionId.trim().length > 0
+        ? submissionId.trim()
+        : crypto.randomUUID();
+
+    // Idempotent upsert: exactly one submission per candidate per assessment
+    const submissionDoc = await AssessmentSubmission.findOneAndUpdate(
+      {
+        assessment: assessment._id,
+        user: new mongoose.Types.ObjectId(user.id),
+      },
+      {
+        $set: {
+          assessment: assessment._id,
+          user: new mongoose.Types.ObjectId(user.id),
+          submissionId: clientSubmissionId,
+          figmaUrl: cleanUrl,
+          type: 'figma',
+          isLate,
+          submissionStatus,
+          durableStatus: 'saved',
+          score: 0,
+          totalPoints: assessment.customPoints || 100,
+          percentage: 0,
+          passed: false,
+          pointsAwarded: 0,
+          timeSpentSeconds: 0,
+          answers: [],
+          detailedResults: [],
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    return reply.status(200).send({
+      success: true,
+      message: isLate
+        ? 'Figma design submission recorded (Flagged as late for faculty review).'
+        : 'Figma design submission recorded successfully.',
+      status: 'saved',
+      data: {
+        submissionId: submissionDoc.submissionId,
+        assessmentId: assessment._id,
+        figmaUrl: submissionDoc.figmaUrl,
+        type: 'figma',
+        isLate,
+        submissionStatus,
+        createdAt: submissionDoc.createdAt,
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to record Figma submission',
+    });
+  }
+};
+
 export default {
   getAssessments,
   getAssessmentById,
@@ -1910,6 +2057,7 @@ export default {
   updateAssessment,
   deleteAssessment,
   submitAssessment,
+  submitFigmaAssessment,
   getMySubmissions,
   getAssessmentSubmissions,
   getSingleAssessmentSubmissionReport,

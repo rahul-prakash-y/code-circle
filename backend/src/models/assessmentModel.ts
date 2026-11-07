@@ -13,6 +13,7 @@ export interface IAssessment extends Document {
   title: string;
   description: string;
   category: string;
+  assessmentType?: 'mcq' | 'coding' | 'figma';
   eventId?: mongoose.Types.ObjectId | null;
   timeLimitMinutes: number;
   passingScorePercentage: number;
@@ -79,6 +80,12 @@ const assessmentSchema = new Schema<IAssessment>(
       type: String,
       default: 'Technical',
       trim: true,
+      index: true,
+    },
+    assessmentType: {
+      type: String,
+      enum: ['mcq', 'coding', 'figma'],
+      default: 'mcq',
       index: true,
     },
     eventId: {

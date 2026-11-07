@@ -30,6 +30,8 @@ export interface IAssessmentSubmission extends Document {
   isLate?: boolean;
   submissionStatus?: 'on_time' | 'late' | 'review';
   durableStatus?: 'saved' | 'pending';
+  type?: 'mcq' | 'coding' | 'figma';
+  figmaUrl?: string;
   answers: ISubmissionAnswer[];
   score: number;
   totalPoints: number;
@@ -106,6 +108,17 @@ const assessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
       enum: ['saved', 'pending'],
       default: 'saved',
       index: true,
+    },
+    type: {
+      type: String,
+      enum: ['mcq', 'coding', 'figma'],
+      default: 'mcq',
+      index: true,
+    },
+    figmaUrl: {
+      type: String,
+      default: null,
+      maxlength: 2048,
     },
     answers: {
       type: [submissionAnswerSchema],

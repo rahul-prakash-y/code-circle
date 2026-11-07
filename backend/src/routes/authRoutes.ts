@@ -1,31 +1,30 @@
 import { FastifyInstance } from 'fastify';
 import * as authController from '../controllers/authController';
 import * as passwordResetController from '../controllers/passwordResetController';
-import { verifyToken } from '../middleware/authMiddleware';
-
-const authRateLimitConfig = {
-  rateLimit: {
-    max: 10,
-    timeWindow: '1 minute',
-    errorResponseBuilder: () => ({
-      statusCode: 429,
-      error: 'Too Many Requests',
-      message: 'Too many authentication attempts. Please wait 1 minute before trying again.',
-    }),
-  },
-};
+import { verifyToken, isAdminOrFaculty } from '../middleware/authMiddleware';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  fastify.post('/register', { config: authRateLimitConfig }, authController.register);
-  fastify.post('/login', { config: authRateLimitConfig }, authController.login);
+  // Public registration & unauthenticated flows
+  fastify.post('/register', authController.register);
+  // Login & forgot-password rely on authLockoutService for identity-based failed attempt limits
+  fastify.post('/login', authController.login);
+  fastify.post('/forgot-password', authController.forgotPassword);
+  fastify.post('/reset-password', authController.resetPassword);
+
+  // Authenticated user flows
   fastify.post('/logout', { preHandler: [verifyToken] }, authController.logout);
   fastify.get('/me', { preHandler: [verifyToken] }, authController.getMe);
-  fastify.post('/forgot-password', { config: authRateLimitConfig }, authController.forgotPassword);
-  fastify.post('/reset-password', { config: authRateLimitConfig }, authController.resetPassword);
   fastify.post('/change-password', { preHandler: [verifyToken] }, authController.changePassword);
 
+  // Administrative lockout release (Faculty / Admin only, audit-logged)
+  fastify.post(
+    '/unlock-lockout',
+    { preHandler: [verifyToken, isAdminOrFaculty] },
+    authController.adminUnlockAccountHandler
+  );
+
   // User password reset request flow
-  fastify.post('/request-reset', { config: authRateLimitConfig }, passwordResetController.requestPasswordReset);
+  fastify.post('/request-reset', passwordResetController.requestPasswordReset);
   fastify.get('/reset-status', passwordResetController.checkUserResetStatus);
 }
 
