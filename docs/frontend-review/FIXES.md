@@ -12,6 +12,8 @@ This document records the exact Git commits, modified source files, architectura
 | `61c1f0e` | `feat(ux)` | Implement reusable 10-state component suite, hooks, centralized copy dictionary, and interactive gallery. |
 | `c08e3bb` | `perf(core)` | Optimize font subsetting, dynamic xlsx code-splitting, preconnect delivery hints, and app shell resilience. |
 | `5224138` | `feat(ux)` | Integrate empty, loading, error, and search states across core views (Contests, Domains, Challenges, Points, etc.). |
+| `2b54e9b` | `docs(review)` | Compile inventory, performance audit, state coverage, fixes, test results, and remaining decisions. |
+| `ac2b058` | `refactor(ui)` | Replace native HTML select with `HeroUISelect` in Pagination component. |
 
 ---
 
@@ -74,3 +76,8 @@ This document records the exact Git commits, modified source files, architectura
 - **`Leaderboard.jsx`**: Integrated `NoSearchResults` and `EmptyState` with branch filter clearing.
 - **`FeedbackDashboard.jsx`**: Integrated `DelayedSkeleton`, `NoSearchResults`, and `EmptyState`.
 - **`DiagnosticsPage.tsx`**: Wrapped System Health Telemetry, Server Flushes, and Database Explorer panels in dedicated `<ErrorBoundary>` instances.
+
+### 2.7. Pagination UI Component Standardization
+- **File**: `frontend/src/components/common/Pagination.tsx`
+- **Problem**: The "records per page" selector previously rendered a raw HTML `<select>` element that bypassed the design system and theme styles.
+- **Solution**: Replaced the native `<select>` with `<HeroUISelect size="sm">`, unifying border styling, dark/light token adherence, and Apple spatial dropdown aesthetics.
