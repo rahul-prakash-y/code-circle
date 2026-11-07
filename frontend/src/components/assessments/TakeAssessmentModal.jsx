@@ -59,6 +59,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
   // Timer ref to cancel interval safely
   const timerRef = useRef(null);
+  const timeLeftRef = useRef(timeLeftSeconds);
+  useEffect(() => {
+    timeLeftRef.current = timeLeftSeconds;
+  }, [timeLeftSeconds]);
 
   // Resiliency: LocalStorage AutoSave hook (every 30 seconds)
   const autoSaveKey = assessmentId ? `cc_assessment_answers_${assessmentId}` : '';
@@ -92,17 +96,22 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     if (isOpen && assessmentId) {
-      clearCurrentResult();
-      setAnswers({});
-      setCurrentQuestionIndex(0);
-      setTabSwitchCount(0);
-      setShowTabWarning(false);
-      setIsLocked(false);
-      setShowExitConfirm(false);
-      setLoading(true);
+      queueMicrotask(() => {
+        if (!isMounted) return;
+        clearCurrentResult();
+        setAnswers({});
+        setCurrentQuestionIndex(0);
+        setTabSwitchCount(0);
+        setShowTabWarning(false);
+        setIsLocked(false);
+        setShowExitConfirm(false);
+        setLoading(true);
+      });
 
       fetchAssessmentById(assessmentId).then((assessment) => {
+        if (!isMounted) return;
         setLoading(false);
         if (assessment) {
           const initialSeconds = (assessment.timeLimitMinutes || 30) * 60;
@@ -113,9 +122,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     }
 
     return () => {
+      isMounted = false;
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isOpen, assessmentId, fetchAssessmentById, clearCurrentResult]);
+  }, [isOpen, assessmentId, clearCurrentResult, fetchAssessmentById]);
 
   const executeSubmit = useCallback(async (forcedByViolation = false) => {
     setShowConfirmModal(false);
@@ -217,7 +227,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
 
   // Timer countdown hook with Thundering Herd Submission Jitter Fix
   useEffect(() => {
-    if (!isOpen || currentResult || loading || timeLeftSeconds <= 0 || isLocked) return;
+    if (!isOpen || currentResult || loading || timeLeftRef.current <= 0 || isLocked) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeftSeconds((prev) => {

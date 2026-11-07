@@ -52,10 +52,12 @@ const FeedbackDashboard = () => {
   const isSuperAdmin = isSuperAdminRole || isSuperAdminView;
   const isAdmin = isSuperAdmin || ['admin', 'faculty', 'committee'].includes(effectiveRole?.toLowerCase());
 
-  // Reset page when filters change
-  useEffect(() => {
+  // Reset page when filters change without triggering cascading effect renders
+  const [prevFilter, setPrevFilter] = useState({ search: debouncedSearch, type: typeFilter, rating: ratingFilter });
+  if (prevFilter.search !== debouncedSearch || prevFilter.type !== typeFilter || prevFilter.rating !== ratingFilter) {
+    setPrevFilter({ search: debouncedSearch, type: typeFilter, rating: ratingFilter });
     setPage(1);
-  }, [debouncedSearch, typeFilter, ratingFilter]);
+  }
 
   useEffect(() => {
     fetchFeedbacks({ page, search: debouncedSearch });

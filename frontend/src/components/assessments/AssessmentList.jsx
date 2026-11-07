@@ -73,12 +73,12 @@ export const AssessmentList = () => {
 
   useEffect(() => {
     fetchAssessments({ page, category: selectedCategory, search: debouncedSearch });
-  }, [fetchAssessments, page]);
+  }, [fetchAssessments, page, selectedCategory, debouncedSearch]);
 
   useEffect(() => {
     setPage(1);
     setSearchQuery(debouncedSearch);
-  }, [debouncedSearch, setSearchQuery]);
+  }, [debouncedSearch, selectedCategory, setSearchQuery]);
 
   const handleDelete = async (id, title) => {
     if (window.confirm(`Are you sure you want to permanently delete the assessment "${title}"?`)) {
