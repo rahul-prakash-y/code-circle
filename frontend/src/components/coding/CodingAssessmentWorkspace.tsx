@@ -32,6 +32,8 @@ import { HeroUISelect } from '../ui/HeroUIComponents';
 import api from '../../lib/axios';
 import { useVisibilityChange, IntegrityEvent } from '../../hooks/useVisibilityChange';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { useFullScreenEnforcement } from '../../hooks/useFullScreenEnforcement';
+import FullScreenEnforcementOverlay from '../assessments/FullScreenEnforcementOverlay';
 import useAuthStore from '../../store/useAuthStore';
 
 export interface TestCaseSummary {
@@ -185,7 +187,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
   const [activeLeftTab, setActiveLeftTab] = useState<'problem' | 'testcases'>('problem');
   const [activeConsoleTab, setActiveConsoleTab] = useState<'terminal' | 'cases'>('cases');
   const [consoleOutput, setConsoleOutput] = useState<string>('');
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const { isFullscreen, requestFullscreen, exitFullscreen, toggleFullscreen } = useFullScreenEnforcement();
 
   // Mobile Screen layout states & quick-coding actions
   const isMobile = useMediaQuery('(max-width: 1023px)');
@@ -849,7 +851,17 @@ export const CodingAssessmentWorkspace: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-full bg-canvas text-label-primary flex flex-col overflow-hidden font-sans select-none antialiased">
+    <div className="h-screen w-full bg-canvas text-label-primary flex flex-col overflow-hidden font-sans select-none antialiased relative">
+      {/* ── Full-Screen Enforcement Overlay ────────────────────────── */}
+      {!isWorkspaceLocked && (
+        <FullScreenEnforcementOverlay
+          isFullscreen={isFullscreen}
+          onRequestFullscreen={requestFullscreen}
+          title="Full Screen Assessment Required"
+          description="To ensure exam integrity and proctoring compliance, this coding assessment must be attended strictly in full screen mode. Navigating away or exiting full screen is strictly monitored."
+        />
+      )}
+
       {/* ── Top Apple Spatial Control Bar (Desktop >= 1024px) ───────── */}
       <header className="hidden lg:flex h-14 border-b border-separator bg-surface/70 backdrop-blur-2xl items-center justify-between px-5 shrink-0 z-40">
         {/* Left: Back & Title or Problem Switcher */}
@@ -1042,6 +1054,18 @@ export const CodingAssessmentWorkspace: React.FC = () => {
           >
             <RotateCcw className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
             <span className="text-xs">Reset</span>
+          </Button>
+
+          {/* Fullscreen Toggle */}
+          <Button
+            size="sm"
+            isIconOnly
+            variant="flat"
+            onPress={toggleFullscreen}
+            title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+            className="h-8 w-8 rounded-full text-xs font-semibold shrink-0 cursor-pointer text-text-secondary hover:text-text-primary bg-surface-secondary hover:bg-surface-elevated border border-separator shadow-xs"
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </Button>
 
           {/* Run Code Button (10s Cooldown Enforced) */}
@@ -1545,6 +1569,16 @@ export const CodingAssessmentWorkspace: React.FC = () => {
                   </>
                 )}
               </div>
+
+              {/* Fullscreen Toggle Mobile */}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+                className="p-1 rounded-full text-neutral-400 hover:text-white bg-white/[0.05] border border-white/[0.08]"
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </button>
             </div>
           </div>
 

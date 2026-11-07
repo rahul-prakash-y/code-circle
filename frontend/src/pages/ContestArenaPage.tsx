@@ -29,6 +29,8 @@ import {
   Copy,
   Check,
   Loader2,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { toast } from 'react-hot-toast';
@@ -40,6 +42,8 @@ import useContestStore, {
 } from '../store/useContestStore';
 import { useVisibilityChange } from '../hooks/useVisibilityChange';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useFullScreenEnforcement } from '../hooks/useFullScreenEnforcement';
+import FullScreenEnforcementOverlay from '../components/assessments/FullScreenEnforcementOverlay';
 import ContestSubmissionDetailModal from '../components/admin/contests/ContestSubmissionDetailModal';
 import RequestReentryModal from '../components/contests/RequestReentryModal';
 import HeroUISelect from '../components/ui/HeroUISelect';
@@ -141,6 +145,7 @@ export const ContestArenaPage: React.FC = () => {
   } = useContestStore();
 
   const [sessionStarted, setSessionStarted] = useState(false);
+  const { isFullscreen, requestFullscreen, exitFullscreen, toggleFullscreen } = useFullScreenEnforcement();
   const [selectedSection, setSelectedSection] = useState<'mcq' | 'coding'>('mcq');
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isReentryModalOpen, setIsReentryModalOpen] = useState(false);
@@ -515,7 +520,17 @@ export const ContestArenaPage: React.FC = () => {
       : [];
 
   return (
-    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-background font-sans overflow-hidden select-none antialiased">
+    <div className="h-[100dvh] min-h-[100dvh] w-full flex flex-col bg-background font-sans overflow-hidden select-none antialiased relative">
+      {/* Full-Screen Enforcement Overlay */}
+      {sessionStarted && !submissionCompleteData && !antiCheatLocked && (
+        <FullScreenEnforcementOverlay
+          isFullscreen={isFullscreen}
+          onRequestFullscreen={requestFullscreen}
+          title="Full Screen Arena Required"
+          description="To ensure contest fairness and exam proctoring standards, this contest must be attended strictly in full screen mode. Navigating away or exiting full screen will trigger proctoring penalties."
+        />
+      )}
+
       {/* 1. TOP ARENA APP BAR */}
       <header className="h-14 border-b border-separator bg-surface px-3 sm:px-6 flex items-center justify-between gap-2 shrink-0 shadow-xs z-30">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -638,6 +653,18 @@ export const ContestArenaPage: React.FC = () => {
             <Clock size={12} className="sm:w-[13px] sm:h-[13px]" />
             <span>{formatTimer(secondsRemaining)}</span>
           </div>
+
+          {/* Fullscreen Toggle */}
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            onPress={toggleFullscreen}
+            title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+            className="rounded-xl text-label-secondary hover:text-label-primary shrink-0"
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </Button>
 
           <Button
             size="sm"

@@ -648,7 +648,12 @@ export const AssessmentList = () => {
                             )}
 
                             <button
-                              onClick={() => setSelectedAssessmentToTake(assessment)}
+                              onClick={() => {
+                                if (typeof document !== 'undefined' && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+                                  document.documentElement.requestFullscreen().catch(() => {});
+                                }
+                                setSelectedAssessmentToTake(assessment);
+                              }}
                               className="btn-primary py-1.5 px-3 min-h-[34px] text-xs font-medium bg-accent hover:bg-accent-hover cursor-pointer"
                             >
                               {hasTaken ? 'Retake' : 'Start'}

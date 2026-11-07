@@ -27,6 +27,7 @@ import {
   ExternalLink,
   Image as ImageIcon,
   Maximize2,
+  Minimize2,
   FileText,
   CheckCircle,
   Eye,
@@ -102,8 +103,8 @@ export const EventArenaPage: React.FC = () => {
 
   const isDesignRound = selectedAssessment?.type === 'UI_UX';
 
-  // Anti-Cheat & Full-Screen Enforcement Hooks (Disabled completely for UI_UX / Figma rounds so students can switch between website and Figma)
-  const { isFullscreen, requestFullscreen } = useFullScreenEnforcement();
+  // Anti-Cheat & Full-Screen Enforcement Hooks
+  const { isFullscreen, requestFullscreen, exitFullscreen, toggleFullscreen } = useFullScreenEnforcement();
   const { isBlocked: tabSwitchBlocked, blockedMessage, unblockStudent } = useTabSwitchDetection({
     eventId: id || '',
     enabled: Boolean(
@@ -608,6 +609,9 @@ export const EventArenaPage: React.FC = () => {
                             variant="flat"
                             onPress={() => {
                               setActiveAssessmentId(asm._id);
+                              if (!isFullscreen) {
+                                requestFullscreen().catch(() => {});
+                              }
                             }}
                             className="w-full min-h-[42px] rounded-xl text-purple-200 text-xs font-bold shadow-lg shadow-purple-600/20"
                             title="Admin Test Mode: Attend/Preview upcoming assessment"
@@ -632,6 +636,9 @@ export const EventArenaPage: React.FC = () => {
                           variant="solid"
                           onPress={() => {
                             setActiveAssessmentId(asm._id);
+                            if (!isFullscreen) {
+                              requestFullscreen().catch(() => {});
+                            }
                           }}
                           className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30"
                           startContent={<Play size={13} />}
@@ -702,11 +709,13 @@ export const EventArenaPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Full-Screen Enforcement Overlay (Disabled for UI/UX Figma rounds) */}
-      {!isAssessmentBlocked && !isDesignRound && (
+      {/* 2. Full-Screen Enforcement Overlay (Enforced for all assessments) */}
+      {!isAssessmentBlocked && (
         <FullScreenEnforcementOverlay
           isFullscreen={isFullscreen}
           onRequestFullscreen={requestFullscreen}
+          title="Full Screen Arena Required"
+          description="To ensure exam integrity and proctoring compliance, this assessment must be attended strictly in full screen mode. Navigating away or exiting full screen is strictly monitored."
         />
       )}
       {/* Top Header Bar */}
@@ -760,6 +769,18 @@ export const EventArenaPage: React.FC = () => {
             <Clock size={13} className={remainingSeconds < 300 ? 'text-rose-400' : 'text-purple-400'} />
             <span>{formatTimer(remainingSeconds)}</span>
           </div>
+
+          {/* Fullscreen Toggle */}
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            onPress={toggleFullscreen}
+            title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+            className="rounded-xl text-label-secondary hover:text-label-primary shrink-0"
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </Button>
 
           <Button
             size="sm"

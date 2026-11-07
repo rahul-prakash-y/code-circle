@@ -49,7 +49,10 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [showTabWarning, setShowTabWarning] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    return Boolean(document.fullscreenElement);
+  });
   const [isMobileMode, setIsMobileMode] = useState(() => isMobileScreenOrDevice());
   const wasInterruptedRef = useRef(false);
   const maxStrikes = 3;
@@ -202,11 +205,13 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
   }, [isOpen, currentResult, loading, isLocked, isMobileMode, executeSubmit]);
 
@@ -297,7 +302,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center ${currentResult ? 'p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md' : 'p-0 bg-canvas'}`}>
       {/* Permanent Lockout Screen if Student is Blocked for Tab Switch */}
       {isLocked && !currentResult && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-3xl bg-black/90 select-none">
@@ -316,7 +321,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
             </p>
             <Button
               variant="secondary"
-              onPress={onClose}
+              onPress={handleSafeClose}
               className="w-full py-2.5 text-xs font-semibold cursor-pointer rounded-xl"
             >
               Close Assessment
@@ -335,6 +340,8 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
               el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
             }
           }}
+          title="Full Screen Assessment Required"
+          description="To ensure exam integrity and proctoring compliance, this assessment must be attended strictly in full screen mode. Navigating away or exiting full screen is strictly monitored."
         />
       )}
 
@@ -342,7 +349,7 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
         initial={{ opacity: 0, scale: 0.98, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.98, y: 10 }}
-        className="relative w-full max-w-4xl h-[94dvh] bg-surface border border-separator rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+        className={`relative w-full ${currentResult ? 'max-w-4xl h-[94dvh] rounded-2xl sm:rounded-3xl border border-separator' : 'h-[100dvh] rounded-none border-none'} bg-surface shadow-2xl flex flex-col overflow-hidden`}
       >
         {/* Subtle Ambient Glow */}
         <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-accent/10 blur-3xl pointer-events-none" />

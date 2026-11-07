@@ -36,7 +36,7 @@ export const FullScreenEnforcementOverlay: React.FC<FullScreenEnforcementOverlay
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: DURATION_MICRO, ease: EMIL_EASE_OUT }}
-        className={`absolute inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-3xl bg-black/80 dark:bg-canvas/90 select-none ${className}`}
+        className={`fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 backdrop-blur-3xl bg-black/85 select-none ${className}`}
       >
         <EmilCard
           initial={{ opacity: 0, scale: 0.95 }}
@@ -64,8 +64,18 @@ export const FullScreenEnforcementOverlay: React.FC<FullScreenEnforcementOverlay
           <EmilButton
             variant="solid"
             size="lg"
-            onClick={onRequestFullscreen}
-            className="w-full font-semibold shadow-md gap-2"
+            onClick={async () => {
+              try {
+                if (onRequestFullscreen) {
+                  await onRequestFullscreen();
+                } else if (typeof document !== 'undefined' && document.documentElement.requestFullscreen) {
+                  await document.documentElement.requestFullscreen();
+                }
+              } catch (err) {
+                console.warn('[FullScreenEnforcement] Failed to request fullscreen:', err);
+              }
+            }}
+            className="w-full font-semibold shadow-md gap-2 cursor-pointer"
           >
             <span>{buttonText}</span>
             <ArrowRight size={16} />

@@ -671,7 +671,12 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
               {isAssessmentUnlocked ? (
                 <button
                   type="button"
-                  onClick={() => setIsAssessmentModalOpen(true)}
+                  onClick={() => {
+                    if (typeof document !== 'undefined' && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+                      document.documentElement.requestFullscreen().catch(() => {});
+                    }
+                    setIsAssessmentModalOpen(true);
+                  }}
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs font-bold bg-purple-600 text-white hover:bg-purple-500 active:scale-98 transition shadow-md shadow-purple-600/20 cursor-pointer"
                 >
                   <Award className="w-4 h-4" />

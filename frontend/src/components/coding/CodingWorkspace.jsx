@@ -6,8 +6,10 @@ import CodeEditor from './CodeEditor';
 import Console from './Console';
 import useCodingStore from '../../store/useCodingStore';
 import useAntiCheat from '../../hooks/useAntiCheat';
+import useFullScreenEnforcement from '../../hooks/useFullScreenEnforcement';
 import AntiCheatModal from './AntiCheatModal';
-import { Play, ChevronLeft, Clock, FileText, Code2, Terminal } from 'lucide-react';
+import FullScreenEnforcementOverlay from '../assessments/FullScreenEnforcementOverlay';
+import { Play, ChevronLeft, Clock, FileText, Code2, Terminal, Maximize2, Minimize2 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
 import BackgroundGradient from '../ui/BackgroundGradient';
@@ -27,6 +29,7 @@ const CodingWorkspace = () => {
   const { warnings, isLocked } = useAntiCheat(3, () => {
     console.log('Workspace locked due to anti-cheat trigger');
   });
+  const { isFullscreen, requestFullscreen, exitFullscreen, toggleFullscreen } = useFullScreenEnforcement();
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -60,6 +63,16 @@ const CodingWorkspace = () => {
   return (
     <div className="h-[100dvh] min-h-[100dvh] bg-surface text-text-secondary flex flex-col overflow-hidden font-sans relative">
       <BackgroundGradient />
+
+      {/* Full-Screen Enforcement Overlay */}
+      {!isLocked && (
+        <FullScreenEnforcementOverlay
+          isFullscreen={isFullscreen}
+          onRequestFullscreen={requestFullscreen}
+          title="Full Screen Mode Required"
+          description="To preserve exam integrity and proctoring compliance, this problem workspace must be attended in full screen mode."
+        />
+      )}
 
       {/* Desktop Header (>= 1024px) */}
       <div className="hidden lg:flex h-16 border-b border-border items-center justify-between px-6 bg-surface/50 backdrop-blur-xl sticky top-0 z-50">
@@ -127,6 +140,18 @@ const CodingWorkspace = () => {
                 : 'Execute'}
             </span>
           </Button>
+
+          {/* Fullscreen Toggle */}
+          <Button
+            isIconOnly
+            size="sm"
+            variant="flat"
+            onPress={toggleFullscreen}
+            title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+            className="min-h-[38px] min-w-[38px] rounded-xl text-text-muted hover:text-text-primary bg-surface-elevated border border-border shrink-0 cursor-pointer"
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </Button>
         </div>
       </div>
 
@@ -193,6 +218,15 @@ const CodingWorkspace = () => {
               )}
               <span>{isLoading ? '...' : cooldown > 0 ? `${cooldown}s` : 'Run'}</span>
             </Button>
+
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+              className="p-2 rounded-xl text-text-muted hover:text-text-primary bg-surface-elevated border border-border"
+            >
+              {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </button>
           </div>
         </div>
 
