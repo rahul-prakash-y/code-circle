@@ -22,7 +22,7 @@ import { DEFAULT_BACKEND_NODES } from '../../../store/useServerStore';
 export const SubmissionQueuePanel = () => {
   const { token } = useAuthStore();
   const [nodeStatuses, setNodeStatuses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [showEndExamModal, setShowEndExamModal] = useState(false);
   const [confirmOfflineAck, setConfirmOfflineAck] = useState(false);
@@ -165,7 +165,7 @@ export const SubmissionQueuePanel = () => {
       } else {
         toast.error(`Node ${nodeUrl}: ${data.error || 'Flush failed'}`);
       }
-    } catch (err) {
+    } catch {
       toast.error(`Node ${nodeUrl}: Network error triggering flush`);
     } finally {
       setActionLoading(null);
@@ -189,7 +189,7 @@ export const SubmissionQueuePanel = () => {
       } else {
         toast.error(`Node ${nodeUrl}: ${data.error || 'Retry failed'}`);
       }
-    } catch (err) {
+    } catch {
       toast.error(`Node ${nodeUrl}: Network error`);
     } finally {
       setActionLoading(null);

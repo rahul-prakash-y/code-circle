@@ -31,7 +31,9 @@ export const Dialog = ({
   );
 };
 
-export const DialogTrigger = HeroUIModalTrigger;
+export const DialogTrigger = ({ asChild: _asChild, children, ...props }: any) => (
+  <HeroUIModalTrigger {...props}>{children}</HeroUIModalTrigger>
+);
 export const DialogPortal = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 export const DialogOverlay = HeroUIModalBackdrop;
 
@@ -88,6 +90,8 @@ export const DialogDescription = React.forwardRef<HTMLParagraphElement, React.HT
 );
 DialogDescription.displayName = 'DialogDescription';
 
-export const DialogClose = HeroUIModalCloseTrigger;
+export const DialogClose = ({ asChild: _asChild, children, ...props }: any) => (
+  <HeroUIModalCloseTrigger {...props}>{children}</HeroUIModalCloseTrigger>
+);
 
 export default Dialog;

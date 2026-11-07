@@ -316,7 +316,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
   const handleRemoveTestCase = (problemIdx: number, tcIdx: number) => {
     const updated = [...codingProblems];
-    const currentTestCases = (updated[problemIdx].testCases || []).filter((_, idx) => idx !== tcIdx);
+    const currentTestCases = (updated[problemIdx].testCases || []).filter((_: any, idx: number) => idx !== tcIdx);
     updated[problemIdx].testCases = currentTestCases;
     setCodingProblems(updated);
   };

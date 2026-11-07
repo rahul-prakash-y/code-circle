@@ -887,13 +887,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     Add another round or assessment (e.g. Round 1 MCQ, Round 2 Coding) and assign admins.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsCreatingNew(false)}
-                  className="text-xs text-text-muted hover:text-label-primary "
+                <Button
+                  size="sm"
+                  variant="light"
+                  onPress={() => setIsCreatingNew(false)}
+                  className="text-xs text-text-muted hover:text-label-primary"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
 
               <form onSubmit={handleCreateAssessment} className="space-y-5">
@@ -1095,21 +1096,25 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreatingNew(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-label-primary /70 hover:bg-white/10 transition-colors"
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    onPress={() => setIsCreatingNew(false)}
+                    className="rounded-xl text-xs font-bold text-label-secondary hover:text-label-primary"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={actionLoading}
-                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    size="sm"
+                    color="secondary"
+                    variant="solid"
+                    isLoading={actionLoading}
+                    startContent={<Plus size={14} />}
+                    className="rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30"
                   >
-                    {actionLoading && <Loader2 size={13} className="animate-spin" />}
-                    <span>Create Assessment</span>
-                  </button>
+                    Create Assessment
+                  </Button>
                 </div>
               </form>
             </div>
@@ -1121,83 +1126,101 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
             <div className="border-b border-separator bg-surface-secondary/30 shrink-0 space-y-2 py-2 px-1 sm:px-4 rounded-xl">
               {/* Row 1: Horizontally Scrollable Tabs with touch momentum */}
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-1 py-0.5">
-                <button
-                  onClick={() => setActiveTab('settings')}
-                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
+                <Button
+                  size="sm"
+                  variant={activeTab === 'settings' ? 'solid' : 'bordered'}
+                  color={activeTab === 'settings' ? 'primary' : 'default'}
+                  onPress={() => setActiveTab('settings')}
+                  startContent={<Settings size={13} />}
+                  className={`min-h-[36px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer whitespace-nowrap ${
                     activeTab === 'settings'
                       ? 'bg-accent text-white shadow-xs'
-                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border-separator'
                   }`}
                 >
-                  <Settings size={13} />
-                  <span>Config & Admins</span>
-                </button>
+                  Config & Admins
+                </Button>
 
                 {(selectedAssessment.type === 'MCQ' || selectedAssessment.type === 'HYBRID') && (
-                  <button
-                    onClick={() => setActiveTab('mcq')}
-                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
+                  <Button
+                    size="sm"
+                    variant={activeTab === 'mcq' ? 'solid' : 'bordered'}
+                    color={activeTab === 'mcq' ? 'secondary' : 'default'}
+                    onPress={() => setActiveTab('mcq')}
+                    startContent={<HelpCircle size={13} />}
+                    className={`min-h-[36px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer whitespace-nowrap ${
                       activeTab === 'mcq'
                         ? 'bg-purple-600 text-white shadow-xs'
-                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border-separator'
                     }`}
                   >
-                    <HelpCircle size={13} />
-                    <span>MCQs ({adminMcqs.length})</span>
-                  </button>
+                    MCQs ({adminMcqs.length})
+                  </Button>
                 )}
 
                 {(selectedAssessment.type === 'CODING' || selectedAssessment.type === 'HYBRID') && (
-                  <button
-                    onClick={() => setActiveTab('coding')}
-                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
+                  <Button
+                    size="sm"
+                    variant={activeTab === 'coding' ? 'solid' : 'bordered'}
+                    color={activeTab === 'coding' ? 'primary' : 'default'}
+                    onPress={() => setActiveTab('coding')}
+                    startContent={<Code2 size={13} />}
+                    className={`min-h-[36px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer whitespace-nowrap ${
                       activeTab === 'coding'
                         ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border-separator'
                     }`}
                   >
-                    <Code2 size={13} />
-                    <span>Coding ({adminCoding.length})</span>
-                  </button>
+                    Coding ({adminCoding.length})
+                  </Button>
                 )}
 
                 {selectedAssessment.type === 'UI_UX' && (
-                  <button
-                    onClick={() => setActiveTab('design')}
-                    className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                  <Button
+                    size="sm"
+                    variant={activeTab === 'design' ? 'solid' : 'bordered'}
+                    color={activeTab === 'design' ? 'secondary' : 'default'}
+                    onPress={() => setActiveTab('design')}
+                    startContent={<Palette size={13} className={activeTab === 'design' ? 'text-white' : 'text-pink-400'} />}
+                    className={`min-h-[36px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer whitespace-nowrap ${
                       activeTab === 'design'
                         ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-xs'
-                        : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
+                        : 'bg-surface text-label-secondary hover:text-label-primary border-separator'
                     }`}
                   >
-                    <Palette size={13} className="text-pink-400" />
-                    <span>UI/UX Design</span>
-                  </button>
+                    UI/UX Design
+                  </Button>
                 )}
 
-                <button
-                  onClick={() => setActiveTab('teams')}
-                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
+                <Button
+                  size="sm"
+                  variant={activeTab === 'teams' ? 'solid' : 'bordered'}
+                  color={activeTab === 'teams' ? 'primary' : 'default'}
+                  onPress={() => setActiveTab('teams')}
+                  startContent={<Users size={13} />}
+                  className={`min-h-[36px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer whitespace-nowrap ${
                     activeTab === 'teams'
                       ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border-separator'
                   }`}
                 >
-                  <Users size={13} />
-                  <span>Teams ({arenaTeams.length})</span>
-                </button>
+                  Teams ({arenaTeams.length})
+                </Button>
 
-                <button
-                  onClick={() => setActiveTab('submissions')}
-                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
+                <Button
+                  size="sm"
+                  variant={activeTab === 'submissions' ? 'solid' : 'bordered'}
+                  color={activeTab === 'submissions' ? 'primary' : 'default'}
+                  onPress={() => setActiveTab('submissions')}
+                  startContent={<Award size={13} />}
+                  className={`min-h-[36px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer whitespace-nowrap ${
                     activeTab === 'submissions'
                       ? 'bg-accent text-white shadow-xs'
-                      : 'bg-surface text-label-secondary hover:text-label-primary border border-separator'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border-separator'
                   }`}
                 >
-                  <Award size={13} />
-                  <span>Submissions ({adminSubmissions.length})</span>
-                </button>
+                  Submissions ({adminSubmissions.length})
+                </Button>
               </div>
 
               {/* Row 2: Status & Quick Meta bar */}
@@ -1505,26 +1528,30 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   {/* Actions */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-separator">
                     {isSuperAdmin && (
-                      <button
-                        type="button"
-                        onClick={handleDeleteAssessment}
-                        className="w-full sm:w-auto px-4 py-2.5 rounded-full text-xs font-semibold text-destructive border border-destructive/30 hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="danger"
+                        onPress={handleDeleteAssessment}
+                        startContent={<Trash2 size={13} />}
+                        className="rounded-full text-xs font-semibold"
                       >
-                        <Trash2 size={13} />
-                        <span>Delete Assessment</span>
-                      </button>
+                        Delete Assessment
+                      </Button>
                     )}
 
                     {canManageSelected && (
-                      <button
-                        type="button"
-                        onClick={handleSaveAssessmentConfig}
-                        disabled={actionLoading}
-                        className="w-full sm:w-auto ml-auto px-6 py-2.5 rounded-full bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                      <Button
+                        size="sm"
+                        variant="solid"
+                        color="primary"
+                        isLoading={actionLoading}
+                        onPress={handleSaveAssessmentConfig}
+                        startContent={<CheckCircle2 size={13} />}
+                        className="w-full sm:w-auto ml-auto px-6 rounded-full bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-md"
                       >
-                        {actionLoading && <Loader2 size={13} className="animate-spin" />}
-                        <span>Save Changes</span>
-                      </button>
+                        Save Changes
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -1548,31 +1575,38 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
 
                     <div className="flex items-center flex-wrap gap-2">
-                      <button
-                        onClick={() => downloadArenaTemplate(event._id, 'mcq')}
-                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        onPress={() => downloadArenaTemplate(event._id, 'mcq')}
+                        startContent={<Download size={13} />}
+                        className="rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator"
                       >
-                        <Download size={13} />
-                        <span>Sample Template</span>
-                      </button>
+                        Sample Template
+                      </Button>
 
                       {canManageSelected && (
                         <>
-                          <button
-                            onClick={() => setBulkModalType('mcq')}
-                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            onPress={() => setBulkModalType('mcq')}
+                            startContent={<Upload size={13} />}
+                            className="rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator"
                           >
-                            <Upload size={13} />
-                            <span>Bulk Upload Excel</span>
-                          </button>
+                            Bulk Upload Excel
+                          </Button>
 
-                          <button
-                            onClick={() => setShowAddMcq(!showAddMcq)}
-                            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 transition-all"
+                          <Button
+                            size="sm"
+                            variant="solid"
+                            color="secondary"
+                            onPress={() => setShowAddMcq(!showAddMcq)}
+                            startContent={<Plus size={14} />}
+                            className="rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30"
                           >
-                            <Plus size={14} />
-                            <span>Add Question</span>
-                          </button>
+                            Add Question
+                          </Button>
                         </>
                       )}
                     </div>
@@ -1592,12 +1626,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             <Plus size={14} className="text-purple-400" />
                             <span>Add New Multiple Choice Question</span>
                           </h4>
-                          <button
-                            onClick={() => setShowAddMcq(false)}
-                            className="text-text-muted hover:text-label-primary "
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            onPress={() => setShowAddMcq(false)}
+                            className="text-text-muted hover:text-label-primary min-w-unit-8 w-8 h-8 rounded-lg cursor-pointer"
                           >
                             <X size={15} />
-                          </button>
+                          </Button>
                         </div>
 
                         <div>
@@ -1666,20 +1703,25 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         </div>
 
                         <div className="flex justify-end gap-2 pt-2">
-                          <button
-                            onClick={() => setShowAddMcq(false)}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-label-primary "
+                          <Button
+                            size="sm"
+                            variant="light"
+                            onPress={() => setShowAddMcq(false)}
+                            className="rounded-xl text-xs font-bold text-text-muted hover:text-label-primary"
                           >
                             Cancel
-                          </button>
-                          <button
-                            onClick={handleAddMcq}
-                            disabled={actionLoading}
-                            className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5"
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="solid"
+                            color="secondary"
+                            isLoading={actionLoading}
+                            onPress={handleAddMcq}
+                            startContent={<CheckCircle2 size={13} />}
+                            className="rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30"
                           >
-                            {actionLoading && <Loader2 size={12} className="animate-spin" />}
-                            <span>Save Question</span>
-                          </button>
+                            Save Question
+                          </Button>
                         </div>
                       </motion.div>
                     )}
@@ -1718,12 +1760,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 {q.points || 10} pts
                               </span>
                               {canManageSelected && (
-                                <button
-                                  onClick={() => handleDeleteMcq(idx)}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  color="danger"
+                                  onPress={() => handleDeleteMcq(idx)}
+                                  className="w-7 h-7 min-w-7 min-h-7 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10"
                                 >
                                   <Trash2 size={13} />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </div>
@@ -1778,32 +1824,39 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => downloadArenaTemplate(event._id, 'coding')}
-                        className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
+                    <div className="flex items-center flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        onPress={() => downloadArenaTemplate(event._id, 'coding')}
+                        startContent={<Download size={13} />}
+                        className="rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator"
                       >
-                        <Download size={13} />
-                        <span>Sample Template</span>
-                      </button>
+                        Sample Template
+                      </Button>
 
                       {canManageSelected && (
                         <>
-                          <button
-                            onClick={() => setBulkModalType('coding')}
-                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator flex items-center gap-1.5 transition-colors"
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            onPress={() => setBulkModalType('coding')}
+                            startContent={<Upload size={13} />}
+                            className="rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator"
                           >
-                            <Upload size={13} />
-                            <span>Bulk Upload Excel</span>
-                          </button>
+                            Bulk Upload Excel
+                          </Button>
 
-                          <button
-                            onClick={() => setShowAddCoding(!showAddCoding)}
-                            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
+                          <Button
+                            size="sm"
+                            variant="solid"
+                            color="primary"
+                            onPress={() => setShowAddCoding(!showAddCoding)}
+                            startContent={<Plus size={14} />}
+                            className="rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30"
                           >
-                            <Plus size={14} />
-                            <span>Add Problem</span>
-                          </button>
+                            Add Problem
+                          </Button>
                         </>
                       )}
                     </div>
@@ -1823,12 +1876,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             <Plus size={14} className="text-blue-400" />
                             <span>Add New Coding Challenge</span>
                           </h4>
-                          <button
-                            onClick={() => setShowAddCoding(false)}
-                            className="text-text-muted hover:text-label-primary "
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            onPress={() => setShowAddCoding(false)}
+                            className="text-text-muted hover:text-label-primary min-w-unit-8 w-8 h-8 rounded-lg cursor-pointer"
                           >
                             <X size={15} />
-                          </button>
+                          </Button>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-30">
@@ -1966,20 +2022,25 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         </div>
 
                         <div className="flex justify-end gap-2 pt-2">
-                          <button
-                            onClick={() => setShowAddCoding(false)}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-label-primary "
+                          <Button
+                            size="sm"
+                            variant="light"
+                            onPress={() => setShowAddCoding(false)}
+                            className="rounded-xl text-xs font-bold text-text-muted hover:text-label-primary"
                           >
                             Cancel
-                          </button>
-                          <button
-                            onClick={handleAddCoding}
-                            disabled={actionLoading}
-                            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary text-xs font-bold shadow-md shadow-blue-600/30 flex items-center gap-1.5"
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="solid"
+                            color="primary"
+                            isLoading={actionLoading}
+                            onPress={handleAddCoding}
+                            startContent={<CheckCircle2 size={13} />}
+                            className="rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30"
                           >
-                            {actionLoading && <Loader2 size={12} className="animate-spin" />}
-                            <span>Save Challenge</span>
-                          </button>
+                            Save Challenge
+                          </Button>
                         </div>
                       </motion.div>
                     )}
@@ -2029,12 +2090,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 {p.points || 30} pts
                               </span>
                               {canManageSelected && (
-                                <button
-                                  onClick={() => handleDeleteCoding(idx)}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  color="danger"
+                                  onPress={() => handleDeleteCoding(idx)}
+                                  className="w-7 h-7 min-w-7 min-h-7 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10"
                                 >
                                   <Trash2 size={13} />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           </div>
@@ -2076,14 +2141,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {canManageSelected && (
-                        <button
-                          type="button"
-                          onClick={handleAddDesignChallengeOption}
-                          className="px-3.5 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-pink-600/30 transition-all cursor-pointer"
+                        <Button
+                          size="sm"
+                          variant="solid"
+                          color="secondary"
+                          onPress={handleAddDesignChallengeOption}
+                          startContent={<Plus size={13} />}
+                          className="rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs shadow-md shadow-pink-600/30"
                         >
-                          <Plus size={13} />
-                          <span>Add New Problem Statement</span>
-                        </button>
+                          Add New Problem Statement
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -2127,17 +2194,17 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   {ch.points || 100} pts
                                 </span>
                                 {designChallengesList.length > 1 && canManageSelected && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveDesignChallengeOption(idx);
-                                    }}
-                                    className="text-label-tertiary hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-colors"
+                                  <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="light"
+                                    color="danger"
+                                    onPress={() => handleRemoveDesignChallengeOption(idx)}
+                                    className="w-6 h-6 min-w-6 min-h-6 text-label-tertiary hover:text-destructive"
                                     title="Delete this problem"
                                   >
                                     <Trash2 size={12} />
-                                  </button>
+                                  </Button>
                                 )}
                               </div>
                             </div>
@@ -2199,14 +2266,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           </p>
                         </div>
                         {designImageUrl && (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewModalImg(designImageUrl)}
-                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-label-primary flex items-center gap-1.5 transition-colors"
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            onPress={() => setPreviewModalImg(designImageUrl)}
+                            startContent={<Maximize2 size={12} />}
+                            className="rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-label-primary"
                           >
-                            <Maximize2 size={12} />
-                            <span>Preview Fullscreen</span>
-                          </button>
+                            Preview Fullscreen
+                          </Button>
                         )}
                       </div>
 
@@ -2264,23 +2332,26 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 className="w-full h-full object-contain"
                               />
                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewModalImg(designImageUrl)}
-                                  className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-label-primary text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm transition-all"
+                                <Button
+                                  size="sm"
+                                  variant="flat"
+                                  onPress={() => setPreviewModalImg(designImageUrl)}
+                                  startContent={<Maximize2 size={13} />}
+                                  className="rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold backdrop-blur-sm"
                                 >
-                                  <Maximize2 size={13} />
-                                  <span>Inspect</span>
-                                </button>
+                                  Inspect
+                                </Button>
                                 {canManageSelected && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setDesignImageUrl('')}
-                                    className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm transition-all"
+                                  <Button
+                                    size="sm"
+                                    variant="flat"
+                                    color="danger"
+                                    onPress={() => setDesignImageUrl('')}
+                                    startContent={<Trash2 size={13} />}
+                                    className="rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold backdrop-blur-sm"
                                   >
-                                    <Trash2 size={13} />
-                                    <span>Remove</span>
-                                  </button>
+                                    Remove
+                                  </Button>
                                 )}
                               </div>
                             </>
@@ -2378,14 +2449,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           <p className="text-[11px] text-text-muted">Items students must complete in their Figma file.</p>
                         </div>
                         {canManageSelected && (
-                          <button
-                            type="button"
-                            onClick={() => setDesignDeliverables([...designDeliverables, ''])}
-                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 flex items-center gap-1 transition-colors"
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="secondary"
+                            onPress={() => setDesignDeliverables([...designDeliverables, ''])}
+                            startContent={<Plus size={12} />}
+                            className="rounded-lg text-xs font-bold text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30"
                           >
-                            <Plus size={12} />
-                            <span>Add Deliverable</span>
-                          </button>
+                            Add Deliverable
+                          </Button>
                         )}
                       </div>
 
@@ -2408,13 +2481,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               className="flex-1 px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-pink-500 disabled:opacity-50"
                             />
                             {canManageSelected && designDeliverables.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => setDesignDeliverables(designDeliverables.filter((_, i) => i !== idx))}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                color="danger"
+                                onPress={() => setDesignDeliverables(designDeliverables.filter((_, i) => i !== idx))}
+                                className="w-7 h-7 min-w-7 min-h-7 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10"
                               >
                                 <Trash2 size={13} />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         ))}
@@ -2429,14 +2505,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           <p className="text-[11px] text-text-muted">Rubric used by admins when grading design links.</p>
                         </div>
                         {canManageSelected && (
-                          <button
-                            type="button"
-                            onClick={() => setDesignGuidelines([...designGuidelines, ''])}
-                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 flex items-center gap-1 transition-colors"
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="secondary"
+                            onPress={() => setDesignGuidelines([...designGuidelines, ''])}
+                            startContent={<Plus size={12} />}
+                            className="rounded-lg text-xs font-bold text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30"
                           >
-                            <Plus size={12} />
-                            <span>Add Guideline</span>
-                          </button>
+                            Add Guideline
+                          </Button>
                         )}
                       </div>
 
@@ -2459,13 +2537,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               className="flex-1 px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500 disabled:opacity-50"
                             />
                             {canManageSelected && designGuidelines.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => setDesignGuidelines(designGuidelines.filter((_, i) => i !== idx))}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                color="danger"
+                                onPress={() => setDesignGuidelines(designGuidelines.filter((_, i) => i !== idx))}
+                                className="w-7 h-7 min-w-7 min-h-7 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10"
                               >
                                 <Trash2 size={13} />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         ))}
@@ -2475,24 +2556,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     {/* SAVE BUTTONS */}
                     {canManageSelected && (
                       <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-separator pt-4">
-                        <button
+                        <Button
                           type="button"
-                          onClick={handleAddDesignChallengeOption}
-                          className="px-4 py-2.5 rounded-xl bg-surface-secondary border border-separator hover:bg-surface text-label-primary text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                          size="sm"
+                          variant="flat"
+                          onPress={handleAddDesignChallengeOption}
+                          startContent={<Plus size={14} />}
+                          className="rounded-xl bg-surface-secondary border border-separator hover:bg-surface text-label-primary text-xs font-bold"
                         >
-                          <Plus size={14} />
-                          <span>+ Add Another Problem Statement</span>
-                        </button>
+                          + Add Another Problem Statement
+                        </Button>
 
-                        <button
+                        <Button
                           type="submit"
-                          disabled={actionLoading}
-                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                          size="sm"
+                          variant="solid"
+                          color="secondary"
+                          isLoading={actionLoading}
+                          startContent={<CheckCircle2 size={14} />}
+                          className="rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30"
                         >
-                          {actionLoading && <Loader2 size={14} className="animate-spin" />}
-                          <CheckCircle2 size={14} />
-                          <span>Save Problem Statements ({designChallengesList.length})</span>
-                        </button>
+                          Save Problem Statements ({designChallengesList.length})
+                        </Button>
                       </div>
                     )}
                   </form>
@@ -2537,10 +2622,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           placeholder="Enter team name (e.g. Code Phoenix, DevSquad)..."
                           className="flex-1 px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-blue-500"
                         />
-                        <button
+                        <Button
                           type="button"
-                          disabled={actionLoading || !teamNameInput.trim()}
-                          onClick={async () => {
+                          size="sm"
+                          color="primary"
+                          variant="solid"
+                          isDisabled={actionLoading || !teamNameInput.trim()}
+                          isLoading={actionLoading}
+                          startContent={!actionLoading ? <Plus size={13} /> : undefined}
+                          onPress={async () => {
                             if (!teamNameInput.trim()) return;
                             await createArenaTeam(event._id, {
                               name: teamNameInput.trim(),
@@ -2548,12 +2638,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             });
                             setTeamNameInput('');
                           }}
-                          className="px-5 py-2.5 min-h-[40px] rounded-xl bg-blue-600 hover:bg-blue-500 text-label-primary font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="px-5 py-2.5 min-h-[40px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 cursor-pointer"
                         >
-                          {actionLoading && <Loader2 size={13} className="animate-spin" />}
-                          <Plus size={13} />
-                          <span>Create Team</span>
-                        </button>
+                          Create Team
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -2586,17 +2674,21 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             </div>
 
                             {canManageSelected && (
-                              <button
-                                type="button"
-                                onClick={() => {
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                color="danger"
+                                onPress={() => {
                                   if (confirm(`Delete team "${team.name}"?`)) {
                                     deleteArenaTeam(event._id, team._id);
                                   }
                                 }}
-                                className="p-1.5 rounded-lg text-label-primary /40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                className="min-w-unit-7 w-7 h-7 rounded-lg text-label-primary/40 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                                title="Delete team"
                               >
                                 <Trash2 size={14} />
-                              </button>
+                              </Button>
                             )}
                           </div>
 
@@ -2625,9 +2717,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   </div>
 
                                   {canManageSelected && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
+                                    <Button
+                                      isIconOnly
+                                      size="sm"
+                                      variant="light"
+                                      color="danger"
+                                      onPress={() => {
                                         const remaining = team.members
                                           .filter((m) => m._id !== mem._id)
                                           .map((m) => m._id);
@@ -2635,11 +2730,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                           memberUserIds: remaining,
                                         });
                                       }}
-                                      className="text-label-primary /40 hover:text-rose-400 text-xs px-1"
+                                      className="min-w-unit-6 w-5 h-5 rounded-md text-label-primary/40 hover:text-rose-400 p-0 cursor-pointer"
                                       title="Remove member"
                                     >
                                       <X size={12} />
-                                    </button>
+                                    </Button>
                                   )}
                                 </div>
                               ))
@@ -2658,44 +2753,49 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   {/* View Switcher: Current Round Submissions vs Overall Tournament Leaderboard */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-separator">
                     <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface-secondary border border-separator">
-                      <button
-                        type="button"
-                        onClick={() => setSubmissionsSubTab('round')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      <Button
+                        size="sm"
+                        variant={submissionsSubTab === 'round' ? 'solid' : 'light'}
+                        color={submissionsSubTab === 'round' ? 'primary' : 'default'}
+                        onPress={() => setSubmissionsSubTab('round')}
+                        className={`px-3 py-1.5 h-8 rounded-lg text-xs font-bold cursor-pointer ${
                           submissionsSubTab === 'round'
                             ? 'bg-primary text-white shadow-xs'
                             : 'text-label-secondary hover:text-label-primary'
                         }`}
                       >
                         Round Submissions ({adminSubmissions.length})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={submissionsSubTab === 'leaderboard' ? 'solid' : 'light'}
+                        color={submissionsSubTab === 'leaderboard' ? 'primary' : 'default'}
+                        startContent={<Trophy size={13} />}
+                        onPress={() => {
                           setSubmissionsSubTab('leaderboard');
                           setLoadingLeaderboard(true);
                           fetchAdminOverallLeaderboard(event._id).finally(() => setLoadingLeaderboard(false));
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        className={`px-3 py-1.5 h-8 rounded-lg text-xs font-bold cursor-pointer ${
                           submissionsSubTab === 'leaderboard'
                             ? 'bg-primary text-white shadow-xs'
                             : 'text-label-secondary hover:text-label-primary'
                         }`}
                       >
-                        <Trophy size={13} />
-                        <span>Tournament Leaderboard (All Rounds)</span>
-                      </button>
+                        Tournament Leaderboard (All Rounds)
+                      </Button>
                     </div>
 
                     {submissionsSubTab === 'leaderboard' && (overallLeaderboard?.length > 0) && (
-                      <button
-                        type="button"
-                        onClick={handleExportTournamentLeaderboard}
-                        className="btn-secondary px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      <Button
+                        size="sm"
+                        variant="bordered"
+                        startContent={<Download size={13} />}
+                        onPress={handleExportTournamentLeaderboard}
+                        className="px-3 py-1.5 h-8 rounded-xl text-xs font-bold border-separator bg-surface hover:bg-surface-secondary text-label-primary cursor-pointer"
                       >
-                        <Download size={13} />
-                        <span>Export Excel</span>
-                      </button>
+                        Export Excel
+                      </Button>
                     )}
                   </div>
 
@@ -2902,13 +3002,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                     <span>Figma File</span>
                                     <ExternalLink size={10} />
                                   </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
-                                    className="px-2 py-0.5 rounded-lg text-[10px] bg-surface border border-separator text-label-primary font-medium cursor-pointer"
+                                  <Button
+                                    size="sm"
+                                    variant="bordered"
+                                    onPress={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
+                                    className="px-2 h-6 min-h-0 rounded-lg text-[10px] bg-surface border-separator text-label-primary font-medium cursor-pointer"
                                   >
                                     Preview
-                                  </button>
+                                  </Button>
                                 </div>
                                 <div className="flex items-center justify-between text-[11px]">
                                   {sub.designSubmission.isEvaluated ? (
@@ -2922,18 +3023,20 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                     </span>
                                   )}
                                   {canManageSelected && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
+                                    <Button
+                                      size="sm"
+                                      variant="solid"
+                                      color="secondary"
+                                      startContent={<Award size={11} />}
+                                      onPress={() => {
                                         setEvaluatingSub(sub);
                                         setEvalPoints(sub.designSubmission?.pointsEarned || 0);
                                         setEvalFeedback(sub.designSubmission?.feedback || '');
                                       }}
-                                      className="px-3 py-1 rounded-full text-xs font-bold bg-pink-600 hover:bg-pink-500 text-white shadow-xs transition-all inline-flex items-center gap-1 cursor-pointer"
+                                      className="px-3 h-7 min-h-0 rounded-full text-xs font-bold bg-pink-600 hover:bg-pink-500 text-white shadow-xs cursor-pointer"
                                     >
-                                      <Award size={11} />
-                                      <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
-                                    </button>
+                                      {sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}
+                                    </Button>
                                   )}
                                 </div>
                               </div>
@@ -3036,13 +3139,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                           <span>Figma File</span>
                                           <ExternalLink size={10} />
                                         </a>
-                                        <button
-                                          type="button"
-                                          onClick={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
-                                          className="px-1.5 py-0.5 rounded text-[10px] bg-surface border border-separator text-label-primary font-medium cursor-pointer"
+                                        <Button
+                                          size="sm"
+                                          variant="bordered"
+                                          onPress={() => setPreviewFigmaUrl(sub.designSubmission.figmaLink)}
+                                          className="px-1.5 h-5 min-h-0 rounded text-[10px] bg-surface border-separator text-label-primary font-medium cursor-pointer"
                                         >
                                           Embed
-                                        </button>
+                                        </Button>
                                       </div>
                                       {sub.designSubmission.isEvaluated ? (
                                         <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
@@ -3075,69 +3179,83 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 <td className="p-3 text-right">
                                   <div className="flex items-center justify-end gap-1.5">
                                     {/* Inspect Details Button */}
-                                    <button
-                                      type="button"
-                                      onClick={() => setInspectingSub(sub)}
-                                      className="p-1.5 rounded-lg bg-surface border border-separator hover:bg-accent/10 hover:border-accent/40 text-label-secondary hover:text-accent transition-all cursor-pointer"
+                                    <Button
+                                      isIconOnly
+                                      size="sm"
+                                      variant="bordered"
+                                      onPress={() => setInspectingSub(sub)}
+                                      className="w-8 h-8 min-w-unit-8 rounded-lg bg-surface border-separator hover:bg-accent/10 hover:border-accent/40 text-label-secondary hover:text-accent cursor-pointer"
                                       title="View Detailed Submission"
                                     >
                                       <Eye size={13} />
-                                    </button>
+                                    </Button>
 
                                     {/* UI/UX Grade Button */}
                                     {sub.designSubmission?.figmaLink && canManageSelected && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
+                                      <Button
+                                        size="sm"
+                                        variant="flat"
+                                        color="secondary"
+                                        startContent={<Award size={11} />}
+                                        onPress={() => {
                                           setEvaluatingSub(sub);
                                           setEvalPoints(sub.designSubmission?.pointsEarned || 0);
                                           setEvalFeedback(sub.designSubmission?.feedback || '');
                                         }}
-                                        className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-500 border border-pink-500/30 transition-all inline-flex items-center gap-1 cursor-pointer"
+                                        className="px-2.5 h-8 rounded-lg text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-500 border border-pink-500/30 cursor-pointer"
                                         title="Grade UI/UX Design Challenge"
                                       >
-                                        <Award size={11} />
-                                        <span>{sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}</span>
-                                      </button>
+                                        {sub.designSubmission?.isEvaluated ? 'Re-grade' : 'Grade'}
+                                      </Button>
                                     )}
 
                                     {/* Reset / Allow Re-attempt */}
                                     {canManageSelected && (
-                                      <button
-                                        type="button"
-                                        disabled={actionInProgressId === sub._id}
-                                        onClick={() => handleResetSubmission(sub)}
-                                        className="p-1.5 rounded-lg bg-surface border border-separator hover:bg-amber-500/10 hover:border-amber-500/40 text-label-secondary hover:text-amber-500 transition-all cursor-pointer"
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="bordered"
+                                        isDisabled={actionInProgressId === sub._id}
+                                        isLoading={actionInProgressId === sub._id}
+                                        onPress={() => handleResetSubmission(sub)}
+                                        className="w-8 h-8 min-w-unit-8 rounded-lg bg-surface border-separator hover:bg-amber-500/10 hover:border-amber-500/40 text-label-secondary hover:text-amber-500 cursor-pointer"
                                         title="Reset Attempt (Allow Re-attempt)"
                                       >
-                                        {actionInProgressId === sub._id ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
-                                      </button>
+                                        <RotateCcw size={13} />
+                                      </Button>
                                     )}
 
                                     {/* Unblock Integrity */}
                                     {canManageSelected && (
-                                      <button
-                                        type="button"
-                                        disabled={actionInProgressId === (sub.userId?._id || sub.userId?.id || sub.userId)}
-                                        onClick={() => handleUnblockStudent(sub.userId?._id || sub.userId?.id || sub.userId, sub.userId?.name)}
-                                        className="p-1.5 rounded-lg bg-surface border border-separator hover:bg-emerald-500/10 hover:border-emerald-500/40 text-label-secondary hover:text-emerald-500 transition-all cursor-pointer"
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="bordered"
+                                        isDisabled={actionInProgressId === (sub.userId?._id || sub.userId?.id || sub.userId)}
+                                        isLoading={actionInProgressId === (sub.userId?._id || sub.userId?.id || sub.userId)}
+                                        onPress={() => handleUnblockStudent(sub.userId?._id || sub.userId?.id || sub.userId, sub.userId?.name)}
+                                        className="w-8 h-8 min-w-unit-8 rounded-lg bg-surface border-separator hover:bg-emerald-500/10 hover:border-emerald-500/40 text-label-secondary hover:text-emerald-500 cursor-pointer"
                                         title="Unblock Student for this Event"
                                       >
                                         <ShieldCheck size={13} />
-                                      </button>
+                                      </Button>
                                     )}
 
                                     {/* Delete Record */}
                                     {canManageSelected && (
-                                      <button
-                                        type="button"
-                                        disabled={actionInProgressId === sub._id}
-                                        onClick={() => handleDeleteSubmission(sub)}
-                                        className="p-1.5 rounded-lg bg-surface border border-separator hover:bg-destructive/10 hover:border-destructive/40 text-label-secondary hover:text-destructive transition-all cursor-pointer"
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="bordered"
+                                        color="danger"
+                                        isDisabled={actionInProgressId === sub._id}
+                                        isLoading={actionInProgressId === sub._id}
+                                        onPress={() => handleDeleteSubmission(sub)}
+                                        className="w-8 h-8 min-w-unit-8 rounded-lg bg-surface border-separator hover:bg-destructive/10 hover:border-destructive/40 text-label-secondary hover:text-destructive cursor-pointer"
                                         title="Delete Submission Record"
                                       >
                                         <Trash2 size={13} />
-                                      </button>
+                                      </Button>
                                     )}
                                   </div>
                                 </td>
@@ -3162,13 +3280,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
               Create the first assessment for this Event Arena. You can create as many assessments as needed
               and assign admins to curate each one.
             </p>
-            <button
-              onClick={() => setIsCreatingNew(true)}
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
+            <Button
+              size="sm"
+              variant="solid"
+              color="secondary"
+              startContent={<Plus size={14} />}
+              onPress={() => setIsCreatingNew(true)}
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 cursor-pointer"
             >
-              <Plus size={14} />
-              <span>Create First Assessment</span>
-            </button>
+              Create First Assessment
+            </Button>
           </div>
         )}
 
@@ -3187,15 +3308,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     <FileSpreadsheet size={16} className="text-purple-400" />
                     <span>Upload {bulkModalType.toUpperCase()} Questions</span>
                   </h3>
-                  <button
-                    onClick={() => {
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    onPress={() => {
                       setBulkModalType(null);
                       setBulkFile(null);
                     }}
-                    className="text-text-muted hover:text-label-primary "
+                    className="text-text-muted hover:text-label-primary min-w-unit-8 w-8 h-8 rounded-lg cursor-pointer"
                   >
                     <X size={16} />
-                  </button>
+                  </Button>
                 </div>
 
                 <p className="text-xs text-text-muted">
@@ -3227,23 +3351,29 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    onClick={() => {
+                  <Button
+                    size="sm"
+                    variant="light"
+                    onPress={() => {
                       setBulkModalType(null);
                       setBulkFile(null);
                     }}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-label-primary "
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-text-muted hover:text-label-primary cursor-pointer"
                   >
                     Cancel
-                  </button>
-                  <button
-                    onClick={handleBulkUpload}
-                    disabled={!bulkFile || actionLoading}
-                    className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-label-primary text-xs font-bold shadow-md shadow-purple-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    color="secondary"
+                    isDisabled={!bulkFile || actionLoading}
+                    isLoading={actionLoading}
+                    startContent={!actionLoading ? <Upload size={13} /> : undefined}
+                    onPress={handleBulkUpload}
+                    className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 cursor-pointer"
                   >
-                    {actionLoading && <Loader2 size={12} className="animate-spin" />}
-                    <span>Upload Now</span>
-                  </button>
+                    Upload Now
+                  </Button>
                 </div>
               </motion.div>
             </div>
@@ -3262,12 +3392,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
               >
                 <div className="w-full flex justify-between items-center pb-3 text-label-primary ">
                   <span className="text-xs font-bold text-label-secondary">Reference Design Mockup</span>
-                  <button
-                    onClick={() => setPreviewModalImg(null)}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-label-primary "
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    onPress={() => setPreviewModalImg(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white min-w-unit-8 w-8 h-8 cursor-pointer"
                   >
                     <X size={18} />
-                  </button>
+                  </Button>
                 </div>
                 <div className="overflow-auto max-h-[82vh] rounded-2xl border border-separator bg-black/60 p-2">
                   <img
@@ -3309,12 +3442,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </a>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setPreviewFigmaUrl(null)}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-label-primary "
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    onPress={() => setPreviewFigmaUrl(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white min-w-unit-8 w-8 h-8 cursor-pointer"
                   >
                     <X size={16} />
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex-1 bg-black/50 p-2">
                   <iframe
@@ -3374,12 +3510,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setInspectingSub(null)}
-                    className="p-2 rounded-xl text-label-tertiary hover:text-label-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    onPress={() => setInspectingSub(null)}
+                    className="p-2 rounded-xl text-label-tertiary hover:text-label-primary hover:bg-surface-secondary min-w-unit-8 w-8 h-8 cursor-pointer"
                   >
                     <X size={16} />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Score Summary Metrics */}
@@ -3669,19 +3808,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                     className="flex-1 min-w-36 px-2.5 py-1 rounded-lg bg-surface border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500"
                                   />
 
-                                  <button
-                                    type="button"
-                                    disabled={isGradingCode[cs.problemId]}
-                                    onClick={() => handleGradeCode(inspectingSub._id, cs.problemId)}
-                                    className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer disabled:opacity-50"
+                                  <Button
+                                    size="sm"
+                                    variant="solid"
+                                    color="secondary"
+                                    isDisabled={isGradingCode[cs.problemId]}
+                                    isLoading={isGradingCode[cs.problemId]}
+                                    startContent={!isGradingCode[cs.problemId] ? <CheckCircle2 size={12} /> : undefined}
+                                    onPress={() => handleGradeCode(inspectingSub._id, cs.problemId)}
+                                    className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 cursor-pointer"
                                   >
-                                    {isGradingCode[cs.problemId] ? (
-                                      <Loader2 size={12} className="animate-spin" />
-                                    ) : (
-                                      <CheckCircle2 size={12} />
-                                    )}
-                                    <span>{cs.isEvaluated ? 'Update Score' : 'Save Score'}</span>
-                                  </button>
+                                    {cs.isEvaluated ? 'Update Score' : 'Save Score'}
+                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -3695,41 +3833,51 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 {/* Modal Footer Quick Actions */}
                 <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-separator shrink-0">
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={actionInProgressId === inspectingSub._id}
-                      onClick={() => handleResetSubmission(inspectingSub)}
-                      className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="warning"
+                      isDisabled={actionInProgressId === inspectingSub._id}
+                      isLoading={actionInProgressId === inspectingSub._id}
+                      startContent={actionInProgressId !== inspectingSub._id ? <RotateCcw size={13} /> : undefined}
+                      onPress={() => handleResetSubmission(inspectingSub)}
+                      className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 border border-amber-500/30 text-xs font-bold cursor-pointer"
                     >
-                      <RotateCcw size={13} />
-                      <span>Reset Attempt</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={actionInProgressId === (inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId)}
-                      onClick={() => handleUnblockStudent(inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId, inspectingSub.userId?.name)}
-                      className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-500 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      Reset Attempt
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="success"
+                      isDisabled={actionInProgressId === (inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId)}
+                      isLoading={actionInProgressId === (inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId)}
+                      startContent={actionInProgressId !== (inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId) ? <ShieldCheck size={13} /> : undefined}
+                      onPress={() => handleUnblockStudent(inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId, inspectingSub.userId?.name)}
+                      className="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-500 border border-emerald-500/30 text-xs font-bold cursor-pointer"
                     >
-                      <ShieldCheck size={13} />
-                      <span>Unblock Student</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={actionInProgressId === inspectingSub._id}
-                      onClick={() => handleDeleteSubmission(inspectingSub)}
-                      className="px-3 py-2 rounded-xl bg-destructive/15 hover:bg-destructive/25 text-destructive border border-destructive/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      Unblock Student
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="danger"
+                      isDisabled={actionInProgressId === inspectingSub._id}
+                      isLoading={actionInProgressId === inspectingSub._id}
+                      startContent={actionInProgressId !== inspectingSub._id ? <Trash2 size={13} /> : undefined}
+                      onPress={() => handleDeleteSubmission(inspectingSub)}
+                      className="px-3 py-2 rounded-xl bg-destructive/15 hover:bg-destructive/25 text-destructive border border-destructive/30 text-xs font-bold cursor-pointer"
                     >
-                      <Trash2 size={13} />
-                      <span>Delete</span>
-                    </button>
+                      Delete
+                    </Button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setInspectingSub(null)}
-                    className="btn-secondary px-4 py-2 text-xs font-semibold cursor-pointer"
+                  <Button
+                    size="sm"
+                    variant="bordered"
+                    onPress={() => setInspectingSub(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold border-separator bg-surface hover:bg-surface-secondary text-label-primary cursor-pointer"
                   >
                     Close
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             </div>
@@ -3758,12 +3906,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setEvaluatingSub(null)}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-label-primary "
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    onPress={() => setEvaluatingSub(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white min-w-unit-8 w-8 h-8 cursor-pointer"
                   >
                     <X size={16} />
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
@@ -3827,23 +3978,26 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-separator">
-                  <button
-                    type="button"
-                    onClick={() => setEvaluatingSub(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-label-primary /70 hover:bg-white/10"
+                  <Button
+                    size="sm"
+                    variant="light"
+                    onPress={() => setEvaluatingSub(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-label-secondary hover:bg-white/10 cursor-pointer"
                   >
                     Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleEvaluateSubmit}
-                    disabled={actionLoading}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-label-primary text-xs font-bold shadow-lg shadow-pink-600/30 flex items-center gap-1.5 disabled:opacity-50"
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    color="secondary"
+                    isDisabled={actionLoading}
+                    isLoading={actionLoading}
+                    startContent={!actionLoading ? <CheckCircle2 size={13} /> : undefined}
+                    onPress={handleEvaluateSubmit}
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-pink-600/30 cursor-pointer"
                   >
-                    {actionLoading && <Loader2 size={13} className="animate-spin" />}
-                    <CheckCircle2 size={13} />
-                    <span>Save Evaluation</span>
-                  </button>
+                    Save Evaluation
+                  </Button>
                 </div>
               </motion.div>
             </div>

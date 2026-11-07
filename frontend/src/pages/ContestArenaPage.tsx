@@ -812,7 +812,7 @@ export const ContestArenaPage: React.FC = () => {
           <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
             {/* ── DESKTOP CODING WORKSPACE (>= 1024px) ── */}
             <div className="hidden lg:flex flex-1 h-full w-full overflow-hidden">
-              <PanelGroup direction="horizontal" className="h-full w-full overflow-hidden">
+              <PanelGroup orientation="horizontal" className="h-full w-full overflow-hidden">
                 {/* 1. LEFT PANEL: Problem, Constraints, Examples & Public Test Cases */}
                 <Panel defaultSize={42} minSize={25} className="flex flex-col bg-surface border-r border-separator overflow-hidden">
                   {/* Left Tabs Bar */}
@@ -1006,7 +1006,7 @@ export const ContestArenaPage: React.FC = () => {
 
                 {/* 2. RIGHT PANEL: Resizable Monaco Editor & OLED Terminal */}
                 <Panel defaultSize={58} minSize={30} className="flex flex-col overflow-hidden bg-canvas">
-                  <PanelGroup direction="vertical" className="h-full w-full overflow-hidden">
+                  <PanelGroup orientation="vertical" className="h-full w-full overflow-hidden">
                     {/* Monaco Code Editor Sub-Panel */}
                     <Panel defaultSize={65} minSize={30} className="flex flex-col bg-canvas relative overflow-hidden">
                       {/* Editor Sub-Header Toolbar */}

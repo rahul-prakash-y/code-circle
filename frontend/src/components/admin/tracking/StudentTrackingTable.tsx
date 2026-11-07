@@ -99,12 +99,12 @@ export const StudentTrackingTable: React.FC = () => {
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
 
   const handleDownloadStudentPdf = async (
-    e: React.MouseEvent,
+    e: React.MouseEvent | undefined,
     studentId: string,
     rollNo: string,
     name: string
   ) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
     if (generatingPdfId) return;
 
     try {
@@ -514,9 +514,9 @@ export const StudentTrackingTable: React.FC = () => {
                                     View 360° Profile
                                   </EmilDropdownItem>
                                   <EmilDropdownItem
-                                    onClick={(e: any) =>
+                                    onClick={() =>
                                       handleDownloadStudentPdf(
-                                        e,
+                                        undefined,
                                         student._id,
                                         student.rollNo,
                                         student.name

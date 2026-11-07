@@ -7,30 +7,50 @@ import {
 } from 'lucide-react';
 
 export interface PaginationProps {
-  page: number;
-  totalPages: number;
+  page?: number;
+  currentPage?: number;
+  totalPages?: number;
   totalItems?: number;
   limit?: number;
+  itemsPerPage?: number;
   onPageChange: (page: number) => void;
   onLimitChange?: (limit: number) => void;
   limitOptions?: number[];
+  pageSizeOptions?: number[];
   disabled?: boolean;
   className?: string;
+  pagination?: {
+    page?: number;
+    totalPages?: number;
+    total?: number;
+    totalItems?: number;
+    limit?: number;
+  };
 }
 
 export const Pagination: React.FC<PaginationProps> = ({
   page,
+  currentPage,
   totalPages,
   totalItems,
   limit,
+  itemsPerPage,
   onPageChange,
   onLimitChange,
-  limitOptions = [10, 20, 50, 100],
+  limitOptions,
+  pageSizeOptions,
   disabled = false,
   className = '',
+  pagination,
 }) => {
-  const safeTotalPages = Math.max(1, totalPages || 1);
-  const safeCurrentPage = Math.min(Math.max(1, page || 1), safeTotalPages);
+  const actualPage = page ?? currentPage ?? pagination?.page ?? 1;
+  const actualTotalPages = Math.max(1, (totalPages ?? pagination?.totalPages ?? 1));
+  const actualTotalItems = totalItems ?? pagination?.totalItems ?? pagination?.total;
+  const actualLimit = limit ?? itemsPerPage ?? pagination?.limit;
+  const actualLimitOptions = limitOptions ?? pageSizeOptions ?? [10, 20, 50, 100];
+
+  const safeTotalPages = actualTotalPages;
+  const safeCurrentPage = Math.min(Math.max(1, actualPage), safeTotalPages);
 
   // Generate page numbers with ellipses
   const getPageNumbers = () => {
@@ -90,10 +110,10 @@ export const Pagination: React.FC<PaginationProps> = ({
     }
   };
 
-  const startItem = limit ? (safeCurrentPage - 1) * limit + 1 : undefined;
+  const startItem = actualLimit ? (safeCurrentPage - 1) * actualLimit + 1 : undefined;
   const endItem =
-    limit && totalItems !== undefined
-      ? Math.min(safeCurrentPage * limit, totalItems)
+    actualLimit && actualTotalItems !== undefined
+      ? Math.min(safeCurrentPage * actualLimit, actualTotalItems)
       : undefined;
 
   return (
@@ -104,15 +124,15 @@ export const Pagination: React.FC<PaginationProps> = ({
     >
       {/* Records info & Page Size Selector */}
       <div className="flex items-center gap-3 text-label-secondary w-full sm:w-auto justify-between sm:justify-start">
-        {totalItems !== undefined && startItem !== undefined && endItem !== undefined ? (
+        {actualTotalItems !== undefined && startItem !== undefined && endItem !== undefined ? (
           <span>
             Showing <strong className="text-label-primary font-medium">{startItem}</strong>-
             <strong className="text-label-primary font-medium">{endItem}</strong> of{' '}
-            <strong className="text-label-primary font-medium">{totalItems}</strong> records
+            <strong className="text-label-primary font-medium">{actualTotalItems}</strong> records
           </span>
-        ) : totalItems !== undefined ? (
+        ) : actualTotalItems !== undefined ? (
           <span>
-            Total <strong className="text-label-primary font-medium">{totalItems}</strong> records
+            Total <strong className="text-label-primary font-medium">{actualTotalItems}</strong> records
           </span>
         ) : (
           <span>
@@ -121,17 +141,17 @@ export const Pagination: React.FC<PaginationProps> = ({
           </span>
         )}
 
-        {onLimitChange && limit && (
+        {onLimitChange && actualLimit && (
           <div className="flex items-center gap-1.5 ml-2">
             <span className="text-[12px]">Per page:</span>
             <select
               aria-label="Records per page"
-              value={limit}
+              value={actualLimit}
               disabled={disabled}
               onChange={(e) => onLimitChange(Number(e.target.value))}
               className="bg-surface-secondary border border-separator rounded-lg px-2 py-1 text-[12px] font-medium text-label-primary focus:outline-none focus:border-accent cursor-pointer transition-colors"
             >
-              {limitOptions.map((opt) => (
+              {actualLimitOptions.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
                 </option>

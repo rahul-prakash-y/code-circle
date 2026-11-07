@@ -27,7 +27,7 @@ export const iosPageTransitionVariants = {
     y: -6,
     transition: {
       duration: 0.12,
-      ease: [0.32, 0, 0.67, 0],
+      ease: [0.32, 0, 0.67, 0] as any,
     },
   },
 };

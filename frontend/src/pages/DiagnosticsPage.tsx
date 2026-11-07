@@ -1025,7 +1025,7 @@ export const DiagnosticsPage: React.FC = () => {
                                   size="sm"
                                   variant="light"
                                   radius="md"
-                                  onPress={(e) => handleCopyId(doc._id, e as any)}
+                                  onPress={(e: any) => handleCopyId(doc._id, e as any)}
                                   className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                                   title="Copy ObjectId"
                                 >
@@ -1120,7 +1120,7 @@ export const DiagnosticsPage: React.FC = () => {
                                   size="sm"
                                   variant="light"
                                   radius="md"
-                                  onPress={(e) => handleCopyId(doc._id, e as any)}
+                                  onPress={(e: any) => handleCopyId(doc._id, e as any)}
                                   className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                                   title="Copy ObjectId"
                                 >

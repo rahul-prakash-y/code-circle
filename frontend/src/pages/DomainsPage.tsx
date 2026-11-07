@@ -172,8 +172,8 @@ export const DomainsPage: React.FC = () => {
     }
   };
 
-  const handleRegisterCourse = async (e: React.MouseEvent, domain: IDomain) => {
-    e.stopPropagation();
+  const handleRegisterCourse = async (e: any, domain: IDomain) => {
+    e?.stopPropagation?.();
     setRegisteringDomainId(domain._id);
     try {
       await registerForDomain(domain._id);
@@ -317,7 +317,7 @@ export const DomainsPage: React.FC = () => {
                     size="sm"
                     color="primary"
                     variant="solid"
-                    onPress={(e) => handleRegisterCourse(e, activeCourse)}
+                    onPress={(e: any) => handleRegisterCourse(e, activeCourse)}
                     isDisabled={registeringDomainId === activeCourse._id}
                     className="rounded-full text-xs font-bold shadow-md"
                     startContent={
@@ -541,7 +541,7 @@ export const DomainsPage: React.FC = () => {
               size="sm"
               color="primary"
               variant="solid"
-              onPress={(e) => handleRegisterCourse(e, activeCourse)}
+              onPress={(e: any) => handleRegisterCourse(e, activeCourse)}
               isDisabled={registeringDomainId === activeCourse._id}
               className="shrink-0 rounded-full text-xs font-bold shadow-md shadow-accent/20"
               startContent={
@@ -992,7 +992,7 @@ export const DomainsPage: React.FC = () => {
                           size="sm"
                           radius="full"
                           color="warning"
-                          onClick={(e) => {
+                          onClick={(e: any) => {
                             e.stopPropagation();
                             toggleDomainLock(domain._id);
                           }}
@@ -1013,7 +1013,7 @@ export const DomainsPage: React.FC = () => {
                           size="sm"
                           radius="full"
                           color="success"
-                          onClick={(e) => {
+                          onClick={(e: any) => {
                             e.stopPropagation();
                             toggleDomainLock(domain._id);
                           }}
@@ -1034,13 +1034,13 @@ export const DomainsPage: React.FC = () => {
 
                     {/* Admin inline action pills */}
                     {isAdmin && (
-                      <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md p-1 rounded-full border border-white/10" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md p-1 rounded-full border border-white/10" onClick={(e: any) => e.stopPropagation()}>
                         <Button
                           isIconOnly
                           size="sm"
                           radius="full"
                           variant="light"
-                          onClick={(e) => {
+                          onClick={(e: any) => {
                             e.stopPropagation();
                             setSelectedDomainForStudents(domain);
                             setIsStudentsModalOpen(true);
@@ -1055,7 +1055,7 @@ export const DomainsPage: React.FC = () => {
                           size="sm"
                           radius="full"
                           variant="light"
-                          onClick={(e) => handleEditDomain(e, domain)}
+                          onClick={(e: any) => handleEditDomain(e, domain)}
                           className="w-7 h-7 min-w-[28px] min-h-[28px] text-white/80 hover:text-white hover:bg-white/20"
                           title="Edit Course"
                         >
@@ -1067,7 +1067,7 @@ export const DomainsPage: React.FC = () => {
                           radius="full"
                           variant="light"
                           color="danger"
-                          onClick={(e) => handleDeleteDomain(e, domain)}
+                          onClick={(e: any) => handleDeleteDomain(e, domain)}
                           className="w-7 h-7 min-w-[28px] min-h-[28px] text-rose-300 hover:text-rose-100 hover:bg-rose-500/30"
                           title="Delete Course"
                         >
@@ -1137,7 +1137,7 @@ export const DomainsPage: React.FC = () => {
                         color="primary"
                         isLoading={registeringDomainId === domain._id}
                         isDisabled={registeringDomainId === domain._id}
-                        onClick={(e) => handleRegisterCourse(e, domain)}
+                        onClick={(e: any) => handleRegisterCourse(e, domain)}
                         startContent={registeringDomainId === domain._id ? undefined : <Check className="w-3.5 h-3.5" />}
                         className="font-semibold px-3.5 min-h-[34px] shadow"
                       >

@@ -12,6 +12,8 @@ export interface SystemHealthData {
   cpuCount: number;
   cpuModel: string;
   loadAvg: number[];
+  processId?: number | string;
+  serverTime?: string;
   memory: {
     heapUsedMB: number;
     heapTotalMB: number;

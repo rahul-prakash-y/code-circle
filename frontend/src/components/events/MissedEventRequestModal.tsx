@@ -14,6 +14,7 @@ import {
   ExternalLink,
   ShieldAlert,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import toast from 'react-hot-toast';
@@ -249,7 +250,7 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                     value={selectedEventId}
                     onChange={(val) => setSelectedEventId(val)}
                     color="primary"
-                    options={events.map((evt) => ({
+                    options={events.map((evt: any) => ({
                       value: evt._id,
                       label: evt.title,
                       description: `${evt.type} • ${formatISTDate(evt.date)} • ${evt.hourlyPoints || 50} pts/hr`,

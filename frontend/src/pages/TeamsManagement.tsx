@@ -566,7 +566,7 @@ const TeamsManagement: React.FC = () => {
                       className="input-field py-2 text-xs min-h-[44px]"
                     >
                       <option value="">General (No Event)</option>
-                      {events.map((ev) => (
+                      {events.map((ev: any) => (
                         <option key={ev._id} value={ev._id}>
                           {ev.title}
                         </option>
@@ -687,7 +687,7 @@ const TeamsManagement: React.FC = () => {
                       className="input-field py-2 text-xs min-h-[44px]"
                     >
                       <option value="">None (General Team)</option>
-                      {events.map((ev) => (
+                      {events.map((ev: any) => (
                         <option key={ev._id} value={ev._id}>
                           {ev.title}
                         </option>
