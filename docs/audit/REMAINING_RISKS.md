@@ -47,20 +47,22 @@ In accordance with professional engineering ethics and audit standards: **No sof
   - Added strict string type checking in `authController.ts` (`register` and `login`) ensuring identifiers and passwords must be primitive strings.
 - **Status:** **VERIFIED WITH TESTS** in `noSqlSanitization.test.ts`.
 
+### 2.5 Code Execution Sandboxing, Concurrency & Legacy Deprecation (RESOLVED)
+- **Previous Risk:** `judge0Provider.ts` did not explicitly enforce `enable_network: false` or memory limits; unthrottled concurrent execution allowed a single user to consume all RCE workers; legacy `submissionController.js` bypassed `RCEService`, ran un-sandboxed RapidAPI calls, and blocked on synchronous polling.
+- **Implemented Fix:**
+  - Hardened `judge0Provider.ts`: explicitly sets `enable_network: false`, `memory_limit: 256000` (256 MB in KB), `wall_time_limit: Math.max(cpu + 1, ceil(timeout+2s))`, and `max_file_size: 1024` (1 MB). Tested all 5 languages against live Judge0 CE (C, C++, Python, JavaScript, Java).
+  - Gracefully handles HTTP 422 provider parameter validation errors without crashing.
+  - Added startup semver validation on remote `/about` (verified live provider runs `1.14.0`, which is >= `1.13.1` and safe against CVE-2024-28185 / CVE-2024-28189).
+  - Added batch execution (`executeBatch` via `/submissions/batch`), collapsing $N$ testcase calls into 1 POST + 1 GET polling call (70-85% provider call reduction).
+  - Enforced per-user concurrency lock (max 1 active in-flight execution per user across Run and Submit, with automatic release timeout).
+  - Concurrency Limiter: bounded FIFO queue (max 50, 30s wait -> HTTP 503 `Retry-After: 5`).
+  - Separated rate limits: Run (2s cooldown, 20 req/2 min) vs Submit (5s cooldown, 5 req/1 min) with failure/timeout rollback.
+  - Deprecated legacy `POST /api/problems/:id/submit` with HTTP 410 Gone (`ENDPOINT_DEPRECATED`) and removed direct RapidAPI execution path.
+- **Status:** **VERIFIED WITH ROUTE-LEVEL TESTS** in `codeExecutionHardening.test.ts` (15/15 tests passing).
+
 ---
 
 ## 3. Items Requiring Product Owner / Architecture Approval
-
-### 3.1 Code Execution Architecture & Legacy Submission Controller
-- **Audit Findings:**
-  - **Runner Architecture:** Sandboxed external RCE providers (Emkc Piston v2 API and Judge0 CE API).
-  - **Sandboxing:** Docker unprivileged user isolation (Piston) and Linux `isolate` / `cgroups` (Judge0) with network disabled inside container.
-  - **Resource Limits:** 64 KB source code (`MAX_SOURCE_CODE_BYTES`), 32 KB stdin (`MAX_STDIN_BYTES`), 10-second timeout, 10-slot in-memory concurrency queue.
-  - **Host Isolation:** Absolute. Zero student code executes inside the Fastify server process.
-- **Legacy Finding (Medium Severity):**
-  - In `backend/src/controllers/submissionController.js` (mounted on `POST /api/problems/:id/submit`), the handler bypasses `RCEService` and calls RapidAPI Judge0 directly with an unhandled `req.user.uid` field (which is `undefined` because Fastify auth middleware sets `req.user.id`). It also executes a synchronous 20-second blocking `while` polling loop.
-- **Action Required / Decision Needed:** Should `submissionController.js` be migrated to use `RCEService` or deprecated in favor of `codingAssessmentController.ts`?
-- **Status:** **AWAITING USER DECISION** (Preserved existing endpoint per safety rule: "Ask me before redesigning it").
 
 ### 3.2 JWT_SECRET Rotation in Production & Staging
 - **Audit Findings:**

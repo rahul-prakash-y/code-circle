@@ -4,7 +4,7 @@
 **Branch:** `audit/production-hardening`  
 **Test Runner:** Node.js Native Test Runner via `tsx --test src/**/*.test.ts`  
 **Date:** November 2026  
-**Result:** **56 Tests Executed, 17 Suites, 56 Passed, 0 Failed, 0 Skipped**
+**Result:** **71 Tests Executed, 25 Suites, 71 Passed, 0 Failed, 0 Skipped**
 
 ---
 
@@ -12,6 +12,7 @@
 
 | Area | Suite Name | Tests | Status | Verification Method |
 |---|---|---|---|---|
+| **Code Execution (Judge0 & RCE)** | `codeExecutionHardening.test.ts` | 15 | **PASS** | Language allowlist, size bounds, sandbox params (`enable_network:false`, memory/wall time), hidden-case masking, score computation, anti-IDOR, per-user concurrency lock, queue timeout (503), Run vs Submit limits, failure rollback, legacy 410 Gone |
 | **Route Authorization (P1/P2)** | `routeLevelAuth.test.ts` | 23 | **PASS** | HTTP Handler injection (`server.inject`) with 6 token variants |
 | **Attendance Hardening** | `attendanceBufferHardening.test.ts` | 4 | **PASS** | TTL expiry, per-user/per-event 5-strike lockout |
 | **NoSQL Injection Guard** | `noSqlSanitization.test.ts` | 5 | **PASS** | Recursive `$*` key strip hook & type-checked payload filters |

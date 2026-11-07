@@ -173,3 +173,47 @@ The codebase was audited against the **OWASP Top 10:2025** standard and **OWASP 
 - **Remediation Implemented:**
   Replaced with a static, generic error message: `Invalid format for resource identifier.`. Also sanitized Mongoose validation error objects to prevent leaking database internals.
 - **Status:** **FIXED & VERIFIED** (Commit: `4a8be3e`).
+
+---
+
+### 2.10 [SEC-10] Untrusted Code Execution Sandboxing & Resource Bounds (Judge0)
+- **Severity:** P1 (High)
+- **OWASP Reference:** A03:2025 - Injection / ASVS 5.2.4 (Execution Sandboxing)
+- **Affected File(s):** `backend/src/services/rce/judge0Provider.ts`, `backend/src/services/rceService.ts`
+- **Vulnerability Mechanics:**
+  Judge0 requests did not explicitly disable networking (`enable_network: false`) or set memory (`memory_limit`) or wall time limits (`wall_time_limit`). Malicious student submissions could attempt outbound SSRF or port scanning. Furthermore, unhandled 422 provider validation errors could crash request handlers.
+- **Remediation Implemented:**
+  1. Enforced strict sandboxing payload: `enable_network: false`, `memory_limit: 256000` (256 MB in KB), `wall_time_limit: Math.max(cpu + 1, ceil(timeout + 2s))`, and `max_file_size: 1024` (1 MB). Tested all 5 languages against live Judge0 CE.
+  2. Handled HTTP 422 provider parameter errors gracefully without crashing the server.
+  3. Added remote `/about` semver check at startup (verified live Judge0 version is `1.14.0`, which is >= `1.13.1` and safe against CVE-2024-28185 / CVE-2024-28189 isolate escapes).
+- **Verification:** Verified via `codeExecutionHardening.test.ts` (Subtests 1 & 2).
+- **Status:** **FIXED & VERIFIED**.
+
+---
+
+### 2.11 [SEC-11] Single-User RCE Monopoly & Missing Submit Throttling
+- **Severity:** P2 (Medium)
+- **OWASP Reference:** A04:2025 - Insecure Design / Rate Limiting & Resource Exhaustion
+- **Affected File(s):** `backend/src/services/rce/concurrencyLimiter.ts`, `backend/src/controllers/codingAssessmentController.ts`
+- **Vulnerability Mechanics:**
+  The global concurrency limiter capped total in-flight requests at 5, but lacked a per-user concurrency lock. A single user with parallel scripts could consume all worker slots. Additionally, the final submit path lacked throttling.
+- **Remediation Implemented:**
+  1. Implemented `UserExecutionLockManager` enforcing a hard maximum of 1 concurrent in-flight execution per user across Run and Submit, with automatic release timeout.
+  2. Bounded global queue with a 30s timeout returning HTTP 503 with `Retry-After: 5`.
+  3. Separated rate limits: Run (2s cooldown, 20 runs / 2 min) and Submit (5s cooldown, 5 submissions / 1 min).
+  4. Added automatic rate-limit rollback: provider infrastructure errors/timeouts refund the student's quota attempt.
+- **Verification:** Verified via `codeExecutionHardening.test.ts` (Subtests 5 & 6).
+- **Status:** **FIXED & VERIFIED**.
+
+---
+
+### 2.12 [SEC-12] Legacy Unsandboxed Problem Submission Endpoint
+- **Severity:** P1 (High)
+- **OWASP Reference:** A01:2025 - Broken Access Control & Deprecated Execution Vectors
+- **Affected File(s):** `backend/src/controllers/submissionController.js`, `backend/src/routes/problemRoutes.js`
+- **Vulnerability Mechanics:**
+  `POST /api/problems/:id/submit` bypassed `RCEService`, lacked input size and language allowlists, read non-existent `req.user.uid`, and executed a synchronous 20-second blocking polling loop.
+- **Remediation Implemented:**
+  Deprecated the endpoint (Option B) by returning HTTP 410 Gone (`code: 'ENDPOINT_DEPRECATED'`) and removed the un-sandboxed RapidAPI execution path while preserving shared environment variables for `rceService`.
+- **Verification:** Verified via `codeExecutionHardening.test.ts` (Subtest 7).
+- **Status:** **FIXED & VERIFIED**.
