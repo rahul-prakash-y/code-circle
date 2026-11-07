@@ -148,6 +148,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             <div className="w-[84px]">
               <HeroUISelect
                 size="sm"
+                placement='top-start'
                 value={String(actualLimit)}
                 disabled={disabled}
                 onChange={(val) => onLimitChange(Number(val))}
