@@ -24,6 +24,7 @@ import useAuthStore from '../../store/useAuthStore';
 import { TableSkeleton } from '../ui/LoadingSkeleton';
 import { EmilCard } from '../ui/emil-ui';
 import { HeroAvatar, HeroUser, HeroInput, HeroTabs } from '../ui/HeroUIComponents';
+import { EmptyState, NoSearchResults } from '../states';
 
 // ── 3D Olympic Podium Component for Top 3 ──────────────────────────────
 const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
@@ -700,23 +701,34 @@ export const Leaderboard = () => {
 
           {/* Empty search results */}
           {processedLeaderboard.length === 0 && (
-            <div className="p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-surface-secondary border border-separator text-label-tertiary flex items-center justify-center mx-auto">
-                <Trophy size={22} />
-              </div>
-              <h4 className="text-sm font-medium text-label-primary">No scholars found</h4>
-              <p className="text-xs text-label-secondary max-w-xs mx-auto">
-                No students match your filter or search query. Try switching branches or clearing the search.
-              </p>
-              <button
-                onClick={() => {
-                  setSearch('');
-                  setSelectedDept('All');
-                }}
-                className="px-4 py-2 min-h-[38px] rounded-xl text-xs font-medium bg-primary text-white shadow-xs cursor-pointer"
-              >
-                Reset filters
-              </button>
+            <div className="p-8 text-center">
+              {search.trim() ? (
+                <NoSearchResults
+                  query={search}
+                  onClearFilters={() => {
+                    setSearch('');
+                    setSelectedDept('All');
+                  }}
+                />
+              ) : (
+                <EmptyState
+                  reason={selectedDept !== 'All' ? 'filtered' : 'first-use'}
+                  title={selectedDept !== 'All' ? 'No scholars in this department' : 'No leaderboard records yet'}
+                  description={
+                    selectedDept !== 'All'
+                      ? 'Try selecting "All Branches" to view overall student standings.'
+                      : 'Solve coding assessments and attend events to earn points and appear on the leaderboard.'
+                  }
+                  primaryAction={
+                    selectedDept !== 'All'
+                      ? {
+                          label: 'Show all scholars',
+                          onClick: () => setSelectedDept('All'),
+                        }
+                      : undefined
+                  }
+                />
+              )}
             </div>
           )}
         </div>

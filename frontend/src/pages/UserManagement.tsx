@@ -9,7 +9,6 @@ import {
   Edit, ChevronLeft, ChevronRight, CheckCircle2,
   Sparkles, Mail, Lock, Unlock, ArrowRight, Upload, FileSpreadsheet, Share2, Download,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import api from '../lib/axios';
 import { User, UserRole } from '../types/user';
@@ -21,6 +20,7 @@ import { EmilCard } from '../components/ui/emil-ui';
 import { HeroInput, HeroTabs, HeroUser, HeroAvatar } from '../components/ui/HeroUIComponents';
 import { HeroUISelect } from '../components/ui/HeroUISelect';
 import { Button, Checkbox, Spinner } from '@heroui/react';
+import { EmptyState, NoSearchResults } from '../components/states';
 
 // ── Role helpers ────────────────────────────────────────────────────────────
 const ROLE_META: Record<string, { color: string; bg: string; Icon: React.ComponentType<any> }> = {
@@ -433,6 +433,7 @@ const UserManagement: React.FC = () => {
         'Registration Date': u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A',
       }));
 
+      const XLSX = await import('xlsx');
       const ws = XLSX.utils.json_to_sheet(rows);
       ws['!cols'] = [
         { wch: 6 },
@@ -482,7 +483,7 @@ const UserManagement: React.FC = () => {
     );
   };
 
-  const handleExportSelectedExcel = () => {
+  const handleExportSelectedExcel = async () => {
     if (selectedIds.length === 0) return;
     const selectedUsers = users.filter((u) => selectedIds.includes(u._id || u.id!));
     if (selectedUsers.length === 0) {
@@ -504,6 +505,7 @@ const UserManagement: React.FC = () => {
       'Registration Date': u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A',
     }));
 
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(rows);
     ws['!cols'] = [
       { wch: 6 },
@@ -1135,26 +1137,24 @@ const UserManagement: React.FC = () => {
               </AnimatePresence>
             ) : (
               <tr>
-                <td colSpan={7} className="py-20 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                      style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)' }}
-                    >
-                      <Users size={24} style={{ color: 'var(--text-muted)' }} strokeWidth={1.5} />
-                    </div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-                      No users match your filters
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onPress={() => { setSearchTerm(''); setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}
-                      className="text-[12px] font-semibold min-h-[36px] text-primary"
-                    >
-                      Clear filters
-                    </Button>
-                  </div>
+                <td colSpan={7} className="py-12 text-center">
+                  {searchTerm ? (
+                    <NoSearchResults
+                      query={searchTerm}
+                      onClearFilters={() => { setSearchTerm(''); setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }}
+                    />
+                  ) : (
+                    <EmptyState
+                      reason={filters.role !== 'all' || filters.status !== 'all' ? 'filtered' : 'first-use'}
+                      title={filters.role !== 'all' || filters.status !== 'all' ? 'No users match your filters' : 'No users found'}
+                      description={filters.role !== 'all' || filters.status !== 'all' ? 'Try adjusting your role or status filters to find what you are looking for.' : 'Get started by inviting your first user or importing a roster.'}
+                      primaryAction={
+                        filters.role !== 'all' || filters.status !== 'all'
+                          ? { label: 'Clear all filters', onClick: () => { setSearchTerm(''); setSearch(''); setRoleFilter('all'); setStatusFilter('all'); } }
+                          : { label: 'Add user', onClick: () => setShowAddPanel(true) }
+                      }
+                    />
+                  )}
                 </td>
               </tr>
             )}

@@ -21,6 +21,7 @@ import SubmitFeedbackModal from './SubmitFeedbackModal';
 import Pagination from '../common/Pagination';
 import toast from 'react-hot-toast';
 import { useDebounce } from '../../hooks/useDebounce';
+import { DelayedSkeleton, CardGridSkeleton, EmptyState, NoSearchResults } from '../states';
 
 const FeedbackDashboard = () => {
   const {
@@ -368,46 +369,41 @@ const FeedbackDashboard = () => {
 
       {/* Feedbacks Stream Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="bg-surface border border-separator rounded-2xl p-6 shadow-xs animate-pulse space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="h-4 bg-surface-secondary rounded-lg w-1/4" />
-                <div className="h-4 bg-surface-secondary rounded-lg w-1/5" />
-              </div>
-              <div className="space-y-2">
-                <div className="h-3.5 bg-surface-secondary rounded-md w-full" />
-                <div className="h-3.5 bg-surface-secondary rounded-md w-4/5" />
-              </div>
-              <div className="pt-3 border-t border-separator flex items-center justify-between">
-                <div className="h-8 w-8 bg-surface-secondary rounded-xl" />
-                <div className="h-3 bg-surface-secondary rounded-md w-24" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <DelayedSkeleton>
+          <CardGridSkeleton count={4} />
+        </DelayedSkeleton>
       ) : filteredFeedbacks.length === 0 ? (
-        <div className="bg-surface border border-separator rounded-3xl p-12 text-center space-y-4 shadow-xs">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto shadow-xs">
-            <MessageSquare size={26} />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-label-primary">No Feedback Entries Found</h3>
-            <p className="text-xs text-label-secondary max-w-sm mx-auto leading-relaxed">
-              No student feedback matches the active search or filters. Be the first to share your thoughts!
-            </p>
-          </div>
-          <button
-            onClick={() => setIsSubmitModalOpen(true)}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-primary hover:bg-primary-hover shadow-md shadow-primary/25 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer mt-1"
-          >
-            <Plus size={15} />
-            <span>Submit Feedback</span>
-          </button>
-        </div>
+        search.trim() ? (
+          <NoSearchResults
+            query={search}
+            onClearFilters={() => {
+              setSearch('');
+              setTypeFilter('all');
+              setRatingFilter('all');
+            }}
+          />
+        ) : (
+          <EmptyState
+            reason={typeFilter !== 'all' || ratingFilter !== 'all' ? 'filtered' : 'first-use'}
+            title={typeFilter !== 'all' || ratingFilter !== 'all' ? 'No feedback matches your filter' : 'No feedback entries yet'}
+            description={
+              typeFilter !== 'all' || ratingFilter !== 'all'
+                ? 'Try resetting your type or rating filters to see all community submissions.'
+                : 'Share your thoughts on workshops, contests, or suggest new club tracks.'
+            }
+            primaryAction={{
+              label: typeFilter !== 'all' || ratingFilter !== 'all' ? 'Reset filters' : 'Submit feedback',
+              onClick:
+                typeFilter !== 'all' || ratingFilter !== 'all'
+                  ? () => {
+                      setSearch('');
+                      setTypeFilter('all');
+                      setRatingFilter('all');
+                    }
+                  : () => setIsSubmitModalOpen(true),
+            }}
+          />
+        )
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <AnimatePresence>

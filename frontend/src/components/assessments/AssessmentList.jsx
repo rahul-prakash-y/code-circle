@@ -23,6 +23,7 @@ import {
   Zap,
 } from 'lucide-react';
 import useAssessmentStore from '../../store/useAssessmentStore';
+import { DelayedSkeleton, CardGridSkeleton, EmptyState, NoSearchResults } from '../states';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import toast from 'react-hot-toast';
@@ -334,35 +335,36 @@ export const AssessmentList = () => {
 
       {/* Assessment Content View */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="surface p-6 animate-pulse space-y-4 rounded-3xl">
-              <div className="h-6 bg-surface-raised rounded-lg w-2/3" />
-              <div className="h-4 bg-surface-raised rounded-lg w-full" />
-              <div className="h-10 bg-surface-raised rounded-xl w-full" />
-            </div>
-          ))}
-        </div>
+        <DelayedSkeleton>
+          <CardGridSkeleton count={4} />
+        </DelayedSkeleton>
       ) : assessments.length === 0 ? (
-        <div className="surface p-10 sm:p-14 text-center space-y-4 rounded-3xl border border-separator">
-          <div className="w-16 h-16 rounded-3xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center mx-auto">
-            <Award size={32} />
-          </div>
-          <h3 className="text-base sm:text-lg font-semibold text-label-primary">No assessments found</h3>
-          <p className="text-xs sm:text-sm text-label-secondary max-w-prose mx-auto">
-            {searchQuery || selectedCategory !== 'All'
-              ? 'No assessments match your active filter criteria. Try resetting filters.'
-              : 'There are currently no active MCQ assessments published. Check back soon!'}
-          </p>
-          {isAdmin && (
-            <button
-              onClick={handleOpenCreate}
-              className="btn-primary py-2 px-5 min-h-[40px] text-xs font-medium inline-flex items-center gap-1.5 mt-2 cursor-pointer"
-            >
-              <Plus size={15} /> Create assessment
-            </button>
-          )}
-        </div>
+        searchQuery ? (
+          <NoSearchResults
+            query={searchQuery}
+            onClearFilters={() => {
+              setSearchQuery('');
+              setSelectedCategory('All');
+            }}
+          />
+        ) : (
+          <EmptyState
+            reason={selectedCategory !== 'All' ? 'filtered' : 'first-use'}
+            title={selectedCategory !== 'All' ? 'No assessments in this category' : 'No assessments found'}
+            description={
+              selectedCategory !== 'All'
+                ? 'Try selecting "All" or a different category to see available quizzes.'
+                : 'There are currently no active MCQ assessments published. Check back soon!'
+            }
+            primaryAction={
+              selectedCategory !== 'All'
+                ? { label: 'Show all assessments', onClick: () => setSelectedCategory('All') }
+                : isAdmin
+                ? { label: 'Create assessment', onClick: handleOpenCreate }
+                : undefined
+            }
+          />
+        )
       ) : viewMode === 'grid' ? (
         /* Grid View with popLayout AnimatePresence */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">

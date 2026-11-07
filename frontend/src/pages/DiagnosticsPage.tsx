@@ -38,6 +38,7 @@ import { RecordFormModal } from '../components/admin/diagnostics/RecordFormModal
 import { DeleteConfirmModal } from '../components/admin/diagnostics/DeleteConfirmModal';
 import { ViewDocModal } from '../components/admin/diagnostics/ViewDocModal';
 import SubmissionQueuePanel from '../components/admin/assessments/SubmissionQueuePanel';
+import { ErrorBoundary } from '../components/states';
 
 export const DiagnosticsPage: React.FC = () => {
   const {
@@ -299,7 +300,8 @@ export const DiagnosticsPage: React.FC = () => {
 
       {/* --- TAB 1: SYSTEM HEALTH --- */}
       {activeTab === 'health' && (
-        <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+        <ErrorBoundary sectionName="System Health Telemetry">
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
           {/* Amber Warning Banner if pending submissions or attendance records are buffered in RAM */}
           {((healthData?.buffers?.submissionQueue?.pendingCount || 0) > 0 ||
             (healthData?.buffers?.attendance?.queueLength || 0) > 0) && (
@@ -671,11 +673,13 @@ export const DiagnosticsPage: React.FC = () => {
             </div>
           </div>
         </div>
+      </ErrorBoundary>
       )}
 
       {/* --- TAB 2: SERVER FLUSHES & CLUSTER QUEUES --- */}
       {activeTab === 'flushes' && (
-        <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+        <ErrorBoundary sectionName="Cluster Flush Monitor">
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
           {/* Section 1: In-Memory Attendance Buffer Flusher */}
           <div className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-separator/60">
@@ -763,11 +767,13 @@ export const DiagnosticsPage: React.FC = () => {
           {/* Section 2: Horizontal Cluster Exam Submission Queue Monitor */}
           <SubmissionQueuePanel />
         </div>
+      </ErrorBoundary>
       )}
 
       {/* --- TAB 3: DATABASE MANAGER --- */}
       {activeTab === 'database' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
+        <ErrorBoundary sectionName="Database Document Explorer">
+          <div className="space-y-6 animate-in fade-in duration-300">
           {/* Collections Selector Chips */}
           <div className="bg-surface p-5 rounded-3xl border border-separator space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
@@ -1247,6 +1253,7 @@ export const DiagnosticsPage: React.FC = () => {
             </div>
           )}
         </div>
+      </ErrorBoundary>
       )}
 
       {/* View Document Modal (Details Form & Raw JSON) */}

@@ -30,6 +30,7 @@ import { formatISTDateTime } from '../lib/dateUtils';
 import toast from 'react-hot-toast';
 import { Button } from '@heroui/react';
 import { HeroUISelect, HeroChip as Chip } from '../components/ui/HeroUIComponents';
+import { EmptyState, NoSearchResults } from '../components/states';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import usePointsStore, { StudentPointsData, AdminStudentItem } from '../store/usePointsStore';
@@ -565,14 +566,31 @@ export const PointsPage: React.FC = () => {
               ))}
 
               {filteredTransactions.length === 0 && !loadingMyPoints && (
-                <div className="py-16 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-center mx-auto text-label-secondary mb-3">
-                    <Sparkles size={24} />
-                  </div>
-                  <h3 className="text-sm font-bold text-label-primary">No points recorded in this filter</h3>
-                  <p className="text-xs text-label-secondary max-w-sm mx-auto mt-1">
-                    Attend club sessions or submit coding challenges to begin logging your achievements.
-                  </p>
+                <div className="py-8 text-center">
+                  {searchQuery ? (
+                    <NoSearchResults
+                      query={searchQuery}
+                      onClearFilters={() => {
+                        setSearchQuery('');
+                        setCategoryFilter('all');
+                      }}
+                    />
+                  ) : (
+                    <EmptyState
+                      reason={categoryFilter !== 'all' ? 'filtered' : 'first-use'}
+                      title={categoryFilter !== 'all' ? 'No points in this category' : 'No points recorded yet'}
+                      description={
+                        categoryFilter !== 'all'
+                          ? 'Try selecting "All Categories" to see your complete points ledger.'
+                          : 'Attend club sessions or submit coding challenges to begin logging your achievements.'
+                      }
+                      primaryAction={
+                        categoryFilter !== 'all'
+                          ? { label: 'Show all activity', onClick: () => setCategoryFilter('all') }
+                          : undefined
+                      }
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -809,7 +827,34 @@ export const PointsPage: React.FC = () => {
                   {adminStudents.length === 0 && !loadingStudents && (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-label-secondary">
-                        No students match the current criteria.
+                        {adminSearch ? (
+                          <NoSearchResults
+                            query={adminSearch}
+                            onClearFilters={() => {
+                              setAdminSearch('');
+                              setDeptFilter('all');
+                              setYearFilter('all');
+                            }}
+                          />
+                        ) : (
+                          <EmptyState
+                            reason={deptFilter !== 'all' || yearFilter !== 'all' ? 'filtered' : 'first-use'}
+                            title="No students match the criteria"
+                            description="Try adjusting your department or academic year filters."
+                            primaryAction={
+                              deptFilter !== 'all' || yearFilter !== 'all'
+                                ? {
+                                    label: 'Reset all filters',
+                                    onClick: () => {
+                                      setAdminSearch('');
+                                      setDeptFilter('all');
+                                      setYearFilter('all');
+                                    },
+                                  }
+                                : undefined
+                            }
+                          />
+                        )}
                       </td>
                     </tr>
                   )}

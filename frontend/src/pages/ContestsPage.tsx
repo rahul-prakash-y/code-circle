@@ -24,6 +24,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { Button } from '@heroui/react';
+import { EmptyState, CardGridSkeleton } from '../components/states';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import useContestStore, { Contest } from '../store/useContestStore';
@@ -180,10 +181,20 @@ export const ContestsPage: React.FC = () => {
               </h2>
             </div>
 
-            {liveContests.length === 0 ? (
-              <div className="p-8 rounded-2xl bg-surface border border-separator text-center text-label-secondary text-xs sm:text-sm">
-                No active live contests running right now. Check scheduled upcoming battles below.
-              </div>
+            {loading ? (
+              <CardGridSkeleton count={2} cols={2} />
+            ) : liveContests.length === 0 ? (
+              <EmptyState
+                reason="first-use"
+                title="No live contests running right now"
+                description="Weekly coding and MCQ battles go live according to scheduled tournament rounds. Check upcoming sessions below."
+                primaryAction={{
+                  label: 'View Upcoming Contests',
+                  onClick: () => {
+                    document.getElementById('upcoming-contests-section')?.scrollIntoView({ behavior: 'smooth' });
+                  },
+                }}
+              />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {liveContests.map((c) => (
@@ -327,14 +338,22 @@ export const ContestsPage: React.FC = () => {
           </div>
 
           {/* 2. UPCOMING CONTESTS */}
-          <div className="space-y-4">
+          <div id="upcoming-contests-section" className="space-y-4">
             <h2 className="text-sm font-semibold text-label-primary uppercase tracking-wider flex items-center gap-2">
               <Calendar size={16} className="text-primary" />
               <span>Upcoming scheduled contests ({upcomingContests.length})</span>
             </h2>
 
             {upcomingContests.length === 0 ? (
-              <p className="text-xs text-label-secondary">No upcoming contests scheduled. New challenges drop every week.</p>
+              <EmptyState
+                reason="first-use"
+                title="No upcoming contests scheduled"
+                description="New coding challenges and MCQ sprints drop every week. Check past leaderboard records in the meantime."
+                primaryAction={{
+                  label: 'View Contests Leaderboard',
+                  onClick: () => navigate('/leaderboard'),
+                }}
+              />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {upcomingContests.map((c) => (
@@ -478,8 +497,16 @@ export const ContestsPage: React.FC = () => {
               <tbody className="divide-y divide-separator text-label-primary font-normal">
                 {contests.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-label-secondary">
-                      No contests found. Click "New contest" above to configure a challenge.
+                    <td colSpan={8} className="py-8">
+                      <EmptyState
+                        reason="first-use"
+                        title="No contests configured in directory"
+                        description="Configure a new coding battle or MCQ sprint with automated test evaluation."
+                        primaryAction={{
+                          label: 'Create Contest',
+                          onClick: () => setIsBuilderOpen(true),
+                        }}
+                      />
                     </td>
                   </tr>
                 ) : (

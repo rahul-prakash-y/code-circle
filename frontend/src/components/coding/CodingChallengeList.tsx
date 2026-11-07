@@ -24,6 +24,7 @@ import useAuthStore from '../../store/useAuthStore';
 import CodingChallengeEditorModal from './admin/CodingChallengeEditorModal';
 import CodingSubmissionsModal from './admin/CodingSubmissionsModal';
 import CodingBulkUploadModal from './admin/CodingBulkUploadModal';
+import { DelayedSkeleton, CardGridSkeleton, ErrorState, EmptyState, NoSearchResults } from '../states';
 
 interface StudentSubmissionInfo {
   score: number;
@@ -180,28 +181,38 @@ export const CodingChallengeList: React.FC = () => {
 
       {/* Content Area */}
       {loading ? (
-        <div className="py-20 flex flex-col items-center justify-center space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          <p className="text-xs font-medium text-label-secondary">
-            Loading Live Coding Assessments...
-          </p>
-        </div>
+        <DelayedSkeleton>
+          <CardGridSkeleton count={6} />
+        </DelayedSkeleton>
       ) : error ? (
-        <div className="p-6 rounded-3xl bg-destructive/10 border border-destructive/20 text-destructive text-center">
-          <p className="text-sm font-semibold">{error}</p>
-        </div>
+        <ErrorState
+          fault="server"
+          title="Could not load coding challenges"
+          description={error}
+          onRetry={fetchChallenges}
+        />
       ) : filteredChallenges.length === 0 ? (
-        <div className="py-20 text-center space-y-3 p-8 rounded-3xl border border-separator bg-surface">
-          <Code2 className="w-12 h-12 mx-auto text-label-tertiary" />
-          <h3 className="text-base font-semibold text-label-primary">
-            No Coding Challenges Found
-          </h3>
-          <p className="text-xs text-label-secondary max-w-sm mx-auto">
-            {isAdmin
-              ? 'Click "Create Coding Challenge" to launch a new sandboxed programming track.'
-              : 'No live programming assessments are scheduled right now.'}
-          </p>
-        </div>
+        search.trim() ? (
+          <NoSearchResults
+            query={search}
+            onClearFilters={() => setSearch('')}
+          />
+        ) : (
+          <EmptyState
+            reason="first-use"
+            title="No Coding Challenges Found"
+            description={
+              isAdmin
+                ? 'Create a new coding challenge to launch an algorithmic problem track.'
+                : 'No live programming assessments are scheduled right now. Check back soon!'
+            }
+            primaryAction={
+              isAdmin
+                ? { label: 'Create Coding Challenge', onClick: handleOpenCreate }
+                : undefined
+            }
+          />
+        )
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredChallenges.map((challenge) => {

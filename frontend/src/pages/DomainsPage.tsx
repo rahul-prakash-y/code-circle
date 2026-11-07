@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { HeroInput } from '../components/ui/HeroUIComponents';
+import { DelayedSkeleton, CardGridSkeleton, EmptyState, NoSearchResults } from '../components/states';
 
 export const DomainsPage: React.FC = () => {
   const { domainId } = useParams<{ domainId?: string }>();
@@ -941,8 +942,40 @@ export const DomainsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid of Course Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-6 sm:gap-8">
+      {/* Grid of Course Cards or State Fallback */}
+      {loading ? (
+        <DelayedSkeleton>
+          <CardGridSkeleton count={6} />
+        </DelayedSkeleton>
+      ) : filteredDomains.length === 0 ? (
+        searchQuery ? (
+          <NoSearchResults
+            query={searchQuery}
+            onClearFilters={() => {
+              setSearchQuery('');
+              setFilterMode('all');
+            }}
+          />
+        ) : (
+          <EmptyState
+            reason={filterMode !== 'all' ? 'filtered' : 'first-use'}
+            title={filterMode !== 'all' ? 'No courses match this filter' : 'No courses available yet'}
+            description={
+              filterMode !== 'all'
+                ? 'Try switching to "All Courses" or clearing your search.'
+                : 'Curated courses with video quests and certifications will appear here.'
+            }
+            primaryAction={
+              filterMode !== 'all'
+                ? { label: 'Show all courses', onClick: () => setFilterMode('all') }
+                : isAdmin
+                ? { label: 'Create Course', onClick: () => setIsDomainModalOpen(true) }
+                : undefined
+            }
+          />
+        )
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-6 sm:gap-8">
         {filteredDomains.map((domain, index) => {
           const totalLvl = domain.totalLevels || 0;
           const completedLvl = domain.completedLevelsCount || 0;
@@ -1158,15 +1191,6 @@ export const DomainsPage: React.FC = () => {
           );
         })}
       </div>
-
-      {filteredDomains.length === 0 && !loading && (
-        <div className="text-center py-16 p-8 rounded-3xl bg-surface border border-separator/60">
-          <Compass className="w-12 h-12 mx-auto stroke-1 text-label-tertiary mb-3" />
-          <h3 className="text-base font-bold text-label-primary">No courses found</h3>
-          <p className="text-xs text-label-secondary mt-1">
-            Try adjusting your search query or create a new course using the button above.
-          </p>
-        </div>
       )}
 
       {/* Admin Domain Editor Modal */}
