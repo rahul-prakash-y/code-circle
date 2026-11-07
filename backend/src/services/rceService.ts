@@ -3,6 +3,7 @@ import {
   RCEExecutionRequest,
   RCEExecutionResponse,
   SupportedLanguage,
+  NormalizedRCERequest,
 } from './rce/types';
 import { PistonProvider } from './rce/pistonProvider';
 import { Judge0Provider } from './rce/judge0Provider';
@@ -17,19 +18,26 @@ export const DEFAULT_EXECUTION_TIMEOUT_MS = 10000; // 10 seconds
 export class RCEService {
   private primaryProvider: IRCEProvider;
   private fallbackProvider: IRCEProvider;
+  private judge0Instance: Judge0Provider;
 
   constructor() {
-    const providerType = (process.env.RCE_PROVIDER || 'piston').toLowerCase();
+    const providerType = (process.env.RCE_PROVIDER || 'judge0').toLowerCase();
     const piston = new PistonProvider();
     const judge0 = new Judge0Provider();
+    this.judge0Instance = judge0;
 
-    if (providerType === 'judge0') {
-      this.primaryProvider = judge0;
-      this.fallbackProvider = piston;
-    } else {
+    if (providerType === 'piston') {
       this.primaryProvider = piston;
       this.fallbackProvider = judge0;
+    } else {
+      this.primaryProvider = judge0;
+      this.fallbackProvider = piston;
     }
+
+    // Verify remote version at startup asynchronously without blocking or crashing
+    judge0.verifyRemoteVersion().catch((err) => {
+      console.warn('[RCEService] Remote Judge0 version check failed:', err.message);
+    });
   }
 
   /**
@@ -54,19 +62,11 @@ export class RCEService {
   }
 
   /**
-   * Execute untrusted code via sandboxed external RCE provider.
-   *
-   * SECURITY GUARANTEES:
-   * - Never compiles or executes code locally on the Fastify host.
-   * - Validates code size and input size before dispatch.
-   * - Enforces outbound timeout.
-   * - Limits concurrency to preserve host responsiveness and prevent provider exhaustion.
+   * Validate and normalize a single execution request.
    */
-  public async executeCode(request: RCEExecutionRequest): Promise<RCEExecutionResponse> {
-    // 1. Language validation & normalization
+  public normalizeRequest(request: RCEExecutionRequest): NormalizedRCERequest {
     const language = this.normalizeAndValidateLanguage(request.language);
 
-    // 2. Validate source-code size
     if (typeof request.sourceCode !== 'string') {
       throw ApiError.badRequest('sourceCode is required and must be a string');
     }
@@ -81,7 +81,6 @@ export class RCEService {
       );
     }
 
-    // 3. Validate stdin size
     const stdin = request.stdin || '';
     const stdinBytes = Buffer.byteLength(stdin, 'utf8');
     if (stdinBytes > MAX_STDIN_BYTES) {
@@ -90,7 +89,6 @@ export class RCEService {
       );
     }
 
-    // 4. Determine request timeout
     const envTimeout = Number(process.env.RCE_TIMEOUT_MS);
     const timeoutMs =
       request.timeoutMs && request.timeoutMs > 0 && request.timeoutMs <= 15000
@@ -99,26 +97,52 @@ export class RCEService {
         ? envTimeout
         : DEFAULT_EXECUTION_TIMEOUT_MS;
 
-    // 5. Concurrency-limited external execution with seamless fallback
+    return {
+      language,
+      sourceCode: request.sourceCode,
+      stdin,
+      timeoutMs,
+    };
+  }
+
+  /**
+   * Execute untrusted code via sandboxed external RCE provider.
+   */
+  public async executeCode(request: RCEExecutionRequest): Promise<RCEExecutionResponse> {
+    const normalized = this.normalizeRequest(request);
+
     return await globalRceLimiter.run(async () => {
-      const result = await this.primaryProvider.execute({
-        language,
-        sourceCode: request.sourceCode,
-        stdin,
-        timeoutMs,
-      });
+      const result = await this.primaryProvider.execute(normalized);
 
       // If primary provider suffered an infrastructure error (e.g. whitelist / unreachable), fallback
       if (result.status === 'error' && this.fallbackProvider) {
-        return await this.fallbackProvider.execute({
-          language,
-          sourceCode: request.sourceCode,
-          stdin,
-          timeoutMs,
-        });
+        return await this.fallbackProvider.execute(normalized);
       }
 
       return result;
+    });
+  }
+
+  /**
+   * Execute batch of test cases for a submission in a single provider roundtrip.
+   */
+  public async executeBatchCode(requests: RCEExecutionRequest[]): Promise<RCEExecutionResponse[]> {
+    if (requests.length === 0) return [];
+
+    const normalizedRequests = requests.map((req) => this.normalizeRequest(req));
+
+    return await globalRceLimiter.run(async () => {
+      // If primary provider supports batching (e.g. Judge0), use it
+      if (this.primaryProvider.executeBatch) {
+        return await this.primaryProvider.executeBatch(normalizedRequests);
+      }
+
+      // Fallback: sequential execution
+      const results: RCEExecutionResponse[] = [];
+      for (const req of normalizedRequests) {
+        results.push(await this.primaryProvider.execute(req));
+      }
+      return results;
     });
   }
 
@@ -129,8 +153,11 @@ export class RCEService {
   public setPrimaryProvider(provider: IRCEProvider): void {
     this.primaryProvider = provider;
   }
-}
 
+  public getJudge0Instance(): Judge0Provider {
+    return this.judge0Instance;
+  }
+}
 
 export const rceService = new RCEService();
 export default rceService;
