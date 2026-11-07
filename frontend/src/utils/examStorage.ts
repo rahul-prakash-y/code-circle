@@ -162,8 +162,60 @@ export async function clearExamState(key: string): Promise<void> {
   }
 }
 
+/**
+ * Generates an isolated storage key scoped strictly per user and assessment.
+ * Ensures student answers cannot leak across accounts on shared classroom/lab computers.
+ */
+export function getExamStorageKey(userId: string, assessmentId: string): string {
+  const cleanUser = String(userId || 'anonymous').trim();
+  const cleanAssessment = String(assessmentId || 'unassigned').trim();
+  return `cc_exam_${cleanUser}_${cleanAssessment}`;
+}
+
+/**
+ * Clears ALL stored exam states across all assessments and users from both IndexedDB and localStorage.
+ * Triggered on user logout to prevent exam state retention on shared classroom terminals.
+ */
+export async function clearAllExamState(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  // 1. Purge exam keys from localStorage
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && (k.startsWith('cc_exam_') || k.startsWith('cc_assessment_'))) {
+        keysToRemove.push(k);
+      }
+    }
+    for (const k of keysToRemove) {
+      window.localStorage.removeItem(k);
+    }
+  } catch (lsErr) {
+    console.warn('[ExamStorage] LocalStorage bulk clear warning:', lsErr);
+  }
+
+  // 2. Clear IndexedDB object store
+  try {
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.clear();
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+    console.log('[ExamStorage] Cleared all exam state from IndexedDB on logout.');
+  } catch (idbErr) {
+    console.warn('[ExamStorage] IndexedDB store clear warning:', idbErr);
+  }
+}
+
 export default {
   saveExamState,
   getExamState,
   clearExamState,
+  clearAllExamState,
+  getExamStorageKey,
 };

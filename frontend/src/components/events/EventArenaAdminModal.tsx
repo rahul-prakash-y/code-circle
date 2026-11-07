@@ -80,6 +80,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     downloadArenaTemplate,
     fetchAdminAssessmentSubmissions,
     deleteAssessmentSubmission,
+    evaluateAssessmentCode,
     assessments,
     selectedAssessment,
     setSelectedAssessment,
@@ -236,11 +237,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [newCodingTitle, setNewCodingTitle] = useState('');
   const [newCodingDesc, setNewCodingDesc] = useState('');
   const [newCodingDiff, setNewCodingDiff] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
+  const [newCodingMode, setNewCodingMode] = useState<'BOTH' | 'ONLY_CODE' | 'TEST_CASES'>('BOTH');
   const [newCodingPoints, setNewCodingPoints] = useState(30);
   const [newSampleInput, setNewSampleInput] = useState('');
   const [newSampleOutput, setNewSampleOutput] = useState('');
   const [newHiddenInput, setNewHiddenInput] = useState('');
   const [newHiddenOutput, setNewHiddenOutput] = useState('');
+  const [gradingScores, setGradingScores] = useState<Record<string, number>>({});
+  const [gradingFeedbacks, setGradingFeedbacks] = useState<Record<string, string>>({});
+  const [isGradingCode, setIsGradingCode] = useState<Record<string, boolean>>({});
 
   // Bulk Upload state
   const [bulkModalType, setBulkModalType] = useState<'mcq' | 'coding' | null>(null);
@@ -493,6 +498,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       title: newCodingTitle.trim(),
       description: newCodingDesc.trim(),
       difficulty: newCodingDiff,
+      codingMode: newCodingMode,
       points: Number(newCodingPoints) || 30,
       allowedLanguages: ['python', 'javascript', 'cpp', 'java', 'c'],
       sampleInput: newSampleInput.trim(),
@@ -506,12 +512,50 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     // Reset form
     setNewCodingTitle('');
     setNewCodingDesc('');
+    setNewCodingDiff('Medium');
+    setNewCodingMode('BOTH');
     setNewCodingPoints(30);
     setNewSampleInput('');
     setNewSampleOutput('');
     setNewHiddenInput('');
     setNewHiddenOutput('');
     setShowAddCoding(false);
+  };
+
+  const handleGradeCode = async (submissionId: string, problemId: string) => {
+    if (!selectedAssessment?._id) return;
+    const score = gradingScores[problemId] !== undefined ? gradingScores[problemId] : 0;
+    const feedback = gradingFeedbacks[problemId] || '';
+    setIsGradingCode((prev) => ({ ...prev, [problemId]: true }));
+    try {
+      await evaluateAssessmentCode(event._id, selectedAssessment._id, submissionId, problemId, score, feedback);
+      // Update inspectingSub locally
+      setInspectingSub((prev: any) => {
+        if (!prev) return null;
+        const updatedCoding = (prev.codingSubmissions || []).map((cs: any) => {
+          if (cs.problemId === problemId) {
+            return {
+              ...cs,
+              pointsEarned: score,
+              feedback,
+              isEvaluated: true,
+              status: score > 0 ? 'ACCEPTED' : 'WRONG_ANSWER',
+            };
+          }
+          return cs;
+        });
+        const newCodingScore = updatedCoding.reduce((sum: number, c: any) => sum + (c.pointsEarned || 0), 0);
+        const total = (prev.mcqScore || 0) + newCodingScore + (prev.designScore || 0);
+        return {
+          ...prev,
+          codingSubmissions: updatedCoding,
+          codingScore: newCodingScore,
+          totalScore: total,
+        };
+      });
+    } finally {
+      setIsGradingCode((prev) => ({ ...prev, [problemId]: false }));
+    }
   };
 
   const handleDeleteCoding = async (idx: number) => {
@@ -1532,7 +1576,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="p-5 rounded-2xl bg-white/[0.03] border border-purple-500/30 space-y-4 overflow-hidden"
+                        className="p-5 rounded-2xl bg-white/[0.03] border border-purple-500/30 space-y-4 overflow-visible relative z-20"
                       >
                         <div className="flex items-center justify-between pb-2 border-b border-separator">
                           <h4 className="text-xs font-bold text-label-primary flex items-center gap-2">
@@ -1763,7 +1807,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="p-5 rounded-2xl bg-white/[0.03] border border-blue-500/30 space-y-4 overflow-hidden"
+                        className="p-5 rounded-2xl bg-white/[0.03] border border-blue-500/30 space-y-4 overflow-visible relative z-20"
                       >
                         <div className="flex items-center justify-between pb-2 border-b border-separator">
                           <h4 className="text-xs font-bold text-label-primary flex items-center gap-2">
@@ -1778,7 +1822,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-30">
                           <div className="sm:col-span-2">
                             <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1">Problem Title</label>
                             <input
@@ -1870,6 +1914,48 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           </div>
                         </div>
 
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-20">
+                          <div>
+                            <HeroUISelect
+                              label="Coding Mode"
+                              value={newCodingMode}
+                              onChange={(val) => setNewCodingMode(val as any)}
+                              size="sm"
+                              color="purple"
+                              placement="top-start"
+                              options={[
+                                {
+                                  value: 'BOTH',
+                                  label: 'Both (Student Chooses: Only Code or Test Cases)',
+                                  badge: 'Choice',
+                                },
+                                {
+                                  value: 'ONLY_CODE',
+                                  label: 'Only Code (Assigned Admin Grades Solution)',
+                                  badge: 'Manual',
+                                },
+                                {
+                                  value: 'TEST_CASES',
+                                  label: 'Code with Test Cases (Auto-Graded Immediately)',
+                                  badge: 'Auto',
+                                },
+                              ]}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1">
+                              Points Possible
+                            </label>
+                            <input
+                              type="number"
+                              value={newCodingPoints}
+                              onChange={(e) => setNewCodingPoints(Number(e.target.value))}
+                              min={1}
+                              className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500"
+                            />
+                          </div>
+                        </div>
+
                         <div className="flex justify-end gap-2 pt-2">
                           <button
                             onClick={() => setShowAddCoding(false)}
@@ -1944,7 +2030,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4 text-[11px] text-text-muted pl-8">
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-text-muted pl-8">
+                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 font-medium text-label-secondary">
+                              Mode: {p.codingMode === 'ONLY_CODE' ? 'Only Code (Admin Graded)' : p.codingMode === 'TEST_CASES' ? 'Test Cases (Auto-Graded)' : 'Both (Student Choice)'}
+                            </span>
                             <span>Test Cases: {(p.testCases || []).length}</span>
                             <span>Allowed: {(p.allowedLanguages || []).join(', ')}</span>
                           </div>
@@ -3477,28 +3566,118 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <span>Code Submissions ({inspectingSub.codingSubmissions.length})</span>
                       </h4>
                       <div className="space-y-3">
-                        {inspectingSub.codingSubmissions.map((cs: any, cIdx: number) => (
-                          <div
-                            key={cs.problemId || cIdx}
-                            className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-2"
-                          >
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-bold text-label-primary">Problem #{cIdx + 1} ({cs.language || 'Code'})</span>
-                              <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                                cs.status === 'ACCEPTED'
-                                  ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                                  : 'bg-destructive/15 text-destructive border border-destructive/30'
-                              }`}>
-                                {cs.status || 'SUBMITTED'} • {cs.passedCount || 0}/{cs.totalTestCases || 0} Passed
-                              </span>
+                        {inspectingSub.codingSubmissions.map((cs: any, cIdx: number) => {
+                          const prob = (adminCoding || []).find((p: any) => p._id === cs.problemId) ||
+                            (selectedAssessment?.questions?.coding || []).find((p: any) => p._id === cs.problemId);
+                          const maxPts = prob?.points || 30;
+                          const isOnlyCode = cs.codingMode === 'ONLY_CODE';
+
+                          return (
+                            <div
+                              key={cs.problemId || cIdx}
+                              className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-3"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <span className="font-bold text-label-primary">
+                                  Problem #{cIdx + 1}: {prob?.title || cs.language || 'Code Challenge'}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                    isOnlyCode
+                                      ? cs.isEvaluated
+                                        ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                        : 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                                      : cs.status === 'ACCEPTED'
+                                      ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                      : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                  }`}
+                                >
+                                  {isOnlyCode
+                                    ? cs.isEvaluated
+                                      ? `Only Code • Graded: ${cs.pointsEarned}/${maxPts} pts`
+                                      : 'Only Code • Awaiting Admin Grade'
+                                    : `Test Cases • ${cs.status || 'SUBMITTED'} • ${cs.testCasesPassed ?? cs.passedCount ?? 0}/${cs.totalTestCases || 0} Passed (${cs.pointsEarned} pts)`}
+                                </span>
+                              </div>
+
+                              {cs.code && (
+                                <pre className="p-3 rounded-xl bg-black/60 border border-separator text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-48">
+                                  {cs.code}
+                                </pre>
+                              )}
+
+                              {/* Admin Grading Form (for Only Code or manual override) */}
+                              <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] font-bold text-purple-300 flex items-center gap-1.5">
+                                    <Award size={13} />
+                                    <span>
+                                      {isOnlyCode
+                                        ? 'Assigned Admin Evaluation (Only Code)'
+                                        : 'Admin Evaluation Override'}
+                                    </span>
+                                  </span>
+                                  {cs.isEvaluated && (
+                                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                      Awarded: {cs.pointsEarned} / {maxPts} pts
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <label className="text-[11px] font-semibold text-label-secondary">Score:</label>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={maxPts}
+                                      value={
+                                        gradingScores[cs.problemId] !== undefined
+                                          ? gradingScores[cs.problemId]
+                                          : (cs.pointsEarned ?? 0)
+                                      }
+                                      onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        setGradingScores((prev) => ({ ...prev, [cs.problemId]: val }));
+                                      }}
+                                      className="w-20 px-2.5 py-1 rounded-lg bg-surface border border-separator text-xs font-mono text-label-primary outline-none focus:border-purple-500"
+                                    />
+                                    <span className="text-[11px] text-label-tertiary font-mono">/ {maxPts}</span>
+                                  </div>
+
+                                  <input
+                                    type="text"
+                                    placeholder="Optional feedback or remarks..."
+                                    value={
+                                      gradingFeedbacks[cs.problemId] !== undefined
+                                        ? gradingFeedbacks[cs.problemId]
+                                        : (cs.feedback || '')
+                                    }
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setGradingFeedbacks((prev) => ({ ...prev, [cs.problemId]: val }));
+                                    }}
+                                    className="flex-1 min-w-36 px-2.5 py-1 rounded-lg bg-surface border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500"
+                                  />
+
+                                  <button
+                                    type="button"
+                                    disabled={isGradingCode[cs.problemId]}
+                                    onClick={() => handleGradeCode(inspectingSub._id, cs.problemId)}
+                                    className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer disabled:opacity-50"
+                                  >
+                                    {isGradingCode[cs.problemId] ? (
+                                      <Loader2 size={12} className="animate-spin" />
+                                    ) : (
+                                      <CheckCircle2 size={12} />
+                                    )}
+                                    <span>{cs.isEvaluated ? 'Update Score' : 'Save Score'}</span>
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            {cs.code && (
-                              <pre className="p-3 rounded-xl bg-black/60 border border-separator text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-48">
-                                {cs.code}
-                              </pre>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

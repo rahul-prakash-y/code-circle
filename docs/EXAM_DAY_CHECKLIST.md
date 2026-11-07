@@ -25,8 +25,15 @@
 - [ ] **Rotate `JWT_SECRET` Once Before Day 1:**
   - Generate a secure 256-bit random key: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
   - Set the identical key across all 3 Render instances and staging environments.
-  - Verify secret consistency: Open the Admin Queue Monitor and verify all online nodes display the **identical `JWT Secret Fingerprint`** (e.g. `1e78b904`).
+  - Verify secret consistency: Open the Admin Queue Monitor and verify all online nodes display the **identical 12-char HMAC `JWT Secret Fingerprint`** (e.g. `f4e35220e126`). Public `/api/health` checks return only `{"status":"ok"}`.
   - **CRITICAL:** Do **NOT** rotate `JWT_SECRET` during the 5-day examination window.
+
+### 2.2 Campus NAT & Anti-Spray Environment Configurations
+- [ ] **Configure `LOGIN_FAILED_IP_MAX` (Default: 300/min):**
+  - **Campus NAT Requirement:** In a collegiate environment, 100–300 candidates share a single outbound public IP gateway. Accidental password typos across an entire room aggregate behind this one IP.
+  - Setting `LOGIN_FAILED_IP_MAX=300` ensures password spraying is prevented while preventing an accidental IP-wide lockout of a classroom.
+- [ ] **Strict CORS Previews Flag:**
+  - Ensure `ALLOW_VERCEL_PREVIEWS=false` (or unset) in production. Production only permits exact origins (`CLIENT_URL`, `FRONTEND_URL`, `PRODUCTION_ORIGINS`).
 
 ### 2.2 Nightly Database Backups (`mongodump`)
 - [ ] **Nightly Automated/Manual Database Export (23:00 UTC):**
@@ -147,13 +154,22 @@
 In strict accordance with audit integrity rules:
 
 - **Identity-based rate limiting on authenticated routes:** **VERIFIED** with automated tests (`multiNodeAndIdentityRateLimit.test.ts`).
+- **Campus NAT Failed Login IP Cap (`LOGIN_FAILED_IP_MAX=300`):** **VERIFIED** with test `1f` (200 failed attempts across 200 users do not lock 201st valid user).
 - **Failed login lockout per normalized username (5 fails -> 5m):** **VERIFIED** with automated tests.
 - **Admin unlock lockout with AuditLog:** **VERIFIED** with automated tests.
 - **300 candidates behind one IP login without 429s:** **VERIFIED** with simulated test.
 - **Multi-node OTP creation on Node A validated on B and C:** **VERIFIED** with simulated 3-instance test.
 - **OTP attempt lockouts shared across nodes:** **VERIFIED** with automated tests.
 - **OTP TTL expiry and duplicate prevention:** **VERIFIED** with automated tests.
+- **OTP cache capped at 15s with rotation invalidation:** **VERIFIED** with test `2f`.
+- **Durable attendance with graceful restart flush:** **VERIFIED** with test `2g`.
+- **HMAC(JWT_SECRET, "fingerprint-v1") 12-char fingerprint on /api/health:** **VERIFIED** with tests `4a-4c`.
+- **Strict CORS exact production origins & preview gating:** **VERIFIED** with tests `5a-5c`.
+- **Judge0 batch chunking into <= 20 submissions:** **VERIFIED** with test `6a`.
 - **Day 5 Figma link validation (allowlist, length, deadline, idempotency):** **VERIFIED** with automated tests.
 - **Browser-side fan-out across cluster nodes with 60s timeout:** **VERIFIED** in React component implementation and bundle build.
-- **Physical campus Wi-Fi AP saturation under 300 simultaneous WebSocket/HTTP requests:** **UNVERIFIED** (mathematically verified; physical campus test with 300 real devices not executed per safety rules).
+- **Client retry with exponential backoff for 10+ minutes (12 min window):** **VERIFIED** in `useAssessmentStore.ts`.
+- **IndexedDB state isolation per user+assessment and clear on logout:** **VERIFIED** in `examStorage.ts` and `useAuthStore.js`.
+- **Java under 256MB with heavy algorithm program:** **UNVERIFIED** (external Judge0 CE JVM heap footprint not tested live).
+- **Physical campus Wi-Fi AP saturation under 300 simultaneous WebSocket/HTTP requests:** **UNVERIFIED** (mathematically calculated; physical campus test with 300 real devices not executed per safety rules).
 - **Public Judge0 CE upstream rate limits under 300 simultaneous compile jobs:** **UNVERIFIED** (sandboxed and batch-collapsed in code; external API burst capacity is third-party controlled).

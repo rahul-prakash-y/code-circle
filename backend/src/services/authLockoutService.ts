@@ -11,8 +11,19 @@ export class AuthLockoutService {
     return Number(process.env.LOGIN_LOCKOUT_MINUTES) || 5;
   }
 
+  /**
+   * Campus NAT / Shared WiFi Consideration:
+   * When 300+ students share a single college gateway IP, failed login attempts from distinct
+   * users aggregate behind that one IP. LOGIN_FAILED_IP_MAX must be set sufficiently high
+   * (default: 300/min) so accidental password typos across an entire campus lab never trigger
+   * IP-level lockouts for valid students.
+   */
   public getIpMaxFailedPerMin(): number {
-    return Number(process.env.LOGIN_IP_MAX_FAILED_PER_MIN) || 100;
+    return (
+      Number(process.env.LOGIN_FAILED_IP_MAX) ||
+      Number(process.env.LOGIN_IP_MAX_FAILED_PER_MIN) ||
+      300
+    );
   }
 
   /**

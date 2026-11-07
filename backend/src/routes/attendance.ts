@@ -89,7 +89,8 @@ export const submitAttendanceHandler = async (
     return reply.status(400).send(result);
   }
 
-  return reply.status(200).send(result);
+  const statusCode = (result as any).status === 'pending' ? 202 : 200;
+  return reply.status(statusCode).send(result);
 };
 
 /**

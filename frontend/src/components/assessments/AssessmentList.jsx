@@ -30,7 +30,6 @@ import TakeAssessmentModal from './TakeAssessmentModal';
 import AssessmentEditorModal from './AssessmentEditorModal';
 import AssessmentSubmissionsModal from './AssessmentSubmissionsModal';
 import McqBulkUploadModal from './McqBulkUploadModal';
-import SubmissionQueuePanel from '../admin/assessments/SubmissionQueuePanel';
 import { useDebounce } from '../../hooks/useDebounce';
 import Pagination from '../common/Pagination';
 
@@ -133,9 +132,6 @@ export const AssessmentList = () => {
 
   return (
     <div className="space-y-6">
-      {/* ── ADMIN LIVE EXAM SUBMISSION QUEUE MONITOR ───────────── */}
-      {isAdmin && <SubmissionQueuePanel />}
-
       {/* ── SHOWCASE HERO BANNER ───────────────────────────────── */}
       <div className="relative overflow-hidden rounded-3xl p-5 sm:p-8 md:p-9 border transition-all duration-300 bg-surface border-separator shadow-xs">
         {/* Subtle Ambient Glow */}

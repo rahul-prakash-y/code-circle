@@ -139,6 +139,9 @@ export const EventArenaPage: React.FC = () => {
   const [isSubmittingProblem, setIsSubmittingProblem] = useState(false);
   const [runResults, setRunResults] = useState<any[] | null>(null);
   const [problemStatusMap, setProblemStatusMap] = useState<Record<string, any>>({});
+  const [codingModeMap, setCodingModeMap] = useState<Record<string, 'ONLY_CODE' | 'TEST_CASES'>>({});
+  const [customInputMap, setCustomInputMap] = useState<Record<string, string>>({});
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   // Timer state
   const [remainingSeconds, setRemainingSeconds] = useState(3600);
@@ -235,7 +238,7 @@ export const EventArenaPage: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Sync Figma submission state when submission changes
+  // Sync Figma & Coding submission state when submission changes
   useEffect(() => {
     if (submission?.designSubmission) {
       if (submission.designSubmission.figmaFileUrl || (submission.designSubmission as any).figmaLink) {
@@ -249,10 +252,43 @@ export const EventArenaPage: React.FC = () => {
         if (found !== -1) setSelectedDesignIdx(found);
       }
     }
+
+    if (submission?.codingSubmissions && submission.codingSubmissions.length > 0) {
+      const map: Record<string, any> = {};
+      const modeMap: Record<string, 'ONLY_CODE' | 'TEST_CASES'> = {};
+      const existingCodes: Record<string, { code: string; language: string }> = {};
+
+      submission.codingSubmissions.forEach((cs) => {
+        if (cs.problemId) {
+          map[cs.problemId] = cs;
+          if (cs.codingMode) {
+            modeMap[cs.problemId] = cs.codingMode;
+          }
+          if (cs.code) {
+            existingCodes[cs.problemId] = {
+              code: cs.code,
+              language: cs.language || 'python',
+            };
+          }
+        }
+      });
+      setProblemStatusMap((prev) => ({ ...map, ...prev }));
+      setCodingModeMap((prev) => ({ ...modeMap, ...prev }));
+      setCodingCodes((prev) => ({ ...existingCodes, ...prev }));
+    }
   }, [submission]);
 
   const currentMcq = studentMcqs[selectedIndex];
   const currentCoding = studentCoding[selectedIndex];
+
+  // Derive active coding mode: only code vs code with test cases
+  const configuredMode = currentCoding?.codingMode || 'BOTH';
+  const activeCodingMode: 'ONLY_CODE' | 'TEST_CASES' =
+    configuredMode === 'ONLY_CODE'
+      ? 'ONLY_CODE'
+      : configuredMode === 'TEST_CASES'
+      ? 'TEST_CASES'
+      : (currentCoding?._id && codingModeMap[currentCoding._id]) || 'ONLY_CODE';
 
   const handleSelectMcqOption = (questionId: string, optionIndex: number) => {
     setMcqAnswers((prev) => ({
@@ -269,19 +305,21 @@ export const EventArenaPage: React.FC = () => {
     setIsExecuting(true);
     setRunResults(null);
     try {
+      const customInput = activeCodingMode === 'ONLY_CODE' ? (customInputMap[currentCoding._id] ?? '') : undefined;
       const res = await runAssessmentCode(
         id,
         activeAssessmentId,
         currentCoding._id,
         currentLanguage,
-        currentCode
+        currentCode,
+        customInput
       );
       if (res && res.testCaseResults) {
         setRunResults(res.testCaseResults);
         if (res.allPassed) {
-          toast.success('All public test cases passed!');
+          toast.success(activeCodingMode === 'ONLY_CODE' ? 'Code executed successfully!' : 'All public test cases passed!');
         } else {
-          toast.error('Some test cases failed. Check output.');
+          toast.error(activeCodingMode === 'ONLY_CODE' ? 'Execution completed with issues. Check terminal.' : 'Some test cases failed. Check output.');
         }
       }
     } finally {
@@ -301,17 +339,20 @@ export const EventArenaPage: React.FC = () => {
         activeAssessmentId,
         currentCoding._id,
         currentLanguage,
-        currentCode
+        currentCode,
+        activeCodingMode
       );
       if (res) {
         setProblemStatusMap((prev) => ({
           ...prev,
           [currentCoding._id!]: res,
         }));
-        if (res.status === 'ACCEPTED') {
-          toast.success(`Challenge Solved! +${res.pointsEarned} Points`);
+        if (activeCodingMode === 'ONLY_CODE') {
+          toast.success('Code submitted for manual admin evaluation!');
+        } else if (res.status === 'ACCEPTED') {
+          toast.success(`Challenge Solved! +${res.pointsEarned} Points awarded immediately!`);
         } else {
-          toast.error(`Submitted: ${res.passedCount}/${res.totalTestCases} Test cases passed`);
+          toast.error(`Submitted: ${res.passedCount}/${res.totalTestCases} Test cases passed (+${res.pointsEarned} pts)`);
         }
       }
     } finally {
@@ -1197,20 +1238,22 @@ export const EventArenaPage: React.FC = () => {
                       );
                     })
                   : studentCoding.map((p, idx) => {
-                      const isPassed = p._id && problemStatusMap[p._id]?.status === 'ACCEPTED';
+                      const pStatus = p._id ? problemStatusMap[p._id] : null;
+                      const isPassed = pStatus?.status === 'ACCEPTED';
+                      const isSubmittedOnlyCode = pStatus?.status === 'SUBMITTED' || pStatus?.codingMode === 'ONLY_CODE';
                       const isCurrent = selectedIndex === idx;
                       return (
                         <Button
                           key={idx}
                           isIconOnly
                           size="sm"
-                          variant={isCurrent ? 'solid' : isPassed ? 'flat' : 'bordered'}
-                          color={isCurrent ? 'primary' : isPassed ? 'success' : 'default'}
+                          variant={isCurrent ? 'solid' : isPassed || isSubmittedOnlyCode ? 'flat' : 'bordered'}
+                          color={isCurrent ? 'primary' : isPassed ? 'success' : isSubmittedOnlyCode ? 'secondary' : 'default'}
                           onPress={() => setSelectedIndex(idx)}
                           className={`w-9 h-9 min-w-9 min-h-9 rounded-xl text-xs font-bold font-mono shrink-0 ${
                             isCurrent
                               ? 'ring-2 ring-blue-400'
-                              : !isPassed
+                              : !isPassed && !isSubmittedOnlyCode
                               ? 'border-separator text-label-secondary hover:bg-surface-secondary'
                               : ''
                           }`}
@@ -1302,9 +1345,107 @@ export const EventArenaPage: React.FC = () => {
 
           {selectedType === 'coding' && currentCoding && (
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              {/* Left Column: Problem Statement */}
-              <div className="w-full lg:w-1/2 overflow-y-auto p-4 sm:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-separator bg-surface max-h-72 lg:max-h-none shrink-0 lg:shrink">
-                <div className="flex items-center justify-between pb-3 border-b border-separator">
+              {/* Left Column: Problem Statement & Test Case / Custom Input Details */}
+              <div className="w-full lg:w-1/2 overflow-y-auto p-4 sm:p-6 space-y-4 border-b lg:border-b-0 lg:border-r border-separator bg-surface max-h-72 lg:max-h-none shrink-0 lg:shrink">
+                {/* Mode Selector (Only Code vs Code with Test Cases) */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 rounded-2xl bg-surface-secondary/80 border border-separator">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentCoding._id && configuredMode !== 'TEST_CASES') {
+                          setCodingModeMap((prev) => ({ ...prev, [currentCoding._id!]: 'ONLY_CODE' }));
+                        }
+                      }}
+                      disabled={configuredMode === 'TEST_CASES'}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        activeCodingMode === 'ONLY_CODE'
+                          ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                          : configuredMode === 'TEST_CASES'
+                          ? 'opacity-40 cursor-not-allowed text-label-tertiary'
+                          : 'text-label-secondary hover:text-label-primary hover:bg-white/5'
+                      }`}
+                    >
+                      <Code2 size={13} />
+                      <span>Only Code</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentCoding._id && configuredMode !== 'ONLY_CODE') {
+                          setCodingModeMap((prev) => ({ ...prev, [currentCoding._id!]: 'TEST_CASES' }));
+                        }
+                      }}
+                      disabled={configuredMode === 'ONLY_CODE'}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        activeCodingMode === 'TEST_CASES'
+                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                          : configuredMode === 'ONLY_CODE'
+                          ? 'opacity-40 cursor-not-allowed text-label-tertiary'
+                          : 'text-label-secondary hover:text-label-primary hover:bg-white/5'
+                      }`}
+                    >
+                      <CheckCircle2 size={13} />
+                      <span>Code with Test Cases</span>
+                    </button>
+                  </div>
+
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-separator text-label-tertiary">
+                    {configuredMode === 'BOTH'
+                      ? 'Student Choice'
+                      : configuredMode === 'ONLY_CODE'
+                      ? 'Admin Graded'
+                      : 'Auto-Graded'}
+                  </span>
+                </div>
+
+                {/* Mode Explanation Notice */}
+                {activeCodingMode === 'ONLY_CODE' ? (
+                  <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/25 flex items-start gap-2.5 text-xs text-purple-200">
+                    <ShieldCheck size={16} className="text-purple-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-purple-300">Only Code Mode (Assigned Admin Evaluation)</p>
+                      <p className="text-[11px] text-purple-200/80 leading-relaxed">
+                        Submit your code directly. The assigned admin will review your solution logic and assign your score manually. Automated test cases are not executed for pass/fail points.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-start gap-2.5 text-xs text-emerald-200">
+                    <Sparkles size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-emerald-300">Test Case Completion Mode (Immediate Points)</p>
+                      <p className="text-[11px] text-emerald-200/80 leading-relaxed">
+                        Automated evaluation. Submit your solution to test against all test cases. Points are awarded immediately based on test cases passed!
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Problem Submission Status Banner if already submitted */}
+                {currentCoding._id && problemStatusMap[currentCoding._id] && (
+                  <div className="p-3 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={15} className="text-emerald-400 shrink-0" />
+                      <span className="font-bold text-label-primary">
+                        {problemStatusMap[currentCoding._id].codingMode === 'ONLY_CODE'
+                          ? 'Submitted for Admin Review'
+                          : problemStatusMap[currentCoding._id].status === 'ACCEPTED'
+                          ? 'Challenge Accepted'
+                          : 'Submitted with Test Cases'}
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                      {problemStatusMap[currentCoding._id].codingMode === 'ONLY_CODE'
+                        ? problemStatusMap[currentCoding._id].isEvaluated
+                          ? `Graded: ${problemStatusMap[currentCoding._id].pointsEarned} pts`
+                          : 'Pending Admin Grade'
+                        : `${problemStatusMap[currentCoding._id].testCasesPassed ?? problemStatusMap[currentCoding._id].passedCount ?? 0}/${problemStatusMap[currentCoding._id].totalTestCases || 1} Passed (+${problemStatusMap[currentCoding._id].pointsEarned} pts)`}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pb-2 border-b border-separator">
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
                       Challenge {selectedIndex + 1}
@@ -1351,21 +1492,45 @@ export const EventArenaPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Sample I/O */}
-                <div className="space-y-3 pt-2">
-                  <div className="space-y-1">
-                    <h4 className="text-[11px] font-bold text-label-secondary">Sample Input</h4>
-                    <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
-                      {currentCoding.sampleInput || '(No input required)'}
-                    </pre>
+                {/* Only Code: Custom Input (stdin) Panel */}
+                {activeCodingMode === 'ONLY_CODE' ? (
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[11px] font-bold text-label-secondary flex items-center gap-1.5">
+                        <Terminal size={12} />
+                        <span>Custom Input (stdin)</span>
+                      </h4>
+                      <span className="text-[10px] text-label-tertiary">Used when clicking "Run Code"</span>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={customInputMap[currentCoding._id || ''] || ''}
+                      onChange={(e) => {
+                        if (currentCoding._id) {
+                          setCustomInputMap((prev) => ({ ...prev, [currentCoding._id!]: e.target.value }));
+                        }
+                      }}
+                      placeholder="Optional stdin input to test your program logic..."
+                      className="w-full p-2.5 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-label-primary placeholder-label-tertiary outline-none resize-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30"
+                    />
                   </div>
-                  <div className="space-y-1">
-                    <h4 className="text-[11px] font-bold text-label-secondary">Sample Output</h4>
-                    <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
-                      {currentCoding.sampleOutput || ''}
-                    </pre>
+                ) : (
+                  /* Code with Test Cases: Sample I/O */
+                  <div className="space-y-3 pt-2">
+                    <div className="space-y-1">
+                      <h4 className="text-[11px] font-bold text-label-secondary">Sample Input</h4>
+                      <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
+                        {currentCoding.sampleInput || '(No input required)'}
+                      </pre>
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-[11px] font-bold text-label-secondary">Sample Output</h4>
+                      <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
+                        {currentCoding.sampleOutput || ''}
+                      </pre>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Right Column: Monaco Code Editor & Terminal */}
@@ -1396,19 +1561,23 @@ export const EventArenaPage: React.FC = () => {
                       className="rounded-xl text-white text-xs font-bold"
                       startContent={isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
                     >
-                      Run
+                      {activeCodingMode === 'ONLY_CODE' ? 'Run Code' : 'Run'}
                     </Button>
 
                     <Button
                       size="sm"
-                      color="secondary"
+                      color={activeCodingMode === 'ONLY_CODE' ? 'secondary' : 'success'}
                       variant="solid"
                       isDisabled={isSubmittingProblem}
                       onPress={handleSubmitProblem}
-                      className="rounded-xl text-white text-xs font-bold shadow-md shadow-purple-600/20"
+                      className={`rounded-xl text-white text-xs font-bold shadow-md ${
+                        activeCodingMode === 'ONLY_CODE'
+                          ? 'shadow-purple-600/20'
+                          : 'shadow-emerald-600/20'
+                      }`}
                       startContent={isSubmittingProblem ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                     >
-                      Submit
+                      {activeCodingMode === 'ONLY_CODE' ? 'Submit Code' : 'Submit Challenge'}
                     </Button>
                   </div>
                 </div>

@@ -48,7 +48,7 @@ export const server: FastifyInstance = Fastify({
 
 // --- JWT Secret Cluster Consistency Check ---
 const activeJwtSecret = getJwtSecret();
-const jwtFingerprint = crypto.createHash('sha256').update(activeJwtSecret).digest('hex').substring(0, 8);
+const jwtFingerprint = crypto.createHmac('sha256', activeJwtSecret).update('fingerprint-v1').digest('hex').substring(0, 12);
 server.log.info(`[Auth Cluster] Node JWT Secret Loaded (Fingerprint: ${jwtFingerprint}). Cluster instances MUST share identical JWT_SECRET.`);
 if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'production') {
   console.warn(`[Auth Cluster Warning] JWT_SECRET is not explicitly set in environment! Using local fallback key.`);
@@ -58,36 +58,46 @@ if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'production') {
 const getAllowedOrigins = (): string[] => {
   const origins = [
     process.env.CLIENT_URL,
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5000',
-    'http://127.0.0.1:5000',
-  ].filter(Boolean) as string[];
+    process.env.FRONTEND_URL,
+    process.env.PRODUCTION_ORIGINS ? process.env.PRODUCTION_ORIGINS.split(',') : [],
+    process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [],
+    process.env.NODE_ENV !== 'production'
+      ? ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5000', 'http://127.0.0.1:5000']
+      : [],
+  ]
+    .flat()
+    .map((o) => (typeof o === 'string' ? o.trim().replace(/\/+$/, '') : ''))
+    .filter(Boolean);
 
-  if (process.env.ALLOWED_ORIGINS) {
-    process.env.ALLOWED_ORIGINS.split(',').forEach((o) => {
-      const trimmed = o.trim();
-      if (trimmed) origins.push(trimmed);
-    });
-  }
-  return origins;
+  return Array.from(new Set(origins));
 };
 
+// Project-specific preview pattern: e.g. https://code-circle-git-feat.vercel.app
+const PROJECT_PREVIEW_REGEX = /^https:\/\/code-circle(-[a-zA-Z0-9_-]+)?\.vercel\.app$/;
+
 export const isOriginAllowed = (origin: string): boolean => {
+  if (!origin) return false;
+  const normalizedOrigin = origin.trim().replace(/\/+$/, '');
   const allowed = getAllowedOrigins();
-  if (allowed.some((a) => a === origin || origin === a.replace(/\/+$/, ''))) {
+
+  // 1. Exact match against configured production origin list
+  if (allowed.includes(normalizedOrigin)) {
     return true;
   }
-  // Allow official Vercel deployment domains (including preview branches)
-  if (/^https:\/\/[a-zA-Z0-9_\-]+\.vercel\.app$/.test(origin)) {
+
+  // 2. Project-specific preview pattern (gated behind ALLOW_VERCEL_PREVIEWS === 'true', OFF by default in production)
+  const allowPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
+  if (allowPreviews && PROJECT_PREVIEW_REGEX.test(normalizedOrigin)) {
     return true;
   }
-  // In development, permit any localhost or loopback port
+
+  // 3. In development, permit localhost/127.0.0.1 on any port
   if (process.env.NODE_ENV !== 'production') {
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
       return true;
     }
   }
+
   return false;
 };
 

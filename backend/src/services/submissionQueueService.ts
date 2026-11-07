@@ -86,6 +86,8 @@ export class SubmissionQueueService {
   public isFlushing: boolean = false;
   private flushTimer: NodeJS.Timeout | null = null;
   public lastSuccessfulFlush: Date | null = null;
+  public consecutiveFlushFailures: number = 0;
+  public currentBackoffMs: number = 1000;
 
   constructor(options?: {
     maxQueueSize?: number;
@@ -99,8 +101,9 @@ export class SubmissionQueueService {
       process.env.NODE_ID ||
       `${os.hostname()}-${process.pid}`;
     this.maxQueueSize = options?.maxQueueSize || Number(process.env.MAX_SUBMISSION_QUEUE_SIZE) || 1000;
-    this.maxBatchSize = options?.maxBatchSize || 60; // Hard cap 60 doc writes/sec per requirement
-    this.flushIntervalMs = options?.flushIntervalMs || 1000; // 1s flush interval
+    this.maxBatchSize = options?.maxBatchSize || Number(process.env.SUBMISSION_FLUSH_CAP) || 60; // Configurable flush cap (Atlas M0 safe limit: 60 doc writes/sec)
+    this.flushIntervalMs = options?.flushIntervalMs || 1000; // 1s default flush interval
+    this.currentBackoffMs = this.flushIntervalMs;
 
     // Start background flusher
     this.startAutoFlusher();
@@ -111,15 +114,24 @@ export class SubmissionQueueService {
 
   private startAutoFlusher(): void {
     if (this.flushTimer) return;
-    this.flushTimer = setInterval(() => {
-      this.flush().catch((err) => {
-        console.error(`[SubmissionQueue:${this.nodeId}] Auto-flush error:`, err);
-      });
-    }, this.flushIntervalMs);
+    const scheduleNext = () => {
+      this.flushTimer = setTimeout(async () => {
+        try {
+          await this.flush();
+        } catch (err) {
+          console.error(`[SubmissionQueue:${this.nodeId}] Auto-flush error:`, err);
+        } finally {
+          this.flushTimer = null;
+          scheduleNext();
+        }
+      }, this.currentBackoffMs);
 
-    if (this.flushTimer && typeof this.flushTimer.unref === 'function') {
-      this.flushTimer.unref();
-    }
+      if (this.flushTimer && typeof this.flushTimer.unref === 'function') {
+        this.flushTimer.unref();
+      }
+    };
+
+    scheduleNext();
   }
 
   private registerShutdownHooks(): void {
@@ -368,8 +380,12 @@ export class SubmissionQueueService {
 
       flushedCount = batch.length;
       this.lastSuccessfulFlush = new Date();
+      this.consecutiveFlushFailures = 0;
+      this.currentBackoffMs = this.flushIntervalMs;
     } catch (batchErr: any) {
       console.error(`[SubmissionQueue:${this.nodeId}] Bulk flush error:`, batchErr);
+      this.consecutiveFlushFailures++;
+      this.currentBackoffMs = Math.min(8000, this.flushIntervalMs * Math.pow(2, Math.min(this.consecutiveFlushFailures, 4)));
 
       // Distinguish between duplicate key (already saved) and actual failures
       for (const item of batch) {

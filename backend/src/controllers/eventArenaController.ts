@@ -951,6 +951,7 @@ export const getStudentArenaData = async (
       _id: p._id,
       title: p.title,
       description: p.description,
+      codingMode: p.codingMode || 'BOTH',
       inputFormat: p.inputFormat,
       outputFormat: p.outputFormat,
       constraints: p.constraints,
@@ -2343,6 +2344,7 @@ export const getStudentAssessmentData = async (
       _id: p._id,
       title: p.title,
       description: p.description,
+      codingMode: p.codingMode || 'BOTH',
       inputFormat: p.inputFormat,
       outputFormat: p.outputFormat,
       constraints: p.constraints,
@@ -2376,6 +2378,8 @@ export const getStudentAssessmentData = async (
           codingSubmissions: (submission.codingSubmissions || []).map((cs: any) => ({
             problemId: cs.problemId,
             language: cs.language,
+            code: cs.code,
+            codingMode: cs.codingMode || 'TEST_CASES',
             status: cs.status,
             executionTimeMs: cs.executionTimeMs,
           })),
@@ -2529,13 +2533,13 @@ export const startAssessmentSession = async (
 export const runAssessmentCode = async (
   request: FastifyRequest<{
     Params: { id: string; assessmentId: string };
-    Body: { problemId: string; language: string; code: string };
+    Body: { problemId: string; language: string; code: string; customInput?: string };
   }>,
   reply: FastifyReply
 ) => {
   try {
     const { id, assessmentId } = request.params;
-    const { problemId, language, code } = request.body;
+    const { problemId, language, code, customInput } = request.body;
 
     const event = await Event.findById(id).lean();
     if (!event || !event.hasArena) {
@@ -2551,6 +2555,52 @@ export const runAssessmentCode = async (
       (p: any) => p._id.toString() === problemId
     );
     if (!problem) return reply.status(404).send({ success: false, error: 'Coding problem not found' });
+
+    // If customInput is explicitly provided, run a single test case with the custom input
+    if (typeof customInput === 'string') {
+      try {
+        const exec = await rceService.executeCode({
+          language,
+          sourceCode: code,
+          stdin: customInput,
+          timeoutMs: 5000,
+        });
+
+        const actualOut = (exec.stdout || '').trim();
+        return reply.send({
+          success: true,
+          allPassed: exec.status === 'success',
+          isCustomRun: true,
+          results: [
+            {
+              testCaseNumber: 1,
+              input: customInput,
+              expectedOutput: '(Custom Execution)',
+              actualOutput: actualOut,
+              passed: exec.status === 'success',
+              executionTimeMs: exec.executionTimeMs,
+              error: exec.stderr || exec.error || null,
+            },
+          ],
+        });
+      } catch (e: any) {
+        return reply.send({
+          success: false,
+          allPassed: false,
+          isCustomRun: true,
+          results: [
+            {
+              testCaseNumber: 1,
+              input: customInput,
+              expectedOutput: '(Custom Execution)',
+              actualOutput: '',
+              passed: false,
+              error: e.message || 'Execution error',
+            },
+          ],
+        });
+      }
+    }
 
     const visibleTestCases = (problem.testCases || []).filter((tc: any) => !tc.isHidden);
     const testCasesToRun =
@@ -2620,7 +2670,12 @@ export const runAssessmentCode = async (
 export const submitAssessmentCodingProblem = async (
   request: FastifyRequest<{
     Params: { id: string; assessmentId: string };
-    Body: { problemId: string; language: string; code: string };
+    Body: {
+      problemId: string;
+      language: string;
+      code: string;
+      codingMode?: 'ONLY_CODE' | 'TEST_CASES';
+    };
   }>,
   reply: FastifyReply
 ) => {
@@ -2628,7 +2683,7 @@ export const submitAssessmentCodingProblem = async (
     const user = request.user;
     if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
     const { id, assessmentId } = request.params;
-    const { problemId, language, code } = request.body;
+    const { problemId, language, code, codingMode = 'TEST_CASES' } = request.body;
 
     const event = await Event.findById(id).lean();
     if (!event || !event.hasArena) {
@@ -2645,31 +2700,41 @@ export const submitAssessmentCodingProblem = async (
     );
     if (!problem) return reply.status(404).send({ success: false, error: 'Coding problem not found' });
 
-    const allTestCases = problem.testCases || [];
-    let passedCount = 0;
-
-    for (const tc of allTestCases) {
-      try {
-        const exec = await rceService.executeCode({
-          language,
-          sourceCode: code,
-          stdin: tc.input || '',
-          timeoutMs: 5000,
-        });
-        const actualOut = (exec.stdout || '').trim();
-        const expectedOut = (tc.expectedOutput || '').trim();
-        if (actualOut === expectedOut && exec.status === 'success') {
-          passedCount++;
-        }
-      } catch {
-        // failed test case
-      }
-    }
-
-    const totalTestCases = allTestCases.length || 1;
     const pointsPossible = problem.points || 30;
-    const pointsEarned = Math.round((passedCount / totalTestCases) * pointsPossible);
-    const status = passedCount === totalTestCases ? 'ACCEPTED' : 'WRONG_ANSWER';
+    let passedCount = 0;
+    let totalTestCases = (problem.testCases || []).length || 1;
+    let pointsEarned = 0;
+    let status: 'ACCEPTED' | 'WRONG_ANSWER' | 'SUBMITTED' = 'ACCEPTED';
+
+    // Option 1: Only Code (Direct code submission without test case enforcement - Admin assigns score later)
+    if (codingMode === 'ONLY_CODE') {
+      pointsEarned = 0; // Assigned admin will review and evaluate the score
+      status = 'SUBMITTED';
+      passedCount = 0;
+    } else {
+      // Option 2: Code with Test Case Completion (Automated test cases evaluation - Points provided immediately)
+      const allTestCases = problem.testCases || [];
+      for (const tc of allTestCases) {
+        try {
+          const exec = await rceService.executeCode({
+            language,
+            sourceCode: code,
+            stdin: tc.input || '',
+            timeoutMs: 5000,
+          });
+          const actualOut = (exec.stdout || '').trim();
+          const expectedOut = (tc.expectedOutput || '').trim();
+          if (actualOut === expectedOut && exec.status === 'success') {
+            passedCount++;
+          }
+        } catch {
+          // failed test case
+        }
+      }
+      totalTestCases = allTestCases.length || 1;
+      pointsEarned = Math.round((passedCount / totalTestCases) * pointsPossible);
+      status = passedCount === totalTestCases ? 'ACCEPTED' : 'WRONG_ANSWER';
+    }
 
     const submission = await EventArenaSubmission.findOne({
       eventId: event._id,
@@ -2681,14 +2746,16 @@ export const submitAssessmentCodingProblem = async (
       const existingIdx = submission.codingSubmissions.findIndex(
         (cs) => cs.problemId === problemId
       );
-      const entry = {
+      const entry: any = {
         problemId,
         language,
         code,
+        codingMode,
         testCasesPassed: passedCount,
         totalTestCases,
         pointsEarned,
-        status: status as any,
+        status,
+        isEvaluated: codingMode === 'TEST_CASES',
       };
 
       if (existingIdx >= 0) {
@@ -2696,6 +2763,15 @@ export const submitAssessmentCodingProblem = async (
       } else {
         submission.codingSubmissions.push(entry);
       }
+
+      // Update coding score from all submissions
+      submission.codingScore = submission.codingSubmissions.reduce(
+        (sum, cs) => sum + (cs.pointsEarned || 0),
+        0
+      );
+      submission.totalScore =
+        (submission.mcqScore || 0) + submission.codingScore + (submission.designScore || 0);
+
       await submission.save();
     }
 
@@ -2703,10 +2779,18 @@ export const submitAssessmentCodingProblem = async (
       success: true,
       problemId,
       status,
+      codingMode,
       passedCount,
       totalTestCases,
       pointsEarned,
       pointsPossible,
+      isEvaluated: codingMode === 'TEST_CASES',
+      message:
+        codingMode === 'ONLY_CODE'
+          ? 'Code submitted successfully! The assigned admin will review your code and assign your score.'
+          : passedCount === totalTestCases
+          ? `All test cases passed! +${pointsEarned} points awarded immediately.`
+          : `Submitted: ${passedCount}/${totalTestCases} test cases passed. +${pointsEarned} points awarded immediately.`,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -3322,6 +3406,100 @@ export const evaluateAssessmentDesign = async (
     return reply.status(500).send({
       success: false,
       error: err.message || 'Failed to evaluate design submission',
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Evaluate Student "Only Code" Problem Submission (Admin Manual Grading)
+// ---------------------------------------------------------------------------
+export const evaluateAssessmentCode = async (
+  request: FastifyRequest<{
+    Params: { id: string; assessmentId: string; submissionId: string };
+    Body: {
+      problemId: string;
+      pointsEarned: number;
+      feedback?: string;
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    const { id, assessmentId, submissionId } = request.params;
+    const { problemId, pointsEarned, feedback } = request.body;
+
+    const event = await Event.findById(id).lean();
+    if (!event) return reply.status(404).send({ success: false, error: 'Event not found' });
+
+    const assessment = (event.arenaAssessments || []).find(
+      (a: any) => a._id.toString() === assessmentId
+    );
+    if (!assessment) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+
+    if (!canManageAssessmentQuestions(user, event, assessment)) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Access denied: You are not authorized to evaluate submissions for this assessment.',
+      });
+    }
+
+    const submission = await EventArenaSubmission.findById(submissionId);
+    if (!submission) {
+      return reply.status(404).send({ success: false, error: 'Submission not found' });
+    }
+
+    const codingSub = (submission.codingSubmissions || []).find(
+      (cs) => cs.problemId === problemId
+    );
+    if (!codingSub) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Coding submission item not found for this problem.',
+      });
+    }
+
+    const problem = (assessment.questions?.coding || []).find(
+      (p: any) => p._id.toString() === problemId
+    );
+    const maxProblemPoints = problem?.points || 30;
+    const awarded = Math.max(0, Math.min(Number(pointsEarned) || 0, maxProblemPoints));
+
+    codingSub.pointsEarned = awarded;
+    codingSub.feedback = feedback || '';
+    codingSub.isEvaluated = true;
+    codingSub.evaluatedBy = new mongoose.Types.ObjectId(user._id);
+    codingSub.evaluatedAt = new Date();
+    codingSub.status = awarded > 0 ? 'ACCEPTED' : 'WRONG_ANSWER';
+
+    // Recalculate codingScore
+    submission.codingScore = (submission.codingSubmissions || []).reduce(
+      (sum, cs) => sum + (cs.pointsEarned || 0),
+      0
+    );
+
+    const maxScore = assessment.totalPoints || 100;
+    const totalScore = (submission.mcqScore || 0) + submission.codingScore + (submission.designScore || 0);
+    const scorePercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    const isPassed = scorePercentage >= (assessment.passingPercentage || 50);
+
+    submission.totalScore = totalScore;
+    submission.scorePercentage = scorePercentage;
+    submission.isPassed = isPassed;
+
+    await submission.save();
+
+    return reply.send({
+      success: true,
+      message: 'Coding submission evaluated successfully!',
+      submission,
+    });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({
+      success: false,
+      error: err.message || 'Failed to evaluate coding submission',
     });
   }
 };

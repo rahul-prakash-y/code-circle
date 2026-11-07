@@ -301,14 +301,16 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
         return { success: true, status: 'saved', result };
       }
 
-      // 3. If response status is 'pending', poll durable status until confirmed (max 30 attempts)
+      // 3. If response status is 'pending', poll durable status with backoff for 10+ minutes (max 12 min)
       if (res.data?.status === 'pending' || res.status === 202) {
         let attempts = 0;
-        const maxAttempts = 30;
+        const maxDurationMs = 12 * 60 * 1000; // 12 minutes polling duration
+        const startTime = Date.now();
+        let delayMs = 1000;
 
-        while (attempts < maxAttempts) {
+        while (Date.now() - startTime < maxDurationMs) {
           attempts++;
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
 
           try {
             const statusRes = await api.get(
@@ -321,8 +323,11 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
               return { success: true, status: 'saved', result };
             }
           } catch (pollErr) {
-            // Transient poll error, continue polling
+            // Transient poll error, continue polling with backoff
           }
+
+          // Exponential backoff capped at 8000ms (1s -> 1.5s -> 2.25s -> ... -> 8s)
+          delayMs = Math.min(8000, Math.round(delayMs * 1.5));
         }
 
         // Still pending after polling window: let client know it is queued
@@ -331,7 +336,7 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
           success: true,
           status: 'pending',
           submissionId: clientSubmissionId,
-          message: 'Submission queued for durable storage. Answers remain securely saved locally.',
+          message: 'Submission queued for durable storage. Answers remain securely saved locally in browser storage.',
         };
       }
 

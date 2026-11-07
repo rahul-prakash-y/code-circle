@@ -34,6 +34,24 @@ export interface SystemHealthData {
     firebaseAuth: string;
     pistonRce: string;
   };
+  buffers?: {
+    attendance?: {
+      queueLength: number;
+      isFlushing: boolean;
+      activeOtps: number;
+      markedCount: number;
+      failedAttemptsCount: number;
+    };
+    submissionQueue?: {
+      nodeId: string;
+      pendingCount: number;
+      oldestPendingAgeSeconds: number;
+      lastSuccessfulFlush: string | null;
+      failedCount: number;
+      isFlushing: boolean;
+      warningMessage?: string;
+    };
+  };
 }
 
 export interface CollectionStat {
@@ -123,7 +141,15 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
     set({ syncing: true });
     try {
       const res = await api.post('/admin/diagnostics/sync-cache');
-      toast.success(res.data.message || 'System cache & memory buffers synchronized!');
+      const attendanceCount = res.data.flushedAttendanceCount ?? 0;
+      const submissionCount = res.data.flushedSubmissionCount ?? 0;
+      if (attendanceCount > 0 || submissionCount > 0) {
+        toast.success(
+          `Buffer Flushed: ${attendanceCount} attendance & ${submissionCount} submission records synchronized to DB!`
+        );
+      } else {
+        toast.success(res.data.message || 'System cache & memory buffers synchronized!');
+      }
       get().fetchHealth();
       set({ syncing: false });
     } catch (err: any) {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '../lib/axios';
 import useServerStore from './useServerStore';
+import { clearAllExamState } from '../utils/examStorage';
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -78,6 +79,8 @@ const useAuthStore = create((set, get) => ({
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('sessionId');
+      // Purge local exam responses from IndexedDB and localStorage on shared lab computers
+      void clearAllExamState().catch(() => {});
       set({ user: null, token: null, sessionId: null, loading: false });
     }
   },

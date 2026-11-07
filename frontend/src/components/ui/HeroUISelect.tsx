@@ -28,7 +28,7 @@ export interface HeroUISelectProps {
   variant?: 'flat' | 'bordered' | 'faded';
   color?: 'primary' | 'accent' | 'purple' | 'emerald';
   startContent?: React.ReactNode;
-  placement?: 'bottom-start' | 'bottom-end';
+  placement?: 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
 }
 
 export const HeroUISelect: React.FC<HeroUISelectProps> = ({
@@ -51,9 +51,32 @@ export const HeroUISelect: React.FC<HeroUISelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [openUpward, setOpenUpward] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const triggerId = useId();
+
+  // Detect whether to open upwards or downwards
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      if (placement?.startsWith('top')) {
+        setOpenUpward(true);
+        return;
+      }
+      if (placement?.startsWith('bottom')) {
+        setOpenUpward(false);
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      if (spaceBelow < 220 && spaceAbove > spaceBelow) {
+        setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
+      }
+    }
+  }, [isOpen, placement]);
 
   // Normalize options
   const normalizedOptions: HeroUISelectOption[] = options.map((opt) => {
@@ -214,12 +237,14 @@ export const HeroUISelect: React.FC<HeroUISelectProps> = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 4, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            initial={{ opacity: 0, y: openUpward ? 6 : -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: openUpward ? -4 : 4, scale: 1 }}
+            exit={{ opacity: 0, y: openUpward ? 6 : -6, scale: 0.98 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
             onClick={(e) => e.stopPropagation()}
-            className={`absolute top-full mt-1.5 ${placement === 'bottom-end' ? 'right-0' : 'left-0'} min-w-full w-max max-w-xs sm:max-w-sm z-[9999] overflow-hidden rounded-2xl bg-surface-raised border border-separator shadow-2xl backdrop-blur-xl p-1.5`}
+            className={`absolute ${openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} ${
+              placement === 'bottom-end' || placement === 'top-end' ? 'right-0' : 'left-0'
+            } min-w-full w-max max-w-xs sm:max-w-sm z-[9999] overflow-hidden rounded-2xl bg-surface-raised border border-separator shadow-2xl backdrop-blur-xl p-1.5`}
           >
             {/* Search Input for Autocomplete */}
             {isSearchable && (

@@ -23,6 +23,8 @@ export interface FailedAttemptRecord {
 
 export interface VerifyAndQueueResult {
   success: boolean;
+  status?: 'saved' | 'pending';
+  retryAfter?: number;
   message?: string;
   error?: string;
   queueLength?: number;
@@ -58,6 +60,12 @@ export class AttendanceBuffer {
     if (this.flushInterval && typeof this.flushInterval.unref === 'function') {
       this.flushInterval.unref();
     }
+
+    this.registerShutdownHooks();
+  }
+
+  public getOtpCacheTtlMs(): number {
+    return (Number(process.env.OTP_CACHE_TTL_SECONDS) || 15) * 1000;
   }
 
   /**
@@ -190,7 +198,9 @@ export class AttendanceBuffer {
       }).lean();
 
       if (doc && doc.otp) {
-        const exp = doc.expiresAt ? new Date(doc.expiresAt).getTime() : Date.now() + 30 * 60 * 1000;
+        const docExpiresAt = doc.expiresAt ? new Date(doc.expiresAt).getTime() : Date.now() + 30 * 60 * 1000;
+        const cacheTtlCap = Date.now() + this.getOtpCacheTtlMs();
+        const exp = Math.min(docExpiresAt, cacheTtlCap);
         this.activeOTPs.set(this.makeOtpKey(cleanEventId, parsedDay), { otp: doc.otp, expiresAt: exp });
         return doc.otp;
       }
@@ -238,6 +248,27 @@ export class AttendanceBuffer {
       for (let d = 1; d <= 10; d++) {
         this.activeOTPs.delete(this.makeOtpKey(cleanEventId, d));
       }
+    }
+  }
+
+  /**
+   * Revokes an active OTP immediately from local memory and from the shared MongoDB collection.
+   * Other cluster nodes will stop accepting the revoked OTP within their capped cache TTL (default 15s).
+   */
+  public async revokeEventOTPAsync(eventId: string, dayNumber: number = 1): Promise<void> {
+    const cleanEventId = String(eventId).trim();
+    const parsedDay = Math.max(1, Number(dayNumber) || 1);
+
+    this.clearEventOTP(cleanEventId, parsedDay);
+
+    if (mongoose.connection.readyState !== 1 && !(EventOtp.deleteMany as any).mock) {
+      return;
+    }
+
+    try {
+      await EventOtp.deleteMany({ eventId: cleanEventId, dayNumber: parsedDay });
+    } catch (err) {
+      console.warn('[AttendanceBuffer] Error revoking EventOTP in MongoDB:', err);
     }
   }
 
@@ -496,6 +527,14 @@ export class AttendanceBuffer {
         timestamp: new Date(),
         status: 'Present',
       });
+
+      return {
+        success: true,
+        status: 'saved',
+        message: `Attendance for Day ${parsedDay} confirmed and stored durably in database`,
+        dayNumber: parsedDay,
+        queueLength: this.writeQueue.length,
+      };
     } catch (writeErr: any) {
       if (writeErr.code === 11000) {
         return {
@@ -510,14 +549,16 @@ export class AttendanceBuffer {
         dateAttended: dateAttended ? new Date(dateAttended) : new Date(),
         timestamp: new Date(),
       });
-    }
 
-    return {
-      success: true,
-      message: `Attendance for Day ${parsedDay} recorded successfully`,
-      dayNumber: parsedDay,
-      queueLength: this.writeQueue.length,
-    };
+      return {
+        success: true,
+        status: 'pending',
+        retryAfter: 2,
+        message: `Attendance for Day ${parsedDay} enqueued for durable storage. Awaiting batch flusher confirmation.`,
+        dayNumber: parsedDay,
+        queueLength: this.writeQueue.length,
+      };
+    }
   }
 
   /**
@@ -586,6 +627,34 @@ export class AttendanceBuffer {
       throw error;
     } finally {
       this.isFlushing = false;
+    }
+  }
+
+  /**
+   * Registers graceful shutdown hooks on SIGTERM and SIGINT to flush any
+   * pending in-memory attendance records before the process terminates.
+   */
+  private registerShutdownHooks(): void {
+    const handleShutdown = async (signal: string) => {
+      console.log(`[AttendanceBuffer] Received ${signal}, flushing pending attendance records before exit...`);
+      try {
+        await this.flushAllPending();
+        console.log('[AttendanceBuffer] Shutdown flush complete.');
+      } catch (err) {
+        console.error('[AttendanceBuffer] Error during shutdown flush:', err);
+      }
+    };
+
+    process.once('SIGTERM', () => void handleShutdown('SIGTERM'));
+    process.once('SIGINT', () => void handleShutdown('SIGINT'));
+  }
+
+  /**
+   * Flushes all pending queued records until writeQueue is completely drained.
+   */
+  public async flushAllPending(): Promise<void> {
+    while (this.writeQueue.length > 0) {
+      await this.flush();
     }
   }
 

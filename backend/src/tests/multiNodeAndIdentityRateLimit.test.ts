@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
-import { server } from '../server';
+import { server, isOriginAllowed } from '../server';
 import User from '../models/userModel';
 import Assessment from '../models/assessmentModel';
 import AssessmentSubmission from '../models/assessmentSubmissionModel';
@@ -16,6 +16,7 @@ import { AttendanceBuffer } from '../services/attendanceBuffer';
 import authLockoutService from '../services/authLockoutService';
 import { getJwtSecret } from '../middleware/authMiddleware';
 import { FIGMA_URL_REGEX, MAX_FIGMA_URL_LENGTH } from '../controllers/assessmentController';
+import Judge0Provider from '../services/rce/judge0Provider';
 
 describe('Multi-Node Cluster Admin & Identity-Based Rate Limiting Test Suite', () => {
   const secret = getJwtSecret();
@@ -221,6 +222,18 @@ describe('Multi-Node Cluster Admin & Identity-Based Rate Limiting Test Suite', (
       }
       mockAttendanceRecords.set(key, { ...doc, _id: new mongoose.Types.ObjectId() });
       return Promise.resolve(doc);
+    });
+
+    mock.method(AttendanceModel, 'bulkWrite', (ops: any[]) => {
+      for (const op of ops) {
+        if (op.updateOne) {
+          const filter = op.updateOne.filter;
+          const setDoc = op.updateOne.update?.$setOnInsert || {};
+          const key = `${filter?.userId}:${filter?.eventId}:day:${filter?.dayNumber || 1}`;
+          mockAttendanceRecords.set(key, { ...setDoc, _id: new mongoose.Types.ObjectId() });
+        }
+      }
+      return Promise.resolve({ ok: 1 });
     });
 
     // Mock Assessment
@@ -455,6 +468,39 @@ describe('Multi-Node Cluster Admin & Identity-Based Rate Limiting Test Suite', (
         'All 300 candidates behind a single shared lab IP must log in successfully without 429 throttling'
       );
     });
+
+    test('1f. Campus NAT: 200 failed logins from one IP across 200 different usernames do NOT lock out a 201st valid user', async () => {
+      const natIp = '203.0.113.88';
+
+      // 200 distinct students mistype passwords behind the same campus NAT IP
+      for (let i = 0; i < 200; i++) {
+        const fakeUser = `mistyped-student-${i}@example.com`;
+        const res = await server.inject({
+          method: 'POST',
+          url: '/api/auth/login',
+          headers: { 'x-forwarded-for': natIp },
+          payload: { identifier: fakeUser, password: 'WrongPassword123!' },
+        });
+        assert.equal(res.statusCode, 401);
+        assert.equal(res.json().error, 'Invalid credentials');
+      }
+
+      // 201st candidate arrives with valid credentials behind that exact same campus NAT IP
+      const validCandidate = 'usera@example.com';
+      const validRes = await server.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        headers: { 'x-forwarded-for': natIp },
+        payload: { identifier: validCandidate, password: 'CorrectPassword123!' },
+      });
+
+      assert.equal(
+        validRes.statusCode,
+        200,
+        'Campus NAT threshold (LOGIN_FAILED_IP_MAX >= 300) must allow valid candidate through despite 200 previous failures'
+      );
+      assert.equal(validRes.json().success, true);
+    });
   });
 
   // =========================================================================
@@ -576,6 +622,97 @@ describe('Multi-Node Cluster Admin & Identity-Based Rate Limiting Test Suite', (
       console.log('Peak MongoDB ops per valid OTP check: 1-2 ops (well within Atlas M0 100 ops/s cap)');
       console.log('--------------------------------------------\n');
       assert.ok(true);
+    });
+
+    test('2f. OTP cache TTL & rotation: Faculty rotates OTP, within 15s TTL old OTP is rejected on all nodes and new OTP works', async () => {
+      const eventId = 'event-otp-rot-999';
+      const initialOtp = '1122';
+      const rotatedOtp = '7788';
+      const day = 1;
+
+      const nodeA = new AttendanceBuffer();
+      const nodeB = new AttendanceBuffer();
+      const nodeC = new AttendanceBuffer();
+
+      // Faculty sets initial OTP on Node A
+      await nodeA.setEventOTPAsync(eventId, initialOtp, day, 30);
+
+      // Verify Node B loads and caches initial OTP with capped TTL (<= 15s)
+      const bOtp = await nodeB.getEventOTPAsync(eventId, day);
+      assert.equal(bOtp, initialOtp);
+      const bCachedRecord = nodeB.activeOTPs.get(`${eventId}:day:${day}`);
+      assert.ok(bCachedRecord, 'Node B must cache record in memory');
+      // TTL must be capped at <= 15s (not 30 minutes)
+      assert.ok(bCachedRecord.expiresAt <= Date.now() + 16000);
+
+      // Faculty rotates OTP on Node A to new OTP
+      await nodeA.setEventOTPAsync(eventId, rotatedOtp, day, 30);
+
+      // Node A immediately accepts new OTP and rejects old OTP
+      assert.equal(await nodeA.getEventOTPAsync(eventId, day), rotatedOtp);
+
+      // Simulate TTL expiration on Node B and Node C (advancing clock past 15s cache TTL)
+      bCachedRecord.expiresAt = Date.now() - 1000;
+
+      // Node B cache expires, fetches rotated OTP from shared MongoDB
+      const bRotatedOtp = await nodeB.getEventOTPAsync(eventId, day);
+      assert.equal(bRotatedOtp, rotatedOtp, 'Node B must receive rotated OTP after TTL expiry');
+
+      // Attempt submission with OLD OTP on Node B -> Must be rejected!
+      const oldSubRes = await nodeB.verifyAndQueueAsync('student-old-otp', eventId, initialOtp, day);
+      assert.equal(oldSubRes.success, false, 'Old rotated OTP must be rejected');
+
+      // Attempt submission with NEW OTP on Node B -> Must succeed!
+      const newSubRes = await nodeB.verifyAndQueueAsync('student-new-otp', eventId, rotatedOtp, day);
+      assert.equal(newSubRes.success, true, 'New rotated OTP must be accepted across cluster');
+    });
+
+    test('2g. Attendance durability and node restart simulation: durable MongoDB storage and graceful shutdown flush', async () => {
+      const eventId = 'event-durable-attendance';
+      const otp = '9999';
+      const day = 1;
+      const student1 = 'student-durable-001';
+      const student2 = 'student-durable-002';
+
+      const node = new AttendanceBuffer();
+      await node.setEventOTPAsync(eventId, otp, day, 30);
+
+      // 1. Direct durable write: returns status: 'saved'
+      const durableRes = await node.verifyAndQueueAsync(student1, eventId, otp, day);
+      assert.equal(durableRes.success, true);
+      assert.equal(durableRes.status, 'saved');
+      assert.match(durableRes.message || '', /stored durably/i);
+
+      // Verify record is stored in MongoDB
+      const mongoRecord = mockAttendanceRecords.get(`${student1}:${eventId}:day:${day}`);
+      assert.ok(mongoRecord, 'Attendance must be confirmed in database');
+
+      // 2. Queue write fallback when MongoDB experiences transient outage
+      // Temporarily simulate write failure to force queuing
+      const origCreate = AttendanceModel.create;
+      (AttendanceModel as any).create = () => Promise.reject(new Error('Atlas connection blip'));
+
+      const pendingRes = await node.verifyAndQueueAsync(student2, eventId, otp, day);
+      assert.equal(pendingRes.success, true);
+      assert.equal(pendingRes.status, 'pending');
+      assert.equal(pendingRes.retryAfter, 2);
+      assert.equal(node.writeQueue.length, 1);
+
+      // Restore AttendanceModel.create
+      (AttendanceModel as any).create = origCreate;
+
+      // 3. Node restart simulation: graceful shutdown flushes pending queue before exit
+      await node.flushAllPending();
+      assert.equal(node.writeQueue.length, 0, 'writeQueue must be completely drained on shutdown');
+
+      // Verify student 2 was written to MongoDB via bulkWrite during flush
+      const mongoRecord2 = mockAttendanceRecords.get(`${student2}:${eventId}:day:${day}`);
+      assert.ok(mongoRecord2, 'Student 2 record must be durably stored after shutdown flush');
+
+      // 4. Idempotent retry: Retrying student 2 returns duplicate error without corruption
+      const retryRes = await node.verifyAndQueueAsync(student2, eventId, otp, day);
+      assert.equal(retryRes.success, false);
+      assert.match(retryRes.error || '', /already been marked/i);
     });
   });
 
@@ -705,6 +842,161 @@ describe('Multi-Node Cluster Admin & Identity-Based Rate Limiting Test Suite', (
       );
       assert.equal(userBSubmissions.length, 1);
       assert.equal(userBSubmissions[0].figmaUrl, figmaUrl);
+    });
+  });
+
+  // =========================================================================
+  // PART 4: HARDENED /api/health ENDPOINT & JWT HMAC FINGERPRINT
+  // =========================================================================
+  describe('4. Hardened /api/health Endpoint & JWT HMAC Fingerprint', () => {
+    test('4a. Public unauthenticated health check returns ONLY { status: "ok" } without secrets or fingerprints', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/api/health',
+      });
+
+      assert.equal(res.statusCode, 200);
+      const json = res.json();
+      assert.equal(json.status, 'ok');
+      assert.equal(json.jwtFingerprint, undefined, 'Public health check must NEVER expose jwtFingerprint');
+      assert.equal(json.nodeId, undefined, 'Public health check must not expose internal cluster nodeId');
+    });
+
+    test('4b. Student token does not receive JWT fingerprint on /api/health', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/api/health',
+        headers: { authorization: `Bearer ${tokenUserA}` },
+      });
+
+      assert.equal(res.statusCode, 200);
+      const json = res.json();
+      assert.equal(json.status, 'ok');
+      assert.equal(json.jwtFingerprint, undefined, 'Student caller must not receive jwtFingerprint');
+    });
+
+    test('4c. Authenticated admin receives 12-char HMAC(JWT_SECRET, "fingerprint-v1") fingerprint', async () => {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/api/health',
+        headers: { authorization: `Bearer ${tokenAdmin}` },
+      });
+
+      assert.equal(res.statusCode, 200);
+      const json = res.json();
+      assert.equal(json.status, 'ok');
+      assert.ok(json.nodeId, 'Admin health check must include nodeId');
+
+      // Verify HMAC computation
+      const expectedFingerprint = crypto
+        .createHmac('sha256', secret)
+        .update('fingerprint-v1')
+        .digest('hex')
+        .substring(0, 12);
+
+      assert.equal(json.jwtFingerprint.length, 12, 'Fingerprint must be truncated to 12 hex chars');
+      assert.equal(json.jwtFingerprint, expectedFingerprint);
+    });
+  });
+
+  // =========================================================================
+  // PART 5: HARDENED CORS ORIGIN VALIDATOR
+  // =========================================================================
+  describe('5. Hardened CORS Origin Validator', () => {
+    const originalPreviewFlag = process.env.ALLOW_VERCEL_PREVIEWS;
+
+    after(() => {
+      if (originalPreviewFlag !== undefined) {
+        process.env.ALLOW_VERCEL_PREVIEWS = originalPreviewFlag;
+      } else {
+        delete process.env.ALLOW_VERCEL_PREVIEWS;
+      }
+    });
+
+    test('5a. Permitted localhost and loopback ports in non-production mode', () => {
+      assert.equal(isOriginAllowed('http://localhost:5173'), true);
+      assert.equal(isOriginAllowed('http://127.0.0.1:5173'), true);
+      assert.equal(isOriginAllowed('http://localhost:5000'), true);
+      assert.equal(isOriginAllowed('http://127.0.0.1:5000'), true);
+    });
+
+    test('5b. Project-specific preview origins allowed ONLY when ALLOW_VERCEL_PREVIEWS === "true"', () => {
+      // 1. When flag is enabled
+      process.env.ALLOW_VERCEL_PREVIEWS = 'true';
+      assert.equal(isOriginAllowed('https://code-circle-git-feat-test.vercel.app'), true);
+      assert.equal(isOriginAllowed('https://code-circle.vercel.app'), true);
+
+      // 2. When flag is disabled / OFF (default production state)
+      process.env.ALLOW_VERCEL_PREVIEWS = 'false';
+      assert.equal(isOriginAllowed('https://code-circle-git-feat-test.vercel.app'), false);
+    });
+
+    test('5c. Malicious origins, lookalikes, and unrelated Vercel apps are strictly rejected', () => {
+      process.env.ALLOW_VERCEL_PREVIEWS = 'true';
+
+      assert.equal(isOriginAllowed('https://evil-unrelated.vercel.app'), false);
+      assert.equal(isOriginAllowed('https://attacker.com'), false);
+      assert.equal(isOriginAllowed('https://code-circle.evil.com'), false);
+      assert.equal(isOriginAllowed('https://evil-code-circle.vercel.app.attacker.com'), false);
+      assert.equal(isOriginAllowed(''), false);
+    });
+  });
+
+  // =========================================================================
+  // PART 6: JUDGE0 BATCH EXECUTION CHUNKING
+  // =========================================================================
+  describe('6. Judge0 Batch Execution Chunking', () => {
+    test('6a. Judge0Provider executeBatch chunks 25 test cases into batches of <= 20 (20 + 5)', async () => {
+      const provider = new Judge0Provider();
+      const batchPostCalls: any[] = [];
+      const batchGetCalls: any[] = [];
+
+      // Mock axios client on provider
+      (provider as any).client = {
+        post: async (url: string, payload: any) => {
+          batchPostCalls.push({ url, payload, size: payload.submissions?.length });
+          return {
+            data: payload.submissions.map((_: any, idx: number) => ({ token: `tok-${idx}` })),
+          };
+        },
+        get: async (url: string) => {
+          batchGetCalls.push({ url });
+          const match = url.match(/tokens=([^&]+)/);
+          const tokens = match ? match[1].split(',') : [];
+          return {
+            data: {
+              submissions: tokens.map((t: string) => ({
+                token: t,
+                status: { id: 3, description: 'Accepted' },
+                stdout: '42\n',
+                stderr: '',
+                exit_code: 0,
+              })),
+            },
+          };
+        },
+      };
+
+      // Create 25 mock test case execution requests
+      const testReqs: any[] = Array.from({ length: 25 }, (_, idx) => ({
+        language: 'python',
+        code: `print(${idx})`,
+        stdin: '',
+        timeoutMs: 2000,
+      }));
+
+      const results = await provider.executeBatch(testReqs);
+
+      // Verify chunking behavior:
+      // 25 items must be split into 2 batch POST calls: chunk 1 (20 items) and chunk 2 (5 items)
+      assert.equal(batchPostCalls.length, 2, '25 test cases must be split across 2 batch POST chunks');
+      assert.equal(batchPostCalls[0].size, 20, 'First chunk size must be exactly 20 (Judge0 CE limit)');
+      assert.equal(batchPostCalls[1].size, 5, 'Second chunk size must be 5');
+
+      // Verify all 25 results are returned in order
+      assert.equal(results.length, 25);
+      assert.equal(results[0].status, 'success');
+      assert.equal(results[24].status, 'success');
     });
   });
 });

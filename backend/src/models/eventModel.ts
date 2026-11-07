@@ -36,10 +36,13 @@ export interface IEventArenaCodingTestCase {
   isHidden: boolean;
 }
 
+export type EventArenaCodingMode = 'ONLY_CODE' | 'TEST_CASES' | 'BOTH';
+
 export interface IEventArenaCodingProblem {
   _id?: mongoose.Types.ObjectId;
   title: string;
   description: string;
+  codingMode?: EventArenaCodingMode;
   inputFormat?: string;
   outputFormat?: string;
   constraints?: string;
@@ -222,6 +225,11 @@ export const eventArenaAssessmentSchema = new Schema<IEventArenaAssessment>(
           {
             title: { type: String, required: true, trim: true },
             description: { type: String, required: true },
+            codingMode: {
+              type: String,
+              enum: ['ONLY_CODE', 'TEST_CASES', 'BOTH'],
+              default: 'BOTH',
+            },
             inputFormat: { type: String, default: '' },
             outputFormat: { type: String, default: '' },
             constraints: { type: String, default: '' },
@@ -382,6 +390,11 @@ const eventSchema = new Schema<IEvent>(
           {
             title: { type: String, required: true, trim: true },
             description: { type: String, required: true },
+            codingMode: {
+              type: String,
+              enum: ['ONLY_CODE', 'TEST_CASES', 'BOTH'],
+              default: 'BOTH',
+            },
             inputFormat: { type: String, default: '' },
             outputFormat: { type: String, default: '' },
             constraints: { type: String, default: '' },

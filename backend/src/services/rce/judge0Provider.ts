@@ -213,9 +213,12 @@ export class Judge0Provider implements IRCEProvider {
     }
   }
 
+  public static readonly BATCH_CHUNK_SIZE = 20;
+
   /**
-   * Execute batch submissions for a challenge solution across all test cases.
-   * Collapses N individual roundtrips into 1 batch POST and 1 batch GET polling call.
+   * Execute batch submissions for a challenge solution across test cases.
+   * Chunks requests into slices of at most BATCH_CHUNK_SIZE (20) to satisfy
+   * Judge0 CE provider batch limits, collapsing roundtrips without exceeding API constraints.
    */
   public async executeBatch(reqs: NormalizedRCERequest[]): Promise<RCEExecutionResponse[]> {
     if (reqs.length === 0) return [];
@@ -224,6 +227,21 @@ export class Judge0Provider implements IRCEProvider {
       return [single];
     }
 
+    // Chunk into slices of at most BATCH_CHUNK_SIZE (20)
+    const chunks: NormalizedRCERequest[][] = [];
+    for (let i = 0; i < reqs.length; i += Judge0Provider.BATCH_CHUNK_SIZE) {
+      chunks.push(reqs.slice(i, i + Judge0Provider.BATCH_CHUNK_SIZE));
+    }
+
+    const allResults: RCEExecutionResponse[] = [];
+    for (const chunk of chunks) {
+      const chunkResults = await this.executeBatchChunk(chunk);
+      allResults.push(...chunkResults);
+    }
+    return allResults;
+  }
+
+  private async executeBatchChunk(reqs: NormalizedRCERequest[]): Promise<RCEExecutionResponse[]> {
     const startTime = Date.now();
     try {
       const submissions = reqs.map((req) => this.buildSubmissionPayload(req));
