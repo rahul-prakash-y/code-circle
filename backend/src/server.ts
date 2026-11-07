@@ -41,12 +41,66 @@ export const server: FastifyInstance = Fastify({
   },
 });
 
-// Register CORS
+// --- CORS Allowed Origins Validator ---
+const getAllowedOrigins = (): string[] => {
+  const origins = [
+    process.env.CLIENT_URL,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:5000',
+    'http://127.0.0.1:5000',
+  ].filter(Boolean) as string[];
+
+  if (process.env.ALLOWED_ORIGINS) {
+    process.env.ALLOWED_ORIGINS.split(',').forEach((o) => {
+      const trimmed = o.trim();
+      if (trimmed) origins.push(trimmed);
+    });
+  }
+  return origins;
+};
+
+export const isOriginAllowed = (origin: string): boolean => {
+  const allowed = getAllowedOrigins();
+  if (allowed.some((a) => a === origin || origin === a.replace(/\/+$/, ''))) {
+    return true;
+  }
+  // In development, permit any localhost or loopback port
+  if (process.env.NODE_ENV !== 'production') {
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// Register CORS with strict origin validation
 server.register(cors, {
-  origin: true,
+  origin: (origin, cb) => {
+    // Non-browser or same-origin requests (e.g. server-to-server, curl, mobile) have no origin header
+    if (!origin) {
+      return cb(null, true);
+    }
+    if (isOriginAllowed(origin)) {
+      return cb(null, true);
+    }
+    return cb(null, false);
+  },
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Session-Id'],
   credentials: true,
+});
+
+// Production-Grade Security Headers Hook
+server.addHook('onSend', async (_request, reply) => {
+  reply.header('X-Content-Type-Options', 'nosniff');
+  reply.header('X-Frame-Options', 'SAMEORIGIN');
+  reply.header('X-XSS-Protection', '0');
+  reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (process.env.NODE_ENV === 'production') {
+    reply.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
 });
 
 // Register Multipart (File Uploads)
@@ -57,12 +111,12 @@ server.register(multipart, {
 });
 
 // Centralized Global Error Handler
-// Register Rate Limiting for Thundering Herd protection on Free Tier
+// Register Rate Limiting for DoS / Thundering Herd protection
 server.register(rateLimit, {
-  global: false,
-  max: 100,
+  global: true,
+  max: 300,
   timeWindow: '1 minute',
-  errorResponseBuilder: (request, context) => ({
+  errorResponseBuilder: (_request, context) => ({
     statusCode: 429,
     error: 'Too Many Requests',
     message: `Rate limit reached. Please wait ${Math.ceil(context.ttl / 1000)} seconds before trying again.`,
