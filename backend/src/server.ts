@@ -243,6 +243,6 @@ export const start = async (): Promise<void> => {
 };
 
 // Start when executed directly
-if (require.main === module || process.env.NODE_ENV !== 'test') {
+if (require.main === module && process.env.NODE_ENV !== 'test') {
   start();
 }
