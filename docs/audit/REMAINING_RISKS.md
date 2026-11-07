@@ -12,25 +12,65 @@ In accordance with professional engineering ethics and audit standards: **No sof
 
 ---
 
-## 2. Items Requiring Product Owner / Stakeholder Decision
+## 2. Hardening Fixes Completed in this Phase
 
-### 2.1 Self-Service Assessment Reappearance (`DELETE /api/assessments/:id/my-submission`)
-- **Current Behavior:** A student who fails or leaves an assessment can call `DELETE /api/assessments/:id/my-submission` or `POST /api/assessments/:id/reappear` to wipe their attempt record and retake the test.
-- **Academic Integrity Risk:** Students can take a test, inspect all questions, wipe their submission, and retake it with known answers.
-- **Architectural Conflict:** The codebase already includes an administrative reappearance endpoint (`POST /api/assessments/:id/reappear/:studentId`) intended for faculty-governed re-examination.
-- **Decision Needed:** Should self-service wipe be disabled for formal exams and limited strictly to practice quizzes, or should test retakes always require faculty approval?
-- **Status:** **NOT MODIFIED (Awaiting Decision)** — Preserved existing endpoint per safety rules ("STOP AND ASK ME BEFORE removing any feature or endpoint").
+### 2.1 Self-Service Assessment Reset Hardening (RESOLVED)
+- **Previous Risk:** Students could call `DELETE /api/assessments/:id/my-submission` or `POST /:id/reappear` to wipe their previous attempts on graded exams, retaking tests after learning question contents.
+- **Implemented Fix:**
+  - Disabled self-service reset on any graded or published assessment (`isPublished: true` or `customPoints > 0`). Non-faculty/admin users receive **HTTP 403 Forbidden** (`Self-service reset is disabled for graded assessments. Reappearance requires faculty authorization.`).
+  - Hardened faculty reappearance route `POST /api/assessments/:id/reappear/:studentId` to require an explicit `reason` string (minimum 5 characters) in the request body.
+  - Generates an immutable entry in the `AuditLog` collection recording `actorId`, `actorRole`, `targetId`, `reason`, and `deletedSubmissionsCount`.
+- **Status:** **VERIFIED WITH ROUTE-LEVEL TESTS** in `routeLevelAuth.test.ts`.
 
-### 2.2 SheetJS (`xlsx`) Library Vulnerabilities
-- **Vulnerabilities:**
-  - `GHSA-4r6h-8v6p-xvw6` (Prototype Pollution in SheetJS)
-  - `GHSA-5pgg-2g8v-p4x9` (SheetJS Regular Expression Denial of Service)
-- **Current State:** `npm audit` reports these advisories with no automated fix available in the legacy SheetJS line.
-- **Mitigation in Place:** In `userManagementController.ts`, file extensions and header boundaries are validated, and the bulk upload chunk is limited to memory buffers.
-- **Decision Needed:** Migrate bulk import/export to `exceljs` or native CSV in the next sprint to eliminate `xlsx` entirely.
-- **Status:** **ACCEPTED RISK / SCHEDULED FOR MIGRATION**.
+### 2.2 SheetJS (`xlsx`) Bulk Upload Hardening & ExcelJS Migration (RESOLVED)
+- **Previous Risk:** Reliance on unmaintained `xlsx` (SheetJS 0.18.5) carrying known prototype pollution (`GHSA-4r6h-8v6p-xvw6`) and ReDoS (`GHSA-5pgg-2g8v-p4x9`) vulnerabilities, with no file size or row count limits.
+- **Implemented Fix:**
+  - Installed and migrated bulk upload parsing to `exceljs` (`v4.4.0`) and RFC-compliant streaming CSV parsing via `backend/src/utils/safeSpreadsheetParser.ts`.
+  - Enforced strict upper bounds: `MAX_SPREADSHEET_SIZE_BYTES = 5MB` and `MAX_SPREADSHEET_ROWS = 500`.
+  - Uses `Object.create(null)` for all parsed spreadsheet row objects, guaranteeing immunity against prototype pollution.
+  - Implemented graceful error recovery: malformed or corrupted Excel archives return a clean HTTP 400 without crashing the Node.js process.
+- **Status:** **VERIFIED WITH TESTS** in `safeSpreadsheetParser.test.ts`.
 
-### 2.3 Dependency Major Version Upgrades
+### 2.3 Attendance OTP Expiration & Attempt Throttling (RESOLVED)
+- **Previous Risk:** Active OTPs stayed in process memory indefinitely, and students could brute-force 4-digit OTPs without attempt tracking.
+- **Implemented Fix:**
+  - Upgraded `attendanceBuffer.ts` to store OTPs with an explicit TTL expiry (`expiresAt: Date.now() + ttlMinutes * 60 * 1000`, default 30 minutes). Expired OTPs return `undefined` and reject submissions.
+  - Implemented per-user and per-event attempt tracking (`failedAttempts: Map<string, { attempts, lockedUntil }>`).
+  - Enforced 5-strike lockout: 5 incorrect OTP attempts immediately locks the student's account for that specific event for 15 minutes.
+  - Successful OTP submission automatically resets the failed attempt counter.
+- **Status:** **VERIFIED WITH TESTS** in `attendanceBufferHardening.test.ts`.
+
+### 2.4 NoSQL Operator Injection Global Sanitization (RESOLVED)
+- **Previous Risk:** Passing raw request body or query objects into MongoDB filter queries allowed potential operator injection (`$ne`, `$gt`, `$where`, `$regex`).
+- **Implemented Fix:**
+  - Created Fastify global `preValidation` hook `sanitizeInputsHook` in `backend/src/middleware/sanitizeInput.ts` which recursively traverses `request.query`, `request.params`, and `request.body` and strips any keys starting with `$`.
+  - Added strict string type checking in `authController.ts` (`register` and `login`) ensuring identifiers and passwords must be primitive strings.
+- **Status:** **VERIFIED WITH TESTS** in `noSqlSanitization.test.ts`.
+
+---
+
+## 3. Items Requiring Product Owner / Architecture Approval
+
+### 3.1 Code Execution Architecture & Legacy Submission Controller
+- **Audit Findings:**
+  - **Runner Architecture:** Sandboxed external RCE providers (Emkc Piston v2 API and Judge0 CE API).
+  - **Sandboxing:** Docker unprivileged user isolation (Piston) and Linux `isolate` / `cgroups` (Judge0) with network disabled inside container.
+  - **Resource Limits:** 64 KB source code (`MAX_SOURCE_CODE_BYTES`), 32 KB stdin (`MAX_STDIN_BYTES`), 10-second timeout, 10-slot in-memory concurrency queue.
+  - **Host Isolation:** Absolute. Zero student code executes inside the Fastify server process.
+- **Legacy Finding (Medium Severity):**
+  - In `backend/src/controllers/submissionController.js` (mounted on `POST /api/problems/:id/submit`), the handler bypasses `RCEService` and calls RapidAPI Judge0 directly with an unhandled `req.user.uid` field (which is `undefined` because Fastify auth middleware sets `req.user.id`). It also executes a synchronous 20-second blocking `while` polling loop.
+- **Action Required / Decision Needed:** Should `submissionController.js` be migrated to use `RCEService` or deprecated in favor of `codingAssessmentController.ts`?
+- **Status:** **AWAITING USER DECISION** (Preserved existing endpoint per safety rule: "Ask me before redesigning it").
+
+### 3.2 JWT_SECRET Rotation in Production & Staging
+- **Audit Findings:**
+  - A historical default fallback string was committed in early repository revisions of `authMiddleware.ts` and `authController.ts`.
+  - While SEC-03 guarantees that the server immediately terminates with a fatal error in production if `JWT_SECRET` is unset, any historical environment deployed without setting `JWT_SECRET` may have issued tokens signed with the public fallback string.
+- **Action Required:**
+  - **Rotate `JWT_SECRET` immediately in production and staging environments.**
+  - Generate a fresh 256-bit random key (`crypto.randomBytes(32).toString('hex')`) and update hosting environment variables (Render / Railway / Docker).
+
+### 3.3 Dependency Major Version Upgrades
 - **Advisories:**
   - `@fastify/static` (Authorization bypass via non-canonical URL paths `GHSA-8pvw-jcv7-9cmj` / route guard bypass `GHSA-83w8-p2f5-377r`). Fix requires upgrading to major release v10.
   - `firebase-admin` (uuid missing buffer bounds check). Fix requires upgrading across major version.
@@ -39,20 +79,32 @@ In accordance with professional engineering ethics and audit standards: **No sof
 
 ---
 
-## 3. Infrastructure & Operational Limitations
+## 4. Infrastructure & Operational Constraints
 
-### 3.1 MongoDB Atlas M0 Connection Starvation
-- **Constraint:** MongoDB Atlas Free Tier (M0) enforces a hard limit of 50 concurrent socket connections.
-- **Platform Architecture:** Fastify is configured with `maxPoolSize: 50`.
-- **Operating Risk:** While the in-memory attendance buffer (`attendanceBuffer.ts`) batches writes to avoid exceeding socket limits, concurrent assessment submissions or report exports during a college-wide event (>300 simultaneous students) could trigger connection timeouts.
-- **Recommendation:** Upgrade database tier to MongoDB Atlas M10+ (dedicated cluster with 1,500 connections) prior to campus-wide exam rollouts.
+### 4.1 MongoDB Atlas M0 Free Tier vs M10 Dedicated Tier
+- **Measured Data (from `loadTestSimulation.ts`):**
+  - 300 concurrent students taking a 30-minute exam produce an average workload of **11.83 ops/sec** (compatible with Atlas M0).
+  - However, during the final exam closing window when countdown timers expire and students submit simultaneously, the workload spikes to **294.00 ops/sec** within a 5-second burst.
+  - MongoDB Atlas Free Tier (M0) enforces a hard limit of **100 ops/sec** and **50 socket connections**.
+- **Operational Risk:** During a campus-wide exam rollout, Atlas M0 will suffer connection pool starvation, queued queries, dropped submissions, and 504 Gateway Timeouts.
+- **Action Required:** Upgrade the database cluster to **MongoDB Atlas M10+** (1,500 connections, dedicated vCPU, 1,500+ ops/sec) before holding live exams.
 
-### 3.2 In-Memory State Durability Across Distributed Instances
+### 4.2 In-Memory State Durability Across Distributed Instances
 - **Current State:** Both `attendanceBuffer.ts` (active OTPs and queued records) and `concurrencyLimiter.ts` (RCE slots) store state in Node.js process memory.
-- **Limitation:** If the backend is scaled horizontally to multiple container replicas (e.g. 3 Render instances), an OTP set on Node A is not automatically visible to Node B.
+- **Limitation:** If the backend is scaled horizontally across multiple container replicas (e.g. 3 Render instances), an OTP cached on Instance A is not visible to Instance B.
 - **Recommendation:** Introduce a shared Redis cache (Upstash or Redis Cloud) to synchronize active OTPs and distributed rate limiting across horizontal instances.
 
-### 3.3 Email SMTP Deliverability & Verification
-- **Current State:** Password reset emails and onboarding reminders rely on Nodemailer with environment-provided SMTP credentials.
-- **Operational Risk:** Free-tier SMTP accounts (Gmail App Passwords or shared relays) have daily sending limits (e.g. 500 emails/day) and may trigger spam filters for institutional student domains (`@bitsathy.ac.in`).
-- **Recommendation:** Configure a verified transactional email provider (SendGrid, Postmark, or AWS SES) with SPF, DKIM, and DMARC DNS records.
+---
+
+## 5. Items Marked as UNVERIFIED
+
+In strict adherence to audit integrity and pair-programming rules:
+
+1. **Automated Axe-Core DOM Runtime Scans: UNVERIFIED**  
+   While keyboard navigation, focus-visible outlines (`*:focus-visible`), and ARIA labels were verified in code walkthroughs, automated headless browser DOM execution (via Puppeteer/Playwright with axe-core) was not run across all application pages due to lack of a headless browser runtime in the current environment.
+
+2. **Physical Network Concurrency Under 300 Real Browsers: UNVERIFIED**  
+   While database operations and burst throughput were mathematically modeled and verified via `loadTestSimulation.ts`, a physical load test transmitting 300 simultaneous WebSocket/HTTP streams over real-world campus Wi-Fi infrastructure was not executed per safety rules ("Never run intrusive or load tests against production or third-party services").
+
+3. **External Piston / Judge0 Upstream Rate Limits: UNVERIFIED**  
+   Under a college-wide coding contest with >100 simultaneous code runs, the public Emkc Piston API or RapidAPI Judge0 endpoint may enforce upstream IP rate limits or experience queued execution delays. A self-hosted Piston or Judge0 instance on a dedicated staging VPC is recommended for large contests.
