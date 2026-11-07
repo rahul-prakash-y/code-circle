@@ -18,6 +18,10 @@ export interface IAssessment extends Document {
   passingScorePercentage: number;
   questions: IAssessmentQuestion[];
   customPoints?: number;
+  serverCheckpointIntervalSeconds?: number;
+  submissionGraceWindowSeconds?: number;
+  deadline?: Date | null;
+  startTime?: Date | null;
   isPublished: boolean;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -102,6 +106,24 @@ const assessmentSchema = new Schema<IAssessment>(
       type: Number,
       default: 50,
       min: [0, 'Custom points cannot be negative'],
+    },
+    serverCheckpointIntervalSeconds: {
+      type: Number,
+      default: 0,
+      min: [0, 'Checkpoint interval cannot be negative'],
+    },
+    submissionGraceWindowSeconds: {
+      type: Number,
+      default: 120,
+      min: [0, 'Grace window cannot be negative'],
+    },
+    deadline: {
+      type: Date,
+      default: null,
+    },
+    startTime: {
+      type: Date,
+      default: null,
     },
     isPublished: {
       type: Boolean,

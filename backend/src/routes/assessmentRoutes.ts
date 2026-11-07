@@ -23,6 +23,60 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
     assessmentController.bulkUploadMCQAssessments as any
   );
 
+  // Admin In-Memory Submission Queue Management (Admin / Faculty only, Rate-limited, Audit-logged)
+  fastify.get(
+    '/admin/queue/status',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [isAdminOrFaculty],
+    },
+    assessmentController.getQueueStatus as any
+  );
+  fastify.post(
+    '/admin/queue/flush-now',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [isAdminOrFaculty],
+    },
+    assessmentController.flushQueueNow as any
+  );
+  fastify.post(
+    '/admin/queue/retry-failed',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [isAdminOrFaculty],
+    },
+    assessmentController.retryFailedQueueItems as any
+  );
+  fastify.get(
+    '/admin/queue/download-backup',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [isAdminOrFaculty],
+    },
+    assessmentController.downloadQueueBackup as any
+  );
+
   // Student assessment endpoints (gated against restriction & Anti-Cheat block)
   fastify.get('/', assessmentController.getAssessments as any);
   fastify.get('/my-submissions', assessmentController.getMySubmissions as any);
@@ -36,7 +90,7 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
     {
       config: {
         rateLimit: {
-          max: 5,
+          max: 30,
           timeWindow: '1 minute',
           errorResponseBuilder: (request: any, context: any) => ({
             statusCode: 429,
@@ -48,6 +102,32 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
       preHandler: [checkFeatureNotRestricted('assessments'), checkAssessmentNotBlocked],
     },
     assessmentController.submitAssessment as any
+  );
+  fastify.get(
+    '/:id/submission-status/:submissionId',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [checkFeatureNotRestricted('assessments')],
+    },
+    assessmentController.getSubmissionStatus as any
+  );
+  fastify.post(
+    '/:id/checkpoint',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [checkFeatureNotRestricted('assessments'), checkAssessmentNotBlocked],
+    },
+    assessmentController.saveCheckpoint as any
   );
   fastify.delete('/:id/my-submission', assessmentController.resetMyAssessmentSubmission as any);
   fastify.post(

@@ -96,6 +96,18 @@ In accordance with professional engineering ethics and audit standards: **No sof
 - **Limitation:** If the backend is scaled horizontally across multiple container replicas (e.g. 3 Render instances), an OTP cached on Instance A is not visible to Instance B.
 - **Recommendation:** Introduce a shared Redis cache (Upstash or Redis Cloud) to synchronize active OTPs and distributed rate limiting across horizontal instances.
 
+### 4.3 In-Memory Submission Queue State is Per-Node (Render Multi-Instance Isolation)
+- **Current Architecture:** To prevent MongoDB Atlas M0 free tier write exhaustion (hard limit: 100 ops/sec), `submissionQueueService.ts` buffers evaluated final exam submissions in local process heap memory and writes them to MongoDB via an automated batch flusher capped at 60 doc writes/sec (1-second interval).
+- **Multi-Node State Isolation:** Because the backend runs across 3 separate Render free-tier instances (Instance A, Instance B, Instance C) without shared memory or a centralized Redis message broker:
+  - Each Render instance maintains its own distinct in-memory queue (`pendingQueue`, `inFlightMap`, and `failedQueue`).
+  - Admin operations (such as viewing the `/assessments/admin/queue/status` dashboard, clicking "Flush now", or "Download backup") interact only with the specific Render instance that handles that incoming HTTP request.
+  - If an instance is abruptly rebooted, killed, or spun down by Render while submissions are queued in memory, those un-flushed items in that node's RAM are lost from the server side.
+- **Client & System Mitigations Implemented:**
+  1. **Client-Side Durability Guarantee:** The browser persists the full exam answers and UUID `submissionId` in IndexedDB (fallback `localStorage`) on every question change. The client **never clears local storage** until the server returns `status: 'saved'` with MongoDB durable persistence confirmation. If a node restarts or drops connection while an item is `pending`, the client polling loop or retry resubmits the exact same `submissionId`.
+  2. **Idempotent DB Upsert:** Submissions are indexed by a MongoDB unique compound key `{ user: 1, assessment: 1, submissionId: 1 }` and written via `$setOnInsert` bulk upsert. Retries from the client produce exactly one stored document with zero duplication.
+  3. **Process SIGTERM Graceful Drain:** `submissionQueueService.ts` listens for `SIGTERM` and `SIGINT` signals, executing `flushAllPending()` before allowing the Node.js process to terminate.
+  4. **Strict Operational Protocol:** Administrators must ensure `pendingCount === 0` across all backend instances before declaring an exam complete or executing any code deployments (see `docs/EXAM_DAY_CHECKLIST.md`).
+
 ---
 
 ## 5. Items Marked as UNVERIFIED

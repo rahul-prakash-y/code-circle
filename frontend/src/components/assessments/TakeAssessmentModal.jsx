@@ -26,6 +26,8 @@ import toast from 'react-hot-toast';
 import FullScreenEnforcementOverlay from './FullScreenEnforcementOverlay';
 import { isMobileScreenOrDevice } from '../../lib/deviceUtils';
 import useAutoSave from '../../hooks/useAutoSave';
+import { saveExamState, clearExamState } from '../../utils/examStorage';
+import api from '../../lib/axios';
 
 const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   const {
@@ -60,11 +62,12 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   // Timer ref to cancel interval safely
   const timerRef = useRef(null);
   const timeLeftRef = useRef(timeLeftSeconds);
+  const submissionIdRef = useRef(null);
   useEffect(() => {
     timeLeftRef.current = timeLeftSeconds;
   }, [timeLeftSeconds]);
 
-  // Resiliency: LocalStorage AutoSave hook (every 30 seconds)
+  // Resiliency: LocalStorage / IndexedDB AutoSave hook
   const autoSaveKey = assessmentId ? `cc_assessment_answers_${assessmentId}` : '';
   const { clearSavedData } = useAutoSave(
     autoSaveKey,
@@ -73,9 +76,15 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       intervalMs: 30000,
       enabled: isOpen && !currentResult && !loading,
       onRestore: useCallback((saved) => {
-        if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
-          setAnswers(saved);
-          toast.success('Restored unsubmitted test answers from local autosave!', { id: 'autosave-restore' });
+        if (saved && typeof saved === 'object') {
+          const restoredAnswers = saved.answers || saved;
+          if (Object.keys(restoredAnswers).length > 0) {
+            setAnswers(restoredAnswers);
+            if (saved.submissionId) {
+              submissionIdRef.current = saved.submissionId;
+            }
+            toast.success('Restored unsubmitted test answers from local storage!', { id: 'autosave-restore' });
+          }
         }
       }, []),
     }
@@ -113,6 +122,12 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       fetchAssessmentById(assessmentId).then((assessment) => {
         if (!isMounted) return;
         setLoading(false);
+        if (!submissionIdRef.current) {
+          submissionIdRef.current =
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `sub-${Date.now()}`;
+        }
         if (assessment) {
           const initialSeconds = (assessment.timeLimitMinutes || 30) * 60;
           setTimeLeftSeconds(initialSeconds);
@@ -126,6 +141,18 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isOpen, assessmentId, clearCurrentResult, fetchAssessmentById]);
+
+  // Server-side checkpointing: Disabled by default (serverCheckpointIntervalSeconds = 0)
+  useEffect(() => {
+    const checkpointInterval = currentAssessment?.serverCheckpointIntervalSeconds ?? 0;
+    if (!isOpen || currentResult || loading || checkpointInterval <= 0 || !assessmentId) return;
+
+    const intervalTimer = setInterval(() => {
+      api.post(`/assessments/${assessmentId}/checkpoint`, { answers }).catch(() => {});
+    }, checkpointInterval * 1000);
+
+    return () => clearInterval(intervalTimer);
+  }, [isOpen, currentResult, loading, currentAssessment?.serverCheckpointIntervalSeconds, assessmentId, answers]);
 
   const executeSubmit = useCallback(async (forcedByViolation = false) => {
     setShowConfirmModal(false);
@@ -154,10 +181,21 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
       };
     });
 
-    const res = await submitAssessment(assessmentId, formattedAnswers, timeSpent);
+    const clientSubId =
+      submissionIdRef.current ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `sub-${Date.now()}`);
+    submissionIdRef.current = clientSubId;
+
+    const res = await submitAssessment(assessmentId, formattedAnswers, timeSpent, clientSubId);
     setIsLocked(false);
-    if (res.success) {
-      clearSavedData();
+    if (res.success && res.status === 'saved') {
+      // Clear local IndexedDB/localStorage ONLY after server confirms durable storage
+      await clearSavedData();
+      if (autoSaveKey) {
+        await clearExamState(autoSaveKey);
+      }
       if (forcedByViolation) {
         toast.error('Assessment automatically submitted due to tab-switching violations.', { duration: 5000 });
       } else {
@@ -165,12 +203,17 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
           res.result?.pointsAwarded && res.result.pointsAwarded > 0
             ? ` (+${res.result.pointsAwarded} points awarded!)`
             : '';
-        toast.success(`Assessment completed successfully!${ptsMsg}`);
+        toast.success(`Assessment completed and durably saved!${ptsMsg}`);
       }
+    } else if (res.success && res.status === 'pending') {
+      toast('Submission queued in server memory. Answers remain safely preserved locally.', {
+        icon: '⏳',
+        duration: 4000,
+      });
     } else {
-      toast.error(res.error || 'Failed to submit assessment.');
+      toast.error(res.error || 'Failed to submit assessment. Your answers remain safely preserved locally.');
     }
-  }, [answers, assessmentId, currentAssessment, startTime, submitAssessment, clearSavedData]);
+  }, [answers, assessmentId, currentAssessment, startTime, submitAssessment, clearSavedData, autoSaveKey]);
 
   // Anti-cheat tab visibility and window blur listeners
   useEffect(() => {
@@ -276,16 +319,23 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
   };
 
   const handleSelectOption = (optIndex, optId, optText) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [currentQuestionIndex]: {
-        questionId: currentQ?._id,
-        questionIndex: currentQuestionIndex,
-        selectedOptionId: optId || `opt_${optIndex}`,
-        selectedOptionText: optText,
-        selectedOption: optIndex,
-      },
-    }));
+    setAnswers((prev) => {
+      const updated = {
+        ...prev,
+        [currentQuestionIndex]: {
+          questionId: currentQ?._id,
+          questionIndex: currentQuestionIndex,
+          selectedOptionId: optId || `opt_${optIndex}`,
+          selectedOptionText: optText,
+          selectedOption: optIndex,
+        },
+      };
+      // Persist in IndexedDB / localStorage on EVERY change
+      if (autoSaveKey) {
+        saveExamState(autoSaveKey, { answers: updated, submissionId: submissionIdRef.current });
+      }
+      return updated;
+    });
   };
 
   const handleNext = () => {

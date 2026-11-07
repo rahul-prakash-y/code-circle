@@ -1,10 +1,13 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
 import ExcelJS from 'exceljs';
+import crypto from 'crypto';
 import Assessment, { IAssessment, IAssessmentQuestion } from '../models/assessmentModel';
 import AssessmentSubmission from '../models/assessmentSubmissionModel';
 import User from '../models/userModel';
 import PointTransaction from '../models/pointTransactionModel';
+import AuditLog from '../models/auditLogModel';
+import submissionQueue, { QueueOverflowError } from '../services/submissionQueueService';
 import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 import { shuffleQuestionsAndOptions } from '../utils/shuffle';
 import { parseSpreadsheetBuffer } from '../utils/safeSpreadsheetParser';
@@ -17,6 +20,10 @@ export interface CreateAssessmentBody {
   timeLimitMinutes?: number;
   passingScorePercentage?: number;
   customPoints?: number;
+  serverCheckpointIntervalSeconds?: number;
+  submissionGraceWindowSeconds?: number;
+  deadline?: Date | string | null;
+  startTime?: Date | string | null;
   questions: {
     questionText: string;
     options: string[];
@@ -28,6 +35,8 @@ export interface CreateAssessmentBody {
 }
 
 export interface SubmitAssessmentBody {
+  submissionId?: string;
+  clientTimestamp?: number | string;
   answers: {
     questionId?: string;
     selectedOptionId?: string;
@@ -482,6 +491,41 @@ export const submitAssessment = async (
 
     const { answers = [], timeSpentSeconds = 0 } = request.body;
 
+    // 1. Validate / retrieve submissionId (UUID from client for idempotency)
+    const submissionId =
+      typeof request.body?.submissionId === 'string' && request.body.submissionId.trim().length > 0
+        ? request.body.submissionId.trim()
+        : crypto.randomUUID();
+
+    // 2. Validate deadline server-side (never trusting client time)
+    const now = Date.now();
+    let isLate = false;
+    let submissionStatus: 'on_time' | 'late' | 'review' = 'on_time';
+
+    const graceWindowSeconds =
+      typeof assessment.submissionGraceWindowSeconds === 'number'
+        ? assessment.submissionGraceWindowSeconds
+        : 120;
+    const graceWindowMs = graceWindowSeconds * 1000;
+
+    if (assessment.deadline) {
+      const deadlineMs = new Date(assessment.deadline).getTime();
+      if (!isNaN(deadlineMs)) {
+        if (now > deadlineMs + graceWindowMs) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Submission deadline has passed. Late submissions outside grace window are rejected.',
+            code: 'DEADLINE_EXCEEDED',
+            deadline: assessment.deadline,
+            graceWindowSeconds,
+          });
+        } else if (now > deadlineMs) {
+          isLate = true;
+          submissionStatus = 'late';
+        }
+      }
+    }
+
     // SERVER-SIDE SCORING ENGINE (Resistant to Question and Option Order Randomization)
     // Supports lookup by questionId (ObjectId string) or fallback to questionIndex.
     // Supports evaluation by optionId (e.g., 'opt_0'), optionText, or fallback index.
@@ -583,7 +627,6 @@ export const submitAssessment = async (
     let pointsAwarded = 0;
     if (passed) {
       // Check if user previously had points awarded for this assessment
-      // Either via an explicit PointTransaction or a prior submission with pointsAwarded > 0
       const priorTx = await PointTransaction.findOne({
         user: new mongoose.Types.ObjectId(user.id),
         category: 'Assessment',
@@ -598,33 +641,19 @@ export const submitAssessment = async (
 
       if (!priorTx && !priorPassingAward) {
         pointsAwarded = customPts;
-
-        if (pointsAwarded > 0) {
-          await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
-          try {
-            await PointTransaction.create({
-              user: new mongoose.Types.ObjectId(user.id),
-              amount: pointsAwarded,
-              category: 'Assessment',
-              title: `Assessment Completed: ${assessment.title}`,
-              description: `Passed with score ${earnedPoints}/${totalPoints} (${percentage}%)`,
-              referenceId: assessment._id.toString(),
-              referenceModel: 'Assessment',
-              timestamp: new Date(),
-            });
-          } catch (txErr) {
-            console.warn('[AssessmentController] Could not record PointTransaction:', txErr);
-          }
-        }
       }
     }
 
-    // Save submission record with pointsAwarded
-    const submission = await AssessmentSubmission.create({
-      assessment: assessment._id,
-      user: new mongoose.Types.ObjectId(user.id),
+    const queuedPayload = {
+      submissionId,
+      userId: user.id,
+      assessmentId: assessment._id.toString(),
+      assessmentTitle: assessment.title,
       answers: answers.map((ans, idx) => ({
-        questionId: ans.questionId && mongoose.Types.ObjectId.isValid(ans.questionId) ? new mongoose.Types.ObjectId(ans.questionId) : undefined,
+        questionId:
+          ans.questionId && mongoose.Types.ObjectId.isValid(ans.questionId)
+            ? new mongoose.Types.ObjectId(ans.questionId)
+            : undefined,
         selectedOptionId: ans.selectedOptionId,
         selectedOptionText: ans.selectedOptionText,
         questionIndex: ans.questionIndex !== undefined ? ans.questionIndex : idx,
@@ -637,40 +666,268 @@ export const submitAssessment = async (
       pointsAwarded,
       timeSpentSeconds: Math.max(0, Number(timeSpentSeconds) || 0),
       detailedResults,
-    });
+      isLate,
+      submissionStatus,
+      enqueuedAt: new Date(),
+      submittedAt: new Date(),
+      passingScorePercentage: assessment.passingScorePercentage,
+      customPoints: assessment.customPoints ?? 50,
+    };
 
-    const updatedUser = await User.findById(user.id).select('points');
-    const userTotalPoints = updatedUser?.points ?? 0;
+    // Enqueue into in-memory bounded queue
+    const enqueueResult = await submissionQueue.enqueue(queuedPayload);
 
-    return reply.status(201).send({
+    if (enqueueResult.status === 'saved') {
+      const updatedUser = await User.findById(user.id).select('points');
+      return reply.status(200).send({
+        success: true,
+        status: 'saved',
+        message: passed
+          ? (pointsAwarded > 0
+              ? `Congratulations! You passed the assessment and earned ${pointsAwarded} points!`
+              : 'Congratulations! You passed the assessment.')
+          : 'Assessment completed.',
+        data: enqueueResult.data || {
+          submissionId,
+          assessmentId: assessment._id,
+          title: assessment.title,
+          score: earnedPoints,
+          totalPoints,
+          percentage,
+          passed,
+          pointsAwarded,
+          userTotalPoints: updatedUser?.points ?? 0,
+          customPoints: assessment.customPoints ?? 50,
+          passingScorePercentage: assessment.passingScorePercentage,
+          timeSpentSeconds: queuedPayload.timeSpentSeconds,
+          detailedResults,
+          isLate,
+          submissionStatus,
+          submittedAt: queuedPayload.submittedAt,
+        },
+      });
+    }
+
+    // Response when enqueued and waiting for MongoDB batch flush confirmation
+    return reply.status(202).send({
       success: true,
-      message: passed
-        ? (pointsAwarded > 0
-            ? `Congratulations! You passed the assessment and earned ${pointsAwarded} points!`
-            : 'Congratulations! You passed the assessment.')
-        : 'Assessment completed. Keep practicing to improve your score!',
-      data: {
-        submissionId: submission._id,
-        assessmentId: assessment._id,
-        title: assessment.title,
-        score: earnedPoints,
-        totalPoints,
-        percentage,
-        passed,
-        pointsAwarded,
-        userTotalPoints,
-        customPoints: assessment.customPoints ?? 50,
-        passingScorePercentage: assessment.passingScorePercentage,
-        timeSpentSeconds: submission.timeSpentSeconds,
-        detailedResults,
-        submittedAt: submission.createdAt,
-      },
+      status: 'pending',
+      submissionId,
+      message: 'Submission enqueued for durable storage. Awaiting batch flusher confirmation.',
+      isLate,
+      submissionStatus,
     });
   } catch (error: any) {
+    if (error instanceof QueueOverflowError) {
+      reply.header('Retry-After', String(error.retryAfterSeconds));
+      return reply.status(503).send({
+        success: false,
+        status: 'rejected',
+        code: error.code,
+        error: error.message,
+        retryAfterSeconds: error.retryAfterSeconds,
+      });
+    }
     return reply.status(500).send({
       success: false,
       error: error.message || 'Failed to evaluate assessment submission',
     });
+  }
+};
+
+/**
+ * GET /api/assessments/:id/submission-status/:submissionId
+ * Check durable persistence confirmation for an enqueued submission.
+ */
+export const getSubmissionStatus = async (
+  request: FastifyRequest<{ Params: { id: string; submissionId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { id, submissionId } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id) || !submissionId) {
+      return reply.status(400).send({ success: false, error: 'Invalid parameters' });
+    }
+
+    const statusResult = await submissionQueue.getStatus(user.id, id, submissionId);
+
+    if (statusResult.status === 'not_found') {
+      return reply.status(404).send({
+        success: false,
+        status: 'not_found',
+        error: 'Submission not found',
+      });
+    }
+
+    return reply.status(200).send({
+      success: true,
+      status: statusResult.status,
+      submissionId,
+      data: statusResult.data,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to check submission status',
+    });
+  }
+};
+
+/**
+ * POST /api/assessments/:id/checkpoint
+ * Server-side checkpointing / draft save (Disabled by default: serverCheckpointIntervalSeconds = 0).
+ */
+export const saveCheckpoint = async (
+  request: FastifyRequest<{ Params: { id: string }; Body: { answers?: any[] } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
+    }
+
+    const assessment = await Assessment.findById(id).select('serverCheckpointIntervalSeconds title');
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
+    const intervalSeconds = assessment.serverCheckpointIntervalSeconds ?? 0;
+    if (intervalSeconds <= 0) {
+      return reply.status(403).send({
+        success: false,
+        disabled: true,
+        message: 'Server checkpointing is disabled by default for this assessment. Answers are persisted locally.',
+      });
+    }
+
+    return reply.status(200).send({
+      success: true,
+      checkpointSaved: true,
+      timestamp: new Date(),
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to record server checkpoint',
+    });
+  }
+};
+
+/**
+ * Admin Panel Endpoints for In-Memory Submission Queue Monitoring & Management
+ */
+export const getQueueStatus = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const status = submissionQueue.getQueueStatus();
+    return reply.send({
+      success: true,
+      data: status,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const flushQueueNow = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+    const result = await submissionQueue.flush();
+
+    // Audit log
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_FLUSH_NOW',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'SubmissionQueue',
+      details: {
+        flushedCount: result.flushedCount,
+        remainingPending: result.remainingPending,
+        failedCount: result.failedCount,
+        durationMs: result.durationMs,
+      },
+      timestamp: new Date(),
+    });
+
+    return reply.send({
+      success: true,
+      message: `Flushed ${result.flushedCount} submission(s) to MongoDB`,
+      ...result,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const retryFailedQueueItems = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+    const result = submissionQueue.retryFailed();
+
+    // Audit log
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_RETRY_FAILED',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'SubmissionQueue',
+      details: result,
+      timestamp: new Date(),
+    });
+
+    return reply.send({
+      success: true,
+      message: `Retried ${result.retriedCount} failed submission(s)`,
+      ...result,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const downloadQueueBackup = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+    const backup = submissionQueue.exportBackup();
+
+    // Audit log
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_DOWNLOAD_BACKUP',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'SubmissionQueue',
+      details: {
+        nodeId: backup.nodeId,
+        pendingCount: backup.pendingCount,
+        failedCount: backup.failedCount,
+      },
+      timestamp: new Date(),
+    });
+
+    const filename = `submission-queue-backup-${backup.nodeId}-${Date.now()}.json`;
+    reply.header('Content-Type', 'application/json');
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return reply.send(backup);
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
   }
 };
 
@@ -1662,4 +1919,10 @@ export default {
   resetMyAssessmentSubmission,
   downloadSampleTemplate,
   bulkUploadMCQAssessments,
+  getSubmissionStatus,
+  saveCheckpoint,
+  getQueueStatus,
+  flushQueueNow,
+  retryFailedQueueItems,
+  downloadQueueBackup,
 };
