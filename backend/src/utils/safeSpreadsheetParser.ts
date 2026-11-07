@@ -80,7 +80,7 @@ export function parseCsvBuffer(buffer: Buffer): ParsedSpreadsheetRow[] {
 export async function parseXlsxBuffer(buffer: Buffer): Promise<ParsedSpreadsheetRow[]> {
   const workbook = new ExcelJS.Workbook();
   try {
-    await workbook.xlsx.load(buffer);
+    await workbook.xlsx.load(buffer as any);
   } catch (err: any) {
     throw new Error('Malformed or unreadable Excel (.xlsx) file. Please upload a valid workbook.');
   }
