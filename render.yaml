@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: code-circle-backend
+    env: node
+    plan: free
+    buildCommand: npm install --prefix backend && npm run build --prefix backend
+    startCommand: npm run start --prefix backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGO_URI
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: ALLOW_VERCEL_PREVIEWS
+        value: "true"
+      - key: AUTH_RATE_LIMIT_MAX
+        value: "300"
+      - key: UNAUTH_RATE_LIMIT_MAX
+        value: "600"
+      - key: RCE_PROVIDER
+        value: "judge0"
+      - key: SUBMISSION_FLUSH_CAP
+        value: "60"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
