@@ -14,6 +14,7 @@ export interface SetEventOTPBody {
   eventId: string;
   otp: string;
   dayNumber?: number;
+  ttlMinutes?: number;
 }
 
 /**
@@ -127,7 +128,7 @@ export const setEventOTPHandler = async (
   request: FastifyRequest<{ Body: SetEventOTPBody }>,
   reply: FastifyReply
 ) => {
-  const { eventId, otp, dayNumber = 1 } = request.body || {};
+  const { eventId, otp, dayNumber = 1, ttlMinutes = 30 } = request.body || {};
 
   if (!eventId || !otp) {
     return reply.status(400).send({
@@ -144,13 +145,15 @@ export const setEventOTPHandler = async (
     });
   }
 
-  attendanceBuffer.setEventOTP(eventId, otp, parsedDay);
+  const parsedTtl = Math.max(1, Number(ttlMinutes) || 30);
+  attendanceBuffer.setEventOTP(eventId, otp, parsedDay, parsedTtl);
 
   return reply.status(200).send({
     success: true,
-    message: `Active OTP cached for event ${eventId} (Day ${parsedDay})`,
+    message: `Active OTP cached for event ${eventId} (Day ${parsedDay}, TTL: ${parsedTtl}m)`,
     eventId,
     dayNumber: parsedDay,
+    ttlMinutes: parsedTtl,
   });
 };
 

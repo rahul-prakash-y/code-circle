@@ -9,6 +9,16 @@ export interface AttendanceEntry {
   timestamp: Date;
 }
 
+export interface EventOtpRecord {
+  otp: string;
+  expiresAt: number;
+}
+
+export interface FailedAttemptRecord {
+  attempts: number;
+  lockedUntil: number;
+}
+
 export interface VerifyAndQueueResult {
   success: boolean;
   message?: string;
@@ -25,9 +35,11 @@ export interface FlushResult {
 export class AttendanceBuffer {
   // In-memory key-value stores for sub-millisecond lookups
   // Key format for activeOTPs: `${eventId}:day:${dayNumber}` (with fallback `${eventId}`)
-  public activeOTPs: Map<string, string> = new Map();
+  public activeOTPs: Map<string, EventOtpRecord> = new Map();
   // Key format for markedSet: `${userId}:${eventId}:day:${dayNumber}`
   public markedSet: Set<string> = new Set();
+  // Key format for failedAttempts: `${userId}:${eventId}`
+  public failedAttempts: Map<string, FailedAttemptRecord> = new Map();
   public writeQueue: AttendanceEntry[] = [];
   public isFlushing: boolean = false;
   private flushInterval: NodeJS.Timeout;
@@ -61,31 +73,64 @@ export class AttendanceBuffer {
   }
 
   /**
-   * Saves the active OTP for an event and specific day to in-memory cache
+   * Helper to construct attempt lock key per user and event
    */
-  public setEventOTP(eventId: string, otp: string, dayNumber: number = 1): void {
+  private makeAttemptKey(userId: string, eventId: string): string {
+    return `${String(userId).trim()}:${String(eventId).trim()}`;
+  }
+
+  /**
+   * Saves the active OTP for an event and specific day to in-memory cache with expiry TTL
+   * @param eventId The event identifier
+   * @param otp The active OTP string
+   * @param dayNumber Event day number (default: 1)
+   * @param ttlMinutes Expiry time-to-live in minutes (default: 30 minutes)
+   */
+  public setEventOTP(
+    eventId: string,
+    otp: string,
+    dayNumber: number = 1,
+    ttlMinutes: number = 30
+  ): void {
     if (!eventId || !otp) return;
     const cleanEventId = String(eventId).trim();
     const cleanOtp = String(otp).trim();
     const parsedDay = Math.max(1, Number(dayNumber) || 1);
+    const ttlMs = Math.max(1, Number(ttlMinutes) || 30) * 60 * 1000;
+    const expiresAt = Date.now() + ttlMs;
+
+    const record: EventOtpRecord = { otp: cleanOtp, expiresAt };
 
     // Store day-specific key as well as default event key for backward compatibility
-    this.activeOTPs.set(this.makeOtpKey(cleanEventId, parsedDay), cleanOtp);
+    this.activeOTPs.set(this.makeOtpKey(cleanEventId, parsedDay), record);
     if (parsedDay === 1) {
-      this.activeOTPs.set(cleanEventId, cleanOtp);
+      this.activeOTPs.set(cleanEventId, record);
     }
   }
 
   /**
-   * Retrieves the active OTP for an event day from memory
+   * Retrieves the active OTP for an event day from memory, verifying expiry
    */
   public getEventOTP(eventId: string, dayNumber: number = 1): string | undefined {
     const cleanEventId = String(eventId).trim();
     const parsedDay = Math.max(1, Number(dayNumber) || 1);
-    return (
-      this.activeOTPs.get(this.makeOtpKey(cleanEventId, parsedDay)) ||
-      this.activeOTPs.get(cleanEventId)
-    );
+    const dayKey = this.makeOtpKey(cleanEventId, parsedDay);
+    
+    let record = this.activeOTPs.get(dayKey);
+    if (!record) {
+      record = this.activeOTPs.get(cleanEventId);
+    }
+
+    if (!record) return undefined;
+
+    // Check TTL expiry
+    if (record.expiresAt && Date.now() > record.expiresAt) {
+      this.activeOTPs.delete(dayKey);
+      this.activeOTPs.delete(cleanEventId);
+      return undefined;
+    }
+
+    return record.otp;
   }
 
   /**
@@ -101,6 +146,17 @@ export class AttendanceBuffer {
         this.activeOTPs.delete(this.makeOtpKey(cleanEventId, d));
       }
     }
+  }
+
+  /**
+   * Resets in-memory caches and queues (useful for isolated unit testing)
+   */
+  public resetBuffer(): void {
+    this.activeOTPs.clear();
+    this.markedSet.clear();
+    this.failedAttempts.clear();
+    this.writeQueue = [];
+    this.isFlushing = false;
   }
 
   /**
@@ -127,17 +183,40 @@ export class AttendanceBuffer {
     const cleanEventId = String(eventId).trim();
     const cleanOtp = String(otp).trim();
     const parsedDay = Math.max(1, Number(dayNumber) || 1);
+    const attemptKey = this.makeAttemptKey(cleanUserId, cleanEventId);
 
-    // 1. Instant O(1) in-memory OTP validation for the specific event day
-    const activeOtp = this.getEventOTP(cleanEventId, parsedDay);
-    if (!activeOtp || activeOtp !== cleanOtp) {
+    // 1. Check if user is currently locked out from OTP attempts for this event
+    const attemptRecord = this.failedAttempts.get(attemptKey);
+    if (attemptRecord && attemptRecord.lockedUntil > Date.now()) {
+      const remainingSec = Math.ceil((attemptRecord.lockedUntil - Date.now()) / 1000);
       return {
         success: false,
-        error: `Invalid or expired OTP for Day ${parsedDay} of this event`,
+        error: `Too many invalid OTP attempts for this event. Account locked for ${remainingSec} seconds.`,
       };
     }
 
-    // 2. Instant O(1) duplicate submission check for that specific day
+    // 2. Instant O(1) in-memory OTP validation for the specific event day
+    const activeOtp = this.getEventOTP(cleanEventId, parsedDay);
+    if (!activeOtp || activeOtp !== cleanOtp) {
+      const currentAttempts = (attemptRecord?.attempts || 0) + 1;
+      const isLocked = currentAttempts >= 5;
+      const lockedUntil = isLocked ? Date.now() + 15 * 60 * 1000 : 0;
+      this.failedAttempts.set(attemptKey, { attempts: currentAttempts, lockedUntil });
+
+      if (isLocked) {
+        return {
+          success: false,
+          error: 'Maximum OTP verification attempts exceeded (5). Account locked for this event for 15 minutes.',
+        };
+      }
+
+      return {
+        success: false,
+        error: `Invalid or expired OTP for Day ${parsedDay} of this event. Attempts remaining: ${5 - currentAttempts}`,
+      };
+    }
+
+    // 3. Instant O(1) duplicate submission check for that specific day
     const markKey = this.makeMarkedKey(cleanUserId, cleanEventId, parsedDay);
     if (this.markedSet.has(markKey)) {
       return {
@@ -146,10 +225,11 @@ export class AttendanceBuffer {
       };
     }
 
-    // 3. Mark in memory to block concurrent duplicates for this day immediately
+    // 4. Successful verification: reset failed attempt counter and mark duplicate guard
+    this.failedAttempts.delete(attemptKey);
     this.markedSet.add(markKey);
 
-    // 4. Push to batched write queue
+    // 5. Push to batched write queue
     this.writeQueue.push({
       userId: cleanUserId,
       eventId: cleanEventId,
