@@ -2,8 +2,8 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import User, { IUser } from '../models/userModel';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { getJwtSecret } from '../middleware/authMiddleware';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'stellar-minimalist-secret-key-2026';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 export const sanitizeUser = (userDoc: any) => {
@@ -70,7 +70,7 @@ export const register = async (request: FastifyRequest, reply: FastifyReply) => 
         role: user.role,
         sessionId,
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -138,7 +138,7 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
         sessionId,
         requirePasswordChange,
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 

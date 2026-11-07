@@ -3,7 +3,16 @@ import jwt from 'jsonwebtoken';
 import User from '../models/userModel';
 import { UserRole, UserPayload } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'stellar-minimalist-secret-key-2026';
+export const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[FATAL] JWT_SECRET must be explicitly defined in production.');
+    }
+    return 'stellar-minimalist-secret-key-2026';
+  }
+  return secret;
+};
 
 export const verifyToken = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
@@ -13,7 +22,7 @@ export const verifyToken = async (request: FastifyRequest, reply: FastifyReply) 
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
 
     const user = await User.findById(decoded.id);
     if (!user) {
@@ -58,7 +67,7 @@ export const optionalToken = async (request: FastifyRequest, _reply: FastifyRepl
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, getJwtSecret()) as any;
 
     const user = await User.findById(decoded.id);
     if (!user || user.isBlocked) {
