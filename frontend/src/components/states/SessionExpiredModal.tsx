@@ -45,6 +45,7 @@ export const SessionExpiredModal: React.FC = () => {
         toast.success('Session restored! You can continue without losing your work.');
         setIsOpen(false);
         setPassword('');
+        window.location.href = '/';
         // Dispatch session restored event so in-flight requests can retry
         window.dispatchEvent(new CustomEvent('auth:session-restored'));
       } else {
