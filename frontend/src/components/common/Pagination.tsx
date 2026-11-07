@@ -5,6 +5,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
+import { HeroUISelect } from '../ui/HeroUISelect';
 
 export interface PaginationProps {
   page?: number;
@@ -143,20 +144,20 @@ export const Pagination: React.FC<PaginationProps> = ({
 
         {onLimitChange && actualLimit && (
           <div className="flex items-center gap-1.5 ml-2">
-            <span className="text-[12px]">Per page:</span>
-            <select
-              aria-label="Records per page"
-              value={actualLimit}
-              disabled={disabled}
-              onChange={(e) => onLimitChange(Number(e.target.value))}
-              className="bg-surface-secondary border border-separator rounded-lg px-2 py-1 text-[12px] font-medium text-label-primary focus:outline-none focus:border-accent cursor-pointer transition-colors"
-            >
-              {actualLimitOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+            <span className="text-[12px] text-label-secondary whitespace-nowrap">Per page:</span>
+            <div className="w-[84px]">
+              <HeroUISelect
+                size="sm"
+                value={String(actualLimit)}
+                disabled={disabled}
+                onChange={(val) => onLimitChange(Number(val))}
+                options={actualLimitOptions.map((opt) => ({
+                  value: String(opt),
+                  label: String(opt),
+                }))}
+                className="w-full"
+              />
+            </div>
           </div>
         )}
       </div>
