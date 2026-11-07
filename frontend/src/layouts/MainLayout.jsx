@@ -175,10 +175,17 @@ export const MainLayout = ({ children }) => {
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-                    style={{ background: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-subtle)' }}
+                    className="relative w-8.5 h-8.5 rounded-[11px] flex items-center justify-center shrink-0 overflow-hidden select-none
+                      bg-white border border-black/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.08),_0_2px_8px_rgba(0,0,0,0.04)]
+                      dark:bg-gradient-to-b dark:from-[#1A222D] dark:to-[#0F141C] dark:border-cyan-500/30 dark:shadow-[0_0_14px_rgba(65,195,185,0.22),_inset_0_1px_0_rgba(255,255,255,0.12)]"
                   >
-                    <span className="text-white font-bold text-[13px]">CC</span>
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(65,195,185,0.2)_0%,_transparent_75%)] opacity-0 dark:opacity-100 pointer-events-none" />
+                    <img
+                      src="/codecirclelogo.png"
+                      alt="Code Circle Logo"
+                      className="w-full h-full object-contain p-0.5 relative z-10 select-none pointer-events-none"
+                      loading="eager"
+                    />
                   </div>
                   <span
                     className="text-[15px] font-semibold tracking-tight truncate"

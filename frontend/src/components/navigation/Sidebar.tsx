@@ -50,19 +50,27 @@ interface NavItem {
   match: (loc: { pathname: string; search: string }) => boolean;
 }
 
-// Apple SF-style monogram mark
+// Apple SF-style monogram mark with dynamic theme-adapted logo badge
 const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
-  <Link to="/dashboard" className="flex items-center gap-2.5 min-w-0 group outline-none">
+  <Link to="/dashboard" className="flex items-center gap-2.5 min-w-0 group outline-none select-none">
     <motion.div
-      className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 select-none"
-      style={{
-        background: 'linear-gradient(145deg, var(--accent) 0%, var(--accent-hover) 100%)',
-        boxShadow: '0 2px 8px var(--accent-subtle), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
-      }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+      className="relative w-8.5 h-8.5 rounded-[11px] flex items-center justify-center shrink-0 select-none overflow-hidden transition-all duration-300
+        bg-white border border-black/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.08),_0_2px_8px_rgba(0,0,0,0.04)]
+        dark:bg-gradient-to-b dark:from-[#1A222D] dark:to-[#0F141C] dark:border-cyan-500/30 dark:shadow-[0_0_14px_rgba(65,195,185,0.22),_inset_0_1px_0_rgba(255,255,255,0.12)]"
     >
-      <span className="text-white font-bold text-[12.5px] tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>
-        CC
-      </span>
+      {/* Dynamic ambient cyan backlight for dark theme */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(65,195,185,0.2)_0%,_transparent_75%)] opacity-0 dark:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+      {/* Code Circle Official Logo */}
+      <img
+        src="/codecirclelogo.png"
+        alt="Code Circle Logo"
+        className="w-full h-full object-contain p-0.5 relative z-10 transition-transform duration-200 group-hover:scale-105 select-none pointer-events-none"
+        loading="eager"
+      />
     </motion.div>
     <AnimatePresence initial={false}>
       {!collapsed && (
@@ -74,7 +82,7 @@ const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
           className="overflow-hidden whitespace-nowrap"
         >
           <span
-            className="text-[15px] font-bold tracking-tight"
+            className="text-[15px] font-bold tracking-tight block"
             style={{ color: 'var(--label-primary)', letterSpacing: '-0.025em' }}
           >
             Code Circle
@@ -327,7 +335,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
         <div className="flex flex-col overflow-hidden">
           {/* Brand */}
           <div
-            className="h-[60px] flex items-center px-4"
+            className={`h-[60px] flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}
             style={{ borderBottom: '1px solid var(--separator)' }}
           >
             <AppMark collapsed={isCollapsed} />
