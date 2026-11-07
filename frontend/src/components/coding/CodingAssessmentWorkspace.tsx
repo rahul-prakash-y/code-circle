@@ -91,6 +91,7 @@ export interface SubmissionResponseData {
   status: 'passed' | 'failed' | 'compilation_error' | 'runtime_error' | 'timeout';
   levelCompleted?: boolean;
   pointsAwarded?: number;
+  attemptNumber?: number;
   customPoints?: number;
   unlockedNextLevel?: boolean;
   nextLevelId?: string | null;
@@ -1114,7 +1115,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
 
       {/* ── Main Workspace Body (Desktop >= 1024px) ────────────────── */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden">
-        <PanelGroup direction="horizontal">
+        <PanelGroup orientation="horizontal">
           {/* ════════ LEFT PANEL: Problem, Constraints & Test Cases ════════ */}
           <Panel defaultSize={42} minSize={25}>
             <div className="h-full flex flex-col bg-neutral-950/60 border-r border-white/[0.08] backdrop-blur-md">
@@ -1270,7 +1271,7 @@ export const CodingAssessmentWorkspace: React.FC = () => {
 
           {/* ════════ RIGHT PANEL: Monaco Editor & OLED Terminal ════════ */}
           <Panel defaultSize={58} minSize={30}>
-            <PanelGroup direction="vertical">
+            <PanelGroup orientation="vertical">
               {/* Monaco Code Editor Sub-Panel */}
               <Panel defaultSize={68} minSize={30}>
                 <div className="h-full flex flex-col bg-[#050505] relative">

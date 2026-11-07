@@ -52,7 +52,7 @@ async function runTests() {
     // Test 1: setEventOTP & getEventOTP
     buffer.setEventOTP(testEventId, testOtp);
     assert(buffer.getEventOTP(testEventId) === testOtp, 'setEventOTP saves active OTP in memory');
-    assert(buffer.activeOTPs.get(testEventId) === testOtp, 'activeOTPs map holds correct entry');
+    assert(buffer.activeOTPs.get(testEventId)?.otp === testOtp, 'activeOTPs map holds correct entry');
 
     // Test 2: Invalid OTP rejection
     const invalidOtpRes = buffer.verifyAndQueue(testUserId, testEventId, '999999');

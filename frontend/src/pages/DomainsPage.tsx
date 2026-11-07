@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { HeroInput } from '../components/ui/HeroUIComponents';
+import { DelayedSkeleton, CardGridSkeleton, EmptyState, NoSearchResults } from '../components/states';
 
 export const DomainsPage: React.FC = () => {
   const { domainId } = useParams<{ domainId?: string }>();
@@ -172,8 +173,8 @@ export const DomainsPage: React.FC = () => {
     }
   };
 
-  const handleRegisterCourse = async (e: React.MouseEvent, domain: IDomain) => {
-    e.stopPropagation();
+  const handleRegisterCourse = async (e: any, domain: IDomain) => {
+    e?.stopPropagation?.();
     setRegisteringDomainId(domain._id);
     try {
       await registerForDomain(domain._id);
@@ -317,7 +318,7 @@ export const DomainsPage: React.FC = () => {
                     size="sm"
                     color="primary"
                     variant="solid"
-                    onPress={(e) => handleRegisterCourse(e, activeCourse)}
+                    onPress={(e: any) => handleRegisterCourse(e, activeCourse)}
                     isDisabled={registeringDomainId === activeCourse._id}
                     className="rounded-full text-xs font-bold shadow-md"
                     startContent={
@@ -541,7 +542,7 @@ export const DomainsPage: React.FC = () => {
               size="sm"
               color="primary"
               variant="solid"
-              onPress={(e) => handleRegisterCourse(e, activeCourse)}
+              onPress={(e: any) => handleRegisterCourse(e, activeCourse)}
               isDisabled={registeringDomainId === activeCourse._id}
               className="shrink-0 rounded-full text-xs font-bold shadow-md shadow-accent/20"
               startContent={
@@ -941,8 +942,40 @@ export const DomainsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid of Course Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-6 sm:gap-8">
+      {/* Grid of Course Cards or State Fallback */}
+      {loading ? (
+        <DelayedSkeleton>
+          <CardGridSkeleton count={6} />
+        </DelayedSkeleton>
+      ) : filteredDomains.length === 0 ? (
+        searchQuery ? (
+          <NoSearchResults
+            query={searchQuery}
+            onClearFilters={() => {
+              setSearchQuery('');
+              setFilterMode('all');
+            }}
+          />
+        ) : (
+          <EmptyState
+            reason={filterMode !== 'all' ? 'filtered' : 'first-use'}
+            title={filterMode !== 'all' ? 'No courses match this filter' : 'No courses available yet'}
+            description={
+              filterMode !== 'all'
+                ? 'Try switching to "All Courses" or clearing your search.'
+                : 'Curated courses with video quests and certifications will appear here.'
+            }
+            primaryAction={
+              filterMode !== 'all'
+                ? { label: 'Show all courses', onClick: () => setFilterMode('all') }
+                : isAdmin
+                ? { label: 'Create Course', onClick: () => setIsDomainModalOpen(true) }
+                : undefined
+            }
+          />
+        )
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4 gap-6 sm:gap-8">
         {filteredDomains.map((domain, index) => {
           const totalLvl = domain.totalLevels || 0;
           const completedLvl = domain.completedLevelsCount || 0;
@@ -992,7 +1025,7 @@ export const DomainsPage: React.FC = () => {
                           size="sm"
                           radius="full"
                           color="warning"
-                          onClick={(e) => {
+                          onClick={(e: any) => {
                             e.stopPropagation();
                             toggleDomainLock(domain._id);
                           }}
@@ -1013,7 +1046,7 @@ export const DomainsPage: React.FC = () => {
                           size="sm"
                           radius="full"
                           color="success"
-                          onClick={(e) => {
+                          onClick={(e: any) => {
                             e.stopPropagation();
                             toggleDomainLock(domain._id);
                           }}
@@ -1034,13 +1067,13 @@ export const DomainsPage: React.FC = () => {
 
                     {/* Admin inline action pills */}
                     {isAdmin && (
-                      <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md p-1 rounded-full border border-white/10" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md p-1 rounded-full border border-white/10" onClick={(e: any) => e.stopPropagation()}>
                         <Button
                           isIconOnly
                           size="sm"
                           radius="full"
                           variant="light"
-                          onClick={(e) => {
+                          onClick={(e: any) => {
                             e.stopPropagation();
                             setSelectedDomainForStudents(domain);
                             setIsStudentsModalOpen(true);
@@ -1055,7 +1088,7 @@ export const DomainsPage: React.FC = () => {
                           size="sm"
                           radius="full"
                           variant="light"
-                          onClick={(e) => handleEditDomain(e, domain)}
+                          onClick={(e: any) => handleEditDomain(e, domain)}
                           className="w-7 h-7 min-w-[28px] min-h-[28px] text-white/80 hover:text-white hover:bg-white/20"
                           title="Edit Course"
                         >
@@ -1067,7 +1100,7 @@ export const DomainsPage: React.FC = () => {
                           radius="full"
                           variant="light"
                           color="danger"
-                          onClick={(e) => handleDeleteDomain(e, domain)}
+                          onClick={(e: any) => handleDeleteDomain(e, domain)}
                           className="w-7 h-7 min-w-[28px] min-h-[28px] text-rose-300 hover:text-rose-100 hover:bg-rose-500/30"
                           title="Delete Course"
                         >
@@ -1137,7 +1170,7 @@ export const DomainsPage: React.FC = () => {
                         color="primary"
                         isLoading={registeringDomainId === domain._id}
                         isDisabled={registeringDomainId === domain._id}
-                        onClick={(e) => handleRegisterCourse(e, domain)}
+                        onClick={(e: any) => handleRegisterCourse(e, domain)}
                         startContent={registeringDomainId === domain._id ? undefined : <Check className="w-3.5 h-3.5" />}
                         className="font-semibold px-3.5 min-h-[34px] shadow"
                       >
@@ -1158,15 +1191,6 @@ export const DomainsPage: React.FC = () => {
           );
         })}
       </div>
-
-      {filteredDomains.length === 0 && !loading && (
-        <div className="text-center py-16 p-8 rounded-3xl bg-surface border border-separator/60">
-          <Compass className="w-12 h-12 mx-auto stroke-1 text-label-tertiary mb-3" />
-          <h3 className="text-base font-bold text-label-primary">No courses found</h3>
-          <p className="text-xs text-label-secondary mt-1">
-            Try adjusting your search query or create a new course using the button above.
-          </p>
-        </div>
       )}
 
       {/* Admin Domain Editor Modal */}

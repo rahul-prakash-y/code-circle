@@ -72,7 +72,7 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
           toast.success(`Successfully extracted ${res.data.length} coding challenge(s)!`);
         }
       } else {
-        const errorMsg = res.message || 'No valid coding problems found in the uploaded file.';
+        const errorMsg = (res as any).message || res.error || 'No valid coding problems found in the uploaded file.';
         setParseErrors([errorMsg]);
         toast.error(errorMsg);
       }

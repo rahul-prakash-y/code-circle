@@ -23,6 +23,8 @@ export interface HeroInputProps extends Omit<React.InputHTMLAttributes<HTMLInput
   description?: string;
   isRequired?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  radius?: 'none' | 'sm' | 'md' | 'lg' | 'full' | string;
+  onValueChange?: (val: string) => void;
 }
 
 export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
@@ -39,6 +41,8 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
       description,
       isRequired,
       size = 'md',
+      radius,
+      onValueChange,
       className = '',
       placeholder,
       value,
@@ -61,6 +65,7 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (value === undefined) setInternalVal(e.target.value);
       onChange?.(e);
+      onValueChange?.(e.target.value);
     };
 
     const handleClear = () => {
@@ -73,6 +78,7 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
         } as React.ChangeEvent<HTMLInputElement>;
         onChange(syntheticEvent);
       }
+      onValueChange?.('');
     };
 
     const isFloating = isFocused || hasValue || Boolean(placeholder && isFocused);
@@ -211,6 +217,9 @@ export interface HeroTextareaProps extends React.TextareaHTMLAttributes<HTMLText
   error?: string;
   description?: string;
   isRequired?: boolean;
+  minRows?: number;
+  maxRows?: number;
+  onValueChange?: (val: string) => void;
 }
 
 export const HeroTextarea = forwardRef<HTMLTextAreaElement, HeroTextareaProps>(
@@ -230,6 +239,9 @@ export const HeroTextarea = forwardRef<HTMLTextAreaElement, HeroTextareaProps>(
       onFocus,
       onBlur,
       rows = 4,
+      minRows,
+      maxRows,
+      onValueChange,
       disabled,
       ...rest
     },
@@ -241,9 +253,12 @@ export const HeroTextarea = forwardRef<HTMLTextAreaElement, HeroTextareaProps>(
     const hasValue = Boolean(currentVal !== '' && currentVal !== undefined && currentVal !== null);
     const textareaId = useId();
 
+    const effectiveRows = minRows || rows;
+
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       if (value === undefined) setInternalVal(e.target.value);
       onChange?.(e);
+      onValueChange?.(e.target.value);
     };
 
     const isFloating = isFocused || hasValue || Boolean(placeholder && isFocused);
@@ -963,6 +978,7 @@ export interface HeroDatePickerProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'flat' | 'faded' | 'bordered';
   isClearable?: boolean;
+  isRequired?: boolean;
   minDate?: string;
   maxDate?: string;
   disabled?: boolean;
@@ -970,6 +986,7 @@ export interface HeroDatePickerProps {
   description?: string;
   error?: string;
   startContent?: React.ReactNode;
+  endContent?: React.ReactNode;
 }
 
 export const HeroDatePicker: React.FC<HeroDatePickerProps> = ({
@@ -980,6 +997,7 @@ export const HeroDatePicker: React.FC<HeroDatePickerProps> = ({
   size = 'md',
   variant = 'flat',
   isClearable = true,
+  isRequired = false,
   minDate,
   maxDate,
   disabled = false,
@@ -987,6 +1005,7 @@ export const HeroDatePicker: React.FC<HeroDatePickerProps> = ({
   description,
   error,
   startContent,
+  endContent,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

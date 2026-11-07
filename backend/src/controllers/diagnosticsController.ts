@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import os from 'os';
 import axios from 'axios';
 import attendanceBuffer from '../services/attendanceBuffer';
+import submissionQueueService from '../services/submissionQueueService';
 import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 
 // Utility to measure Event Loop Delay (Lag) in milliseconds
@@ -80,6 +81,16 @@ export const getSystemHealth = async (req: FastifyRequest, reply: FastifyReply) 
           : 'Standby',
         pistonRce: pistonStatus,
       },
+      buffers: {
+        attendance: {
+          queueLength: attendanceBuffer.writeQueue.length,
+          isFlushing: attendanceBuffer.isFlushing,
+          activeOtps: attendanceBuffer.activeOTPs.size,
+          markedCount: attendanceBuffer.markedSet.size,
+          failedAttemptsCount: attendanceBuffer.failedAttempts.size,
+        },
+        submissionQueue: { active: true, service: 'SubmissionQueueService' },
+      },
     };
 
     return reply.send({ success: true, data: healthData });
@@ -102,6 +113,16 @@ export const syncSystemCache = async (req: FastifyRequest, reply: FastifyReply) 
       req.log.warn(`Attendance buffer flush notice: ${e.message}`);
     }
 
+    let flushedSubmissionCount = 0;
+    try {
+      if (submissionQueueService && typeof (submissionQueueService as any).flushQueueNow === 'function') {
+        const subResult = await (submissionQueueService as any).flushQueueNow();
+        flushedSubmissionCount = subResult?.flushedCount || 0;
+      }
+    } catch (e: any) {
+      req.log.warn(`Submission queue flush notice: ${e.message}`);
+    }
+
     // Force GC if available
     let gcTriggered = false;
     if (global.gc) {
@@ -113,6 +134,7 @@ export const syncSystemCache = async (req: FastifyRequest, reply: FastifyReply) 
       success: true,
       message: 'System cache & memory buffers synchronized successfully',
       flushedAttendanceCount,
+      flushedSubmissionCount,
       gcTriggered,
       timestamp: new Date().toISOString(),
     });

@@ -37,6 +37,8 @@ import { UserBadge } from '../components/admin/diagnostics/UserBadge';
 import { RecordFormModal } from '../components/admin/diagnostics/RecordFormModal';
 import { DeleteConfirmModal } from '../components/admin/diagnostics/DeleteConfirmModal';
 import { ViewDocModal } from '../components/admin/diagnostics/ViewDocModal';
+import SubmissionQueuePanel from '../components/admin/assessments/SubmissionQueuePanel';
+import { ErrorBoundary } from '../components/states';
 
 export const DiagnosticsPage: React.FC = () => {
   const {
@@ -63,7 +65,7 @@ export const DiagnosticsPage: React.FC = () => {
     batchDeleteDocuments,
   } = useDiagnosticsStore();
 
-  const [activeTab, setActiveTab] = useState<'health' | 'database'>('health');
+  const [activeTab, setActiveTab] = useState<'health' | 'flushes' | 'database'>('health');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [docSearch, setDocSearch] = useState('');
 
@@ -240,14 +242,14 @@ export const DiagnosticsPage: React.FC = () => {
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Tabs */}
-          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
+          <div className="w-full sm:w-auto grid grid-cols-3 sm:flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
             <Button
               size="sm"
               radius="lg"
               variant={activeTab === 'health' ? 'solid' : 'light'}
               color={activeTab === 'health' ? 'primary' : 'default'}
               onPress={() => setActiveTab('health')}
-              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] text-xs font-bold transition-all ${
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3 sm:px-4 py-2 min-h-[40px] text-xs font-bold transition-all ${
                 activeTab === 'health'
                   ? 'text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -259,10 +261,31 @@ export const DiagnosticsPage: React.FC = () => {
             <Button
               size="sm"
               radius="lg"
+              variant={activeTab === 'flushes' ? 'solid' : 'light'}
+              color={activeTab === 'flushes' ? 'primary' : 'default'}
+              onPress={() => setActiveTab('flushes')}
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3 sm:px-4 py-2 min-h-[40px] text-xs font-bold transition-all ${
+                activeTab === 'flushes'
+                  ? 'text-white shadow-md shadow-primary/20'
+                  : 'text-label-secondary hover:text-label-primary'
+              }`}
+              startContent={<RefreshCw size={15} />}
+              endContent={
+                ((healthData?.buffers?.submissionQueue?.pendingCount || 0) > 0 ||
+                  (healthData?.buffers?.attendance?.queueLength || 0) > 0) ? (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping ml-1" />
+                ) : undefined
+              }
+            >
+              Server Flushes
+            </Button>
+            <Button
+              size="sm"
+              radius="lg"
               variant={activeTab === 'database' ? 'solid' : 'light'}
               color={activeTab === 'database' ? 'primary' : 'default'}
               onPress={() => setActiveTab('database')}
-              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] text-xs font-bold transition-all ${
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3 sm:px-4 py-2 min-h-[40px] text-xs font-bold transition-all ${
                 activeTab === 'database'
                   ? 'text-white shadow-md shadow-primary/20'
                   : 'text-label-secondary hover:text-label-primary'
@@ -277,7 +300,37 @@ export const DiagnosticsPage: React.FC = () => {
 
       {/* --- TAB 1: SYSTEM HEALTH --- */}
       {activeTab === 'health' && (
-        <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+        <ErrorBoundary sectionName="System Health Telemetry">
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+          {/* Amber Warning Banner if pending submissions or attendance records are buffered in RAM */}
+          {((healthData?.buffers?.submissionQueue?.pendingCount || 0) > 0 ||
+            (healthData?.buffers?.attendance?.queueLength || 0) > 0) && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-pulse">
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={20} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                <div className="text-xs sm:text-sm">
+                  <p className="font-bold">
+                    ⚠️ Unflushed In-Memory Queue State Active!
+                  </p>
+                  <p className="mt-0.5 text-amber-700/80 dark:text-amber-300/80">
+                    {healthData?.buffers?.submissionQueue?.pendingCount || 0} exam submission(s) and{' '}
+                    {healthData?.buffers?.attendance?.queueLength || 0} attendance record(s) currently buffered in RAM.
+                    Do not restart instances or conclude exam until all queues flush to Atlas.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                color="warning"
+                variant="solid"
+                onPress={() => setActiveTab('flushes')}
+                className="text-xs font-bold shrink-0 self-end sm:self-center"
+              >
+                Manage Cluster Flushes
+              </Button>
+            </div>
+          )}
+
           {/* Telemetry KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* KPI 1: Memory */}
@@ -411,6 +464,167 @@ export const DiagnosticsPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Server Flush States & In-Memory Buffers Summary */}
+          <div className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xs font-bold text-label-secondary uppercase tracking-wider flex items-center gap-2">
+                  <RefreshCw size={14} className="text-primary" />
+                  <span>Server Flush States & In-Memory Buffers</span>
+                </h3>
+                <p className="text-[11px] text-label-tertiary mt-0.5">
+                  Controlled batch flushing to MongoDB Atlas (cap 60 doc writes/sec) with zero data loss.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="flat"
+                color="primary"
+                onPress={() => setActiveTab('flushes')}
+                className="text-xs font-bold shrink-0 self-start sm:self-auto"
+              >
+                Open Cluster Flush Center →
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Card 1: Exam Submission In-Memory Queue */}
+              <div className="p-4 bg-surface-secondary/70 rounded-2xl border border-separator/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-primary/10 text-primary rounded-lg">
+                      <Layers size={16} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-label-primary">Exam Submission Flusher</p>
+                      <p className="text-[10px] text-label-tertiary">Cap 60 doc/s · 1s Auto-Flush</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                      (healthData?.buffers?.submissionQueue?.pendingCount || 0) > 0
+                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                    }`}
+                  >
+                    {(healthData?.buffers?.submissionQueue?.pendingCount || 0) > 0 ? 'Flushing' : 'Idle / Flushed'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2 bg-surface rounded-xl border border-separator/60">
+                    <span className="text-[10px] text-label-tertiary block font-medium">Pending in RAM</span>
+                    <span
+                      className={`text-base font-black tabular-nums ${
+                        (healthData?.buffers?.submissionQueue?.pendingCount || 0) > 0
+                          ? 'text-amber-500 animate-pulse'
+                          : 'text-label-primary'
+                      }`}
+                    >
+                      {healthData?.buffers?.submissionQueue?.pendingCount ?? 0}
+                    </span>
+                  </div>
+                  <div className="p-2 bg-surface rounded-xl border border-separator/60">
+                    <span className="text-[10px] text-label-tertiary block font-medium">Oldest Item</span>
+                    <span className="text-base font-black tabular-nums text-label-primary">
+                      {healthData?.buffers?.submissionQueue?.oldestPendingAgeSeconds ?? 0}s
+                    </span>
+                  </div>
+                  <div className="p-2 bg-surface rounded-xl border border-separator/60">
+                    <span className="text-[10px] text-label-tertiary block font-medium">Failed Items</span>
+                    <span
+                      className={`text-base font-black tabular-nums ${
+                        (healthData?.buffers?.submissionQueue?.failedCount || 0) > 0
+                          ? 'text-danger'
+                          : 'text-label-primary'
+                      }`}
+                    >
+                      {healthData?.buffers?.submissionQueue?.failedCount ?? 0}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-label-tertiary pt-1">
+                  <span>Last successful flush:</span>
+                  <span className="font-mono text-label-secondary font-medium">
+                    {healthData?.buffers?.submissionQueue?.lastSuccessfulFlush
+                      ? new Date(healthData.buffers.submissionQueue.lastSuccessfulFlush).toLocaleTimeString()
+                      : 'None yet'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 2: Attendance In-Memory Write Buffer */}
+              <div className="p-4 bg-surface-secondary/70 rounded-2xl border border-separator/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                      <CheckCircle2 size={16} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-label-primary">Attendance Buffer Flusher</p>
+                      <p className="text-[10px] text-label-tertiary">BulkWrite Upsert · 4s Auto-Flush</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                      (healthData?.buffers?.attendance?.queueLength || 0) > 0
+                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                    }`}
+                  >
+                    {(healthData?.buffers?.attendance?.queueLength || 0) > 0 ? 'Buffering' : 'Durable / Synced'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2 bg-surface rounded-xl border border-separator/60">
+                    <span className="text-[10px] text-label-tertiary block font-medium">Queued Writes</span>
+                    <span
+                      className={`text-base font-black tabular-nums ${
+                        (healthData?.buffers?.attendance?.queueLength || 0) > 0
+                          ? 'text-amber-500 animate-pulse'
+                          : 'text-label-primary'
+                      }`}
+                    >
+                      {healthData?.buffers?.attendance?.queueLength ?? 0}
+                    </span>
+                  </div>
+                  <div className="p-2 bg-surface rounded-xl border border-separator/60">
+                    <span className="text-[10px] text-label-tertiary block font-medium">Active OTPs</span>
+                    <span className="text-base font-black tabular-nums text-label-primary">
+                      {healthData?.buffers?.attendance?.activeOtps ?? 0}
+                    </span>
+                  </div>
+                  <div className="p-2 bg-surface rounded-xl border border-separator/60">
+                    <span className="text-[10px] text-label-tertiary block font-medium">Marked Cache</span>
+                    <span className="text-base font-black tabular-nums text-label-primary">
+                      {healthData?.buffers?.attendance?.markedCount ?? 0}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-label-tertiary">
+                    Shutdown hook: SIGTERM/SIGINT auto-flushed
+                  </span>
+                  <Button
+                    size="sm"
+                    radius="lg"
+                    variant="flat"
+                    color="primary"
+                    onPress={syncCache}
+                    isLoading={syncing}
+                    className="text-[11px] font-bold h-7 px-2.5"
+                    startContent={syncing ? undefined : <RefreshCw size={11} />}
+                  >
+                    Sync Buffer Now
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Infrastructure Services Grid */}
           <div className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-label-secondary uppercase tracking-wider">
@@ -459,11 +673,107 @@ export const DiagnosticsPage: React.FC = () => {
             </div>
           </div>
         </div>
+      </ErrorBoundary>
       )}
 
-      {/* --- TAB 2: DATABASE MANAGER --- */}
+      {/* --- TAB 2: SERVER FLUSHES & CLUSTER QUEUES --- */}
+      {activeTab === 'flushes' && (
+        <ErrorBoundary sectionName="Cluster Flush Monitor">
+          <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+          {/* Section 1: In-Memory Attendance Buffer Flusher */}
+          <div className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-separator/60">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 size={12} />
+                    <span>In-Memory Attendance Flusher</span>
+                  </span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-label-primary tracking-tight">
+                  Attendance Buffer & Shared Cache Flusher
+                </h3>
+                <p className="text-xs text-label-tertiary mt-0.5">
+                  Protects MongoDB Atlas M0 (100 ops/sec) by buffering student attendance OTP submissions in RAM,
+                  writing in batches with bulkWrite upserts every 4 seconds and upon server shutdown.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  radius="xl"
+                  color="primary"
+                  variant="solid"
+                  onPress={syncCache}
+                  isLoading={syncing}
+                  startContent={syncing ? undefined : <RefreshCw size={14} />}
+                  className="px-4 py-2 min-h-[38px] text-xs font-bold shadow-xs hover:brightness-110"
+                >
+                  Flush Attendance Buffer to Atlas
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 bg-surface-secondary/70 rounded-2xl border border-separator/80">
+                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
+                  Queued Writes
+                </span>
+                <p
+                  className={`text-2xl font-black tabular-nums mt-1 ${
+                    (healthData?.buffers?.attendance?.queueLength || 0) > 0
+                      ? 'text-amber-500 animate-pulse'
+                      : 'text-label-primary'
+                  }`}
+                >
+                  {healthData?.buffers?.attendance?.queueLength ?? 0}
+                </p>
+                <span className="text-[10px] text-label-tertiary">In-memory writeQueue</span>
+              </div>
+
+              <div className="p-4 bg-surface-secondary/70 rounded-2xl border border-separator/80">
+                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
+                  Active OTPs
+                </span>
+                <p className="text-2xl font-black tabular-nums text-label-primary mt-1">
+                  {healthData?.buffers?.attendance?.activeOtps ?? 0}
+                </p>
+                <span className="text-[10px] text-label-tertiary">Multi-node shared cache</span>
+              </div>
+
+              <div className="p-4 bg-surface-secondary/70 rounded-2xl border border-separator/80">
+                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
+                  Marked Students
+                </span>
+                <p className="text-2xl font-black tabular-nums text-label-primary mt-1">
+                  {healthData?.buffers?.attendance?.markedCount ?? 0}
+                </p>
+                <span className="text-[10px] text-label-tertiary">Sub-ms duplicate prevention</span>
+              </div>
+
+              <div className="p-4 bg-surface-secondary/70 rounded-2xl border border-separator/80">
+                <span className="text-[10px] font-bold text-label-secondary uppercase tracking-wider">
+                  Failed Lockouts
+                </span>
+                <p className="text-2xl font-black tabular-nums text-label-primary mt-1">
+                  {healthData?.buffers?.attendance?.failedAttemptsCount ?? 0}
+                </p>
+                <span className="text-[10px] text-label-tertiary">Brute-force protection in RAM</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Horizontal Cluster Exam Submission Queue Monitor */}
+          <SubmissionQueuePanel />
+        </div>
+      </ErrorBoundary>
+      )}
+
+      {/* --- TAB 3: DATABASE MANAGER --- */}
       {activeTab === 'database' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
+        <ErrorBoundary sectionName="Database Document Explorer">
+          <div className="space-y-6 animate-in fade-in duration-300">
           {/* Collections Selector Chips */}
           <div className="bg-surface p-5 rounded-3xl border border-separator space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
@@ -721,7 +1031,7 @@ export const DiagnosticsPage: React.FC = () => {
                                   size="sm"
                                   variant="light"
                                   radius="md"
-                                  onPress={(e) => handleCopyId(doc._id, e as any)}
+                                  onPress={(e: any) => handleCopyId(doc._id, e as any)}
                                   className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                                   title="Copy ObjectId"
                                 >
@@ -816,7 +1126,7 @@ export const DiagnosticsPage: React.FC = () => {
                                   size="sm"
                                   variant="light"
                                   radius="md"
-                                  onPress={(e) => handleCopyId(doc._id, e as any)}
+                                  onPress={(e: any) => handleCopyId(doc._id, e as any)}
                                   className="text-label-tertiary hover:text-label-primary p-0 min-w-[28px] min-h-[28px] w-7 h-7"
                                   title="Copy ObjectId"
                                 >
@@ -943,6 +1253,7 @@ export const DiagnosticsPage: React.FC = () => {
             </div>
           )}
         </div>
+      </ErrorBoundary>
       )}
 
       {/* View Document Modal (Details Form & Raw JSON) */}

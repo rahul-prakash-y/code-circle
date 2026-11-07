@@ -97,7 +97,12 @@ interface AssessmentStoreState {
   createAssessment: (payload: any) => Promise<{ success: boolean; assessment?: Assessment; error?: string }>;
   updateAssessment: (id: string, payload: any) => Promise<{ success: boolean; assessment?: Assessment; error?: string }>;
   deleteAssessment: (id: string) => Promise<{ success: boolean; error?: string }>;
-  submitAssessment: (id: string, answers: { questionIndex: number; selectedOption: number }[], timeSpentSeconds?: number) => Promise<{ success: boolean; result?: SubmissionResult; error?: string }>;
+  submitAssessment: (
+    id: string,
+    answers: any[],
+    timeSpentSeconds?: number,
+    submissionId?: string
+  ) => Promise<{ success: boolean; status?: 'saved' | 'pending' | 'error'; result?: SubmissionResult; submissionId?: string; message?: string; error?: string }>;
   fetchMySubmissions: () => Promise<void>;
   fetchAssessmentSubmissions: (assessmentId: string, params?: { page?: number; limit?: number }) => Promise<void>;
   exportAssessmentSubmissionsCsv: (assessmentId: string) => Promise<void>;
@@ -236,45 +241,114 @@ export const useAssessmentStore = create<AssessmentStoreState>((set, get) => ({
     }
   },
 
-  submitAssessment: async (id, answers, timeSpentSeconds = 0) => {
+  submitAssessment: async (id, answers, timeSpentSeconds = 0, submissionId) => {
     set({ submitting: true, error: null });
-    try {
-      const res = await api.post(`/assessments/${id}/submit`, {
-        answers,
-        timeSpentSeconds,
-      });
-      const result: SubmissionResult = res.data.data;
-      set({ currentResult: result, submitting: false });
-      // Refresh list to update score status
-      get().fetchAssessments();
+    const clientSubmissionId =
+      submissionId ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `sub-${Date.now()}`);
 
-      // Immediately update authStore user points so Navbar, Dashboard, and Profile update seamlessly
-      if (result && typeof result.pointsAwarded === 'number' && result.pointsAwarded > 0) {
-        try {
-          const authStore = useAuthStore.getState();
-          if (authStore.user) {
-            const nextPoints =
-              typeof result.userTotalPoints === 'number'
-                ? result.userTotalPoints
-                : (authStore.user.points || 0) + result.pointsAwarded;
-            authStore.setUser({
-              ...authStore.user,
-              points: nextPoints,
-            });
-          }
-          // Refresh points hub data if store active
-          usePointsStore.getState().fetchMyPoints?.();
-        } catch (syncErr) {
-          console.warn('Could not sync user points in store:', syncErr);
+    try {
+      // 1. Initial submit attempt with 503 retry recovery
+      let res;
+      try {
+        res = await api.post(`/assessments/${id}/submit`, {
+          submissionId: clientSubmissionId,
+          answers,
+          timeSpentSeconds,
+        });
+      } catch (submitErr: any) {
+        // If 503 (Queue Overflow), wait for Retry-After and retry with the same submissionId
+        if (submitErr.response?.status === 503) {
+          const retryAfterSec = Number(submitErr.response.headers?.['retry-after']) || 2;
+          await new Promise((resolve) => setTimeout(resolve, retryAfterSec * 1000));
+          res = await api.post(`/assessments/${id}/submit`, {
+            submissionId: clientSubmissionId,
+            answers,
+            timeSpentSeconds,
+          });
+        } else {
+          throw submitErr;
         }
       }
 
-      return { success: true, result };
+      // 2. If response status is 'saved', durable confirmation achieved
+      if (res.data?.status === 'saved') {
+        const result: SubmissionResult = res.data.data;
+        set({ currentResult: result, submitting: false });
+        get().fetchAssessments();
+
+        if (result && typeof result.pointsAwarded === 'number' && result.pointsAwarded > 0) {
+          try {
+            const authStore = useAuthStore.getState();
+            if (authStore.user) {
+              const nextPoints =
+                typeof result.userTotalPoints === 'number'
+                  ? result.userTotalPoints
+                  : (authStore.user.points || 0) + result.pointsAwarded;
+              authStore.setUser({
+                ...authStore.user,
+                points: nextPoints,
+              });
+            }
+            usePointsStore.getState().fetchMyPoints?.();
+          } catch (syncErr) {
+            console.warn('Could not sync user points in store:', syncErr);
+          }
+        }
+
+        return { success: true, status: 'saved', result };
+      }
+
+      // 3. If response status is 'pending', poll durable status with backoff for 10+ minutes (max 12 min)
+      if (res.data?.status === 'pending' || res.status === 202) {
+        let attempts = 0;
+        const maxDurationMs = 12 * 60 * 1000; // 12 minutes polling duration
+        const startTime = Date.now();
+        let delayMs = 1000;
+
+        while (Date.now() - startTime < maxDurationMs) {
+          attempts++;
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+          try {
+            const statusRes = await api.get(
+              `/assessments/${id}/submission-status/${clientSubmissionId}`
+            );
+            if (statusRes.data?.status === 'saved') {
+              const result: SubmissionResult = statusRes.data.data;
+              set({ currentResult: result, submitting: false });
+              get().fetchAssessments();
+              return { success: true, status: 'saved', result };
+            }
+          } catch (pollErr) {
+            // Transient poll error, continue polling with backoff
+          }
+
+          // Exponential backoff capped at 8000ms (1s -> 1.5s -> 2.25s -> ... -> 8s)
+          delayMs = Math.min(8000, Math.round(delayMs * 1.5));
+        }
+
+        // Still pending after polling window: let client know it is queued
+        set({ submitting: false });
+        return {
+          success: true,
+          status: 'pending',
+          submissionId: clientSubmissionId,
+          message: 'Submission queued for durable storage. Answers remain securely saved locally in browser storage.',
+        };
+      }
+
+      const result: SubmissionResult = res.data.data;
+      set({ currentResult: result, submitting: false });
+      return { success: true, status: 'saved', result };
     } catch (err: any) {
       set({ submitting: false });
       return {
         success: false,
-        error: err.response?.data?.error || 'Failed to submit assessment',
+        status: 'error',
+        error: err.response?.data?.error || err.message || 'Failed to submit assessment',
       };
     }
   },

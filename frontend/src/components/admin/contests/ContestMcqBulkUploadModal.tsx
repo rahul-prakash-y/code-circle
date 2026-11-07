@@ -72,7 +72,7 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
           toast.success(`Successfully parsed ${res.data.length} MCQ questions!`);
         }
       } else {
-        const errorMsg = res.message || 'No valid MCQ questions found in the uploaded file.';
+        const errorMsg = (res as any).message || res.error || 'No valid MCQ questions found in the uploaded file.';
         setParseErrors([errorMsg]);
         toast.error(errorMsg);
       }

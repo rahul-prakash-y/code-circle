@@ -13,10 +13,12 @@ export interface ICodingSubmissionItem {
   problemId: string;
   language: string;
   code: string;
+  codingMode?: 'ONLY_CODE' | 'TEST_CASES';
   testCasesPassed: number;
   totalTestCases: number;
   pointsEarned: number;
   status:
+    | 'SUBMITTED'
     | 'PENDING'
     | 'ACCEPTED'
     | 'WRONG_ANSWER'
@@ -24,6 +26,10 @@ export interface ICodingSubmissionItem {
     | 'RUNTIME_ERROR'
     | 'COMPILATION_ERROR';
   executionTimeMs?: number;
+  isEvaluated?: boolean;
+  evaluatedBy?: mongoose.Types.ObjectId;
+  evaluatedAt?: Date;
+  feedback?: string;
 }
 
 export interface IDesignSubmissionItem {
@@ -88,12 +94,18 @@ const codingSubmissionItemSchema = new Schema<ICodingSubmissionItem>(
     problemId: { type: String, required: true },
     language: { type: String, required: true },
     code: { type: String, required: true },
+    codingMode: {
+      type: String,
+      enum: ['ONLY_CODE', 'TEST_CASES'],
+      default: 'TEST_CASES',
+    },
     testCasesPassed: { type: Number, default: 0 },
     totalTestCases: { type: Number, default: 0 },
     pointsEarned: { type: Number, default: 0 },
     status: {
       type: String,
       enum: [
+        'SUBMITTED',
         'PENDING',
         'ACCEPTED',
         'WRONG_ANSWER',
@@ -104,6 +116,10 @@ const codingSubmissionItemSchema = new Schema<ICodingSubmissionItem>(
       default: 'PENDING',
     },
     executionTimeMs: { type: Number, default: 0 },
+    isEvaluated: { type: Boolean, default: false },
+    evaluatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    evaluatedAt: { type: Date },
+    feedback: { type: String, default: '' },
   },
   { _id: false }
 );

@@ -209,7 +209,29 @@ export const getAllReports = async (request: FastifyRequest<{ Querystring: { eve
  */
 export const deleteReport = async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
   try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const isPrivileged =
+      user.role === 'Admin' ||
+      user.role === 'SuperAdmin' ||
+      user.role === 'Faculty' ||
+      user.role === 'Committee';
+
+    if (!isPrivileged) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Forbidden: Elevated administrative privileges required to delete event reports',
+      });
+    }
+
     const { id } = request.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid report ID format' });
+    }
+
     const deleted = await EventReport.findByIdAndDelete(id);
     if (!deleted) {
       return reply.status(404).send({ success: false, error: 'Report not found' });

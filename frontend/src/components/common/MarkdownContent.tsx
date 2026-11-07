@@ -8,6 +8,19 @@ interface MarkdownContentProps {
   className?: string;
 }
 
+const isSafeUrl = (url?: string): boolean => {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+  // Disallow javascript:, data:, vbscript: schemes to prevent XSS
+  return (
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('mailto:') ||
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('#')
+  );
+};
+
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, className = '' }) => {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
@@ -78,16 +91,20 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, class
             </blockquote>
           ),
           hr: () => <hr className="my-3 border-separator/60" />,
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent underline font-semibold hover:opacity-80 transition inline-flex items-center gap-0.5"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => {
+            const safe = isSafeUrl(href);
+            return (
+              <a
+                href={safe ? href : '#'}
+                target={safe && href?.startsWith('http') ? '_blank' : undefined}
+                rel={safe && href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                className="text-accent underline font-semibold hover:opacity-80 transition inline-flex items-center gap-0.5"
+                onClick={safe ? undefined : (e) => e.preventDefault()}
+              >
+                {children}
+              </a>
+            );
+          },
           table: ({ children }) => (
             <div className="overflow-x-auto my-3 rounded-xl border border-separator/60">
               <table className="min-w-full divide-y divide-separator/60 text-xs text-left">

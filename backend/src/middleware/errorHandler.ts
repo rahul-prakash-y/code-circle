@@ -38,11 +38,14 @@ export const errorHandler = (
 
   // Mongoose Schema Validation Error
   if (error.name === 'ValidationError' && error.errors) {
-    const messages = Object.values(error.errors).map((e: any) => e.message);
+    const details = Object.entries(error.errors).map(([field, err]: [string, any]) => ({
+      field,
+      message: err.message || 'Validation error',
+    }));
     return reply.status(400).send({
       success: false,
-      error: messages.join(', ') || 'Validation failed',
-      details: error.errors,
+      error: details.map((d) => d.message).join(', ') || 'Validation failed',
+      details,
     });
   }
 
@@ -55,11 +58,11 @@ export const errorHandler = (
     });
   }
 
-  // Cast Error (Invalid MongoDB ObjectId)
+  // Cast Error (Invalid MongoDB ObjectId) - Do not reflect raw input
   if (error.name === 'CastError') {
     return reply.status(400).send({
       success: false,
-      error: `Invalid format for resource identifier: ${error.value}`,
+      error: 'Invalid format for resource identifier.',
     });
   }
 

@@ -26,6 +26,7 @@ import {
   getAdminAssessmentSubmissions,
   saveAssessmentDesignChallenge,
   evaluateAssessmentDesign,
+  evaluateAssessmentCode,
   deleteAdminAssessmentSubmission,
   getAdminOverallArenaLeaderboard,
   getStudentAssessmentData,
@@ -65,6 +66,7 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
   fastify.get('/:id/arena/assessments/:assessmentId/admin/submissions', getAdminAssessmentSubmissions);
   fastify.get('/:id/arena/admin/overall-leaderboard', getAdminOverallArenaLeaderboard);
   fastify.put('/:id/arena/assessments/:assessmentId/submissions/:submissionId/evaluate-design', evaluateAssessmentDesign);
+  fastify.put('/:id/arena/assessments/:assessmentId/submissions/:submissionId/evaluate-code', evaluateAssessmentCode);
   fastify.delete('/:id/arena/assessments/:assessmentId/submissions/:submissionId', deleteAdminAssessmentSubmission);
 
   // 4. Sample Templates

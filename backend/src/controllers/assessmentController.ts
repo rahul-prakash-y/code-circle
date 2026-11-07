@@ -1,12 +1,16 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import mongoose from 'mongoose';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import crypto from 'crypto';
 import Assessment, { IAssessment, IAssessmentQuestion } from '../models/assessmentModel';
 import AssessmentSubmission from '../models/assessmentSubmissionModel';
 import User from '../models/userModel';
 import PointTransaction from '../models/pointTransactionModel';
+import AuditLog from '../models/auditLogModel';
+import submissionQueue, { QueueOverflowError } from '../services/submissionQueueService';
 import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
 import { shuffleQuestionsAndOptions } from '../utils/shuffle';
+import { parseSpreadsheetBuffer } from '../utils/safeSpreadsheetParser';
 
 export interface CreateAssessmentBody {
   title: string;
@@ -16,6 +20,10 @@ export interface CreateAssessmentBody {
   timeLimitMinutes?: number;
   passingScorePercentage?: number;
   customPoints?: number;
+  serverCheckpointIntervalSeconds?: number;
+  submissionGraceWindowSeconds?: number;
+  deadline?: Date | string | null;
+  startTime?: Date | string | null;
   questions: {
     questionText: string;
     options: string[];
@@ -27,6 +35,8 @@ export interface CreateAssessmentBody {
 }
 
 export interface SubmitAssessmentBody {
+  submissionId?: string;
+  clientTimestamp?: number | string;
   answers: {
     questionId?: string;
     selectedOptionId?: string;
@@ -481,6 +491,41 @@ export const submitAssessment = async (
 
     const { answers = [], timeSpentSeconds = 0 } = request.body;
 
+    // 1. Validate / retrieve submissionId (UUID from client for idempotency)
+    const submissionId =
+      typeof request.body?.submissionId === 'string' && request.body.submissionId.trim().length > 0
+        ? request.body.submissionId.trim()
+        : crypto.randomUUID();
+
+    // 2. Validate deadline server-side (never trusting client time)
+    const now = Date.now();
+    let isLate = false;
+    let submissionStatus: 'on_time' | 'late' | 'review' = 'on_time';
+
+    const graceWindowSeconds =
+      typeof assessment.submissionGraceWindowSeconds === 'number'
+        ? assessment.submissionGraceWindowSeconds
+        : 120;
+    const graceWindowMs = graceWindowSeconds * 1000;
+
+    if (assessment.deadline) {
+      const deadlineMs = new Date(assessment.deadline).getTime();
+      if (!isNaN(deadlineMs)) {
+        if (now > deadlineMs + graceWindowMs) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Submission deadline has passed. Late submissions outside grace window are rejected.',
+            code: 'DEADLINE_EXCEEDED',
+            deadline: assessment.deadline,
+            graceWindowSeconds,
+          });
+        } else if (now > deadlineMs) {
+          isLate = true;
+          submissionStatus = 'late';
+        }
+      }
+    }
+
     // SERVER-SIDE SCORING ENGINE (Resistant to Question and Option Order Randomization)
     // Supports lookup by questionId (ObjectId string) or fallback to questionIndex.
     // Supports evaluation by optionId (e.g., 'opt_0'), optionText, or fallback index.
@@ -582,7 +627,6 @@ export const submitAssessment = async (
     let pointsAwarded = 0;
     if (passed) {
       // Check if user previously had points awarded for this assessment
-      // Either via an explicit PointTransaction or a prior submission with pointsAwarded > 0
       const priorTx = await PointTransaction.findOne({
         user: new mongoose.Types.ObjectId(user.id),
         category: 'Assessment',
@@ -597,33 +641,19 @@ export const submitAssessment = async (
 
       if (!priorTx && !priorPassingAward) {
         pointsAwarded = customPts;
-
-        if (pointsAwarded > 0) {
-          await User.findByIdAndUpdate(user.id, { $inc: { points: pointsAwarded } });
-          try {
-            await PointTransaction.create({
-              user: new mongoose.Types.ObjectId(user.id),
-              amount: pointsAwarded,
-              category: 'Assessment',
-              title: `Assessment Completed: ${assessment.title}`,
-              description: `Passed with score ${earnedPoints}/${totalPoints} (${percentage}%)`,
-              referenceId: assessment._id.toString(),
-              referenceModel: 'Assessment',
-              timestamp: new Date(),
-            });
-          } catch (txErr) {
-            console.warn('[AssessmentController] Could not record PointTransaction:', txErr);
-          }
-        }
       }
     }
 
-    // Save submission record with pointsAwarded
-    const submission = await AssessmentSubmission.create({
-      assessment: assessment._id,
-      user: new mongoose.Types.ObjectId(user.id),
+    const queuedPayload = {
+      submissionId,
+      userId: user.id,
+      assessmentId: assessment._id.toString(),
+      assessmentTitle: assessment.title,
       answers: answers.map((ans, idx) => ({
-        questionId: ans.questionId && mongoose.Types.ObjectId.isValid(ans.questionId) ? new mongoose.Types.ObjectId(ans.questionId) : undefined,
+        questionId:
+          ans.questionId && mongoose.Types.ObjectId.isValid(ans.questionId)
+            ? new mongoose.Types.ObjectId(ans.questionId)
+            : undefined,
         selectedOptionId: ans.selectedOptionId,
         selectedOptionText: ans.selectedOptionText,
         questionIndex: ans.questionIndex !== undefined ? ans.questionIndex : idx,
@@ -636,40 +666,268 @@ export const submitAssessment = async (
       pointsAwarded,
       timeSpentSeconds: Math.max(0, Number(timeSpentSeconds) || 0),
       detailedResults,
-    });
+      isLate,
+      submissionStatus,
+      enqueuedAt: new Date(),
+      submittedAt: new Date(),
+      passingScorePercentage: assessment.passingScorePercentage,
+      customPoints: assessment.customPoints ?? 50,
+    };
 
-    const updatedUser = await User.findById(user.id).select('points');
-    const userTotalPoints = updatedUser?.points ?? 0;
+    // Enqueue into in-memory bounded queue
+    const enqueueResult = await submissionQueue.enqueue(queuedPayload);
 
-    return reply.status(201).send({
+    if (enqueueResult.status === 'saved') {
+      const updatedUser = await User.findById(user.id).select('points');
+      return reply.status(200).send({
+        success: true,
+        status: 'saved',
+        message: passed
+          ? (pointsAwarded > 0
+              ? `Congratulations! You passed the assessment and earned ${pointsAwarded} points!`
+              : 'Congratulations! You passed the assessment.')
+          : 'Assessment completed.',
+        data: enqueueResult.data || {
+          submissionId,
+          assessmentId: assessment._id,
+          title: assessment.title,
+          score: earnedPoints,
+          totalPoints,
+          percentage,
+          passed,
+          pointsAwarded,
+          userTotalPoints: updatedUser?.points ?? 0,
+          customPoints: assessment.customPoints ?? 50,
+          passingScorePercentage: assessment.passingScorePercentage,
+          timeSpentSeconds: queuedPayload.timeSpentSeconds,
+          detailedResults,
+          isLate,
+          submissionStatus,
+          submittedAt: queuedPayload.submittedAt,
+        },
+      });
+    }
+
+    // Response when enqueued and waiting for MongoDB batch flush confirmation
+    return reply.status(202).send({
       success: true,
-      message: passed
-        ? (pointsAwarded > 0
-            ? `Congratulations! You passed the assessment and earned ${pointsAwarded} points!`
-            : 'Congratulations! You passed the assessment.')
-        : 'Assessment completed. Keep practicing to improve your score!',
-      data: {
-        submissionId: submission._id,
-        assessmentId: assessment._id,
-        title: assessment.title,
-        score: earnedPoints,
-        totalPoints,
-        percentage,
-        passed,
-        pointsAwarded,
-        userTotalPoints,
-        customPoints: assessment.customPoints ?? 50,
-        passingScorePercentage: assessment.passingScorePercentage,
-        timeSpentSeconds: submission.timeSpentSeconds,
-        detailedResults,
-        submittedAt: submission.createdAt,
-      },
+      status: 'pending',
+      submissionId,
+      message: 'Submission enqueued for durable storage. Awaiting batch flusher confirmation.',
+      isLate,
+      submissionStatus,
     });
   } catch (error: any) {
+    if (error instanceof QueueOverflowError) {
+      reply.header('Retry-After', String(error.retryAfterSeconds));
+      return reply.status(503).send({
+        success: false,
+        status: 'rejected',
+        code: error.code,
+        error: error.message,
+        retryAfterSeconds: error.retryAfterSeconds,
+      });
+    }
     return reply.status(500).send({
       success: false,
       error: error.message || 'Failed to evaluate assessment submission',
     });
+  }
+};
+
+/**
+ * GET /api/assessments/:id/submission-status/:submissionId
+ * Check durable persistence confirmation for an enqueued submission.
+ */
+export const getSubmissionStatus = async (
+  request: FastifyRequest<{ Params: { id: string; submissionId: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { id, submissionId } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id) || !submissionId) {
+      return reply.status(400).send({ success: false, error: 'Invalid parameters' });
+    }
+
+    const statusResult = await submissionQueue.getStatus(user.id, id, submissionId);
+
+    if (statusResult.status === 'not_found') {
+      return reply.status(404).send({
+        success: false,
+        status: 'not_found',
+        error: 'Submission not found',
+      });
+    }
+
+    return reply.status(200).send({
+      success: true,
+      status: statusResult.status,
+      submissionId,
+      data: statusResult.data,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to check submission status',
+    });
+  }
+};
+
+/**
+ * POST /api/assessments/:id/checkpoint
+ * Server-side checkpointing / draft save (Disabled by default: serverCheckpointIntervalSeconds = 0).
+ */
+export const saveCheckpoint = async (
+  request: FastifyRequest<{ Params: { id: string }; Body: { answers?: any[] } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
+    }
+
+    const assessment = await Assessment.findById(id).select('serverCheckpointIntervalSeconds title');
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
+    const intervalSeconds = assessment.serverCheckpointIntervalSeconds ?? 0;
+    if (intervalSeconds <= 0) {
+      return reply.status(403).send({
+        success: false,
+        disabled: true,
+        message: 'Server checkpointing is disabled by default for this assessment. Answers are persisted locally.',
+      });
+    }
+
+    return reply.status(200).send({
+      success: true,
+      checkpointSaved: true,
+      timestamp: new Date(),
+    });
+  } catch (error: any) {
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to record server checkpoint',
+    });
+  }
+};
+
+/**
+ * Admin Panel Endpoints for In-Memory Submission Queue Monitoring & Management
+ */
+export const getQueueStatus = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const status = submissionQueue.getQueueStatus();
+    return reply.send({
+      success: true,
+      data: status,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const flushQueueNow = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+    const result = await submissionQueue.flush();
+
+    // Audit log
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_FLUSH_NOW',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'SubmissionQueue',
+      details: {
+        flushedCount: result.flushedCount,
+        remainingPending: result.remainingPending,
+        failedCount: result.failedCount,
+        durationMs: result.durationMs,
+      },
+      timestamp: new Date(),
+    });
+
+    return reply.send({
+      success: true,
+      message: `Flushed ${result.flushedCount} submission(s) to MongoDB`,
+      ...result,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const retryFailedQueueItems = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+    const result = submissionQueue.retryFailed();
+
+    // Audit log
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_RETRY_FAILED',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'SubmissionQueue',
+      details: result,
+      timestamp: new Date(),
+    });
+
+    return reply.send({
+      success: true,
+      message: `Retried ${result.retriedCount} failed submission(s)`,
+      ...result,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const downloadQueueBackup = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+    const backup = submissionQueue.exportBackup();
+
+    // Audit log
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_DOWNLOAD_BACKUP',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'SubmissionQueue',
+      details: {
+        nodeId: backup.nodeId,
+        pendingCount: backup.pendingCount,
+        failedCount: backup.failedCount,
+      },
+      timestamp: new Date(),
+    });
+
+    const filename = `submission-queue-backup-${backup.nodeId}-${Date.now()}.json`;
+    reply.header('Content-Type', 'application/json');
+    reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return reply.send(backup);
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
   }
 };
 
@@ -1077,13 +1335,26 @@ export const deleteAssessmentSubmission = async (
 };
 
 export const allowStudentReappear = async (
-  request: FastifyRequest<{ Params: { id: string; studentId: string } }>,
+  request: FastifyRequest<{ Params: { id: string; studentId: string }; Body: { reason?: string } }>,
   reply: FastifyReply
 ) => {
   try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
     const { id, studentId } = request.params;
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(studentId)) {
       return reply.status(400).send({ success: false, error: 'Invalid ID parameters' });
+    }
+
+    const { reason } = (request.body || {}) as { reason?: string };
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
+      return reply.status(400).send({
+        success: false,
+        error: 'A valid reason (minimum 5 characters) is required to grant student reappearance',
+      });
     }
 
     const assessment = await Assessment.findById(id);
@@ -1097,10 +1368,32 @@ export const allowStudentReappear = async (
       user: studentId,
     });
 
+    // Record audit log entry
+    try {
+      const AuditLog = (await import('../models/auditLogModel')).default;
+      await AuditLog.create({
+        action: 'ASSESSMENT_REAPPEAR_GRANTED',
+        actorId: new mongoose.Types.ObjectId(user.id),
+        actorRole: user.role,
+        targetId: new mongoose.Types.ObjectId(studentId),
+        targetModel: 'User',
+        reason: reason.trim(),
+        details: {
+          assessmentId: id,
+          assessmentTitle: assessment.title,
+          deletedSubmissionsCount: deleteResult.deletedCount,
+        },
+        timestamp: new Date(),
+      });
+    } catch (auditErr) {
+      request.log.warn({ err: auditErr }, '[AssessmentController] Could not write audit log for reappearance');
+    }
+
     return reply.send({
       success: true,
       message: 'Student attempt has been reset. The student is now permitted to reappear for this assessment.',
       deletedCount: deleteResult.deletedCount,
+      reason: reason.trim(),
     });
   } catch (error: any) {
     return reply.status(500).send({
@@ -1123,6 +1416,25 @@ export const resetMyAssessmentSubmission = async (
     const { id } = request.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
+    }
+
+    const assessment = await Assessment.findById(id);
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
+    const isPrivileged =
+      user.role === 'Admin' ||
+      user.role === 'SuperAdmin' ||
+      user.role === 'Faculty' ||
+      user.role === 'Committee';
+
+    // Graded assessments (any published assessment, or assessment awarding custom points) cannot be self-reset by students
+    if (!isPrivileged && (assessment.isPublished || (assessment.customPoints && assessment.customPoints > 0))) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Self-service reset is disabled for graded assessments. Reappearance requires faculty authorization.',
+      });
     }
 
     // Delete student's own submissions for this assessment
@@ -1149,7 +1461,24 @@ export const resetMyAssessmentSubmission = async (
  * Download sample Excel template for MCQ questions bulk upload.
  */
 export const downloadSampleTemplate = async (request: FastifyRequest, reply: FastifyReply) => {
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet('MCQ Assessments');
+
+  ws.columns = [
+    { header: 'AssessmentTitle', key: 'AssessmentTitle', width: 35 },
+    { header: 'Category', key: 'Category', width: 20 },
+    { header: 'TimeLimitMinutes', key: 'TimeLimitMinutes', width: 18 },
+    { header: 'PassingScorePercentage', key: 'PassingScorePercentage', width: 22 },
+    { header: 'CustomPoints', key: 'CustomPoints', width: 15 },
+    { header: 'QuestionText', key: 'QuestionText', width: 45 },
+    { header: 'OptionA', key: 'OptionA', width: 25 },
+    { header: 'OptionB', key: 'OptionB', width: 25 },
+    { header: 'OptionC', key: 'OptionC', width: 25 },
+    { header: 'OptionD', key: 'OptionD', width: 25 },
+    { header: 'CorrectOption', key: 'CorrectOption', width: 15 },
+    { header: 'Points', key: 'Points', width: 10 },
+    { header: 'Explanation', key: 'Explanation', width: 40 },
+  ];
 
   const sampleData = [
     {
@@ -1229,8 +1558,7 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
     },
   ];
 
-  const ws = XLSX.utils.json_to_sheet(sampleData);
-  XLSX.utils.book_append_sheet(wb, ws, 'MCQ Assessments');
+  sampleData.forEach((row) => ws.addRow(row));
 
   const instructions = [
     {
@@ -1300,23 +1628,29 @@ export const downloadSampleTemplate = async (request: FastifyRequest, reply: Fas
     },
   ];
 
-  const wsInstr = XLSX.utils.json_to_sheet(instructions);
-  XLSX.utils.book_append_sheet(wb, wsInstr, 'Instructions');
+  const wsInstr = workbook.addWorksheet('Instructions');
+  wsInstr.columns = [
+    { header: 'Column', key: 'Column', width: 25 },
+    { header: 'Required', key: 'Required', width: 25 },
+    { header: 'Description', key: 'Description', width: 60 },
+  ];
+  instructions.forEach((instr) => wsInstr.addRow(instr));
 
-  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const buffer = await workbook.xlsx.writeBuffer();
 
   return reply
     .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     .header('Content-Disposition', 'attachment; filename="mcq_assessment_sample_template.xlsx"')
-    .send(buffer);
+    .send(Buffer.from(buffer));
 };
 
 /**
  * POST /api/assessments/admin/bulk-upload
- * Bulk upload MCQ questions from an Excel sheet (.xlsx / .xls).
+ * Bulk upload MCQ questions from an Excel (.xlsx) or CSV (.csv) file.
  * Supports:
  * - Appending to an existing assessment (if targetAssessmentId is specified)
  * - Creating new assessments grouped by AssessmentTitle in the sheet
+ * Enforces 5MB max file size and 500 rows limit.
  */
 export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
@@ -1339,14 +1673,14 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
     }
 
     if (!data) {
-      return reply.status(400).send({ success: false, error: 'No Excel file uploaded' });
+      return reply.status(400).send({ success: false, error: 'No spreadsheet file uploaded' });
     }
 
     const filename = (data.filename || '').toLowerCase();
-    if (!filename.endsWith('.xlsx') && !filename.endsWith('.xls')) {
+    if (!filename.endsWith('.xlsx') && !filename.endsWith('.csv')) {
       return reply.status(400).send({
         success: false,
-        error: 'Only .xlsx and .xls files are supported',
+        error: 'Only .xlsx and .csv spreadsheet files are supported',
       });
     }
 
@@ -1364,28 +1698,18 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
     }
     const buffer = Buffer.concat(chunks);
 
-    if (buffer.length === 0) {
-      return reply.status(400).send({ success: false, error: 'Uploaded Excel file is empty' });
+    let rawRows: any[] = [];
+    try {
+      rawRows = await parseSpreadsheetBuffer(buffer, filename);
+    } catch (parseErr: any) {
+      return reply.status(400).send({
+        success: false,
+        error: parseErr.message || 'Malformed or invalid spreadsheet file',
+      });
     }
 
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const sheetName =
-      workbook.SheetNames.find(
-        (s) =>
-          s.toLowerCase().includes('mcq') ||
-          s.toLowerCase().includes('assessment') ||
-          s.toLowerCase().includes('question')
-      ) ||
-      workbook.SheetNames.find((s) => !s.toLowerCase().includes('instruct')) ||
-      workbook.SheetNames[0];
-
-    if (!sheetName) {
-      return reply.status(400).send({ success: false, error: 'Excel file has no valid sheets' });
-    }
-
-    const rawRows: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
     if (!rawRows.length) {
-      return reply.status(400).send({ success: false, error: 'The uploaded Excel sheet contains no data rows' });
+      return reply.status(400).send({ success: false, error: 'The uploaded spreadsheet contains no data rows' });
     }
 
     // Helper to find value from row case-insensitively
@@ -1579,6 +1903,153 @@ export const bulkUploadMCQAssessments = async (request: FastifyRequest, reply: F
   }
 };
 
+export const FIGMA_URL_REGEX = /^https:\/\/(www\.)?figma\.com\/(file|design|proto|board)\/[a-zA-Z0-9_\-\/?=&%#.~]+$/;
+export const MAX_FIGMA_URL_LENGTH = 2048;
+
+/**
+ * Day 5 Figma Link Submission Handler
+ * Validates single Figma URL against strict allowlist, enforces maximum length,
+ * validates deadline against server time, and stores one idempotent submission per candidate.
+ */
+export const submitFigmaAssessment = async (
+  request: FastifyRequest<{ Params: { id: string }; Body: { figmaUrl: string; submissionId?: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { id } = request.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid assessment ID' });
+    }
+
+    const assessment = await Assessment.findById(id);
+    if (!assessment) {
+      return reply.status(404).send({ success: false, error: 'Assessment not found' });
+    }
+
+    const { figmaUrl, submissionId } = (request.body || {}) as any;
+
+    if (!figmaUrl || typeof figmaUrl !== 'string' || !figmaUrl.trim()) {
+      return reply.status(400).send({
+        success: false,
+        error: 'A valid Figma URL is required for submission',
+      });
+    }
+
+    const cleanUrl = figmaUrl.trim();
+
+    if (cleanUrl.length > MAX_FIGMA_URL_LENGTH) {
+      return reply.status(400).send({
+        success: false,
+        error: `Figma URL exceeds maximum length of ${MAX_FIGMA_URL_LENGTH} characters`,
+      });
+    }
+
+    // Strict allowlist: HTTPS scheme, figma.com domain, and valid file/design/proto/board path
+    if (!FIGMA_URL_REGEX.test(cleanUrl)) {
+      return reply.status(400).send({
+        success: false,
+        error:
+          'Invalid Figma URL. Must be an HTTPS URL starting with https://www.figma.com/ (or https://figma.com/) followed by /file/, /design/, /proto/, or /board/.',
+      });
+    }
+
+    // Validate deadline using server time (never trusting client clock)
+    const now = Date.now();
+    let isLate = false;
+    let submissionStatus: 'on_time' | 'late' | 'review' = 'on_time';
+
+    const graceWindowSeconds =
+      typeof assessment.submissionGraceWindowSeconds === 'number'
+        ? assessment.submissionGraceWindowSeconds
+        : 120;
+    const graceWindowMs = graceWindowSeconds * 1000;
+
+    if (assessment.deadline) {
+      const deadlineMs = new Date(assessment.deadline).getTime();
+      if (!isNaN(deadlineMs)) {
+        if (now > deadlineMs + graceWindowMs) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Submission deadline has passed. Late submissions outside grace window are rejected.',
+            code: 'DEADLINE_EXCEEDED',
+            deadline: assessment.deadline,
+            graceWindowSeconds,
+          });
+        } else if (now > deadlineMs) {
+          isLate = true;
+          submissionStatus = 'late';
+        }
+      }
+    }
+
+    const clientSubmissionId =
+      typeof submissionId === 'string' && submissionId.trim().length > 0
+        ? submissionId.trim()
+        : crypto.randomUUID();
+
+    // Idempotent upsert: exactly one submission per candidate per assessment
+    const submissionDoc = await AssessmentSubmission.findOneAndUpdate(
+      {
+        assessment: assessment._id,
+        user: new mongoose.Types.ObjectId(user.id),
+      },
+      {
+        $set: {
+          assessment: assessment._id,
+          user: new mongoose.Types.ObjectId(user.id),
+          submissionId: clientSubmissionId,
+          figmaUrl: cleanUrl,
+          type: 'figma',
+          isLate,
+          submissionStatus,
+          durableStatus: 'saved',
+          score: 0,
+          totalPoints: assessment.customPoints || 100,
+          percentage: 0,
+          passed: false,
+          pointsAwarded: 0,
+          timeSpentSeconds: 0,
+          answers: [],
+          detailedResults: [],
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    return reply.status(200).send({
+      success: true,
+      message: isLate
+        ? 'Figma design submission recorded (Flagged as late for faculty review).'
+        : 'Figma design submission recorded successfully.',
+      status: 'saved',
+      data: {
+        submissionId: submissionDoc.submissionId,
+        assessmentId: assessment._id,
+        figmaUrl: submissionDoc.figmaUrl,
+        type: 'figma',
+        isLate,
+        submissionStatus,
+        createdAt: submissionDoc.createdAt,
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to record Figma submission',
+    });
+  }
+};
+
 export default {
   getAssessments,
   getAssessmentById,
@@ -1586,6 +2057,7 @@ export default {
   updateAssessment,
   deleteAssessment,
   submitAssessment,
+  submitFigmaAssessment,
   getMySubmissions,
   getAssessmentSubmissions,
   getSingleAssessmentSubmissionReport,
@@ -1595,4 +2067,10 @@ export default {
   resetMyAssessmentSubmission,
   downloadSampleTemplate,
   bulkUploadMCQAssessments,
+  getSubmissionStatus,
+  saveCheckpoint,
+  getQueueStatus,
+  flushQueueNow,
+  retryFailedQueueItems,
+  downloadQueueBackup,
 };

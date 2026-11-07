@@ -31,6 +31,8 @@ export interface ResponsiveModalProps {
   /** Callback fired when open state changes */
   onOpenChange?: (open: boolean) => void;
   onClose?: () => void;
+  /** Optional custom max width for dialog modal */
+  maxWidth?: string;
   /** Primary title header */
   title?: React.ReactNode;
   /** Optional secondary subtitle or description */
@@ -122,7 +124,7 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                   initial={{ x: '100%' }}
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
-                  transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                  transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] as any }}
                   className={cn(
                     'relative z-50 h-full w-full max-w-2xl bg-surface text-text-primary shadow-2xl flex flex-col',
                     dialogClassName,

@@ -39,7 +39,7 @@ export const EmilTooltipGroup: React.FC<{ children: React.ReactNode; timeout?: n
   timeout = 500,
 }) => {
   const [isWarm, setIsWarm] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onOpen = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -75,7 +75,7 @@ export const EmilTooltip: React.FC<EmilTooltipProps> = ({
 }) => {
   const { isWarm, onOpen, onClose } = useContext(TooltipGroupContext);
   const [isOpen, setIsOpen] = useState(false);
-  const openTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleMouseEnter = () => {
     if (isWarm) {
@@ -145,7 +145,7 @@ export const EmilTooltip: React.FC<EmilTooltipProps> = ({
    - 0.97 tactile feedback
 ══════════════════════════════════════════════════════════════ */
 
-export interface EmilButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface EmilButtonProps extends Omit<HTMLMotionProps<'button'>, 'size'> {
   variant?: 'solid' | 'flat' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isIconOnly?: boolean;

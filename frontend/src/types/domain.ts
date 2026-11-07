@@ -5,6 +5,7 @@ export interface IDomain {
   name: string;
   description: string;
   coverImageUrl: string;
+  category?: string;
   isLocked?: boolean;
   isLockedForStudent?: boolean;
   approvedBy?: any;

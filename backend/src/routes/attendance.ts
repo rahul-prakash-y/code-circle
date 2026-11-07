@@ -14,6 +14,7 @@ export interface SetEventOTPBody {
   eventId: string;
   otp: string;
   dayNumber?: number;
+  ttlMinutes?: number;
 }
 
 /**
@@ -25,12 +26,46 @@ export const submitAttendanceHandler = async (
   request: FastifyRequest<{ Body: SubmitAttendanceBody }>,
   reply: FastifyReply
 ) => {
-  const { eventId, otp, userId, dayNumber = 1, dateAttended } = request.body || {};
+  const caller = request.user;
+  if (!caller) {
+    return reply.status(401).send({
+      success: false,
+      error: 'Authentication required to submit attendance',
+    });
+  }
 
-  if (!eventId || !otp || !userId) {
+  const { eventId, otp, userId: requestedUserId, dayNumber = 1, dateAttended } = request.body || {};
+
+  if (!eventId || !otp) {
     return reply.status(400).send({
       success: false,
-      error: 'eventId, otp, and userId are required fields',
+      error: 'eventId and otp are required fields',
+    });
+  }
+
+  // Authorization check: Students can only submit for their own userId
+  const isPrivilegedStaff =
+    caller.role === 'Admin' ||
+    caller.role === 'SuperAdmin' ||
+    caller.role === 'Faculty' ||
+    caller.role === 'Committee';
+
+  let effectiveUserId = caller.id || (caller as any)._id;
+
+  if (requestedUserId && requestedUserId !== effectiveUserId) {
+    if (!isPrivilegedStaff) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Forbidden: You can only submit attendance for your own account',
+      });
+    }
+    effectiveUserId = requestedUserId;
+  }
+
+  if (!effectiveUserId) {
+    return reply.status(400).send({
+      success: false,
+      error: 'Unable to resolve student userId for attendance submission',
     });
   }
 
@@ -42,8 +77,8 @@ export const submitAttendanceHandler = async (
     });
   }
 
-  const result = attendanceBuffer.verifyAndQueue(
-    userId,
+  const result = await attendanceBuffer.verifyAndQueueAsync(
+    effectiveUserId,
     eventId,
     otp,
     parsedDay,
@@ -54,7 +89,8 @@ export const submitAttendanceHandler = async (
     return reply.status(400).send(result);
   }
 
-  return reply.status(200).send(result);
+  const statusCode = (result as any).status === 'pending' ? 202 : 200;
+  return reply.status(statusCode).send(result);
 };
 
 /**
@@ -93,7 +129,7 @@ export const setEventOTPHandler = async (
   request: FastifyRequest<{ Body: SetEventOTPBody }>,
   reply: FastifyReply
 ) => {
-  const { eventId, otp, dayNumber = 1 } = request.body || {};
+  const { eventId, otp, dayNumber = 1, ttlMinutes = 30 } = request.body || {};
 
   if (!eventId || !otp) {
     return reply.status(400).send({
@@ -110,20 +146,42 @@ export const setEventOTPHandler = async (
     });
   }
 
-  attendanceBuffer.setEventOTP(eventId, otp, parsedDay);
+  const parsedTtl = Math.max(1, Number(ttlMinutes) || 30);
+  await attendanceBuffer.setEventOTPAsync(eventId, otp, parsedDay, parsedTtl);
 
   return reply.status(200).send({
     success: true,
-    message: `Active OTP cached for event ${eventId} (Day ${parsedDay})`,
+    message: `Active OTP synchronized across cluster for event ${eventId} (Day ${parsedDay}, TTL: ${parsedTtl}m)`,
     eventId,
     dayNumber: parsedDay,
+    ttlMinutes: parsedTtl,
   });
 };
 
 export async function attendanceBufferRoutes(fastify: FastifyInstance) {
-  // POST /api/attendance/submit
-  fastify.post<{ Body: SubmitAttendanceBody }>('/attendance/submit', submitAttendanceHandler);
-  fastify.post<{ Body: SubmitAttendanceBody }>('/submit', submitAttendanceHandler);
+  const submitRateLimitConfig = {
+    rateLimit: {
+      max: 15,
+      timeWindow: '1 minute',
+      errorResponseBuilder: () => ({
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: 'Attendance submission rate limit exceeded. Please wait a minute before trying again.',
+      }),
+    },
+  };
+
+  // POST /api/attendance/submit (Authenticated and rate limited)
+  fastify.post<{ Body: SubmitAttendanceBody }>(
+    '/attendance/submit',
+    { preHandler: [verifyToken], config: submitRateLimitConfig },
+    submitAttendanceHandler
+  );
+  fastify.post<{ Body: SubmitAttendanceBody }>(
+    '/submit',
+    { preHandler: [verifyToken], config: submitRateLimitConfig },
+    submitAttendanceHandler
+  );
 
   // POST /api/admin/sync-db (Superadmin-only)
   fastify.post('/admin/sync-db', { preHandler: [verifyToken, requireSuperAdmin] }, syncDbHandler);

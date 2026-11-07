@@ -328,7 +328,7 @@ export const EventModal = ({
 
   useEffect(() => {
     fetchTemplates();
-  }, []);
+  }, [fetchTemplates]);
 
   useEffect(() => {
     if (eventToEdit) {

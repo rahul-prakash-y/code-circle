@@ -10,6 +10,7 @@ import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
 import EventParticipantsModal from '../admin/EventParticipantsModal';
 import { EventCardSkeleton } from '../ui/LoadingSkeleton';
+import { EmptyState, NoSearchResults } from '../states';
 import { useDebounce } from '../../hooks/useDebounce';
 import Pagination from '../common/Pagination';
 import { 
@@ -290,25 +291,57 @@ export const EventFeed = ({
           ))}
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="surface p-14 text-center rounded-[18px]">
-          <Calendar className="w-10 h-10 text-label-tertiary mx-auto mb-3 opacity-30" />
-          <p className="text-label-primary font-semibold text-base">
-            {activeTab === 'upcoming'
-              ? 'No upcoming events'
-              : activeTab === 'past'
-              ? 'No concluded events'
-              : activeTab === 'live'
-              ? 'No live events running'
-              : 'No events found'}
-          </p>
-          <p className="text-label-secondary text-xs mt-1.5 max-w-sm mx-auto leading-relaxed">
-            {activeTab === 'upcoming'
-              ? 'New technical workshops, hackathons, and seminars will appear here.'
-              : activeTab === 'past'
-              ? 'Past event archives and completion records will be cataloged here.'
-              : 'Try clearing your filters or search terms.'}
-          </p>
-        </div>
+        debouncedSearch ? (
+          <NoSearchResults
+            query={debouncedSearch}
+            onClearFilters={() => {
+              setSearchQuery('');
+              setSelectedType('all');
+              setSelectedFormat('all');
+            }}
+            onSelectSuggestion={(term) => setSearchQuery(term)}
+            popularSuggestions={['Hackathon', 'Workshop', 'Technical', 'Club Hour']}
+          />
+        ) : (
+          <EmptyState
+            reason={selectedType !== 'all' || selectedFormat !== 'all' ? 'filtered' : 'first-use'}
+            title={
+              selectedType !== 'all' || selectedFormat !== 'all'
+                ? 'No events match your active format or category'
+                : activeTab === 'upcoming'
+                ? 'No upcoming events currently scheduled'
+                : activeTab === 'past'
+                ? 'No past events found in the archive'
+                : 'No live events running right now'
+            }
+            description={
+              selectedType !== 'all' || selectedFormat !== 'all'
+                ? 'Try resetting the category and format filters to see all events.'
+                : activeTab === 'upcoming'
+                ? 'Upcoming technical workshops, hackathons, and guest seminars will be published here.'
+                : 'Browse upcoming sessions or check back during scheduled contest hours.'
+            }
+            primaryAction={
+              selectedType !== 'all' || selectedFormat !== 'all'
+                ? {
+                    label: 'Reset Filters',
+                    onClick: () => {
+                      setSelectedType('all');
+                      setSelectedFormat('all');
+                    },
+                  }
+                : isAdmin
+                ? {
+                    label: 'Schedule New Event',
+                    onClick: () => onEdit && onEdit(null),
+                  }
+                : {
+                    label: 'Explore Quests & Contests',
+                    onClick: () => navigate('/contests'),
+                  }
+            }
+          />
+        )
       ) : viewMode === 'grid' ? (
         /* Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

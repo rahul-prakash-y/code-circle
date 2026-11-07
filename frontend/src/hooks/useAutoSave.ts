@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { saveExamState, getExamState, clearExamState } from '../utils/examStorage';
 
 export interface UseAutoSaveOptions<T> {
-  intervalMs?: number; // Default 30,000ms (30 seconds)
+  intervalMs?: number; // Default 30,000ms
   enabled?: boolean; // Default true
   onRestore?: (restoredData: T) => void;
 }
@@ -9,25 +10,20 @@ export interface UseAutoSaveOptions<T> {
 export interface UseAutoSaveReturn<T> {
   restoredData: T | null;
   lastSaved: Date | null;
-  saveNow: () => boolean;
-  clearSavedData: () => void;
+  saveNow: () => Promise<boolean>;
+  clearSavedData: () => Promise<void>;
   hasSavedData: boolean;
 }
 
-interface StoredPayload<T> {
-  data: T;
-  timestamp: number;
-  version?: number;
-}
-
 /**
- * useAutoSave Hook
- * Resiliency hook that persists assessment answers to browser localStorage every 30 seconds.
- * On page refresh or reconnection after wifi / server drop, reloads state so students never lose their work.
+ * useAutoSave Hook (IndexedDB with transparent LocalStorage Fallback)
+ * Persists assessment answers and code locally in browser IndexedDB on every change.
+ * Survives page refreshes, tab closures, and browser crashes.
+ * State is cleared ONLY after the server confirms durable persistence in MongoDB.
  *
- * @param storageKey Unique key for the test (e.g., `assessment_answers_${assessmentId}_${userId}`)
- * @param currentData Current student state / answers to be saved
- * @param options AutoSave configuration (intervalMs, enabled, onRestore)
+ * @param storageKey Unique key for the test (e.g., `cc_assessment_answers_${assessmentId}`)
+ * @param currentData Current student answers / state to be saved
+ * @param options AutoSave configuration
  */
 export function useAutoSave<T>(
   storageKey: string,
@@ -40,76 +36,70 @@ export function useAutoSave<T>(
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasSavedData, setHasSavedData] = useState<boolean>(false);
 
-  // Keep a ref of currentData so interval callback always accesses freshest state without resetting timer
   const currentDataRef = useRef<T>(currentData);
   currentDataRef.current = currentData;
 
   const initialLoadedRef = useRef<boolean>(false);
 
-  // 1. Initial Mount: Load saved answers from localStorage if available
+  // 1. Initial Mount: Load saved state from IndexedDB (fallback localStorage)
   useEffect(() => {
     if (!storageKey || typeof window === 'undefined' || initialLoadedRef.current) return;
     initialLoadedRef.current = true;
 
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed: StoredPayload<T> = JSON.parse(raw);
-        if (parsed && parsed.data !== undefined) {
-          setRestoredData(parsed.data);
-          setHasSavedData(true);
-          if (parsed.timestamp) {
-            setLastSaved(new Date(parsed.timestamp));
-          }
-          if (onRestore) {
-            onRestore(parsed.data);
-          }
-          console.log(`[useAutoSave] Successfully restored saved test state for key: ${storageKey}`);
+    let isCancelled = false;
+
+    getExamState<T>(storageKey)
+      .then((saved) => {
+        if (isCancelled || !saved) return;
+        setRestoredData(saved);
+        setHasSavedData(true);
+        setLastSaved(new Date());
+        if (onRestore) {
+          onRestore(saved);
         }
-      }
-    } catch (err) {
-      console.warn('[useAutoSave] Failed to restore from localStorage:', err);
-    }
+        console.log(`[useAutoSave:IndexedDB] Restored exam state for key: ${storageKey}`);
+      })
+      .catch((err) => {
+        console.warn('[useAutoSave] Error restoring exam state:', err);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [storageKey, onRestore]);
 
-  // 2. Immediate save function
-  const saveNow = useCallback((): boolean => {
+  // 2. Immediate save function (writes to IndexedDB + localStorage mirror)
+  const saveNow = useCallback(async (): Promise<boolean> => {
     if (!storageKey || typeof window === 'undefined') return false;
 
     try {
-      const payload: StoredPayload<T> = {
-        data: currentDataRef.current,
-        timestamp: Date.now(),
-        version: 1,
-      };
-      window.localStorage.setItem(storageKey, JSON.stringify(payload));
-      const now = new Date();
-      setLastSaved(now);
+      await saveExamState(storageKey, currentDataRef.current);
+      setLastSaved(new Date());
       setHasSavedData(true);
       return true;
     } catch (err) {
-      console.warn('[useAutoSave] Failed to save to localStorage (quota or disabled):', err);
+      console.warn('[useAutoSave] Failed to save exam state:', err);
       return false;
     }
   }, [storageKey]);
 
-  // 3. Periodic interval: save every 30 seconds
+  // 3. Periodic checkpoint interval
   useEffect(() => {
     if (!enabled || !storageKey || typeof window === 'undefined') return;
 
     const timer = setInterval(() => {
-      saveNow();
+      void saveNow();
     }, intervalMs);
 
     return () => clearInterval(timer);
   }, [enabled, storageKey, intervalMs, saveNow]);
 
-  // 4. Save immediately on window beforeunload (refresh, tab close)
+  // 4. Save immediately on window beforeunload
   useEffect(() => {
     if (!enabled || !storageKey || typeof window === 'undefined') return;
 
     const handleBeforeUnload = () => {
-      saveNow();
+      void saveNow();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -118,17 +108,17 @@ export function useAutoSave<T>(
     };
   }, [enabled, storageKey, saveNow]);
 
-  // 5. Clean up helper when submission succeeds
-  const clearSavedData = useCallback(() => {
+  // 5. Clear helper — ONLY called after server confirms durable storage
+  const clearSavedData = useCallback(async () => {
     if (!storageKey || typeof window === 'undefined') return;
     try {
-      window.localStorage.removeItem(storageKey);
+      await clearExamState(storageKey);
       setRestoredData(null);
       setHasSavedData(false);
       setLastSaved(null);
-      console.log(`[useAutoSave] Cleared auto-saved state for key: ${storageKey}`);
+      console.log(`[useAutoSave] Cleared durable exam state for key: ${storageKey}`);
     } catch (err) {
-      console.warn('[useAutoSave] Failed to clear localStorage key:', err);
+      console.warn('[useAutoSave] Failed to clear exam state:', err);
     }
   }, [storageKey]);
 

@@ -29,7 +29,7 @@ const CodingWorkspace = () => {
   const { warnings, isLocked } = useAntiCheat(3, () => {
     console.log('Workspace locked due to anti-cheat trigger');
   });
-  const { isFullscreen, requestFullscreen, exitFullscreen, toggleFullscreen } = useFullScreenEnforcement();
+  const { isFullscreen, requestFullscreen, toggleFullscreen } = useFullScreenEnforcement();
 
   useEffect(() => {
     if (cooldown <= 0) return;

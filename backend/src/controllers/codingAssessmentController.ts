@@ -16,6 +16,7 @@ import { ApiError } from '../utils/ApiError';
 import * as XLSX from 'xlsx';
 import PointTransaction from '../models/pointTransactionModel';
 import { parsePaginationParams, buildPaginationMeta } from '../utils/pagination';
+import { globalUserExecutionLocks, globalRceLimiter } from '../services/rce/concurrencyLimiter';
 
 // Maximum public test cases to execute on Run Code
 const MAX_PUBLIC_TESTCASES_PER_REQUEST = 10;
@@ -23,33 +24,117 @@ const MAX_PUBLIC_TESTCASES_PER_REQUEST = 10;
 const MAX_TOTAL_TESTCASES_PER_REQUEST = 25;
 
 // In-memory sliding rate limiter per user ID
-interface RateLimitRecord {
+export interface RateLimitRecord {
   lastExecutionTime: number;
   recentTimestamps: number[];
 }
 
-const userRateLimits = new Map<string, RateLimitRecord>();
+export const RCE_RATE_LIMITS = {
+  RUN_COOLDOWN_MS: Number(process.env.RCE_RUN_COOLDOWN_MS) || 2000,
+  RUN_WINDOW_MS: Number(process.env.RCE_RUN_WINDOW_MS) || 120000,
+  RUN_MAX_REQUESTS: Number(process.env.RCE_RUN_MAX_REQUESTS) || 20,
 
-function checkExecutionRateLimit(userId: string) {
+  SUBMIT_COOLDOWN_MS: Number(process.env.RCE_SUBMIT_COOLDOWN_MS) || 5000,
+  SUBMIT_WINDOW_MS: Number(process.env.RCE_SUBMIT_WINDOW_MS) || 60000,
+  SUBMIT_MAX_REQUESTS: Number(process.env.RCE_SUBMIT_MAX_REQUESTS) || 5,
+
+  PER_QUESTION_RUN_CAP: Number(process.env.RCE_PER_QUESTION_RUN_CAP) || 50,
+};
+
+export const userRunRateLimits = new Map<string, RateLimitRecord>();
+export const userSubmitRateLimits = new Map<string, RateLimitRecord>();
+export const userQuestionRunCounts = new Map<string, number>();
+
+export function checkRunRateLimit(userId: string, problemId?: string): number {
   const now = Date.now();
-  const record = userRateLimits.get(userId) || { lastExecutionTime: 0, recentTimestamps: [] };
 
-  // Enforce minimum 2 seconds between runs
-  if (now - record.lastExecutionTime < 2000) {
-    throw ApiError.badRequest('Rate limit exceeded. Please wait at least 2 seconds between executions.');
+  if (problemId) {
+    const qKey = `${userId}:${problemId}`;
+    const runsOnQ = userQuestionRunCounts.get(qKey) || 0;
+    if (runsOnQ >= RCE_RATE_LIMITS.PER_QUESTION_RUN_CAP) {
+      throw ApiError.badRequest(
+        `Per-question run limit reached (${RCE_RATE_LIMITS.PER_QUESTION_RUN_CAP} runs). Please submit your final solution.`
+      );
+    }
   }
 
-  // Sliding window: max 20 requests per 2 minutes
-  const windowMs = 2 * 60 * 1000;
-  record.recentTimestamps = record.recentTimestamps.filter((t) => now - t < windowMs);
+  const record = userRunRateLimits.get(userId) || { lastExecutionTime: 0, recentTimestamps: [] };
 
-  if (record.recentTimestamps.length >= 20) {
-    throw ApiError.badRequest('Execution quota reached. Please wait a minute before running code again.');
+  if (now - record.lastExecutionTime < RCE_RATE_LIMITS.RUN_COOLDOWN_MS) {
+    throw ApiError.badRequest(
+      `Rate limit exceeded. Please wait at least ${RCE_RATE_LIMITS.RUN_COOLDOWN_MS / 1000} seconds between executions.`
+    );
+  }
+
+  record.recentTimestamps = record.recentTimestamps.filter(
+    (t) => now - t < RCE_RATE_LIMITS.RUN_WINDOW_MS
+  );
+
+  if (record.recentTimestamps.length >= RCE_RATE_LIMITS.RUN_MAX_REQUESTS) {
+    throw ApiError.badRequest(
+      `Execution quota reached (${RCE_RATE_LIMITS.RUN_MAX_REQUESTS} runs / 2 min). Please wait a moment before running code again.`
+    );
   }
 
   record.lastExecutionTime = now;
   record.recentTimestamps.push(now);
-  userRateLimits.set(userId, record);
+  userRunRateLimits.set(userId, record);
+
+  if (problemId) {
+    const qKey = `${userId}:${problemId}`;
+    userQuestionRunCounts.set(qKey, (userQuestionRunCounts.get(qKey) || 0) + 1);
+  }
+
+  return now;
+}
+
+export function rollbackRunRateLimit(userId: string, timestamp: number, problemId?: string) {
+  const record = userRunRateLimits.get(userId);
+  if (record) {
+    record.recentTimestamps = record.recentTimestamps.filter((t) => t !== timestamp);
+    record.lastExecutionTime = record.recentTimestamps[record.recentTimestamps.length - 1] || 0;
+    userRunRateLimits.set(userId, record);
+  }
+  if (problemId) {
+    const qKey = `${userId}:${problemId}`;
+    const current = userQuestionRunCounts.get(qKey) || 1;
+    userQuestionRunCounts.set(qKey, Math.max(0, current - 1));
+  }
+}
+
+export function checkSubmitRateLimit(userId: string): number {
+  const now = Date.now();
+  const record = userSubmitRateLimits.get(userId) || { lastExecutionTime: 0, recentTimestamps: [] };
+
+  if (now - record.lastExecutionTime < RCE_RATE_LIMITS.SUBMIT_COOLDOWN_MS) {
+    throw ApiError.badRequest(
+      `Submission cooldown in effect. Please wait at least ${RCE_RATE_LIMITS.SUBMIT_COOLDOWN_MS / 1000} seconds between submissions.`
+    );
+  }
+
+  record.recentTimestamps = record.recentTimestamps.filter(
+    (t) => now - t < RCE_RATE_LIMITS.SUBMIT_WINDOW_MS
+  );
+
+  if (record.recentTimestamps.length >= RCE_RATE_LIMITS.SUBMIT_MAX_REQUESTS) {
+    throw ApiError.badRequest(
+      `Submission quota reached (${RCE_RATE_LIMITS.SUBMIT_MAX_REQUESTS} submissions / min). Please wait before submitting again.`
+    );
+  }
+
+  record.lastExecutionTime = now;
+  record.recentTimestamps.push(now);
+  userSubmitRateLimits.set(userId, record);
+  return now;
+}
+
+export function rollbackSubmitRateLimit(userId: string, timestamp: number) {
+  const record = userSubmitRateLimits.get(userId);
+  if (record) {
+    record.recentTimestamps = record.recentTimestamps.filter((t) => t !== timestamp);
+    record.lastExecutionTime = record.recentTimestamps[record.recentTimestamps.length - 1] || 0;
+    userSubmitRateLimits.set(userId, record);
+  }
 }
 
 /**
@@ -322,16 +407,13 @@ export const executeCode = async (request: FastifyRequest, reply: FastifyReply) 
     throw ApiError.unauthorized('Authentication required to execute code');
   }
 
-  // 1. Rate limiting check
-  checkExecutionRateLimit(user.id);
-
   const { problemId, language, code } = request.body as {
     problemId?: string;
     language?: string;
     code?: string;
   };
 
-  // 2. Validate request input
+  // 1. Validate request input
   if (!problemId || !mongoose.Types.ObjectId.isValid(problemId)) {
     throw ApiError.badRequest('A valid problemId is required');
   }
@@ -340,88 +422,107 @@ export const executeCode = async (request: FastifyRequest, reply: FastifyReply) 
     throw ApiError.badRequest('Source code must be provided');
   }
 
-  // 3. Fetch challenge
-  const challenge = await CodingChallenge.findById(problemId);
-  if (!challenge) {
-    throw ApiError.notFound('Coding challenge not found');
-  }
+  // 2. Concurrency Lock: Max 1 in-flight execution per user across Run and Submit
+  globalUserExecutionLocks.acquire(user.id);
+  // 3. Rate limiting check with failure rollback
+  const runTimestamp = checkRunRateLimit(user.id, problemId);
+  let providerSuccess = false;
 
-  // Verify access gating if challenge is mapped to a level
-  await checkCodingChallengeAccess(challenge._id as mongoose.Types.ObjectId, user);
+  try {
+    // Fetch challenge
+    const challenge = await CodingChallenge.findById(problemId);
+    if (!challenge) {
+      throw ApiError.notFound('Coding challenge not found');
+    }
 
-  // 4. Validate language against challenge allowlist & system supported languages
-  const normalizedLanguage = rceService.normalizeAndValidateLanguage(language);
-  if (!challenge.allowedLanguages.includes(normalizedLanguage)) {
-    throw ApiError.badRequest(
-      `Language "${normalizedLanguage}" is not permitted for this challenge. Allowed: ${challenge.allowedLanguages.join(
-        ', '
-      )}`
-    );
-  }
+    // Verify access gating if challenge is mapped to a level
+    await checkCodingChallengeAccess(challenge._id as mongoose.Types.ObjectId, user);
 
-  // 5. Select ONLY public/visible test cases
-  const visibleTestCases = challenge.testCases
-    .filter((tc) => !tc.isHidden)
-    .slice(0, MAX_PUBLIC_TESTCASES_PER_REQUEST);
+    // Validate language against challenge allowlist & system supported languages
+    const normalizedLanguage = rceService.normalizeAndValidateLanguage(language);
+    if (!challenge.allowedLanguages.includes(normalizedLanguage)) {
+      throw ApiError.badRequest(
+        `Language "${normalizedLanguage}" is not permitted for this challenge. Allowed: ${challenge.allowedLanguages.join(
+          ', '
+        )}`
+      );
+    }
 
-  if (visibleTestCases.length === 0) {
-    throw ApiError.badRequest('No visible test cases configured for this challenge');
-  }
+    // Select ONLY public/visible test cases
+    const visibleTestCases = challenge.testCases
+      .filter((tc) => !tc.isHidden)
+      .slice(0, MAX_PUBLIC_TESTCASES_PER_REQUEST);
 
-  // 6. Execute each visible test case sequentially through RCE service
-  const results = [];
-  let passedCount = 0;
+    if (visibleTestCases.length === 0) {
+      throw ApiError.badRequest('No visible test cases configured for this challenge');
+    }
 
-  for (let i = 0; i < visibleTestCases.length; i++) {
-    const tc = visibleTestCases[i];
-    const execRes = await rceService.executeCode({
-      language: normalizedLanguage,
-      sourceCode: code,
-      stdin: tc.input,
-    });
+    // Execute visible test cases sequentially through RCE service
+    const results = [];
+    let passedCount = 0;
 
-    // If compilation fails, stop and return the compile error immediately
-    if (execRes.status === 'compilation_error') {
-      return reply.send({
-        success: false,
-        compilationError: true,
-        error: execRes.stderr || 'Compilation failed',
-        results: [
-          {
-            testCase: i + 1,
-            passed: false,
-            stdout: '',
-            stderr: execRes.stderr,
-          },
-        ],
-        passed: 0,
-        total: visibleTestCases.length,
+    for (let i = 0; i < visibleTestCases.length; i++) {
+      const tc = visibleTestCases[i];
+      const execRes = await rceService.executeCode({
+        language: normalizedLanguage,
+        sourceCode: code,
+        stdin: tc.input,
+      });
+
+      if (execRes.status !== 'error') {
+        providerSuccess = true;
+      }
+
+      // If compilation fails, stop and return the compile error immediately
+      if (execRes.status === 'compilation_error') {
+        return reply.send({
+          success: false,
+          compilationError: true,
+          error: execRes.stderr || 'Compilation failed',
+          results: [
+            {
+              testCase: i + 1,
+              passed: false,
+              stdout: '',
+              stderr: execRes.stderr,
+            },
+          ],
+          passed: 0,
+          total: visibleTestCases.length,
+        });
+      }
+
+      const normalizedActual = normalizeOutput(execRes.stdout);
+      const normalizedExpected = normalizeOutput(tc.expectedOutput);
+      const isPassed =
+        execRes.status === 'success' && normalizedActual === normalizedExpected;
+
+      if (isPassed) {
+        passedCount++;
+      }
+
+      results.push({
+        testCase: i + 1,
+        passed: isPassed,
+        stdout: execRes.stdout,
+        stderr: execRes.stderr,
       });
     }
 
-    const normalizedActual = normalizeOutput(execRes.stdout);
-    const normalizedExpected = normalizeOutput(tc.expectedOutput);
-    const isPassed =
-      execRes.status === 'success' && normalizedActual === normalizedExpected;
-
-    if (isPassed) {
-      passedCount++;
-    }
-
-    results.push({
-      testCase: i + 1,
-      passed: isPassed,
-      stdout: execRes.stdout,
-      stderr: execRes.stderr,
+    return reply.send({
+      success: true,
+      results,
+      passed: passedCount,
+      total: visibleTestCases.length,
     });
+  } catch (err) {
+    if (!providerSuccess) {
+      rollbackRunRateLimit(user.id, runTimestamp, problemId);
+    }
+    throw err;
+  } finally {
+    globalUserExecutionLocks.release(user.id);
   }
-
-  return reply.send({
-    success: true,
-    results,
-    passed: passedCount,
-    total: visibleTestCases.length,
-  });
 };
 
 /**
@@ -456,97 +557,118 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
     throw ApiError.badRequest('Source code must be provided');
   }
 
-  // 2. Fetch challenge
-  const challenge = await CodingChallenge.findById(problemId);
-  if (!challenge) {
-    throw ApiError.notFound('Coding challenge not found');
-  }
+  // 2. Concurrency Lock: Max 1 in-flight execution per user across Run and Submit
+  globalUserExecutionLocks.acquire(user.id);
+  // 3. Submit rate limit check with failure rollback
+  const submitTimestamp = checkSubmitRateLimit(user.id);
+  let providerSuccess = false;
 
-  // Verify access gating if challenge is mapped to a level
-  await checkCodingChallengeAccess(challenge._id as mongoose.Types.ObjectId, user);
-
-  // 3. Verify single submission restriction
-  if (challenge.singleSubmissionOnly) {
-    const existingSubmission = await CodingSubmission.findOne({
-      challenge: challenge._id,
-      student: new mongoose.Types.ObjectId(user.id),
-      isLocked: true,
-    });
-
-    if (existingSubmission) {
-      return reply.status(403).send({
-        success: false,
-        submitted: false,
-        error: 'Assessment is already submitted and locked. Resubmissions are not permitted.',
-      });
+  try {
+    // Fetch challenge
+    const challenge = await CodingChallenge.findById(problemId);
+    if (!challenge) {
+      throw ApiError.notFound('Coding challenge not found');
     }
-  }
 
-  // 4. Verify language
-  const normalizedLanguage = rceService.normalizeAndValidateLanguage(language);
-  if (!challenge.allowedLanguages.includes(normalizedLanguage)) {
-    throw ApiError.badRequest(
-      `Language "${normalizedLanguage}" is not permitted for this challenge. Allowed: ${challenge.allowedLanguages.join(
-        ', '
-      )}`
-    );
-  }
+    // Verify access gating if challenge is mapped to a level
+    await checkCodingChallengeAccess(challenge._id as mongoose.Types.ObjectId, user);
 
-  // 5. Execute against BOTH visible and hidden test cases
-  const allTestCases = challenge.testCases.slice(0, MAX_TOTAL_TESTCASES_PER_REQUEST);
-  if (allTestCases.length === 0) {
-    throw ApiError.badRequest('No test cases configured for this challenge');
-  }
+    // Verify single submission restriction
+    if (challenge.singleSubmissionOnly) {
+      const existingSubmission = await CodingSubmission.findOne({
+        challenge: challenge._id,
+        student: new mongoose.Types.ObjectId(user.id),
+        isLocked: true,
+      });
 
-  let passedCount = 0;
-  const detailedResults = [];
-  let finalStatus: 'passed' | 'failed' | 'compilation_error' | 'runtime_error' | 'timeout' = 'passed';
+      if (existingSubmission) {
+        return reply.status(403).send({
+          success: false,
+          submitted: false,
+          error: 'Assessment is already submitted and locked. Resubmissions are not permitted.',
+        });
+      }
+    }
 
-  for (let i = 0; i < allTestCases.length; i++) {
-    const tc = allTestCases[i];
-    const execRes = await rceService.executeCode({
+    // Verify language
+    const normalizedLanguage = rceService.normalizeAndValidateLanguage(language);
+    if (!challenge.allowedLanguages.includes(normalizedLanguage)) {
+      throw ApiError.badRequest(
+        `Language "${normalizedLanguage}" is not permitted for this challenge. Allowed: ${challenge.allowedLanguages.join(
+          ', '
+        )}`
+      );
+    }
+
+    // Execute against BOTH visible and hidden test cases
+    const allTestCases = challenge.testCases.slice(0, MAX_TOTAL_TESTCASES_PER_REQUEST);
+    if (allTestCases.length === 0) {
+      throw ApiError.badRequest('No test cases configured for this challenge');
+    }
+
+    // Execute batch across test cases (reducing provider calls by 70-85%)
+    const execRequests = allTestCases.map((tc) => ({
       language: normalizedLanguage,
       sourceCode: code,
       stdin: tc.input,
-    });
+    }));
 
-    if (execRes.status === 'compilation_error') {
-      finalStatus = 'compilation_error';
+    const execResults = await rceService.executeBatchCode(execRequests);
+
+    let passedCount = 0;
+    const detailedResults = [];
+    let finalStatus: 'passed' | 'failed' | 'compilation_error' | 'runtime_error' | 'timeout' = 'passed';
+
+    for (let i = 0; i < allTestCases.length; i++) {
+      const tc = allTestCases[i];
+      const execRes = execResults[i] || {
+        status: 'error',
+        stdout: '',
+        stderr: 'Execution result missing',
+        executionTimeMs: 0,
+      };
+
+      if (execRes.status !== 'error') {
+        providerSuccess = true;
+      }
+
+      if (execRes.status === 'compilation_error') {
+        finalStatus = 'compilation_error';
+        detailedResults.push({
+          testCaseIndex: i + 1,
+          passed: false,
+          stdout: '',
+          stderr: execRes.stderr,
+          isHidden: tc.isHidden,
+          executionTimeMs: execRes.executionTimeMs,
+        });
+        break;
+      }
+
+      const normalizedActual = normalizeOutput(execRes.stdout);
+      const normalizedExpected = normalizeOutput(tc.expectedOutput);
+      const isPassed =
+        execRes.status === 'success' && normalizedActual === normalizedExpected;
+
+      if (isPassed) {
+        passedCount++;
+      } else if (finalStatus === 'passed') {
+        finalStatus = execRes.status === 'timeout' ? 'timeout' : 'failed';
+      }
+
       detailedResults.push({
         testCaseIndex: i + 1,
-        passed: false,
-        stdout: '',
-        stderr: execRes.stderr,
+        passed: isPassed,
+        stdout: tc.isHidden ? '[HIDDEN]' : execRes.stdout,
+        stderr: tc.isHidden ? '' : execRes.stderr,
         isHidden: tc.isHidden,
         executionTimeMs: execRes.executionTimeMs,
       });
-      break;
     }
 
-    const normalizedActual = normalizeOutput(execRes.stdout);
-    const normalizedExpected = normalizeOutput(tc.expectedOutput);
-    const isPassed =
-      execRes.status === 'success' && normalizedActual === normalizedExpected;
-
-    if (isPassed) {
-      passedCount++;
-    } else if (finalStatus === 'passed') {
-      finalStatus = execRes.status === 'timeout' ? 'timeout' : 'failed';
-    }
-
-    detailedResults.push({
-      testCaseIndex: i + 1,
-      passed: isPassed,
-      stdout: tc.isHidden ? '[HIDDEN]' : execRes.stdout,
-      stderr: tc.isHidden ? '' : execRes.stderr,
-      isHidden: tc.isHidden,
-      executionTimeMs: execRes.executionTimeMs,
-    });
-  }
-
-  const total = allTestCases.length;
-  const score = total > 0 ? Math.round((passedCount / total) * 100) : 0;
-  const submissionStatus = passedCount === total ? 'passed' : 'failed';
+    const total = allTestCases.length;
+    const score = total > 0 ? Math.round((passedCount / total) * 100) : 0;
+    const submissionStatus = passedCount === total ? 'passed' : 'failed';
 
   // Format integrity logs
   const formattedIntegrityEvents = Array.isArray(integrityEvents)
@@ -752,6 +874,14 @@ export const submitAssessmentCode = async (request: FastifyRequest, reply: Fasti
     nextLevelId,
     domainId,
   });
+  } catch (err) {
+    if (!providerSuccess) {
+      rollbackSubmitRateLimit(user.id, submitTimestamp);
+    }
+    throw err;
+  } finally {
+    globalUserExecutionLocks.release(user.id);
+  }
 };
 
 /**
@@ -2068,137 +2198,155 @@ export const submitLevelAssessmentCode = async (
     throw ApiError.unauthorized('Authentication required');
   }
 
-  checkExecutionRateLimit(user.id);
+  // 1. Concurrency Lock: Max 1 in-flight execution per user across Run and Submit
+  globalUserExecutionLocks.acquire(user.id);
+  // 2. Submit rate limit check with failure rollback
+  const submitTimestamp = checkSubmitRateLimit(user.id);
+  let providerSuccess = false;
 
-  const body = (request.body || {}) as {
-    problemId?: string;
-    questionId?: string;
-    language?: string;
-    code?: string;
-    sourceCode?: string;
-    integrityEvents?: any[];
-  };
+  try {
+    const body = (request.body || {}) as {
+      problemId?: string;
+      questionId?: string;
+      language?: string;
+      code?: string;
+      sourceCode?: string;
+      integrityEvents?: any[];
+    };
 
-  const problemId = body.problemId || body.questionId;
-  const code = body.code !== undefined ? body.code : body.sourceCode;
-  const language = body.language;
-  const integrityEvents = body.integrityEvents;
+    const problemId = body.problemId || body.questionId;
+    const code = body.code !== undefined ? body.code : body.sourceCode;
+    const language = body.language;
+    const integrityEvents = body.integrityEvents;
 
-  if (!problemId || !mongoose.Types.ObjectId.isValid(problemId)) {
-    throw ApiError.badRequest('Valid problemId is required');
-  }
-  if (typeof code !== 'string' || !code) {
-    throw ApiError.badRequest('Source code must be provided');
-  }
+    if (!problemId || !mongoose.Types.ObjectId.isValid(problemId)) {
+      throw ApiError.badRequest('Valid problemId is required');
+    }
+    if (typeof code !== 'string' || !code) {
+      throw ApiError.badRequest('Source code must be provided');
+    }
 
-  const userId = new mongoose.Types.ObjectId(user.id);
-  const session = await LevelAssessmentSession.findOne({
-    student: userId,
-    level: new mongoose.Types.ObjectId(levelId),
-  }).sort({ createdAt: -1 });
+    const userId = new mongoose.Types.ObjectId(user.id);
+    const session = await LevelAssessmentSession.findOne({
+      student: userId,
+      level: new mongoose.Types.ObjectId(levelId),
+    }).sort({ createdAt: -1 });
 
-  if (!session) {
-    throw ApiError.badRequest('No active assessment session found for this level');
-  }
+    if (!session) {
+      throw ApiError.badRequest('No active assessment session found for this level');
+    }
 
-  if (session.isCompleted) {
-    throw ApiError.badRequest('This assessment session has already been completed');
-  }
+    if (session.isCompleted) {
+      throw ApiError.badRequest('This assessment session has already been completed');
+    }
 
-  const isAssigned = session.assignedQuestions.some(
-    (id) => id.toString() === problemId
-  );
-  if (!isAssigned) {
-    throw ApiError.badRequest('This question is not part of your assigned assessment session');
-  }
+    const isAssigned = session.assignedQuestions.some(
+      (id) => id.toString() === problemId
+    );
+    if (!isAssigned) {
+      throw ApiError.badRequest('This question is not part of your assigned assessment session');
+    }
 
-  // Grace period of 15 seconds after expiry
-  if (Date.now() > session.expiresAt.getTime() + 15000) {
-    session.verdict = 'expired';
-    await session.save();
-    return reply.status(400).send({
-      success: false,
-      error: 'Time limit for this coding assessment has expired',
-      isExpired: true,
-      canRetry: true,
-      attemptNumber: session.attemptNumber || 1,
-      message: 'Time limit for this coding assessment has expired. You can start a new attempt with 2 fresh questions.',
-    });
-  }
+    // Grace period of 15 seconds after expiry
+    if (Date.now() > session.expiresAt.getTime() + 15000) {
+      session.verdict = 'expired';
+      await session.save();
+      return reply.status(400).send({
+        success: false,
+        error: 'Time limit for this coding assessment has expired',
+        isExpired: true,
+        canRetry: true,
+        attemptNumber: session.attemptNumber || 1,
+        message: 'Time limit for this coding assessment has expired. You can start a new attempt with 2 fresh questions.',
+      });
+    }
 
-  const challenge = await CodingChallenge.findById(problemId);
-  if (!challenge) {
-    throw ApiError.notFound('Coding challenge not found');
-  }
+    const challenge = await CodingChallenge.findById(problemId);
+    if (!challenge) {
+      throw ApiError.notFound('Coding challenge not found');
+    }
 
-  const normalizedLanguage = rceService.normalizeAndValidateLanguage(language);
-  if (!challenge.allowedLanguages.includes(normalizedLanguage)) {
-    throw ApiError.badRequest(`Language "${normalizedLanguage}" is not permitted`);
-  }
+    const normalizedLanguage = rceService.normalizeAndValidateLanguage(language);
+    if (!challenge.allowedLanguages.includes(normalizedLanguage)) {
+      throw ApiError.badRequest(`Language "${normalizedLanguage}" is not permitted`);
+    }
 
-  const allTestCases = challenge.testCases.slice(0, MAX_TOTAL_TESTCASES_PER_REQUEST);
-  const detailedResults = [];
-  let passedCount = 0;
-  let finalStatus: any = 'passed';
-
-  for (let i = 0; i < allTestCases.length; i++) {
-    const tc = allTestCases[i];
-    const execRes = await rceService.executeCode({
+    const allTestCases = challenge.testCases.slice(0, MAX_TOTAL_TESTCASES_PER_REQUEST);
+    const execRequests = allTestCases.map((tc) => ({
       language: normalizedLanguage,
       sourceCode: code,
       stdin: tc.input,
       timeoutMs: 6000,
-    });
+    }));
 
-    if (execRes.status === 'compilation_error') {
-      finalStatus = 'compilation_error';
-      detailedResults.push({
-        testCaseIndex: i + 1,
-        passed: false,
+    const execResults = await rceService.executeBatchCode(execRequests);
+
+    const detailedResults = [];
+    let passedCount = 0;
+    let finalStatus: any = 'passed';
+
+    for (let i = 0; i < allTestCases.length; i++) {
+      const tc = allTestCases[i];
+      const execRes = execResults[i] || {
+        status: 'error',
         stdout: '',
-        stderr: execRes.error || execRes.stderr,
-        isHidden: tc.isHidden,
-        executionTimeMs: execRes.executionTimeMs,
-      });
-      break;
-    }
+        stderr: 'Execution result missing',
+        executionTimeMs: 0,
+      };
 
-    if (execRes.status === 'runtime_error') {
-      if (finalStatus === 'passed') finalStatus = 'runtime_error';
+      if (execRes.status !== 'error') {
+        providerSuccess = true;
+      }
+
+      if (execRes.status === 'compilation_error') {
+        finalStatus = 'compilation_error';
+        detailedResults.push({
+          testCaseIndex: i + 1,
+          passed: false,
+          stdout: '',
+          stderr: execRes.error || execRes.stderr,
+          isHidden: tc.isHidden,
+          executionTimeMs: execRes.executionTimeMs,
+        });
+        break;
+      }
+
+      if (execRes.status === 'runtime_error') {
+        if (finalStatus === 'passed') finalStatus = 'runtime_error';
+        detailedResults.push({
+          testCaseIndex: i + 1,
+          passed: false,
+          stdout: tc.isHidden ? '[HIDDEN]' : execRes.stdout,
+          stderr: tc.isHidden ? '' : execRes.stderr,
+          isHidden: tc.isHidden,
+          executionTimeMs: execRes.executionTimeMs,
+        });
+        continue;
+      }
+
+      const normalizedActual = normalizeOutput(execRes.stdout);
+      const normalizedExpected = normalizeOutput(tc.expectedOutput);
+      const isPassed = execRes.status === 'success' && normalizedActual === normalizedExpected;
+
+      if (isPassed) {
+        passedCount++;
+      } else if (finalStatus === 'passed') {
+        finalStatus = execRes.status === 'timeout' ? 'timeout' : 'failed';
+      }
+
       detailedResults.push({
         testCaseIndex: i + 1,
-        passed: false,
+        passed: isPassed,
         stdout: tc.isHidden ? '[HIDDEN]' : execRes.stdout,
         stderr: tc.isHidden ? '' : execRes.stderr,
         isHidden: tc.isHidden,
         executionTimeMs: execRes.executionTimeMs,
       });
-      continue;
     }
 
-    const normalizedActual = normalizeOutput(execRes.stdout);
-    const normalizedExpected = normalizeOutput(tc.expectedOutput);
-    const isPassed = execRes.status === 'success' && normalizedActual === normalizedExpected;
-
-    if (isPassed) {
-      passedCount++;
-    } else if (finalStatus === 'passed') {
-      finalStatus = execRes.status === 'timeout' ? 'timeout' : 'failed';
-    }
-
-    detailedResults.push({
-      testCaseIndex: i + 1,
-      passed: isPassed,
-      stdout: tc.isHidden ? '[HIDDEN]' : execRes.stdout,
-      stderr: tc.isHidden ? '' : execRes.stderr,
-      isHidden: tc.isHidden,
-      executionTimeMs: execRes.executionTimeMs,
-    });
-  }
-
-  const total = allTestCases.length;
-  const score = total > 0 ? Math.round((passedCount / total) * 100) : 0;
-  const submissionStatus = passedCount === total ? 'passed' : finalStatus;
+    const total = allTestCases.length;
+    const score = total > 0 ? Math.round((passedCount / total) * 100) : 0;
+    const submissionStatus = passedCount === total ? 'passed' : finalStatus;
 
   const formattedIntegrityEvents = Array.isArray(integrityEvents)
     ? integrityEvents.map((evt) => ({
@@ -2414,6 +2562,14 @@ export const submitLevelAssessmentCode = async (
     initialPoints: session.initialPoints || (levelDoc ? getDefaultPointsForLevel(levelDoc.levelNumber) : 100),
     pointsAvailable: session.pointsAvailable !== undefined ? session.pointsAvailable : pointsAwarded,
   });
+  } catch (err) {
+    if (!providerSuccess) {
+      rollbackSubmitRateLimit(user.id, submitTimestamp);
+    }
+    throw err;
+  } finally {
+    globalUserExecutionLocks.release(user.id);
+  }
 };
 
 /**
@@ -2519,6 +2675,21 @@ export const updateLevelPool = async (request: FastifyRequest, reply: FastifyRep
   });
 };
 
+/**
+ * GET /api/assessments/code/queue-status
+ * Report in-flight and queued RCE worker status so frontend can display queue/busy indicators.
+ */
+export const getRceQueueStatus = async (request: FastifyRequest, reply: FastifyReply) => {
+  const user = request.user;
+  const isUserExecuting = user ? globalUserExecutionLocks.isLocked(user.id) : false;
+  const stats = globalRceLimiter.getStats();
+  return reply.send({
+    success: true,
+    userIsExecuting: isUserExecuting,
+    ...stats,
+  });
+};
+
 export default {
   getCodingChallenge,
   listCodingChallenges,
@@ -2541,6 +2712,7 @@ export default {
   submitLevelAssessmentCode,
   getLevelPool,
   updateLevelPool,
+  getRceQueueStatus,
 };
 
 

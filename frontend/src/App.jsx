@@ -39,9 +39,13 @@ const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage
 const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
 const EventArenaPage = lazy(() => import('./pages/EventArenaPage'));
 const EventDocumentationPage = lazy(() => import('./pages/EventDocumentationPage'));
+const StatesGalleryPage = lazy(() => import('./pages/StatesGalleryPage'));
 
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
+import { OfflineBanner } from './components/states/OfflineBanner';
+import { SessionExpiredModal } from './components/states/SessionExpiredModal';
+import { ErrorBoundary } from './components/states/ErrorBoundary';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading, token } = useAuthStore();
@@ -94,38 +98,45 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
-      <Toaster 
-        position="top-right" 
-        toastOptions={{
-          duration: 2600,
-          className: '!rounded-full !text-[13px] !font-medium',
-          style: {
-            background: 'var(--surface)',
-            color: 'var(--label-primary)',
-            border: '1px solid var(--separator)',
-            boxShadow: 'var(--shadow-lg)',
-            padding: '8px 16px',
-            letterSpacing: '-0.01em',
-          },
-          success: {
-            iconTheme: {
-              primary: 'var(--success)',
-              secondary: '#FFFFFF',
+        <OfflineBanner />
+        <SessionExpiredModal />
+        <Toaster 
+          position="top-right" 
+          toastOptions={{
+            duration: 2600,
+            className: '!rounded-full !text-[13px] !font-medium',
+            style: {
+              background: 'var(--surface)',
+              color: 'var(--label-primary)',
+              border: '1px solid var(--separator)',
+              boxShadow: 'var(--shadow-lg)',
+              padding: '8px 16px',
+              letterSpacing: '-0.01em',
             },
-          },
-          error: {
-            iconTheme: {
-              primary: 'var(--destructive)',
-              secondary: '#FFFFFF',
+            success: {
+              iconTheme: {
+                primary: 'var(--success)',
+                secondary: '#FFFFFF',
+              },
             },
-          },
-        }}
-      />
-      <TutorialModal />
-      <Suspense fallback={<PageSkeleton />}>
-        <Routes>
-          {/* Public Auth Routes */}
-          <Route path="/login" element={<Login />} />
+            error: {
+              iconTheme: {
+                primary: 'var(--destructive)',
+                secondary: '#FFFFFF',
+              },
+            },
+          }}
+        />
+        <TutorialModal />
+        <ErrorBoundary sectionName="Application Shell">
+          <Suspense fallback={<PageSkeleton />}>
+            <Routes>
+              {/* Dev States Gallery & Verification Route */}
+              <Route path="/states-gallery" element={<StatesGalleryPage />} />
+              <Route path="/dev/states" element={<StatesGalleryPage />} />
+
+              {/* Public Auth Routes */}
+              <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
@@ -523,6 +534,7 @@ function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Suspense>
+      </ErrorBoundary>
     </Router>
     </ThemeProvider>
   );

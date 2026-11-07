@@ -35,4 +35,5 @@ export interface RCEExecutionResponse {
 export interface IRCEProvider {
   readonly name: string;
   execute(req: NormalizedRCERequest): Promise<RCEExecutionResponse>;
+  executeBatch?(reqs: NormalizedRCERequest[]): Promise<RCEExecutionResponse[]>;
 }

@@ -89,6 +89,9 @@ interface Student360Data {
     profilePicUrl?: string;
     isOnboarded: boolean;
     isBlocked: boolean;
+    isRestricted?: boolean;
+    restrictionReason?: string;
+    restrictedFeatures?: string[];
     createdAt: string;
   };
   stats: {

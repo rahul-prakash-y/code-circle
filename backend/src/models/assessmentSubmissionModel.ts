@@ -26,6 +26,12 @@ export interface IDetailedQuestionResult {
 export interface IAssessmentSubmission extends Document {
   assessment: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
+  submissionId: string;
+  isLate?: boolean;
+  submissionStatus?: 'on_time' | 'late' | 'review';
+  durableStatus?: 'saved' | 'pending';
+  type?: 'mcq' | 'coding' | 'figma';
+  figmaUrl?: string;
   answers: ISubmissionAnswer[];
   score: number;
   totalPoints: number;
@@ -81,6 +87,39 @@ const assessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
       required: true,
       index: true,
     },
+    submissionId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    isLate: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    submissionStatus: {
+      type: String,
+      enum: ['on_time', 'late', 'review'],
+      default: 'on_time',
+      index: true,
+    },
+    durableStatus: {
+      type: String,
+      enum: ['saved', 'pending'],
+      default: 'saved',
+      index: true,
+    },
+    type: {
+      type: String,
+      enum: ['mcq', 'coding', 'figma'],
+      default: 'mcq',
+      index: true,
+    },
+    figmaUrl: {
+      type: String,
+      default: null,
+      maxlength: 2048,
+    },
     answers: {
       type: [submissionAnswerSchema],
       default: [],
@@ -124,6 +163,7 @@ const assessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
 );
 
 assessmentSubmissionSchema.index({ assessment: 1, user: 1 });
+assessmentSubmissionSchema.index({ user: 1, assessment: 1, submissionId: 1 }, { unique: true });
 assessmentSubmissionSchema.index({ user: 1, createdAt: -1 });
 assessmentSubmissionSchema.index({ assessment: 1, score: -1, createdAt: -1 });
 

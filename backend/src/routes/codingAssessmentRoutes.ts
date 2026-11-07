@@ -122,6 +122,9 @@ export async function codingAssessmentRoutes(fastify: FastifyInstance) {
     codingAssessmentController.submitAssessmentCode as any
   );
 
+  // RCE Worker Queue Status for Frontend UI
+  fastify.get('/queue-status', codingAssessmentController.getRceQueueStatus as any);
+
   // Student's own submissions across challenges
   fastify.get('/my-submissions', codingAssessmentController.getMySubmissions as any);
 

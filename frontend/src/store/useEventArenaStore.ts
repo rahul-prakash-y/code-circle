@@ -32,6 +32,7 @@ export interface ArenaCodingProblem {
   _id?: string;
   title: string;
   description: string;
+  codingMode?: 'ONLY_CODE' | 'TEST_CASES' | 'BOTH';
   inputFormat?: string;
   outputFormat?: string;
   constraints?: string;
@@ -151,6 +152,11 @@ export interface ArenaSubmission {
     totalTestCases: number;
     pointsEarned: number;
     status: string;
+    codingMode?: 'ONLY_CODE' | 'TEST_CASES';
+    isEvaluated?: boolean;
+    evaluatedBy?: any;
+    evaluatedAt?: string;
+    feedback?: string;
   }>;
   designSubmission?: ArenaDesignSubmission;
   designScore?: number;
@@ -268,15 +274,25 @@ interface EventArenaState {
     eventId: string,
     assessmentId: string,
     problemId: string,
-    languageOrPayload: string | { language: string; code: string },
-    code?: string
+    languageOrPayload: string | { language: string; code: string; customInput?: string },
+    code?: string,
+    customInput?: string
   ) => Promise<any>;
   submitAssessmentProblem: (
     eventId: string,
     assessmentId: string,
     problemId: string,
-    languageOrPayload: string | { language: string; code: string },
-    code?: string
+    languageOrPayload: string | { language: string; code: string; codingMode?: 'ONLY_CODE' | 'TEST_CASES' },
+    code?: string,
+    codingMode?: 'ONLY_CODE' | 'TEST_CASES'
+  ) => Promise<any>;
+  evaluateAssessmentCode: (
+    eventId: string,
+    assessmentId: string,
+    submissionId: string,
+    problemId: string,
+    pointsEarned: number,
+    feedback?: string
   ) => Promise<any>;
   submitAssessmentFinal: (
     eventId: string,
@@ -766,15 +782,17 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
     eventId: string,
     assessmentId: string,
     problemId: string,
-    languageOrPayload: string | { language: string; code: string },
-    rawCode?: string
+    languageOrPayload: string | { language: string; code: string; customInput?: string },
+    rawCode?: string,
+    explicitCustomInput?: string
   ) => {
     const language = typeof languageOrPayload === 'string' ? languageOrPayload : languageOrPayload.language;
     const code = typeof languageOrPayload === 'string' ? (rawCode || '') : languageOrPayload.code;
+    const customInput = explicitCustomInput !== undefined ? explicitCustomInput : (typeof languageOrPayload === 'object' ? languageOrPayload.customInput : undefined);
     try {
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/run-code`,
-        { problemId, language, code }
+        { problemId, language, code, customInput }
       );
       return res.data;
     } catch (err: any) {
@@ -788,28 +806,55 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
     eventId: string,
     assessmentId: string,
     problemId: string,
-    languageOrPayload: string | { language: string; code: string },
-    rawCode?: string
+    languageOrPayload: string | { language: string; code: string; codingMode?: 'ONLY_CODE' | 'TEST_CASES' },
+    rawCode?: string,
+    explicitCodingMode?: 'ONLY_CODE' | 'TEST_CASES'
   ) => {
     const language = typeof languageOrPayload === 'string' ? languageOrPayload : languageOrPayload.language;
     const code = typeof languageOrPayload === 'string' ? (rawCode || '') : languageOrPayload.code;
+    const codingMode = explicitCodingMode || (typeof languageOrPayload === 'object' ? languageOrPayload.codingMode : undefined) || 'TEST_CASES';
     try {
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/submit-problem`,
-        { problemId, language, code }
+        { problemId, language, code, codingMode }
       );
-      if (res.data.status === 'ACCEPTED') {
+      if (codingMode === 'ONLY_CODE') {
+        toast.success(res.data.message || 'Code submitted! Assigned admin will review and evaluate score.');
+      } else if (res.data.status === 'ACCEPTED') {
         toast.success(
-          `Problem Accepted! (${res.data.passedCount}/${res.data.totalTestCases} test cases passed)`
+          `Problem Accepted! (${res.data.passedCount}/${res.data.totalTestCases} test cases passed) +${res.data.pointsEarned} pts awarded!`
         );
       } else {
         toast.error(
-          `Partially Passed: ${res.data.passedCount}/${res.data.totalTestCases} test cases passed`
+          `Submitted: ${res.data.passedCount}/${res.data.totalTestCases} test cases passed (+${res.data.pointsEarned} pts)`
         );
       }
       return res.data;
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to submit problem solution';
+      toast.error(msg);
+      throw err;
+    }
+  },
+
+  evaluateAssessmentCode: async (
+    eventId: string,
+    assessmentId: string,
+    submissionId: string,
+    problemId: string,
+    pointsEarned: number,
+    feedback?: string
+  ) => {
+    try {
+      const res = await api.put(
+        `/events/${eventId}/arena/assessments/${assessmentId}/submissions/${submissionId}/evaluate-code`,
+        { problemId, pointsEarned, feedback }
+      );
+      toast.success(res.data.message || 'Code evaluation saved!');
+      await get().fetchAdminAssessmentSubmissions(eventId, assessmentId);
+      return res.data;
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to evaluate coding submission';
       toast.error(msg);
       throw err;
     }
