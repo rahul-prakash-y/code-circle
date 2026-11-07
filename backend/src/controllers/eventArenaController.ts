@@ -176,9 +176,23 @@ export const parseCodingBuffer = (buffer: Buffer, fileName: string): IEventArena
         });
       }
 
+      const rawMode = row['Coding Mode'] || row['codingMode'] || row['Mode'] || row['mode'];
+      let codingMode: 'ONLY_CODE' | 'TEST_CASES' | 'BOTH' = 'BOTH';
+      if (rawMode) {
+        const norm = String(rawMode).trim().toUpperCase();
+        if (norm === 'ONLY_CODE' || norm === 'CODE_ONLY' || norm === 'ONLY CODE') {
+          codingMode = 'ONLY_CODE';
+        } else if (norm === 'TEST_CASES' || norm === 'TEST_CASE' || norm === 'TEST CASES' || norm === 'TESTCASE') {
+          codingMode = 'TEST_CASES';
+        } else {
+          codingMode = 'BOTH';
+        }
+      }
+
       parsedCoding.push({
         title: String(title).trim(),
         description: String(description).trim(),
+        codingMode,
         inputFormat: String(row['Input Format'] || row['inputFormat'] || ''),
         outputFormat: String(row['Output Format'] || row['outputFormat'] || ''),
         constraints: String(row['Constraints'] || row['constraints'] || ''),
@@ -726,9 +740,23 @@ export const bulkUploadArenaQuestions = async (
             });
           }
 
+          const rawMode = row['Coding Mode'] || row['codingMode'] || row['Mode'] || row['mode'];
+          let codingMode: 'ONLY_CODE' | 'TEST_CASES' | 'BOTH' = 'BOTH';
+          if (rawMode) {
+            const norm = String(rawMode).trim().toUpperCase();
+            if (norm === 'ONLY_CODE' || norm === 'CODE_ONLY' || norm === 'ONLY CODE') {
+              codingMode = 'ONLY_CODE';
+            } else if (norm === 'TEST_CASES' || norm === 'TEST_CASE' || norm === 'TEST CASES' || norm === 'TESTCASE') {
+              codingMode = 'TEST_CASES';
+            } else {
+              codingMode = 'BOTH';
+            }
+          }
+
           parsedCoding.push({
             title: String(title).trim(),
             description: String(description).trim(),
+            codingMode,
             inputFormat: String(row['Input Format'] || row['inputFormat'] || ''),
             outputFormat: String(row['Output Format'] || row['outputFormat'] || ''),
             constraints: String(row['Constraints'] || row['constraints'] || ''),
@@ -799,6 +827,7 @@ export const downloadArenaSampleTemplate = async (
         {
           Title: 'Sum of Two Numbers',
           Description: 'Given two integers a and b, compute and print their sum.',
+          'Coding Mode': 'TEST_CASES',
           'Input Format': 'Two space-separated integers a and b.',
           'Output Format': 'Single integer representing the sum.',
           Constraints: '1 <= a, b <= 10^5',
@@ -812,6 +841,7 @@ export const downloadArenaSampleTemplate = async (
         {
           Title: 'Reverse a String',
           Description: 'Given a string S, print the reversed string.',
+          'Coding Mode': 'ONLY_CODE',
           'Input Format': 'A single string S.',
           'Output Format': 'The reversed string.',
           Constraints: '1 <= length(S) <= 1000',
@@ -821,6 +851,20 @@ export const downloadArenaSampleTemplate = async (
           'Sample Output': 'olleh',
           'Hidden Input 1': 'algorithm',
           'Hidden Output 1': 'mhtirogla',
+        },
+        {
+          Title: 'Maximum of Three Numbers',
+          Description: 'Given three integers, find and output the largest of them.',
+          'Coding Mode': 'BOTH',
+          'Input Format': 'Three integers on a single line.',
+          'Output Format': 'The maximum integer.',
+          Constraints: '1 <= a, b, c <= 10^6',
+          Difficulty: 'Easy',
+          Points: 25,
+          'Sample Input': '10 50 30',
+          'Sample Output': '50',
+          'Hidden Input 1': '99 100 2',
+          'Hidden Output 1': '100',
         },
       ];
 

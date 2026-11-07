@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../lib/axios';
+import { Button } from '@heroui/react';
 import useAuthStore from '../../store/useAuthStore';
 import useEventArenaStore, {
   ArenaAssessment,
@@ -825,42 +826,50 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
             {assessments.map((asm) => {
               const isSelected = !isCreatingNew && selectedAssessment?._id === asm._id;
               return (
-                <button
+                <Button
                   key={asm._id}
-                  onClick={() => {
+                  size="sm"
+                  variant={isSelected ? 'solid' : 'bordered'}
+                  color={isSelected ? 'secondary' : 'default'}
+                  onPress={() => {
                     setIsCreatingNew(false);
                     setSelectedAssessment(asm);
                   }}
-                  className={`min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                  className={`min-h-[36px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer ${
                     isSelected
                       ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
-                      : 'bg-surface hover:bg-surface-secondary text-label-secondary hover:text-label-primary border border-separator'
+                      : 'bg-surface hover:bg-surface-secondary text-label-secondary hover:text-label-primary border-separator'
                   }`}
+                  endContent={
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-mono font-bold ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-surface-secondary text-label-tertiary'
+                      }`}
+                    >
+                      {asm.type}
+                    </span>
+                  }
                 >
                   <span className="truncate max-w-[120px] sm:max-w-[150px]">{asm.title}</span>
-                  <span
-                    className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-mono font-bold ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-surface-secondary text-label-tertiary'
-                    }`}
-                  >
-                    {asm.type}
-                  </span>
-                </button>
+                </Button>
               );
             })}
           </div>
 
-          <button
-            onClick={() => setIsCreatingNew(true)}
-            className={`min-h-[36px] px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+          <Button
+            size="sm"
+            variant={isCreatingNew ? 'solid' : 'flat'}
+            color="success"
+            onPress={() => setIsCreatingNew(true)}
+            startContent={<Plus size={14} />}
+            className={`min-h-[36px] px-3.5 rounded-full text-xs font-semibold shrink-0 cursor-pointer ${
               isCreatingNew
                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+                : 'border border-emerald-500/30'
             }`}
           >
-            <Plus size={14} />
-            <span>Create Assessment</span>
-          </button>
+            Create Assessment
+          </Button>
         </div>
 
         {/* Main Body */}
