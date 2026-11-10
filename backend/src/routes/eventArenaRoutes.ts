@@ -64,7 +64,8 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/arena/assessments/:assessmentId/questions/bulk-upload', bulkUploadAssessmentQuestions);
   fastify.put('/:id/arena/assessments/:assessmentId/design', saveAssessmentDesignChallenge);
   fastify.get('/:id/arena/assessments/:assessmentId/admin/submissions', getAdminAssessmentSubmissions);
-  fastify.get('/:id/arena/admin/overall-leaderboard', getAdminOverallArenaLeaderboard);
+  fastify.get('/:id/arena/assessments/:assessmentId/leaderboard', { preHandler: [isAdmin] }, getAssessmentLeaderboard as any);
+  fastify.get('/:id/arena/admin/overall-leaderboard', { preHandler: [isAdmin] }, getAdminOverallArenaLeaderboard as any);
   fastify.put('/:id/arena/assessments/:assessmentId/submissions/:submissionId/evaluate-design', evaluateAssessmentDesign);
   fastify.put('/:id/arena/assessments/:assessmentId/submissions/:submissionId/evaluate-code', evaluateAssessmentCode);
   fastify.delete('/:id/arena/assessments/:assessmentId/submissions/:submissionId', deleteAdminAssessmentSubmission);
@@ -86,7 +87,7 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/arena/questions/bulk-upload', bulkUploadArenaQuestions);
   fastify.get('/:id/arena/admin/submissions', getAdminArenaSubmissions);
   fastify.get('/:id/arena', { preHandler: [checkAssessmentNotBlocked] }, getStudentArenaData as any);
-  fastify.get('/:id/arena/leaderboard', getArenaLeaderboard);
+  fastify.get('/:id/arena/leaderboard', { preHandler: [isAdmin] }, getArenaLeaderboard as any);
 
   // 6. Student Assessment Participation Endpoints (Gated against restriction & Anti-Cheat Block)
   fastify.register(async (studentArenaGroup) => {
@@ -100,7 +101,6 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
     studentArenaGroup.post('/:id/arena/assessments/:assessmentId/submit-problem', submitAssessmentCodingProblem);
     studentArenaGroup.post('/:id/arena/assessments/:assessmentId/submit', submitAssessmentFinal);
     studentArenaGroup.post('/:id/arena/assessments/:assessmentId/design/submit', submitAssessmentDesign);
-    studentArenaGroup.get('/:id/arena/assessments/:assessmentId/leaderboard', getAssessmentLeaderboard);
 
     // Single-arena legacy routes
     studentArenaGroup.post('/:id/arena/start', startArenaSession);

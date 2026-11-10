@@ -452,8 +452,8 @@ export const EventArenaPage: React.FC = () => {
               {currentEvent?.title || 'Event Arena Assessments'}
             </h2>
             <p className="text-xs sm:text-sm text-label-secondary max-w-2xl leading-relaxed">
-              Complete each assessment round created by the event coordinators and faculty. Your scores,
-              code test-case executions, and performance will be tracked on the live leaderboard.
+              Complete each assessment round created by the event coordinators and faculty. Your submissions
+              and code test-case executions will be evaluated securely, and points earned will be credited directly to your profile.
             </p>
           </div>
 
@@ -623,17 +623,28 @@ export const EventArenaPage: React.FC = () => {
                     {/* Action Button */}
                     <div className="pt-2">
                       {isCompleted ? (
-                        <Button
-                          color="default"
-                          variant="flat"
-                          onPress={() => {
-                            setActiveAssessmentId(asm._id);
-                          }}
-                          className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold"
-                          startContent={<Trophy size={13} className="text-amber-400" />}
-                        >
-                          View Scorecard
-                        </Button>
+                        isAdmin ? (
+                          <Button
+                            color="default"
+                            variant="flat"
+                            onPress={() => {
+                              setActiveAssessmentId(asm._id);
+                            }}
+                            className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold"
+                            startContent={<Trophy size={13} className="text-amber-400" />}
+                          >
+                            View Scorecard
+                          </Button>
+                        ) : (
+                          <Button
+                            isDisabled
+                            variant="flat"
+                            className="w-full min-h-[42px] rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 text-xs font-bold cursor-default"
+                            startContent={<CheckCircle2 size={13} className="text-emerald-400" />}
+                          >
+                            Round Completed
+                          </Button>
+                        )
                       ) : isLockedBySequence ? (
                         <Button
                           isDisabled
@@ -1814,30 +1825,53 @@ export const EventArenaPage: React.FC = () => {
                   <span>Submission Successfully Recorded</span>
                 </div>
                 <p className="text-xs text-label-secondary max-w-sm mx-auto leading-relaxed">
-                  Your attempt has been submitted. Per competition rules, evaluation scores and rankings are tracked by event administrators on the official leaderboard.
+                  Your attempt has been recorded. Points scored will be credited to your profile upon verification.
                 </p>
               </div>
             )}
 
-            {/* Anti-cheat tab switch penalty bg-white/3me metrics */}
-            <div className="p-3.5 rounded-2xl bg-white/3 border border-separator grid grid-cols-2 gap-3 text-xs">
-              <div className="text-left">
-                <span className="text-[10px] text-label-tertiary block font-mono">TAB SWITCHES</span>
-                <span className={`font-bold font-mono ${finalResultModal.tabSwitchCount ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {finalResultModal.tabSwitchCount || 0} (-{(finalResultModal.tabSwitchCount || 0) * 5}%)
-                </span>
-                {finalResultModal.rawTotalScore !== undefined && (
-                  <span className="text-[10px] text-label-tertiary block">Raw: {finalResultModal.rawTotalScore} pts</span>
-                )}
+            {/* Anti-cheat tab switch penalty & duration metrics (detailed for admin, clean summary for student) */}
+            {isAdmin ? (
+              <div className="p-3.5 rounded-2xl bg-white/3 border border-separator grid grid-cols-2 gap-3 text-xs">
+                <div className="text-left">
+                  <span className="text-[10px] text-label-tertiary block font-mono">TAB SWITCHES</span>
+                  <span
+                    className={`font-bold font-mono ${
+                      finalResultModal.tabSwitchCount ? 'text-amber-400' : 'text-emerald-400'
+                    }`}
+                  >
+                    {finalResultModal.tabSwitchCount || 0} (-{(finalResultModal.tabSwitchCount || 0) * 5}%)
+                  </span>
+                  {finalResultModal.rawTotalScore !== undefined && (
+                    <span className="text-[10px] text-label-tertiary block">
+                      Raw: {finalResultModal.rawTotalScore} pts
+                    </span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-label-tertiary block font-mono">TIME TAKEN</span>
+                  <span className="font-bold font-mono text-purple-300">
+                    {Math.floor((finalResultModal.timeTakenSeconds || 0) / 60)}m{' '}
+                    {(finalResultModal.timeTakenSeconds || 0) % 60}s
+                  </span>
+                  <span className="text-[10px] text-label-tertiary block">Total test duration</span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="text-[10px] text-label-tertiary block font-mono">TIME TAKEN</span>
-                <span className="font-bold font-mono text-purple-300">
-                  {Math.floor((finalResultModal.timeTakenSeconds || 0) / 60)}m {(finalResultModal.timeTakenSeconds || 0) % 60}s
-                </span>
-                <span className="text-[10px] text-label-tertiary block">Total test duration</span>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-white/3 border border-separator flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[10px] text-label-tertiary block font-mono">TIME TAKEN</span>
+                  <span className="font-bold font-mono text-purple-300">
+                    {Math.floor((finalResultModal.timeTakenSeconds || 0) / 60)}m{' '}
+                    {(finalResultModal.timeTakenSeconds || 0) % 60}s
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-label-tertiary block font-mono">STATUS</span>
+                  <span className="font-bold text-emerald-400">Recorded Securely</span>
+                </div>
               </div>
-            </div>
+            )}
 
             <Button
               color="secondary"
