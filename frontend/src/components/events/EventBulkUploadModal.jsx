@@ -769,16 +769,16 @@ export const EventBulkUploadModal = ({
               </div>
 
               {/* Search & Filter Toolbar */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
+              <div className="flex flex-col overflow-auto sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
                 {/* Search Bar */}
-                <div className="relative flex-1">
+                <div className="relative flex-1 shrink-0">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary" />
                   <input
                     type="text"
                     value={resultSearch}
                     onChange={(e) => setResultSearch(e.target.value)}
                     placeholder="Search students by roll number, name, department, or reason..."
-                    className="w-full pl-9 pr-8 py-2 rounded-xl bg-canvas border border-separator text-xs text-label-primary placeholder-label-tertiary focus:outline-none focus:border-accent/60 transition"
+                    className="w-36! shrink-0 pl-9 pr-8 py-2 rounded-xl bg-canvas border border-separator text-xs text-label-primary placeholder-label-tertiary focus:outline-none focus:border-accent/60 transition"
                   />
                   {resultSearch && (
                     <button
