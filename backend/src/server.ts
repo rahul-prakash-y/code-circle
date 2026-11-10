@@ -137,6 +137,21 @@ server.register(multipart, {
   },
 });
 
+// Custom JSON Content-Type Parser: tolerate empty bodies when Content-Type: application/json is present
+server.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body: string, done) => {
+  if (!body || body.trim() === '') {
+    done(null, {});
+    return;
+  }
+  try {
+    const json = JSON.parse(body);
+    done(null, json);
+  } catch (err: any) {
+    err.statusCode = 400;
+    done(err, undefined);
+  }
+});
+
 // --- High-Performance Identity-Based Global Rate Limiting ---
 // Authenticated routes limit by user ID from verified JWT (preHandler hook ensures request.user exists).
 // Unauthenticated requests use client IP with high cap (default 600/min) so an entire classroom on 1 NAT IP is never throttled.

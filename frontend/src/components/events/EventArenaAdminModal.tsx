@@ -2891,7 +2891,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                     );
                                   })}
                                   <td className="p-3 text-center">
-                                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 font-mono font-bold text-xs">
+                                    <span className="px-2.5 whitespace-nowrap py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 font-mono font-bold text-xs">
                                       {entry.totalScore || 0} pts
                                     </span>
                                   </td>
