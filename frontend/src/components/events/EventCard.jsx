@@ -9,10 +9,12 @@ import EventParticipantsModal from '../admin/EventParticipantsModal';
 import EventBulkUploadModal from './EventBulkUploadModal';
 import EventArenaAdminModal from './EventArenaAdminModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
+import useEventStore from '../../store/useEventStore';
 import { EmilCard, EmilButton } from '../ui/emil-ui';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
+  const { fetchEvents } = useEventStore();
   const { myEnrolledEventIds } = useEnrollmentStore();
   const isEnrolled = myEnrolledEventIds.includes(event._id);
   const [timeLeft, setTimeLeft] = useState('');
@@ -390,7 +392,12 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
           onClose={() => setIsBulkUploadOpen(false)}
           event={event}
           onSuccess={() => {
-            setIsBulkUploadOpen(false);
+            // Background sync only: keep modal open so admin can review results and reasons
+            try {
+              fetchEvents();
+            } catch {
+              // Safe fallback
+            }
           }}
         />
       )}

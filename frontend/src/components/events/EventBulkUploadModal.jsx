@@ -1,5 +1,5 @@
 import ResponsiveModal from '../ui/ResponsiveModal';
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -355,6 +355,18 @@ export const EventBulkUploadModal = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleModalClose = () => {
+    handleReset();
+    if (onClose) onClose();
+  };
+
+  // Reset modal state when closed from parent
+  useEffect(() => {
+    if (!isOpen) {
+      handleReset();
+    }
+  }, [isOpen]);
+
   const getStatusBadge = (status) => {
     const st = String(status || '').toLowerCase();
     if (st.includes('not found')) {
@@ -429,8 +441,9 @@ export const EventBulkUploadModal = ({
     <ResponsiveModal
       open={isOpen && Boolean(event)}
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (!open) handleModalClose();
       }}
+      onClose={handleModalClose}
       title={
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -908,7 +921,7 @@ export const EventBulkUploadModal = ({
           <Button
             type="button"
             variant="secondary"
-            onPress={onClose}
+            onPress={handleModalClose}
             className="px-4 py-2 rounded-full text-xs font-medium"
           >
             {uploadResult ? 'Done / Close' : 'Cancel'}
@@ -932,7 +945,7 @@ export const EventBulkUploadModal = ({
                   type="button"
                   variant="primary"
                   color="primary"
-                  onPress={onClose}
+                  onPress={handleModalClose}
                   className="px-5 py-2 rounded-full text-xs font-semibold shadow"
                 >
                   Finished Reviewing
