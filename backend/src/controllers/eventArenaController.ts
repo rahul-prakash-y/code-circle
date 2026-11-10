@@ -2890,6 +2890,8 @@ export const submitAssessmentCodingProblem = async (
       await submission.save();
     }
 
+    const isAdminUser = Boolean(user?.role && ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role));
+
     return reply.send({
       success: true,
       problemId,
@@ -2897,15 +2899,15 @@ export const submitAssessmentCodingProblem = async (
       codingMode,
       passedCount,
       totalTestCases,
-      pointsEarned,
-      pointsPossible,
+      pointsEarned: isAdminUser ? pointsEarned : undefined,
+      pointsPossible: isAdminUser ? pointsPossible : undefined,
       isEvaluated: codingMode === 'TEST_CASES',
       message:
         codingMode === 'ONLY_CODE'
-          ? 'Code submitted successfully! The assigned admin will review your code and assign your score.'
+          ? 'Code submitted successfully! The assigned admin will review your code.'
           : passedCount === totalTestCases
-          ? `All test cases passed! +${pointsEarned} points awarded immediately.`
-          : `Submitted: ${passedCount}/${totalTestCases} test cases passed. +${pointsEarned} points awarded immediately.`,
+          ? (isAdminUser ? `All test cases passed! +${pointsEarned} points awarded.` : 'All test cases passed! Solution recorded successfully.')
+          : (isAdminUser ? `Submitted: ${passedCount}/${totalTestCases} test cases passed. +${pointsEarned} points.` : `Submitted: ${passedCount}/${totalTestCases} test cases passed.`),
     });
   } catch (err: any) {
     request.log.error(err);

@@ -68,6 +68,96 @@ const LANG_DISPLAY_NAMES: Record<string, string> = {
   c: 'C (GCC)',
 };
 
+const ArenaWorkspaceSkeleton: React.FC = () => (
+  <div
+    className="flex-1 flex flex-col md:flex-row overflow-hidden animate-pulse bg-canvas select-none"
+    role="status"
+    aria-label="Loading assessment workspace data..."
+  >
+    {/* Left / Top Navigation Palette Skeleton */}
+    <div className="w-full md:w-56 lg:w-64 border-b md:border-b-0 md:border-r border-separator flex flex-col bg-canvas shrink-0">
+      <div className="p-2 sm:p-2.5 border-b border-separator flex gap-2 bg-surface-secondary">
+        <div className="h-8 flex-1 rounded-xl bg-surface/70" />
+        <div className="h-8 flex-1 rounded-xl bg-surface/70" />
+      </div>
+      <div className="p-3 md:p-4 space-y-3 md:space-y-4 md:flex-1">
+        <div className="h-3 w-20 rounded bg-surface-secondary/70 hidden md:block" />
+        <div className="flex md:grid md:grid-cols-4 gap-2 overflow-x-auto">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+            <div
+              key={i}
+              className="w-9 h-9 min-w-9 min-h-9 rounded-xl bg-surface-secondary/70 shrink-0"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Right Assessment Workspace Skeleton */}
+    <div className="flex-1 flex flex-col overflow-hidden bg-canvas">
+      {/* Top Header / Bar */}
+      <div className="p-4 sm:p-6 border-b border-separator flex items-center justify-between bg-surface-secondary/20">
+        <div className="flex items-center gap-3">
+          <div className="h-6 w-28 rounded-full bg-surface-secondary/80" />
+          <div className="h-5 w-20 rounded-full bg-surface-secondary/60" />
+        </div>
+        <div className="h-5 w-24 rounded-md bg-surface-secondary/60" />
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Left Side: Question / Problem Specs */}
+        <div className="w-full lg:w-1/2 p-4 sm:p-6 border-b lg:border-b-0 lg:border-r border-separator space-y-5 overflow-y-auto">
+          <div className="h-7 w-3/4 rounded-xl bg-surface-secondary/90" />
+          <div className="space-y-2.5 pt-1">
+            <div className="h-4 w-full rounded bg-surface-secondary/70" />
+            <div className="h-4 w-11/12 rounded bg-surface-secondary/70" />
+            <div className="h-4 w-4/5 rounded bg-surface-secondary/70" />
+          </div>
+
+          <div className="pt-3 space-y-3">
+            <div className="h-4 w-28 rounded bg-surface-secondary/80" />
+            <div className="h-16 w-full rounded-2xl bg-surface-secondary/40 border border-separator/50" />
+          </div>
+
+          <div className="pt-2 space-y-3">
+            <div className="h-4 w-32 rounded bg-surface-secondary/80" />
+            <div className="h-16 w-full rounded-2xl bg-surface-secondary/40 border border-separator/50" />
+          </div>
+        </div>
+
+        {/* Right Side: Code Editor Workspace / Options Pane */}
+        <div className="w-full lg:w-1/2 flex flex-col p-4 sm:p-6 bg-surface-secondary/10 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-separator">
+            <div className="h-8 w-32 rounded-xl bg-surface-secondary/80" />
+            <div className="flex gap-2">
+              <div className="h-8 w-20 rounded-xl bg-surface-secondary/80" />
+              <div className="h-8 w-24 rounded-xl bg-purple-500/20" />
+            </div>
+          </div>
+
+          {/* Editor Placeholder with Line Shimmers */}
+          <div className="flex-1 rounded-2xl bg-surface-secondary/30 border border-separator/60 p-4 space-y-3 font-mono">
+            <div className="h-3.5 w-1/4 rounded bg-purple-400/20" />
+            <div className="h-3.5 w-1/2 rounded bg-surface-secondary/60 ml-4" />
+            <div className="h-3.5 w-2/5 rounded bg-surface-secondary/60 ml-8" />
+            <div className="h-3.5 w-3/4 rounded bg-surface-secondary/60 ml-8" />
+            <div className="h-3.5 w-1/3 rounded bg-surface-secondary/60 ml-4" />
+            <div className="h-3.5 w-2/3 rounded bg-surface-secondary/60 ml-4" />
+            <div className="h-3.5 w-1/6 rounded bg-purple-400/20" />
+          </div>
+
+          {/* Console / Test Runner Footer Skeleton */}
+          <div className="h-24 rounded-2xl bg-surface-secondary/40 border border-separator/60 p-3 space-y-2">
+            <div className="h-4 w-28 rounded bg-surface-secondary/80" />
+            <div className="h-3.5 w-3/4 rounded bg-surface-secondary/60" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export const EventArenaPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -350,9 +440,17 @@ export const EventArenaPage: React.FC = () => {
         if (activeCodingMode === 'ONLY_CODE') {
           toast.success('Code submitted for manual admin evaluation!');
         } else if (res.status === 'ACCEPTED') {
-          toast.success(`Challenge Solved! +${res.pointsEarned} Points awarded immediately!`);
+          toast.success(
+            isAdmin && res.pointsEarned !== undefined
+              ? `Challenge Solved! +${res.pointsEarned} Points awarded!`
+              : 'Challenge Solved! All test cases passed.'
+          );
         } else {
-          toast.error(`Submitted: ${res.passedCount}/${res.totalTestCases} Test cases passed (+${res.pointsEarned} pts)`);
+          toast.error(
+            isAdmin && res.pointsEarned !== undefined
+              ? `Submitted: ${res.passedCount}/${res.totalTestCases} Test cases passed (+${res.pointsEarned} pts)`
+              : `Submitted: ${res.passedCount}/${res.totalTestCases} test cases passed.`
+          );
         }
       }
     } finally {
@@ -459,9 +557,48 @@ export const EventArenaPage: React.FC = () => {
 
           {/* Assessment Cards Grid */}
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center text-center space-y-3">
-              <Loader2 size={32} className="animate-spin text-purple-400" />
-              <p className="text-xs text-label-tertiary">Loading event assessments...</p>
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse"
+              role="status"
+              aria-label="Loading event assessments"
+            >
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-3xl bg-surface border border-separator p-5 sm:p-6 flex flex-col justify-between space-y-5 shadow-xl"
+                >
+                  <div className="space-y-4">
+                    {/* Top Badges */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="h-5 w-28 rounded-full bg-surface-secondary/80" />
+                      <div className="h-5 w-20 rounded-full bg-surface-secondary/80" />
+                    </div>
+
+                    {/* Title & Description */}
+                    <div className="space-y-2.5 pt-1">
+                      <div className="h-6 w-3/4 rounded-xl bg-surface-secondary/80" />
+                      <div className="space-y-1.5 pt-1">
+                        <div className="h-3.5 w-full rounded-md bg-surface-secondary/60" />
+                        <div className="h-3.5 w-5/6 rounded-md bg-surface-secondary/60" />
+                      </div>
+                    </div>
+
+                    {/* Duration & Points Badges */}
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      <div className="h-8 rounded-xl bg-surface-secondary/80" />
+                      <div className="h-8 rounded-xl bg-surface-secondary/80" />
+                    </div>
+
+                    {/* Breakdown */}
+                    <div className="h-4 w-36 rounded-md bg-surface-secondary/60 pt-1" />
+                  </div>
+
+                  {/* Action Button */}
+                  <div className="pt-2">
+                    <div className="h-[42px] w-full rounded-xl bg-surface-secondary/90" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : assessments.length === 0 ? (
             <div className="p-8 sm:p-12 rounded-3xl bg-surface-secondary/40 border border-separator text-center space-y-3">
@@ -848,7 +985,9 @@ export const EventArenaPage: React.FC = () => {
       </header>
 
       {/* Main Workspace */}
-      {selectedAssessment?.type === 'UI_UX' ? (
+      {loading ? (
+        <ArenaWorkspaceSkeleton />
+      ) : selectedAssessment?.type === 'UI_UX' ? (
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-canvas">
           {/* Left Column: Design Brief & Reference Mockup */}
           <div className="w-full lg:w-1/2 border-r border-separator flex flex-col overflow-y-auto p-4 sm:p-6 space-y-6 bg-surface">
@@ -1191,6 +1330,8 @@ export const EventArenaPage: React.FC = () => {
             </div>
           </div>
         </div>
+      ) : loading ? (
+        <ArenaWorkspaceSkeleton />
       ) : (
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left / Top Navigation Palette (MCQ vs Coding & Question Buttons) */}
@@ -1449,9 +1590,11 @@ export const EventArenaPage: React.FC = () => {
                     <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
                       {problemStatusMap[currentCoding._id].codingMode === 'ONLY_CODE'
                         ? problemStatusMap[currentCoding._id].isEvaluated
-                          ? `Graded: ${problemStatusMap[currentCoding._id].pointsEarned} pts`
+                          ? (isAdmin ? `Graded: ${problemStatusMap[currentCoding._id].pointsEarned} pts` : 'Evaluated by Admin')
                           : 'Pending Admin Grade'
-                        : `${problemStatusMap[currentCoding._id].testCasesPassed ?? problemStatusMap[currentCoding._id].passedCount ?? 0}/${problemStatusMap[currentCoding._id].totalTestCases || 1} Passed (+${problemStatusMap[currentCoding._id].pointsEarned} pts)`}
+                        : isAdmin && problemStatusMap[currentCoding._id].pointsEarned !== undefined
+                        ? `${problemStatusMap[currentCoding._id].testCasesPassed ?? problemStatusMap[currentCoding._id].passedCount ?? 0}/${problemStatusMap[currentCoding._id].totalTestCases || 1} Passed (+${problemStatusMap[currentCoding._id].pointsEarned} pts)`
+                        : `${problemStatusMap[currentCoding._id].testCasesPassed ?? problemStatusMap[currentCoding._id].passedCount ?? 0}/${problemStatusMap[currentCoding._id].totalTestCases || 1} Passed`}
                     </span>
                   </div>
                 )}
@@ -1770,17 +1913,19 @@ export const EventArenaPage: React.FC = () => {
           <div className="bg-surface border border-separator rounded-3xl p-6 sm:p-8 w-[min(480px,95vw)] max-h-[90dvh] overflow-y-auto text-center space-y-5 shadow-2xl">
             <div
               className={`w-16 h-16 rounded-3xl mx-auto flex items-center justify-center shadow-lg border ${
-                finalResultModal.isPassed
+                isAdmin && finalResultModal.isPassed
                   ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-emerald-500/20'
-                  : 'bg-amber-500/20 border-amber-500/30 text-amber-400 shadow-amber-500/20'
+                  : 'bg-purple-500/20 border-purple-500/30 text-purple-300 shadow-purple-500/20'
               }`}
             >
-              <Trophy size={32} />
+              {isAdmin && finalResultModal.isPassed ? <Trophy size={32} /> : <CheckCircle2 size={32} />}
             </div>
 
             <div>
               <h3 className="text-xl font-black text-white">
-                {finalResultModal.isPassed ? 'Congratulations! Round Completed' : 'Assessment Completed'}
+                {isAdmin
+                  ? (finalResultModal.isPassed ? 'Congratulations! Round Completed' : 'Assessment Completed')
+                  : 'Assessment Completed'}
               </h3>
               <p className="text-xs text-label-secondary mt-1">
                 Your submission for "{selectedAssessment?.title}" has been recorded.
