@@ -19,7 +19,6 @@ import {
 import { Button, Spinner } from '@heroui/react';
 import toast from 'react-hot-toast';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
-import useEventStore from '../../store/useEventStore';
 
 export const EventBulkUploadModal = ({
   isOpen,
@@ -28,7 +27,6 @@ export const EventBulkUploadModal = ({
   onSuccess,
 }) => {
   const { bulkUploadParticipants, downloadParticipantsTemplate } = useEnrollmentStore();
-  const { fetchEvents } = useEventStore();
 
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -327,13 +325,6 @@ export const EventBulkUploadModal = ({
       setResultFilter('all');
       setResultSearch('');
       toast.success(res.message || 'Participants uploaded and enrollments updated!');
-
-      // Refresh event count in event store
-      try {
-        fetchEvents();
-      } catch {
-        // Safe fallback
-      }
 
       if (onSuccess) {
         onSuccess(res);

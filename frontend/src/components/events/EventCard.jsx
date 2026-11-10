@@ -23,6 +23,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [hasUploadedInSession, setHasUploadedInSession] = useState(false);
   const [isArenaAdminOpen, setIsArenaAdminOpen] = useState(false);
   const [participantsInitialTab, setParticipantsInitialTab] = useState('participants');
 
@@ -389,15 +390,22 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
       {isAdmin && isBulkUploadOpen && (
         <EventBulkUploadModal
           isOpen={isBulkUploadOpen}
-          onClose={() => setIsBulkUploadOpen(false)}
+          onClose={() => {
+            setIsBulkUploadOpen(false);
+            if (hasUploadedInSession) {
+              setHasUploadedInSession(false);
+              try {
+                fetchEvents();
+              } catch {
+                // Safe fallback
+              }
+            }
+          }}
           event={event}
           onSuccess={() => {
-            // Background sync only: keep modal open so admin can review results and reasons
-            try {
-              fetchEvents();
-            } catch {
-              // Safe fallback
-            }
+            // Mark that an upload succeeded during this session;
+            // fetchEvents() is deferred until the admin explicitly closes the modal
+            setHasUploadedInSession(true);
           }}
         />
       )}
