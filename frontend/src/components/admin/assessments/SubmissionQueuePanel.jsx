@@ -157,6 +157,7 @@ export const SubmissionQueuePanel = () => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -181,6 +182,7 @@ export const SubmissionQueuePanel = () => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -242,6 +244,7 @@ export const SubmissionQueuePanel = () => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       })
     );
 
