@@ -1,6 +1,6 @@
 import ResponsiveModal from '../ui/ResponsiveModal';
-import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   X,
   Upload,
@@ -11,10 +11,10 @@ import {
   Users,
   UserCheck,
   Calendar,
-  Sparkles,
-  ArrowRight,
   RefreshCw,
-  FileText,
+  Search,
+  XCircle,
+  Info,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import toast from 'react-hot-toast';
@@ -37,7 +37,10 @@ export const EventBulkUploadModal = ({
   const [markAttendance, setMarkAttendance] = useState(false);
   const [loading, setLoading] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [exportingResults, setExportingResults] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
+  const [resultFilter, setResultFilter] = useState('all');
+  const [resultSearch, setResultSearch] = useState('');
 
   if (!isOpen || !event) return null;
 
@@ -83,6 +86,43 @@ export const EventBulkUploadModal = ({
       }
     } finally {
       setDownloadingTemplate(false);
+    }
+  };
+
+  const handleExportResults = async () => {
+    if (!uploadResult) return;
+    const students = uploadResult.details?.allStudents || uploadResult.summary?.students || [];
+    if (students.length === 0) {
+      toast.error('No student records to export');
+      return;
+    }
+
+    setExportingResults(true);
+    try {
+      const exportData = students.map((s, idx) => ({
+        '#': idx + 1,
+        'Original Row': s.row || idx + 2,
+        'Register No / Roll No': s.rollNo || '',
+        'Student Name': s.name || '',
+        'Email': s.email || '',
+        'Department': s.department || '',
+        'Upload Status': s.status || '',
+        'Reason': s.reason || '',
+      }));
+
+      const XLSX = await import('xlsx');
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Upload Results');
+      XLSX.writeFile(
+        wb,
+        `${(event.title || 'event').replace(/[^a-zA-Z0-9]/g, '_')}_upload_results_${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
+      toast.success('Upload results report exported successfully!');
+    } catch (err) {
+      toast.error('Failed to export results: ' + (err.message || 'Error'));
+    } finally {
+      setExportingResults(false);
     }
   };
 
@@ -161,6 +201,8 @@ export const EventBulkUploadModal = ({
     try {
       const res = await bulkUploadParticipants(event._id, file, { markAttendance });
       setUploadResult(res);
+      setResultFilter('all');
+      setResultSearch('');
       toast.success(res.message || 'Participants uploaded and enrollments updated!');
 
       // Refresh event count in event store
@@ -185,7 +227,147 @@ export const EventBulkUploadModal = ({
     setFileName('');
     setParsedPreview([]);
     setUploadResult(null);
+    setResultFilter('all');
+    setResultSearch('');
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Extract all uploaded student records from result
+  const allResultStudents = useMemo(() => {
+    if (!uploadResult) return [];
+    if (uploadResult.details?.allStudents?.length) {
+      return uploadResult.details.allStudents;
+    }
+    if (uploadResult.summary?.students?.length) {
+      return uploadResult.summary.students;
+    }
+    // Fallback: build from summary notFound list if legacy format
+    const legacy = [];
+    if (uploadResult.summary?.notFound?.length) {
+      uploadResult.summary.notFound.forEach((n) => {
+        legacy.push({
+          row: n.row || '—',
+          rollNo: n.rollNo || 'N/A',
+          name: n.name || 'N/A',
+          email: n.email || 'N/A',
+          status: 'Not Found',
+          reason: n.reason || 'Student not registered on Code Circle',
+        });
+      });
+    }
+    return legacy;
+  }, [uploadResult]);
+
+  // Compute status counts for filter tabs
+  const statusCounts = useMemo(() => {
+    const counts = {
+      all: allResultStudents.length,
+      enrolled: 0,
+      already: 0,
+      attended: 0,
+      duplicate: 0,
+      notFound: 0,
+    };
+
+    allResultStudents.forEach((s) => {
+      const st = s.status || '';
+      if (st === 'Enrolled' || st === 'Enrolled & Verified') counts.enrolled++;
+      else if (st === 'Already Enrolled') counts.already++;
+      else if (st === 'Attendance Verified') counts.attended++;
+      else if (st === 'Duplicate') counts.duplicate++;
+      else if (st === 'Not Found') counts.notFound++;
+    });
+
+    return counts;
+  }, [allResultStudents]);
+
+  // Filter students based on selected tab and search query
+  const filteredResultStudents = useMemo(() => {
+    return allResultStudents.filter((s) => {
+      const st = s.status || '';
+      if (resultFilter === 'enrolled' && st !== 'Enrolled' && st !== 'Enrolled & Verified') return false;
+      if (resultFilter === 'already' && st !== 'Already Enrolled') return false;
+      if (resultFilter === 'attended' && st !== 'Attendance Verified') return false;
+      if (resultFilter === 'duplicate' && st !== 'Duplicate') return false;
+      if (resultFilter === 'not_found' && st !== 'Not Found') return false;
+
+      if (resultSearch.trim()) {
+        const q = resultSearch.toLowerCase().trim();
+        const matchRoll = s.rollNo?.toLowerCase().includes(q);
+        const matchName = s.name?.toLowerCase().includes(q);
+        const matchEmail = s.email?.toLowerCase().includes(q);
+        const matchReason = s.reason?.toLowerCase().includes(q);
+        const matchDept = s.department?.toLowerCase().includes(q);
+        return Boolean(matchRoll || matchName || matchEmail || matchReason || matchDept);
+      }
+      return true;
+    });
+  }, [allResultStudents, resultFilter, resultSearch]);
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Enrolled':
+      case 'Enrolled & Verified':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 whitespace-nowrap">
+            <CheckCircle2 size={11} className="text-emerald-500 shrink-0" />
+            <span>{status}</span>
+          </span>
+        );
+      case 'Already Enrolled':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25 whitespace-nowrap">
+            <Users size={11} className="text-blue-500 shrink-0" />
+            <span>Already Enrolled</span>
+          </span>
+        );
+      case 'Attendance Verified':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/25 whitespace-nowrap">
+            <UserCheck size={11} className="text-purple-500 shrink-0" />
+            <span>Attendance Verified</span>
+          </span>
+        );
+      case 'Duplicate':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 whitespace-nowrap">
+            <AlertCircle size={11} className="text-amber-500 shrink-0" />
+            <span>Duplicate</span>
+          </span>
+        );
+      case 'Not Found':
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/25 whitespace-nowrap">
+            <XCircle size={11} className="text-rose-500 shrink-0" />
+            <span>Not Found</span>
+          </span>
+        );
+    }
+  };
+
+  const getReasonPill = (status, reason) => {
+    const isError = status === 'Not Found';
+    const isDup = status === 'Duplicate';
+    const isSuccess = status === 'Enrolled' || status === 'Enrolled & Verified';
+    const isAttended = status === 'Attendance Verified';
+
+    const colorClass = isError
+      ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20'
+      : isDup
+      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+      : isAttended
+      ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20'
+      : isSuccess
+      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+      : 'bg-surface text-label-secondary border-separator';
+
+    return (
+      <span className={`inline-flex items-start gap-1.5 px-2.5 py-1 rounded-xl text-[11px] leading-tight border font-medium ${colorClass}`}>
+        <Info size={12} className="shrink-0 mt-0.5 opacity-80" />
+        <span className="break-words">{reason || 'Processed'}</span>
+      </span>
+    );
   };
 
   return (
@@ -200,7 +382,7 @@ export const EventBulkUploadModal = ({
             <FileSpreadsheet className="w-4 h-4" />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span>Upload Event Participants</span>
+            <span>{uploadResult ? 'Participant Upload Report' : 'Upload Event Participants'}</span>
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
               event.registrationType === 'admin_upload'
                 ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
@@ -211,24 +393,28 @@ export const EventBulkUploadModal = ({
           </div>
         </div>
       }
-      description={`Import official student enrollment list for ${event.title}`}
-      dialogClassName="sm:max-w-2xl p-6"
+      description={
+        uploadResult
+          ? `Detailed review of students uploaded for ${event.title}`
+          : `Import official student enrollment list for ${event.title}`
+      }
+      dialogClassName={`p-6 transition-all duration-300 ${uploadResult ? 'sm:max-w-4xl max-h-[92vh]' : 'sm:max-w-2xl'}`}
     >
       <div className="space-y-4 pt-2">
+        {/* Modal Body */}
+        <div className="p-5 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1 max-h-[72vh]">
+          {/* Target Event Context Pill */}
+          <div className="p-3.5 rounded-2xl bg-canvas border border-separator flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Calendar size={15} className="text-accent shrink-0" />
+              <span className="font-semibold text-label-primary truncate">{event.title}</span>
+              <span className="text-label-tertiary hidden sm:inline">•</span>
+              <span className="text-label-secondary hidden sm:inline font-mono">
+                {event.enrolledCount || 0} registered • {event.participantsCount || 0} attended
+              </span>
+            </div>
 
-          {/* Modal Body */}
-          <div className="p-5 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
-            {/* Target Event Context Pill */}
-            <div className="p-3.5 rounded-2xl bg-canvas border border-separator flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Calendar size={15} className="text-accent shrink-0" />
-                <span className="font-semibold text-label-primary truncate">{event.title}</span>
-                <span className="text-label-tertiary hidden sm:inline">•</span>
-                <span className="text-label-secondary hidden sm:inline font-mono">
-                  {event.enrolledCount || 0} registered • {event.participantsCount || 0} attended
-                </span>
-              </div>
-
+            {!uploadResult && (
               <Button
                 type="button"
                 size="sm"
@@ -245,49 +431,53 @@ export const EventBulkUploadModal = ({
                 )}
                 <span>Download Sample Template (.xlsx)</span>
               </Button>
-            </div>
+            )}
+          </div>
 
-            {/* Attendance Mode Selector */}
-            <div className="space-y-2 p-4 rounded-2xl bg-surface-raised/70 border border-separator">
-              <label className="text-xs font-bold uppercase tracking-wider text-label-primary flex items-center gap-1.5">
-                <UserCheck size={14} className="text-accent" /> Enrollment & Attendance Target
-              </label>
-              <p className="text-[11.5px] text-label-secondary leading-relaxed">
-                Choose how uploaded students should be registered for this event:
-              </p>
+          {/* VIEW MODE 1: FILE SELECTION & CONFIGURATION (Before upload) */}
+          {!uploadResult && (
+            <>
+              {/* Attendance Mode Selector */}
+              <div className="space-y-2 p-4 rounded-2xl bg-surface-raised/70 border border-separator">
+                <label className="text-xs font-bold uppercase tracking-wider text-label-primary flex items-center gap-1.5">
+                  <UserCheck size={14} className="text-accent" /> Enrollment & Attendance Target
+                </label>
+                <p className="text-[11.5px] text-label-secondary leading-relaxed">
+                  Choose how uploaded students should be registered for this event:
+                </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setMarkAttendance(false)}
-                  className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
-                    !markAttendance
-                      ? 'bg-blue-500/10 border-blue-500 text-label-primary ring-1 ring-blue-500/30'
-                      : 'bg-surface border-separator text-label-secondary hover:border-separator-opaque'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Users size={15} className={!markAttendance ? 'text-blue-500' : 'text-label-tertiary'} />
-                      <span className="text-xs font-bold text-label-primary">Pre-Registered Students</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setMarkAttendance(false)}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                      !markAttendance
+                        ? 'bg-blue-500/10 border-blue-500 text-label-primary ring-1 ring-blue-500/30'
+                        : 'bg-surface border-separator text-label-secondary hover:border-separator-opaque'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Users size={15} className={!markAttendance ? 'text-blue-500' : 'text-label-tertiary'} />
+                        <span className="text-xs font-bold text-label-primary">Pre-Registered Students</span>
+                      </div>
+                      {!markAttendance && <CheckCircle2 size={14} className="text-blue-500" />}
                     </div>
-                    {!markAttendance && <CheckCircle2 size={14} className="text-blue-500" />}
-                  </div>
-                  <p className="text-[11px] text-label-secondary leading-snug">
-                    Enrolls students as registered attendees (attendance pending check-in).
-                  </p>
-                </button>
+                    <p className="text-[11px] text-label-secondary leading-snug">
+                      Enrolls students as registered attendees (attendance pending check-in).
+                    </p>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setMarkAttendance(true)}
-                  className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
-                    markAttendance
-                      ? 'bg-emerald-500/10 border-emerald-500 text-label-primary ring-1 ring-emerald-500/30'
-                      : 'bg-surface border-separator text-label-secondary hover:border-separator-opaque'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setMarkAttendance(true)}
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                      markAttendance
+                        ? 'bg-emerald-500/10 border-emerald-500 text-label-primary ring-1 ring-emerald-500/30'
+                        : 'bg-surface border-separator text-label-secondary hover:border-separator-opaque'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <UserCheck size={15} className={markAttendance ? 'text-emerald-500' : 'text-label-tertiary'} />
                       <span className="text-xs font-bold text-label-primary">Attended Participants</span>
@@ -401,108 +591,317 @@ export const EventBulkUploadModal = ({
               onChange={handleFileChange}
               className="hidden"
             />
+          </>
+        )}
 
-            {/* Results Breakdown Banner (After Submission) */}
-            {uploadResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 rounded-2xl bg-surface-raised border border-separator space-y-3"
-              >
-                <div className="flex items-center gap-2 text-xs font-bold text-label-primary">
-                  <CheckCircle2 size={16} className="text-emerald-500" />
-                  <span>Upload Summary</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                  <div className="p-2 rounded-xl bg-canvas border border-separator">
-                    <p className="text-[10px] text-label-tertiary font-bold uppercase">Enrolled</p>
-                    <p className="text-base font-black text-emerald-500 font-mono">
-                      +{uploadResult.summary?.newlyEnrolledCount || 0}
-                    </p>
-                  </div>
-                  <div className="p-2 rounded-xl bg-canvas border border-separator">
-                    <p className="text-[10px] text-label-tertiary font-bold uppercase">Already Enrolled</p>
-                    <p className="text-base font-black text-blue-500 font-mono">
-                      {uploadResult.summary?.alreadyEnrolledCount || 0}
-                    </p>
-                  </div>
-                  <div className="p-2 rounded-xl bg-canvas border border-separator">
-                    <p className="text-[10px] text-label-tertiary font-bold uppercase">Attended Verified</p>
-                    <p className="text-base font-black text-purple-500 font-mono">
-                      {uploadResult.summary?.attendanceUpdatedCount || 0}
-                    </p>
-                  </div>
-                  <div className="p-2 rounded-xl bg-canvas border border-separator">
-                    <p className="text-[10px] text-label-tertiary font-bold uppercase">Not Found</p>
-                    <p className="text-base font-black text-amber-500 font-mono">
-                      {uploadResult.summary?.notFoundCount || 0}
+        {/* VIEW MODE 2: DETAILED STUDENTS LIST WITH REASONS (After upload) */}
+        {uploadResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            {/* Top Banner with Upload Message */}
+            <div className="p-4 rounded-2xl bg-surface-raised border border-separator space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-label-primary">
+                      Upload Processing Complete
+                    </h4>
+                    <p className="text-[11.5px] text-label-secondary mt-0.5">
+                      {uploadResult.message}
                     </p>
                   </div>
                 </div>
 
-                {uploadResult.summary?.notFound && uploadResult.summary.notFound.length > 0 && (
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 space-y-1">
-                    <p className="font-bold">Students not registered on Code Circle:</p>
-                    <p className="text-[11px] leading-relaxed">
-                      {uploadResult.summary.notFound.map(n => n.rollNo).join(', ')}
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </div>
-
-          {/* Footer Actions */}
-          <div className="pt-4 border-t border-separator flex items-center justify-between gap-3 shrink-0">
-            <Button
-              type="button"
-              variant="secondary"
-              onPress={onClose}
-              className="px-4 py-2 rounded-full text-xs font-medium"
-            >
-              Close
-            </Button>
-
-            <div className="flex items-center gap-2">
-              {uploadResult && (
                 <Button
-                  type="button"
-                  variant="secondary"
                   size="sm"
-                  onPress={handleReset}
-                  className="rounded-full text-xs font-medium flex items-center gap-1.5"
+                  variant="bordered"
+                  onPress={handleExportResults}
+                  isLoading={exportingResults}
+                  isDisabled={exportingResults || allResultStudents.length === 0}
+                  startContent={!exportingResults ? <Download size={13} /> : undefined}
+                  className="shrink-0 text-xs font-semibold rounded-xl border-separator hover:bg-surface-secondary"
+                  title="Export complete upload report with reasons to Excel"
                 >
-                  <RefreshCw size={13} />
-                  <span>Upload Another</span>
+                  Export Report (.xlsx)
                 </Button>
-              )}
+              </div>
+
+              {/* 5-Card Metric Breakdown */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs pt-1">
+                <button
+                  type="button"
+                  onClick={() => setResultFilter('enrolled')}
+                  className={`p-2.5 rounded-xl border transition text-center cursor-pointer ${
+                    resultFilter === 'enrolled'
+                      ? 'bg-emerald-500/15 border-emerald-500 ring-1 ring-emerald-500/30'
+                      : 'bg-canvas border-separator hover:border-separator-opaque'
+                  }`}
+                >
+                  <p className="text-[10px] text-label-tertiary font-bold uppercase tracking-wider">Newly Enrolled</p>
+                  <p className="text-lg font-black text-emerald-500 font-mono mt-0.5">
+                    +{statusCounts.enrolled}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResultFilter('already')}
+                  className={`p-2.5 rounded-xl border transition text-center cursor-pointer ${
+                    resultFilter === 'already'
+                      ? 'bg-blue-500/15 border-blue-500 ring-1 ring-blue-500/30'
+                      : 'bg-canvas border-separator hover:border-separator-opaque'
+                  }`}
+                >
+                  <p className="text-[10px] text-label-tertiary font-bold uppercase tracking-wider">Already Enrolled</p>
+                  <p className="text-lg font-black text-blue-500 font-mono mt-0.5">
+                    {statusCounts.already}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResultFilter('attended')}
+                  className={`p-2.5 rounded-xl border transition text-center cursor-pointer ${
+                    resultFilter === 'attended'
+                      ? 'bg-purple-500/15 border-purple-500 ring-1 ring-purple-500/30'
+                      : 'bg-canvas border-separator hover:border-separator-opaque'
+                  }`}
+                >
+                  <p className="text-[10px] text-label-tertiary font-bold uppercase tracking-wider">Attendance Verified</p>
+                  <p className="text-lg font-black text-purple-500 font-mono mt-0.5">
+                    {statusCounts.attended}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResultFilter('duplicate')}
+                  className={`p-2.5 rounded-xl border transition text-center cursor-pointer ${
+                    resultFilter === 'duplicate'
+                      ? 'bg-amber-500/15 border-amber-500 ring-1 ring-amber-500/30'
+                      : 'bg-canvas border-separator hover:border-separator-opaque'
+                  }`}
+                >
+                  <p className="text-[10px] text-label-tertiary font-bold uppercase tracking-wider">Duplicates</p>
+                  <p className="text-lg font-black text-amber-500 font-mono mt-0.5">
+                    {statusCounts.duplicate}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResultFilter('not_found')}
+                  className={`p-2.5 rounded-xl border transition text-center cursor-pointer col-span-2 sm:col-span-1 ${
+                    resultFilter === 'not_found'
+                      ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500/30'
+                      : 'bg-canvas border-separator hover:border-separator-opaque'
+                  }`}
+                >
+                  <p className="text-[10px] text-label-tertiary font-bold uppercase tracking-wider">Not Found</p>
+                  <p className="text-lg font-black text-rose-500 font-mono mt-0.5">
+                    {statusCounts.notFound}
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Search & Filter Toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
+              {/* Search Bar */}
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-label-tertiary" />
+                <input
+                  type="text"
+                  value={resultSearch}
+                  onChange={(e) => setResultSearch(e.target.value)}
+                  placeholder="Search students by roll number, name, department, or reason..."
+                  className="w-full pl-9 pr-8 py-2 rounded-xl bg-canvas border border-separator text-xs text-label-primary placeholder-label-tertiary focus:outline-none focus:border-accent/60 transition"
+                />
+                {resultSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setResultSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-label-tertiary hover:text-label-primary p-0.5 rounded cursor-pointer"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 shrink-0 text-xs">
+                {[
+                  { id: 'all', label: 'All', count: statusCounts.all },
+                  { id: 'enrolled', label: 'Enrolled', count: statusCounts.enrolled },
+                  { id: 'already', label: 'Already Enrolled', count: statusCounts.already },
+                  { id: 'attended', label: 'Attendance Verified', count: statusCounts.attended },
+                  { id: 'duplicate', label: 'Duplicates', count: statusCounts.duplicate },
+                  { id: 'not_found', label: 'Not Found', count: statusCounts.notFound },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setResultFilter(tab.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                      resultFilter === tab.id
+                        ? 'bg-accent text-white shadow-xs'
+                        : 'bg-surface border border-separator text-label-secondary hover:text-label-primary hover:bg-surface-secondary'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      resultFilter === tab.id ? 'bg-white/20 text-white' : 'bg-surface-raised text-label-tertiary'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Detailed Student Roster Table with Status & Reason */}
+            <div className="rounded-2xl border border-separator bg-canvas/60 overflow-hidden shadow-xs">
+              <div className="max-h-80 overflow-y-auto overflow-x-auto custom-scrollbar">
+                {filteredResultStudents.length === 0 ? (
+                  <div className="p-8 text-center space-y-2">
+                    <Users size={28} className="mx-auto text-label-tertiary/40" />
+                    <p className="text-xs font-bold text-label-primary">No students match this filter</p>
+                    <p className="text-[11px] text-label-secondary">
+                      Try resetting your search query or switching to "All" view.
+                    </p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead className="sticky top-0 z-10 bg-surface-secondary/95 backdrop-blur-md border-b border-separator text-label-secondary font-bold text-[11px] uppercase tracking-wider">
+                      <tr>
+                        <th className="py-2.5 px-3 w-12 text-center">Row</th>
+                        <th className="py-2.5 px-3 min-w-[160px]">Student Details</th>
+                        <th className="py-2.5 px-3 min-w-[90px]">Department</th>
+                        <th className="py-2.5 px-3 min-w-[130px]">Upload Status</th>
+                        <th className="py-2.5 px-3 min-w-[260px]">Reason & Outcome</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-separator/40 font-sans">
+                      {filteredResultStudents.map((student, idx) => (
+                        <tr
+                          key={idx}
+                          className={`hover:bg-surface-secondary/40 transition-colors ${
+                            student.status === 'Not Found'
+                              ? 'bg-rose-500/[0.02]'
+                              : student.status === 'Duplicate'
+                              ? 'bg-amber-500/[0.02]'
+                              : ''
+                          }`}
+                        >
+                          <td className="py-2.5 px-3 text-center text-label-tertiary font-mono text-[11px]">
+                            {student.row || idx + 1}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="space-y-0.5">
+                              <p className="font-mono font-bold text-accent text-xs">
+                                {student.rollNo}
+                              </p>
+                              <p className="font-semibold text-label-primary text-[11.5px] leading-tight">
+                                {student.name && student.name !== 'N/A' ? student.name : '—'}
+                              </p>
+                              {student.email && student.email !== 'N/A' && (
+                                <p className="text-[10.5px] text-label-tertiary truncate max-w-[220px]">
+                                  {student.email}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-label-secondary text-[11px]">
+                            {student.department || '—'}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {getStatusBadge(student.status)}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {getReasonPill(student.status, student.reason)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Table Footer with Count Summary */}
+              <div className="p-2.5 bg-surface-secondary/60 border-t border-separator/60 flex items-center justify-between text-[11px] text-label-secondary px-4">
+                <span>
+                  Showing <strong className="text-label-primary">{filteredResultStudents.length}</strong> of{' '}
+                  <strong className="text-label-primary">{allResultStudents.length}</strong> student records
+                </span>
+                {uploadResult.summary?.totalRowsInFile && (
+                  <span className="text-label-tertiary">
+                    Total spreadsheet rows: {uploadResult.summary.totalRowsInFile}
+                  </span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Footer Actions */}
+      <div className="pt-4 border-t border-separator flex items-center justify-between gap-3 shrink-0">
+        <Button
+          type="button"
+          variant="secondary"
+          onPress={onClose}
+          className="px-4 py-2 rounded-full text-xs font-medium"
+        >
+          {uploadResult ? 'Done / Close' : 'Cancel'}
+        </Button>
+
+        <div className="flex items-center gap-2">
+          {uploadResult ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onPress={handleReset}
+                className="rounded-full text-xs font-medium flex items-center gap-1.5"
+              >
+                <RefreshCw size={13} />
+                <span>Upload Another Spreadsheet</span>
+              </Button>
 
               <Button
                 type="button"
                 variant="primary"
-                color="success"
-                onPress={handleUploadSubmit}
-                isDisabled={!file || loading}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow"
+                color="primary"
+                onPress={onClose}
+                className="px-5 py-2 rounded-full text-xs font-semibold shadow"
               >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <Spinner size="sm" color="default" />
-                    <span>Processing...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Upload size={14} />
-                    <span>Upload & Enroll Students</span>
-                  </div>
-                )}
+                Finished Reviewing
               </Button>
-            </div>
-          </div>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="primary"
+              color="success"
+              onPress={handleUploadSubmit}
+              isLoading={loading}
+              isDisabled={!file || loading}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow"
+            >
+              {!loading && <Upload size={14} />}
+              <span>Upload & Enroll Students</span>
+            </Button>
+          )}
         </div>
-      </ResponsiveModal>
-  );
+      </div>
+    </div>
+  </ResponsiveModal>
+);
 };
 
 export default EventBulkUploadModal;

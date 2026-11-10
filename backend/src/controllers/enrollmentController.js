@@ -783,6 +783,10 @@ const bulkUploadEventParticipants = async (request, reply) => {
     let attendanceUpdatedCount = 0;
     let alreadyEnrolledCount = 0;
     const notFound = [];
+    const duplicates = [];
+    const enrolledStudents = [];
+    const alreadyEnrolledStudents = [];
+    const allStudents = [];
     const processedUserIds = new Set();
     const newEnrollmentsToInsert = [];
 
@@ -792,31 +796,64 @@ const bulkUploadEventParticipants = async (request, reply) => {
         (entry.email && userByEmail.get(entry.email));
 
       if (!user) {
-        notFound.push({
+        const item = {
           row: entry.rowNumber,
           rollNo: entry.rollNo || 'N/A',
           email: entry.email || 'N/A',
           name: entry.name || 'N/A',
-          reason: 'Student not found in Code Circle system',
-        });
+          department: entry.dept || '—',
+          status: 'Not Found',
+          reason: 'Student not registered on Code Circle (account required)',
+        };
+        notFound.push(item);
+        allStudents.push(item);
         continue;
       }
 
       const uIdStr = user._id.toString();
       if (processedUserIds.has(uIdStr)) {
-        continue; // Skip duplicate row in sheet
+        const item = {
+          row: entry.rowNumber,
+          rollNo: user.rollNo || entry.rollNo,
+          email: user.email || entry.email,
+          name: user.name || entry.name || 'N/A',
+          department: user.department || entry.dept || '—',
+          status: 'Duplicate',
+          reason: 'Duplicate entry in spreadsheet (already processed in this upload)',
+        };
+        duplicates.push(item);
+        allStudents.push(item);
+        continue;
       }
       processedUserIds.add(uIdStr);
 
       const existingEnr = enrolledUserMap.get(uIdStr);
       if (existingEnr) {
         alreadyEnrolledCount++;
+        let status = 'Already Enrolled';
+        let reason = 'Already enrolled in event';
         // If student is already enrolled and sheet indicates attendance, update attendance
         if (entry.attended && !existingEnr.attendanceStatus) {
           existingEnr.attendanceStatus = true;
           await existingEnr.save();
           attendanceUpdatedCount++;
+          status = 'Attendance Verified';
+          reason = 'Already enrolled; attendance updated to Present';
+        } else if (existingEnr.attendanceStatus) {
+          reason = 'Already enrolled with verified attendance';
         }
+
+        const item = {
+          row: entry.rowNumber,
+          rollNo: user.rollNo || entry.rollNo,
+          email: user.email || entry.email,
+          name: user.name || entry.name || 'N/A',
+          department: user.department || entry.dept || '—',
+          status,
+          reason,
+        };
+        alreadyEnrolledStudents.push(item);
+        allStudents.push(item);
       } else {
         newEnrollmentsToInsert.push({
           event: eventId,
@@ -827,6 +864,20 @@ const bulkUploadEventParticipants = async (request, reply) => {
           customResponses: {},
         });
         newlyEnrolledCount++;
+
+        const item = {
+          row: entry.rowNumber,
+          rollNo: user.rollNo || entry.rollNo,
+          email: user.email || entry.email,
+          name: user.name || entry.name || 'N/A',
+          department: user.department || entry.dept || '—',
+          status: entry.attended ? 'Enrolled & Verified' : 'Enrolled',
+          reason: entry.attended
+            ? 'Successfully enrolled with verified attendance'
+            : 'Successfully enrolled as pre-registered attendee',
+        };
+        enrolledStudents.push(item);
+        allStudents.push(item);
       }
     }
 
@@ -838,15 +889,26 @@ const bulkUploadEventParticipants = async (request, reply) => {
       success: true,
       message: `Roster upload complete: ${newlyEnrolledCount} student(s) enrolled, ${alreadyEnrolledCount} already enrolled${
         attendanceUpdatedCount > 0 ? ` (${attendanceUpdatedCount} attendance verified)` : ''
-      }${notFound.length > 0 ? `, ${notFound.length} not found` : ''}.`,
+      }${notFound.length > 0 ? `, ${notFound.length} not found` : ''}${
+        duplicates.length > 0 ? `, ${duplicates.length} duplicate(s) skipped` : ''
+      }.`,
       summary: {
         totalRowsInFile: rawRows.length,
         validStudentEntries: studentEntries.length,
         newlyEnrolledCount,
         alreadyEnrolledCount,
         attendanceUpdatedCount,
+        duplicatesCount: duplicates.length,
         notFoundCount: notFound.length,
-        notFound: notFound.slice(0, 50),
+        notFound: notFound.slice(0, 100),
+        students: allStudents,
+      },
+      details: {
+        allStudents,
+        enrolled: enrolledStudents,
+        alreadyEnrolled: alreadyEnrolledStudents,
+        duplicates,
+        notFound,
       },
     });
   } catch (error) {
