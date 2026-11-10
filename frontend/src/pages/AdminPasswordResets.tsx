@@ -750,6 +750,7 @@ const AdminPasswordResets: React.FC = () => {
                             isIconOnly
                             onPress={() => handleDelete(req._id, req.name)}
                             isDisabled={isActionLoading}
+                            isLoading={isActionLoading}
                             className="min-w-[34px] min-h-[34px] text-text-muted hover:text-rose-400"
                             title="Delete request record"
                             aria-label="Delete request record"
@@ -886,6 +887,7 @@ const AdminPasswordResets: React.FC = () => {
                   type="button"
                   variant="outline"
                   onPress={() => setRejectModalReq(null)}
+                  isDisabled={Boolean(actionLoadingId)}
                   className="w-full sm:w-auto min-h-[40px] text-xs"
                 >
                   Cancel
@@ -894,6 +896,8 @@ const AdminPasswordResets: React.FC = () => {
                   type="button"
                   variant="danger"
                   onPress={handleReject}
+                  isDisabled={Boolean(actionLoadingId)}
+                  isLoading={Boolean(actionLoadingId)}
                   className="w-full sm:w-auto min-h-[40px] text-xs font-semibold"
                 >
                   Confirm Rejection
@@ -977,6 +981,7 @@ const AdminPasswordResets: React.FC = () => {
                   type="button"
                   variant="outline"
                   onPress={() => setErrorDetailReq(null)}
+                  isDisabled={Boolean(actionLoadingId)}
                   className="w-full sm:w-auto min-h-[40px] text-xs"
                 >
                   Close
@@ -984,8 +989,10 @@ const AdminPasswordResets: React.FC = () => {
                 <Button
                   type="button"
                   variant="primary"
-                  onPress={() => {
-                    handleResendEmail(errorDetailReq);
+                  isDisabled={Boolean(actionLoadingId)}
+                  isLoading={Boolean(actionLoadingId)}
+                  onPress={async () => {
+                    await handleResendEmail(errorDetailReq);
                     setErrorDetailReq(null);
                   }}
                   className="w-full sm:w-auto min-h-[40px] text-xs flex items-center justify-center gap-1.5"

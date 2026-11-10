@@ -110,6 +110,8 @@ export const DomainsPage: React.FC = () => {
   const [bulkUploadTargetDomain, setBulkUploadTargetDomain] = useState<{ id?: string; name?: string } | null>(null);
   const [selectedDomainForStudents, setSelectedDomainForStudents] = useState<IDomain | null>(null);
   const [registeringDomainId, setRegisteringDomainId] = useState<string | null>(null);
+  const [togglingLockId, setTogglingLockId] = useState<string | null>(null);
+  const [deletingDomainId, setDeletingDomainId] = useState<string | null>(null);
   const [claimingCert, setClaimingCert] = useState(false);
   const { claimCourseCertificate } = useCertificateStore();
 
@@ -169,7 +171,22 @@ export const DomainsPage: React.FC = () => {
   const handleDeleteDomain = async (e: React.MouseEvent, domain: IDomain) => {
     e.stopPropagation();
     if (window.confirm(`Are you sure you want to delete the course "${domain.name}" and all its levels?`)) {
-      await deleteDomain(domain._id);
+      setDeletingDomainId(domain._id);
+      try {
+        await deleteDomain(domain._id);
+      } finally {
+        setDeletingDomainId(null);
+      }
+    }
+  };
+
+  const handleToggleDomainLock = async (e: any, domainId: string) => {
+    e?.stopPropagation?.();
+    setTogglingLockId(domainId);
+    try {
+      await toggleDomainLock(domainId);
+    } finally {
+      setTogglingLockId(null);
     }
   };
 
@@ -319,12 +336,11 @@ export const DomainsPage: React.FC = () => {
                     color="primary"
                     variant="solid"
                     onPress={(e: any) => handleRegisterCourse(e, activeCourse)}
+                    isLoading={registeringDomainId === activeCourse._id}
                     isDisabled={registeringDomainId === activeCourse._id}
                     className="rounded-full text-xs font-bold shadow-md"
                     startContent={
-                      registeringDomainId === activeCourse._id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
+                      registeringDomainId === activeCourse._id ? undefined : (
                         <Sparkles className="w-4 h-4" />
                       )
                     }
@@ -359,11 +375,13 @@ export const DomainsPage: React.FC = () => {
                 size="sm"
                 variant="flat"
                 color={activeCourse.isLocked ? 'warning' : 'success'}
-                onPress={() => toggleDomainLock(activeCourse._id)}
+                isLoading={togglingLockId === activeCourse._id}
+                isDisabled={togglingLockId === activeCourse._id}
+                onPress={(e: any) => handleToggleDomainLock(e, activeCourse._id)}
                 className="rounded-xl text-xs font-semibold shadow-2xs"
                 title={activeCourse.isLocked ? 'Approve & Unlock course for students' : 'Lock course for students'}
                 startContent={
-                  activeCourse.isLocked ? (
+                  togglingLockId === activeCourse._id ? undefined : activeCourse.isLocked ? (
                     <Lock className="w-3.5 h-3.5 text-amber-500" />
                   ) : (
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
@@ -543,12 +561,11 @@ export const DomainsPage: React.FC = () => {
               color="primary"
               variant="solid"
               onPress={(e: any) => handleRegisterCourse(e, activeCourse)}
+              isLoading={registeringDomainId === activeCourse._id}
               isDisabled={registeringDomainId === activeCourse._id}
               className="shrink-0 rounded-full text-xs font-bold shadow-md shadow-accent/20"
               startContent={
-                registeringDomainId === activeCourse._id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
+                registeringDomainId === activeCourse._id ? undefined : (
                   <Sparkles className="w-4 h-4" />
                 )
               }
@@ -582,9 +599,11 @@ export const DomainsPage: React.FC = () => {
                 size="sm"
                 color="success"
                 variant="solid"
-                onPress={() => toggleDomainLock(activeCourse._id)}
+                isLoading={togglingLockId === activeCourse._id}
+                isDisabled={togglingLockId === activeCourse._id}
+                onPress={(e: any) => handleToggleDomainLock(e, activeCourse._id)}
                 className="shrink-0 rounded-full text-xs font-bold shadow"
-                startContent={<ShieldCheck className="w-4 h-4" />}
+                startContent={togglingLockId === activeCourse._id ? undefined : <ShieldCheck className="w-4 h-4" />}
               >
                 Approve & Unlock Course Now
               </Button>
@@ -1025,11 +1044,10 @@ export const DomainsPage: React.FC = () => {
                           size="sm"
                           radius="full"
                           color="warning"
-                          onClick={(e: any) => {
-                            e.stopPropagation();
-                            toggleDomainLock(domain._id);
-                          }}
-                          startContent={<Lock className="w-3 h-3" />}
+                          isLoading={togglingLockId === domain._id}
+                          isDisabled={togglingLockId === domain._id}
+                          onClick={(e: any) => handleToggleDomainLock(e, domain._id)}
+                          startContent={togglingLockId === domain._id ? undefined : <Lock className="w-3 h-3" />}
                           className="px-2.5 min-h-[30px] h-7 text-xs font-semibold backdrop-blur-md border border-amber-400/30 shadow"
                           title="Course is locked for students. Click to approve & unlock."
                         >
@@ -1046,11 +1064,10 @@ export const DomainsPage: React.FC = () => {
                           size="sm"
                           radius="full"
                           color="success"
-                          onClick={(e: any) => {
-                            e.stopPropagation();
-                            toggleDomainLock(domain._id);
-                          }}
-                          startContent={<ShieldCheck className="w-3 h-3" />}
+                          isLoading={togglingLockId === domain._id}
+                          isDisabled={togglingLockId === domain._id}
+                          onClick={(e: any) => handleToggleDomainLock(e, domain._id)}
+                          startContent={togglingLockId === domain._id ? undefined : <ShieldCheck className="w-3 h-3" />}
                           className="px-2.5 min-h-[30px] h-7 text-xs font-semibold backdrop-blur-md border border-emerald-400/30 shadow"
                           title="Course is approved for students. Click to lock."
                         >
@@ -1100,6 +1117,8 @@ export const DomainsPage: React.FC = () => {
                           radius="full"
                           variant="light"
                           color="danger"
+                          isLoading={deletingDomainId === domain._id}
+                          isDisabled={deletingDomainId === domain._id}
                           onClick={(e: any) => handleDeleteDomain(e, domain)}
                           className="w-7 h-7 min-w-[28px] min-h-[28px] text-rose-300 hover:text-rose-100 hover:bg-rose-500/30"
                           title="Delete Course"

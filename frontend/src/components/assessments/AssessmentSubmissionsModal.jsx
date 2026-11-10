@@ -44,7 +44,17 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
   const debouncedSearch = useDebounce(search, 350);
   const [confirmAction, setConfirmAction] = useState(null); // { type: 'delete' | 'reappear', subId, studentId, studentName }
   const [actionLoading, setActionLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [inspectingSubmission, setInspectingSubmission] = useState(null);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportAssessmentSubmissionsCsv(assessmentId);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Award custom points dialog state
   const [awardPointsTarget, setAwardPointsTarget] = useState(null); // { studentId, studentName, score, totalPoints, percentage }
@@ -188,7 +198,9 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
               size="sm"
               variant="secondary"
               color="success"
-              onPress={() => exportAssessmentSubmissionsCsv(assessmentId)}
+              isLoading={isExporting}
+              isDisabled={isExporting}
+              onPress={handleExport}
               className="text-xs font-medium flex items-center gap-1.5 shadow-xs"
               title="Download full assessment report as CSV"
             >
@@ -416,13 +428,20 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
                     type="button"
                     variant={confirmAction.type === 'delete' ? 'danger' : 'primary'}
                     isDisabled={actionLoading}
+                    isLoading={actionLoading}
                     onPress={handleExecuteAction}
                     className="px-5 py-2 rounded-xl text-xs font-medium shadow-xs"
                   >
-                    {actionLoading && <Spinner size="sm" color="default" />}
-                    <span>
-                      {confirmAction.type === 'delete' ? 'Delete retry' : 'Allow reappear'}
-                    </span>
+                    {!actionLoading && (
+                      <span>
+                        {confirmAction.type === 'delete' ? 'Delete retry' : 'Allow reappear'}
+                      </span>
+                    )}
+                    {actionLoading && (
+                      <span>
+                        {confirmAction.type === 'delete' ? 'Deleting retry...' : 'Allowing reappear...'}
+                      </span>
+                    )}
                   </Button>
                 </div>
               </motion.div>
@@ -554,9 +573,9 @@ const AssessmentSubmissionsModal = ({ assessmentId, assessment, isOpen, onClose 
                       type="submit"
                       variant="primary"
                       isDisabled={awardingLoading}
+                      isLoading={awardingLoading}
                       className="px-5 py-2 rounded-xl text-xs font-medium tabular-nums shadow-xs flex items-center gap-2"
                     >
-                      {awardingLoading && <Spinner size="sm" color="default" />}
                       <span>Award {awardAmount} points</span>
                     </Button>
                   </div>

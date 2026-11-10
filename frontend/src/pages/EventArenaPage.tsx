@@ -190,6 +190,7 @@ export const EventArenaPage: React.FC = () => {
   const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null);
   const [finalResultModal, setFinalResultModal] = useState<any | null>(null);
   const [apiBlocked, setApiBlocked] = useState(false);
+  const [isUnblockingSelf, setIsUnblockingSelf] = useState(false);
 
   const isDesignRound = selectedAssessment?.type === 'UI_UX';
 
@@ -876,9 +877,16 @@ export const EventArenaPage: React.FC = () => {
                 <Button
                   color="secondary"
                   variant="solid"
+                  isLoading={isUnblockingSelf}
+                  isDisabled={isUnblockingSelf}
                   onPress={async () => {
-                    await unblockStudent(currentUser?._id || currentUser?.id);
-                    setApiBlocked(false);
+                    setIsUnblockingSelf(true);
+                    try {
+                      await unblockStudent(currentUser?._id || currentUser?.id);
+                      setApiBlocked(false);
+                    } finally {
+                      setIsUnblockingSelf(false);
+                    }
                   }}
                   className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30"
                 >
@@ -1276,9 +1284,10 @@ export const EventArenaPage: React.FC = () => {
                   color="secondary"
                   variant="solid"
                   isDisabled={actionLoading}
+                  isLoading={actionLoading}
                   onPress={handleStudentDesignSubmit}
                   className="min-h-10.5 rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30 shrink-0"
-                  startContent={actionLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  startContent={!actionLoading ? <Send size={13} /> : undefined}
                 >
                   {submission?.designSubmission?.submittedAt ? 'Update Submission' : 'Submit Figma Link'}
                 </Button>
@@ -1711,9 +1720,10 @@ export const EventArenaPage: React.FC = () => {
                       size="sm"
                       variant="flat"
                       isDisabled={isExecuting}
+                      isLoading={isExecuting}
                       onPress={handleRunCode}
                       className="rounded-xl text-white text-xs font-bold"
-                      startContent={isExecuting ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                      startContent={!isExecuting ? <Play size={12} /> : undefined}
                     >
                       {activeCodingMode === 'ONLY_CODE' ? 'Run Code' : 'Run'}
                     </Button>
@@ -1723,13 +1733,14 @@ export const EventArenaPage: React.FC = () => {
                       color={activeCodingMode === 'ONLY_CODE' ? 'secondary' : 'success'}
                       variant="solid"
                       isDisabled={isSubmittingProblem}
+                      isLoading={isSubmittingProblem}
                       onPress={handleSubmitProblem}
                       className={`rounded-xl text-white text-xs font-bold shadow-md ${
                         activeCodingMode === 'ONLY_CODE'
                           ? 'shadow-purple-600/20'
                           : 'shadow-emerald-600/20'
                       }`}
-                      startContent={isSubmittingProblem ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                      startContent={!isSubmittingProblem ? <Send size={12} /> : undefined}
                     >
                       {activeCodingMode === 'ONLY_CODE' ? 'Submit Code' : 'Submit Challenge'}
                     </Button>
@@ -1885,6 +1896,7 @@ export const EventArenaPage: React.FC = () => {
                 color="success"
                 variant="solid"
                 isDisabled={actionLoading}
+                isLoading={actionLoading}
                 onPress={async () => {
                   if (selectedAssessment?.type === 'UI_UX') {
                     if (!studentFigmaLink.trim()) {
@@ -1898,7 +1910,7 @@ export const EventArenaPage: React.FC = () => {
                   }
                 }}
                 className="min-h-10 rounded-xl text-label-primary font-bold text-xs shadow-md shadow-emerald-500/20"
-                startContent={actionLoading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                startContent={!actionLoading ? <CheckCircle2 size={13} /> : undefined}
               >
                 Confirm & Submit
               </Button>
