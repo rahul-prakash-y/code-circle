@@ -283,20 +283,38 @@ export const EventArenaPage: React.FC = () => {
     }
   }, [id]);
 
+  // Periodic poll on Hub view to detect when admin grants grace time or makes assessment live
+  useEffect(() => {
+    if (!id || activeAssessmentId) return;
+
+    const interval = setInterval(() => {
+      fetchAssessments(id);
+    }, 6000); // Poll every 6 seconds on Hub view
+
+    return () => clearInterval(interval);
+  }, [id, activeAssessmentId, fetchAssessments]);
+
   // When activeAssessmentId changes, load that assessment's data and start session
   useEffect(() => {
     if (id && activeAssessmentId) {
       fetchStudentAssessmentData(id, activeAssessmentId)
         .then((data) => {
           setApiBlocked(false);
-          if (!data?.submission || data.submission.status === 'IN_PROGRESS') {
+          const hasGrace = Boolean(
+            data?.submission?.reentryAllowed ||
+            (data?.submission?.expiresAt && new Date(data.submission.expiresAt).getTime() > Date.now()) ||
+            ((data?.submission?.graceMinutes || 0) > 0 && data?.submission?.status === 'IN_PROGRESS')
+          );
+          if (!data?.submission || data.submission.status === 'IN_PROGRESS' || hasGrace) {
             startAssessmentSession(id, activeAssessmentId);
           }
           if (
-            data?.submission?.status === 'SUBMITTED' ||
-            data?.submission?.status === 'AUTO_SUBMITTED'
+            (data?.submission?.status === 'SUBMITTED' || data?.submission?.status === 'AUTO_SUBMITTED') &&
+            !hasGrace
           ) {
             setFinalResultModal(data.submission);
+          } else {
+            setFinalResultModal(null);
           }
         })
         .catch((err: any) => {
@@ -347,17 +365,24 @@ export const EventArenaPage: React.FC = () => {
 
       // If submission has an explicit expiration timestamp in the future (includes any admin grace time extensions), respect it directly
       if (expiresTime && !isNaN(expiresTime)) {
-        return Math.max(0, Math.floor((expiresTime - now) / 1000));
+        if (expiresTime > now) {
+          return Math.max(0, Math.floor((expiresTime - now) / 1000));
+        }
+        // If expiresTime is in the past, but reentryAllowed / graceMinutes was just granted, give at least graceMinutes
+        if (submission?.reentryAllowed && (submission?.graceMinutes || 0) > 0) {
+          return (submission.graceMinutes || 10) * 60;
+        }
       }
 
       const totalSeconds = (selectedAssessment?.durationMinutes || 60) * 60;
       const started = submission?.startedAt ? new Date(submission.startedAt).getTime() : now;
       const elapsed = Math.floor((now - started) / 1000);
 
+      const graceExtraMs = (selectedAssessment?.graceMinutes || 0) * 60 * 1000;
       const assessmentEndTime = selectedAssessment?.endTime
-        ? new Date(selectedAssessment.endTime).getTime()
+        ? new Date(selectedAssessment.endTime).getTime() + graceExtraMs
         : selectedAssessment?.startTime
-        ? new Date(selectedAssessment.startTime).getTime() + (selectedAssessment.durationMinutes || 60) * 60 * 1000
+        ? new Date(selectedAssessment.startTime).getTime() + (selectedAssessment.durationMinutes || 60) * 60 * 1000 + graceExtraMs
         : null;
 
       if (assessmentEndTime && !isNaN(assessmentEndTime)) {
@@ -369,7 +394,7 @@ export const EventArenaPage: React.FC = () => {
 
     const initial = calcRemaining();
     setRemainingSeconds(initial);
-    if (initial <= 0 && activeAssessmentId && submission?.status === 'IN_PROGRESS') {
+    if (initial <= 0 && activeAssessmentId && submission?.status === 'IN_PROGRESS' && !submission?.reentryAllowed) {
       handleFinalSubmitRef.current(true);
       return;
     }
@@ -657,6 +682,15 @@ export const EventArenaPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="flat"
+              onPress={() => id && fetchAssessments(id)}
+              className="rounded-xl text-label-secondary hover:text-label-primary text-xs font-semibold"
+              startContent={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
+            >
+              Refresh
+            </Button>
             <span className="px-3 py-1 rounded-full text-xs font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
               {assessments.length} {assessments.length === 1 ? 'Assessment' : 'Assessments'} Available
             </span>
@@ -736,8 +770,19 @@ export const EventArenaPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {assessments.map((asm, idx) => {
                 const sub = asm.submission;
-                const isCompleted = sub?.status === 'SUBMITTED' || sub?.status === 'AUTO_SUBMITTED';
-                const isInProgress = sub?.status === 'IN_PROGRESS';
+                const nowMs = Date.now();
+                const isGraceTimeActive = Boolean(
+                  sub?.reentryAllowed ||
+                  (sub?.expiresAt && new Date(sub.expiresAt).getTime() > nowMs) ||
+                  ((sub?.graceMinutes || 0) > 0 && sub?.status === 'IN_PROGRESS') ||
+                  (asm.hasGraceTime && sub?.status !== 'SUBMITTED' && sub?.status !== 'AUTO_SUBMITTED') ||
+                  ((asm.graceMinutes || 0) > 0 && asm.status === 'LIVE')
+                );
+
+                const isCompleted =
+                  (sub?.status === 'SUBMITTED' || sub?.status === 'AUTO_SUBMITTED') &&
+                  !isGraceTimeActive;
+                const isInProgress = sub?.status === 'IN_PROGRESS' || isGraceTimeActive;
 
                 // Qualification check for Round > 1 based strictly on Top Rank Cutoff
                 const prevRound = idx > 0 ? assessments[idx - 1] : null;
@@ -749,9 +794,9 @@ export const EventArenaPage: React.FC = () => {
                   : 0;
                 const hasCutoff = idx > 0 && effectiveRoundCutoff > 0;
                 // If previous round isn't completed, lock next round
-                const isLockedBySequence = idx > 0 && !prevCompleted && !isCompleted;
-                const isEnded = asm.status === 'ENDED' && !isCompleted;
-                const isNotLive = asm.status !== 'LIVE' && !isCompleted;
+                const isLockedBySequence = idx > 0 && !prevCompleted && !isCompleted && !isGraceTimeActive;
+                const isEnded = asm.status === 'ENDED' && !isCompleted && !isGraceTimeActive;
+                const isNotLive = asm.status !== 'LIVE' && !isCompleted && !isGraceTimeActive;
 
                 return (
                   <motion.div
@@ -779,7 +824,12 @@ export const EventArenaPage: React.FC = () => {
                             </span>
                           )}
 
-                          {isCompleted ? (
+                          {isGraceTimeActive ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse">
+                              <Clock size={11} className="text-amber-400" />
+                              <span>Grace Time Active (+{sub?.graceMinutes || asm.graceMinutes || 10}m)</span>
+                            </span>
+                          ) : isCompleted ? (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                               <CheckCircle2 size={11} />
                               <span>Completed</span>
@@ -925,7 +975,22 @@ export const EventArenaPage: React.FC = () => {
 
                     {/* Action Button */}
                     <div className="pt-2">
-                      {isCompleted ? (
+                      {isGraceTimeActive ? (
+                        <Button
+                          color="warning"
+                          variant="solid"
+                          onPress={() => {
+                            setActiveAssessmentId(asm._id);
+                            if (!isFullscreen) {
+                              requestFullscreen().catch(() => {});
+                            }
+                          }}
+                          className="w-full min-h-[42px] rounded-xl text-white font-bold text-xs shadow-lg shadow-amber-500/30 hover:brightness-105 transition-all"
+                          startContent={<Play size={13} />}
+                        >
+                          {sub?.status === 'IN_PROGRESS' ? 'Resume Test (Grace Time)' : 'Re-enter Assessment (Grace Time)'}
+                        </Button>
+                      ) : isCompleted ? (
                         isAdmin ? (
                           <Button
                             color="default"

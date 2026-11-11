@@ -101,7 +101,9 @@ export interface ArenaAssessment {
     mcqs: ArenaMcqQuestion[];
     coding: ArenaCodingProblem[];
   };
+  hasGraceTime?: boolean;
   submission?: {
+    _id?: string;
     status: 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
     totalScore: number;
     rawTotalScore?: number;
@@ -112,6 +114,10 @@ export interface ArenaAssessment {
     scorePercentage: number;
     isPassed: boolean;
     submittedAt?: string;
+    expiresAt?: string;
+    graceMinutes?: number;
+    reentryAllowed?: boolean;
+    startedAt?: string;
   } | null;
 }
 
@@ -1029,6 +1035,7 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
       toast.success(res.data.message || 'Grace time granted successfully!');
       await get().fetchAdminAssessmentSubmissions(eventId, assessmentId);
       await get().fetchBlockedStudents(eventId);
+      await get().fetchAssessments(eventId);
       set({ actionLoading: false });
       return res.data;
     } catch (err: any) {

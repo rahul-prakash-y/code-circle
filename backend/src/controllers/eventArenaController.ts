@@ -105,6 +105,7 @@ export const computeAssessmentDynamicStatus = (assessment: {
   startTime?: Date | string | null;
   endTime?: Date | string | null;
   durationMinutes?: number | null;
+  graceMinutes?: number | null;
 }): 'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED' => {
   if (assessment.status === 'DRAFT') return 'DRAFT';
   if (!assessment.startTime) return (assessment.status as any) || 'LIVE';
@@ -114,9 +115,11 @@ export const computeAssessmentDynamicStatus = (assessment: {
   if (isNaN(start)) return (assessment.status as any) || 'LIVE';
 
   const duration = Number(assessment.durationMinutes) || 60;
-  const end = assessment.endTime
+  const graceExtra = (Number(assessment.graceMinutes) || 0) * 60 * 1000;
+  const baseEnd = assessment.endTime
     ? new Date(assessment.endTime).getTime()
     : start + duration * 60 * 1000;
+  const end = baseEnd + graceExtra;
   const liveWindowStart = start - 10 * 60 * 1000; // Automatically changes to LIVE 10 minutes before test start
 
   if (now < liveWindowStart) {
@@ -1654,6 +1657,7 @@ export const getEventAssessmentsList = async (
     const isPrivileged = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
 
     let hasStatusChanged = false;
+    const nowMs = Date.now();
     const assessments = (event.arenaAssessments || []).map((assessment: any) => {
       const userSub = submissionsByAssessmentId.get(assessment._id.toString()) || null;
       const isAssigned = canManageAssessmentQuestions(user, event, assessment);
@@ -1662,18 +1666,34 @@ export const getEventAssessmentsList = async (
         assessment.status = computedStatus;
         hasStatusChanged = true;
       }
+
+      // Check if student has active grace time or re-entry granted by admin
+      const hasActiveGraceTime = Boolean(
+        userSub && (
+          userSub.reentryAllowed ||
+          (userSub.expiresAt && new Date(userSub.expiresAt).getTime() > nowMs) ||
+          ((userSub.graceMinutes || 0) > 0 && userSub.status === 'IN_PROGRESS')
+        )
+      );
+
+      // If assessment overall is ENDED, but this student has active grace time / reentry,
+      // the effective status for this student is LIVE so they can enter/continue!
+      const effectiveStatus = hasActiveGraceTime && computedStatus === 'ENDED' ? 'LIVE' : computedStatus;
+
       return {
         _id: assessment._id,
         title: assessment.title,
         description: assessment.description,
         type: assessment.type,
-        status: computedStatus,
+        status: effectiveStatus,
         durationMinutes: assessment.durationMinutes,
         totalPoints: assessment.totalPoints,
         passingPercentage: assessment.passingPercentage,
         rules: assessment.rules,
         startTime: assessment.startTime,
         endTime: assessment.endTime,
+        graceMinutes: assessment.graceMinutes || 0,
+        hasGraceTime: hasActiveGraceTime,
         assignedAdmins: assessment.assignedAdmins || [],
         qualificationCutoffRank: assessment.qualificationCutoffRank || 0,
         isTeamMode: Boolean(assessment.isTeamMode),
@@ -1683,12 +1703,17 @@ export const getEventAssessmentsList = async (
         canManage: isAssigned,
         submission: userSub
           ? {
+              _id: userSub._id,
               status: userSub.status,
               totalScore: isPrivileged ? userSub.totalScore : undefined,
               maxPossibleScore: isPrivileged ? userSub.maxPossibleScore : undefined,
               scorePercentage: isPrivileged ? userSub.scorePercentage : undefined,
               isPassed: isPrivileged ? userSub.isPassed : undefined,
               submittedAt: userSub.submittedAt,
+              expiresAt: userSub.expiresAt,
+              graceMinutes: userSub.graceMinutes,
+              reentryAllowed: userSub.reentryAllowed,
+              startedAt: userSub.startedAt,
             }
           : null,
       };
@@ -2520,9 +2545,26 @@ export const getStudentAssessmentData = async (
     const assessment = event.arenaAssessments[assessmentIndex];
     const currentStatus = computeAssessmentDynamicStatus(assessment);
 
+    // Fetch existing submission early to check for grace time or reentry
+    const submission = await EventArenaSubmission.findOne({
+      eventId: event._id,
+      assessmentId,
+      userId: user._id,
+    }).lean();
+
+    const nowMs = Date.now();
+    const hasActiveGraceTime = Boolean(
+      submission && (
+        submission.reentryAllowed ||
+        (submission.expiresAt && new Date(submission.expiresAt).getTime() > nowMs) ||
+        ((submission.graceMinutes || 0) > 0 && submission.status === 'IN_PROGRESS')
+      )
+    );
+    const isAssessmentGraceActive = (assessment.graceMinutes || 0) > 0;
+
     // Check qualification for non-admin students
     if (!isAdminRole) {
-      if (currentStatus !== 'LIVE') {
+      if (currentStatus !== 'LIVE' && !hasActiveGraceTime && !isAssessmentGraceActive) {
         return reply.status(403).send({
           success: false,
           error: currentStatus === 'UPCOMING'
@@ -2563,12 +2605,6 @@ export const getStudentAssessmentData = async (
         };
       }
     }
-
-    const submission = await EventArenaSubmission.findOne({
-      eventId: event._id,
-      assessmentId,
-      userId: user._id,
-    }).lean();
 
     const sanitizedMcqs = (assessment.questions?.mcqs || []).map((q: any) => ({
       _id: q._id,
@@ -2716,9 +2752,25 @@ export const startAssessmentSession = async (
     const assessment = event.arenaAssessments[assessmentIndex];
     const currentStatus = computeAssessmentDynamicStatus(assessment);
 
+    let submission = await EventArenaSubmission.findOne({
+      eventId: event._id,
+      assessmentId,
+      userId: user._id,
+    });
+
+    const now = new Date();
+    const hasActiveGraceTime = Boolean(
+      submission && (
+        submission.reentryAllowed ||
+        (submission.expiresAt && new Date(submission.expiresAt).getTime() > now.getTime()) ||
+        ((submission.graceMinutes || 0) > 0 && submission.status === 'IN_PROGRESS')
+      )
+    );
+    const isAssessmentGraceActive = (assessment.graceMinutes || 0) > 0;
+
     const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
     if (!isAdminRole) {
-      if (currentStatus !== 'LIVE') {
+      if (currentStatus !== 'LIVE' && !hasActiveGraceTime && !isAssessmentGraceActive) {
         return reply.status(403).send({
           success: false,
           error: currentStatus === 'UPCOMING'
@@ -2751,25 +2803,18 @@ export const startAssessmentSession = async (
       }
     }
 
-    const now = new Date();
     const durationMinutes = Number(assessment.durationMinutes) || 60;
-    const normalExpiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
+    const graceExtraMinutes = Number(assessment.graceMinutes) || 0;
+    const normalExpiresAt = new Date(now.getTime() + (durationMinutes + graceExtraMinutes) * 60 * 1000);
     let calculatedExpiresAt = normalExpiresAt;
     if (assessment.startTime) {
       const scheduledEnd = assessment.endTime
-        ? new Date(assessment.endTime).getTime()
-        : new Date(assessment.startTime).getTime() + durationMinutes * 60 * 1000;
+        ? new Date(assessment.endTime).getTime() + graceExtraMinutes * 60 * 1000
+        : new Date(assessment.startTime).getTime() + (durationMinutes + graceExtraMinutes) * 60 * 1000;
       if (!isNaN(scheduledEnd)) {
-        // Enforce strict test cutoff at scheduledEnd (e.g. 3:25 PM + 40 mins = 4:05 PM)
         calculatedExpiresAt = new Date(Math.min(normalExpiresAt.getTime(), scheduledEnd));
       }
     }
-
-    let submission = await EventArenaSubmission.findOne({
-      eventId: event._id,
-      assessmentId,
-      userId: user._id,
-    });
 
     if (!submission) {
       submission = await EventArenaSubmission.create({
@@ -2783,9 +2828,20 @@ export const startAssessmentSession = async (
         expiresAt: calculatedExpiresAt,
         maxPossibleScore: assessment.totalPoints || 100,
       });
-    } else if (!submission.expiresAt && calculatedExpiresAt) {
-      submission.expiresAt = calculatedExpiresAt;
-      await submission.save();
+    } else {
+      const hasFutureExpiry = submission.expiresAt && new Date(submission.expiresAt).getTime() > now.getTime();
+      if (submission.reentryAllowed || hasFutureExpiry || ((submission.graceMinutes || 0) > 0)) {
+        submission.status = 'IN_PROGRESS';
+        submission.submittedAt = undefined;
+        if (!hasFutureExpiry) {
+          const extraMins = submission.graceMinutes || assessment.graceMinutes || 10;
+          submission.expiresAt = new Date(now.getTime() + extraMins * 60 * 1000);
+        }
+        await submission.save();
+      } else if (!submission.expiresAt && calculatedExpiresAt) {
+        submission.expiresAt = calculatedExpiresAt;
+        await submission.save();
+      }
     }
 
     return reply.send({
@@ -2796,7 +2852,8 @@ export const startAssessmentSession = async (
       startTime: assessment.startTime,
       endTime: assessment.endTime,
       expiresAt: submission.expiresAt || calculatedExpiresAt,
-      graceMinutes: submission.graceMinutes || 0,
+      graceMinutes: submission.graceMinutes || assessment.graceMinutes || 0,
+      hasGraceTime: hasActiveGraceTime,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -4040,7 +4097,11 @@ export const grantAssessmentGraceTime = async (
       await Enrollment.updateMany(
         {
           event: event._id,
-          $or: [{ enrolledBy: targetUserId }, { members: targetUserId }],
+          $or: [
+            { enrolledBy: targetUserId },
+            { 'members.user': targetUserId },
+            { members: targetUserId },
+          ],
         },
         { $set: { isBlocked: false } }
       );
@@ -4127,8 +4188,8 @@ export const grantAssessmentGraceTimeAll = async (
       sub.graceGrantedAt = now;
       sub.graceGrantedBy = adminObjectId;
 
-      // If test was auto-submitted due to timer expiring, reopen it so student can continue
-      if (sub.status === 'AUTO_SUBMITTED') {
+      // If test was auto-submitted or submitted, reopen it so student can continue
+      if (sub.status === 'AUTO_SUBMITTED' || sub.status === 'SUBMITTED') {
         sub.status = 'IN_PROGRESS';
         sub.submittedAt = undefined;
         sub.reentryAllowed = true;

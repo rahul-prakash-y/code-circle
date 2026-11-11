@@ -330,7 +330,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                       value={manualSearch}
                       onChange={(e) => setManualSearch(e.target.value)}
                       placeholder="Search students, roll numbers, teams..."
-                      className="w-full text-xs py-2 pl-9.5 pr-4 rounded-xl bg-surface border border-separator dark:border-white/10 text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-blue-500/40 transition-colors font-normal"
+                      className="w-full! min-w-3xs text-xs py-2 pl-9.5 pr-4 rounded-xl bg-surface border border-separator dark:border-white/10 text-label-primary placeholder:text-label-tertiary focus:outline-none focus:border-blue-500/40 transition-colors font-normal"
                     />
                     {manualSearch && (
                       <button
@@ -351,7 +351,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                       { value: 'absent', label: `Absent only (${totalStudents - presentStudents})` },
                     ]}
                     size="sm"
-                    className="w-44 shrink-0"
+                    className="w-full"
                   />
                 </div>
 

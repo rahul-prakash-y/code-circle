@@ -5098,7 +5098,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     isLoading={isGrantingGrace}
                     isDisabled={isGrantingGrace}
                     startContent={!isGrantingGrace ? <Clock size={13} /> : undefined}
-                    onPress={handleGrantGraceTime}
+                    onClick={handleGrantGraceTime}
                     className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold shadow-lg shadow-amber-500/20 cursor-pointer"
                   >
                     Grant +{graceMinutesInput}m & Resume
