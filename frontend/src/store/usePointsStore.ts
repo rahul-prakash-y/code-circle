@@ -101,6 +101,33 @@ export interface AdminStudentItem {
   otherPoints: number;
 }
 
+export interface AdminPointTransaction {
+  _id: string;
+  user?: {
+    _id: string;
+    name: string;
+    rollNo: string;
+    email: string;
+    department?: string;
+    year?: string;
+    profilePicUrl?: string;
+  } | null;
+  amount: number;
+  category: 'Attendance' | 'Coding' | 'Course' | 'Contest' | 'Bonus' | 'Adjustment' | 'Assessment';
+  title: string;
+  description?: string;
+  balanceAfter?: number;
+  classHours?: number[];
+  awardedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+    role?: string;
+  } | null;
+  timestamp: string;
+  createdAt: string;
+}
+
 interface PointsState {
   // Student self state
   myPointsData: StudentPointsData | null;
@@ -120,6 +147,16 @@ interface PointsState {
   loadingStudents: boolean;
   adminError: string | null;
 
+  // Admin live points tracking ledger state
+  adminTransactions: AdminPointTransaction[];
+  loadingTransactions: boolean;
+  transactionsPagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+
   // Selected student audit state
   selectedAudit: StudentPointsData | null;
   loadingAudit: boolean;
@@ -135,6 +172,14 @@ interface PointsState {
     department?: string;
     year?: string;
     sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }) => Promise<void>;
+  fetchAdminTransactions: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    department?: string;
     sortOrder?: 'asc' | 'desc';
   }) => Promise<void>;
   fetchStudentAudit: (userId: string) => Promise<StudentPointsData | null>;
@@ -164,6 +209,15 @@ export const usePointsStore = create<PointsState>((set, get) => ({
   },
   loadingStudents: false,
   adminError: null,
+
+  adminTransactions: [],
+  loadingTransactions: false,
+  transactionsPagination: {
+    total: 0,
+    page: 1,
+    limit: 25,
+    totalPages: 1,
+  },
 
   selectedAudit: null,
   loadingAudit: false,
@@ -220,6 +274,27 @@ export const usePointsStore = create<PointsState>((set, get) => ({
       set({
         adminError: err.response?.data?.error || 'Failed to fetch students points list',
         loadingStudents: false,
+      });
+    }
+  },
+
+  fetchAdminTransactions: async (params = {}) => {
+    set({ loadingTransactions: true, adminError: null });
+    try {
+      const response = await api.get('/points/admin/transactions', { params });
+      if (response.data?.success) {
+        set({
+          adminTransactions: response.data.data.transactions || [],
+          transactionsPagination: response.data.data.pagination || { total: 0, page: 1, limit: 25, totalPages: 1 },
+          loadingTransactions: false,
+        });
+      } else {
+        set({ loadingTransactions: false });
+      }
+    } catch (err: any) {
+      set({
+        adminError: err.response?.data?.error || 'Failed to fetch points tracking transactions',
+        loadingTransactions: false,
       });
     }
   },

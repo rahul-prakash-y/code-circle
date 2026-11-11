@@ -38,6 +38,7 @@ import { RecordFormModal } from '../components/admin/diagnostics/RecordFormModal
 import { DeleteConfirmModal } from '../components/admin/diagnostics/DeleteConfirmModal';
 import { ViewDocModal } from '../components/admin/diagnostics/ViewDocModal';
 import SubmissionQueuePanel from '../components/admin/assessments/SubmissionQueuePanel';
+import FailedFlushesManager from '../components/admin/diagnostics/FailedFlushesManager';
 import { ErrorBoundary } from '../components/states';
 
 export const DiagnosticsPage: React.FC = () => {
@@ -65,7 +66,7 @@ export const DiagnosticsPage: React.FC = () => {
     batchDeleteDocuments,
   } = useDiagnosticsStore();
 
-  const [activeTab, setActiveTab] = useState<'health' | 'flushes' | 'database'>('health');
+  const [activeTab, setActiveTab] = useState<'health' | 'flushes' | 'failed-flushes' | 'database'>('health');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [docSearch, setDocSearch] = useState('');
 
@@ -242,7 +243,7 @@ export const DiagnosticsPage: React.FC = () => {
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Tabs */}
-          <div className="w-full sm:w-auto grid grid-cols-3 sm:flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs">
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center p-1 bg-surface-secondary border border-separator rounded-2xl shadow-xs gap-1 sm:gap-0">
             <Button
               size="sm"
               radius="lg"
@@ -278,6 +279,28 @@ export const DiagnosticsPage: React.FC = () => {
               }
             >
               Server Flushes
+            </Button>
+            <Button
+              size="sm"
+              radius="lg"
+              variant={activeTab === 'failed-flushes' ? 'solid' : 'light'}
+              color={activeTab === 'failed-flushes' ? 'danger' : 'default'}
+              onPress={() => setActiveTab('failed-flushes')}
+              className={`flex items-center justify-center whitespace-nowrap gap-2 px-3 sm:px-4 py-2 min-h-[40px] text-xs font-bold transition-all ${
+                activeTab === 'failed-flushes'
+                  ? 'text-white shadow-md shadow-danger/20'
+                  : 'text-label-secondary hover:text-label-primary'
+              }`}
+              startContent={<AlertTriangle size={15} />}
+              endContent={
+                (healthData?.buffers?.submissionQueue?.failedCount || 0) > 0 ? (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-danger text-white">
+                    {healthData?.buffers?.submissionQueue?.failedCount}
+                  </span>
+                ) : undefined
+              }
+            >
+              Failed Flushes
             </Button>
             <Button
               size="sm"
@@ -766,8 +789,18 @@ export const DiagnosticsPage: React.FC = () => {
 
           {/* Section 2: Horizontal Cluster Exam Submission Queue Monitor */}
           <SubmissionQueuePanel />
+
+          {/* Section 3: Failed Buffer Flushes & Direct DB Synchronizer */}
+          <FailedFlushesManager onRefreshHealth={fetchHealth} />
         </div>
       </ErrorBoundary>
+      )}
+
+      {/* --- TAB 3: DEDICATED FAILED FLUSHES MANAGER --- */}
+      {activeTab === 'failed-flushes' && (
+        <ErrorBoundary sectionName="Failed Buffer Flushes Manager">
+          <FailedFlushesManager onRefreshHealth={fetchHealth} />
+        </ErrorBoundary>
       )}
 
       {/* --- TAB 3: DATABASE MANAGER --- */}

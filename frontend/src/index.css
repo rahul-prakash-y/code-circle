@@ -713,13 +713,47 @@
 
 button:focus-visible,
 a:focus-visible,
-input:focus-visible,
 select:focus-visible,
-textarea:focus-visible,
 [role="button"]:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Standalone inputs/textareas get focus outline on the outside */
+input:not(.outline-none):focus-visible,
+textarea:not(.outline-none):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Prevent inner outline from rendering inside the padding of compound input fields (HeroInput, HeroTextarea, etc.) */
+input.outline-none,
+input:focus.outline-none,
+input:focus-visible.outline-none,
+textarea.outline-none,
+textarea:focus.outline-none,
+textarea:focus-visible.outline-none,
+input[class*="outline-none"]:focus,
+input[class*="outline-none"]:focus-visible,
+textarea[class*="outline-none"]:focus,
+textarea[class*="outline-none"]:focus-visible,
+.group:focus-within input,
+.group:focus-within textarea,
+.group:has(input:focus-visible) input,
+.group:has(textarea:focus-visible) textarea {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Ensure the blue outline is placed on the outside of the input field container, enclosing all padding */
+.group:has(> div > input:focus-visible) > div,
+.group:has(> div > textarea:focus-visible) > div,
+.group:has(input:focus-visible) > div,
+.group:has(textarea:focus-visible) > div {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
 }
 
 /* ── Accessibility: Prefers Reduced Motion ───────────────── */

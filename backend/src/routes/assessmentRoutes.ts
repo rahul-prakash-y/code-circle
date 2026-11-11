@@ -76,6 +76,58 @@ export async function assessmentRoutes(fastify: FastifyInstance) {
     },
     assessmentController.downloadQueueBackup as any
   );
+  fastify.get(
+    '/admin/queue/failed-items',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [isAdminOrFaculty],
+    },
+    assessmentController.getFailedQueueItems as any
+  );
+  fastify.post(
+    '/admin/queue/failed-items/update-db',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [isAdminOrFaculty],
+    },
+    assessmentController.updateFailedQueueItemToDb as any
+  );
+  fastify.post(
+    '/admin/queue/failed-items/bulk-import-db',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [isAdminOrFaculty],
+    },
+    assessmentController.bulkImportFailedItemsToDb as any
+  );
+  fastify.delete(
+    '/admin/queue/failed-items/:submissionId',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [isAdminOrFaculty],
+    },
+    assessmentController.deleteFailedQueueItem as any
+  );
 
   // Student assessment endpoints (gated against restriction & Anti-Cheat block)
   fastify.get('/', assessmentController.getAssessments as any);

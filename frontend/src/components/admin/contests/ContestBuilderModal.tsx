@@ -24,9 +24,15 @@ import {
   FileCode,
   FileSpreadsheet,
   Terminal,
+  Loader2,
 } from 'lucide-react';
-import { Button, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
+import {
+  HeroInput,
+  HeroTextarea,
+  HeroUISelect,
+  HeroDateTimePicker,
+} from '../../ui/HeroUIComponents';
 import useContestStore, {
   Contest,
   MCQQuestion,
@@ -445,7 +451,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 <span>{editingContest ? 'Edit Weekly Contest' : 'Create Weekly Contest'}</span>
                 {loadingDetails && (
                   <span className="flex items-center gap-1 text-[11px] text-accent font-semibold">
-                    <Spinner size="sm" color="default" /> Loading specs...
+                    <Loader2 size={13} className="animate-spin text-accent" /> Loading specs...
                   </span>
                 )}
               </div>
@@ -460,33 +466,42 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
         {/* Tab Switcher */}
         <div className="flex items-center gap-1.5 sm:gap-2 p-1 bg-surface-secondary rounded-2xl border border-separator shrink-0 overflow-x-auto no-scrollbar touch-pan-x flex-nowrap">
-          <Button
+          <button
             type="button"
-            variant={activeTab === 'info' ? 'primary' : 'secondary'}
-            onPress={() => setActiveTab('info')}
-            className="flex-1 min-w-[120px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap"
+            onClick={() => setActiveTab('info')}
+            className={`flex-1 min-w-[120px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap transition-colors duration-150 ${
+              activeTab === 'info'
+                ? 'bg-accent text-white shadow-xs'
+                : 'bg-transparent text-label-secondary hover:text-label-primary hover:bg-surface/50'
+            }`}
           >
             1. Basic Settings
-          </Button>
+          </button>
           {type !== 'CODING' && (
-            <Button
+            <button
               type="button"
-              variant={activeTab === 'mcq' ? 'primary' : 'secondary'}
-              onPress={() => setActiveTab('mcq')}
-              className="flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap"
+              onClick={() => setActiveTab('mcq')}
+              className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap transition-colors duration-150 ${
+                activeTab === 'mcq'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'bg-transparent text-label-secondary hover:text-label-primary hover:bg-surface/50'
+              }`}
             >
               2. MCQ Questions ({mcqQuestions.length})
-            </Button>
+            </button>
           )}
           {type !== 'MCQ' && (
-            <Button
+            <button
               type="button"
-              variant={activeTab === 'coding' ? 'primary' : 'secondary'}
-              onPress={() => setActiveTab('coding')}
-              className="flex-1 min-w-[160px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap"
+              onClick={() => setActiveTab('coding')}
+              className={`flex-1 min-w-[160px] sm:min-w-0 py-2 sm:py-2.5 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap transition-colors duration-150 ${
+                activeTab === 'coding'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'bg-transparent text-label-secondary hover:text-label-primary hover:bg-surface/50'
+              }`}
             >
               3. Coding Challenges ({codingProblems.length})
-            </Button>
+            </button>
           )}
         </div>
 
@@ -495,76 +510,66 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           {/* TAB 1: BASIC INFO */}
           {activeTab === 'info' && (
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-label-secondary">
-                  Contest Title
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Weekly Algorithm Arena #12"
-                  className="w-full px-4 py-2.5 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out font-medium"
-                />
-              </div>
+              <HeroInput
+                label="Contest Title"
+                labelPlacement="outside"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Weekly Algorithm Arena #12"
+                variant="faded"
+                size="sm"
+                isRequired
+              />
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-label-secondary">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out font-medium resize-none"
-                />
-              </div>
+              <HeroTextarea
+                label="Description"
+                labelPlacement="outside"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Compete with fellow developers in algorithmic challenges and technical problem-solving..."
+                variant="faded"
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary">
-                    Contest Type
-                  </label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out cursor-pointer"
-                  >
-                    <option value="HYBRID">Hybrid (Coding + MCQ)</option>
-                    <option value="CODING">Coding Challenges Only</option>
-                    <option value="MCQ">MCQ Quiz Only</option>
-                  </select>
-                </div>
+                <HeroUISelect
+                  label="Contest Type"
+                  value={type}
+                  onChange={(val) => setType(val as any)}
+                  size="sm"
+                  variant="bordered"
+                  options={[
+                    { value: 'HYBRID', label: 'Hybrid (Coding + MCQ)' },
+                    { value: 'CODING', label: 'Coding Challenges Only' },
+                    { value: 'MCQ', label: 'MCQ Quiz Only' },
+                  ]}
+                />
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary">
-                    Difficulty
-                  </label>
-                  <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out cursor-pointer"
-                  >
-                    <option value="All Levels">All Levels</option>
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                </div>
+                <HeroUISelect
+                  label="Difficulty"
+                  value={difficulty}
+                  onChange={(val) => setDifficulty(val as any)}
+                  size="sm"
+                  variant="bordered"
+                  options={[
+                    { value: 'All Levels', label: 'All Levels' },
+                    { value: 'Beginner', label: 'Beginner' },
+                    { value: 'Intermediate', label: 'Intermediate' },
+                    { value: 'Advanced', label: 'Advanced' },
+                  ]}
+                />
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-label-secondary">
-                    Duration (Minutes)
-                  </label>
-                  <input
-                    type="number"
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                    min={5}
-                    max={360}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
-                  />
-                </div>
+                <HeroInput
+                  label="Duration (Minutes)"
+                  labelPlacement="outside"
+                  type="number"
+                  value={String(durationMinutes)}
+                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                  min={5}
+                  max={360}
+                  variant="faded"
+                  size="sm"
+                />
               </div>
 
               {/* Total Reward Points Controller */}
@@ -605,13 +610,15 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     </button>
                   </div>
 
-                  <input
+                  <HeroInput
                     type="number"
-                    value={totalPoints}
+                    value={String(totalPoints)}
                     onChange={(e) => setTotalPoints(Math.max(1, Number(e.target.value)))}
                     min={1}
                     max={5000}
-                    className="flex-1 px-3 py-2 text-xs text-center font-mono font-bold bg-surface border border-separator rounded-xl text-label-primary focus:outline-none focus:border-warning transition-colors duration-150 ease-out"
+                    variant="faded"
+                    size="sm"
+                    className="flex-1 font-mono font-bold text-center"
                   />
 
                   <div className="flex items-center gap-1">
@@ -635,49 +642,31 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                 </div>
               </div>
 
-              {/* Start & End Times (Indian Standard Time - IST) */}
+              {/* Start & End Times (Indian Standard Time - IST) using HeroDateTimePicker */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-label-secondary flex items-center gap-1.5">
-                      <Clock size={13} className="text-accent" />
-                      <span>Contest Start Time</span>
-                    </label>
-                    <span className="text-[10px] font-mono font-bold text-accent px-1.5 py-0.5 rounded-md bg-accent-subtle border border-accent/20">
-                      IST (UTC+5:30)
-                    </span>
-                  </div>
-                  <input
-                    type="datetime-local"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
-                  />
-                  <p className="text-[10px] text-label-tertiary">
-                    {startTime ? `Starts: ${formatISTDateTime(parseISTInputToISO(startTime))}` : 'Select start date & time'}
-                  </p>
-                </div>
+                <HeroDateTimePicker
+                  label="Contest Start Time"
+                  timezoneLabel="IST (UTC+5:30)"
+                  value={startTime}
+                  onChange={(val) => setStartTime(val)}
+                  size="sm"
+                  variant="faded"
+                  placement="top"
+                  description={startTime ? `Starts: ${formatISTDateTime(parseISTInputToISO(startTime))}` : 'Select start date & time'}
+                  isRequired
+                />
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-label-secondary flex items-center gap-1.5">
-                      <Clock size={13} className="text-accent" />
-                      <span>Contest End Time</span>
-                    </label>
-                    <span className="text-[10px] font-mono font-bold text-accent px-1.5 py-0.5 rounded-md bg-accent-subtle border border-accent/20">
-                      IST (UTC+5:30)
-                    </span>
-                  </div>
-                  <input
-                    type="datetime-local"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-surface-secondary border border-separator rounded-xl text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
-                  />
-                  <p className="text-[10px] text-label-tertiary">
-                    {endTime ? `Ends: ${formatISTDateTime(parseISTInputToISO(endTime))}` : 'Select end date & time'}
-                  </p>
-                </div>
+                <HeroDateTimePicker
+                  label="Contest End Time"
+                  timezoneLabel="IST (UTC+5:30)"
+                  value={endTime}
+                  onChange={(val) => setEndTime(val)}
+                  size="sm"
+                  variant="faded"
+                  placement="top-end"
+                  description={endTime ? `Ends: ${formatISTDateTime(parseISTInputToISO(endTime))}` : 'Select end date & time'}
+                  isRequired
+                />
               </div>
             </div>
           )}
@@ -695,27 +684,23 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
+                  <button
                     type="button"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() => setShowMcqBulkModal(true)}
-                    className="flex items-center gap-1.5 text-xs font-bold"
+                    onClick={() => setShowMcqBulkModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-separator text-xs font-bold hover:border-accent text-label-primary bg-surface-secondary hover:bg-surface transition-colors duration-150"
                     title="Bulk upload questions via Excel or JSON"
                   >
                     <FileSpreadsheet size={14} />
                     <span>Bulk Upload MCQs</span>
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="button"
-                    size="sm"
-                    variant="primary"
-                    onPress={handleAddMcq}
-                    className="flex items-center gap-1.5 text-xs font-bold shadow-xs"
+                    onClick={handleAddMcq}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent text-white hover:bg-accent/90 text-xs font-bold shadow-xs transition-colors duration-150"
                   >
                     <Plus size={14} />
                     <span>Add Question</span>
-                  </Button>
+                  </button>
                 </div>
               </div>
 
@@ -769,8 +754,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     </button>
                   </div>
 
-                  <input
-                    type="text"
+                  <HeroInput
                     value={q.question}
                     onChange={(e) => {
                       const updated = [...mcqQuestions];
@@ -778,10 +762,11 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                       setMcqQuestions(updated);
                     }}
                     placeholder="Enter question statement..."
-                    className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-medium focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                    variant="faded"
+                    size="sm"
                   />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                     {q.options.map((opt: string, optIdx: number) => (
                       <div key={optIdx} className="flex items-center gap-2">
                         <input
@@ -793,10 +778,9 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             updated[qIdx].correctOptionIndex = optIdx;
                             setMcqQuestions(updated);
                           }}
-                          className="accent-accent cursor-pointer"
+                          className="accent-accent cursor-pointer shrink-0"
                         />
-                        <input
-                          type="text"
+                        <HeroInput
                           value={opt}
                           onChange={(e) => {
                             const updated = [...mcqQuestions];
@@ -804,30 +788,34 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setMcqQuestions(updated);
                           }}
                           placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                          className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                          variant="faded"
+                          size="sm"
+                          className="flex-1"
                         />
                       </div>
                     ))}
                   </div>
 
-                  <div className="flex items-center gap-3 pt-1">
-                    <div className="w-28">
-                      <label className="text-[10px] text-label-secondary font-medium">Points</label>
-                      <input
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1">
+                    <div className="sm:col-span-1">
+                      <HeroInput
+                        label="Points"
+                        labelPlacement="outside"
                         type="number"
-                        value={q.points}
+                        value={String(q.points)}
                         onChange={(e) => {
                           const updated = [...mcqQuestions];
                           updated[qIdx].points = Number(e.target.value);
                           setMcqQuestions(updated);
                         }}
-                        className="w-full px-2 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                        variant="faded"
+                        size="sm"
                       />
                     </div>
-                    <div className="flex-1">
-                      <label className="text-[10px] text-label-secondary font-medium">Explanation</label>
-                      <input
-                        type="text"
+                    <div className="sm:col-span-3">
+                      <HeroInput
+                        label="Explanation"
+                        labelPlacement="outside"
                         value={q.explanation || ''}
                         onChange={(e) => {
                           const updated = [...mcqQuestions];
@@ -835,7 +823,8 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           setMcqQuestions(updated);
                         }}
                         placeholder="Why is this option correct?"
-                        className="w-full px-2.5 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                        variant="faded"
+                        size="sm"
                       />
                     </div>
                   </div>
@@ -858,27 +847,23 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
+                  <button
                     type="button"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() => setShowCodingBulkModal(true)}
-                    className="flex items-center gap-1.5 text-xs font-bold"
+                    onClick={() => setShowCodingBulkModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-separator text-xs font-bold hover:border-accent text-label-primary bg-surface-secondary hover:bg-surface transition-colors duration-150"
                     title="Bulk upload coding challenges via Excel or JSON"
                   >
                     <FileSpreadsheet size={14} />
                     <span>Bulk Upload Challenges</span>
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="button"
-                    size="sm"
-                    variant="primary"
-                    onPress={handleAddCoding}
-                    className="flex items-center gap-1.5 text-xs font-bold shadow-xs"
+                    onClick={handleAddCoding}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent text-white hover:bg-accent/90 text-xs font-bold shadow-xs transition-colors duration-150"
                   >
                     <Plus size={14} />
                     <span>Add Challenge</span>
-                  </Button>
+                  </button>
                 </div>
               </div>
 
@@ -948,11 +933,9 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                     {/* Problem Meta: Title, Difficulty, Points */}
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
-                          Problem Title *
-                        </label>
-                        <input
-                          type="text"
+                        <HeroInput
+                          label="Problem Title *"
+                          labelPlacement="outside"
                           value={p.title}
                           onChange={(e) => {
                             const updated = [...codingProblems];
@@ -960,52 +943,52 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setCodingProblems(updated);
                           }}
                           placeholder="e.g. Invert Binary Tree / Subarray Max"
-                          className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-medium focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                          variant="faded"
+                          size="sm"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
-                          Difficulty
-                        </label>
-                        <select
+                        <HeroUISelect
+                          label="Difficulty"
                           value={p.difficulty || 'Medium'}
-                          onChange={(e) => {
+                          onChange={(val) => {
                             const updated = [...codingProblems];
-                            updated[pIdx].difficulty = e.target.value;
+                            updated[pIdx].difficulty = val;
                             setCodingProblems(updated);
                           }}
-                          className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-medium focus:outline-none focus:border-accent transition-colors duration-150 ease-out cursor-pointer"
-                        >
-                          <option value="Easy">Easy</option>
-                          <option value="Medium">Medium</option>
-                          <option value="Hard">Hard</option>
-                        </select>
+                          size="sm"
+                          variant="bordered"
+                          options={[
+                            { value: 'Easy', label: 'Easy' },
+                            { value: 'Medium', label: 'Medium' },
+                            { value: 'Hard', label: 'Hard' },
+                          ]}
+                        />
                       </div>
 
                       <div>
-                        <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
-                          Points
-                        </label>
-                        <input
+                        <HeroInput
+                          label="Points"
+                          labelPlacement="outside"
                           type="number"
-                          value={p.points}
+                          value={String(p.points)}
                           onChange={(e) => {
                             const updated = [...codingProblems];
                             updated[pIdx].points = Number(e.target.value);
                             setCodingProblems(updated);
                           }}
-                          className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl text-label-primary font-bold focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                          variant="faded"
+                          size="sm"
                         />
                       </div>
                     </div>
 
                     {/* Problem Statement */}
                     <div>
-                      <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
-                        Problem Statement (Markdown / Plain Text)
-                      </label>
-                      <textarea
+                      <HeroTextarea
+                        label="Problem Statement (Markdown / Plain Text)"
+                        labelPlacement="outside"
                         rows={3}
                         value={p.description}
                         onChange={(e) => {
@@ -1014,19 +997,16 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                           setCodingProblems(updated);
                         }}
                         placeholder="Describe the problem, input constraints, and expected logic..."
-                        className="w-full px-3 py-2 text-xs bg-surface border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out leading-relaxed"
+                        variant="faded"
                       />
                     </div>
 
                     {/* Sample Input & Output */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-surface border border-separator">
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider">
-                            Sample Input (Console Stdin)
-                          </label>
-                        </div>
-                        <textarea
+                        <HeroTextarea
+                          label="Sample Input (Console Stdin)"
+                          labelPlacement="outside"
                           rows={2}
                           value={p.sampleInput || ''}
                           onChange={(e) => {
@@ -1035,16 +1015,14 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setCodingProblems(updated);
                           }}
                           placeholder="e.g. 4\n2 7 11 15\n9"
-                          className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface-secondary border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                          variant="faded"
+                          className="font-mono text-xs"
                         />
                       </div>
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider">
-                            Sample Expected Output (Console Stdout)
-                          </label>
-                        </div>
-                        <textarea
+                        <HeroTextarea
+                          label="Sample Expected Output (Console Stdout)"
+                          labelPlacement="outside"
                           rows={2}
                           value={p.sampleOutput || ''}
                           onChange={(e) => {
@@ -1053,7 +1031,8 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                             setCodingProblems(updated);
                           }}
                           placeholder="e.g. 0 1"
-                          className="w-full font-mono text-xs px-2.5 py-1.5 bg-surface-secondary border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                          variant="faded"
+                          className="font-mono text-xs"
                         />
                       </div>
                     </div>
@@ -1208,35 +1187,32 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
                                 {/* Inputs Grid: Stdin & Stdout */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   <div>
-                                    <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1">
-                                      Standard Input (stdin)
-                                    </label>
-                                    <textarea
+                                    <HeroTextarea
+                                      label="Standard Input (stdin)"
+                                      labelPlacement="outside"
                                       rows={2}
                                       value={tc.input || ''}
                                       onChange={(e) =>
                                         handleUpdateTestCase(pIdx, tcIdx, 'input', e.target.value)
                                       }
                                       placeholder="Raw stdin input lines..."
-                                      className="w-full font-mono text-xs px-3 py-2 bg-surface-secondary border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                                      variant="faded"
+                                      className="font-mono text-xs"
                                     />
                                   </div>
 
                                   <div>
-                                    <label className="text-[10px] text-label-secondary font-bold uppercase tracking-wider block mb-1 flex items-center justify-between">
-                                      <span>Expected Output (stdout) *</span>
-                                      <span className="text-[10px] text-accent lowercase font-medium">
-                                        exact match
-                                      </span>
-                                    </label>
-                                    <textarea
+                                    <HeroTextarea
+                                      label="Expected Output (stdout) *"
+                                      labelPlacement="outside"
                                       rows={2}
                                       value={tc.expectedOutput || ''}
                                       onChange={(e) =>
                                         handleUpdateTestCase(pIdx, tcIdx, 'expectedOutput', e.target.value)
                                       }
                                       placeholder="Exact expected terminal output..."
-                                      className="w-full font-mono text-xs px-3 py-2 bg-surface-secondary border border-separator rounded-xl resize-none text-label-primary focus:outline-none focus:border-accent transition-colors duration-150 ease-out"
+                                      variant="faded"
+                                      className="font-mono text-xs"
                                     />
                                   </div>
                                 </div>
@@ -1266,25 +1242,26 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
           </div>
 
           <div className="flex items-center justify-end gap-3">
-            <Button
+            <button
               type="button"
-              variant="secondary"
-              onPress={onClose}
-              className="px-4 py-2 rounded-full text-xs font-medium"
+              onClick={onClose}
+              className="px-4 py-2 rounded-full text-xs font-semibold border border-separator text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface transition-colors duration-150"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              variant="primary"
-              isLoading={isSaving}
-              isDisabled={isSaving}
-              onPress={handleSave}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold shadow-xs"
+              disabled={isSaving}
+              onClick={handleSave}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-accent text-white hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition-colors duration-150"
             >
-              <Save size={14} />
+              {isSaving ? (
+                <Loader2 size={14} className="animate-spin text-white" />
+              ) : (
+                <Save size={14} />
+              )}
               <span>{editingContest ? 'Update Contest' : 'Publish Contest'}</span>
-            </Button>
+            </button>
           </div>
         </div>
       </div>

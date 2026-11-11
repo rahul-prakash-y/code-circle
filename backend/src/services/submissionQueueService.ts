@@ -66,6 +66,7 @@ export interface QueueStatusReport {
     error: string;
     failedAt: Date;
     attempts: number;
+    submission?: QueuedSubmission;
   }>;
   isFlushing: boolean;
   isWarningActive: boolean;
@@ -305,10 +306,7 @@ export class SubmissionQueueService {
             submissionId: item.submissionId,
           },
           update: {
-            $setOnInsert: {
-              user: new mongoose.Types.ObjectId(item.userId),
-              assessment: new mongoose.Types.ObjectId(item.assessmentId),
-              submissionId: item.submissionId,
+            $set: {
               answers: item.answers,
               score: item.score,
               totalPoints: item.totalPoints,
@@ -320,8 +318,13 @@ export class SubmissionQueueService {
               isLate: item.isLate,
               submissionStatus: item.submissionStatus,
               durableStatus: 'saved',
-              createdAt: item.submittedAt || new Date(),
               updatedAt: new Date(),
+            },
+            $setOnInsert: {
+              user: new mongoose.Types.ObjectId(item.userId),
+              assessment: new mongoose.Types.ObjectId(item.assessmentId),
+              submissionId: item.submissionId,
+              createdAt: item.submittedAt || new Date(),
             },
           },
           upsert: true,
@@ -387,12 +390,18 @@ export class SubmissionQueueService {
       this.consecutiveFlushFailures++;
       this.currentBackoffMs = Math.min(8000, this.flushIntervalMs * Math.pow(2, Math.min(this.consecutiveFlushFailures, 4)));
 
+      // Detect duplicate key errors (code 11000 or writeErrors containing 11000)
+      const isDuplicateKey =
+        batchErr.code === 11000 ||
+        batchErr.writeErrors?.some((w: any) => w.code === 11000) ||
+        (typeof batchErr.message === 'string' && batchErr.message.includes('E11000'));
+
       // Distinguish between duplicate key (already saved) and actual failures
       for (const item of batch) {
         this.inFlightMap.delete(item.submissionId);
 
         // If duplicate key error (code 11000), it is already saved in DB!
-        if (batchErr.code === 11000) {
+        if (isDuplicateKey) {
           this.confirmedCache.set(item.submissionId, { submissionId: item.submissionId, status: 'saved' });
           flushedCount++;
         } else {
@@ -489,6 +498,7 @@ export class SubmissionQueueService {
         error: f.error,
         failedAt: f.failedAt,
         attempts: f.attempts,
+        submission: f.submission,
       })),
       isFlushing: this.isFlushing,
       isWarningActive,
@@ -496,6 +506,33 @@ export class SubmissionQueueService {
         ? `⚠️ WARNING: ${pendingCount} submission(s) pending durable write in memory. Do not end exam or deploy!`
         : null,
     };
+  }
+
+  /**
+   * Retrieves all failed submissions with their full payload for admin inspection.
+   */
+  public getFailedItems(): FailedSubmissionItem[] {
+    return [...this.failedQueue];
+  }
+
+  /**
+   * Removes a failed submission from process memory queues.
+   */
+  public removeFailedItem(submissionId: string): boolean {
+    const prevLen = this.failedQueue.length;
+    this.failedQueue = this.failedQueue.filter((f) => f.submissionId !== submissionId);
+    this.pendingQueue = this.pendingQueue.filter((p) => p.submissionId !== submissionId);
+    return this.failedQueue.length < prevLen;
+  }
+
+  /**
+   * Updates a failed submission in process memory.
+   */
+  public updateFailedItem(submissionId: string, updates: Partial<QueuedSubmission>): FailedSubmissionItem | null {
+    const item = this.failedQueue.find((f) => f.submissionId === submissionId);
+    if (!item) return null;
+    item.submission = { ...item.submission, ...updates };
+    return item;
   }
 
   /**
