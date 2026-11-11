@@ -13,6 +13,7 @@ import PointTransaction from '../models/pointTransactionModel';
 import Team from '../models/teamModel';
 import rceService from '../services/rceService';
 import * as XLSX from 'xlsx';
+import { deterministicShuffle } from '../utils/shuffle';
 
 // ---------------------------------------------------------------------------
 // Authorization Helper: SuperAdmin OR Admins assigned to assessment / arena
@@ -2363,8 +2364,41 @@ export const getAdminAssessmentSubmissions = async (
       .populate('userId', 'name rollNo email profilePicUrl department year college residenceType')
       .populate('teamId', 'name')
       .populate('designSubmission.evaluatedBy', 'name email role')
+      .populate('enteredBy', 'name email role')
       .sort({ totalScore: -1, timeTakenSeconds: 1, submittedAt: 1 })
       .lean();
+
+    // Query blocked status for each student in this event
+    const userIds = submissions.map((s: any) => s.userId?._id).filter(Boolean);
+    const blockedUserSet = new Set<string>();
+
+    if (userIds.length > 0) {
+      const blockedEnrollments = await Enrollment.find({
+        event: new mongoose.Types.ObjectId(id),
+        $or: [
+          { enrolledBy: { $in: userIds } },
+          { members: { $in: userIds } },
+        ],
+        isBlocked: true,
+      })
+        .select('enrolledBy members')
+        .lean();
+
+      blockedEnrollments.forEach((be: any) => {
+        if (be.enrolledBy) blockedUserSet.add(be.enrolledBy.toString());
+        if (Array.isArray(be.members)) {
+          be.members.forEach((m: any) => blockedUserSet.add(m.toString()));
+        }
+      });
+    }
+
+    const enrichedSubmissions = submissions.map((sub: any) => {
+      const uId = sub.userId?._id?.toString();
+      return {
+        ...sub,
+        isBlocked: uId ? blockedUserSet.has(uId) : false,
+      };
+    });
 
     return reply.send({
       success: true,
@@ -2377,8 +2411,8 @@ export const getAdminAssessmentSubmissions = async (
         designChallenges: assessment.designChallenges?.length ? assessment.designChallenges : (assessment.designChallenge ? [assessment.designChallenge] : []),
         questions: assessment.questions || { mcqs: [], coding: [] },
       },
-      submissions,
-      totalSubmissions: submissions.length,
+      submissions: enrichedSubmissions,
+      totalSubmissions: enrichedSubmissions.length,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -2403,24 +2437,30 @@ export const checkAssessmentQualification = async (
   }
 
   const currentAssessment = event.arenaAssessments[assessmentIndex];
-  const cutoffRank = currentAssessment?.qualificationCutoffRank || 0;
-
-  // If cutoffRank is 0 or undefined, no qualification limit is enforced
-  if (!cutoffRank || cutoffRank <= 0) {
-    return { isQualified: true };
-  }
-
-  // Previous round
   const prevAssessment = event.arenaAssessments[assessmentIndex - 1];
   if (!prevAssessment) {
     return { isQualified: true };
   }
 
-  // Find top N on the previous round's leaderboard
+  // Resolve cutoff rank: check both previous assessment's "Top Rank Cutoff (Next Round)"
+  // and current assessment's qualificationCutoffRank
+  const cutoffRank =
+    (prevAssessment?.qualificationCutoffRank && prevAssessment.qualificationCutoffRank > 0)
+      ? prevAssessment.qualificationCutoffRank
+      : (currentAssessment?.qualificationCutoffRank && currentAssessment.qualificationCutoffRank > 0)
+      ? currentAssessment.qualificationCutoffRank
+      : 0;
+
+  // If cutoffRank is 0 or undefined, no qualification limit is enforced (all qualify)
+  if (!cutoffRank || cutoffRank <= 0) {
+    return { isQualified: true };
+  }
+
+  // Find top N on the previous round's leaderboard strictly by rank (score & speed), not by passing %
   const topSubmissions = await EventArenaSubmission.find({
     eventId: event._id,
     assessmentId: prevAssessment._id.toString(),
-    status: { $in: ['SUBMITTED', 'AUTO_SUBMITTED'] },
+    status: { $in: ['SUBMITTED', 'AUTO_SUBMITTED', 'COMPLETED'] },
   })
     .sort({ totalScore: -1, timeTakenSeconds: 1, submittedAt: 1 })
     .limit(cutoffRank)
@@ -2433,7 +2473,7 @@ export const checkAssessmentQualification = async (
   if (!isUserQualified) {
     return {
       isQualified: false,
-      reason: `Only top ${cutoffRank} participants from ${prevAssessment.title} qualify for this round.`,
+      reason: `Only top ${cutoffRank} participants from ${prevAssessment.title} qualify for this round. Your rank did not meet the Top ${cutoffRank} cutoff.`,
       requiredRank: cutoffRank,
       previousRoundTitle: prevAssessment.title,
     };
@@ -2573,6 +2613,10 @@ export const getStudentAssessmentData = async (
           expiresAt: submission.expiresAt,
           timeTakenSeconds: submission.timeTakenSeconds,
           tabSwitchCount: submission.tabSwitchCount,
+          mcqAnswers: (submission.mcqAnswers || []).map((ans: any) => ({
+            questionId: ans.questionId,
+            selectedOptionIndex: ans.selectedOptionIndex,
+          })),
           codingSubmissions: (submission.codingSubmissions || []).map((cs: any) => ({
             problemId: cs.problemId,
             language: cs.language,
@@ -2592,11 +2636,22 @@ export const getStudentAssessmentData = async (
             isEvaluated: submission.designSubmission.isEvaluated,
             feedback: submission.designSubmission.feedback,
           } : undefined,
+          graceMinutes: submission.graceMinutes || 0,
+          reentryAllowed: submission.reentryAllowed || false,
         };
       } else {
         safeSubmission = submission;
       }
     }
+
+    // Deterministically shuffle questions per student to prevent copying while maintaining consistent order on refresh
+    const shouldShuffle = !isAdminUser && (assessment.shuffleQuestions !== false);
+    const mcqsToReturn = shouldShuffle
+      ? deterministicShuffle(sanitizedMcqs, `${user._id}_${assessmentId}_mcq`)
+      : sanitizedMcqs;
+    const codingToReturn = shouldShuffle
+      ? deterministicShuffle(sanitizedCoding, `${user._id}_${assessmentId}_code`)
+      : sanitizedCoding;
 
     return reply.send({
       success: true,
@@ -2613,6 +2668,8 @@ export const getStudentAssessmentData = async (
         rules: assessment.rules,
         startTime: assessment.startTime,
         endTime: assessment.endTime,
+        graceMinutes: assessment.graceMinutes || 0,
+        shuffleQuestions: assessment.shuffleQuestions !== false,
         qualificationCutoffRank: assessment.qualificationCutoffRank || 0,
         isTeamMode: Boolean(assessment.isTeamMode),
         teamSize: assessment.teamSize || 2,
@@ -2620,8 +2677,8 @@ export const getStudentAssessmentData = async (
         designChallenges,
       },
       team: teamInfo,
-      mcqs: sanitizedMcqs,
-      coding: sanitizedCoding,
+      mcqs: mcqsToReturn,
+      coding: codingToReturn,
       designChallenge: designChallenges[0] || assessment.designChallenge || null,
       designChallenges,
       submission: safeSubmission,
@@ -2739,6 +2796,7 @@ export const startAssessmentSession = async (
       startTime: assessment.startTime,
       endTime: assessment.endTime,
       expiresAt: submission.expiresAt || calculatedExpiresAt,
+      graceMinutes: submission.graceMinutes || 0,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -3830,6 +3888,434 @@ export const deleteAdminAssessmentSubmission = async (
   } catch (err: any) {
     request.log.error(err);
     return reply.status(500).send({ success: false, error: 'Failed to delete submission' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// 32.5. Grant Grace Time / Allow Re-entry for a Student (Preserves Previous Answers)
+// ---------------------------------------------------------------------------
+export const grantAssessmentGraceTime = async (
+  request: FastifyRequest<{
+    Params: { id: string; assessmentId: string; submissionId?: string };
+    Body: {
+      submissionId?: string;
+      studentId?: string;
+      extraMinutes?: number;
+      clearAnswers?: boolean;
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    const { id, assessmentId } = request.params;
+    const bodySubmissionId = request.body?.submissionId || request.params.submissionId;
+    const { studentId, extraMinutes = 10, clearAnswers = false } = request.body || {};
+
+    const event = await Event.findById(id).lean();
+    if (!event || !event.hasArena) {
+      return reply.status(404).send({ success: false, error: 'Event Arena not found' });
+    }
+
+    const assessment = (event.arenaAssessments || []).find(
+      (a: any) => a._id.toString() === assessmentId
+    );
+    if (!assessment) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+
+    if (!canManageAssessmentQuestions(user, event, assessment)) {
+      return reply.status(403).send({ success: false, error: 'Unauthorized to grant grace time' });
+    }
+
+    const minutesToAdd = Math.max(1, Number(extraMinutes) || 10);
+    const now = new Date();
+    const adminObjectId = new mongoose.Types.ObjectId(user._id || user.id);
+
+    let submission: any = null;
+    let targetUserId: string | null = null;
+
+    if (bodySubmissionId && mongoose.Types.ObjectId.isValid(bodySubmissionId)) {
+      submission = await EventArenaSubmission.findOne({
+        _id: bodySubmissionId,
+        eventId: event._id,
+        assessmentId,
+      });
+      if (submission) {
+        targetUserId = submission.userId.toString();
+      }
+    }
+
+    if (!submission && studentId) {
+      let resolvedStudentId = studentId.trim();
+      let targetUser: any = null;
+      if (mongoose.Types.ObjectId.isValid(resolvedStudentId)) {
+        targetUser = await User.findById(resolvedStudentId).select('_id name email rollNo').lean();
+      }
+      if (!targetUser) {
+        targetUser = await User.findOne({
+          $or: [
+            { rollNo: resolvedStudentId.toUpperCase() },
+            { rollNo: resolvedStudentId },
+            { email: resolvedStudentId.toLowerCase() },
+            { email: resolvedStudentId },
+          ],
+        }).select('_id name email rollNo').lean();
+      }
+
+      if (targetUser) {
+        targetUserId = targetUser._id.toString();
+        submission = await EventArenaSubmission.findOne({
+          eventId: event._id,
+          assessmentId,
+          userId: targetUser._id,
+        });
+      }
+    }
+
+    if (!submission) {
+      if (!targetUserId) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Could not find submission or student record to grant grace time',
+        });
+      }
+
+      // If student hasn't started or had login trouble before initial submission, create a session
+      const initialDuration = (assessment.durationMinutes || 60) + minutesToAdd;
+      const initialExpires = new Date(now.getTime() + initialDuration * 60 * 1000);
+      submission = new EventArenaSubmission({
+        eventId: event._id,
+        assessmentId,
+        userId: targetUserId,
+        status: 'IN_PROGRESS',
+        startedAt: now,
+        expiresAt: initialExpires,
+        maxPossibleScore: assessment.totalPoints || 100,
+        graceMinutes: minutesToAdd,
+        graceGrantedAt: now,
+        graceGrantedBy: adminObjectId,
+        reentryAllowed: true,
+      });
+    } else {
+      // Existing submission: preserve answers unless clearAnswers is explicitly true
+      if (clearAnswers) {
+        submission.mcqAnswers = [];
+        submission.codingSubmissions = [];
+        submission.designSubmission = null;
+        submission.mcqScore = 0;
+        submission.codingScore = 0;
+        submission.designScore = 0;
+        submission.rawTotalScore = 0;
+        submission.totalScore = 0;
+        submission.scorePercentage = 0;
+        submission.isPassed = false;
+        submission.startedAt = now;
+      }
+
+      // Calculate extended expiration
+      const currentExpires = submission.expiresAt ? new Date(submission.expiresAt).getTime() : 0;
+      const baseTime = currentExpires > now.getTime() ? currentExpires : now.getTime();
+      const newExpiresAt = new Date(baseTime + minutesToAdd * 60 * 1000);
+
+      submission.expiresAt = newExpiresAt;
+      submission.status = 'IN_PROGRESS';
+      submission.submittedAt = undefined;
+      submission.graceMinutes = (submission.graceMinutes || 0) + minutesToAdd;
+      submission.graceGrantedAt = now;
+      submission.graceGrantedBy = adminObjectId;
+      submission.reentryAllowed = true;
+    }
+
+    submission.integrityEvents = submission.integrityEvents || [];
+    submission.integrityEvents.push({
+      type: 'GRACE_TIME_GRANTED',
+      timestamp: now,
+      details: `Admin ${user.name || user.email || user.role} granted +${minutesToAdd}m grace time. Previous answers ${clearAnswers ? 'cleared' : 'preserved'}.`,
+    });
+
+    await submission.save();
+
+    // Automatically unblock student from anti-cheat lock if currently blocked
+    if (targetUserId) {
+      await Enrollment.updateMany(
+        {
+          event: event._id,
+          $or: [{ enrolledBy: targetUserId }, { members: targetUserId }],
+        },
+        { $set: { isBlocked: false } }
+      );
+      await User.findByIdAndUpdate(targetUserId, {
+        $set: { isRestricted: false, restrictionReason: '' },
+      });
+    }
+
+    const studentInfo = await User.findById(submission.userId).select('name email rollNo').lean();
+
+    return reply.send({
+      success: true,
+      message: `Granted +${minutesToAdd} minutes grace time to ${studentInfo?.name || 'student'}. Previous answers preserved.`,
+      submission,
+      student: studentInfo,
+      expiresAt: submission.expiresAt,
+      graceMinutes: submission.graceMinutes,
+    });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({
+      success: false,
+      error: err.message || 'Failed to grant grace time',
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// 32.6. Grant Grace Time to ALL Students in an Assessment (Batch Extension)
+// ---------------------------------------------------------------------------
+export const grantAssessmentGraceTimeAll = async (
+  request: FastifyRequest<{
+    Params: { id: string; assessmentId: string };
+    Body: { extraMinutes?: number };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    const { id, assessmentId } = request.params;
+    const { extraMinutes = 10 } = request.body || {};
+
+    const event = await Event.findById(id);
+    if (!event || !event.hasArena) {
+      return reply.status(404).send({ success: false, error: 'Event Arena not found' });
+    }
+
+    const assessment = (event.arenaAssessments || []).find(
+      (a: any) => a._id.toString() === assessmentId
+    );
+    if (!assessment) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+
+    if (!canManageAssessmentQuestions(user, event, assessment)) {
+      return reply.status(403).send({ success: false, error: 'Unauthorized to grant grace time' });
+    }
+
+    const minutesToAdd = Math.max(1, Number(extraMinutes) || 10);
+    const now = new Date();
+    const adminObjectId = new mongoose.Types.ObjectId(user._id || user.id);
+
+    // 1. Extend assessment endTime if scheduled
+    if (assessment.endTime) {
+      const currentEnd = new Date(assessment.endTime).getTime();
+      const baseEnd = currentEnd > now.getTime() ? currentEnd : now.getTime();
+      assessment.endTime = new Date(baseEnd + minutesToAdd * 60 * 1000);
+    }
+    assessment.durationMinutes = (assessment.durationMinutes || 60) + minutesToAdd;
+    assessment.graceMinutes = (assessment.graceMinutes || 0) + minutesToAdd;
+    await event.save();
+
+    // 2. Extend all submissions for this assessment, preserving all answers
+    const submissions = await EventArenaSubmission.find({
+      eventId: event._id,
+      assessmentId,
+    });
+
+    let updatedCount = 0;
+    for (const sub of submissions) {
+      const currentExpires = sub.expiresAt ? new Date(sub.expiresAt).getTime() : 0;
+      const baseTime = currentExpires > now.getTime() ? currentExpires : now.getTime();
+      sub.expiresAt = new Date(baseTime + minutesToAdd * 60 * 1000);
+      sub.graceMinutes = (sub.graceMinutes || 0) + minutesToAdd;
+      sub.graceGrantedAt = now;
+      sub.graceGrantedBy = adminObjectId;
+
+      // If test was auto-submitted due to timer expiring, reopen it so student can continue
+      if (sub.status === 'AUTO_SUBMITTED') {
+        sub.status = 'IN_PROGRESS';
+        sub.submittedAt = undefined;
+        sub.reentryAllowed = true;
+      }
+
+      sub.integrityEvents = sub.integrityEvents || [];
+      sub.integrityEvents.push({
+        type: 'GRACE_TIME_GRANTED_ALL',
+        timestamp: now,
+        details: `Batch +${minutesToAdd}m grace time granted by admin ${user.name || user.email || user.role}. Existing answers preserved.`,
+      });
+
+      await sub.save();
+      updatedCount++;
+    }
+
+    return reply.send({
+      success: true,
+      message: `Granted +${minutesToAdd} minutes grace time to all ${updatedCount} candidates in "${assessment.title}". All previous answers preserved.`,
+      updatedCount,
+      newEndTime: assessment.endTime,
+      durationMinutes: assessment.durationMinutes,
+      graceMinutes: assessment.graceMinutes,
+    });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({
+      success: false,
+      error: err.message || 'Failed to grant grace time to all students',
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// 32.5. Manual Paper Test Submission Entry (Admin)
+// ---------------------------------------------------------------------------
+export const createOrUpdateManualSubmission = async (
+  request: FastifyRequest<{
+    Params: { id: string; assessmentId: string };
+    Body: {
+      studentIdentifier: string;
+      score: number;
+      mcqScore?: number;
+      codingScore?: number;
+      designScore?: number;
+      maxScore?: number;
+      isPassed?: boolean;
+      manualNotes?: string;
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    const { id, assessmentId } = request.params;
+    const {
+      studentIdentifier,
+      score,
+      mcqScore,
+      codingScore,
+      designScore,
+      maxScore,
+      isPassed,
+      manualNotes,
+    } = request.body || {};
+
+    if (!studentIdentifier || String(studentIdentifier).trim() === '') {
+      return reply.status(400).send({ success: false, error: 'Student Roll No, Email, or ID is required.' });
+    }
+
+    if (score === undefined || score === null || isNaN(Number(score))) {
+      return reply.status(400).send({ success: false, error: 'Valid numerical score is required.' });
+    }
+
+    const event = await Event.findById(id);
+    if (!event) return reply.status(404).send({ success: false, error: 'Event not found' });
+
+    const assessment = (event.arenaAssessments || []).find(
+      (a: any) => a._id.toString() === assessmentId
+    );
+    if (!assessment) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+
+    if (!canManageAssessmentQuestions(user, event, assessment)) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Access denied: You are not authorized to manage submissions for this assessment.',
+      });
+    }
+
+    const trimmedQuery = String(studentIdentifier).trim();
+    let targetUser: any = null;
+
+    if (mongoose.Types.ObjectId.isValid(trimmedQuery)) {
+      targetUser = await User.findById(trimmedQuery).select('_id name email rollNo department year college residenceType profilePicUrl');
+    }
+
+    if (!targetUser) {
+      targetUser = await User.findOne({
+        $or: [
+          { rollNo: { $regex: new RegExp(`^${trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+          { email: trimmedQuery.toLowerCase() },
+        ],
+      }).select('_id name email rollNo department year college residenceType profilePicUrl');
+    }
+
+    if (!targetUser) {
+      return reply.status(404).send({
+        success: false,
+        error: `No student found matching Roll Number or Email "${trimmedQuery}".`,
+      });
+    }
+
+    const maxPossibleScore = Number(maxScore) || assessment.totalPoints || 100;
+    const numTotalScore = Math.max(0, Number(score));
+    const scorePercentage = Math.min(100, Math.round((numTotalScore / maxPossibleScore) * 100));
+    const passThreshold = assessment.passingPercentage || 50;
+    const finalIsPassed = typeof isPassed === 'boolean' ? isPassed : scorePercentage >= passThreshold;
+
+    let submission = await EventArenaSubmission.findOne({
+      eventId: event._id,
+      assessmentId,
+      userId: targetUser._id,
+    });
+
+    const now = new Date();
+    const durationMinutes = assessment.durationMinutes || 60;
+    const startedAt = submission?.startedAt || new Date(now.getTime() - durationMinutes * 60000);
+
+    if (!submission) {
+      submission = new EventArenaSubmission({
+        eventId: event._id,
+        assessmentId,
+        userId: targetUser._id,
+        startedAt,
+        status: 'SUBMITTED',
+      });
+    }
+
+    submission.status = 'SUBMITTED';
+    submission.submittedAt = now;
+    submission.totalScore = numTotalScore;
+    submission.rawTotalScore = numTotalScore;
+    submission.maxPossibleScore = maxPossibleScore;
+    submission.scorePercentage = scorePercentage;
+    submission.isPassed = finalIsPassed;
+    submission.isManualSubmission = true;
+    submission.manualNotes = manualNotes?.trim() || 'Paper / Offline Test Submission';
+    submission.enteredBy = new mongoose.Types.ObjectId(user._id || user.id);
+    if (mcqScore !== undefined && !isNaN(Number(mcqScore))) submission.mcqScore = Number(mcqScore);
+    if (codingScore !== undefined && !isNaN(Number(codingScore))) submission.codingScore = Number(codingScore);
+    if (designScore !== undefined && !isNaN(Number(designScore))) submission.designScore = Number(designScore);
+
+    submission.integrityEvents = submission.integrityEvents || [];
+    submission.integrityEvents.push({
+      type: 'MANUAL_SCORE_ENTERED',
+      timestamp: now,
+      details: `Manual score of ${numTotalScore}/${maxPossibleScore} entered by admin ${user.name || user.email}. Notes: ${submission.manualNotes}`,
+    });
+
+    await submission.save();
+
+    // Ensure student is unblocked if they had anti-cheat lockout
+    await Enrollment.updateMany(
+      {
+        event: event._id,
+        $or: [{ enrolledBy: targetUser._id }, { members: targetUser._id }],
+      },
+      { $set: { isBlocked: false, blockReason: '' } }
+    );
+
+    const populatedSubmission = await EventArenaSubmission.findById(submission._id)
+      .populate('userId', 'name rollNo email profilePicUrl department year college residenceType')
+      .populate('enteredBy', 'name email role')
+      .lean();
+
+    return reply.send({
+      success: true,
+      message: `Manual submission recorded successfully for ${targetUser.name || targetUser.rollNo} (${numTotalScore}/${maxPossibleScore} pts).`,
+      submission: populatedSubmission,
+    });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({
+      success: false,
+      error: err.message || 'Failed to record manual submission',
+    });
   }
 };
 

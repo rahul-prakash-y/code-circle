@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,6 +37,7 @@ import {
   Lock,
   ShieldAlert,
   Star,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useFullScreenEnforcement } from '../hooks/useFullScreenEnforcement';
@@ -192,12 +193,20 @@ export const EventArenaPage: React.FC = () => {
   const [finalResultModal, setFinalResultModal] = useState<any | null>(null);
   const [apiBlocked, setApiBlocked] = useState(false);
   const [isUnblockingSelf, setIsUnblockingSelf] = useState(false);
+  const [isCheckingUnblockStatus, setIsCheckingUnblockStatus] = useState(false);
 
   const isDesignRound = selectedAssessment?.type === 'UI_UX';
 
   // Anti-Cheat & Full-Screen Enforcement Hooks
   const { isFullscreen, requestFullscreen, exitFullscreen, toggleFullscreen } = useFullScreenEnforcement();
-  const { isBlocked: tabSwitchBlocked, blockedMessage, unblockStudent } = useTabSwitchDetection({
+  const {
+    isBlocked: tabSwitchBlocked,
+    blockedMessage,
+    unblockStudent,
+    checkIfUnblocked,
+    resetBlocked,
+    setIsBlocked: setTabSwitchBlocked,
+  } = useTabSwitchDetection({
     eventId: id || '',
     enabled: Boolean(
       !isAdmin &&
@@ -223,8 +232,35 @@ export const EventArenaPage: React.FC = () => {
 
   // Student answers state
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, number>>({});
+  const mcqAnswersRef = useRef<Record<string, number>>({});
   const [codingCodes, setCodingCodes] = useState<Record<string, { code: string; language: string }>>({});
   const [currentLanguage, setCurrentLanguage] = useState('python');
+
+  // Keep ref continuously in sync with state
+  useEffect(() => {
+    mcqAnswersRef.current = mcqAnswers;
+  }, [mcqAnswers]);
+
+  // Restore cached answers from localStorage on round selection
+  useEffect(() => {
+    if (!id || !activeAssessmentId) return;
+    try {
+      const storageKey = `arena_mcq_${id}_${activeAssessmentId}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          setMcqAnswers((prev) => {
+            const merged = { ...parsed, ...prev };
+            mcqAnswersRef.current = merged;
+            return merged;
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[Arena] Failed to parse cached local answers', e);
+    }
+  }, [id, activeAssessmentId]);
 
   // Execution & Terminal state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -238,6 +274,7 @@ export const EventArenaPage: React.FC = () => {
   // Timer state
   const [remainingSeconds, setRemainingSeconds] = useState(3600);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const handleFinalSubmitRef = useRef<(isAuto?: boolean) => Promise<void>>(() => Promise.resolve());
 
   // Initial load: Fetch all assessments for this event
   useEffect(() => {
@@ -249,17 +286,27 @@ export const EventArenaPage: React.FC = () => {
   // When activeAssessmentId changes, load that assessment's data and start session
   useEffect(() => {
     if (id && activeAssessmentId) {
-      fetchStudentAssessmentData(id, activeAssessmentId).then((data) => {
-        if (!data?.submission || data.submission.status === 'IN_PROGRESS') {
-          startAssessmentSession(id, activeAssessmentId);
-        }
-        if (
-          data?.submission?.status === 'SUBMITTED' ||
-          data?.submission?.status === 'AUTO_SUBMITTED'
-        ) {
-          setFinalResultModal(data.submission);
-        }
-      });
+      fetchStudentAssessmentData(id, activeAssessmentId)
+        .then((data) => {
+          setApiBlocked(false);
+          if (!data?.submission || data.submission.status === 'IN_PROGRESS') {
+            startAssessmentSession(id, activeAssessmentId);
+          }
+          if (
+            data?.submission?.status === 'SUBMITTED' ||
+            data?.submission?.status === 'AUTO_SUBMITTED'
+          ) {
+            setFinalResultModal(data.submission);
+          }
+        })
+        .catch((err: any) => {
+          if (
+            err.response?.status === 403 &&
+            (err.response?.data?.isBlocked || err.response?.data?.code === 'STUDENT_ASSESSMENT_BLOCKED')
+          ) {
+            setApiBlocked(true);
+          }
+        });
     }
   }, [id, activeAssessmentId]);
 
@@ -296,25 +343,25 @@ export const EventArenaPage: React.FC = () => {
 
     const calcRemaining = () => {
       const now = Date.now();
+      const expiresTime = submission?.expiresAt ? new Date(submission.expiresAt).getTime() : null;
+
+      // If submission has an explicit expiration timestamp in the future (includes any admin grace time extensions), respect it directly
+      if (expiresTime && !isNaN(expiresTime)) {
+        return Math.max(0, Math.floor((expiresTime - now) / 1000));
+      }
+
       const totalSeconds = (selectedAssessment?.durationMinutes || 60) * 60;
       const started = submission?.startedAt ? new Date(submission.startedAt).getTime() : now;
       const elapsed = Math.floor((now - started) / 1000);
 
-      const expiresTime = submission?.expiresAt ? new Date(submission.expiresAt).getTime() : null;
       const assessmentEndTime = selectedAssessment?.endTime
         ? new Date(selectedAssessment.endTime).getTime()
         : selectedAssessment?.startTime
         ? new Date(selectedAssessment.startTime).getTime() + (selectedAssessment.durationMinutes || 60) * 60 * 1000
         : null;
 
-      const strictDeadline = expiresTime
-        ? assessmentEndTime
-          ? Math.min(expiresTime, assessmentEndTime)
-          : expiresTime
-        : assessmentEndTime;
-
-      if (strictDeadline && !isNaN(strictDeadline)) {
-        const remainingFromDeadline = Math.max(0, Math.floor((strictDeadline - now) / 1000));
+      if (assessmentEndTime && !isNaN(assessmentEndTime)) {
+        const remainingFromDeadline = Math.max(0, Math.floor((assessmentEndTime - now) / 1000));
         return Math.min(Math.max(0, totalSeconds - elapsed), remainingFromDeadline);
       }
       return Math.max(0, totalSeconds - elapsed);
@@ -323,7 +370,7 @@ export const EventArenaPage: React.FC = () => {
     const initial = calcRemaining();
     setRemainingSeconds(initial);
     if (initial <= 0 && activeAssessmentId && submission?.status === 'IN_PROGRESS') {
-      handleFinalSubmit(true);
+      handleFinalSubmitRef.current(true);
       return;
     }
 
@@ -332,7 +379,7 @@ export const EventArenaPage: React.FC = () => {
       setRemainingSeconds(rem);
       if (rem <= 0) {
         clearInterval(timer);
-        handleFinalSubmit(true);
+        handleFinalSubmitRef.current(true);
       }
     }, 1000);
 
@@ -383,7 +430,29 @@ export const EventArenaPage: React.FC = () => {
       setCodingModeMap((prev) => ({ ...modeMap, ...prev }));
       setCodingCodes((prev) => ({ ...existingCodes, ...prev }));
     }
-  }, [submission]);
+
+    // Restore previous MCQ answers if resuming a submission with grace time
+    if (submission?.mcqAnswers && submission.mcqAnswers.length > 0) {
+      const restoredMcq: Record<string, number> = {};
+      submission.mcqAnswers.forEach((ans: any) => {
+        if (ans.questionId && typeof ans.selectedOptionIndex === 'number' && ans.selectedOptionIndex >= 0) {
+          restoredMcq[ans.questionId] = ans.selectedOptionIndex;
+        }
+      });
+      setMcqAnswers((prev) => {
+        const merged = { ...restoredMcq, ...prev };
+        mcqAnswersRef.current = merged;
+        if (id && activeAssessmentId) {
+          try {
+            localStorage.setItem(`arena_mcq_${id}_${activeAssessmentId}`, JSON.stringify(merged));
+          } catch {
+            // ignore
+          }
+        }
+        return merged;
+      });
+    }
+  }, [submission, id, activeAssessmentId]);
 
   const currentMcq = studentMcqs[selectedIndex];
   const currentCoding = studentCoding[selectedIndex];
@@ -398,10 +467,21 @@ export const EventArenaPage: React.FC = () => {
       : (currentCoding?._id && codingModeMap[currentCoding._id]) || 'ONLY_CODE';
 
   const handleSelectMcqOption = (questionId: string, optionIndex: number) => {
-    setMcqAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionIndex,
-    }));
+    setMcqAnswers((prev) => {
+      const updated = {
+        ...prev,
+        [questionId]: optionIndex,
+      };
+      mcqAnswersRef.current = updated;
+      if (id && activeAssessmentId) {
+        try {
+          localStorage.setItem(`arena_mcq_${id}_${activeAssessmentId}`, JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+      }
+      return updated;
+    });
   };
 
   const handleRunCode = async () => {
@@ -477,7 +557,25 @@ export const EventArenaPage: React.FC = () => {
 
   const handleFinalSubmit = async (isAuto = false) => {
     if (!id || !activeAssessmentId) return;
-    const formattedMcqAnswers = Object.entries(mcqAnswers).map(([qId, ansIdx]) => ({
+
+    // Guaranteed latest answers: check ref first, then state, then localStorage
+    let currentAnswers = mcqAnswersRef.current;
+    if (!currentAnswers || Object.keys(currentAnswers).length === 0) {
+      currentAnswers = mcqAnswers;
+    }
+    if (!currentAnswers || Object.keys(currentAnswers).length === 0) {
+      try {
+        const saved = localStorage.getItem(`arena_mcq_${id}_${activeAssessmentId}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') currentAnswers = parsed;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const formattedMcqAnswers = Object.entries(currentAnswers || {}).map(([qId, ansIdx]) => ({
       questionId: qId,
       selectedOptionIndex: ansIdx,
       selectedOption: ansIdx,
@@ -489,6 +587,11 @@ export const EventArenaPage: React.FC = () => {
         tabSwitchCount,
       });
       if (res) {
+        try {
+          localStorage.removeItem(`arena_mcq_${id}_${activeAssessmentId}`);
+        } catch {
+          // ignore
+        }
         setShowSubmitConfirm(false);
         setFinalResultModal(res.results || res);
         toast.success(isAuto ? 'Time up! Assessment auto-submitted.' : 'Assessment submitted successfully!');
@@ -497,6 +600,8 @@ export const EventArenaPage: React.FC = () => {
       // Handled in store
     }
   };
+
+  handleFinalSubmitRef.current = handleFinalSubmit;
 
   const handleStudentDesignSubmit = async () => {
     if (!id || !activeAssessmentId) return;
@@ -519,6 +624,8 @@ export const EventArenaPage: React.FC = () => {
     setActiveAssessmentId(null);
     setTabSwitchCount(0);
     setShowTabWarning(false);
+    resetBlocked();
+    setApiBlocked(false);
     if (id) fetchAssessments(id);
   };
 
@@ -632,10 +739,15 @@ export const EventArenaPage: React.FC = () => {
                 const isCompleted = sub?.status === 'SUBMITTED' || sub?.status === 'AUTO_SUBMITTED';
                 const isInProgress = sub?.status === 'IN_PROGRESS';
 
-                // Qualification check for Round > 1
+                // Qualification check for Round > 1 based strictly on Top Rank Cutoff
                 const prevRound = idx > 0 ? assessments[idx - 1] : null;
-                const prevCompleted = prevRound?.submission?.status === 'SUBMITTED' || prevRound?.submission?.status === 'AUTO_SUBMITTED';
-                const hasCutoff = (asm.qualificationCutoffRank || 0) > 0;
+                const prevCompleted = prevRound?.submission?.status === 'SUBMITTED' || prevRound?.submission?.status === 'AUTO_SUBMITTED' || prevRound?.submission?.status === 'COMPLETED';
+                const effectiveRoundCutoff = (asm.qualificationCutoffRank || 0) > 0
+                  ? asm.qualificationCutoffRank
+                  : (prevRound?.qualificationCutoffRank || 0) > 0
+                  ? prevRound.qualificationCutoffRank
+                  : 0;
+                const hasCutoff = idx > 0 && effectiveRoundCutoff > 0;
                 // If previous round isn't completed, lock next round
                 const isLockedBySequence = idx > 0 && !prevCompleted && !isCompleted;
                 const isEnded = asm.status === 'ENDED' && !isCompleted;
@@ -712,7 +824,15 @@ export const EventArenaPage: React.FC = () => {
                       {hasCutoff && (
                         <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-[11px] text-purple-300">
                           <Trophy size={13} className="text-amber-400 shrink-0" />
-                          <span>Top {asm.qualificationCutoffRank} participants from Round {idx} qualify</span>
+                          <span>Top {effectiveRoundCutoff} participants from Round {idx} qualify</span>
+                        </div>
+                      )}
+
+                      {/* Cutoff notice on earlier round for next round */}
+                      {(asm.qualificationCutoffRank || 0) > 0 && idx < assessments.length - 1 && (
+                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-[11px] text-purple-300">
+                          <Trophy size={13} className="text-amber-400 shrink-0" />
+                          <span>Top {asm.qualificationCutoffRank} participants qualify for Round {idx + 2}</span>
                         </div>
                       )}
 
@@ -922,11 +1042,43 @@ export const EventArenaPage: React.FC = () => {
               Assessment Locked
             </h3>
 
-            <p className="text-xs sm:text-sm text-red-300/90 mb-6 leading-relaxed">
+            <p className="text-xs sm:text-sm text-red-300/90 mb-5 leading-relaxed">
               {blockedMessage || 'You have been blocked for navigating away. Contact Admin.'}
             </p>
 
+            <div className="p-3 mb-5 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center gap-2 text-[11px] text-red-300">
+              <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" />
+              <span>Real-time listener active: Screen unlocks automatically once Admin unblocks you</span>
+            </div>
+
             <div className="space-y-3">
+              <Button
+                color="primary"
+                variant="solid"
+                isLoading={isCheckingUnblockStatus}
+                isDisabled={isCheckingUnblockStatus}
+                onPress={async () => {
+                  setIsCheckingUnblockStatus(true);
+                  try {
+                    const unblocked = await checkIfUnblocked();
+                    if (unblocked) {
+                      setApiBlocked(false);
+                      if (id && activeAssessmentId) {
+                        fetchStudentAssessmentData(id, activeAssessmentId);
+                      }
+                    } else {
+                      toast.error('Your attempt is still locked. Please ask your event admin/faculty to unblock you.');
+                    }
+                  } finally {
+                    setIsCheckingUnblockStatus(false);
+                  }
+                }}
+                className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-primary/30"
+                startContent={!isCheckingUnblockStatus ? <RefreshCw size={14} /> : undefined}
+              >
+                {isCheckingUnblockStatus ? 'Checking Status...' : 'Check if Unblocked'}
+              </Button>
+
               {isAdmin && (
                 <Button
                   color="secondary"
@@ -938,6 +1090,10 @@ export const EventArenaPage: React.FC = () => {
                     try {
                       await unblockStudent(currentUser?._id || currentUser?.id);
                       setApiBlocked(false);
+                      resetBlocked();
+                      if (id && activeAssessmentId) {
+                        fetchStudentAssessmentData(id, activeAssessmentId);
+                      }
                     } finally {
                       setIsUnblockingSelf(false);
                     }
@@ -1014,6 +1170,14 @@ export const EventArenaPage: React.FC = () => {
             <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] rounded-xl text-[11px] font-mono text-label-secondary bg-surface-secondary border border-separator">
               <span className="text-purple-400 font-bold">Ends:</span>
               <span>{formatISTDateTime(selectedAssessment.endTime)}</span>
+            </div>
+          )}
+
+          {/* Grace Time Active Badge */}
+          {Boolean((submission?.graceMinutes && submission.graceMinutes > 0) || (selectedAssessment?.graceMinutes && selectedAssessment.graceMinutes > 0)) && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] rounded-xl text-[11px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-500">
+              <Sparkles size={12} className="text-amber-500" />
+              <span>+{submission?.graceMinutes || selectedAssessment?.graceMinutes}m Grace Time</span>
             </div>
           )}
 

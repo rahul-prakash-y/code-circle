@@ -13,7 +13,6 @@ import {
   RequiredFieldMarker,
   SuccessState,
 } from '@/components/states';
-import ThemeToggle from '@/components/ui/ThemeToggle';
 import { Button } from '@heroui/react';
 import {
   Layers,
@@ -93,10 +92,6 @@ export const StatesGalleryPage: React.FC = () => {
           >
             {isMobilePreview ? 'Desktop View' : 'Mobile Frame (390px)'}
           </Button>
-
-          <div className="p-1 rounded-full border border-separator bg-surface">
-            <ThemeToggle />
-          </div>
         </div>
       </div>
 

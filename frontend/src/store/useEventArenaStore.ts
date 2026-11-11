@@ -86,6 +86,8 @@ export interface ArenaAssessment {
   rules?: string[];
   startTime?: string;
   endTime?: string;
+  graceMinutes?: number;
+  shuffleQuestions?: boolean;
   assignedAdmins: ArenaAdminCandidate[];
   qualificationCutoffRank?: number;
   isTeamMode?: boolean;
@@ -170,6 +172,11 @@ export interface ArenaSubmission {
   maxPossibleScore: number;
   scorePercentage: number;
   isPassed: boolean;
+  graceMinutes?: number;
+  reentryAllowed?: boolean;
+  isManualSubmission?: boolean;
+  manualNotes?: string;
+  enteredBy?: any;
 }
 
 export interface ArenaTeamMember {
@@ -208,6 +215,8 @@ interface EventArenaState {
   adminDesignChallenge: ArenaDesignChallenge | null;
   adminDesignChallenges: ArenaDesignChallenge[];
   adminSubmissions: any[];
+  blockedStudents: any[];
+  blockedStudentsLoading: boolean;
 
   // Student Arena state
   currentEvent: any | null;
@@ -263,6 +272,8 @@ interface EventArenaState {
     mode?: 'append' | 'replace'
   ) => Promise<any>;
   fetchAdminAssessmentSubmissions: (eventId: string, assessmentId: string) => Promise<any>;
+  fetchBlockedStudents: (eventId: string) => Promise<any[]>;
+  unblockStudentDirect: (eventId: string, studentQueryOrId: string, studentName?: string) => Promise<any>;
   fetchArenaTeams: (eventId: string) => Promise<ArenaTeam[]>;
   createArenaTeam: (eventId: string, data: { name: string; memberUserIds: string[]; leaderUserId?: string }) => Promise<any>;
   assignArenaTeamMembers: (eventId: string, teamId: string, data: { memberUserIds: string[]; leaderUserId?: string }) => Promise<any>;
@@ -316,6 +327,26 @@ interface EventArenaState {
     }
   ) => Promise<any>;
   deleteAssessmentSubmission: (eventId: string, assessmentId: string, submissionId: string) => Promise<any>;
+  grantGraceTime: (
+    eventId: string,
+    assessmentId: string,
+    data: { submissionId?: string; studentId?: string; extraMinutes?: number; clearAnswers?: boolean }
+  ) => Promise<any>;
+  grantGraceTimeAll: (eventId: string, assessmentId: string, extraMinutes: number) => Promise<any>;
+  createManualSubmission: (
+    eventId: string,
+    assessmentId: string,
+    data: {
+      studentIdentifier: string;
+      score: number;
+      mcqScore?: number;
+      codingScore?: number;
+      designScore?: number;
+      maxScore?: number;
+      isPassed?: boolean;
+      manualNotes?: string;
+    }
+  ) => Promise<any>;
   fetchAssessmentLeaderboard: (eventId: string, assessmentId: string) => Promise<any>;
   fetchAdminOverallLeaderboard: (eventId: string) => Promise<any>;
 
@@ -376,6 +407,8 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   adminDesignChallenge: null,
   adminDesignChallenges: [],
   adminSubmissions: [],
+  blockedStudents: [],
+  blockedStudentsLoading: false,
 
   currentEvent: null,
   studentTeam: null,
@@ -676,6 +709,43 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
     }
   },
 
+  fetchBlockedStudents: async (eventId: string) => {
+    set({ blockedStudentsLoading: true });
+    try {
+      const res = await api.get(`/events/${eventId}/blocked-students`);
+      const list = res.data.blockedStudents || [];
+      set({ blockedStudents: list, blockedStudentsLoading: false });
+      return list;
+    } catch (err: any) {
+      console.error('Failed to fetch blocked students:', err);
+      set({ blockedStudentsLoading: false });
+      return [];
+    }
+  },
+
+  unblockStudentDirect: async (eventId: string, studentQueryOrId: string, studentName?: string) => {
+    set({ actionLoading: true });
+    try {
+      const res = await api.post(`/events/${eventId}/unblock-student`, { studentId: studentQueryOrId });
+      const name = res.data.student?.name || studentName || studentQueryOrId;
+      toast.success(`${name} unblocked successfully!`);
+      // Refresh blocked list
+      await get().fetchBlockedStudents(eventId);
+      // Refresh submissions if an assessment is selected
+      const currentAssessment = get().selectedAssessment;
+      if (currentAssessment?._id) {
+        await get().fetchAdminAssessmentSubmissions(eventId, currentAssessment._id);
+      }
+      set({ actionLoading: false });
+      return res.data;
+    } catch (err: any) {
+      set({ actionLoading: false });
+      const msg = err.response?.data?.error || 'Failed to unblock student';
+      toast.error(msg);
+      throw err;
+    }
+  },
+
   fetchArenaTeams: async (eventId: string) => {
     try {
       const res = await api.get(`/events/${eventId}/arena/teams`);
@@ -945,6 +1015,81 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
       set({ actionLoading: false });
       const msg = err.response?.data?.error || 'Failed to delete submission';
       toast.error(msg);
+      throw err;
+    }
+  },
+
+  grantGraceTime: async (eventId: string, assessmentId: string, data: any) => {
+    set({ actionLoading: true });
+    try {
+      const res = await api.post(
+        `/events/${eventId}/arena/assessments/${assessmentId}/grace-time`,
+        data
+      );
+      toast.success(res.data.message || 'Grace time granted successfully!');
+      await get().fetchAdminAssessmentSubmissions(eventId, assessmentId);
+      await get().fetchBlockedStudents(eventId);
+      set({ actionLoading: false });
+      return res.data;
+    } catch (err: any) {
+      set({ actionLoading: false });
+      const msg = err.response?.data?.error || 'Failed to grant grace time';
+      toast.error(msg);
+      throw err;
+    }
+  },
+
+  grantGraceTimeAll: async (eventId: string, assessmentId: string, extraMinutes: number) => {
+    set({ actionLoading: true });
+    try {
+      const res = await api.post(
+        `/events/${eventId}/arena/assessments/${assessmentId}/grace-time-all`,
+        { extraMinutes }
+      );
+      toast.success(res.data.message || 'Grace time granted to all students!');
+      await get().fetchAdminAssessmentSubmissions(eventId, assessmentId);
+      await get().fetchAssessments(eventId);
+      set({ actionLoading: false });
+      return res.data;
+    } catch (err: any) {
+      set({ actionLoading: false });
+      const msg = err.response?.data?.error || 'Failed to grant grace time to all students';
+      toast.error(msg);
+      throw err;
+    }
+  },
+
+  createManualSubmission: async (eventId: string, assessmentId: string, data: any) => {
+    set({ actionLoading: true });
+    try {
+      const response = await api.post(
+        `/events/${eventId}/arena/assessments/${assessmentId}/manual-submission`,
+        data
+      );
+      toast.success(response.data.message || 'Manual submission recorded successfully!');
+      
+      // Update adminSubmissions list
+      if (response.data.submission) {
+        set((state) => {
+          const existingIdx = state.adminSubmissions.findIndex(
+            (s: any) => s._id === response.data.submission._id ||
+              (s.userId?._id && s.userId?._id === response.data.submission.userId?._id)
+          );
+          let updated = [...state.adminSubmissions];
+          if (existingIdx !== -1) {
+            updated[existingIdx] = response.data.submission;
+          } else {
+            updated.unshift(response.data.submission);
+          }
+          return { adminSubmissions: updated };
+        });
+      }
+      set({ actionLoading: false });
+      return response.data;
+    } catch (err: any) {
+      set({ actionLoading: false });
+      const message = err.response?.data?.error || 'Failed to record manual submission';
+      toast.error(message);
       throw err;
     }
   },

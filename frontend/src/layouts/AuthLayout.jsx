@@ -1,7 +1,6 @@
 import React from 'react';
 import BackgroundGradient from '../components/ui/BackgroundGradient';
 import { motion } from 'framer-motion';
-import ThemeToggle from '../components/ui/ThemeToggle';
 import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
 import { Card, Avatar } from '@heroui/react';
 
@@ -9,11 +8,6 @@ const AuthLayout = ({ children, title, subtitle }) => {
   return (
     <div className="min-h-[100dvh] w-full flex items-center justify-center p-3.5 sm:p-6 lg:p-8 relative selection:bg-accent/20 overflow-y-auto">
       <BackgroundGradient />
-      
-      {/* Theme Toggle floating in corner */}
-      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-50">
-        <ThemeToggle />
-      </div>
 
       {/* Emil Kowalski Rule: Enter from scale(0.95) with 220ms fade-in, frosted backdrop-blur-xl */}
       <motion.div

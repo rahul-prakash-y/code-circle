@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
-export type EventArenaSubmissionStatus = 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
+export type EventArenaSubmissionStatus = 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED' | 'COMPLETED';
 
 export interface IMCQAnswer {
   questionId: string;
@@ -73,6 +73,13 @@ export interface IEventArenaSubmission extends Document {
   isPassed: boolean;
   pointsAwarded?: boolean;
   pointsAwardedAmount?: number;
+  graceMinutes?: number;
+  graceGrantedAt?: Date;
+  graceGrantedBy?: mongoose.Types.ObjectId;
+  reentryAllowed?: boolean;
+  isManualSubmission?: boolean;
+  manualNotes?: string;
+  enteredBy?: mongoose.Types.ObjectId;
   integrityEvents: Array<{
     type: string;
     timestamp: Date;
@@ -177,7 +184,7 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
     },
     status: {
       type: String,
-      enum: ['IN_PROGRESS', 'SUBMITTED', 'AUTO_SUBMITTED'],
+      enum: ['IN_PROGRESS', 'SUBMITTED', 'AUTO_SUBMITTED', 'COMPLETED'],
       default: 'IN_PROGRESS',
       index: true,
     },
@@ -255,6 +262,33 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
     pointsAwardedAmount: {
       type: Number,
       default: 0,
+    },
+    graceMinutes: {
+      type: Number,
+      default: 0,
+    },
+    graceGrantedAt: {
+      type: Date,
+    },
+    graceGrantedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    reentryAllowed: {
+      type: Boolean,
+      default: false,
+    },
+    isManualSubmission: {
+      type: Boolean,
+      default: false,
+    },
+    manualNotes: {
+      type: String,
+      default: '',
+    },
+    enteredBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
     integrityEvents: [
       {

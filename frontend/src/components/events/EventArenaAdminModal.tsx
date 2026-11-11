@@ -94,6 +94,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     adminDesignChallenge,
     adminDesignChallenges,
     adminSubmissions,
+    unblockStudentDirect,
+    grantGraceTime,
+    grantGraceTimeAll,
+    createManualSubmission,
     overallLeaderboard,
     overallLeaderboardAssessments,
     fetchAdminOverallLeaderboard,
@@ -146,6 +150,32 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   // Submissions & Leaderboard sub-tab state ('round' | 'leaderboard')
   const [submissionsSubTab, setSubmissionsSubTab] = useState<'round' | 'leaderboard'>('round');
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [submissionSearch, setSubmissionSearch] = useState('');
+  const [isExportingSubmissions, setIsExportingSubmissions] = useState(false);
+
+  // Anti-Cheat Quick Unblock state
+  const [quickUnblockQuery, setQuickUnblockQuery] = useState('');
+  const [isQuickUnblocking, setIsQuickUnblocking] = useState(false);
+
+  // Grace Timing Modal State (Individual Student)
+  const [graceModalSub, setGraceModalSub] = useState<any | null>(null);
+  const [graceMinutesInput, setGraceMinutesInput] = useState<number>(10);
+  const [graceClearAnswers, setGraceClearAnswers] = useState<boolean>(false);
+  const [isGrantingGrace, setIsGrantingGrace] = useState<boolean>(false);
+
+  // Grace Timing Modal State (All Students)
+  const [isGraceAllModalOpen, setIsGraceAllModalOpen] = useState<boolean>(false);
+  const [graceAllMinutes, setGraceAllMinutes] = useState<number>(10);
+  const [isGrantingGraceAll, setIsGrantingGraceAll] = useState<boolean>(false);
+
+  // Manual Paper Submission Modal State
+  const [isManualModalOpen, setIsManualModalOpen] = useState<boolean>(false);
+  const [manualStudentIdentifier, setManualStudentIdentifier] = useState('');
+  const [manualScore, setManualScore] = useState<number | string>('');
+  const [manualMcqScore, setManualMcqScore] = useState<number | string>('');
+  const [manualCodingScore, setManualCodingScore] = useState<number | string>('');
+  const [manualNotes, setManualNotes] = useState('');
+  const [isSubmittingManual, setIsSubmittingManual] = useState<boolean>(false);
 
   // Multi-Design Challenge Form state
   const [designChallengesList, setDesignChallengesList] = useState<any[]>([]);
@@ -202,12 +232,223 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     if (!event?._id || !studentId) return;
     setActionInProgressId(studentId);
     try {
-      await api.post(`/events/${event._id}/unblock-student`, { studentId });
-      toast.success(`${studentName || 'Student'} unblocked successfully for this event.`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to unblock student');
+      await unblockStudentDirect(event._id, studentId, studentName);
+      if (inspectingSub) {
+        const inspectingUserId = inspectingSub.userId?._id || inspectingSub.userId?.id || inspectingSub.userId;
+        if (inspectingUserId === studentId) {
+          setInspectingSub({ ...inspectingSub, isBlocked: false });
+        }
+      }
+    } catch {
+      // Error toasted in store
     } finally {
       setActionInProgressId(null);
+    }
+  };
+
+  const handleQuickUnblock = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = quickUnblockQuery.trim();
+    if (!query || !event?._id) return;
+    setIsQuickUnblocking(true);
+    try {
+      await unblockStudentDirect(event._id, query);
+      setQuickUnblockQuery('');
+    } catch {
+      // Error toasted in store
+    } finally {
+      setIsQuickUnblocking(false);
+    }
+  };
+
+  const handleGrantGraceTime = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!event?._id || !selectedAssessmentId || !graceModalSub) return;
+    setIsGrantingGrace(true);
+    try {
+      await grantGraceTime(event._id, selectedAssessmentId, {
+        submissionId: graceModalSub._id,
+        studentId: graceModalSub.userId?._id || graceModalSub.userId?.id || graceModalSub.userId,
+        extraMinutes: Number(graceMinutesInput) || 10,
+        clearAnswers: graceClearAnswers,
+      });
+      if (inspectingSub?._id === graceModalSub._id) {
+        setInspectingSub((prev: any) => prev ? {
+          ...prev,
+          status: 'IN_PROGRESS',
+          graceMinutes: (prev.graceMinutes || 0) + (Number(graceMinutesInput) || 10),
+          isBlocked: false,
+        } : null);
+      }
+      setGraceModalSub(null);
+    } catch {
+      // Toast handled in store
+    } finally {
+      setIsGrantingGrace(false);
+    }
+  };
+
+  const handleGrantGraceTimeAll = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!event?._id || !selectedAssessmentId) return;
+    setIsGrantingGraceAll(true);
+    try {
+      await grantGraceTimeAll(event._id, selectedAssessmentId, Number(graceAllMinutes) || 10);
+      setIsGraceAllModalOpen(false);
+    } catch {
+      // Toast handled in store
+    } finally {
+      setIsGrantingGraceAll(false);
+    }
+  };
+
+  const handleExportSubmissions = async () => {
+    const listToExport = submissionSearch.trim()
+      ? filteredSubmissions
+      : adminSubmissions;
+
+    if (listToExport.length === 0) {
+      toast.error(
+        submissionSearch.trim()
+          ? 'No submissions match your search query'
+          : 'No submissions available to export'
+      );
+      return;
+    }
+
+    setIsExportingSubmissions(true);
+    try {
+      const rows = listToExport.map((sub: any, idx: number) => {
+        const subRank = submissionRankMap.get(sub._id?.toString() || sub.id) || (idx + 1);
+        const isShortlisted = effectiveCutoffRank > 0 ? subRank <= effectiveCutoffRank : true;
+        return {
+          'Rank': subRank,
+          'Shortlisted for Next Round': effectiveCutoffRank > 0
+            ? (isShortlisted ? `Yes (Top ${effectiveCutoffRank})` : 'No')
+            : 'Yes (All Qualified)',
+          'Next Round Eligibility': isShortlisted ? 'Shortlisted' : 'Not Shortlisted',
+          'Roll Number': sub.userId?.rollNo || 'N/A',
+          'Student Name': sub.userId?.name || 'N/A',
+          'Email': sub.userId?.email || 'N/A',
+          'Department': sub.userId?.department || 'N/A',
+          'Year': sub.userId?.year || 'N/A',
+          'College': sub.userId?.college || 'N/A',
+          'Residence Type': sub.userId?.residenceType || 'N/A',
+          'Team Name': sub.teamName || sub.teamId?.name || 'Individual',
+          'Score': sub.totalScore ?? 0,
+          'Max Score': sub.maxPossibleScore || selectedAssessment?.totalPoints || 100,
+          'Percentage (%)': sub.scorePercentage ?? 0,
+          'Pass % Result': sub.isPassed ? 'Passed' : 'Failed',
+          'Status': sub.status || 'SUBMITTED',
+          'Submission Type': sub.isManualSubmission ? 'Paper / Manual' : 'Online Arena',
+          'MCQ Score': sub.mcqScore ?? 0,
+          'Coding Score': sub.codingScore ?? 0,
+          'Design Score': sub.designScore ?? 0,
+          'Tab Switch Count': sub.tabSwitchCount ?? 0,
+          'Time Taken (Mins)': Math.floor((sub.timeTakenSeconds || 0) / 60),
+          'Submitted At': sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : 'In Progress',
+          'Integrity Blocked': sub.isBlocked ? 'Yes' : 'No',
+          'Manual Notes': sub.manualNotes || '',
+        };
+      });
+
+      const XLSX = await import('xlsx');
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      // Define auto-fitting column widths
+      worksheet['!cols'] = [
+        { wch: 6 },  // Rank
+        { wch: 26 }, // Shortlisted for Next Round
+        { wch: 22 }, // Next Round Eligibility
+        { wch: 14 }, // Roll Number
+        { wch: 24 }, // Student Name
+        { wch: 32 }, // Email
+        { wch: 14 }, // Department
+        { wch: 8 },  // Year
+        { wch: 20 }, // College
+        { wch: 14 }, // Residence Type
+        { wch: 16 }, // Team Name
+        { wch: 8 },  // Score
+        { wch: 10 }, // Max Score
+        { wch: 14 }, // Percentage (%)
+        { wch: 14 }, // Pass % Result
+        { wch: 14 }, // Status
+        { wch: 16 }, // Submission Type
+        { wch: 12 }, // MCQ Score
+        { wch: 12 }, // Coding Score
+        { wch: 12 }, // Design Score
+        { wch: 16 }, // Tab Switch Count
+        { wch: 18 }, // Time Taken (Mins)
+        { wch: 22 }, // Submitted At
+        { wch: 16 }, // Integrity Blocked
+        { wch: 30 }, // Manual Notes
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      // Excel sheet name MUST NOT exceed 31 chars and must not contain : \ / ? * [ ]
+      const safeSheetName = 'Submissions';
+      XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName);
+
+      const safeEventTitle = (event?.title || 'Event').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
+      const safeRoundTitle = (selectedAssessment?.title || 'Round').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 25);
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const fileName = `${safeEventTitle}_${safeRoundTitle}_Submissions_${timestamp}.xlsx`;
+
+      try {
+        XLSX.writeFile(workbook, fileName);
+      } catch (writeErr) {
+        console.warn('XLSX.writeFile fallback to manual Blob trigger:', writeErr);
+        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      toast.success('Submissions list exported to Excel successfully!');
+    } catch (err: any) {
+      console.error('Failed to export submissions list:', err);
+      toast.error(err?.message || 'Failed to export submissions list');
+    } finally {
+      setIsExportingSubmissions(false);
+    }
+  };
+
+  const handleCreateManualSubmission = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!event?._id || !selectedAssessmentId) return;
+    if (!manualStudentIdentifier.trim()) {
+      toast.error('Please enter student Roll Number or Email');
+      return;
+    }
+    if (manualScore === '' || isNaN(Number(manualScore))) {
+      toast.error('Please enter a valid numeric score');
+      return;
+    }
+    setIsSubmittingManual(true);
+    try {
+      await createManualSubmission(event._id, selectedAssessmentId, {
+        studentIdentifier: manualStudentIdentifier.trim(),
+        score: Number(manualScore),
+        mcqScore: manualMcqScore !== '' ? Number(manualMcqScore) : undefined,
+        codingScore: manualCodingScore !== '' ? Number(manualCodingScore) : undefined,
+        manualNotes: manualNotes.trim() || 'Paper / Offline Test Submission',
+      });
+      setIsManualModalOpen(false);
+      setManualStudentIdentifier('');
+      setManualScore('');
+      setManualMcqScore('');
+      setManualCodingScore('');
+      setManualNotes('');
+    } catch {
+      // Toast handled in store
+    } finally {
+      setIsSubmittingManual(false);
     }
   };
 
@@ -273,6 +514,84 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   }, [user, selectedAssessment, isSuperAdmin]);
 
   const selectedAssessmentId = selectedAssessment?._id;
+
+  const selectedAssessmentIndex = useMemo(() => {
+    return assessments.findIndex((a: any) => a._id === selectedAssessmentId);
+  }, [assessments, selectedAssessmentId]);
+
+  const nextAssessment = useMemo(() => {
+    if (selectedAssessmentIndex >= 0 && selectedAssessmentIndex < assessments.length - 1) {
+      return assessments[selectedAssessmentIndex + 1];
+    }
+    return null;
+  }, [assessments, selectedAssessmentIndex]);
+
+  // Next round shortlist cutoff rank: strictly determined by rank cutoff, not passing %
+  const effectiveCutoffRank = useMemo(() => {
+    if (selectedAssessment?.qualificationCutoffRank && selectedAssessment.qualificationCutoffRank > 0) {
+      return selectedAssessment.qualificationCutoffRank;
+    }
+    if (nextAssessment?.qualificationCutoffRank && nextAssessment.qualificationCutoffRank > 0) {
+      return nextAssessment.qualificationCutoffRank;
+    }
+    return 0;
+  }, [selectedAssessment, nextAssessment]);
+
+  // Precomputed ranking map (1-based) across all submissions in this round
+  const submissionRankMap = useMemo(() => {
+    const map = new Map<string, number>();
+    adminSubmissions.forEach((sub: any, idx: number) => {
+      map.set(sub._id?.toString() || sub.id, idx + 1);
+    });
+    return map;
+  }, [adminSubmissions]);
+
+  // Derive inspecting submission's round rank and shortlist qualification
+  const inspectingRank = useMemo(() => {
+    if (!inspectingSub) return 0;
+    return submissionRankMap.get(inspectingSub._id?.toString() || inspectingSub.id) || 0;
+  }, [inspectingSub, submissionRankMap]);
+
+  const inspectingShortlisted = useMemo(() => {
+    if (effectiveCutoffRank <= 0) return true;
+    return inspectingRank > 0 && inspectingRank <= effectiveCutoffRank;
+  }, [inspectingRank, effectiveCutoffRank]);
+
+  // Filtered submissions based on search input (name, roll no, email, department, year, team, paper/manual, shortlist status)
+  const filteredSubmissions = useMemo(() => {
+    if (!submissionSearch.trim()) return adminSubmissions;
+    const q = submissionSearch.trim().toLowerCase();
+    return adminSubmissions.filter((sub: any) => {
+      const name = (sub.userId?.name || '').toLowerCase();
+      const roll = (sub.userId?.rollNo || '').toLowerCase();
+      const email = (sub.userId?.email || '').toLowerCase();
+      const dept = (sub.userId?.department || '').toLowerCase();
+      const year = String(sub.userId?.year || '').toLowerCase();
+      const college = (sub.userId?.college || '').toLowerCase();
+      const residence = (sub.userId?.residenceType || '').toLowerCase();
+      const team = (sub.teamName || sub.teamId?.name || '').toLowerCase();
+      const isManual = sub.isManualSubmission ? 'paper manual offline' : 'online';
+      const subRank = submissionRankMap.get(sub._id?.toString() || sub.id) || 0;
+      const isShortlisted = effectiveCutoffRank > 0 ? (subRank > 0 && subRank <= effectiveCutoffRank) : true;
+      const shortlistStr = isShortlisted ? 'shortlisted qualified next round' : 'not shortlisted disqualified';
+      const result = sub.isPassed ? 'passed pass' : 'failed fail';
+      const notes = (sub.manualNotes || '').toLowerCase();
+      return (
+        name.includes(q) ||
+        roll.includes(q) ||
+        email.includes(q) ||
+        dept.includes(q) ||
+        year.includes(q) ||
+        college.includes(q) ||
+        residence.includes(q) ||
+        team.includes(q) ||
+        isManual.includes(q) ||
+        shortlistStr.includes(q) ||
+        result.includes(q) ||
+        notes.includes(q)
+      );
+    });
+  }, [adminSubmissions, submissionSearch, submissionRankMap, effectiveCutoffRank]);
 
   // Load initial data (only when modal opens or event ID changes)
   useEffect(() => {
@@ -3077,14 +3396,176 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   ) : (
                     /* CURRENT ROUND SUBMISSIONS */
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                           <h4 className="text-sm font-bold text-label-primary">Round Submissions</h4>
                           <p className="text-xs text-label-secondary">
                             Total {adminSubmissions.length} submissions for "{selectedAssessment.title}"
                           </p>
                         </div>
+                        {canManageSelected && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="flat"
+                              color="secondary"
+                              onPress={() => {
+                                setManualStudentIdentifier('');
+                                setManualScore('');
+                                setManualMcqScore('');
+                                setManualCodingScore('');
+                                setManualNotes('');
+                                setIsManualModalOpen(true);
+                              }}
+                              startContent={<Plus size={13} />}
+                              className="h-8 px-3 rounded-xl text-xs font-bold bg-purple-500/15 border border-purple-500/30 text-purple-400 hover:bg-purple-500/25 cursor-pointer"
+                              title="Enter Manual / Paper Test Score"
+                            >
+                              + Paper Score
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="bordered"
+                              onPress={handleExportSubmissions}
+                              isDisabled={adminSubmissions.length === 0 || isExportingSubmissions}
+                              isLoading={isExportingSubmissions}
+                              startContent={!isExportingSubmissions ? <Download size={13} /> : undefined}
+                              className="h-8 px-3 rounded-xl text-xs font-bold bg-surface border-separator text-label-secondary hover:text-label-primary hover:bg-surface-secondary cursor-pointer"
+                              title="Download Submissions List (.xlsx)"
+                            >
+                              {isExportingSubmissions ? 'Exporting...' : 'Download List'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="flat"
+                              color="warning"
+                              onPress={() => {
+                                setIsGraceAllModalOpen(true);
+                                setGraceAllMinutes(10);
+                              }}
+                              startContent={<Clock size={13} />}
+                              className="h-8 px-3 rounded-xl text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-500 hover:bg-amber-500/25 cursor-pointer"
+                            >
+                              Extend Time for All (+Grace)
+                            </Button>
+                            <form onSubmit={handleQuickUnblock} className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={quickUnblockQuery}
+                                onChange={(e) => setQuickUnblockQuery(e.target.value)}
+                                placeholder="Unblock Roll No / Email..."
+                                className="px-3 py-1.5 rounded-xl bg-surface border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500 w-44 sm:w-56"
+                              />
+                              <Button
+                                type="submit"
+                                size="sm"
+                                color="success"
+                                variant="solid"
+                                isLoading={isQuickUnblocking}
+                                isDisabled={!quickUnblockQuery.trim() || isQuickUnblocking}
+                                className="h-8 px-3 rounded-xl text-xs font-bold bg-emerald-600 text-white cursor-pointer shrink-0"
+                              >
+                                Unblock
+                              </Button>
+                            </form>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Top Rank Cutoff (Next Round) Rule Banner */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0 border border-purple-500/30">
+                            <Trophy size={16} className="text-amber-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-label-primary flex items-center gap-1.5 flex-wrap">
+                              <span>Next Round Shortlist Rule:</span>
+                              <span className="text-purple-400 font-mono font-bold">
+                                {effectiveCutoffRank > 0
+                                  ? `Top ${effectiveCutoffRank} Candidates Qualify`
+                                  : 'All Candidates Qualify (No Cutoff Set)'}
+                              </span>
+                              {nextAssessment && (
+                                <span className="text-[11px] text-label-tertiary">
+                                  for Round {selectedAssessmentIndex + 2} ("{nextAssessment.title}")
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[11px] text-label-secondary">
+                              Shortlisting is strictly based on leaderboard rank (highest score & quickest submission), not passing percentage.
+                            </p>
+                          </div>
+                        </div>
+
+                        {canManageSelected && (
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            <label className="text-[11px] font-bold text-label-secondary whitespace-nowrap">
+                              Cutoff Rank:
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={selectedAssessment?.qualificationCutoffRank ?? 0}
+                              onChange={async (e) => {
+                                const val = Math.max(0, parseInt(e.target.value) || 0);
+                                if (!event?._id || !selectedAssessmentId) return;
+                                try {
+                                  await updateAssessment(event._id, selectedAssessmentId, {
+                                    qualificationCutoffRank: val,
+                                  });
+                                  toast.success(`Updated Top Rank Cutoff to ${val || 'All Qualify'}`);
+                                } catch {
+                                  toast.error('Failed to update cutoff rank');
+                                }
+                              }}
+                              className="w-20 px-2.5 py-1 rounded-xl bg-surface border border-purple-500/40 text-xs font-mono font-bold text-center text-label-primary outline-none focus:border-purple-400"
+                              title="Set Top Rank Cutoff for Next Round"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Submissions Search & Filter Field */}
+                      {adminSubmissions.length > 0 && (
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-surface-secondary/40 border border-separator">
+                          <div className="relative flex-1">
+                            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-label-tertiary" />
+                            <input
+                              type="text"
+                              value={submissionSearch}
+                              onChange={(e) => setSubmissionSearch(e.target.value)}
+                              placeholder="Search submissions by student name, roll number, email, department, or 'paper'..."
+                              className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-surface border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500 transition-colors"
+                            />
+                            {submissionSearch && (
+                              <button
+                                type="button"
+                                onClick={() => setSubmissionSearch('')}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-label-tertiary hover:text-label-primary p-0.5 rounded cursor-pointer"
+                                title="Clear search"
+                              >
+                                <X size={13} />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between sm:justify-end gap-2 text-xs text-label-secondary shrink-0 px-1">
+                            <span>
+                              Showing <strong className="text-label-primary font-mono">{filteredSubmissions.length}</strong> of{' '}
+                              <span className="font-mono">{adminSubmissions.length}</span>
+                            </span>
+                            {submissionSearch && (
+                              <button
+                                type="button"
+                                onClick={() => setSubmissionSearch('')}
+                                className="text-[11px] font-bold text-accent hover:underline cursor-pointer"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                   {adminSubmissions.length === 0 ? (
                     <div className="p-8 rounded-2xl bg-surface-secondary border border-separator text-center space-y-2">
@@ -3094,19 +3575,43 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         Submissions from students who complete this assessment will appear here with complete details.
                       </p>
                     </div>
+                  ) : filteredSubmissions.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-surface-secondary border border-separator text-center space-y-2">
+                      <Search size={28} className="mx-auto text-label-tertiary" />
+                      <h4 className="text-sm font-bold text-label-primary">No Submissions Found</h4>
+                      <p className="text-xs text-label-secondary">
+                        No submissions matched your search "{submissionSearch}". Try searching with a different name, roll no, or email.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="light"
+                        onPress={() => setSubmissionSearch('')}
+                        className="text-accent text-xs font-bold cursor-pointer"
+                      >
+                        Clear Search
+                      </Button>
+                    </div>
                   ) : (
                     <>
                       {/* Mobile Card List (< md viewports) */}
                       <div className="block md:hidden space-y-3">
-                        {adminSubmissions.map((sub, idx) => (
+                        {filteredSubmissions.map((sub, idx) => {
+                          const subRank = submissionRankMap.get(sub._id?.toString() || sub.id) || (idx + 1);
+                          const isShortlisted = effectiveCutoffRank > 0 ? subRank <= effectiveCutoffRank : true;
+                          return (
                           <div
                             key={sub._id || idx}
                             className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-3 shadow-2xs"
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <span className="w-6 h-6 rounded-full bg-accent/10 text-accent font-mono font-bold text-xs flex items-center justify-center shrink-0">
-                                  #{idx + 1}
+                                <span className={`w-6 h-6 rounded-full font-mono font-bold text-xs flex items-center justify-center shrink-0 ${
+                                  subRank === 1 ? 'bg-amber-400/20 text-amber-400 border border-amber-400/30' :
+                                  subRank === 2 ? 'bg-slate-300/20 text-slate-300 border border-slate-300/30' :
+                                  subRank === 3 ? 'bg-amber-600/20 text-amber-600 border border-amber-600/30' :
+                                  'bg-accent/10 text-accent'
+                                }`}>
+                                  #{subRank}
                                 </span>
                                 <div className="w-8 h-8 rounded-full overflow-hidden bg-surface border border-separator shrink-0">
                                   <img
@@ -3119,23 +3624,38 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   />
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="font-semibold text-xs text-label-primary truncate">
-                                    {sub.userId?.name || 'Student'}
-                                  </p>
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="font-semibold text-xs text-label-primary truncate">
+                                      {sub.userId?.name || 'Student'}
+                                    </p>
+                                    {sub.isManualSubmission && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 shrink-0">
+                                        Paper
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-[10px] text-label-tertiary truncate">
                                     {sub.userId?.rollNo || sub.userId?.email}
                                   </p>
                                 </div>
                               </div>
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                                  sub.isPassed
-                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                                    : 'bg-destructive/15 text-destructive border border-destructive/30'
-                                }`}
-                              >
-                                {sub.isPassed ? 'Passed' : 'Failed'}
-                              </span>
+                              {effectiveCutoffRank > 0 ? (
+                                isShortlisted ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                    <CheckCircle2 size={10} />
+                                    <span>Shortlisted</span>
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                                    <X size={10} />
+                                    <span>Not Shortlisted</span>
+                                  </span>
+                                )
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                                  Qualified
+                                </span>
+                              )}
                             </div>
 
                             <div className="grid grid-cols-3 gap-2 p-2 bg-surface rounded-xl border border-separator/60 text-center">
@@ -3211,9 +3731,46 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between text-[10px] text-label-tertiary pt-1 border-t border-separator/40">
-                              <span>Submitted</span>
-                              <span>
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-separator/40">
+                              <div className="flex items-center gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="bordered"
+                                  onPress={() => setInspectingSub(sub)}
+                                  className="h-7 px-2 rounded-lg text-xs bg-surface border-separator text-label-secondary hover:text-accent cursor-pointer"
+                                  startContent={<Eye size={11} />}
+                                >
+                                  View
+                                </Button>
+                                {canManageSelected && (
+                                  <Button
+                                    size="sm"
+                                    variant="bordered"
+                                    onPress={() => {
+                                      setGraceModalSub(sub);
+                                      setGraceMinutesInput(10);
+                                      setGraceClearAnswers(false);
+                                    }}
+                                    className="h-7 px-2 rounded-lg text-xs bg-amber-500/10 border-amber-500/30 text-amber-500 font-semibold cursor-pointer"
+                                    startContent={<Clock size={11} />}
+                                  >
+                                    Grace
+                                  </Button>
+                                )}
+                                {canManageSelected && sub.isBlocked && (
+                                  <Button
+                                    size="sm"
+                                    color="success"
+                                    variant="solid"
+                                    isLoading={actionInProgressId === (sub.userId?._id || sub.userId?.id || sub.userId)}
+                                    onPress={() => handleUnblockStudent(sub.userId?._id || sub.userId?.id || sub.userId, sub.userId?.name)}
+                                    className="h-7 px-2.5 rounded-lg text-xs font-bold bg-emerald-600 text-white cursor-pointer"
+                                  >
+                                    Unblock
+                                  </Button>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-label-tertiary">
                                 {sub.submittedAt
                                   ? new Date(sub.submittedAt).toLocaleTimeString([], {
                                       hour: '2-digit',
@@ -3223,7 +3780,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               </span>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Desktop Table (md+) */}
@@ -3235,18 +3793,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               <th className="p-3">Residence</th>
                               <th className="p-3">Score</th>
                               <th className="p-3">Percentage</th>
-                              <th className="p-3">Result</th>
+                              <th className="p-3">Next Round Status</th>
                               <th className="p-3">Figma / Work</th>
                               <th className="p-3">Submitted At</th>
                               <th className="p-3 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-separator/40">
-                            {adminSubmissions.map((sub, idx) => (
+                            {filteredSubmissions.map((sub, idx) => {
+                              const subRank = submissionRankMap.get(sub._id?.toString() || sub.id) || (idx + 1);
+                              const isShortlisted = effectiveCutoffRank > 0 ? subRank <= effectiveCutoffRank : true;
+                              return (
                               <tr key={sub._id || idx} className="hover:bg-surface-secondary/40 transition-colors">
                                 <td className="p-3">
                                   <div className="flex items-center gap-2.5">
-                                    <span className="font-mono text-label-tertiary w-4">#{idx + 1}</span>
+                                    <span className={`font-mono font-bold w-6 ${
+                                      subRank === 1 ? 'text-amber-400 font-extrabold' :
+                                      subRank === 2 ? 'text-slate-300 font-bold' :
+                                      subRank === 3 ? 'text-amber-600 font-bold' :
+                                      'text-label-tertiary'
+                                    }`}>
+                                      #{subRank}
+                                    </span>
                                     <div className="w-6 h-6 rounded-full overflow-hidden bg-surface border border-separator shrink-0">
                                       <img
                                         src={
@@ -3258,7 +3826,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                       />
                                     </div>
                                     <div>
-                                      <p className="font-semibold text-label-primary">{sub.userId?.name || 'Student'}</p>
+                                      <div className="flex items-center gap-1.5">
+                                        <p className="font-semibold text-label-primary">{sub.userId?.name || 'Student'}</p>
+                                        {sub.isManualSubmission && (
+                                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30 shrink-0">
+                                            Paper
+                                          </span>
+                                        )}
+                                      </div>
                                       <p className="text-[10px] text-label-tertiary">
                                         {sub.userId?.rollNo || sub.userId?.email}
                                       </p>
@@ -3284,15 +3859,23 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 </td>
                                 <td className="p-3 font-mono text-label-secondary">{sub.scorePercentage}%</td>
                                 <td className="p-3">
-                                  <span
-                                    className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                      sub.isPassed
-                                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                                        : 'bg-destructive/15 text-destructive border border-destructive/30'
-                                    }`}
-                                  >
-                                    {sub.isPassed ? 'Passed' : 'Failed'}
-                                  </span>
+                                  {effectiveCutoffRank > 0 ? (
+                                    isShortlisted ? (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                        <CheckCircle2 size={11} />
+                                        <span>Shortlisted (Top {effectiveCutoffRank})</span>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                                        <X size={11} />
+                                        <span>Not Shortlisted</span>
+                                      </span>
+                                    )
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                                      <span>Qualified (All)</span>
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="p-3">
                                   {sub.designSubmission?.figmaLink ? (
@@ -3378,6 +3961,25 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                       </Button>
                                     )}
 
+                                    {/* Grant Grace Time (Keeps Answers) */}
+                                    {canManageSelected && (
+                                      <Button
+                                        size="sm"
+                                        variant="bordered"
+                                        isDisabled={actionInProgressId === sub._id}
+                                        onPress={() => {
+                                          setGraceModalSub(sub);
+                                          setGraceMinutesInput(10);
+                                          setGraceClearAnswers(false);
+                                        }}
+                                        className="h-8 px-2.5 rounded-lg bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 text-amber-500 font-semibold text-xs cursor-pointer"
+                                        title="Grant Grace Time & Resume (Keeps previous answers)"
+                                        startContent={<Clock size={12} />}
+                                      >
+                                        Grace Time
+                                      </Button>
+                                    )}
+
                                     {/* Reset / Allow Re-attempt */}
                                     {canManageSelected && (
                                       <Button
@@ -3390,23 +3992,29 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                         className="w-8 h-8 min-w-unit-8 rounded-lg bg-surface border-separator hover:bg-amber-500/10 hover:border-amber-500/40 text-label-secondary hover:text-amber-500 cursor-pointer"
                                         title="Reset Attempt (Allow Re-attempt)"
                                       >
-                                        <RotateCcw size={13} />
+                                        <RotateCcw size={13} color='#fff' />
                                       </Button>
                                     )}
 
                                     {/* Unblock Integrity */}
                                     {canManageSelected && (
                                       <Button
-                                        isIconOnly
                                         size="sm"
-                                        variant="bordered"
+                                        variant={sub.isBlocked ? "solid" : "bordered"}
+                                        color={sub.isBlocked ? "success" : "default"}
+                                        isIconOnly={!sub.isBlocked}
                                         isDisabled={actionInProgressId === (sub.userId?._id || sub.userId?.id || sub.userId)}
                                         isLoading={actionInProgressId === (sub.userId?._id || sub.userId?.id || sub.userId)}
                                         onPress={() => handleUnblockStudent(sub.userId?._id || sub.userId?.id || sub.userId, sub.userId?.name)}
-                                        className="w-8 h-8 min-w-unit-8 rounded-lg bg-surface border-separator hover:bg-emerald-500/10 hover:border-emerald-500/40 text-label-secondary hover:text-emerald-500 cursor-pointer"
-                                        title="Unblock Student for this Event"
+                                        className={
+                                          sub.isBlocked
+                                            ? "h-8 px-2.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-md shadow-emerald-600/30 cursor-pointer"
+                                            : "w-8 h-8 min-w-unit-8 rounded-lg bg-surface border-separator hover:bg-emerald-500/10 hover:border-emerald-500/40 text-label-secondary hover:text-emerald-500 cursor-pointer"
+                                        }
+                                        title={sub.isBlocked ? "Student is blocked! Click to unblock" : "Unblock Student for this Event"}
+                                        startContent={<ShieldCheck size={13} />}
                                       >
-                                        <ShieldCheck size={13} />
+                                        {sub.isBlocked ? "Unblock" : null}
                                       </Button>
                                     )}
 
@@ -3429,7 +4037,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   </div>
                                 </td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -3662,15 +4271,23 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <h3 className="text-base font-bold text-label-primary">
                           {inspectingSub.userId?.name || 'Student Submission'}
                         </h3>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            inspectingSub.isPassed
-                              ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                              : 'bg-destructive/15 text-destructive border border-destructive/30'
-                          }`}
-                        >
-                          {inspectingSub.isPassed ? 'Passed' : 'Failed'}
-                        </span>
+                        {effectiveCutoffRank > 0 ? (
+                          inspectingShortlisted ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                              <CheckCircle2 size={11} />
+                              <span>Shortlisted (Rank #{inspectingRank})</span>
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                              <X size={11} />
+                              <span>Not Shortlisted (Rank #{inspectingRank})</span>
+                            </span>
+                          )
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                            Qualified (Rank #{inspectingRank})
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-label-tertiary">
                         {inspectingSub.userId?.rollNo} • {inspectingSub.userId?.email}
@@ -3722,6 +4339,43 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
                 {/* Scrollable Answers & Work Content */}
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                  {/* Paper / Manual Test Banner */}
+                  {inspectingSub.isManualSubmission && (
+                    <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between gap-3 text-xs">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                            Paper / Offline Test Submission
+                          </span>
+                          <span className="text-label-primary font-bold">
+                            Manual Score: {inspectingSub.totalScore} / {inspectingSub.maxPossibleScore} ({inspectingSub.scorePercentage}%)
+                          </span>
+                        </div>
+                        <p className="text-text-muted text-[11px]">
+                          {inspectingSub.manualNotes || 'Score entered manually from paper answer sheet.'}
+                          {inspectingSub.enteredBy && ` • Recorded by: ${inspectingSub.enteredBy?.name || inspectingSub.enteredBy?.email}`}
+                        </p>
+                      </div>
+                      {effectiveCutoffRank > 0 ? (
+                        inspectingShortlisted ? (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <CheckCircle2 size={12} />
+                            <span>Shortlisted</span>
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-xs bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                            <X size={12} />
+                            <span>Not Shortlisted</span>
+                          </span>
+                        )
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full font-bold text-xs bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                          Qualified
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* UI/UX Design Submission Details */}
                   {inspectingSub.designSubmission?.figmaLink && (
                     <div className="p-4 rounded-2xl bg-pink-500/5 border border-pink-500/20 space-y-3">
@@ -3756,252 +4410,372 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
                   )}
 
-                  {/* MCQ Answers Tracking & Question Breakdown Section */}
-                  {inspectingSub.mcqAnswers && inspectingSub.mcqAnswers.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between pb-1 border-b border-separator/60">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-label-secondary flex items-center gap-1.5">
-                          <HelpCircle size={14} className="text-accent" />
-                          <span>Student MCQ Questions & Answers ({inspectingSub.mcqAnswers.length})</span>
-                        </h4>
-                        <span className="text-[11px] font-bold text-accent">
-                          Total MCQ Score: {inspectingSub.mcqScore || 0} pts
-                        </span>
-                      </div>
+                  {/* MCQ Answers Tracking & Question Breakdown Section (Shows All Questions) */}
+                  {(() => {
+                    const allMcqs = (adminMcqs && adminMcqs.length > 0)
+                      ? adminMcqs
+                      : (selectedAssessment?.questions?.mcqs || []);
+                    if (allMcqs.length === 0) return null;
 
+                    const answeredCount = allMcqs.filter((q: any) => {
+                      const qId = q._id?.toString() || q.id;
+                      const ans = inspectingSub.mcqAnswers?.find((a: any) => a.questionId?.toString() === qId);
+                      return ans !== undefined && ans.selectedOptionIndex !== undefined && ans.selectedOptionIndex !== -1;
+                    }).length;
+                    const unansweredCount = allMcqs.length - answeredCount;
+
+                    return (
                       <div className="space-y-3">
-                        {inspectingSub.mcqAnswers.map((ans: any, qIdx: number) => {
-                          const questionObj = (adminMcqs || []).find((q: any) => q._id?.toString() === ans.questionId?.toString()) ||
-                            selectedAssessment?.questions?.mcqs?.[qIdx] ||
-                            adminMcqs?.[qIdx];
-                          const studentSelected = typeof ans.selectedOptionIndex === 'number' ? ans.selectedOptionIndex : ans.selectedOption;
-                          const isCorrect = Boolean(ans.isCorrect);
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-separator/60">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-label-secondary flex items-center gap-1.5">
+                            <HelpCircle size={14} className="text-accent" />
+                            <span>All MCQ Questions ({allMcqs.length})</span>
+                          </h4>
+                          <div className="flex items-center gap-2 text-[11px] font-bold">
+                            <span className="text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              {answeredCount} Answered
+                            </span>
+                            {unansweredCount > 0 && (
+                              <span className="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                {unansweredCount} Not Answered
+                              </span>
+                            )}
+                            <span className="text-accent font-mono ml-1">
+                              Score: {inspectingSub.mcqScore || 0} pts
+                            </span>
+                          </div>
+                        </div>
 
-                          return (
-                            <div
-                              key={ans.questionId || qIdx}
-                              className={`p-4 rounded-2xl border text-xs space-y-3 transition-all ${
-                                isCorrect
-                                  ? 'bg-emerald-500/5 border-emerald-500/25'
-                                  : 'bg-destructive/5 border-destructive/25'
-                              }`}
-                            >
-                              {/* Question Title & Points */}
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="space-y-1">
-                                  <span className="font-mono text-[10px] font-bold text-label-tertiary uppercase">
-                                    Question #{qIdx + 1}
-                                  </span>
-                                  <p className="font-bold text-label-primary text-xs sm:text-sm leading-snug">
-                                    {questionObj?.question || `Question ID: ${ans.questionId}`}
-                                  </p>
-                                </div>
+                        <div className="space-y-3">
+                          {allMcqs.map((q: any, qIdx: number) => {
+                            const qId = q._id?.toString() || q.id;
+                            const ans = inspectingSub.mcqAnswers?.find((a: any) => a.questionId?.toString() === qId);
+                            const hasAnswered = ans !== undefined && ans.selectedOptionIndex !== undefined && ans.selectedOptionIndex !== -1;
+                            const studentSelected = hasAnswered ? (typeof ans.selectedOptionIndex === 'number' ? ans.selectedOptionIndex : ans.selectedOption) : null;
+                            const isCorrect = hasAnswered ? Boolean(ans.isCorrect) : false;
 
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 ${
-                                    isCorrect
-                                      ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                                      : 'bg-destructive/15 text-destructive border border-destructive/30'
-                                  }`}>
-                                    {isCorrect ? <CheckCircle2 size={11} /> : <X size={11} />}
-                                    <span>{isCorrect ? `+${ans.pointsEarned || questionObj?.points || 10} pts` : '0 pts'}</span>
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* All Options with highlighted selection */}
-                              {questionObj?.options && questionObj.options.length > 0 && (
-                                <div className="space-y-1.5 pt-1">
-                                  {questionObj.options.map((optText: string, oIdx: number) => {
-                                    const isStudentChoice = studentSelected === oIdx;
-                                    const isCorrectChoice = questionObj.correctOptionIndex === oIdx;
-
-                                    let optBorder = 'border-separator bg-surface';
-                                    let optTextClass = 'text-label-secondary';
-
-                                    if (isStudentChoice && isCorrectChoice) {
-                                      optBorder = 'border-emerald-500/50 bg-emerald-500/15';
-                                      optTextClass = 'text-emerald-500 font-bold';
-                                    } else if (isStudentChoice && !isCorrectChoice) {
-                                      optBorder = 'border-destructive/50 bg-destructive/15';
-                                      optTextClass = 'text-destructive font-bold';
-                                    } else if (isCorrectChoice) {
-                                      optBorder = 'border-emerald-500/30 bg-emerald-500/5';
-                                      optTextClass = 'text-emerald-500 font-medium';
-                                    }
-
-                                    return (
-                                      <div
-                                        key={oIdx}
-                                        className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs ${optBorder}`}
-                                      >
-                                        <div className="flex items-center gap-2 min-w-0">
-                                          <span className="w-5 h-5 rounded-full bg-surface-secondary border border-separator font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
-                                            {String.fromCharCode(65 + oIdx)}
-                                          </span>
-                                          <span className={`truncate ${optTextClass}`}>{optText}</span>
-                                        </div>
-
-                                        <div className="flex items-center gap-1 shrink-0">
-                                          {isStudentChoice && (
-                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                              isCorrect ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'
-                                            }`}>
-                                              {isCorrect ? 'Student Choice (Correct)' : 'Student Choice (Incorrect)'}
-                                            </span>
-                                          )}
-                                          {!isStudentChoice && isCorrectChoice && (
-                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                                              Correct Answer
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
-                              {/* Explanation if available */}
-                              {questionObj?.explanation && (
-                                <p className="text-[11px] text-label-tertiary bg-surface-secondary p-2.5 rounded-xl border border-separator/60">
-                                  <strong className="text-label-secondary">Explanation:</strong> {questionObj.explanation}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Coding Submissions Section */}
-                  {inspectingSub.codingSubmissions && inspectingSub.codingSubmissions.length > 0 && (
-                    <div className="space-y-2.5">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-label-secondary flex items-center gap-1.5">
-                        <Code2 size={14} className="text-purple-400" />
-                        <span>Code Submissions ({inspectingSub.codingSubmissions.length})</span>
-                      </h4>
-                      <div className="space-y-3">
-                        {inspectingSub.codingSubmissions.map((cs: any, cIdx: number) => {
-                          const prob = (adminCoding || []).find((p: any) => p._id === cs.problemId) ||
-                            (selectedAssessment?.questions?.coding || []).find((p: any) => p._id === cs.problemId);
-                          const maxPts = prob?.points || 30;
-                          const isOnlyCode = cs.codingMode === 'ONLY_CODE';
-
-                          return (
-                            <div
-                              key={cs.problemId || cIdx}
-                              className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-3"
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                                <span className="font-bold text-label-primary">
-                                  Problem #{cIdx + 1}: {prob?.title || cs.language || 'Code Challenge'}
-                                </span>
-                                <span
-                                  className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                                    isOnlyCode
-                                      ? cs.isEvaluated
-                                        ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                                        : 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
-                                      : cs.status === 'ACCEPTED'
-                                      ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                                      : 'bg-destructive/15 text-destructive border border-destructive/30'
-                                  }`}
-                                >
-                                  {isOnlyCode
-                                    ? cs.isEvaluated
-                                      ? `Only Code • Graded: ${cs.pointsEarned}/${maxPts} pts`
-                                      : 'Only Code • Awaiting Admin Grade'
-                                    : `Test Cases • ${cs.status || 'SUBMITTED'} • ${cs.testCasesPassed ?? cs.passedCount ?? 0}/${cs.totalTestCases || 0} Passed (${cs.pointsEarned} pts)`}
-                                </span>
-                              </div>
-
-                              {cs.code && (
-                                <pre className="p-3 rounded-xl bg-black/60 border border-separator text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-48">
-                                  {cs.code}
-                                </pre>
-                              )}
-
-                              {/* Admin Grading Form (for Only Code or manual override) */}
-                              <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[11px] font-bold text-purple-300 flex items-center gap-1.5">
-                                    <Award size={13} />
-                                    <span>
-                                      {isOnlyCode
-                                        ? 'Assigned Admin Evaluation (Only Code)'
-                                        : 'Admin Evaluation Override'}
-                                    </span>
-                                  </span>
-                                  {cs.isEvaluated && (
-                                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                                      Awarded: {cs.pointsEarned} / {maxPts} pts
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <label className="text-[11px] font-semibold text-label-secondary">Score:</label>
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      max={maxPts}
-                                      value={
-                                        gradingScores[cs.problemId] !== undefined
-                                          ? gradingScores[cs.problemId]
-                                          : (cs.pointsEarned ?? 0)
-                                      }
-                                      onChange={(e) => {
-                                        const val = Number(e.target.value);
-                                        setGradingScores((prev) => ({ ...prev, [cs.problemId]: val }));
-                                      }}
-                                      className="w-20 px-2.5 py-1 rounded-lg bg-surface border border-separator text-xs font-mono text-label-primary outline-none focus:border-purple-500"
-                                    />
-                                    <span className="text-[11px] text-label-tertiary font-mono">/ {maxPts}</span>
+                            return (
+                              <div
+                                key={qId || qIdx}
+                                className={`p-4 rounded-2xl border text-xs space-y-3 transition-all ${
+                                  !hasAnswered
+                                    ? 'bg-amber-500/5 border-amber-500/25'
+                                    : isCorrect
+                                    ? 'bg-emerald-500/5 border-emerald-500/25'
+                                    : 'bg-destructive/5 border-destructive/25'
+                                }`}
+                              >
+                                {/* Question Title & Points */}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono text-[10px] font-bold text-label-tertiary uppercase">
+                                        Question #{qIdx + 1}
+                                      </span>
+                                      <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase tracking-wider ${
+                                        !hasAnswered
+                                          ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                          : isCorrect
+                                          ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                          : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                      }`}>
+                                        {!hasAnswered ? 'Not Answered' : isCorrect ? 'Answered (Correct)' : 'Answered (Incorrect)'}
+                                      </span>
+                                    </div>
+                                    <p className="font-bold text-label-primary text-xs sm:text-sm leading-snug">
+                                      {q.question || `Question ID: ${qId}`}
+                                    </p>
                                   </div>
 
-                                  <input
-                                    type="text"
-                                    placeholder="Optional feedback or remarks..."
-                                    value={
-                                      gradingFeedbacks[cs.problemId] !== undefined
-                                        ? gradingFeedbacks[cs.problemId]
-                                        : (cs.feedback || '')
-                                    }
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setGradingFeedbacks((prev) => ({ ...prev, [cs.problemId]: val }));
-                                    }}
-                                    className="flex-1 min-w-36 px-2.5 py-1 rounded-lg bg-surface border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500"
-                                  />
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 ${
+                                      !hasAnswered
+                                        ? 'bg-surface border border-separator text-label-tertiary'
+                                        : isCorrect
+                                        ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                        : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                    }`}>
+                                      {hasAnswered && (isCorrect ? <CheckCircle2 size={11} /> : <X size={11} />)}
+                                      <span>{hasAnswered && isCorrect ? `+${ans.pointsEarned || q.points || 10} pts` : `0 / ${q.points || 10} pts`}</span>
+                                    </span>
+                                  </div>
+                                </div>
 
-                                  <Button
-                                    size="sm"
-                                    variant="solid"
-                                    color="secondary"
-                                    isDisabled={isGradingCode[cs.problemId]}
-                                    isLoading={isGradingCode[cs.problemId]}
-                                    startContent={!isGradingCode[cs.problemId] ? <CheckCircle2 size={12} /> : undefined}
-                                    onPress={() => handleGradeCode(inspectingSub._id, cs.problemId)}
-                                    className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 cursor-pointer"
+                                {/* All Options with highlighted selection */}
+                                {q.options && q.options.length > 0 && (
+                                  <div className="space-y-1.5 pt-1">
+                                    {q.options.map((optText: string, oIdx: number) => {
+                                      const isStudentChoice = studentSelected === oIdx;
+                                      const isCorrectChoice = q.correctOptionIndex === oIdx;
+
+                                      let optBorder = 'border-separator bg-surface';
+                                      let optTextClass = 'text-label-secondary';
+
+                                      if (isStudentChoice && isCorrectChoice) {
+                                        optBorder = 'border-emerald-500/50 bg-emerald-500/15';
+                                        optTextClass = 'text-emerald-500 font-bold';
+                                      } else if (isStudentChoice && !isCorrectChoice) {
+                                        optBorder = 'border-destructive/50 bg-destructive/15';
+                                        optTextClass = 'text-destructive font-bold';
+                                      } else if (isCorrectChoice) {
+                                        optBorder = 'border-emerald-500/30 bg-emerald-500/5';
+                                        optTextClass = 'text-emerald-500 font-medium';
+                                      }
+
+                                      return (
+                                        <div
+                                          key={oIdx}
+                                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs ${optBorder}`}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span className="w-5 h-5 rounded-full bg-surface-secondary border border-separator font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
+                                              {String.fromCharCode(65 + oIdx)}
+                                            </span>
+                                            <span className={`truncate ${optTextClass}`}>{optText}</span>
+                                          </div>
+
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            {isStudentChoice && (
+                                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                                isCorrect ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'
+                                              }`}>
+                                                {isCorrect ? 'Student Choice (Correct)' : 'Student Choice (Incorrect)'}
+                                              </span>
+                                            )}
+                                            {!isStudentChoice && isCorrectChoice && (
+                                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                                                Correct Answer
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {/* Explanation if available */}
+                                {q.explanation && (
+                                  <p className="text-[11px] text-label-tertiary bg-surface-secondary p-2.5 rounded-xl border border-separator/60">
+                                    <strong className="text-label-secondary">Explanation:</strong> {q.explanation}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Coding Submissions Section (Shows All Challenges) */}
+                  {(() => {
+                    const allCoding = (adminCoding && adminCoding.length > 0)
+                      ? adminCoding
+                      : (selectedAssessment?.questions?.coding || []);
+                    if (allCoding.length === 0) return null;
+
+                    const attemptedCount = allCoding.filter((prob: any) => {
+                      const probId = prob._id?.toString() || prob.id;
+                      const cs = inspectingSub.codingSubmissions?.find((c: any) => c.problemId?.toString() === probId);
+                      return cs && cs.code && cs.code.trim().length > 0;
+                    }).length;
+                    const unattemptedCount = allCoding.length - attemptedCount;
+
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-separator/60">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-label-secondary flex items-center gap-1.5">
+                            <Code2 size={14} className="text-purple-400" />
+                            <span>All Coding Challenges ({allCoding.length})</span>
+                          </h4>
+                          <div className="flex items-center gap-2 text-[11px] font-bold">
+                            <span className="text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              {attemptedCount} Attempted
+                            </span>
+                            {unattemptedCount > 0 && (
+                              <span className="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                {unattemptedCount} Not Answered
+                              </span>
+                            )}
+                            <span className="text-purple-400 font-mono ml-1">
+                              Coding Score: {inspectingSub.codingScore || 0} pts
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {allCoding.map((prob: any, cIdx: number) => {
+                            const probId = prob._id?.toString() || prob.id;
+                            const cs = inspectingSub.codingSubmissions?.find((c: any) => c.problemId?.toString() === probId);
+                            const hasAttempted = Boolean(cs && cs.code && cs.code.trim().length > 0);
+                            const maxPts = prob?.points || 30;
+                            const isOnlyCode = cs?.codingMode === 'ONLY_CODE';
+
+                            if (!hasAttempted) {
+                              return (
+                                <div
+                                  key={probId || cIdx}
+                                  className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/25 space-y-2 text-xs"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono text-[10px] font-bold text-label-tertiary uppercase">
+                                        Problem #{cIdx + 1}
+                                      </span>
+                                      <span className="font-bold text-label-primary text-sm">
+                                        {prob.title || 'Coding Problem'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                                        Not Attempted / Not Answered
+                                      </span>
+                                      <span className="font-mono text-[11px] text-label-tertiary">
+                                        0 / {maxPts} pts
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {prob.description && (
+                                    <p className="text-label-secondary text-[11px] line-clamp-2">
+                                      {prob.description}
+                                    </p>
+                                  )}
+                                  <div className="p-2 rounded-xl bg-surface border border-separator/40 text-[11px] text-text-muted italic">
+                                    Student did not submit code or test solutions for this challenge.
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div
+                                key={probId || cIdx}
+                                className="p-3.5 rounded-2xl bg-surface-secondary border border-separator space-y-3"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                  <span className="font-bold text-label-primary">
+                                    Problem #{cIdx + 1}: {prob?.title || cs.language || 'Code Challenge'}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                      isOnlyCode
+                                        ? cs.isEvaluated
+                                          ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                          : 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                                        : cs.status === 'ACCEPTED'
+                                        ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                        : 'bg-destructive/15 text-destructive border border-destructive/30'
+                                    }`}
                                   >
-                                    {cs.isEvaluated ? 'Update Score' : 'Save Score'}
-                                  </Button>
+                                    {isOnlyCode
+                                      ? cs.isEvaluated
+                                        ? `Only Code • Graded: ${cs.pointsEarned}/${maxPts} pts`
+                                        : 'Only Code • Awaiting Admin Grade'
+                                      : `Test Cases • ${cs.status || 'SUBMITTED'} • ${cs.testCasesPassed ?? cs.passedCount ?? 0}/${cs.totalTestCases || 0} Passed (${cs.pointsEarned} pts)`}
+                                  </span>
+                                </div>
+
+                                {cs.code && (
+                                  <pre className="p-3 rounded-xl bg-black/60 border border-separator text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-48">
+                                    {cs.code}
+                                  </pre>
+                                )}
+
+                                {/* Admin Grading Form (for Only Code or manual override) */}
+                                <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-purple-300 flex items-center gap-1.5">
+                                      <Award size={13} />
+                                      <span>
+                                        {isOnlyCode
+                                          ? 'Assigned Admin Evaluation (Only Code)'
+                                          : 'Admin Evaluation Override'}
+                                      </span>
+                                    </span>
+                                    {cs.isEvaluated && (
+                                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                        Awarded: {cs.pointsEarned} / {maxPts} pts
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <div className="flex items-center gap-1.5">
+                                      <label className="text-[11px] font-semibold text-label-secondary">Score:</label>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={maxPts}
+                                        value={
+                                          gradingScores[cs.problemId] !== undefined
+                                            ? gradingScores[cs.problemId]
+                                            : (cs.pointsEarned ?? 0)
+                                        }
+                                        onChange={(e) => {
+                                          const val = Number(e.target.value);
+                                          setGradingScores((prev) => ({ ...prev, [cs.problemId]: val }));
+                                        }}
+                                        className="w-20 px-2.5 py-1 rounded-lg bg-surface border border-separator text-xs font-mono text-label-primary outline-none focus:border-purple-500"
+                                      />
+                                      <span className="text-[11px] text-label-tertiary font-mono">/ {maxPts}</span>
+                                    </div>
+
+                                    <input
+                                      type="text"
+                                      placeholder="Optional feedback or remarks..."
+                                      value={
+                                        gradingFeedbacks[cs.problemId] !== undefined
+                                          ? gradingFeedbacks[cs.problemId]
+                                          : (cs.feedback || '')
+                                      }
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setGradingFeedbacks((prev) => ({ ...prev, [cs.problemId]: val }));
+                                      }}
+                                      className="flex-1 min-w-36 px-2.5 py-1 rounded-lg bg-surface border border-separator text-xs text-label-primary placeholder-label-tertiary outline-none focus:border-purple-500"
+                                    />
+
+                                    <Button
+                                      size="sm"
+                                      variant="solid"
+                                      color="secondary"
+                                      isDisabled={isGradingCode[cs.problemId]}
+                                      isLoading={isGradingCode[cs.problemId]}
+                                      startContent={!isGradingCode[cs.problemId] ? <CheckCircle2 size={12} /> : undefined}
+                                      onPress={() => handleGradeCode(inspectingSub._id, cs.problemId)}
+                                      className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-600/30 cursor-pointer"
+                                    >
+                                      {cs.isEvaluated ? 'Update Score' : 'Save Score'}
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Modal Footer Quick Actions */}
                 <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-separator shrink-0">
                   <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="solid"
+                      color="warning"
+                      startContent={<Clock size={13} />}
+                      onPress={() => {
+                        setGraceModalSub(inspectingSub);
+                        setGraceMinutesInput(10);
+                        setGraceClearAnswers(false);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold shadow-md shadow-amber-500/20 cursor-pointer"
+                    >
+                      Grant Grace Time
+                    </Button>
                     <Button
                       size="sm"
                       variant="flat"
@@ -4168,6 +4942,415 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     Save Evaluation
                   </Button>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* GRACE TIME MODAL (INDIVIDUAL CANDIDATE) */}
+        <AnimatePresence>
+          {graceModalSub && (
+            <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-md rounded-2xl bg-surface border border-separator p-5 sm:p-6 shadow-2xl space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-separator pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                      <Clock size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-label-primary">Grant Grace Time & Resume</h4>
+                      <p className="text-xs text-text-muted">
+                        Candidate: <span className="text-label-primary font-semibold">{graceModalSub.userId?.name || 'Student'}</span> ({graceModalSub.userId?.rollNo || graceModalSub.userId?.email || 'N/A'})
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    onPress={() => setGraceModalSub(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white min-w-unit-8 w-8 h-8 cursor-pointer"
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+
+                {/* Candidate Info Box */}
+                <div className="p-3 rounded-xl bg-surface-secondary border border-separator text-xs space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-label-secondary">Current Status:</span>
+                    <span className={`px-2 py-0.5 rounded font-mono font-bold text-[11px] ${
+                      graceModalSub.status === 'COMPLETED' ? 'bg-emerald-500/15 text-emerald-400' :
+                      graceModalSub.status === 'AUTO_SUBMITTED' ? 'bg-amber-500/15 text-amber-400' :
+                      graceModalSub.status === 'IN_PROGRESS' ? 'bg-blue-500/15 text-blue-400' :
+                      'bg-white/10 text-label-secondary'
+                    }`}>
+                      {graceModalSub.status}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-label-secondary">Current Grace Time:</span>
+                    <span className="text-label-primary font-mono font-bold">
+                      +{graceModalSub.graceMinutes || 0} mins
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-label-secondary">Integrity Status:</span>
+                    <span className={graceModalSub.isBlocked ? 'text-destructive font-bold' : 'text-emerald-500 font-medium'}>
+                      {graceModalSub.isBlocked ? 'Blocked (will be unblocked)' : 'Active / Allowed'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Time selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-label-primary block">
+                    Additional Minutes to Grant
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[5, 10, 15, 30].map((mins) => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => setGraceMinutesInput(mins)}
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          graceMinutesInput === mins
+                            ? 'bg-amber-500 text-black border-amber-500 shadow-md shadow-amber-500/20'
+                            : 'bg-surface-secondary text-label-secondary border-separator hover:border-amber-500/50 hover:text-amber-500'
+                        }`}
+                      >
+                        +{mins}m
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-xs text-label-secondary shrink-0">Custom minutes:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={180}
+                      value={graceMinutesInput}
+                      onChange={(e) => setGraceMinutesInput(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full px-3 py-1.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary focus:border-amber-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Preservation Option */}
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <input
+                      type="radio"
+                      id="keepAnswersRadio"
+                      name="graceAnswerOption"
+                      checked={!graceClearAnswers}
+                      onChange={() => setGraceClearAnswers(false)}
+                      className="mt-0.5 accent-emerald-500 cursor-pointer"
+                    />
+                    <label htmlFor="keepAnswersRadio" className="text-xs cursor-pointer">
+                      <span className="font-bold text-emerald-400 block">
+                        Keep previously submitted answers (Recommended)
+                      </span>
+                      <span className="text-text-muted text-[11px] leading-relaxed block">
+                        All MCQ selections, coding drafts/submissions, and design links remain intact. The student resumes right where they left off.
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 pt-2 border-t border-white/5">
+                    <input
+                      type="radio"
+                      id="clearAnswersRadio"
+                      name="graceAnswerOption"
+                      checked={graceClearAnswers}
+                      onChange={() => setGraceClearAnswers(true)}
+                      className="mt-0.5 accent-destructive cursor-pointer"
+                    />
+                    <label htmlFor="clearAnswersRadio" className="text-xs cursor-pointer">
+                      <span className="font-bold text-destructive block">
+                        Clear all answers (Fresh Restart)
+                      </span>
+                      <span className="text-text-muted text-[11px] leading-relaxed block">
+                        Wipes all MCQ and coding solutions for a completely fresh attempt.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-separator">
+                  <Button
+                    size="sm"
+                    variant="light"
+                    onPress={() => setGraceModalSub(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-label-secondary hover:bg-white/10 cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    color="warning"
+                    isLoading={isGrantingGrace}
+                    isDisabled={isGrantingGrace}
+                    startContent={!isGrantingGrace ? <Clock size={13} /> : undefined}
+                    onPress={handleGrantGraceTime}
+                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold shadow-lg shadow-amber-500/20 cursor-pointer"
+                  >
+                    Grant +{graceMinutesInput}m & Resume
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* GRACE TIME MODAL (ALL CANDIDATES) */}
+        <AnimatePresence>
+          {isGraceAllModalOpen && (
+            <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-md rounded-2xl bg-surface border border-separator p-5 sm:p-6 shadow-2xl space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-separator pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                      <Clock size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-label-primary">Grant Grace Time to All Candidates</h4>
+                      <p className="text-xs text-text-muted">
+                        Extend round deadline & session duration for all students
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    onPress={() => setIsGraceAllModalOpen(false)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white min-w-unit-8 w-8 h-8 cursor-pointer"
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-400 space-y-1">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <CheckCircle2 size={13} />
+                    All existing answers will be preserved!
+                  </p>
+                  <p className="text-text-muted text-[11px] leading-relaxed">
+                    This adds extra time to the round deadline and extends the countdown for all ongoing and auto-submitted candidates. Candidates can immediately re-enter and finish their work without losing any code or MCQ selections.
+                  </p>
+                </div>
+
+                {/* Time selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-label-primary block">
+                    Additional Minutes to Grant (All Candidates)
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[5, 10, 15, 30].map((mins) => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => setGraceAllMinutes(mins)}
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          graceAllMinutes === mins
+                            ? 'bg-amber-500 text-black border-amber-500 shadow-md shadow-amber-500/20'
+                            : 'bg-surface-secondary text-label-secondary border-separator hover:border-amber-500/50 hover:text-amber-500'
+                        }`}
+                      >
+                        +{mins}m
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-xs text-label-secondary shrink-0">Custom minutes:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={180}
+                      value={graceAllMinutes}
+                      onChange={(e) => setGraceAllMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full px-3 py-1.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary focus:border-amber-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-separator">
+                  <Button
+                    size="sm"
+                    variant="light"
+                    onPress={() => setIsGraceAllModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-label-secondary hover:bg-white/10 cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    color="warning"
+                    isLoading={isGrantingGraceAll}
+                    isDisabled={isGrantingGraceAll}
+                    startContent={!isGrantingGraceAll ? <Clock size={13} /> : undefined}
+                    onPress={handleGrantGraceTimeAll}
+                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold shadow-lg shadow-amber-500/20 cursor-pointer"
+                  >
+                    Grant +{graceAllMinutes}m to All
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* MANUAL PAPER TEST SUBMISSION MODAL */}
+        <AnimatePresence>
+          {isManualModalOpen && (
+            <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-md rounded-2xl bg-surface border border-separator p-5 sm:p-6 shadow-2xl space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-separator pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                      <FileText size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-label-primary">Enter Paper / Manual Submission</h4>
+                      <p className="text-xs text-text-muted">
+                        Record score for students who wrote the test on paper
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="flat"
+                    onPress={() => setIsManualModalOpen(false)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white min-w-unit-8 w-8 h-8 cursor-pointer"
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+
+                <form onSubmit={handleCreateManualSubmission} className="space-y-3.5">
+                  {/* Student Roll No or Email */}
+                  <div>
+                    <label className="text-xs font-bold text-label-primary block mb-1">
+                      Student Roll No or College Email *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={manualStudentIdentifier}
+                      onChange={(e) => setManualStudentIdentifier(e.target.value)}
+                      placeholder="e.g. 7376221CS101 or student@bitsathy.ac.in"
+                      className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary focus:border-purple-500 outline-none placeholder-label-tertiary"
+                    />
+                  </div>
+
+                  {/* Total Score */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-label-primary">
+                        Total Score Awarded *
+                      </label>
+                      <span className="text-[10px] text-text-muted font-mono">
+                        Max: {selectedAssessment?.totalPoints || 100} pts
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      max={selectedAssessment?.totalPoints || 100}
+                      value={manualScore}
+                      onChange={(e) => setManualScore(e.target.value)}
+                      placeholder={`Enter score (0 - ${selectedAssessment?.totalPoints || 100})`}
+                      className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono focus:border-purple-500 outline-none placeholder-label-tertiary"
+                    />
+                  </div>
+
+                  {/* Optional Section Scores: MCQ & Coding */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-semibold text-label-secondary block mb-1">
+                        MCQ Score (Optional)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={manualMcqScore}
+                        onChange={(e) => setManualMcqScore(e.target.value)}
+                        placeholder="MCQ pts"
+                        className="w-full px-3 py-1.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-label-secondary block mb-1">
+                        Coding Score (Optional)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={manualCodingScore}
+                        onChange={(e) => setManualCodingScore(e.target.value)}
+                        placeholder="Coding pts"
+                        className="w-full px-3 py-1.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Remarks / Paper Notes */}
+                  <div>
+                    <label className="text-xs font-bold text-label-primary block mb-1">
+                      Evaluation Notes / Remarks
+                    </label>
+                    <input
+                      type="text"
+                      value={manualNotes}
+                      onChange={(e) => setManualNotes(e.target.value)}
+                      placeholder="e.g. Paper answer sheet evaluated by Faculty - Hall 3"
+                      className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary focus:border-purple-500 outline-none placeholder-label-tertiary"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-separator">
+                    <Button
+                      size="sm"
+                      variant="light"
+                      onPress={() => setIsManualModalOpen(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-label-secondary hover:bg-white/10 cursor-pointer"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant="solid"
+                      color="secondary"
+                      isLoading={isSubmittingManual}
+                      isDisabled={isSubmittingManual || !manualStudentIdentifier.trim() || manualScore === ''}
+                      startContent={!isSubmittingManual ? <CheckCircle2 size={13} /> : undefined}
+                      className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-600/20 cursor-pointer"
+                    >
+                      Save Paper Submission
+                    </Button>
+                  </div>
+                </form>
               </motion.div>
             </div>
           )}
