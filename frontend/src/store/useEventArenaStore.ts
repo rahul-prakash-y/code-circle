@@ -137,6 +137,7 @@ export interface ArenaSubmission {
   status: 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
   startedAt: string;
   submittedAt?: string;
+  expiresAt?: string;
   timeTakenSeconds?: number;
   mcqAnswers?: Array<{
     questionId: string;

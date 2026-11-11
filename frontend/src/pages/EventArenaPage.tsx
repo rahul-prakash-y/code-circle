@@ -51,6 +51,7 @@ import useEventArenaStore, {
   ArenaMcqQuestion,
   ArenaCodingProblem,
 } from '../store/useEventArenaStore';
+import { formatISTDateTime } from '../lib/dateUtils';
 
 const MONACO_LANG_MAP: Record<string, string> = {
   python: 'python',
@@ -289,39 +290,54 @@ export const EventArenaPage: React.FC = () => {
     }
   }, [studentMcqs, studentCoding]);
 
-  // Synchronize timer based on submission startedAt
-  useEffect(() => {
-    if (selectedAssessment && submission) {
-      const totalSeconds = (selectedAssessment.durationMinutes || 60) * 60;
-      const started = new Date(submission.startedAt).getTime();
-      const now = Date.now();
-      const elapsed = Math.floor((now - started) / 1000);
-      const remaining = Math.max(0, totalSeconds - elapsed);
-      setRemainingSeconds(remaining);
-    }
-  }, [selectedAssessment, submission]);
-
-  // Countdown timer loop
+  // Synchronize timer based on submission startedAt and scheduled assessment deadline
   useEffect(() => {
     if (!activeAssessmentId || submission?.status === 'SUBMITTED' || finalResultModal) return;
-    if (remainingSeconds <= 0) {
+
+    const calcRemaining = () => {
+      const now = Date.now();
+      const totalSeconds = (selectedAssessment?.durationMinutes || 60) * 60;
+      const started = submission?.startedAt ? new Date(submission.startedAt).getTime() : now;
+      const elapsed = Math.floor((now - started) / 1000);
+
+      const expiresTime = submission?.expiresAt ? new Date(submission.expiresAt).getTime() : null;
+      const assessmentEndTime = selectedAssessment?.endTime
+        ? new Date(selectedAssessment.endTime).getTime()
+        : selectedAssessment?.startTime
+        ? new Date(selectedAssessment.startTime).getTime() + (selectedAssessment.durationMinutes || 60) * 60 * 1000
+        : null;
+
+      const strictDeadline = expiresTime
+        ? assessmentEndTime
+          ? Math.min(expiresTime, assessmentEndTime)
+          : expiresTime
+        : assessmentEndTime;
+
+      if (strictDeadline && !isNaN(strictDeadline)) {
+        const remainingFromDeadline = Math.max(0, Math.floor((strictDeadline - now) / 1000));
+        return Math.min(Math.max(0, totalSeconds - elapsed), remainingFromDeadline);
+      }
+      return Math.max(0, totalSeconds - elapsed);
+    };
+
+    const initial = calcRemaining();
+    setRemainingSeconds(initial);
+    if (initial <= 0 && activeAssessmentId && submission?.status === 'IN_PROGRESS') {
       handleFinalSubmit(true);
       return;
     }
 
     const timer = setInterval(() => {
-      setRemainingSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleFinalSubmit(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+      const rem = calcRemaining();
+      setRemainingSeconds(rem);
+      if (rem <= 0) {
+        clearInterval(timer);
+        handleFinalSubmit(true);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [remainingSeconds, submission?.status, finalResultModal, activeAssessmentId]);
+  }, [selectedAssessment, submission, activeAssessmentId, finalResultModal]);
 
   const formatTimer = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -622,6 +638,7 @@ export const EventArenaPage: React.FC = () => {
                 const hasCutoff = (asm.qualificationCutoffRank || 0) > 0;
                 // If previous round isn't completed, lock next round
                 const isLockedBySequence = idx > 0 && !prevCompleted && !isCompleted;
+                const isEnded = asm.status === 'ENDED' && !isCompleted;
                 const isNotLive = asm.status !== 'LIVE' && !isCompleted;
 
                 return (
@@ -642,7 +659,7 @@ export const EventArenaPage: React.FC = () => {
                           Round {idx + 1} • {asm.type}
                         </span>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {asm.isTeamMode && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center gap-1">
                               <Users size={11} />
@@ -665,6 +682,11 @@ export const EventArenaPage: React.FC = () => {
                               <Lock size={11} />
                               <span>Locked</span>
                             </span>
+                          ) : isEnded ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                              <AlertTriangle size={11} />
+                              <span>Ended</span>
+                            </span>
                           ) : isNotLive ? (
                             isAdmin ? (
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
@@ -674,12 +696,13 @@ export const EventArenaPage: React.FC = () => {
                             ) : (
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
                                 <Clock size={11} />
-                                <span>Waiting for Admin</span>
+                                <span>{asm.startTime ? `Starts ${formatISTDateTime(asm.startTime)}` : 'Upcoming'}</span>
                               </span>
                             )
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">
-                              Live Now
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span>Live Now</span>
                             </span>
                           )}
                         </div>
@@ -690,6 +713,28 @@ export const EventArenaPage: React.FC = () => {
                         <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 text-[11px] text-purple-300">
                           <Trophy size={13} className="text-amber-400 shrink-0" />
                           <span>Top {asm.qualificationCutoffRank} participants from Round {idx} qualify</span>
+                        </div>
+                      )}
+
+                      {/* Schedule details badge if configured */}
+                      {asm.startTime && (
+                        <div className="p-2.5 rounded-2xl bg-purple-500/5 border border-purple-500/15 text-[11px] font-mono space-y-1">
+                          <div className="flex items-center justify-between text-label-secondary">
+                            <span className="text-purple-400 font-semibold flex items-center gap-1">
+                              <Clock size={11} /> Test Window (IST):
+                            </span>
+                            <span className="text-[10px] text-label-tertiary">
+                              {asm.durationMinutes || 60} Mins
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-label-primary text-[10.5px]">
+                            <span>Starts: {formatISTDateTime(asm.startTime)}</span>
+                          </div>
+                          {asm.endTime && (
+                            <div className="flex items-center justify-between text-rose-400 text-[10.5px]">
+                              <span>Ends: {formatISTDateTime(asm.endTime)}</span>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -792,6 +837,15 @@ export const EventArenaPage: React.FC = () => {
                         >
                           Complete Round {idx} First
                         </Button>
+                      ) : isEnded ? (
+                        <Button
+                          isDisabled
+                          variant="bordered"
+                          className="w-full min-h-[42px] rounded-xl border-rose-500/25 text-rose-400/80 text-xs font-bold"
+                          startContent={<AlertTriangle size={13} />}
+                        >
+                          Assessment Ended
+                        </Button>
                       ) : isNotLive ? (
                         isAdmin ? (
                           <Button
@@ -814,10 +868,10 @@ export const EventArenaPage: React.FC = () => {
                             isDisabled
                             variant="bordered"
                             className="w-full min-h-[42px] rounded-xl border-amber-500/25 text-amber-400/80 text-xs font-bold"
-                            title="Assessment will open when admin starts the round"
+                            title={asm.startTime ? `Goes live 10 mins before ${formatISTDateTime(asm.startTime)}` : 'Waiting for round to start'}
                             startContent={<Clock size={13} />}
                           >
-                            Waiting for Admin to Start
+                            {asm.startTime ? `Starts ${formatISTDateTime(asm.startTime)}` : 'Waiting for Admin to Start'}
                           </Button>
                         )
                       ) : (
@@ -953,6 +1007,13 @@ export const EventArenaPage: React.FC = () => {
             <div className="flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] rounded-xl text-xs font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
               <ShieldAlert size={14} className="animate-bounce" />
               <span>{tabSwitchCount} Switches (-{tabSwitchCount * 5}%)</span>
+            </div>
+          )}
+
+          {selectedAssessment?.endTime && (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] rounded-xl text-[11px] font-mono text-label-secondary bg-surface-secondary border border-separator">
+              <span className="text-purple-400 font-bold">Ends:</span>
+              <span>{formatISTDateTime(selectedAssessment.endTime)}</span>
             </div>
           )}
 

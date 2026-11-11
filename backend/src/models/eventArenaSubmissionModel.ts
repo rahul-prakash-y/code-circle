@@ -56,6 +56,7 @@ export interface IEventArenaSubmission extends Document {
   status: EventArenaSubmissionStatus;
   startedAt: Date;
   submittedAt?: Date;
+  expiresAt?: Date;
   timeTakenSeconds?: number;
   mcqAnswers: IMCQAnswer[];
   codingSubmissions: ICodingSubmissionItem[];
@@ -186,6 +187,9 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
       required: true,
     },
     submittedAt: {
+      type: Date,
+    },
+    expiresAt: {
       type: Date,
     },
     timeTakenSeconds: {
