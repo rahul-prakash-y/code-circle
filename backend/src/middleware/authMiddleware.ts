@@ -41,12 +41,23 @@ export function invalidateUserSession(userId: string): void {
 
 export const verifyToken = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
+    let token: string | undefined;
+
     const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (typeof (request.query as any)?.token === 'string' && (request.query as any).token.trim()) {
+      token = (request.query as any).token.trim();
+    } else if (typeof request.headers['x-access-token'] === 'string' && request.headers['x-access-token'].trim()) {
+      token = (request.headers['x-access-token'] as string).trim();
+    } else if (typeof (request as any).cookies?.token === 'string' && (request as any).cookies.token.trim()) {
+      token = (request as any).cookies.token.trim();
+    }
+
+    if (!token) {
       return reply.status(401).send({ success: false, error: 'Unauthorized: No token provided' });
     }
 
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, getJwtSecret()) as any;
 
     let user = getCachedUser(decoded.id);
