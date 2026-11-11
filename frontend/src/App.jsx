@@ -44,7 +44,6 @@ const StatesGalleryPage = lazy(() => import('./pages/StatesGalleryPage'));
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
 import { OfflineBanner } from './components/states/OfflineBanner';
-import { SessionExpiredModal } from './components/states/SessionExpiredModal';
 import { ErrorBoundary } from './components/states/ErrorBoundary';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -99,7 +98,6 @@ function App() {
     <ThemeProvider>
       <Router>
         <OfflineBanner />
-        <SessionExpiredModal />
         <Toaster 
           position="top-right" 
           toastOptions={{

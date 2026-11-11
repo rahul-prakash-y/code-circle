@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import useServerStore from '../store/useServerStore';
 import AuthLayout from '../layouts/AuthLayout';
@@ -23,6 +23,7 @@ const Login = () => {
   const { login } = useAuthStore();
   const { activeServerUrl, isConnecting, findFastestServer } = useServerStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Load Balancer: Discover optimal server node on initial visit if none pinned
   useEffect(() => {
@@ -43,7 +44,11 @@ const Login = () => {
         navigate('/setup-password');
       } else {
         toast.success('Welcome back to the circle!');
-        navigate('/dashboard');
+        const fromPath = location.state?.from?.pathname;
+        const targetPath = (fromPath && fromPath !== '/login' && fromPath !== '/register')
+          ? `${fromPath}${location.state?.from?.search || ''}`
+          : '/dashboard';
+        navigate(targetPath, { replace: true });
       }
     } else {
       toast.error(result.error);

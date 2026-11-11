@@ -8,7 +8,6 @@ import {
   SlowNetworkNotice,
   NoSearchResults,
   PermissionDenied,
-  SessionExpiredModal,
   FormErrorSummary,
   FieldInlineError,
   RequiredFieldMarker,
@@ -305,12 +304,12 @@ export const StatesGalleryPage: React.FC = () => {
             <section className="space-y-4">
               <div className="border-b border-separator/60 pb-2">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-label-secondary font-mono">
-                  State 8: Session Expired (Non-Destructive Re-Auth Dialog)
+                  State 8: Session Expired (Clean Login Redirection)
                 </h2>
               </div>
               <div className="p-6 rounded-3xl border border-separator bg-surface space-y-4 text-center">
                 <p className="text-xs sm:text-sm text-label-secondary max-w-lg mx-auto">
-                  When a 401 Unauthorized occurs mid-exam or while drafting an event report, the user is never kicked out or their form lost. An in-place credentials modal lets them re-authenticate silently!
+                  When a 401 Unauthorized occurs, the user session is smoothly invalidated and redirected directly to the official Login page without distracting modal overlays.
                 </p>
                 <Button
                   size="sm"
@@ -324,7 +323,7 @@ export const StatesGalleryPage: React.FC = () => {
                 </Button>
                 {triggerUnauthorized && (
                   <p className="text-[11px] text-emerald-500 font-mono">
-                    ✓ Global 401 interceptor triggered! Modal mounted.
+                    ✓ Global 401 interceptor triggered! Auth reset and redirected to login.
                   </p>
                 )}
               </div>
@@ -434,8 +433,6 @@ export const StatesGalleryPage: React.FC = () => {
           )}
         </div>
       </div>
-
-      <SessionExpiredModal />
     </div>
   );
 };
