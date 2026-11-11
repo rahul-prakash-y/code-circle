@@ -29,27 +29,40 @@ export const hashUsernameToNodeIndex = (username: string, nodeCount: number): nu
 
 // Default Render Backend Clusters (Free Tier instances distributed for horizontal load distribution)
 export const DEFAULT_BACKEND_NODES: string[] = [
-  'https://code-circle-backend-1.onrender.com',
-  'https://code-circle-backend-2.onrender.com',
-  'https://code-circle-backend-3.onrender.com',
+  'https://code-circle-kodp.onrender.com',
+  'https://code-circle-g93e.onrender.com',
+  'https://code-circle-rnm3.onrender.com',
 ];
+
+export const sanitizeNodeUrl = (url?: string | null): string => {
+  if (!url || typeof url !== 'string') return '';
+  const clean = url.trim().replace(/\/+$/, '');
+  // Force HTTPS on remote servers (e.g. *.onrender.com) to prevent 301 redirects that strip Authorization headers
+  if (clean.startsWith('http://') && !clean.includes('localhost') && !clean.includes('127.0.0.1')) {
+    return clean.replace(/^http:\/\//i, 'https://');
+  }
+  return clean;
+};
 
 // Allow runtime or environment override via comma-separated string
 const getAvailableNodes = (): string[] => {
   const envServers = import.meta.env.VITE_BACKEND_SERVERS;
+  let rawNodes: string[] = [];
   if (typeof envServers === 'string' && envServers.trim().length > 0) {
-    return envServers.split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean);
+    rawNodes = envServers.split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean);
+  } else {
+    const envBaseUrl = import.meta.env.VITE_API_BASE_URL
+      ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/+$/, '')
+      : null;
+    if (import.meta.env.DEV) {
+      rawNodes = [envBaseUrl || 'http://localhost:5000', ...DEFAULT_BACKEND_NODES];
+    } else if (envBaseUrl) {
+      rawNodes = [envBaseUrl, ...DEFAULT_BACKEND_NODES];
+    } else {
+      rawNodes = DEFAULT_BACKEND_NODES;
+    }
   }
-  const envBaseUrl = import.meta.env.VITE_API_BASE_URL
-    ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/+$/, '')
-    : null;
-  if (import.meta.env.DEV) {
-    return [envBaseUrl || 'http://localhost:5000', ...DEFAULT_BACKEND_NODES];
-  }
-  if (envBaseUrl) {
-    return [envBaseUrl, ...DEFAULT_BACKEND_NODES];
-  }
-  return DEFAULT_BACKEND_NODES;
+  return Array.from(new Set(rawNodes.map(sanitizeNodeUrl).filter(Boolean))) as string[];
 };
 
 const LOCAL_STORAGE_KEY = 'activeServerUrl';
@@ -58,9 +71,13 @@ const LOCAL_STORAGE_KEY = 'activeServerUrl';
 let inFlightProbePromise: Promise<string> | null = null;
 
 export const useServerStore = create<ServerStoreState>((set, get) => {
-  // Read persisted server on startup to keep student pinned to the same backend node
-  const initialSavedUrl =
+  // Read persisted server on startup to keep student pinned to the same backend node, strictly sanitized to HTTPS
+  const rawSavedUrl =
     typeof window !== 'undefined' ? window.localStorage.getItem(LOCAL_STORAGE_KEY) : null;
+  const initialSavedUrl = rawSavedUrl ? sanitizeNodeUrl(rawSavedUrl) : null;
+  if (rawSavedUrl && initialSavedUrl && rawSavedUrl !== initialSavedUrl && typeof window !== 'undefined') {
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, initialSavedUrl);
+  }
 
   return {
     activeServerUrl: initialSavedUrl || null,
@@ -231,7 +248,7 @@ export const useServerStore = create<ServerStoreState>((set, get) => {
     },
 
     setActiveServerUrl: (url: string) => {
-      const clean = url.replace(/\/+$/, '');
+      const clean = sanitizeNodeUrl(url);
       set({ activeServerUrl: clean });
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(LOCAL_STORAGE_KEY, clean);

@@ -5,6 +5,5 @@ export * from './OfflineBanner';
 export * from './SlowNetworkNotice';
 export * from './NoSearchResults';
 export * from './PermissionDenied';
-export * from './SessionExpiredModal';
 export * from './FormValidationHelper';
 export * from './SuccessState';

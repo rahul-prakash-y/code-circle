@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import api from '../lib/axios';
 import useServerStore from './useServerStore';
 import { clearAllExamState } from '../utils/examStorage';
+import toast from 'react-hot-toast';
 
 const useAuthStore = create((set, get) => ({
   user: null,
@@ -228,9 +229,17 @@ const useAuthStore = create((set, get) => ({
 }));
 
 // Listen for global 401 unauthorized events from Axios interceptor
+let unauthorizedToastTimeout = null;
 if (typeof window !== 'undefined') {
   window.addEventListener('auth:unauthorized', () => {
+    const prevUser = useAuthStore.getState().user;
     useAuthStore.setState({ user: null, token: null, sessionId: null, loading: false });
+    if (prevUser && !unauthorizedToastTimeout) {
+      toast.error('Session expired. Please sign in again.');
+      unauthorizedToastTimeout = setTimeout(() => {
+        unauthorizedToastTimeout = null;
+      }, 3000);
+    }
   });
 }
 

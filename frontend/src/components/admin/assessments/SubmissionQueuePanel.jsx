@@ -17,7 +17,7 @@ import {
 import { Button } from '@heroui/react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../store/useAuthStore';
-import { DEFAULT_BACKEND_NODES } from '../../../store/useServerStore';
+import { DEFAULT_BACKEND_NODES, sanitizeNodeUrl } from '../../../store/useServerStore';
 
 export const SubmissionQueuePanel = () => {
   const { token } = useAuthStore();
@@ -30,17 +30,19 @@ export const SubmissionQueuePanel = () => {
   // Compute list of cluster backend nodes
   const clusterNodes = useMemo(() => {
     const envServers = import.meta.env.VITE_BACKEND_SERVERS;
+    let candidates = [];
     if (typeof envServers === 'string' && envServers.trim().length > 0) {
-      return envServers
+      candidates = envServers
         .split(',')
         .map((s) => s.trim().replace(/\/+$/, ''))
         .filter(Boolean);
+    } else {
+      const envBaseUrl = import.meta.env.VITE_API_BASE_URL
+        ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/+$/, '')
+        : null;
+      candidates = [envBaseUrl, ...DEFAULT_BACKEND_NODES].filter(Boolean);
     }
-    const envBaseUrl = import.meta.env.VITE_API_BASE_URL
-      ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/+$/, '')
-      : null;
-    const candidates = [envBaseUrl, ...DEFAULT_BACKEND_NODES].filter(Boolean);
-    return Array.from(new Set(candidates.map((c) => c.replace(/\/+$/, ''))));
+    return Array.from(new Set(candidates.map((c) => sanitizeNodeUrl(c)).filter(Boolean)));
   }, []);
 
   /**
@@ -149,9 +151,10 @@ export const SubmissionQueuePanel = () => {
 
   // Actions per node
   const handleFlushNode = async (nodeUrl) => {
+    const safeUrl = sanitizeNodeUrl(nodeUrl);
     setActionLoading(`flush-${nodeUrl}`);
     try {
-      const res = await fetch(`${nodeUrl}/api/assessments/admin/queue/flush-now`, {
+      const res = await fetch(`${safeUrl}/api/assessments/admin/queue/flush-now`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -161,22 +164,23 @@ export const SubmissionQueuePanel = () => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast.success(`Node ${nodeUrl}: Flushed ${data.flushedCount} item(s)!`);
+        toast.success(`Node ${safeUrl}: Flushed ${data.flushedCount} item(s)!`);
         fetchAllNodesStatus();
       } else {
-        toast.error(`Node ${nodeUrl}: ${data.error || 'Flush failed'}`);
+        toast.error(`Node ${safeUrl}: ${data.error || 'Flush failed'}`);
       }
     } catch {
-      toast.error(`Node ${nodeUrl}: Network error triggering flush`);
+      toast.error(`Node ${safeUrl}: Network error triggering flush`);
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleRetryFailedNode = async (nodeUrl) => {
+    const safeUrl = sanitizeNodeUrl(nodeUrl);
     setActionLoading(`retry-${nodeUrl}`);
     try {
-      const res = await fetch(`${nodeUrl}/api/assessments/admin/queue/retry-failed`, {
+      const res = await fetch(`${safeUrl}/api/assessments/admin/queue/retry-failed`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -186,22 +190,23 @@ export const SubmissionQueuePanel = () => {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        toast.success(`Node ${nodeUrl}: Retried ${data.retriedCount} failed item(s)!`);
+        toast.success(`Node ${safeUrl}: Retried ${data.retriedCount} failed item(s)!`);
         fetchAllNodesStatus();
       } else {
-        toast.error(`Node ${nodeUrl}: ${data.error || 'Retry failed'}`);
+        toast.error(`Node ${safeUrl}: ${data.error || 'Retry failed'}`);
       }
     } catch {
-      toast.error(`Node ${nodeUrl}: Network error`);
+      toast.error(`Node ${safeUrl}: Network error`);
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleDownloadBackupNode = async (nodeUrl, nodeId) => {
+    const safeUrl = sanitizeNodeUrl(nodeUrl);
     setActionLoading(`backup-${nodeUrl}`);
     try {
-      const res = await fetch(`${nodeUrl}/api/assessments/admin/queue/download-backup`, {
+      const res = await fetch(`${safeUrl}/api/assessments/admin/queue/download-backup`, {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -219,9 +224,9 @@ export const SubmissionQueuePanel = () => {
       downloadAnchor.click();
       downloadAnchor.remove();
 
-      toast.success(`Backup downloaded for ${nodeId || nodeUrl}!`);
+      toast.success(`Backup downloaded for ${nodeId || safeUrl}!`);
     } catch (err) {
-      toast.error(`Failed to download backup from ${nodeUrl}: ${err.message}`);
+      toast.error(`Failed to download backup from ${safeUrl}: ${err.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -237,16 +242,17 @@ export const SubmissionQueuePanel = () => {
       return;
     }
 
-    const promises = onlineNodes.map((n) =>
-      fetch(`${n.nodeUrl}/api/assessments/admin/queue/flush-now`, {
+    const promises = onlineNodes.map((n) => {
+      const safeUrl = sanitizeNodeUrl(n.nodeUrl);
+      return fetch(`${safeUrl}/api/assessments/admin/queue/flush-now`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({}),
-      })
-    );
+      });
+    });
 
     const results = await Promise.allSettled(promises);
     const successCount = results.filter((r) => r.status === 'fulfilled' && r.value.ok).length;

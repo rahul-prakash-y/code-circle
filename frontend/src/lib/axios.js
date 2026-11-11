@@ -26,11 +26,17 @@ api.interceptors.request.use(
       }
     }
 
-    const cleanBase = (serverUrl || 'http://localhost:5000').replace(/\/+$/, '');
+    let cleanBase = (serverUrl || 'http://localhost:5000').trim().replace(/\/+$/, '');
+    // Ensure remote URLs (e.g. *.onrender.com) use HTTPS to prevent 301 redirects from stripping Authorization headers
+    if (cleanBase.startsWith('http://') && !cleanBase.includes('localhost') && !cleanBase.includes('127.0.0.1')) {
+      cleanBase = cleanBase.replace(/^http:\/\//i, 'https://');
+    }
 
     // Configure baseURL dynamically per request
     if (!config.url?.startsWith('http://') && !config.url?.startsWith('https://')) {
       config.baseURL = `${cleanBase}/api`;
+    } else if (config.url?.startsWith('http://') && !config.url.includes('localhost') && !config.url.includes('127.0.0.1')) {
+      config.url = config.url.replace(/^http:\/\//i, 'https://');
     }
 
     // Attach Bearer token and Session tracking ID

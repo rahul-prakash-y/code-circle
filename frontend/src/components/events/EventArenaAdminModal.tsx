@@ -36,6 +36,8 @@ import {
   FileText,
   CheckCircle,
   RotateCcw,
+  Clock,
+  Calendar,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../lib/axios';
@@ -49,6 +51,8 @@ import useEventArenaStore, {
   ArenaDesignChallenge,
 } from '../../store/useEventArenaStore';
 import HeroUISelect from '../ui/HeroUISelect';
+import { HeroDateTimePicker } from '../ui/HeroUIComponents';
+import { formatDateToISTInput, parseISTInputToISO, formatISTDateTime } from '../../lib/dateUtils';
 
 interface EventArenaAdminModalProps {
   isOpen: boolean;
@@ -113,6 +117,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [newDesc, setNewDesc] = useState('');
   const [newType, setNewType] = useState<'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX'>('HYBRID');
   const [newDuration, setNewDuration] = useState(60);
+  const [newStartTime, setNewStartTime] = useState('');
   const [newPassingScore, setNewPassingScore] = useState(50);
   const [newAssignedAdminIds, setNewAssignedAdminIds] = useState<string[]>([]);
   const [newCutoffRank, setNewCutoffRank] = useState(0);
@@ -125,6 +130,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [editType, setEditType] = useState<'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX'>('HYBRID');
   const [editStatus, setEditStatus] = useState<'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED'>('LIVE');
   const [editDuration, setEditDuration] = useState(60);
+  const [editStartTime, setEditStartTime] = useState('');
   const [editPassingScore, setEditPassingScore] = useState(50);
   const [editAssignedAdminIds, setEditAssignedAdminIds] = useState<string[]>([]);
   const [editCutoffRank, setEditCutoffRank] = useState(0);
@@ -295,6 +301,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       setEditType(selectedAssessment.type || 'HYBRID');
       setEditStatus(selectedAssessment.status || 'LIVE');
       setEditDuration(selectedAssessment.durationMinutes || 60);
+      setEditStartTime(selectedAssessment.startTime ? formatDateToISTInput(selectedAssessment.startTime) : '');
       setEditPassingScore(selectedAssessment.passingPercentage || 50);
       setEditCutoffRank(selectedAssessment.qualificationCutoffRank || 0);
       setEditIsTeamMode(Boolean(selectedAssessment.isTeamMode));
@@ -388,11 +395,20 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       return toast.error('Please enter an assessment title');
     }
     try {
+      const startTimeISO = newStartTime ? parseISTInputToISO(newStartTime) : undefined;
+      let endTimeISO: string | undefined = undefined;
+      if (startTimeISO) {
+        const sTime = new Date(startTimeISO).getTime();
+        endTimeISO = new Date(sTime + Number(newDuration) * 60 * 1000).toISOString();
+      }
+
       await createAssessment(event._id, {
         title: newTitle.trim(),
         description: newDesc.trim(),
         type: newType,
         durationMinutes: Number(newDuration),
+        startTime: startTimeISO,
+        endTime: endTimeISO,
         passingPercentage: Number(newPassingScore),
         assignedAdmins: newAssignedAdminIds,
         qualificationCutoffRank: Number(newCutoffRank) || 0,
@@ -402,6 +418,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       setIsCreatingNew(false);
       setNewTitle('');
       setNewDesc('');
+      setNewStartTime('');
       setNewCutoffRank(0);
       setNewIsTeamMode(false);
       setNewTeamSize(2);
@@ -414,12 +431,21 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const handleSaveAssessmentConfig = async () => {
     if (!selectedAssessment) return;
     try {
+      const startTimeISO = editStartTime ? parseISTInputToISO(editStartTime) : undefined;
+      let endTimeISO: string | undefined = undefined;
+      if (startTimeISO) {
+        const sTime = new Date(startTimeISO).getTime();
+        endTimeISO = new Date(sTime + Number(editDuration) * 60 * 1000).toISOString();
+      }
+
       await updateAssessment(event._id, selectedAssessment._id, {
         title: editTitle.trim(),
         description: editDesc.trim(),
         type: editType,
         status: editStatus,
         durationMinutes: Number(editDuration),
+        startTime: startTimeISO,
+        endTime: endTimeISO,
         passingPercentage: Number(editPassingScore),
         qualificationCutoffRank: Number(editCutoffRank) || 0,
         isTeamMode: editIsTeamMode,
@@ -980,6 +1006,61 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   </div>
                 </div>
 
+                {/* Schedule & Start Time */}
+                <div className="p-4 rounded-2xl bg-surface-secondary/60 border border-separator space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
+                      <Clock size={14} className="text-purple-400" />
+                      <span>Assessment Schedule & Auto-Live Trigger</span>
+                    </label>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      IST (Asia/Kolkata)
+                    </span>
+                  </div>
+
+                  <HeroDateTimePicker
+                    label="Test Start Time (IST)"
+                    value={newStartTime}
+                    onChange={(val) => setNewStartTime(val)}
+                    placeholder="Select assessment start date and time..."
+                    variant="flat"
+                    className="w-full"
+                    description="The assessment automatically switches to LIVE 10 minutes before this start time."
+                  />
+
+                  {newStartTime && (
+                    <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 text-xs space-y-1.5 font-mono">
+                      <div className="flex items-center justify-between text-label-primary flex-wrap gap-1">
+                        <span className="text-purple-400 flex items-center gap-1">
+                          <Sparkles size={12} /> Auto-Live Window:
+                        </span>
+                        <span className="font-semibold text-emerald-400">
+                          {formatISTDateTime(new Date(new Date(parseISTInputToISO(newStartTime)).getTime() - 10 * 60 * 1000))} (10 mins prior)
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-label-primary flex-wrap gap-1">
+                        <span className="text-purple-400 flex items-center gap-1">
+                          <Calendar size={12} /> Test Starts:
+                        </span>
+                        <span className="font-semibold">
+                          {formatISTDateTime(parseISTInputToISO(newStartTime))}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-label-primary flex-wrap gap-1">
+                        <span className="text-purple-400 flex items-center gap-1">
+                          <Clock size={12} /> Test Cutoff (Ends):
+                        </span>
+                        <span className="font-semibold text-rose-400">
+                          {formatISTDateTime(new Date(new Date(parseISTInputToISO(newStartTime)).getTime() + Number(newDuration) * 60 * 1000))}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-label-tertiary pt-1 border-t border-separator/60 font-sans">
+                        Students entering early or late will strictly count down to this cutoff deadline.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Qualification Cutoff & Team Mode */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                   <div>
@@ -1382,6 +1463,62 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
                         />
                       </div>
+                    </div>
+
+                    {/* Schedule & Timing in Edit */}
+                    <div className="p-4 rounded-2xl bg-surface-secondary/60 border border-separator space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <label className="text-xs font-bold text-label-primary flex items-center gap-1.5">
+                          <Clock size={14} className="text-purple-400" />
+                          <span>Assessment Schedule & Auto-Live Trigger</span>
+                        </label>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                          IST (Asia/Kolkata)
+                        </span>
+                      </div>
+
+                      <HeroDateTimePicker
+                        label="Test Start Time (IST)"
+                        value={editStartTime}
+                        onChange={(val) => setEditStartTime(val)}
+                        disabled={!canManageSelected}
+                        placeholder="Select assessment start date and time..."
+                        variant="flat"
+                        className="w-full"
+                        description="Assessment automatically switches to LIVE 10 minutes prior to start time."
+                      />
+
+                      {editStartTime && (
+                        <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 text-xs space-y-1.5 font-mono">
+                          <div className="flex items-center justify-between text-label-primary flex-wrap gap-1">
+                            <span className="text-purple-400 flex items-center gap-1">
+                              <Sparkles size={12} /> Auto-Live Window:
+                            </span>
+                            <span className="font-semibold text-emerald-400">
+                              {formatISTDateTime(new Date(new Date(parseISTInputToISO(editStartTime)).getTime() - 10 * 60 * 1000))} (10 mins prior)
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-label-primary flex-wrap gap-1">
+                            <span className="text-purple-400 flex items-center gap-1">
+                              <Calendar size={12} /> Test Starts:
+                            </span>
+                            <span className="font-semibold">
+                              {formatISTDateTime(parseISTInputToISO(editStartTime))}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-label-primary flex-wrap gap-1">
+                            <span className="text-purple-400 flex items-center gap-1">
+                              <Clock size={12} /> Test Cutoff (Ends):
+                            </span>
+                            <span className="font-semibold text-rose-400">
+                              {formatISTDateTime(new Date(new Date(parseISTInputToISO(editStartTime)).getTime() + Number(editDuration) * 60 * 1000))}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-label-tertiary pt-1 border-t border-separator/60 font-sans">
+                            Students entering early or late will strictly count down to this cutoff deadline.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Cutoff & Team Mode Configuration */}

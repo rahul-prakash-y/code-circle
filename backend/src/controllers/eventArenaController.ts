@@ -96,6 +96,38 @@ export const creditArenaRoundPoints = async ({
 };
 
 // ---------------------------------------------------------------------------
+// Helper: Compute dynamic status based on assessment schedule
+// Live before 10 mins of startTime, and ends automatically at endTime (startTime + durationMinutes)
+// ---------------------------------------------------------------------------
+export const computeAssessmentDynamicStatus = (assessment: {
+  status?: string;
+  startTime?: Date | string | null;
+  endTime?: Date | string | null;
+  durationMinutes?: number | null;
+}): 'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED' => {
+  if (assessment.status === 'DRAFT') return 'DRAFT';
+  if (!assessment.startTime) return (assessment.status as any) || 'LIVE';
+
+  const now = Date.now();
+  const start = new Date(assessment.startTime).getTime();
+  if (isNaN(start)) return (assessment.status as any) || 'LIVE';
+
+  const duration = Number(assessment.durationMinutes) || 60;
+  const end = assessment.endTime
+    ? new Date(assessment.endTime).getTime()
+    : start + duration * 60 * 1000;
+  const liveWindowStart = start - 10 * 60 * 1000; // Automatically changes to LIVE 10 minutes before test start
+
+  if (now < liveWindowStart) {
+    return 'UPCOMING';
+  } else if (now >= liveWindowStart && now < end) {
+    return 'LIVE';
+  } else {
+    return 'ENDED';
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Helper: Ensure an event has at least one assessment initialized from legacy fields
 // ---------------------------------------------------------------------------
 export const ensureEventAssessments = async (event: any): Promise<any[]> => {
@@ -1620,15 +1652,21 @@ export const getEventAssessmentsList = async (
 
     const isPrivileged = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
 
+    let hasStatusChanged = false;
     const assessments = (event.arenaAssessments || []).map((assessment: any) => {
       const userSub = submissionsByAssessmentId.get(assessment._id.toString()) || null;
       const isAssigned = canManageAssessmentQuestions(user, event, assessment);
+      const computedStatus = computeAssessmentDynamicStatus(assessment);
+      if (assessment.status !== computedStatus && assessment.status !== 'DRAFT') {
+        assessment.status = computedStatus;
+        hasStatusChanged = true;
+      }
       return {
         _id: assessment._id,
         title: assessment.title,
         description: assessment.description,
         type: assessment.type,
-        status: assessment.status,
+        status: computedStatus,
         durationMinutes: assessment.durationMinutes,
         totalPoints: assessment.totalPoints,
         passingPercentage: assessment.passingPercentage,
@@ -1654,6 +1692,10 @@ export const getEventAssessmentsList = async (
           : null,
       };
     });
+
+    if (hasStatusChanged) {
+      await event.save().catch(() => {});
+    }
 
     return reply.send({
       success: true,
@@ -1723,13 +1765,31 @@ export const createEventAssessment = async (
       (adminId) => new mongoose.Types.ObjectId(adminId)
     );
 
+    const durationMinutes = Number(body.durationMinutes) || 60;
+    const startTime = body.startTime ? new Date(body.startTime) : undefined;
+    let endTime = body.endTime ? new Date(body.endTime) : undefined;
+
+    // If startTime is provided, automatically calculate endTime = startTime + durationMinutes
+    if (startTime && !isNaN(startTime.getTime())) {
+      if (!endTime || isNaN(endTime.getTime())) {
+        endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+      }
+    }
+
+    const calculatedStatus = computeAssessmentDynamicStatus({
+      status: body.status || 'LIVE',
+      startTime,
+      endTime,
+      durationMinutes,
+    });
+
     const newAssessment = {
       _id: new mongoose.Types.ObjectId(),
       title: body.title.trim(),
       description: body.description?.trim() || '',
       type: body.type || 'HYBRID',
-      status: body.status || 'LIVE',
-      durationMinutes: Number(body.durationMinutes) || 60,
+      status: calculatedStatus,
+      durationMinutes,
       totalPoints: Number(body.totalPoints) || 100,
       passingPercentage: Number(body.passingPercentage) || 50,
       rules:
@@ -1740,8 +1800,8 @@ export const createEventAssessment = async (
               'For coding challenges, your code will be executed against test cases.',
               'Submitting or running out of time will automatically record your final answers.',
             ],
-      startTime: body.startTime ? new Date(body.startTime) : undefined,
-      endTime: body.endTime ? new Date(body.endTime) : undefined,
+      startTime,
+      endTime,
       assignedAdmins,
       qualificationCutoffRank: Number(body.qualificationCutoffRank) || 0,
       isTeamMode: Boolean(body.isTeamMode),
@@ -1839,16 +1899,37 @@ export const updateEventAssessment = async (
     if (body.title !== undefined) assessment.title = body.title.trim();
     if (body.description !== undefined) assessment.description = body.description.trim();
     if (body.type !== undefined) assessment.type = body.type;
-    if (body.status !== undefined) assessment.status = body.status;
     if (body.durationMinutes !== undefined) assessment.durationMinutes = Number(body.durationMinutes);
     if (body.totalPoints !== undefined) assessment.totalPoints = Number(body.totalPoints);
     if (body.passingPercentage !== undefined)
       assessment.passingPercentage = Number(body.passingPercentage);
     if (Array.isArray(body.rules)) assessment.rules = body.rules;
-    if (body.startTime !== undefined)
+
+    if (body.startTime !== undefined) {
       assessment.startTime = body.startTime ? new Date(body.startTime) : undefined;
-    if (body.endTime !== undefined)
+    }
+    if (body.endTime !== undefined) {
       assessment.endTime = body.endTime ? new Date(body.endTime) : undefined;
+    }
+
+    // Auto-calculate endTime if startTime is present
+    if (assessment.startTime && !isNaN(new Date(assessment.startTime).getTime())) {
+      const dur = Number(assessment.durationMinutes) || 60;
+      if (!body.endTime || isNaN(new Date(body.endTime).getTime())) {
+        assessment.endTime = new Date(new Date(assessment.startTime).getTime() + dur * 60 * 1000);
+      }
+    }
+
+    if (body.status !== undefined) {
+      if (body.status === 'DRAFT') {
+        assessment.status = 'DRAFT';
+      } else {
+        assessment.status = computeAssessmentDynamicStatus(assessment);
+      }
+    } else {
+      assessment.status = computeAssessmentDynamicStatus(assessment);
+    }
+
     if (body.qualificationCutoffRank !== undefined)
       assessment.qualificationCutoffRank = Number(body.qualificationCutoffRank) || 0;
     if (body.isTeamMode !== undefined)
@@ -2397,14 +2478,15 @@ export const getStudentAssessmentData = async (
     );
     if (assessmentIndex === -1 || !event.arenaAssessments) return reply.status(404).send({ success: false, error: 'Assessment not found' });
     const assessment = event.arenaAssessments[assessmentIndex];
+    const currentStatus = computeAssessmentDynamicStatus(assessment);
 
     // Check qualification for non-admin students
     if (!isAdminRole) {
-      if (assessment.status !== 'LIVE') {
+      if (currentStatus !== 'LIVE') {
         return reply.status(403).send({
           success: false,
-          error: assessment.status === 'UPCOMING'
-            ? 'This assessment has not started yet. Please wait for the admin to start the round.'
+          error: currentStatus === 'UPCOMING'
+            ? 'This assessment has not started yet. Please wait for the round to go live.'
             : 'This assessment is not currently active.',
         });
       }
@@ -2488,6 +2570,7 @@ export const getStudentAssessmentData = async (
           status: submission.status,
           startedAt: submission.startedAt,
           submittedAt: submission.submittedAt,
+          expiresAt: submission.expiresAt,
           timeTakenSeconds: submission.timeTakenSeconds,
           tabSwitchCount: submission.tabSwitchCount,
           codingSubmissions: (submission.codingSubmissions || []).map((cs: any) => ({
@@ -2523,11 +2606,13 @@ export const getStudentAssessmentData = async (
         title: assessment.title,
         description: assessment.description,
         type: assessment.type,
-        status: assessment.status,
+        status: currentStatus,
         durationMinutes: assessment.durationMinutes,
         totalPoints: assessment.totalPoints,
         passingPercentage: assessment.passingPercentage,
         rules: assessment.rules,
+        startTime: assessment.startTime,
+        endTime: assessment.endTime,
         qualificationCutoffRank: assessment.qualificationCutoffRank || 0,
         isTeamMode: Boolean(assessment.isTeamMode),
         teamSize: assessment.teamSize || 2,
@@ -2572,14 +2657,15 @@ export const startAssessmentSession = async (
     );
     if (assessmentIndex === -1 || !event.arenaAssessments) return reply.status(404).send({ success: false, error: 'Assessment not found' });
     const assessment = event.arenaAssessments[assessmentIndex];
+    const currentStatus = computeAssessmentDynamicStatus(assessment);
 
     const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
     if (!isAdminRole) {
-      if (assessment.status !== 'LIVE') {
+      if (currentStatus !== 'LIVE') {
         return reply.status(403).send({
           success: false,
-          error: assessment.status === 'UPCOMING'
-            ? 'This assessment has not started yet. Please wait for the admin to start the round.'
+          error: currentStatus === 'UPCOMING'
+            ? 'This assessment has not started yet. Please wait for the round to go live.'
             : 'This assessment is not currently active.',
         });
       }
@@ -2608,6 +2694,20 @@ export const startAssessmentSession = async (
       }
     }
 
+    const now = new Date();
+    const durationMinutes = Number(assessment.durationMinutes) || 60;
+    const normalExpiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
+    let calculatedExpiresAt = normalExpiresAt;
+    if (assessment.startTime) {
+      const scheduledEnd = assessment.endTime
+        ? new Date(assessment.endTime).getTime()
+        : new Date(assessment.startTime).getTime() + durationMinutes * 60 * 1000;
+      if (!isNaN(scheduledEnd)) {
+        // Enforce strict test cutoff at scheduledEnd (e.g. 3:25 PM + 40 mins = 4:05 PM)
+        calculatedExpiresAt = new Date(Math.min(normalExpiresAt.getTime(), scheduledEnd));
+      }
+    }
+
     let submission = await EventArenaSubmission.findOne({
       eventId: event._id,
       assessmentId,
@@ -2622,9 +2722,13 @@ export const startAssessmentSession = async (
         teamId: userTeamId,
         teamName: userTeamName,
         status: 'IN_PROGRESS',
-        startedAt: new Date(),
+        startedAt: now,
+        expiresAt: calculatedExpiresAt,
         maxPossibleScore: assessment.totalPoints || 100,
       });
+    } else if (!submission.expiresAt && calculatedExpiresAt) {
+      submission.expiresAt = calculatedExpiresAt;
+      await submission.save();
     }
 
     return reply.send({
@@ -2632,6 +2736,9 @@ export const startAssessmentSession = async (
       message: 'Assessment session active',
       submission,
       durationMinutes: assessment.durationMinutes || 60,
+      startTime: assessment.startTime,
+      endTime: assessment.endTime,
+      expiresAt: submission.expiresAt || calculatedExpiresAt,
     });
   } catch (err: any) {
     request.log.error(err);

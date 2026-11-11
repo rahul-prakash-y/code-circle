@@ -405,7 +405,7 @@ const ResetPassword = () => {
           <HeroTabs
             selectedKey={activeTab}
             onSelectionChange={(key) => setActiveTab(key)}
-            className="w-full grid grid-cols-2"
+            className="w-fit grid grid-cols-2"
             items={[
               { id: 'request', label: 'Request Reset', icon: <KeyRound className="w-3.5 h-3.5" /> },
               { id: 'track', label: 'Track Status', icon: <Clock className="w-3.5 h-3.5" /> },
