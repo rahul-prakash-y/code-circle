@@ -124,15 +124,12 @@ const Login = () => {
             }
           />
           <div className="flex justify-end pt-0.5 px-1">
-            <Button 
-              type="button"
-              variant="ghost"
-              size="sm"
-              onPress={() => setShowForgotModal(true)}
-              className="text-xs text-text-muted hover:text-accent font-medium min-h-[28px] px-2 h-auto"
+            <Link 
+              to="/reset-password"
+              className="text-xs text-text-muted hover:text-accent font-medium min-h-[28px] px-2 flex items-center transition-colors duration-200"
             >
               Forgot password?
-            </Button>
+            </Link>
           </div>
         </motion.div>
 
@@ -215,39 +212,56 @@ const Login = () => {
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-text-primary font-heading">Forgot Password?</h3>
-              <p className="text-[11px] sm:text-xs text-text-muted font-medium">Contact administration for assistance</p>
+              <p className="text-[11px] sm:text-xs text-text-muted font-medium">Verified password reset portal & support</p>
             </div>
           </div>
 
-          <div className="p-3.5 sm:p-4 rounded-xl bg-surface-secondary/70 border border-separator space-y-2 text-xs sm:text-sm text-text-muted">
-            <p>
-              Your account is managed by the institutional administrator. To reset your credentials:
+          <div className="p-3.5 sm:p-4 bg-accent/10 border border-accent/20 rounded-xl space-y-1.5">
+            <div className="flex items-center gap-2 text-accent text-xs font-bold uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>Verified Reset Link Request</span>
+            </div>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              You can submit a verified password reset request through our portal. Enter your registered email or roll number to receive an official reset link dispatched to your email.
             </p>
-            <ul className="list-disc list-inside space-y-1 text-xs text-text-muted font-mono">
-              <li>Contact club faculty/committee</li>
-              <li>Provide your registered roll number</li>
-              <li>Request a secure reset passkey</li>
-            </ul>
           </div>
 
-          <div className="flex items-center gap-2 pt-2">
+          {/* Action Buttons */}
+          <div className="space-y-2.5 pt-1">
+            <Link
+              to="/reset-password"
+              onClick={() => setShowForgotModal(false)}
+              className="w-full py-2.5 min-h-[44px] text-xs sm:text-sm flex items-center justify-center gap-2 text-center font-medium rounded-xl bg-accent text-white hover:bg-accent/90 shadow-md shadow-accent/15 transition-colors"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Go to Password Reset Portal</span>
+            </Link>
+
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface border border-separator text-xs">
+              <div className="flex items-center gap-2 text-text-muted min-w-0 pr-2">
+                <Mail className="w-3.5 h-3.5 text-accent shrink-0" />
+                <span className="truncate">codecircle@bitsathy.ac.in</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText('codecircle@bitsathy.ac.in');
+                  toast.success('Admin email copied to clipboard!');
+                }}
+                className="min-h-[36px] min-w-[36px] flex items-center justify-center p-2 rounded-lg hover:bg-surface-elevated text-text-muted hover:text-accent transition-colors cursor-pointer shrink-0"
+                title="Copy Email"
+                aria-label="Copy Email"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+            </div>
+
             <EmilButton
               variant="outline"
-              className="flex-1"
-              onClick={() => {
-                navigator.clipboard.writeText('support@codecircle.edu');
-                toast.success('Admin email copied to clipboard!');
-              }}
-            >
-              <Copy className="w-4 h-4 mr-1.5" />
-              Copy Support Email
-            </EmilButton>
-            <EmilButton
-              variant="solid"
-              className="flex-1"
+              className="w-full"
               onClick={() => setShowForgotModal(false)}
             >
-              Understood
+              Close
             </EmilButton>
           </div>
         </div>

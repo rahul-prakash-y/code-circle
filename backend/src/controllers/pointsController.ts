@@ -741,3 +741,104 @@ export const awardAdminPoints = async (
     });
   }
 };
+
+/**
+ * Route: GET /api/points/admin/transactions
+ * Chronological points tracking ledger across all students sorted by most recent
+ */
+export const getAdminPointTransactions = async (
+  request: FastifyRequest<{
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      category?: string;
+      department?: string;
+      sortOrder?: 'asc' | 'desc';
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const {
+      page: pageQuery = '1',
+      limit: limitQuery = '25',
+      search = '',
+      category = 'all',
+      department = 'all',
+      sortOrder = 'desc',
+    } = request.query;
+
+    const page = Math.max(1, parseInt(pageQuery, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(limitQuery, 10) || 25));
+    const skip = (page - 1) * limit;
+
+    const query: any = {};
+
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+
+    // Filter by student department or search
+    if ((department && department !== 'all') || (search && search.trim())) {
+      const userFilter: any = {};
+      if (department && department !== 'all') {
+        userFilter.department = department;
+      }
+      if (search && search.trim()) {
+        const s = search.trim();
+        userFilter.$or = [
+          { name: { $regex: s, $options: 'i' } },
+          { rollNo: { $regex: s, $options: 'i' } },
+          { email: { $regex: s, $options: 'i' } },
+        ];
+      }
+
+      const matchingUsers = await User.find(userFilter).select('_id').lean();
+      const matchingUserIds = matchingUsers.map((u) => u._id);
+
+      if (search && search.trim()) {
+        query.$or = [
+          { user: { $in: matchingUserIds } },
+          { title: { $regex: search.trim(), $options: 'i' } },
+          { description: { $regex: search.trim(), $options: 'i' } },
+        ];
+      } else {
+        query.user = { $in: matchingUserIds };
+      }
+    }
+
+    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+
+    const [transactions, total] = await Promise.all([
+      PointTransaction.find(query)
+        .populate('user', 'name rollNo email department year profilePicUrl')
+        .populate('awardedBy', 'name email role')
+        .sort({ timestamp: sortDirection, createdAt: sortDirection, _id: sortDirection })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      PointTransaction.countDocuments(query),
+    ]);
+
+    return reply.send({
+      success: true,
+      data: {
+        transactions,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit) || 1,
+        },
+      },
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: 'Failed to fetch points transactions tracking ledger',
+      details: error.message,
+    });
+  }
+};

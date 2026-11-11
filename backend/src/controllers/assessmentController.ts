@@ -878,22 +878,420 @@ export const retryFailedQueueItems = async (request: FastifyRequest, reply: Fast
     if (!user) {
       return reply.status(401).send({ success: false, error: 'Unauthorized' });
     }
-    const result = submissionQueue.retryFailed();
+
+    const currentStatusBefore = submissionQueue.getQueueStatus();
+    if (currentStatusBefore.failedCount === 0) {
+      return reply.send({
+        success: true,
+        message: 'No failed submissions in queue to retry',
+        retriedCount: 0,
+        pendingCount: currentStatusBefore.pendingCount,
+      });
+    }
+
+    // Move failed items back to pending queue
+    const retryResult = submissionQueue.retryFailed();
+
+    // Trigger immediate flush to attempt writing them to MongoDB
+    const flushResult = await submissionQueue.flush();
+
+    // If flush failed or items are still in failed queue, send error response instead of success
+    if (flushResult.failedCount > 0 || flushResult.flushedCount === 0) {
+      const statusNow = submissionQueue.getQueueStatus();
+      const lastError = statusNow.failedItems?.[0]?.error || 'Failed to update retried submission(s) to database';
+
+      await AuditLog.create({
+        action: 'SUBMISSION_QUEUE_RETRY_FAILED_ERROR',
+        actorId: new mongoose.Types.ObjectId(user.id),
+        actorRole: user.role,
+        targetModel: 'SubmissionQueue',
+        details: { retryResult, flushResult, error: lastError },
+        timestamp: new Date(),
+      });
+
+      return reply.status(500).send({
+        success: false,
+        error: `Retry failed to update database: ${lastError}`,
+        message: `Retry failed: ${lastError}`,
+        retriedCount: retryResult.retriedCount,
+        flushedCount: flushResult.flushedCount,
+        pendingCount: flushResult.remainingPending,
+        failedCount: flushResult.failedCount,
+        failedItems: statusNow.failedItems,
+      });
+    }
 
     // Audit log
     await AuditLog.create({
-      action: 'SUBMISSION_QUEUE_RETRY_FAILED',
+      action: 'SUBMISSION_QUEUE_RETRY_FAILED_SUCCESS',
       actorId: new mongoose.Types.ObjectId(user.id),
       actorRole: user.role,
       targetModel: 'SubmissionQueue',
-      details: result,
+      details: { retryResult, flushResult },
       timestamp: new Date(),
     });
 
     return reply.send({
       success: true,
-      message: `Retried ${result.retriedCount} failed submission(s)`,
-      ...result,
+      message: `Successfully flushed ${flushResult.flushedCount} retried submission(s) to MongoDB`,
+      retriedCount: retryResult.retriedCount,
+      flushedCount: flushResult.flushedCount,
+      pendingCount: flushResult.remainingPending,
+      failedCount: 0,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const getFailedQueueItems = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const failedItems = submissionQueue.getFailedItems();
+    if (failedItems.length === 0) {
+      return reply.send({ success: true, data: [] });
+    }
+
+    // Enrich with user information (name, rollNo, email, department)
+    const userIds = failedItems.map((f) => f.userId).filter(Boolean);
+    const users = await User.find({ _id: { $in: userIds } }, 'name email rollNo department').lean();
+    const userMap = new Map(users.map((u: any) => [String(u._id), u]));
+
+    const enriched = failedItems.map((f) => {
+      const uInfo = userMap.get(String(f.userId));
+      return {
+        submissionId: f.submissionId,
+        userId: f.userId,
+        assessmentId: f.assessmentId,
+        assessmentTitle: f.submission?.assessmentTitle || 'Assessment',
+        error: f.error,
+        failedAt: f.failedAt,
+        attempts: f.attempts,
+        submission: f.submission,
+        user: uInfo
+          ? {
+              id: uInfo._id,
+              name: uInfo.name,
+              email: uInfo.email,
+              rollNo: uInfo.rollNo,
+              department: uInfo.department,
+            }
+          : null,
+      };
+    });
+
+    return reply.send({ success: true, data: enriched });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const updateFailedQueueItemToDb = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const body = request.body as any;
+    const { submissionId, updates } = body || {};
+
+    if (!submissionId) {
+      return reply.status(400).send({ success: false, error: 'submissionId is required' });
+    }
+
+    // Find the item in failed queue (or check if updates provides full data)
+    const failedItems = submissionQueue.getFailedItems();
+    const targetItem = failedItems.find((f) => f.submissionId === submissionId);
+
+    const baseSubmission = targetItem ? targetItem.submission : null;
+    const finalSubmissionData = {
+      ...(baseSubmission || {}),
+      ...(updates || {}),
+    };
+
+    const finalUserId = finalSubmissionData.userId || body.userId;
+    const finalAssessmentId = finalSubmissionData.assessmentId || body.assessmentId;
+
+    if (!finalUserId || !finalAssessmentId) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Missing userId or assessmentId for database update',
+      });
+    }
+
+    // Direct MongoDB Upsert bypassing the batch flusher to guarantee update on DB
+    const savedDoc = await AssessmentSubmission.findOneAndUpdate(
+      {
+        $or: [
+          { submissionId: submissionId },
+          {
+            user: new mongoose.Types.ObjectId(finalUserId),
+            assessment: new mongoose.Types.ObjectId(finalAssessmentId),
+            submissionId: submissionId,
+          },
+        ],
+      },
+      {
+        $set: {
+          user: new mongoose.Types.ObjectId(finalUserId),
+          assessment: new mongoose.Types.ObjectId(finalAssessmentId),
+          submissionId: submissionId,
+          answers: finalSubmissionData.answers || [],
+          score: typeof finalSubmissionData.score === 'number' ? finalSubmissionData.score : 0,
+          totalPoints: typeof finalSubmissionData.totalPoints === 'number' ? finalSubmissionData.totalPoints : 0,
+          percentage: typeof finalSubmissionData.percentage === 'number' ? finalSubmissionData.percentage : 0,
+          passed: Boolean(finalSubmissionData.passed),
+          pointsAwarded: typeof finalSubmissionData.pointsAwarded === 'number' ? finalSubmissionData.pointsAwarded : 0,
+          timeSpentSeconds: typeof finalSubmissionData.timeSpentSeconds === 'number' ? finalSubmissionData.timeSpentSeconds : 0,
+          detailedResults: finalSubmissionData.detailedResults || [],
+          isLate: Boolean(finalSubmissionData.isLate),
+          submissionStatus: finalSubmissionData.submissionStatus || 'on_time',
+          durableStatus: 'saved',
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          createdAt: finalSubmissionData.submittedAt || new Date(),
+        },
+      },
+      { upsert: true, new: true, runValidators: false }
+    );
+
+    // Award points idempotently if passed
+    const pointsToAward = savedDoc?.pointsAwarded ?? 0;
+    if (savedDoc && savedDoc.passed && pointsToAward > 0) {
+      try {
+        const userIdObj = new mongoose.Types.ObjectId(String(savedDoc.user));
+        const assessmentIdStr = String(savedDoc.assessment);
+
+        const existingTx = await PointTransaction.findOne({
+          user: userIdObj,
+          category: 'Assessment',
+          referenceId: assessmentIdStr,
+        } as any);
+
+        if (!existingTx) {
+          await User.findByIdAndUpdate(userIdObj, { $inc: { points: pointsToAward } });
+          await PointTransaction.create({
+            user: userIdObj,
+            amount: pointsToAward,
+            category: 'Assessment',
+            title: `Assessment Completed: ${finalSubmissionData.assessmentTitle || 'Test'}`,
+            description: `Passed with score ${savedDoc.score}/${savedDoc.totalPoints} (${savedDoc.percentage}%)`,
+            referenceId: assessmentIdStr,
+            referenceModel: 'Assessment',
+            timestamp: savedDoc.createdAt || new Date(),
+          } as any);
+        }
+      } catch (ptErr) {
+        console.warn('[updateFailedQueueItemToDb] Point sync error:', ptErr);
+      }
+    }
+
+    // Remove from in-memory failed and pending queues
+    submissionQueue.removeFailedItem(submissionId);
+
+    // Audit log
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_MANUAL_DB_UPDATE',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'AssessmentSubmission',
+      targetId: savedDoc?._id,
+      details: {
+        submissionId,
+        score: savedDoc?.score,
+        percentage: savedDoc?.percentage,
+        passed: savedDoc?.passed,
+      },
+      timestamp: new Date(),
+    });
+
+    return reply.send({
+      success: true,
+      message: 'Failed flush successfully updated and persisted on MongoDB!',
+      data: savedDoc,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const deleteFailedQueueItem = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const { submissionId } = request.params as { submissionId: string };
+    if (!submissionId) {
+      return reply.status(400).send({ success: false, error: 'submissionId parameter required' });
+    }
+
+    const removed = submissionQueue.removeFailedItem(submissionId);
+
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_DISCARD_FAILED_ITEM',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'SubmissionQueue',
+      details: { submissionId, removed },
+      timestamp: new Date(),
+    });
+
+    return reply.send({
+      success: true,
+      message: removed
+        ? `Submission ${submissionId} discarded from queue`
+        : `Submission ${submissionId} was not in failed queue`,
+      removed,
+    });
+  } catch (error: any) {
+    return reply.status(500).send({ success: false, error: error.message });
+  }
+};
+
+export const bulkImportFailedItemsToDb = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const body = request.body as any;
+    let rawItems: any[] = [];
+
+    if (Array.isArray(body)) {
+      rawItems = body;
+    } else if (body && Array.isArray(body.items)) {
+      rawItems = body.items;
+    } else if (body && Array.isArray(body.failedSubmissions)) {
+      rawItems = body.failedSubmissions;
+    } else if (body && Array.isArray(body.pendingSubmissions)) {
+      rawItems = body.pendingSubmissions;
+    } else if (body && (body.submissionId || body.submission?.submissionId)) {
+      rawItems = [body];
+    } else {
+      return reply.status(400).send({
+        success: false,
+        error: 'Invalid JSON format. Expected an array of submissions or an object containing failedSubmissions or items.',
+      });
+    }
+
+    if (rawItems.length === 0) {
+      return reply.status(400).send({ success: false, error: 'JSON file contains no submissions to import' });
+    }
+
+    let savedCount = 0;
+    const errors: string[] = [];
+
+    for (const raw of rawItems) {
+      try {
+        const item = raw.submission ? { ...raw.submission, ...raw } : raw;
+        const submissionId = item.submissionId;
+        const userId = item.userId;
+        const assessmentId = item.assessmentId;
+
+        if (!submissionId || !userId || !assessmentId) {
+          errors.push(`Skipped item missing required identifier: submissionId=${submissionId}, userId=${userId}, assessmentId=${assessmentId}`);
+          continue;
+        }
+
+        const userIdObj = new mongoose.Types.ObjectId(String(userId));
+        const assessmentIdObj = new mongoose.Types.ObjectId(String(assessmentId));
+
+        const savedDoc = await AssessmentSubmission.findOneAndUpdate(
+          {
+            $or: [
+              { submissionId },
+              {
+                user: userIdObj,
+                assessment: assessmentIdObj,
+                submissionId,
+              },
+            ],
+          },
+          {
+            $set: {
+              user: userIdObj,
+              assessment: assessmentIdObj,
+              submissionId,
+              answers: item.answers || [],
+              score: typeof item.score === 'number' ? item.score : 0,
+              totalPoints: typeof item.totalPoints === 'number' ? item.totalPoints : 0,
+              percentage: typeof item.percentage === 'number' ? item.percentage : 0,
+              passed: Boolean(item.passed),
+              pointsAwarded: typeof item.pointsAwarded === 'number' ? item.pointsAwarded : 0,
+              timeSpentSeconds: typeof item.timeSpentSeconds === 'number' ? item.timeSpentSeconds : 0,
+              detailedResults: item.detailedResults || [],
+              isLate: Boolean(item.isLate),
+              submissionStatus: item.submissionStatus || 'on_time',
+              durableStatus: 'saved',
+              updatedAt: new Date(),
+            },
+            $setOnInsert: {
+              createdAt: item.submittedAt || new Date(),
+            },
+          },
+          { upsert: true, new: true, runValidators: false }
+        );
+
+        // Award points if passed and pointsAwarded > 0
+        const pointsToAward = savedDoc?.pointsAwarded ?? 0;
+        if (savedDoc && savedDoc.passed && pointsToAward > 0) {
+          try {
+            const existingTx = await PointTransaction.findOne({
+              user: userIdObj,
+              category: 'Assessment',
+              referenceId: String(savedDoc.assessment),
+            } as any);
+
+            if (!existingTx) {
+              await User.findByIdAndUpdate(userIdObj, { $inc: { points: pointsToAward } });
+              await PointTransaction.create({
+                user: userIdObj,
+                amount: pointsToAward,
+                category: 'Assessment',
+                title: `Assessment Completed: ${item.assessmentTitle || 'Test'}`,
+                description: `Passed with score ${savedDoc.score}/${savedDoc.totalPoints} (${savedDoc.percentage}%)`,
+                referenceId: String(savedDoc.assessment),
+                referenceModel: 'Assessment',
+                timestamp: savedDoc.createdAt || new Date(),
+              } as any);
+            }
+          } catch (ptErr) {
+            console.warn('[bulkImportFailedItemsToDb] Point sync error:', ptErr);
+          }
+        }
+
+        // Remove from memory queue if present
+        submissionQueue.removeFailedItem(submissionId);
+        savedCount++;
+      } catch (itemErr: any) {
+        errors.push(`Error saving submission ${raw.submissionId || 'unknown'}: ${itemErr.message}`);
+      }
+    }
+
+    await AuditLog.create({
+      action: 'SUBMISSION_QUEUE_JSON_BULK_IMPORT',
+      actorId: new mongoose.Types.ObjectId(user.id),
+      actorRole: user.role,
+      targetModel: 'AssessmentSubmission',
+      details: { totalInFile: rawItems.length, savedCount, errorsCount: errors.length },
+      timestamp: new Date(),
+    });
+
+    return reply.send({
+      success: true,
+      message: `Successfully processed JSON file: ${savedCount} submission(s) updated and committed to MongoDB Atlas!`,
+      savedCount,
+      totalCount: rawItems.length,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error: any) {
     return reply.status(500).send({ success: false, error: error.message });
@@ -2073,4 +2471,8 @@ export default {
   flushQueueNow,
   retryFailedQueueItems,
   downloadQueueBackup,
+  getFailedQueueItems,
+  updateFailedQueueItemToDb,
+  deleteFailedQueueItem,
+  bulkImportFailedItemsToDb,
 };

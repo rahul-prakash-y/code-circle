@@ -5,6 +5,7 @@ import {
   getAdminStudentPoints,
   getAdminStudentPointsDetail,
   awardAdminPoints,
+  getAdminPointTransactions,
 } from '../controllers/pointsController';
 import { verifyToken, isAdmin } from '../middleware/authMiddleware';
 
@@ -28,6 +29,10 @@ export async function pointsRoutes(fastify: FastifyInstance) {
 
     // Full 360-degree point audit for an individual student ("how they earned")
     adminScope.get('/admin/students/:userId', getAdminStudentPointsDetail);
+
+    // Global points tracking ledger across all students sorted by recently
+    adminScope.get('/admin/transactions', getAdminPointTransactions);
+    adminScope.get('/admin/tracking', getAdminPointTransactions);
 
     // Award / adjust bonus merit points
     adminScope.post('/admin/award', awardAdminPoints);

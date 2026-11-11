@@ -8,8 +8,8 @@ import {
   AlertCircle,
   Trash2,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
-import { Button, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
 import useContestStore, { CodingProblem } from '../../../store/useContestStore';
 
@@ -180,17 +180,15 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
               </span>
             </div>
           </div>
-          <Button
+          <button
             type="button"
-            variant="primary"
-            color="success"
-            onPress={handleDownloadTemplate}
-            isDisabled={isDownloading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs shrink-0 cursor-pointer"
+            onClick={handleDownloadTemplate}
+            disabled={isDownloading}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs shrink-0 cursor-pointer transition-colors duration-150"
           >
-            {isDownloading ? <Spinner size="sm" color="default" /> : <Download size={13} />}
+            {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
             <span>Download Template</span>
-          </Button>
+          </button>
         </div>
 
         {/* Dropzone */}
@@ -214,7 +212,7 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
           />
           {isParsing ? (
             <div className="flex flex-col items-center justify-center py-4 space-y-2">
-              <Spinner size="md" color="success" />
+              <Loader2 size={26} className="animate-spin text-emerald-600 mx-auto" />
               <span className="text-xs font-bold text-label-primary">
                 Extracting problem statements & test cases...
               </span>
@@ -380,27 +378,24 @@ export const ContestCodingBulkUploadModal: React.FC<ContestCodingBulkUploadModal
 
         {/* Footer */}
         <div className="pt-4 border-t border-separator flex items-center justify-end gap-3">
-          <Button
+          <button
             type="button"
-            variant="secondary"
-            onPress={onClose}
-            className="px-4 py-2 rounded-full text-xs font-medium cursor-pointer"
+            onClick={onClose}
+            className="px-4 py-2 rounded-full text-xs font-semibold border border-separator text-label-secondary hover:text-label-primary bg-surface-secondary hover:bg-surface transition-colors duration-150 cursor-pointer"
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            variant="primary"
-            color="success"
-            onPress={handleConfirmImport}
-            isDisabled={parsedProblems.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow cursor-pointer"
+            onClick={handleConfirmImport}
+            disabled={parsedProblems.length === 0}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-xs transition-colors duration-150 cursor-pointer"
           >
             <CheckCircle2 size={14} />
             <span>
               Import {parsedProblems.length > 0 ? `${parsedProblems.length} Challenges` : 'Challenges'}
             </span>
-          </Button>
+          </button>
         </div>
       </div>
     </ResponsiveModal>
