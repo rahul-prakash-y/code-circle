@@ -15,6 +15,9 @@ export interface UseTabSwitchDetectionReturn {
   isTriggering: boolean;
   blockStudent: (reason?: string) => Promise<void>;
   unblockStudent: (studentId?: string) => Promise<void>;
+  checkIfUnblocked: () => Promise<boolean>;
+  resetBlocked: () => void;
+  setIsBlocked: (val: boolean) => void;
 }
 
 export const PERMANENT_BLOCK_MESSAGE =
@@ -92,6 +95,38 @@ export const useTabSwitchDetection = ({
     [eventId]
   );
 
+  const checkIfUnblocked = useCallback(async (): Promise<boolean> => {
+    if (!eventId) return false;
+    try {
+      const res = await api.get(`/events/${eventId}/anti-cheat/status`);
+      if (res.data?.success && res.data.isBlocked === false) {
+        setIsBlocked(false);
+        hasTriggeredRef.current = false;
+        toast.success('Your assessment attempt has been unblocked! You may now resume.');
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [eventId]);
+
+  const resetBlocked = useCallback(() => {
+    setIsBlocked(false);
+    hasTriggeredRef.current = false;
+  }, []);
+
+  // Poll backend status periodically while blocked so student screen unlocks as soon as admin clicks Unblock
+  useEffect(() => {
+    if (!isBlocked || !eventId) return;
+
+    const intervalId = setInterval(async () => {
+      await checkIfUnblocked();
+    }, 3500);
+
+    return () => clearInterval(intervalId);
+  }, [isBlocked, eventId, checkIfUnblocked]);
+
   useEffect(() => {
     if (!enabled || !eventId || isBlocked) return;
 
@@ -114,6 +149,9 @@ export const useTabSwitchDetection = ({
     isTriggering,
     blockStudent,
     unblockStudent,
+    checkIfUnblocked,
+    resetBlocked,
+    setIsBlocked,
   };
 };
 

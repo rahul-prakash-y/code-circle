@@ -77,6 +77,8 @@ export interface IEventArenaAssessment {
   };
   designChallenge?: IEventArenaDesignChallenge;
   designChallenges?: IEventArenaDesignChallenge[];
+  graceMinutes?: number;
+  shuffleQuestions?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -151,6 +153,8 @@ export const eventArenaAssessmentSchema = new Schema<IEventArenaAssessment>(
     },
     startTime: { type: Date },
     endTime: { type: Date },
+    graceMinutes: { type: Number, default: 0, min: 0 },
+    shuffleQuestions: { type: Boolean, default: true },
     assignedAdmins: [
       {
         type: Schema.Types.ObjectId,

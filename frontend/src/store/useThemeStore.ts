@@ -1,55 +1,37 @@
 import { create } from 'zustand';
 
-type Theme = 'light' | 'dark';
+type Theme = 'dark';
 
 interface ThemeStore {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
+  setTheme: (theme?: any) => void;
   toggleTheme: () => void;
 }
 
-const getInitialTheme = (): Theme => {
-  if (typeof window === 'undefined') return 'dark';
-
-  const stored = localStorage.getItem('code-circle-theme') as Theme | null;
-  if (stored === 'light' || stored === 'dark') return stored;
-
-  // Respect OS preference
-  if (window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
-  return 'dark';
-};
-
-const applyTheme = (theme: Theme) => {
-  const root = document.documentElement;
-  if (theme === 'dark') {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
+const applyDarkTheme = () => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
   }
-  localStorage.setItem('code-circle-theme', theme);
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem('code-circle-theme', 'dark');
+    } catch {}
+  }
 };
 
-const useThemeStore = create<ThemeStore>((set) => {
-  // Apply initial theme immediately
-  const initial = getInitialTheme();
+const useThemeStore = create<ThemeStore>(() => {
   if (typeof window !== 'undefined') {
-    applyTheme(initial);
+    applyDarkTheme();
   }
 
   return {
-    theme: initial,
-
-    setTheme: (theme) => {
-      applyTheme(theme);
-      set({ theme });
+    theme: 'dark',
+    setTheme: () => {
+      applyDarkTheme();
     },
-
     toggleTheme: () => {
-      set((state) => {
-        const next = state.theme === 'dark' ? 'light' : 'dark';
-        applyTheme(next);
-        return { theme: next };
-      });
+      applyDarkTheme();
     },
   };
 });

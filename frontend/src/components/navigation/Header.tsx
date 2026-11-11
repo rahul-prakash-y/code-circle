@@ -27,7 +27,6 @@ import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import useNotificationStore, { NotificationItem } from '../../store/useNotificationStore';
 import CreateNotificationModal from '../notifications/CreateNotificationModal';
-import ThemeToggle from '../ui/ThemeToggle';
 import TutorialButton from '../common/TutorialButton';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -344,7 +343,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
       {/* Right */}
       <div className="flex items-center gap-1.5 sm:gap-2">
         <TutorialButton variant="header" />
-        <ThemeToggle />
 
         {/* Notifications */}
         <div className="relative" ref={notifRef}>

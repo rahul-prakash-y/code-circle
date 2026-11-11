@@ -10,6 +10,8 @@ import Feedback from '../models/feedbackModel';
 import MissedEventRequest from '../models/missedEventRequestModel';
 import { IssuedCertificate, CertificateTemplate } from '../models/certificateModel';
 import Assessment from '../models/assessmentModel';
+import User from '../models/userModel';
+import EventArenaSubmission from '../models/eventArenaSubmissionModel';
 
 export interface CreateEventBody {
   title: string;
@@ -534,44 +536,253 @@ export const unblockStudent = async (
     }
 
     const { studentId } = request.body || {};
-    if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
+    if (!studentId || typeof studentId !== 'string' || !studentId.trim()) {
       return reply.status(400).send({ success: false, error: 'Valid studentId is required' });
     }
 
-    const eventObjectId = new mongoose.Types.ObjectId(eventId);
-    const studentObjectId = new mongoose.Types.ObjectId(studentId);
+    let targetStudentId = studentId.trim();
+    let targetUser: any = null;
+    if (mongoose.Types.ObjectId.isValid(targetStudentId)) {
+      targetUser = await User.findById(targetStudentId).select('_id name email rollNo').lean();
+    }
+    if (!targetUser) {
+      targetUser = await User.findOne({
+        $or: [
+          { rollNo: targetStudentId.toUpperCase() },
+          { rollNo: targetStudentId },
+          { email: targetStudentId.toLowerCase() },
+          { email: targetStudentId },
+        ],
+      }).select('_id name email rollNo').lean();
+    }
 
-    const enrollment = await Enrollment.findOne({
-      event: eventObjectId,
-      $or: [{ enrolledBy: studentObjectId }, { members: studentObjectId }],
-    });
-
-    if (!enrollment) {
+    if (targetUser) {
+      targetStudentId = targetUser._id.toString();
+    } else {
       return reply.status(404).send({
         success: false,
-        error: 'Student registration for this event was not found',
+        error: `Student '${studentId}' could not be found by Roll No, Email, or ID`,
       });
     }
 
-    enrollment.isBlocked = false;
-    await enrollment.save();
+    const eventObjectId = new mongoose.Types.ObjectId(eventId);
+    const studentObjectId = new mongoose.Types.ObjectId(targetStudentId);
+
+    // 1. Unblock ALL matching registrations/enrollments for this event
+    const updateResult = await Enrollment.updateMany(
+      {
+        event: eventObjectId,
+        $or: [{ enrolledBy: studentObjectId }, { members: studentObjectId }],
+      },
+      {
+        $set: { isBlocked: false },
+      }
+    );
+
+    // If no enrollment existed at all, ensure an unblocked enrollment record is registered
+    if (updateResult.matchedCount === 0) {
+      await Enrollment.findOneAndUpdate(
+        {
+          event: eventObjectId,
+          $or: [{ enrolledBy: studentObjectId }, { members: studentObjectId }],
+        },
+        {
+          $set: {
+            event: eventObjectId,
+            enrolledBy: studentObjectId,
+            type: 'Individual',
+            members: [studentObjectId],
+            isBlocked: false,
+          },
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    // 2. Clear any user-level proctoring restrictions on the User record
+    await User.findByIdAndUpdate(studentObjectId, {
+      $set: {
+        isRestricted: false,
+        restrictionReason: '',
+        restrictedFeatures: [],
+        unblockedAt: new Date(),
+        unblockedBy: user._id || user.id,
+      },
+    });
+
+    // 3. Log unblock event in active Arena submissions if any
+    try {
+      await EventArenaSubmission.updateMany(
+        { eventId: eventObjectId, userId: studentObjectId },
+        {
+          $push: {
+            integrityEvents: {
+              type: 'ADMIN_UNBLOCKED',
+              timestamp: new Date(),
+              details: `Unblocked by admin ${user.name || user.email || user.role}`,
+            },
+          },
+        }
+      );
+    } catch {
+      // Non-critical audit trail update
+    }
 
     request.log.info(
-      `Admin ${user.id || user._id} unblocked student ${studentId} for event ${eventId}`
+      `Admin ${user.id || user._id} unblocked student ${targetStudentId} for event ${eventId}`
     );
 
     return reply.send({
       success: true,
-      message: 'Student unblocked successfully.',
+      message: `${targetUser.name || 'Student'} unblocked successfully.`,
       isBlocked: false,
       eventId,
-      studentId,
+      studentId: targetStudentId,
+      student: {
+        _id: targetStudentId,
+        name: targetUser.name,
+        email: targetUser.email,
+        rollNo: targetUser.rollNo,
+      },
     });
   } catch (error: any) {
     request.log.error(error);
     return reply.status(500).send({
       success: false,
       error: error.message || 'Failed to unblock student',
+    });
+  }
+};
+
+/**
+ * GET /api/events/:eventId/anti-cheat/status
+ * Check if the currently authenticated user (or specified student) is blocked for this event.
+ */
+export const getStudentAntiCheatStatus = async (
+  request: FastifyRequest<{
+    Params: { eventId?: string; id?: string };
+    Querystring: { studentId?: string };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const eventId = request.params.eventId || request.params.id;
+    if (!eventId || !mongoose.Types.ObjectId.isValid(eventId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid or missing Event ID' });
+    }
+
+    const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
+    let targetUserId = user.id || user._id;
+    if (isAdminRole && request.query.studentId && mongoose.Types.ObjectId.isValid(request.query.studentId)) {
+      targetUserId = request.query.studentId;
+    }
+
+    const eventObjectId = new mongoose.Types.ObjectId(eventId);
+    const userObjectId = new mongoose.Types.ObjectId(targetUserId);
+
+    // Check if any enrollment record is currently blocked
+    const blockedEnrollment = await Enrollment.findOne({
+      event: eventObjectId,
+      $or: [{ enrolledBy: userObjectId }, { members: userObjectId }],
+      isBlocked: true,
+    }).lean();
+
+    const userDoc = await User.findById(userObjectId).select('isRestricted isBlocked').lean();
+
+    const isBlocked = Boolean(blockedEnrollment || userDoc?.isBlocked);
+
+    return reply.send({
+      success: true,
+      isBlocked,
+      eventId,
+      studentId: targetUserId,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to get anti-cheat status',
+    });
+  }
+};
+
+/**
+ * GET /api/events/:eventId/blocked-students
+ * Retrieve all students who are currently blocked for this event (regardless of whether they have a submission record).
+ */
+export const getBlockedStudents = async (
+  request: FastifyRequest<{ Params: { eventId?: string; id?: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const eventId = request.params.eventId || request.params.id;
+    if (!eventId || !mongoose.Types.ObjectId.isValid(eventId)) {
+      return reply.status(400).send({ success: false, error: 'Invalid or missing Event ID' });
+    }
+
+    const eventObjectId = new mongoose.Types.ObjectId(eventId);
+
+    const blockedEnrollments = await Enrollment.find({
+      event: eventObjectId,
+      isBlocked: true,
+    })
+      .populate('enrolledBy', 'name rollNo email profilePicUrl department year')
+      .populate('members', 'name rollNo email profilePicUrl department year')
+      .lean();
+
+    const studentMap = new Map<string, any>();
+
+    blockedEnrollments.forEach((en: any) => {
+      if (en.enrolledBy && en.enrolledBy._id) {
+        studentMap.set(en.enrolledBy._id.toString(), {
+          _id: en.enrolledBy._id,
+          name: en.enrolledBy.name,
+          rollNo: en.enrolledBy.rollNo,
+          email: en.enrolledBy.email,
+          profilePicUrl: en.enrolledBy.profilePicUrl,
+          department: en.enrolledBy.department,
+          year: en.enrolledBy.year,
+          blockedAt: en.updatedAt,
+        });
+      }
+      if (Array.isArray(en.members)) {
+        en.members.forEach((m: any) => {
+          if (m && m._id) {
+            studentMap.set(m._id.toString(), {
+              _id: m._id,
+              name: m.name,
+              rollNo: m.rollNo,
+              email: m.email,
+              profilePicUrl: m.profilePicUrl,
+              department: m.department,
+              year: m.year,
+              blockedAt: en.updatedAt,
+            });
+          }
+        });
+      }
+    });
+
+    return reply.send({
+      success: true,
+      blockedStudents: Array.from(studentMap.values()),
+      count: studentMap.size,
+    });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      success: false,
+      error: error.message || 'Failed to fetch blocked students',
     });
   }
 };
@@ -584,4 +795,6 @@ export default {
   deleteEvent,
   blockStudent,
   unblockStudent,
+  getStudentAntiCheatStatus,
+  getBlockedStudents,
 };

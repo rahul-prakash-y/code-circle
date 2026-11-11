@@ -67,7 +67,43 @@ export function shuffleQuestionsAndOptions(questions: any[]): ShuffledMCQQuestio
   return secureShuffle(preparedQuestions);
 }
 
+/**
+ * Deterministically shuffles an array based on a seed string (e.g. userId + assessmentId).
+ * Guaranteed to produce the exact same permutation for the same seed, allowing consistent
+ * question ordering across student reloads/resumes while giving every candidate a unique order.
+ */
+export function deterministicShuffle<T>(array: T[], seedStr: string): T[] {
+  if (!Array.isArray(array) || array.length <= 1) {
+    return Array.isArray(array) ? [...array] : [];
+  }
+
+  // Hash seed string to 32-bit integer (Murmur3-inspired hash)
+  let seed = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    seed = (Math.imul(31, seed) + seedStr.charCodeAt(i)) >>> 0;
+  }
+
+  // Mulberry32 fast PRNG
+  const random = () => {
+    seed = (seed + 0x6D2B79F5) >>> 0;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  // Fisher-Yates shuffle
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled;
+}
+
 export default {
   secureShuffle,
   shuffleQuestionsAndOptions,
+  deterministicShuffle,
 };

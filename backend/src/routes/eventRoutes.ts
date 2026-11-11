@@ -13,6 +13,10 @@ export async function eventRoutes(fastify: FastifyInstance) {
   // Anti-Cheating: Block student on tab switch / cheat violation
   fastify.post('/:eventId/block-student', eventController.blockStudent as any);
 
+  // Anti-Cheating: Check current blocked status (Student & Admin)
+  fastify.get('/:eventId/anti-cheat/status', eventController.getStudentAntiCheatStatus as any);
+  fastify.get('/:eventId/blocked-students', { preHandler: [isAdminOrFaculty] }, eventController.getBlockedStudents as any);
+
   // Anti-Cheating: Unblock student (Admin/Faculty only)
   fastify.post(
     '/:eventId/unblock-student',

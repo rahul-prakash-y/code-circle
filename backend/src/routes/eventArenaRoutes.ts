@@ -28,6 +28,9 @@ import {
   evaluateAssessmentDesign,
   evaluateAssessmentCode,
   deleteAdminAssessmentSubmission,
+  grantAssessmentGraceTime,
+  grantAssessmentGraceTimeAll,
+  createOrUpdateManualSubmission,
   getAdminOverallArenaLeaderboard,
   getStudentAssessmentData,
   startAssessmentSession,
@@ -43,6 +46,7 @@ import {
 } from '../controllers/eventArenaController';
 import { verifyToken, isAdmin, checkFeatureNotRestricted } from '../middleware/authMiddleware';
 import { checkAssessmentNotBlocked } from '../middleware/antiCheatMiddleware';
+import eventController from '../controllers/eventController';
 
 export async function eventArenaRoutes(fastify: FastifyInstance) {
   // All arena endpoints require verified user authentication
@@ -69,6 +73,15 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
   fastify.put('/:id/arena/assessments/:assessmentId/submissions/:submissionId/evaluate-design', evaluateAssessmentDesign);
   fastify.put('/:id/arena/assessments/:assessmentId/submissions/:submissionId/evaluate-code', evaluateAssessmentCode);
   fastify.delete('/:id/arena/assessments/:assessmentId/submissions/:submissionId', deleteAdminAssessmentSubmission);
+  // Grace Timing & Re-entry Management (Preserves Existing Answers)
+  fastify.post('/:id/arena/assessments/:assessmentId/submissions/:submissionId/grace-time', grantAssessmentGraceTime);
+  fastify.post('/:id/arena/assessments/:assessmentId/grace-time', grantAssessmentGraceTime);
+  fastify.post('/:id/arena/assessments/:assessmentId/grace-time-all', grantAssessmentGraceTimeAll);
+  fastify.post('/:id/arena/assessments/:assessmentId/manual-submission', createOrUpdateManualSubmission);
+
+  // Anti-Cheat Unblock student within Arena scope (Admin)
+  fastify.post('/:id/arena/unblock-student', { preHandler: [isAdmin] }, eventController.unblockStudent as any);
+  fastify.get('/:id/arena/blocked-students', { preHandler: [isAdmin] }, eventController.getBlockedStudents as any);
 
   // 4. Sample Templates
   fastify.get('/:id/arena/templates/:type', downloadArenaSampleTemplate);
