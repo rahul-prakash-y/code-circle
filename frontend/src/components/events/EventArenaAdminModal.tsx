@@ -246,6 +246,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [gradingScores, setGradingScores] = useState<Record<string, number>>({});
   const [gradingFeedbacks, setGradingFeedbacks] = useState<Record<string, string>>({});
   const [isGradingCode, setIsGradingCode] = useState<Record<string, boolean>>({});
+  const [isDeletingAssessment, setIsDeletingAssessment] = useState(false);
+  const [deletingMcqIndex, setDeletingMcqIndex] = useState<number | null>(null);
+  const [deletingCodingIndex, setDeletingCodingIndex] = useState<number | null>(null);
+  const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
 
   // Bulk Upload state
   const [bulkModalType, setBulkModalType] = useState<'mcq' | 'coding' | null>(null);
@@ -436,7 +440,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     ) {
       return;
     }
-    await deleteAssessment(event._id, selectedAssessment._id);
+    setIsDeletingAssessment(true);
+    try {
+      await deleteAssessment(event._id, selectedAssessment._id);
+    } finally {
+      setIsDeletingAssessment(false);
+    }
   };
 
   const handleAddMcq = async () => {
@@ -469,7 +478,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     if (!selectedAssessment) return;
     if (!window.confirm('Delete this question?')) return;
     const updated = adminMcqs.filter((_, i) => i !== idx);
-    await saveAssessmentMcqs(event._id, selectedAssessment._id, updated, 'replace');
+    setDeletingMcqIndex(idx);
+    try {
+      await saveAssessmentMcqs(event._id, selectedAssessment._id, updated, 'replace');
+    } finally {
+      setDeletingMcqIndex(null);
+    }
   };
 
   const handleAddCoding = async () => {
@@ -562,7 +576,12 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     if (!selectedAssessment) return;
     if (!window.confirm('Delete this coding challenge?')) return;
     const updated = adminCoding.filter((_, i) => i !== idx);
-    await saveAssessmentCodingProblems(event._id, selectedAssessment._id, updated, 'replace');
+    setDeletingCodingIndex(idx);
+    try {
+      await saveAssessmentCodingProblems(event._id, selectedAssessment._id, updated, 'replace');
+    } finally {
+      setDeletingCodingIndex(null);
+    }
   };
 
   const handleBulkUpload = async () => {
@@ -1533,7 +1552,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         variant="flat"
                         color="danger"
                         onPress={handleDeleteAssessment}
-                        startContent={<Trash2 size={13} />}
+                        isLoading={isDeletingAssessment}
+                        isDisabled={isDeletingAssessment}
+                        startContent={!isDeletingAssessment ? <Trash2 size={13} /> : undefined}
                         className="rounded-full text-xs font-semibold"
                       >
                         Delete Assessment
@@ -1765,6 +1786,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   size="sm"
                                   variant="light"
                                   color="danger"
+                                  isLoading={deletingMcqIndex === idx}
+                                  isDisabled={deletingMcqIndex === idx}
                                   onPress={() => handleDeleteMcq(idx)}
                                   className="w-7 h-7 min-w-7 min-h-7 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10"
                                 >
@@ -2095,6 +2118,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   size="sm"
                                   variant="light"
                                   color="danger"
+                                  isLoading={deletingCodingIndex === idx}
+                                  isDisabled={deletingCodingIndex === idx}
                                   onPress={() => handleDeleteCoding(idx)}
                                   className="w-7 h-7 min-w-7 min-h-7 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10"
                                 >
@@ -2679,9 +2704,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 size="sm"
                                 variant="light"
                                 color="danger"
-                                onPress={() => {
+                                isLoading={deletingTeamId === team._id}
+                                isDisabled={deletingTeamId === team._id}
+                                onPress={async () => {
                                   if (confirm(`Delete team "${team.name}"?`)) {
-                                    deleteArenaTeam(event._id, team._id);
+                                    setDeletingTeamId(team._id);
+                                    try {
+                                      await deleteArenaTeam(event._id, team._id);
+                                    } finally {
+                                      setDeletingTeamId(null);
+                                    }
                                   }
                                 }}
                                 className="min-w-unit-7 w-7 h-7 rounded-lg text-label-primary/40 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"

@@ -67,17 +67,34 @@ export const ContestsPage: React.FC = () => {
     contest: Contest;
     submission: any;
   } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingSubmissionId, setLoadingSubmissionId] = useState<string | null>(null);
+
+  const handleDeleteContest = async (contest: Contest) => {
+    if (!confirm(`Delete contest "${contest.title}"?`)) return;
+    setDeletingId(contest._id);
+    try {
+      await deleteContest(contest._id);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleOpenMySubmission = async (contest: Contest) => {
     if (contest.mySubmission?.mcqAnswers?.length || contest.mySubmission?.codingSubmissions?.length) {
       setActiveStudentSubmission({ contest, submission: contest.mySubmission });
       return;
     }
-    const res = await fetchMyContestSubmission(contest._id);
-    if (res.success && res.data) {
-      setActiveStudentSubmission({ contest, submission: res.data });
-    } else {
-      toast.error(res.error || 'Failed to load your contest submission');
+    setLoadingSubmissionId(contest._id);
+    try {
+      const res = await fetchMyContestSubmission(contest._id);
+      if (res.success && res.data) {
+        setActiveStudentSubmission({ contest, submission: res.data });
+      } else {
+        toast.error(res.error || 'Failed to load your contest submission');
+      }
+    } finally {
+      setLoadingSubmissionId(null);
     }
   };
 
@@ -309,6 +326,8 @@ export const ContestsPage: React.FC = () => {
                                 size="sm"
                                 variant="bordered"
                                 onPress={() => handleOpenMySubmission(c)}
+                                isLoading={loadingSubmissionId === c._id}
+                                isDisabled={loadingSubmissionId === c._id}
                                 className="flex-1 sm:flex-initial rounded-xl bg-surface-secondary hover:bg-surface border-separator text-xs font-medium text-label-secondary hover:text-label-primary"
                                 title="Review submitted choices and code"
                                 startContent={<FileCode2 size={14} />}
@@ -430,6 +449,8 @@ export const ContestsPage: React.FC = () => {
                           variant="flat"
                           color="success"
                           onPress={() => handleOpenMySubmission(c)}
+                          isLoading={loadingSubmissionId === c._id}
+                          isDisabled={loadingSubmissionId === c._id}
                           className="text-xs font-medium rounded-lg"
                           title="View your submitted MCQ choices and code solutions"
                           startContent={<FileCode2 size={13} />}
@@ -580,9 +601,9 @@ export const ContestsPage: React.FC = () => {
                             size="sm"
                             variant="light"
                             color="danger"
-                            onPress={() => {
-                              if (confirm(`Delete contest "${c.title}"?`)) deleteContest(c._id);
-                            }}
+                            isLoading={deletingId === c._id}
+                            isDisabled={deletingId === c._id}
+                            onPress={() => handleDeleteContest(c)}
                             title="Delete"
                           >
                             <Trash2 size={14} />

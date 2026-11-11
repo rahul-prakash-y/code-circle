@@ -163,6 +163,9 @@ const UserManagement: React.FC = () => {
   });
   const [activeResetLink, setActiveResetLink] = useState<string | null>(null);
   const [generatedTempPassword, setGeneratedTempPassword] = useState<string | null>(null);
+  const [generatingLinkId, setGeneratingLinkId] = useState<string | null>(null);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
+  const [togglingBlockId, setTogglingBlockId] = useState<string | null>(null);
 
   // Bulk upload state
   const [showBulkUploadPanel, setShowBulkUploadPanel] = useState(false);
@@ -244,10 +247,16 @@ const UserManagement: React.FC = () => {
   };
 
   const handleToggleBlock = async (targetUser: User) => {
-    const action = targetUser.isBlocked ? 'unblock' : 'block';
-    const res = await toggleBlock(targetUser._id || targetUser.id!, !targetUser.isBlocked);
-    if (res.success) toast.success(`User ${action}ed`);
-    else toast.error(res.error || `Failed to ${action} user`);
+    const uid = targetUser._id || targetUser.id!;
+    setTogglingBlockId(uid);
+    try {
+      const action = targetUser.isBlocked ? 'unblock' : 'block';
+      const res = await toggleBlock(uid, !targetUser.isBlocked);
+      if (res.success) toast.success(`User ${action}ed`);
+      else toast.error(res.error || `Failed to ${action} user`);
+    } finally {
+      setTogglingBlockId(null);
+    }
   };
 
   const handleDeleteSubmit = async (id: string) => {
@@ -264,13 +273,19 @@ const UserManagement: React.FC = () => {
   const handleTriggerResetLink = async (targetUser: User) => {
     setSelectedUser(targetUser);
     setActiveResetLink(null);
-    const res = await generateResetLink(targetUser._id || targetUser.id!);
-    if (res.success && res.resetLink) {
-      setActiveResetLink(res.resetLink);
-      setShowResetLinkModal(true);
-      toast.success('Reset link generated');
-    } else {
-      toast.error(res.error || 'Failed to generate reset link');
+    const uid = targetUser._id || targetUser.id!;
+    setGeneratingLinkId(uid);
+    try {
+      const res = await generateResetLink(uid);
+      if (res.success && res.resetLink) {
+        setActiveResetLink(res.resetLink);
+        setShowResetLinkModal(true);
+        toast.success('Reset link generated');
+      } else {
+        toast.error(res.error || 'Failed to generate reset link');
+      }
+    } finally {
+      setGeneratingLinkId(null);
     }
   };
 
@@ -1038,6 +1053,8 @@ const UserManagement: React.FC = () => {
                                 variant="ghost"
                                 isIconOnly
                                 onPress={() => handleTriggerResetLink(item)}
+                                isLoading={generatingLinkId === uid}
+                                isDisabled={generatingLinkId === uid}
                                 className="min-w-[36px] min-h-[36px] text-muted-foreground hover:text-accent"
                                 title="Generate reset link"
                                 aria-label={`Generate reset link for ${item.name}`}
@@ -1066,18 +1083,23 @@ const UserManagement: React.FC = () => {
                                   size="sm"
                                   variant="ghost"
                                   isIconOnly
+                                  isLoading={unblockingId === uid}
+                                  isDisabled={unblockingId === uid}
                                   onPress={async () => {
                                     if (
                                       window.confirm(
                                         `Lift all restrictions for ${item.name} (${item.rollNo})? They will immediately regain access to assessments, contests, and courses.`
                                       )
                                     ) {
+                                      setUnblockingId(uid);
                                       try {
-                                        await api.post(`/users/${item._id || item.id}/unblock-restrictions`);
+                                        await api.post(`/users/${uid}/unblock-restrictions`);
                                         toast.success(`Restrictions removed for ${item.name}`);
                                         fetchUsers();
                                       } catch (err: any) {
                                         toast.error(err.response?.data?.error || 'Failed to unblock restrictions');
+                                      } finally {
+                                        setUnblockingId(null);
                                       }
                                     }
                                   }}
@@ -1095,6 +1117,8 @@ const UserManagement: React.FC = () => {
                                 variant="ghost"
                                 isIconOnly
                                 onPress={() => handleToggleBlock(item)}
+                                isLoading={togglingBlockId === uid}
+                                isDisabled={togglingBlockId === uid}
                                 className="min-w-[36px] min-h-[36px] text-muted-foreground hover:text-warning"
                                 title={item.isBlocked ? 'Unblock' : 'Block'}
                                 aria-label={`${item.isBlocked ? 'Unblock' : 'Block'} ${item.name}`}

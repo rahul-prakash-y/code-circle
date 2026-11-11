@@ -70,6 +70,8 @@ export interface IEventArenaSubmission extends Document {
   maxPossibleScore: number;
   scorePercentage: number;
   isPassed: boolean;
+  pointsAwarded?: boolean;
+  pointsAwardedAmount?: number;
   integrityEvents: Array<{
     type: string;
     timestamp: Date;
@@ -241,6 +243,14 @@ const eventArenaSubmissionSchema = new Schema<IEventArenaSubmission>(
     isPassed: {
       type: Boolean,
       default: false,
+    },
+    pointsAwarded: {
+      type: Boolean,
+      default: false,
+    },
+    pointsAwardedAmount: {
+      type: Number,
+      default: 0,
     },
     integrityEvents: [
       {

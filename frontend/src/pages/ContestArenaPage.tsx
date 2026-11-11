@@ -150,6 +150,7 @@ export const ContestArenaPage: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isReentryModalOpen, setIsReentryModalOpen] = useState(false);
   const [detailedSubmission, setDetailedSubmission] = useState<any | null>(null);
+  const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [currentMcqIdx, setCurrentMcqIdx] = useState(0);
   const [currentCodingIdx, setCurrentCodingIdx] = useState(0);
 
@@ -1965,17 +1966,24 @@ export const ContestArenaPage: React.FC = () => {
                   size="sm"
                   color="success"
                   variant="solid"
+                  isLoading={isFetchingDetail}
+                  isDisabled={isFetchingDetail}
                   onPress={async () => {
-                    if (!detailedSubmission && activeContest) {
-                      const res = await fetchMyContestSubmission(activeContest._id);
-                      if (res.success && res.data) {
-                        setDetailedSubmission(res.data);
+                    setIsFetchingDetail(true);
+                    try {
+                      if (!detailedSubmission && activeContest) {
+                        const res = await fetchMyContestSubmission(activeContest._id);
+                        if (res.success && res.data) {
+                          setDetailedSubmission(res.data);
+                        }
                       }
+                      setIsDetailModalOpen(true);
+                    } finally {
+                      setIsFetchingDetail(false);
                     }
-                    setIsDetailModalOpen(true);
                   }}
                   className="w-full min-h-[42px] text-xs font-bold rounded-xl shadow-md"
-                  startContent={<FileCode2 size={14} />}
+                  startContent={!isFetchingDetail ? <FileCode2 size={14} /> : undefined}
                 >
                   Review MCQ & Code Solutions
                 </Button>

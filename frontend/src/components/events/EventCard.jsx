@@ -9,10 +9,12 @@ import EventParticipantsModal from '../admin/EventParticipantsModal';
 import EventBulkUploadModal from './EventBulkUploadModal';
 import EventArenaAdminModal from './EventArenaAdminModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
+import useEventStore from '../../store/useEventStore';
 import { EmilCard, EmilButton } from '../ui/emil-ui';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
+  const { fetchEvents } = useEventStore();
   const { myEnrolledEventIds } = useEnrollmentStore();
   const isEnrolled = myEnrolledEventIds.includes(event._id);
   const [timeLeft, setTimeLeft] = useState('');
@@ -21,6 +23,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [hasUploadedInSession, setHasUploadedInSession] = useState(false);
   const [isArenaAdminOpen, setIsArenaAdminOpen] = useState(false);
   const [participantsInitialTab, setParticipantsInitialTab] = useState('participants');
 
@@ -387,10 +390,22 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
       {isAdmin && isBulkUploadOpen && (
         <EventBulkUploadModal
           isOpen={isBulkUploadOpen}
-          onClose={() => setIsBulkUploadOpen(false)}
+          onClose={() => {
+            setIsBulkUploadOpen(false);
+            if (hasUploadedInSession) {
+              setHasUploadedInSession(false);
+              try {
+                fetchEvents();
+              } catch {
+                // Safe fallback
+              }
+            }
+          }}
           event={event}
           onSuccess={() => {
-            setIsBulkUploadOpen(false);
+            // Mark that an upload succeeded during this session;
+            // fetchEvents() is deferred until the admin explicitly closes the modal
+            setHasUploadedInSession(true);
           }}
         />
       )}

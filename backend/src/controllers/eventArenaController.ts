@@ -9,6 +9,7 @@ import Event, {
 import EventArenaSubmission from '../models/eventArenaSubmissionModel';
 import Enrollment from '../models/enrollmentModel';
 import User from '../models/userModel';
+import PointTransaction from '../models/pointTransactionModel';
 import Team from '../models/teamModel';
 import rceService from '../services/rceService';
 import * as XLSX from 'xlsx';
@@ -46,6 +47,52 @@ export const canManageAssessmentQuestions = (
 
 export const canManageEventArenaQuestions = (user: any, event: any): boolean => {
   return canManageAssessmentQuestions(user, event);
+};
+
+/**
+ * Helper: Atomically credit points scored in an Event Arena round to a student's
+ * account (User.points) and ledger (PointTransaction), so it reflects in "My Points".
+ */
+export const creditArenaRoundPoints = async ({
+  userId,
+  amount,
+  eventTitle,
+  roundTitle,
+  submissionId,
+  awardedBy,
+  note,
+}: {
+  userId: mongoose.Types.ObjectId | string;
+  amount: number;
+  eventTitle: string;
+  roundTitle: string;
+  submissionId: mongoose.Types.ObjectId | string;
+  awardedBy?: mongoose.Types.ObjectId | string;
+  note?: string;
+}) => {
+  if (!amount || amount === 0) return;
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { $inc: { points: amount } },
+    { new: true }
+  );
+
+  await PointTransaction.create({
+    user: userId,
+    amount,
+    category: 'Contest',
+    title: `${eventTitle} - Round: ${roundTitle}`,
+    description:
+      note ||
+      (amount > 0
+        ? `Earned ${amount} pts in Event Arena round assessment.`
+        : `Score adjusted by ${amount} pts in Event Arena round assessment.`),
+    referenceId: submissionId.toString(),
+    referenceModel: 'EventArenaSubmission',
+    balanceAfter: updatedUser?.points ?? 0,
+    awardedBy: awardedBy ? new mongoose.Types.ObjectId(awardedBy) : undefined,
+    timestamp: new Date(),
+  });
 };
 
 // ---------------------------------------------------------------------------
@@ -1386,19 +1433,43 @@ export const submitArenaFinal = async (
 
     await submission.save();
 
+    // Credit points scored to user account and ledger
+    const previousPointsAwarded = submission.pointsAwardedAmount || 0;
+    const pointsDelta = totalScore - previousPointsAwarded;
+    if (pointsDelta !== 0) {
+      await creditArenaRoundPoints({
+        userId: (user as any)._id || (user as any).id,
+        amount: pointsDelta,
+        eventTitle: event.title,
+        roundTitle: 'Arena Assessment',
+        submissionId: submission._id,
+      });
+      submission.pointsAwarded = true;
+      submission.pointsAwardedAmount = totalScore;
+      await submission.save();
+    }
+
+    const isAdminUser = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
+    const results = isAdminUser
+      ? {
+          totalScore,
+          maxPossibleScore: maxPossible,
+          scorePercentage,
+          isPassed,
+          mcqScore,
+          codingScore,
+          status: submission.status,
+          submittedAt: submission.submittedAt,
+        }
+      : {
+          status: submission.status,
+          submittedAt: submission.submittedAt,
+        };
+
     return reply.send({
       success: true,
       message: 'Event Arena assessment submitted successfully!',
-      results: {
-        totalScore,
-        maxPossibleScore: maxPossible,
-        scorePercentage,
-        isPassed,
-        mcqScore,
-        codingScore,
-        status: submission.status,
-        submittedAt: submission.submittedAt,
-      },
+      results,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -1574,10 +1645,10 @@ export const getEventAssessmentsList = async (
         submission: userSub
           ? {
               status: userSub.status,
-              totalScore: userSub.totalScore,
-              maxPossibleScore: userSub.maxPossibleScore,
-              scorePercentage: userSub.scorePercentage,
-              isPassed: userSub.isPassed,
+              totalScore: isPrivileged ? userSub.totalScore : undefined,
+              maxPossibleScore: isPrivileged ? userSub.maxPossibleScore : undefined,
+              scorePercentage: isPrivileged ? userSub.scorePercentage : undefined,
+              isPassed: isPrivileged ? userSub.isPassed : undefined,
               submittedAt: userSub.submittedAt,
             }
           : null,
@@ -2819,6 +2890,8 @@ export const submitAssessmentCodingProblem = async (
       await submission.save();
     }
 
+    const isAdminUser = Boolean(user?.role && ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role));
+
     return reply.send({
       success: true,
       problemId,
@@ -2826,15 +2899,15 @@ export const submitAssessmentCodingProblem = async (
       codingMode,
       passedCount,
       totalTestCases,
-      pointsEarned,
-      pointsPossible,
+      pointsEarned: isAdminUser ? pointsEarned : undefined,
+      pointsPossible: isAdminUser ? pointsPossible : undefined,
       isEvaluated: codingMode === 'TEST_CASES',
       message:
         codingMode === 'ONLY_CODE'
-          ? 'Code submitted successfully! The assigned admin will review your code and assign your score.'
+          ? 'Code submitted successfully! The assigned admin will review your code.'
           : passedCount === totalTestCases
-          ? `All test cases passed! +${pointsEarned} points awarded immediately.`
-          : `Submitted: ${passedCount}/${totalTestCases} test cases passed. +${pointsEarned} points awarded immediately.`,
+          ? (isAdminUser ? `All test cases passed! +${pointsEarned} points awarded.` : 'All test cases passed! Solution recorded successfully.')
+          : (isAdminUser ? `Submitted: ${passedCount}/${totalTestCases} test cases passed. +${pointsEarned} points.` : `Submitted: ${passedCount}/${totalTestCases} test cases passed.`),
     });
   } catch (err: any) {
     request.log.error(err);
@@ -2947,6 +3020,22 @@ export const submitAssessmentFinal = async (
     submission.timeTakenSeconds = timeTakenSeconds;
 
     await submission.save();
+
+    // Credit points scored in this round to student's account and PointTransaction ledger
+    const previousPointsAwarded = submission.pointsAwardedAmount || 0;
+    const pointsDelta = adjustedTotalScore - previousPointsAwarded;
+    if (pointsDelta !== 0) {
+      await creditArenaRoundPoints({
+        userId: (user as any)._id || (user as any).id,
+        amount: pointsDelta,
+        eventTitle: event.title,
+        roundTitle: assessment.title,
+        submissionId: submission._id,
+      });
+      submission.pointsAwarded = true;
+      submission.pointsAwardedAmount = adjustedTotalScore;
+      await submission.save();
+    }
 
     const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
     const results = isAdminRole
@@ -3440,6 +3529,27 @@ export const evaluateAssessmentDesign = async (
 
     await submission.save();
 
+    // Reconcile points awarded to student's account and ledger
+    const previousPointsAwarded = submission.pointsAwardedAmount || 0;
+    const pointsDelta = totalScore - previousPointsAwarded;
+    if (pointsDelta !== 0) {
+      await creditArenaRoundPoints({
+        userId: submission.userId,
+        amount: pointsDelta,
+        eventTitle: event.title,
+        roundTitle: assessment.title,
+        submissionId: submission._id,
+        awardedBy: user._id,
+        note:
+          pointsDelta >= 0
+            ? `Earned ${pointsDelta} pts from Figma design evaluation in Event Arena.`
+            : `Score adjusted by ${pointsDelta} pts from Figma design evaluation in Event Arena.`,
+      });
+      submission.pointsAwarded = true;
+      submission.pointsAwardedAmount = totalScore;
+      await submission.save();
+    }
+
     return reply.send({
       success: true,
       message: 'Design submission evaluated successfully!',
@@ -3534,6 +3644,27 @@ export const evaluateAssessmentCode = async (
 
     await submission.save();
 
+    // Reconcile points awarded to student's account and ledger
+    const previousPointsAwarded = submission.pointsAwardedAmount || 0;
+    const pointsDelta = totalScore - previousPointsAwarded;
+    if (pointsDelta !== 0) {
+      await creditArenaRoundPoints({
+        userId: submission.userId,
+        amount: pointsDelta,
+        eventTitle: event.title,
+        roundTitle: assessment.title,
+        submissionId: submission._id,
+        awardedBy: user._id,
+        note:
+          pointsDelta >= 0
+            ? `Earned ${pointsDelta} pts from code evaluation in Event Arena.`
+            : `Score adjusted by ${pointsDelta} pts from code evaluation in Event Arena.`,
+      });
+      submission.pointsAwarded = true;
+      submission.pointsAwardedAmount = totalScore;
+      await submission.save();
+    }
+
     return reply.send({
       success: true,
       message: 'Coding submission evaluated successfully!',
@@ -3565,6 +3696,29 @@ export const deleteAdminAssessmentSubmission = async (
     }
     const deleted = await EventArenaSubmission.findOneAndDelete({ _id: submissionId, eventId: id, assessmentId });
     if (!deleted) return reply.status(404).send({ success: false, error: 'Submission not found' });
+
+    // If points had been credited to the user for this submission, deduct them upon deletion
+    if (deleted.pointsAwardedAmount && deleted.pointsAwardedAmount > 0) {
+      const deduction = -deleted.pointsAwardedAmount;
+      const updatedUser = await User.findByIdAndUpdate(
+        deleted.userId,
+        { $inc: { points: deduction } },
+        { new: true }
+      );
+      await PointTransaction.create({
+        user: deleted.userId,
+        amount: deduction,
+        category: 'Adjustment',
+        title: `${event.title} - Round: ${assessment.title} (Submission Removed)`,
+        description: `Deducted ${deleted.pointsAwardedAmount} pts due to removed assessment submission.`,
+        referenceId: deleted._id.toString(),
+        referenceModel: 'EventArenaSubmission',
+        balanceAfter: updatedUser?.points ?? 0,
+        awardedBy: user._id,
+        timestamp: new Date(),
+      });
+    }
+
     return reply.send({ success: true, message: 'Submission deleted successfully' });
   } catch (err: any) {
     request.log.error(err);

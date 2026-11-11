@@ -57,6 +57,7 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
 
   const [activeTab, setActiveTab] = useState<'info' | 'mcq' | 'coding'>('info');
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showMcqBulkModal, setShowMcqBulkModal] = useState(false);
   const [showCodingBulkModal, setShowCodingBulkModal] = useState(false);
 
@@ -412,14 +413,19 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
             })),
     };
 
-    let ok = false;
-    if (editingContest?._id) {
-      ok = await updateContest(editingContest._id, payload as any);
-    } else {
-      ok = await createContest(payload as any);
-    }
+    try {
+      setIsSaving(true);
+      let ok = false;
+      if (editingContest?._id) {
+        ok = await updateContest(editingContest._id, payload as any);
+      } else {
+        ok = await createContest(payload as any);
+      }
 
-    if (ok) onClose();
+      if (ok) onClose();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -1271,6 +1277,8 @@ export const ContestBuilderModal: React.FC<ContestBuilderModalProps> = ({
             <Button
               type="button"
               variant="primary"
+              isLoading={isSaving}
+              isDisabled={isSaving}
               onPress={handleSave}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold shadow-xs"
             >

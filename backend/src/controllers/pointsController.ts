@@ -12,6 +12,7 @@ import '../models/levelModel';
 
 import AssessmentSubmission from '../models/assessmentSubmissionModel';
 import '../models/assessmentModel';
+import EventArenaSubmission from '../models/eventArenaSubmissionModel';
 
 // Calculate tier based on points
 export const calculateTier = (points: number = 0) => {
@@ -95,6 +96,21 @@ export const gatherStudentPointsAudit = async (userId: mongoose.Types.ObjectId |
       .lean();
   } catch (err) {
     console.warn('[PointsController] Could not fetch assessment submissions:', err);
+  }
+
+  // 6. Fetch Event Arena Submissions
+  let arenaSubmissions: any[] = [];
+  try {
+    arenaSubmissions = await EventArenaSubmission.find({
+      userId: userObjId,
+      status: { $in: ['SUBMITTED', 'AUTO_SUBMITTED'] },
+      totalScore: { $gt: 0 },
+    })
+      .populate('eventId', 'title arenaAssessments')
+      .sort({ submittedAt: -1, createdAt: -1 })
+      .lean();
+  } catch (err) {
+    console.warn('[PointsController] Could not fetch arena submissions:', err);
   }
 
   // Build unified transaction list
@@ -209,6 +225,34 @@ export const gatherStudentPointsAudit = async (userId: mongoose.Types.ObjectId |
     }
   }
 
+  // Backfill event arena round submissions if not explicitly in PointTransaction
+  let arenaPointsSum = 0;
+  for (const sub of arenaSubmissions) {
+    const pts = sub.totalScore || 0;
+    if (pts > 0) {
+      arenaPointsSum += pts;
+      const refKey = sub._id.toString();
+      if (!transactionMap.has(refKey)) {
+        const ev = sub.eventId as any;
+        const evTitle = ev?.title || 'Event Arena';
+        const roundTitle =
+          (ev?.arenaAssessments || []).find((a: any) => a._id?.toString() === sub.assessmentId)?.title ||
+          'Round Assessment';
+        unifiedList.push({
+          id: `arena-${sub._id}`,
+          title: `${evTitle} - Round: ${roundTitle}`,
+          description: `Earned ${pts} pts in Event Arena round assessment.`,
+          category: 'Contest' as PointCategory,
+          amount: pts,
+          classHours: [],
+          classHoursText: '',
+          timestamp: sub.submittedAt || sub.createdAt,
+          source: 'event_arena_submission',
+        });
+      }
+    }
+  }
+
   // Compute breakdown totals from transactions if available
   let txAttendance = 0;
   let txCoding = 0;
@@ -285,8 +329,8 @@ export const gatherStudentPointsAudit = async (userId: mongoose.Types.ObjectId |
         completedLevels: completedLevelsCount,
       },
       contests: {
-        points: Math.max(contestPointsSum, txContest),
-        participatedCount: contestSubmissions.length,
+        points: Math.max(contestPointsSum + arenaPointsSum, txContest),
+        participatedCount: contestSubmissions.length + arenaSubmissions.length,
       },
       courses: {
         points: txCourse,

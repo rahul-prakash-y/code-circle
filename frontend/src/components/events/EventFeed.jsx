@@ -284,7 +284,7 @@ export const EventFeed = ({
       </div>
 
       {/* Main Events Display */}
-      {loading ? (
+      {loading && events.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {[1, 2, 3, 4].map((i) => (
             <EventCardSkeleton key={i} />

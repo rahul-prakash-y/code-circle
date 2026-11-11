@@ -19,8 +19,14 @@ const useEventStore = create((set) => ({
   loading: false,
   error: null,
 
-  fetchEvents: async (filters = '', page = 1, limit = 20) => {
-    set({ loading: true, error: null });
+  fetchEvents: async (filters = '', page = 1, limit = 20, options = {}) => {
+    const isSilent = Boolean(
+      (typeof filters === 'object' && filters !== null && filters.silent) ||
+      (typeof options === 'object' && options !== null && options.silent)
+    );
+    if (!isSilent) {
+      set({ loading: true, error: null });
+    }
     let statusVal = '';
     try {
       const params = new URLSearchParams();
