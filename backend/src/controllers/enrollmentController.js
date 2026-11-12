@@ -1142,6 +1142,64 @@ const addSingleParticipant = async (request, reply) => {
   }
 };
 
+const removeSingleParticipant = async (request, reply) => {
+  try {
+    const { eventId } = request.params;
+    const { studentId, rollNo, email, identifier, enrollmentId } = request.body || request.query || {};
+
+    if (!eventId) {
+      return reply.status(400).send({ error: 'Event ID is required' });
+    }
+
+    let enrollment = null;
+
+    if (enrollmentId) {
+      enrollment = await Enrollment.findById(enrollmentId);
+    }
+
+    if (!enrollment) {
+      let targetUserId = studentId;
+      if (!targetUserId) {
+        const queryId = identifier || rollNo || email;
+        if (queryId) {
+          const userDoc = await User.findOne({
+            $or: [
+              { rollNo: new RegExp(`^${queryId.trim()}$`, 'i') },
+              { email: new RegExp(`^${queryId.trim()}$`, 'i') },
+            ],
+          }).select('_id');
+          if (userDoc) targetUserId = userDoc._id;
+        }
+      }
+
+      if (targetUserId) {
+        enrollment = await Enrollment.findOne({
+          event: eventId,
+          $or: [
+            { enrolledBy: targetUserId },
+            { 'teamMembers.user': targetUserId },
+          ],
+        });
+      }
+    }
+
+    if (!enrollment) {
+      return reply.status(404).send({ error: 'Participant enrollment record not found for this event' });
+    }
+
+    await Enrollment.findByIdAndDelete(enrollment._id);
+
+    return reply.send({
+      success: true,
+      message: 'Participant enrollment removed successfully',
+      deletedEnrollmentId: enrollment._id,
+    });
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({ error: 'Failed to remove participant from event' });
+  }
+};
+
 module.exports = {
   enrollInEvent,
   getEventEnrollments,
@@ -1154,4 +1212,5 @@ module.exports = {
   downloadSampleTemplate,
   deleteEventEnrollment,
   addSingleParticipant,
+  removeSingleParticipant,
 };

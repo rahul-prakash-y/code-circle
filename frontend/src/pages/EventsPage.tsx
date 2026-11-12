@@ -40,8 +40,8 @@ export const EventsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteEvent = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
+  const handleDeleteEvent = async (id: string, skipConfirm: boolean = false) => {
+    if (skipConfirm || window.confirm('Are you sure you want to delete this event?')) {
       try {
         await deleteEvent(id);
         toast.success('Event deleted');

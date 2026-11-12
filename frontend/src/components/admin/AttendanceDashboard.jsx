@@ -50,6 +50,21 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [copiedOtp, setCopiedOtp] = useState(null);
 
+  // Safely normalize sessions and sessionAttendance to always be arrays
+  const safeSessionAttendance = useMemo(() => {
+    if (Array.isArray(sessionAttendance)) return sessionAttendance;
+    if (Array.isArray(sessionAttendance?.records)) return sessionAttendance.records;
+    if (Array.isArray(sessionAttendance?.data)) return sessionAttendance.data;
+    return [];
+  }, [sessionAttendance]);
+
+  const safeSessions = useMemo(() => {
+    if (Array.isArray(sessions)) return sessions;
+    if (Array.isArray(sessions?.sessions)) return sessions.sessions;
+    if (Array.isArray(sessions?.data)) return sessions.data;
+    return [];
+  }, [sessions]);
+
   // Load enrollments or sessions on open
   useEffect(() => {
     if (isOpen && event?._id) {
@@ -78,10 +93,10 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
 
   // Auto-select latest session if available
   useEffect(() => {
-    if (activeTab === 'sessions' && sessions?.length > 0 && !selectedSession) {
-      handleViewSession(sessions[0]);
+    if (activeTab === 'sessions' && safeSessions.length > 0 && !selectedSession) {
+      handleViewSession(safeSessions[0]);
     }
-  }, [activeTab, sessions, selectedSession, handleViewSession]);
+  }, [activeTab, safeSessions, selectedSession, handleViewSession]);
 
   // Filtered manual registry
   const filteredEnrollments = useMemo(() => {
@@ -109,7 +124,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
   const totalStudents = enrollments.length;
   const presentStudents = selectedEnrollmentIds.size;
   const turnoutRate = totalStudents > 0 ? Math.round((presentStudents / totalStudents) * 100) : 0;
-  const activeSessionsCount = sessions.filter((s) => s.isActive).length;
+  const activeSessionsCount = safeSessions.filter((s) => s.isActive).length;
 
   const handleCreateSession = async (e) => {
     e.preventDefault();
@@ -185,12 +200,12 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
   };
 
   const exportSessionCSV = () => {
-    if (!selectedSession || !sessionAttendance.length) {
+    if (!selectedSession || !safeSessionAttendance.length) {
       return toast.error('No verified attendees in this session to export');
     }
 
     const headers = ['Event Title', 'Session Name', 'Student Name', 'Roll Number', 'Email', 'Verified Timestamp'];
-    const rows = sessionAttendance.map((rec) => [
+    const rows = safeSessionAttendance.map((rec) => [
       `"${(event.title || '').replace(/"/g, '""')}"`,
       `"${(selectedSession.sessionName || '').replace(/"/g, '""')}"`,
       `"${(rec.user?.name || '').replace(/"/g, '""')}"`,
@@ -303,7 +318,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                     : 'bg-separator text-label-secondary'
                 }`}
               >
-                {sessions.length}
+                {safeSessions.length}
               </span>
             </button>
           </div>
@@ -519,7 +534,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
               <div className="w-full md:w-88 border-r border-separator dark:border-white/10 flex flex-col bg-canvas/30 dark:bg-white/[0.01]">
                 <div className="p-4 border-b border-separator dark:border-white/10 flex items-center justify-between gap-2">
                   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-label-secondary tabular-nums">
-                    Attendance sessions ({sessions.length})
+                    Attendance sessions ({safeSessions.length})
                   </h3>
                   <button
                     onClick={() => setShowCreateSession(true)}
@@ -531,7 +546,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar">
-                  {sessions.length === 0 ? (
+                  {safeSessions.length === 0 ? (
                     <div className="py-12 text-center p-4 space-y-2">
                       <Key size={24} className="text-label-tertiary mx-auto" />
                       <p className="text-xs font-semibold text-label-primary">No active sessions</p>
@@ -540,7 +555,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                       </p>
                     </div>
                   ) : (
-                    sessions.map((s) => {
+                    safeSessions.map((s) => {
                       const isSelected = selectedSession?._id === s._id;
                       return (
                         <div
@@ -645,14 +660,14 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={exportSessionCSV}
-                          disabled={!sessionAttendance.length}
+                          disabled={!safeSessionAttendance.length}
                           className="btn-secondary py-1.5 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
                           <Download size={13} />
                           <span>Export attendees (CSV)</span>
                         </button>
                         <div className="px-3.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-center shrink-0">
-                          <span className="text-base font-semibold tabular-nums leading-none block">{sessionAttendance.length}</span>
+                          <span className="text-base font-semibold tabular-nums leading-none block">{safeSessionAttendance.length}</span>
                           <span className="text-[10px] uppercase font-semibold tracking-wider leading-none mt-0.5 block">
                             Verified
                           </span>
@@ -666,7 +681,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                           <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto" />
                           <p className="text-xs text-label-secondary">Loading session attendees...</p>
                         </div>
-                      ) : sessionAttendance.length === 0 ? (
+                      ) : safeSessionAttendance.length === 0 ? (
                         <div className="py-16 text-center space-y-3">
                           <div className="w-12 h-12 rounded-2xl bg-canvas border border-separator dark:border-white/10 flex items-center justify-center text-label-tertiary mx-auto">
                             <Clock size={22} />
@@ -686,7 +701,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-separator/60 dark:divide-white/5">
-                            {sessionAttendance.map((rec) => (
+                            {safeSessionAttendance.map((rec) => (
                               <tr key={rec._id} className="hover:bg-canvas/50 dark:hover:bg-white/[0.02] transition-colors">
                                 <td className="py-3 px-6 font-medium text-sm text-label-primary">
                                   {rec.user?.name || 'Unknown Student'}

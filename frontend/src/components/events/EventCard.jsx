@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles, FileText, UserPlus } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles, FileText, UserPlus, AlertTriangle, Loader2 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import EnrollmentModal from './EnrollmentModal';
 import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
@@ -14,7 +16,7 @@ import { EmilCard, EmilButton } from '../ui/emil-ui';
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
-  const { fetchEvents } = useEventStore();
+  const { fetchEvents, deleteEvent } = useEventStore();
   const { myEnrolledEventIds } = useEnrollmentStore();
   const isEnrolled = myEnrolledEventIds.includes(event._id);
   const [timeLeft, setTimeLeft] = useState('');
@@ -27,6 +29,26 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [hasUploadedInSession, setHasUploadedInSession] = useState(false);
   const [isArenaAdminOpen, setIsArenaAdminOpen] = useState(false);
   const [participantsInitialTab, setParticipantsInitialTab] = useState('participants');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    try {
+      setIsDeletingEvent(true);
+      if (typeof onDelete === 'function') {
+        await onDelete(event._id, true);
+      } else {
+        await deleteEvent(event._id);
+        toast.success(`"${event.title}" deleted successfully`);
+        if (fetchEvents) await fetchEvents();
+      }
+      setIsDeleteModalOpen(false);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || err?.message || 'Failed to delete event');
+    } finally {
+      setIsDeletingEvent(false);
+    }
+  };
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -303,7 +325,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   <Edit2 size={15} strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => onDelete(event._id)}
+                  onClick={() => setIsDeleteModalOpen(true)}
                   className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-destructive hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Delete Event"
                   aria-label="Delete Event"
@@ -465,6 +487,71 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
           event={event}
         />
       )}
+
+      {/* Delete Confirmation Modal for Admin */}
+      <AnimatePresence>
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md rounded-2xl bg-surface border border-separator shadow-2xl overflow-hidden p-6 space-y-5"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0 border border-rose-500/25">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <h3 className="text-base font-bold text-label-primary tracking-tight">
+                    Delete Event
+                  </h3>
+                  <p className="text-xs text-label-secondary leading-relaxed">
+                    Are you sure you want to permanently delete{' '}
+                    <strong className="text-label-primary font-semibold">"{event.title}"</strong>?
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-canvas border border-separator/60 text-xs text-label-tertiary space-y-1 font-normal">
+                <p className="text-rose-400 font-medium">Warning: This action cannot be undone.</p>
+                <p>
+                  All associated student registrations, attendance logs, and arena assessments will be permanently removed.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeletingEvent}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-canvas transition border border-transparent disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeletingEvent}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-900/30 transition disabled:opacity-50 cursor-pointer"
+                >
+                  {isDeletingEvent ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Deleting Event...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={13} />
+                      <span>Delete Event</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

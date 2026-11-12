@@ -215,6 +215,25 @@ const useEnrollmentStore = create((set, get) => ({
     }
   },
 
+  removeSingleParticipant: async (eventId, { studentId, rollNo, email, identifier, enrollmentId } = {}) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.post(`/enrollments/event/${eventId}/remove-participant`, {
+        studentId,
+        rollNo,
+        email,
+        identifier,
+        enrollmentId,
+      });
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to remove participant from event';
+      set({ error: msg, loading: false });
+      throw new Error(msg);
+    }
+  },
+
   resetStatus: () => set({ error: null, success: false, loading: false })
 }));
 
