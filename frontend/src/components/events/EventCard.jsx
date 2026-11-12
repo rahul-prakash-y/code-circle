@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles, FileText } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles, FileText, UserPlus } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import EnrollmentModal from './EnrollmentModal';
 import EventDetailsModal from './EventDetailsModal';
@@ -23,6 +23,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [bulkUploadInitialTab, setBulkUploadInitialTab] = useState('bulk');
   const [hasUploadedInSession, setHasUploadedInSession] = useState(false);
   const [isArenaAdminOpen, setIsArenaAdminOpen] = useState(false);
   const [participantsInitialTab, setParticipantsInitialTab] = useState('participants');
@@ -226,12 +227,26 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
                   <Eye size={15} strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => setIsBulkUploadOpen(true)}
+                  onClick={() => {
+                    setBulkUploadInitialTab('bulk');
+                    setIsBulkUploadOpen(true);
+                  }}
                   className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-emerald-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
                   title="Upload Participants List (Excel / CSV)"
                   aria-label="Upload Participants List"
                 >
                   <FileSpreadsheet size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => {
+                    setBulkUploadInitialTab('single');
+                    setIsBulkUploadOpen(true);
+                  }}
+                  className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-label-secondary hover:text-blue-500 hover:bg-surface rounded-lg transition-colors cursor-pointer"
+                  title="Add Single Participant (Roll No / Email)"
+                  aria-label="Add Single Participant"
+                >
+                  <UserPlus size={15} strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => {
@@ -383,13 +398,21 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
           setParticipantsInitialTab('registered');
           setIsParticipantsOpen(true);
         }}
-        onUploadParticipants={() => setIsBulkUploadOpen(true)}
+        onUploadParticipants={() => {
+          setBulkUploadInitialTab('bulk');
+          setIsBulkUploadOpen(true);
+        }}
+        onAddParticipant={() => {
+          setBulkUploadInitialTab('single');
+          setIsBulkUploadOpen(true);
+        }}
       />
 
-      {/* Event Bulk Upload Modal for Admin */}
+      {/* Event Bulk Upload & Single User Modal for Admin */}
       {isAdmin && isBulkUploadOpen && (
         <EventBulkUploadModal
           isOpen={isBulkUploadOpen}
+          initialTab={bulkUploadInitialTab}
           onClose={() => {
             setIsBulkUploadOpen(false);
             if (hasUploadedInSession) {
@@ -403,7 +426,7 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
           }}
           event={event}
           onSuccess={() => {
-            // Mark that an upload succeeded during this session;
+            // Mark that an upload or single student addition succeeded during this session;
             // fetchEvents() is deferred until the admin explicitly closes the modal
             setHasUploadedInSession(true);
           }}

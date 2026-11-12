@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const rawEnrollment = require('../models/enrollmentModel');
 const Enrollment = rawEnrollment.default || rawEnrollment;
 const rawEvent = require('../models/eventModel');
@@ -991,6 +992,156 @@ const deleteEventEnrollment = async (request, reply) => {
   }
 };
 
+const addSingleParticipant = async (request, reply) => {
+  try {
+    const { eventId } = request.params;
+    const {
+      studentId,
+      rollNo,
+      email,
+      identifier,
+      attendanceStatus = false,
+      type = 'Individual',
+      teamName,
+      members = [],
+    } = request.body || {};
+
+    if (!eventId) {
+      return reply.status(400).send({ error: 'Event ID is required' });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return reply.status(404).send({ error: 'Event not found' });
+    }
+
+    // Resolve student
+    let targetUser = null;
+    const queryId = studentId || identifier;
+
+    if (queryId && mongoose.Types.ObjectId.isValid(queryId)) {
+      targetUser = await User.findById(queryId).select('_id rollNo email name department year phone college role');
+    }
+
+    if (!targetUser) {
+      const searchTerms = [];
+      if (rollNo && typeof rollNo === 'string') {
+        const r = rollNo.trim();
+        searchTerms.push({ rollNo: r.toUpperCase() }, { rollNo: r });
+      }
+      if (email && typeof email === 'string') {
+        const e = email.trim();
+        searchTerms.push({ email: e.toLowerCase() }, { email: e });
+      }
+      if (identifier && typeof identifier === 'string' && !mongoose.Types.ObjectId.isValid(identifier)) {
+        const idTrim = identifier.trim();
+        searchTerms.push(
+          { rollNo: idTrim.toUpperCase() },
+          { rollNo: idTrim },
+          { email: idTrim.toLowerCase() },
+          { email: idTrim }
+        );
+      }
+
+      if (searchTerms.length > 0) {
+        targetUser = await User.findOne({ $or: searchTerms }).select('_id rollNo email name department year phone college role');
+      }
+    }
+
+    if (!targetUser) {
+      return reply.status(404).send({
+        error: 'Student not found. Please provide a valid Roll Number, Email, or select a registered student.',
+      });
+    }
+
+    // Check if student is already enrolled in this event
+    const existingEnrollment = await Enrollment.findOne({
+      event: eventId,
+      $or: [
+        { enrolledBy: targetUser._id },
+        { members: targetUser._id },
+      ],
+    }).populate('enrolledBy', 'name rollNo email department year college phone role');
+
+    if (existingEnrollment) {
+      // If student is already enrolled, but attendance was false and admin wants to mark attended
+      if (attendanceStatus && !existingEnrollment.attendanceStatus) {
+        existingEnrollment.attendanceStatus = true;
+        await existingEnrollment.save();
+        return reply.send({
+          success: true,
+          message: `${targetUser.name || targetUser.rollNo} was already registered. Attendance status updated to Present.`,
+          enrollment: existingEnrollment,
+          student: targetUser,
+          isAlreadyEnrolled: true,
+          attendanceUpdated: true,
+        });
+      }
+
+      return reply.status(400).send({
+        error: `${targetUser.name || targetUser.rollNo} is already enrolled in this event (${existingEnrollment.attendanceStatus ? 'Attended' : 'Registered'}).`,
+        enrollment: existingEnrollment,
+        isAlreadyEnrolled: true,
+      });
+    }
+
+    // Resolve team members if Duo or Team
+    let resolvedMemberIds = [];
+    if ((type === 'Team' || type === 'Duo') && Array.isArray(members) && members.length > 0) {
+      for (const m of members) {
+        if (!m) continue;
+        let memberUser = null;
+        if (typeof m === 'string' && mongoose.Types.ObjectId.isValid(m)) {
+          memberUser = await User.findById(m);
+        } else if (typeof m === 'string') {
+          memberUser = await User.findOne({
+            $or: [
+              { rollNo: m.trim().toUpperCase() },
+              { rollNo: m.trim() },
+              { email: m.trim().toLowerCase() },
+              { email: m.trim() },
+            ],
+          });
+        }
+        if (memberUser && !memberUser._id.equals(targetUser._id)) {
+          resolvedMemberIds.push(memberUser._id);
+        }
+      }
+    }
+
+    // Create the enrollment
+    const newEnrollment = await Enrollment.create({
+      event: eventId,
+      enrolledBy: targetUser._id,
+      type: type || 'Individual',
+      teamName: (type === 'Team' || type === 'Duo') ? teamName : undefined,
+      members: resolvedMemberIds,
+      attendanceStatus: Boolean(attendanceStatus),
+      isWalkIn: false,
+      customResponses: {},
+    });
+
+    const populated = await Enrollment.findById(newEnrollment._id)
+      .populate('enrolledBy', 'name rollNo email profilePicUrl department year phone college role')
+      .populate('members', 'name rollNo email profilePicUrl department year phone college role');
+
+    const formattedList = formatEnrollmentsList([populated]);
+    const finalEnrollment = formattedList[0] || populated;
+
+    return reply.status(201).send({
+      success: true,
+      message: `Successfully enrolled ${targetUser.name || targetUser.rollNo} into "${event.title}"${attendanceStatus ? ' with verified attendance' : ''}.`,
+      enrollment: finalEnrollment,
+      student: targetUser,
+    });
+  } catch (error) {
+    request.log.error(error);
+    return reply.status(500).send({
+      error: 'Failed to add student to event: ' + (error.message || 'Unknown error'),
+    });
+  }
+};
+
 module.exports = {
   enrollInEvent,
   getEventEnrollments,
@@ -1002,4 +1153,5 @@ module.exports = {
   bulkUploadEventParticipants,
   downloadSampleTemplate,
   deleteEventEnrollment,
+  addSingleParticipant,
 };

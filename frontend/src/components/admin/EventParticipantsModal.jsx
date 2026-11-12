@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Trash2,
   Loader2,
+  UserPlus,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
@@ -56,6 +57,7 @@ export const EventParticipantsModal = ({
   const [expandedTeams, setExpandedTeams] = useState(new Set());
   const [generatingCertificates, setGeneratingCertificates] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [bulkUploadTab, setBulkUploadTab] = useState('bulk');
   const [confirmDeleteEnrollment, setConfirmDeleteEnrollment] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -424,7 +426,23 @@ export const EventParticipantsModal = ({
             )}
 
             <Button
-              onPress={() => setIsBulkUploadOpen(true)}
+              onPress={() => {
+                setBulkUploadTab('single');
+                setIsBulkUploadOpen(true);
+              }}
+              variant="secondary"
+              className="py-2 px-3.5 rounded-xl text-xs font-medium text-blue-400 border border-blue-500/25 hover:bg-blue-500/10 shadow-xs flex items-center gap-2 cursor-pointer"
+              title="Add a single student / participant"
+            >
+              <UserPlus size={14} />
+              <span>Add Student</span>
+            </Button>
+
+            <Button
+              onPress={() => {
+                setBulkUploadTab('bulk');
+                setIsBulkUploadOpen(true);
+              }}
               variant="primary"
               className="py-2 px-3.5 rounded-xl text-xs font-medium text-white shadow-xs flex items-center gap-2 cursor-pointer"
               title="Upload participants from Excel or CSV"
@@ -1088,10 +1106,16 @@ export const EventParticipantsModal = ({
         </div>
       </ResponsiveModal>
 
-      {/* Bulk Upload Modal */}
+      {/* Bulk Upload & Single User Modal */}
       <EventBulkUploadModal
         isOpen={isBulkUploadOpen}
-        onClose={() => setIsBulkUploadOpen(false)}
+        initialTab={bulkUploadTab}
+        onClose={() => {
+          setIsBulkUploadOpen(false);
+          if (event?._id) {
+            fetchEventEnrollments(event._id).then((data) => setEnrollments(data || [])).catch(() => {});
+          }
+        }}
         event={event}
         onSuccess={async () => {
           if (event?._id) {

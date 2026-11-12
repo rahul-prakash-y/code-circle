@@ -192,6 +192,19 @@ const useEnrollmentStore = create((set, get) => ({
     }
   },
 
+  addSingleParticipant: async (eventId, payload) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.post(`/enrollments/event/${eventId}/add-participant`, payload);
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to add participant';
+      set({ error: msg, loading: false });
+      throw new Error(msg);
+    }
+  },
+
   deleteParticipantEnrollment: async (enrollmentId) => {
     try {
       const response = await api.delete(`/enrollments/${enrollmentId}`);

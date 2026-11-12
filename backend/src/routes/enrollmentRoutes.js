@@ -14,6 +14,7 @@ async function enrollmentRoutes(fastify, options) {
   fastify.patch('/:eventId/attendance', { preHandler: [isAdminOrFaculty] }, enrollmentController.updateAttendance);
   fastify.post('/:eventId/generate-certificates', { preHandler: [isAdminOrFaculty] }, enrollmentController.generateCertificates);
   fastify.post('/event/:eventId/bulk-upload', { preHandler: [isAdminOrFaculty] }, enrollmentController.bulkUploadEventParticipants);
+  fastify.post('/event/:eventId/add-participant', { preHandler: [isAdminOrFaculty] }, enrollmentController.addSingleParticipant);
   fastify.get('/event/:eventId/sample-template', { preHandler: [isAdminOrFaculty] }, enrollmentController.downloadSampleTemplate);
   fastify.delete('/:enrollmentId', { preHandler: [isAdminOrFaculty] }, enrollmentController.deleteEventEnrollment);
 }
