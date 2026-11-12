@@ -289,7 +289,7 @@ export const EventArenaPage: React.FC = () => {
 
     const interval = setInterval(() => {
       fetchAssessments(id);
-    }, 6000); // Poll every 6 seconds on Hub view
+    }, 12000); // Poll every 12 seconds on Hub view
 
     return () => clearInterval(interval);
   }, [id, activeAssessmentId, fetchAssessments]);
@@ -790,9 +790,9 @@ export const EventArenaPage: React.FC = () => {
                 const effectiveRoundCutoff = (asm.qualificationCutoffRank || 0) > 0
                   ? asm.qualificationCutoffRank
                   : (prevRound?.qualificationCutoffRank || 0) > 0
-                  ? prevRound.qualificationCutoffRank
+                  ? prevRound?.qualificationCutoffRank
                   : 0;
-                const hasCutoff = idx > 0 && effectiveRoundCutoff > 0;
+                const hasCutoff = idx > 0 && (effectiveRoundCutoff || 0) > 0;
                 // If previous round isn't completed, lock next round
                 const isLockedBySequence = idx > 0 && !prevCompleted && !isCompleted && !isGraceTimeActive;
                 const isEnded = asm.status === 'ENDED' && !isCompleted && !isGraceTimeActive;

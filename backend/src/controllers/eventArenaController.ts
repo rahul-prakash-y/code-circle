@@ -50,6 +50,30 @@ export const canManageEventArenaQuestions = (user: any, event: any): boolean => 
   return canManageAssessmentQuestions(user, event);
 };
 
+// ---------------------------------------------------------------------------
+// Index Migration Helper: Dynamically drop legacy index eventId_1_userId_1
+// ---------------------------------------------------------------------------
+export const dropLegacyArenaSubmissionIndex = async (): Promise<boolean> => {
+  try {
+    const indexes = await EventArenaSubmission.collection.indexes();
+    for (const idx of indexes) {
+      const keys = Object.keys(idx.key || {});
+      const isLegacy =
+        idx.name === 'eventId_1_userId_1' ||
+        (keys.length === 2 && idx.key.eventId === 1 && idx.key.userId === 1);
+      if (isLegacy && idx.name) {
+        console.warn(`[EventArena] Dropping legacy index ${idx.name} from eventarenasubmissions collection...`);
+        await EventArenaSubmission.collection.dropIndex(idx.name);
+        console.log(`[EventArena] Legacy index ${idx.name} dropped successfully.`);
+        return true;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[EventArena] Error while attempting to drop legacy index:`, err?.message || err);
+  }
+  return false;
+};
+
 /**
  * Helper: Atomically credit points scored in an Event Arena round to a student's
  * account (User.points) and ledger (PointTransaction), so it reflects in "My Points".
@@ -2817,17 +2841,46 @@ export const startAssessmentSession = async (
     }
 
     if (!submission) {
-      submission = await EventArenaSubmission.create({
-        eventId: event._id,
-        assessmentId,
-        userId: user._id,
-        teamId: userTeamId,
-        teamName: userTeamName,
-        status: 'IN_PROGRESS',
-        startedAt: now,
-        expiresAt: calculatedExpiresAt,
-        maxPossibleScore: assessment.totalPoints || 100,
-      });
+      try {
+        submission = await EventArenaSubmission.create({
+          eventId: event._id,
+          assessmentId,
+          userId: user._id,
+          teamId: userTeamId,
+          teamName: userTeamName,
+          status: 'IN_PROGRESS',
+          startedAt: now,
+          expiresAt: calculatedExpiresAt,
+          maxPossibleScore: assessment.totalPoints || 100,
+        });
+      } catch (createErr: any) {
+        if (createErr?.code === 11000) {
+          if (createErr.message?.includes('eventId_1_userId_1')) {
+            console.warn('[EventArena] Caught E11000 on legacy index eventId_1_userId_1 in startAssessmentSession. Dropping index and retrying...');
+            await dropLegacyArenaSubmissionIndex();
+            submission = await EventArenaSubmission.create({
+              eventId: event._id,
+              assessmentId,
+              userId: user._id,
+              teamId: userTeamId,
+              teamName: userTeamName,
+              status: 'IN_PROGRESS',
+              startedAt: now,
+              expiresAt: calculatedExpiresAt,
+              maxPossibleScore: assessment.totalPoints || 100,
+            });
+          } else {
+            submission = await EventArenaSubmission.findOne({
+              eventId: event._id,
+              assessmentId,
+              userId: user._id,
+            });
+            if (!submission) throw createErr;
+          }
+        } else {
+          throw createErr;
+        }
+      }
     } else {
       const hasFutureExpiry = submission.expiresAt && new Date(submission.expiresAt).getTime() > now.getTime();
       if (submission.reentryAllowed || hasFutureExpiry || ((submission.graceMinutes || 0) > 0)) {
@@ -3241,7 +3294,45 @@ export const submitAssessmentFinal = async (
     submission.submittedAt = now;
     submission.timeTakenSeconds = timeTakenSeconds;
 
-    await submission.save();
+    try {
+      await submission.save();
+    } catch (saveErr: any) {
+      if (saveErr?.code === 11000) {
+        if (saveErr.message?.includes('eventId_1_userId_1')) {
+          console.warn('[EventArena] Caught E11000 on legacy index eventId_1_userId_1 in submitAssessmentFinal. Dropping index and retrying save...');
+          await dropLegacyArenaSubmissionIndex();
+          await submission.save();
+        } else {
+          // Race condition with concurrent submission: re-fetch and apply final scores
+          const existing = await EventArenaSubmission.findOne({
+            eventId: event._id,
+            assessmentId,
+            userId: user._id,
+          });
+          if (existing) {
+            existing.mcqAnswers = submission.mcqAnswers;
+            existing.mcqScore = submission.mcqScore;
+            existing.codingScore = submission.codingScore;
+            existing.rawTotalScore = submission.rawTotalScore;
+            existing.tabSwitchCount = submission.tabSwitchCount;
+            existing.tabSwitchPenaltyPercentage = submission.tabSwitchPenaltyPercentage;
+            existing.totalScore = submission.totalScore;
+            existing.maxPossibleScore = submission.maxPossibleScore;
+            existing.scorePercentage = submission.scorePercentage;
+            existing.isPassed = submission.isPassed;
+            existing.status = submission.status;
+            existing.submittedAt = submission.submittedAt;
+            existing.timeTakenSeconds = submission.timeTakenSeconds;
+            submission = existing;
+            await submission.save();
+          } else {
+            throw saveErr;
+          }
+        }
+      } else {
+        throw saveErr;
+      }
+    }
 
     // Credit points scored in this round to student's account and PointTransaction ledger
     const previousPointsAwarded = submission.pointsAwardedAmount || 0;
@@ -3650,7 +3741,34 @@ export const submitAssessmentDesign = async (
     submission.submittedAt = new Date();
     submission.maxPossibleScore = assessment.totalPoints || 100;
 
-    await submission.save();
+    try {
+      await submission.save();
+    } catch (saveErr: any) {
+      if (saveErr?.code === 11000) {
+        if (saveErr.message?.includes('eventId_1_userId_1')) {
+          console.warn('[EventArena] Caught E11000 on legacy index eventId_1_userId_1 in submitAssessmentDesign. Dropping index and retrying save...');
+          await dropLegacyArenaSubmissionIndex();
+          await submission.save();
+        } else {
+          const existing = await EventArenaSubmission.findOne({
+            eventId: event._id,
+            assessmentId,
+            userId: user._id,
+          });
+          if (existing) {
+            existing.designSubmission = submission.designSubmission;
+            existing.status = 'SUBMITTED';
+            existing.submittedAt = submission.submittedAt;
+            submission = existing;
+            await submission.save();
+          } else {
+            throw saveErr;
+          }
+        }
+      } else {
+        throw saveErr;
+      }
+    }
 
     const isAdminUser = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
     const returnSub = isAdminUser ? submission : {
@@ -3659,7 +3777,7 @@ export const submitAssessmentDesign = async (
       assessmentId: submission.assessmentId,
       status: submission.status,
       submittedAt: submission.submittedAt,
-      designSubmission: {
+      designSubmission: submission.designSubmission ? {
         selectedChallengeId: submission.designSubmission.selectedChallengeId,
         selectedChallengeTitle: submission.designSubmission.selectedChallengeTitle,
         figmaLink: submission.designSubmission.figmaLink,
@@ -3668,7 +3786,7 @@ export const submitAssessmentDesign = async (
         submittedAt: submission.designSubmission.submittedAt,
         isEvaluated: submission.designSubmission.isEvaluated,
         feedback: submission.designSubmission.feedback,
-      },
+      } : null,
     };
 
     return reply.send({
@@ -4350,7 +4468,44 @@ export const createOrUpdateManualSubmission = async (
       details: `Manual score of ${numTotalScore}/${maxPossibleScore} entered by admin ${user.name || user.email}. Notes: ${submission.manualNotes}`,
     });
 
-    await submission.save();
+    try {
+      await submission.save();
+    } catch (saveErr: any) {
+      if (saveErr?.code === 11000) {
+        if (saveErr.message?.includes('eventId_1_userId_1')) {
+          console.warn('[EventArena] Caught E11000 on legacy index eventId_1_userId_1 in createOrUpdateManualSubmission. Dropping index and retrying save...');
+          await dropLegacyArenaSubmissionIndex();
+          await submission.save();
+        } else {
+          const existing = await EventArenaSubmission.findOne({
+            eventId: event._id,
+            assessmentId,
+            userId: targetUser._id,
+          });
+          if (existing) {
+            existing.status = 'SUBMITTED';
+            existing.submittedAt = now;
+            existing.totalScore = numTotalScore;
+            existing.rawTotalScore = numTotalScore;
+            existing.maxPossibleScore = maxPossibleScore;
+            existing.scorePercentage = scorePercentage;
+            existing.isPassed = finalIsPassed;
+            existing.isManualSubmission = true;
+            existing.manualNotes = submission.manualNotes;
+            existing.enteredBy = submission.enteredBy;
+            if (mcqScore !== undefined && !isNaN(Number(mcqScore))) existing.mcqScore = Number(mcqScore);
+            if (codingScore !== undefined && !isNaN(Number(codingScore))) existing.codingScore = Number(codingScore);
+            if (designScore !== undefined && !isNaN(Number(designScore))) existing.designScore = Number(designScore);
+            submission = existing;
+            await submission.save();
+          } else {
+            throw saveErr;
+          }
+        }
+      } else {
+        throw saveErr;
+      }
+    }
 
     // Ensure student is unblocked if they had anti-cheat lockout
     await Enrollment.updateMany(
@@ -4520,5 +4675,45 @@ export const deleteArenaTeam = async (
     return reply.status(500).send({ success: false, error: 'Failed to delete team' });
   }
 };
+
+// ---------------------------------------------------------------------------
+// 34. Fix Legacy Arena Indexes (Admin utility)
+// ---------------------------------------------------------------------------
+export const fixArenaIndexes = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+
+    const dropped = await dropLegacyArenaSubmissionIndex();
+
+    try {
+      await EventArenaSubmission.collection.createIndex(
+        { eventId: 1, assessmentId: 1, userId: 1 },
+        { unique: true, background: true }
+      );
+    } catch {
+      // index already exists or background
+    }
+
+    const indexes = await EventArenaSubmission.collection.indexes();
+    return reply.send({
+      success: true,
+      message: dropped
+        ? 'Legacy index eventId_1_userId_1 was successfully dropped!'
+        : 'Legacy index eventId_1_userId_1 is not present. Current indexes verified.',
+      currentIndexes: indexes.map((i) => i.name),
+    });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({
+      success: false,
+      error: err.message || 'Failed to sync arena indexes',
+    });
+  }
+};
+
 
 

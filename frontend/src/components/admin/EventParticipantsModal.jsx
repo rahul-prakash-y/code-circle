@@ -1199,7 +1199,7 @@ export const EventParticipantsModal = ({
                   type="button"
                   isDisabled={isDeleting}
                   variant="secondary"
-                  onPress={() => setConfirmDeleteEnrollment(null)}
+                  onClick={() => setConfirmDeleteEnrollment(null)}
                   className="px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
                 >
                   Cancel
@@ -1208,7 +1208,7 @@ export const EventParticipantsModal = ({
                   type="button"
                   isDisabled={isDeleting}
                   variant="danger"
-                  onPress={confirmDelete}
+                  onClick={confirmDelete}
                   className="px-5 py-2 rounded-xl text-white font-medium text-xs shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   {isDeleting ? <Spinner size="sm" color="default" /> : <Trash2 size={13} />}
