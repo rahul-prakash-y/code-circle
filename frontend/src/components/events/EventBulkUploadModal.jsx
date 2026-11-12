@@ -15,18 +15,30 @@ import {
   Search,
   XCircle,
   Info,
+  UserPlus,
+  GraduationCap,
+  Building2,
+  Mail,
+  Check,
+  Sparkles,
+  Plus,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import toast from 'react-hot-toast';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
+import api from '../../lib/axios';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const EventBulkUploadModal = ({
   isOpen,
   onClose,
   event,
   onSuccess,
+  initialTab = 'bulk',
 }) => {
-  const { bulkUploadParticipants, downloadParticipantsTemplate } = useEnrollmentStore();
+  const { bulkUploadParticipants, downloadParticipantsTemplate, addSingleParticipant } = useEnrollmentStore();
+
+  const [activeMode, setActiveMode] = useState(initialTab || 'bulk');
 
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -39,6 +51,25 @@ export const EventBulkUploadModal = ({
   const [uploadResult, setUploadResult] = useState(null);
   const [resultFilter, setResultFilter] = useState('all');
   const [resultSearch, setResultSearch] = useState('');
+
+  // Single student addition state
+  const [singleStudentQuery, setSingleStudentQuery] = useState('');
+  const debouncedSingleQuery = useDebounce(singleStudentQuery, 300);
+  const [singleSearchResults, setSingleSearchResults] = useState([]);
+  const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [manualRollNo, setManualRollNo] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
+  const [singleAttendanceStatus, setSingleAttendanceStatus] = useState(false);
+  const [singleType, setSingleType] = useState('Individual');
+  const [singleTeamName, setSingleTeamName] = useState('');
+  const [singlePartnerRollNo, setSinglePartnerRollNo] = useState('');
+  const [isAddingSingle, setIsAddingSingle] = useState(false);
+  const [singleSuccessResult, setSingleSuccessResult] = useState(null);
+
+  // Existing enrollments mapping for quick lookup in search
+  const [existingEnrolledUserIds, setExistingEnrolledUserIds] = useState(new Set());
+  const [existingEnrollmentMap, setExistingEnrollmentMap] = useState(new Map());
 
   // Extract all uploaded student records from result (Unconditionally at top-level)
   const allResultStudents = useMemo(() => {
@@ -336,6 +367,132 @@ export const EventBulkUploadModal = ({
     }
   };
 
+  // Sync activeMode on modal open or initialTab change
+  useEffect(() => {
+    if (isOpen) {
+      setActiveMode(initialTab || 'bulk');
+    }
+  }, [isOpen, initialTab]);
+
+  // Fetch existing enrollments for quick lookup in search
+  useEffect(() => {
+    if (!isOpen || !event?._id) return;
+    const fetchExisting = async () => {
+      try {
+        const res = await api.get(`/enrollments/event/${event._id}`);
+        const list = res.data?.data || res.data || [];
+        const ids = new Set();
+        const map = new Map();
+        list.forEach((enr) => {
+          if (enr.enrolledBy?._id) {
+            ids.add(enr.enrolledBy._id);
+            map.set(enr.enrolledBy._id, enr);
+          }
+          if (Array.isArray(enr.members)) {
+            enr.members.forEach((m) => {
+              if (m?._id) {
+                ids.add(m._id);
+                map.set(m._id, enr);
+              }
+            });
+          }
+        });
+        setExistingEnrolledUserIds(ids);
+        setExistingEnrollmentMap(map);
+      } catch {
+        // Safe fallback
+      }
+    };
+    fetchExisting();
+  }, [isOpen, event?._id]);
+
+  // Debounced search query for single student
+  useEffect(() => {
+    if (!isOpen || activeMode !== 'single') return;
+    if (!debouncedSingleQuery.trim()) {
+      setSingleSearchResults([]);
+      setIsSearchingStudents(false);
+      return;
+    }
+
+    const search = async () => {
+      setIsSearchingStudents(true);
+      try {
+        const res = await api.get(`/users?search=${encodeURIComponent(debouncedSingleQuery.trim())}&limit=10`);
+        const list = res.data?.data?.users || res.data?.users || [];
+        setSingleSearchResults(list);
+      } catch (err) {
+        console.error('Error searching students:', err);
+        setSingleSearchResults([]);
+      } finally {
+        setIsSearchingStudents(false);
+      }
+    };
+    search();
+  }, [isOpen, activeMode, debouncedSingleQuery]);
+
+  const handleSelectStudent = (student) => {
+    setSelectedStudent(student);
+    setManualRollNo(student.rollNo || '');
+    setManualEmail(student.email || '');
+    setSingleStudentQuery(student.name ? `${student.name} (${student.rollNo || student.email})` : student.rollNo || student.email);
+    setSingleSearchResults([]);
+  };
+
+  const handleResetSingle = () => {
+    setSelectedStudent(null);
+    setSingleStudentQuery('');
+    setManualRollNo('');
+    setManualEmail('');
+    setSingleSearchResults([]);
+    setSingleSuccessResult(null);
+    setSingleTeamName('');
+    setSinglePartnerRollNo('');
+  };
+
+  const handleAddSingleStudent = async (e) => {
+    if (e) e.preventDefault();
+    if (!event?._id) return;
+
+    const studentIdentifier = selectedStudent?._id || manualRollNo.trim() || manualEmail.trim() || singleStudentQuery.trim();
+    if (!studentIdentifier) {
+      toast.error('Please search and select a student, or enter a Roll Number / Email');
+      return;
+    }
+
+    setIsAddingSingle(true);
+    setSingleSuccessResult(null);
+    try {
+      const payload = {
+        studentId: selectedStudent?._id,
+        rollNo: manualRollNo.trim() || undefined,
+        email: manualEmail.trim() || undefined,
+        identifier: !selectedStudent?._id ? studentIdentifier : undefined,
+        attendanceStatus: singleAttendanceStatus,
+        type: singleType,
+        teamName: (singleType === 'Team' || singleType === 'Duo') ? singleTeamName : undefined,
+        members: singleType === 'Duo' && singlePartnerRollNo ? [singlePartnerRollNo.trim()] : [],
+      };
+
+      const res = await addSingleParticipant(event._id, payload);
+      toast.success(res.message || 'Student added to event successfully!');
+      setSingleSuccessResult(res);
+
+      if (res.student?._id) {
+        setExistingEnrolledUserIds((prev) => new Set(prev).add(res.student._id));
+        setExistingEnrollmentMap((prev) => new Map(prev).set(res.student._id, res.enrollment || { attendanceStatus: singleAttendanceStatus }));
+      }
+
+      if (onSuccess) {
+        onSuccess(res);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to add student to event');
+    } finally {
+      setIsAddingSingle(false);
+    }
+  };
+
   const handleReset = () => {
     setFile(null);
     setFileName('');
@@ -344,6 +501,7 @@ export const EventBulkUploadModal = ({
     setResultFilter('all');
     setResultSearch('');
     if (fileInputRef.current) fileInputRef.current.value = '';
+    handleResetSingle();
   };
 
   const handleModalClose = () => {
@@ -437,11 +595,29 @@ export const EventBulkUploadModal = ({
       onClose={handleModalClose}
       title={
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-            <FileSpreadsheet className="w-4 h-4" />
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+            uploadResult
+              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+              : activeMode === 'single'
+              ? 'bg-blue-500/10 text-blue-500'
+              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+          }`}>
+            {uploadResult ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : activeMode === 'single' ? (
+              <UserPlus className="w-4 h-4" />
+            ) : (
+              <FileSpreadsheet className="w-4 h-4" />
+            )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span>{uploadResult ? 'Participant Upload Report' : 'Upload Event Participants'}</span>
+            <span>
+              {uploadResult
+                ? 'Participant Upload Report'
+                : activeMode === 'single'
+                ? 'Add Event Participant'
+                : 'Upload Event Participants'}
+            </span>
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
               event?.registrationType === 'admin_upload'
                 ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
@@ -455,6 +631,8 @@ export const EventBulkUploadModal = ({
       description={
         uploadResult
           ? `Detailed review of students uploaded for ${event?.title || 'event'}`
+          : activeMode === 'single'
+          ? `Enroll an individual student directly into ${event?.title || 'event'}`
           : `Import official student enrollment list for ${event?.title || 'event'}`
       }
       dialogClassName={`p-6 transition-all duration-300 ${uploadResult ? 'sm:max-w-4xl max-h-[92vh]' : 'sm:max-w-2xl'}`}
@@ -462,6 +640,43 @@ export const EventBulkUploadModal = ({
       <div className="space-y-4 pt-2">
         {/* Modal Body */}
         <div className="p-5 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1 max-h-[72vh]">
+          {/* Mode Switcher Tabs (Bulk Upload vs Add Single Student) */}
+          {!uploadResult && (
+            <div className="flex items-center p-1 rounded-2xl bg-canvas border border-separator">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMode('bulk');
+                  setSingleSuccessResult(null);
+                }}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                  activeMode === 'bulk'
+                    ? 'bg-surface text-label-primary shadow-xs'
+                    : 'text-label-tertiary hover:text-label-primary'
+                }`}
+              >
+                <FileSpreadsheet size={14} className={activeMode === 'bulk' ? 'text-emerald-500' : ''} />
+                <span>Bulk Upload (Excel / CSV)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMode('single');
+                  setSingleSuccessResult(null);
+                }}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                  activeMode === 'single'
+                    ? 'bg-surface text-label-primary shadow-xs'
+                    : 'text-label-tertiary hover:text-label-primary'
+                }`}
+              >
+                <UserPlus size={14} className={activeMode === 'single' ? 'text-blue-500' : ''} />
+                <span>Add Single Student</span>
+              </button>
+            </div>
+          )}
+
           {/* Target Event Context Pill */}
           <div className="p-3.5 rounded-2xl bg-canvas border border-separator flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -473,7 +688,7 @@ export const EventBulkUploadModal = ({
               </span>
             </div>
 
-            {!uploadResult && (
+            {!uploadResult && activeMode === 'bulk' && (
               <Button
                 type="button"
                 size="sm"
@@ -493,8 +708,8 @@ export const EventBulkUploadModal = ({
             )}
           </div>
 
-          {/* VIEW MODE 1: FILE SELECTION & CONFIGURATION (Before upload) */}
-          {!uploadResult && (
+          {/* VIEW MODE 1: BULK FILE SELECTION & CONFIGURATION (Before upload) */}
+          {!uploadResult && activeMode === 'bulk' && (
             <>
               {/* Attendance Mode Selector */}
               <div className="space-y-2 p-4 rounded-2xl bg-surface-raised/70 border border-separator">
@@ -651,6 +866,354 @@ export const EventBulkUploadModal = ({
                 className="hidden"
               />
             </>
+          )}
+
+          {/* VIEW MODE 2: ADD SINGLE STUDENT FORM (Before upload) */}
+          {!uploadResult && activeMode === 'single' && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              {/* If student successfully added, show rich confirmation card with option to add another */}
+              {singleSuccessResult ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                      <CheckCircle2 size={22} />
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <h4 className="text-sm font-bold text-label-primary">
+                        Student Successfully Enrolled!
+                      </h4>
+                      <p className="text-xs text-emerald-300">
+                        {singleSuccessResult.message || `Student has been enrolled into ${event?.title}.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Student details card */}
+                  {singleSuccessResult.student && (
+                    <div className="p-3.5 rounded-xl bg-surface/80 border border-separator space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-label-primary text-sm">
+                          {singleSuccessResult.student.name}
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          {singleSuccessResult.enrollment?.attendanceStatus ? 'Attended & Verified' : 'Registered Attendee'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-label-secondary font-mono text-[11px]">
+                        <div>Roll No: <span className="text-label-primary font-semibold">{singleSuccessResult.student.rollNo || 'N/A'}</span></div>
+                        <div>Dept: <span className="text-label-primary font-semibold">{singleSuccessResult.student.department || '—'}</span></div>
+                        <div className="col-span-2 truncate">Email: <span className="text-label-primary">{singleSuccessResult.student.email}</span></div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      color="primary"
+                      variant="solid"
+                      onPress={handleResetSingle}
+                      className="text-xs font-bold rounded-xl"
+                      startContent={<Plus size={14} />}
+                    >
+                      Add Another Student
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      onPress={handleModalClose}
+                      className="text-xs font-semibold rounded-xl"
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </motion.div>
+              ) : (
+                <>
+                  {/* Step 1: Student Search / Selection */}
+                  <div className="space-y-2 p-4 rounded-2xl bg-surface-raised/70 border border-separator">
+                    <label className="text-xs font-bold uppercase tracking-wider text-label-primary flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Search size={14} className="text-accent" /> Find & Select Student
+                      </span>
+                      {selectedStudent && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedStudent(null);
+                            setSingleStudentQuery('');
+                          }}
+                          className="text-[11px] font-medium text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <X size={12} /> Clear Selection
+                        </button>
+                      )}
+                    </label>
+
+                    {/* If a student is already selected */}
+                    {selectedStudent ? (
+                      <div className="p-3.5 rounded-xl bg-accent/10 border border-accent/25 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-accent/20 text-accent font-bold flex items-center justify-center text-sm shrink-0">
+                            {selectedStudent.name?.charAt(0)?.toUpperCase() || 'S'}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-label-primary truncate">{selectedStudent.name}</span>
+                              <span className="px-2 py-0.2 rounded-md font-mono text-[10px] bg-surface text-label-secondary border border-separator">
+                                {selectedStudent.rollNo}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-label-secondary truncate flex items-center gap-2 mt-0.5">
+                              <span>{selectedStudent.email}</span>
+                              {selectedStudent.department && (
+                                <>
+                                  <span>•</span>
+                                  <span>{selectedStudent.department}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 flex items-center gap-2">
+                          {existingEnrolledUserIds.has(selectedStudent._id) ? (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                              Already Enrolled
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                              <Check size={11} /> Ready to Add
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Search input box */
+                      <div className="relative">
+                        <div className="relative flex items-center">
+                          <Search size={15} className="absolute left-3.5 text-label-tertiary pointer-events-none" />
+                          <input
+                            type="text"
+                            value={singleStudentQuery}
+                            onChange={(e) => {
+                              setSingleStudentQuery(e.target.value);
+                              setManualRollNo(e.target.value);
+                            }}
+                            placeholder="Search by Roll Number (e.g. 7376221CS101), Email, or Name..."
+                            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-canvas border border-separator text-xs text-label-primary placeholder:text-label-tertiary focus:outline-hidden focus:border-accent transition font-mono"
+                          />
+                          {isSearchingStudents ? (
+                            <Spinner size="sm" className="absolute right-3.5" />
+                          ) : singleStudentQuery ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSingleStudentQuery('');
+                                setSingleSearchResults([]);
+                              }}
+                              className="absolute right-3.5 text-label-tertiary hover:text-label-primary"
+                            >
+                              <X size={14} />
+                            </button>
+                          ) : null}
+                        </div>
+
+                        {/* Live search results dropdown */}
+                        {singleSearchResults.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto custom-scrollbar rounded-xl bg-surface border border-separator shadow-2xl z-50 divide-y divide-separator">
+                            {singleSearchResults.map((student) => {
+                              const isEnrolledAlready = existingEnrolledUserIds.has(student._id);
+                              const existingRecord = existingEnrollmentMap.get(student._id);
+                              return (
+                                <button
+                                  key={student._id}
+                                  type="button"
+                                  onClick={() => handleSelectStudent(student)}
+                                  className="w-full p-3 text-left hover:bg-surface-secondary/70 transition flex items-center justify-between gap-3 cursor-pointer group"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 font-bold flex items-center justify-center text-xs shrink-0">
+                                      {student.name?.charAt(0)?.toUpperCase() || 'S'}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-bold text-xs text-label-primary group-hover:text-accent transition-colors truncate">
+                                          {student.name}
+                                        </span>
+                                        {student.rollNo && (
+                                          <span className="font-mono text-[10px] text-label-secondary px-1.5 py-0.2 rounded bg-canvas border border-separator">
+                                            {student.rollNo}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-[11px] text-label-tertiary truncate">
+                                        {student.email} {student.department ? `• ${student.department}` : ''}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="shrink-0">
+                                    {isEnrolledAlready ? (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/25">
+                                        {existingRecord?.attendanceStatus ? 'Attended' : 'Registered'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                        Select <Check size={12} />
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* No match helper */}
+                        {!isSearchingStudents && debouncedSingleQuery.trim().length >= 3 && singleSearchResults.length === 0 && !selectedStudent && (
+                          <div className="p-3 mt-1 rounded-xl bg-canvas border border-separator text-xs text-label-secondary flex items-center justify-between">
+                            <span>No student profile matched. You can still proceed by entering Roll No / Email directly below.</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Manual inputs fallback / override */}
+                    {!selectedStudent && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div>
+                          <label className="text-[11px] font-medium text-label-secondary block mb-1">
+                            Roll Number (Optional if searching by name)
+                          </label>
+                          <input
+                            type="text"
+                            value={manualRollNo}
+                            onChange={(e) => setManualRollNo(e.target.value.toUpperCase())}
+                            placeholder="e.g. 7376221CS101"
+                            className="w-full px-3 py-2 rounded-xl bg-canvas border border-separator text-xs text-label-primary font-mono placeholder:text-label-tertiary focus:outline-hidden focus:border-accent"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-medium text-label-secondary block mb-1">
+                            Email Address (Optional if searching by roll no)
+                          </label>
+                          <input
+                            type="email"
+                            value={manualEmail}
+                            onChange={(e) => setManualEmail(e.target.value.toLowerCase())}
+                            placeholder="e.g. student@bitsathy.ac.in"
+                            className="w-full px-3 py-2 rounded-xl bg-canvas border border-separator text-xs text-label-primary placeholder:text-label-tertiary focus:outline-hidden focus:border-accent"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Step 2: Attendance & Participation Target */}
+                  <div className="space-y-2 p-4 rounded-2xl bg-surface-raised/70 border border-separator">
+                    <label className="text-xs font-bold uppercase tracking-wider text-label-primary flex items-center gap-1.5">
+                      <UserCheck size={14} className="text-accent" /> Participation & Attendance Status
+                    </label>
+                    <p className="text-[11.5px] text-label-secondary leading-relaxed">
+                      Choose whether the student is being pre-registered or marked verified present:
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setSingleAttendanceStatus(false)}
+                        className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          !singleAttendanceStatus
+                            ? 'bg-blue-500/10 border-blue-500 text-label-primary ring-1 ring-blue-500/30'
+                            : 'bg-surface border-separator text-label-secondary hover:border-separator-opaque'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Users size={15} className={!singleAttendanceStatus ? 'text-blue-500' : 'text-label-tertiary'} />
+                            <span className="text-xs font-bold text-label-primary">Pre-Registered Attendee</span>
+                          </div>
+                          {!singleAttendanceStatus && <CheckCircle2 size={14} className="text-blue-500" />}
+                        </div>
+                        <p className="text-[11px] text-label-secondary leading-snug">
+                          Enrolls student into the event as registered (attendance pending).
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSingleAttendanceStatus(true)}
+                        className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          singleAttendanceStatus
+                            ? 'bg-emerald-500/10 border-emerald-500 text-label-primary ring-1 ring-emerald-500/30'
+                            : 'bg-surface border-separator text-label-secondary hover:border-separator-opaque'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <UserCheck size={15} className={singleAttendanceStatus ? 'text-emerald-500' : 'text-label-tertiary'} />
+                            <span className="text-xs font-bold text-label-primary">Attended Participant (Present)</span>
+                          </div>
+                          {singleAttendanceStatus && <CheckCircle2 size={14} className="text-emerald-500" />}
+                        </div>
+                        <p className="text-[11px] text-label-secondary leading-snug">
+                          Marks verified attendance directly for points and certificate eligibility.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Step 3: Event Format Details (if Duo or Team) */}
+                  {(event.format === 'Duo' || event.format === 'Team' || event.type === 'Team') && (
+                    <div className="space-y-3 p-4 rounded-2xl bg-surface-raised/70 border border-separator">
+                      <label className="text-xs font-bold uppercase tracking-wider text-label-primary flex items-center gap-1.5">
+                        <Users size={14} className="text-accent" /> {event.format === 'Duo' ? 'Duo Pair Configuration' : 'Team Configuration'}
+                      </label>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-medium text-label-secondary block mb-1">
+                            {event.format === 'Duo' ? 'Duo Pair Name' : 'Team Name'}
+                          </label>
+                          <input
+                            type="text"
+                            value={singleTeamName}
+                            onChange={(e) => setSingleTeamName(e.target.value)}
+                            placeholder={event.format === 'Duo' ? 'e.g. Code Warriors Duo' : 'e.g. Alpha Squad'}
+                            className="w-full px-3 py-2 rounded-xl bg-canvas border border-separator text-xs text-label-primary placeholder:text-label-tertiary focus:outline-hidden focus:border-accent"
+                          />
+                        </div>
+
+                        {event.format === 'Duo' && (
+                          <div>
+                            <label className="text-[11px] font-medium text-label-secondary block mb-1">
+                              Partner Roll Number
+                            </label>
+                            <input
+                              type="text"
+                              value={singlePartnerRollNo}
+                              onChange={(e) => setSinglePartnerRollNo(e.target.value.toUpperCase())}
+                              placeholder="e.g. 7376221CS102"
+                              className="w-full px-3 py-2 rounded-xl bg-canvas border border-separator text-xs text-label-primary font-mono placeholder:text-label-tertiary focus:outline-hidden focus:border-accent"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </motion.div>
           )}
 
           {/* VIEW MODE 2: DETAILED STUDENTS LIST WITH REASONS (After upload) */}
@@ -913,9 +1476,9 @@ export const EventBulkUploadModal = ({
             type="button"
             variant="secondary"
             onPress={handleModalClose}
-            className="px-4 py-2 rounded-full text-xs font-medium"
+            className="px-4 py-2 rounded-full text-xs font-medium cursor-pointer"
           >
-            {uploadResult ? 'Done / Close' : 'Cancel'}
+            {uploadResult || singleSuccessResult ? 'Done / Close' : 'Cancel'}
           </Button>
 
           <div className="flex items-center gap-2">
@@ -926,7 +1489,7 @@ export const EventBulkUploadModal = ({
                   variant="secondary"
                   size="sm"
                   onPress={handleReset}
-                  className="rounded-full text-xs font-medium flex items-center gap-1.5"
+                  className="rounded-full text-xs font-medium flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw size={13} />
                   <span>Upload Another Spreadsheet</span>
@@ -937,11 +1500,37 @@ export const EventBulkUploadModal = ({
                   variant="primary"
                   color="primary"
                   onPress={handleModalClose}
-                  className="px-5 py-2 rounded-full text-xs font-semibold shadow"
+                  className="px-5 py-2 rounded-full text-xs font-semibold shadow cursor-pointer"
                 >
                   Finished Reviewing
                 </Button>
               </>
+            ) : activeMode === 'single' ? (
+              singleSuccessResult ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  color="primary"
+                  onPress={handleResetSingle}
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Add Another Student</span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="primary"
+                  color="primary"
+                  onClick={handleAddSingleStudent}
+                  isLoading={isAddingSingle}
+                  isDisabled={isAddingSingle || (!selectedStudent && !manualRollNo.trim() && !manualEmail.trim() && !singleStudentQuery.trim())}
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow cursor-pointer"
+                >
+                  {!isAddingSingle && <UserPlus size={14} />}
+                  <span>Enroll Student</span>
+                </Button>
+              )
             ) : (
               <Button
                 type="button"
@@ -950,7 +1539,7 @@ export const EventBulkUploadModal = ({
                 onPress={handleUploadSubmit}
                 isLoading={loading}
                 isDisabled={!file || loading}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow cursor-pointer"
               >
                 {!loading && <Upload size={14} />}
                 <span>Upload & Enroll Students</span>

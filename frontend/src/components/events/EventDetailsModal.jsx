@@ -20,6 +20,7 @@ import {
   FileText,
   Upload,
   Sparkles,
+  UserPlus,
 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { Button } from '@heroui/react';
@@ -37,6 +38,7 @@ export const EventDetailsModal = ({
   onViewParticipants,
   onViewRegistered,
   onUploadParticipants,
+  onAddParticipant,
 }) => {
   const navigate = useNavigate();
   const [isArenaAdminOpen, setIsArenaAdminOpen] = useState(false);
@@ -457,7 +459,21 @@ export const EventDetailsModal = ({
                     title="Upload Participants from Excel"
                   >
                     <FileSpreadsheet size={14} />
-                    <span>Upload Participants</span>
+                    <span>Upload List</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => {
+                      onClose();
+                      if (onAddParticipant) onAddParticipant(event);
+                      else if (onUploadParticipants) onUploadParticipants(event);
+                    }}
+                    className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-400"
+                    title="Add Single Participant"
+                  >
+                    <UserPlus size={14} />
+                    <span>Add Participant</span>
                   </Button>
                   <Button
                     size="sm"
