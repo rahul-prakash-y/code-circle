@@ -22,6 +22,7 @@ import {
   Check,
   Sparkles,
   Plus,
+  Trash2,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import toast from 'react-hot-toast';
@@ -36,7 +37,13 @@ export const EventBulkUploadModal = ({
   onSuccess,
   initialTab = 'bulk',
 }) => {
-  const { bulkUploadParticipants, downloadParticipantsTemplate, addSingleParticipant } = useEnrollmentStore();
+  const {
+    bulkUploadParticipants,
+    downloadParticipantsTemplate,
+    addSingleParticipant,
+    removeSingleParticipant,
+    deleteParticipantEnrollment,
+  } = useEnrollmentStore();
 
   const [activeMode, setActiveMode] = useState(initialTab || 'bulk');
 
@@ -65,6 +72,7 @@ export const EventBulkUploadModal = ({
   const [singleTeamName, setSingleTeamName] = useState('');
   const [singlePartnerRollNo, setSinglePartnerRollNo] = useState('');
   const [isAddingSingle, setIsAddingSingle] = useState(false);
+  const [isDeletingSingle, setIsDeletingSingle] = useState(false);
   const [singleSuccessResult, setSingleSuccessResult] = useState(null);
 
   // Existing enrollments mapping for quick lookup in search
@@ -490,6 +498,63 @@ export const EventBulkUploadModal = ({
       toast.error(err.message || 'Failed to add student to event');
     } finally {
       setIsAddingSingle(false);
+    }
+  };
+
+  const handleDeleteSingleStudent = async (studentToDelete) => {
+    const student = studentToDelete || selectedStudent;
+    const studentId = student?._id;
+    const roll = manualRollNo.trim() || student?.rollNo;
+    const mail = manualEmail.trim() || student?.email;
+
+    if (!studentId && !roll && !mail) {
+      toast.error('Please select or specify a student to remove');
+      return;
+    }
+
+    const existingRec = studentId ? existingEnrollmentMap.get(studentId) : null;
+    const enrollmentId = existingRec?._id;
+
+    try {
+      setIsDeletingSingle(true);
+      if (enrollmentId) {
+        await deleteParticipantEnrollment(enrollmentId);
+      } else {
+        await removeSingleParticipant(event._id, {
+          studentId,
+          rollNo: roll,
+          email: mail,
+        });
+      }
+
+      toast.success(`${student?.name || roll || 'Student'} removed from event successfully`);
+
+      if (studentId) {
+        setExistingEnrolledUserIds((prev) => {
+          const next = new Set(prev);
+          next.delete(studentId);
+          return next;
+        });
+        setExistingEnrollmentMap((prev) => {
+          const next = new Map(prev);
+          next.delete(studentId);
+          return next;
+        });
+      }
+
+      setSelectedStudent(null);
+      setSingleStudentQuery('');
+      setManualRollNo('');
+      setManualEmail('');
+      setSingleSuccessResult(null);
+
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.error || err?.message || 'Failed to remove student from event');
+    } finally {
+      setIsDeletingSingle(false);
     }
   };
 
@@ -986,9 +1051,22 @@ export const EventBulkUploadModal = ({
 
                         <div className="shrink-0 flex items-center gap-2">
                           {existingEnrolledUserIds.has(selectedStudent._id) ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                              Already Enrolled
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                Already Enrolled
+                              </span>
+                              <Button
+                                size="sm"
+                                color="danger"
+                                variant="flat"
+                                onPress={() => handleDeleteSingleStudent(selectedStudent)}
+                                isLoading={isDeletingSingle}
+                                className="h-7 px-2.5 rounded-lg text-[10.5px] font-semibold text-rose-400 hover:text-white hover:bg-rose-600 transition cursor-pointer"
+                                startContent={!isDeletingSingle && <Trash2 size={12} />}
+                              >
+                                Remove
+                              </Button>
+                            </div>
                           ) : (
                             <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                               <Check size={11} /> Ready to Add
@@ -1518,18 +1596,33 @@ export const EventBulkUploadModal = ({
                   <span>Add Another Student</span>
                 </Button>
               ) : (
-                <Button
-                  type="button"
-                  variant="primary"
-                  color="primary"
-                  onClick={handleAddSingleStudent}
-                  isLoading={isAddingSingle}
-                  isDisabled={isAddingSingle || (!selectedStudent && !manualRollNo.trim() && !manualEmail.trim() && !singleStudentQuery.trim())}
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow cursor-pointer"
-                >
-                  {!isAddingSingle && <UserPlus size={14} />}
-                  <span>Enroll Student</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  {selectedStudent && existingEnrolledUserIds.has(selectedStudent._id) && (
+                    <Button
+                      type="button"
+                      variant="flat"
+                      color="danger"
+                      onPress={() => handleDeleteSingleStudent(selectedStudent)}
+                      isLoading={isDeletingSingle}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold text-rose-400 hover:text-white hover:bg-rose-600 transition shadow-xs cursor-pointer"
+                    >
+                      {!isDeletingSingle && <Trash2 size={14} />}
+                      <span>Remove from Event</span>
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="primary"
+                    color="primary"
+                    onClick={handleAddSingleStudent}
+                    isLoading={isAddingSingle}
+                    isDisabled={isAddingSingle || (!selectedStudent && !manualRollNo.trim() && !manualEmail.trim() && !singleStudentQuery.trim())}
+                    className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow cursor-pointer"
+                  >
+                    {!isAddingSingle && (selectedStudent && existingEnrolledUserIds.has(selectedStudent._id) ? <CheckCircle2 size={14} /> : <UserPlus size={14} />)}
+                    <span>{selectedStudent && existingEnrolledUserIds.has(selectedStudent._id) ? 'Update Attendance Status' : 'Enroll Student'}</span>
+                  </Button>
+                </div>
               )
             ) : (
               <Button

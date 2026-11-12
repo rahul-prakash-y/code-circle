@@ -31,10 +31,19 @@ const useAttendanceStore = create((set) => ({
     set({ loading: true });
     try {
       const response = await api.get(`/attendance/sessions/event/${eventId}`);
-      set({ sessions: response.data, loading: false });
+      const sessionList = Array.isArray(response.data)
+        ? response.data
+        : (Array.isArray(response.data?.sessions)
+          ? response.data.sessions
+          : Array.isArray(response.data?.data)
+          ? response.data.data
+          : []);
+      set({ sessions: sessionList, loading: false });
+      return sessionList;
     } catch (error) {
-      set({ loading: false });
+      set({ sessions: [], loading: false });
       console.error('Failed to fetch sessions:', error);
+      return [];
     }
   },
 
@@ -42,10 +51,17 @@ const useAttendanceStore = create((set) => ({
     set({ loading: true });
     try {
       const response = await api.get(`/attendance/sessions/${sessionId}/attendance`);
-      set({ sessionAttendance: response.data, loading: false });
-      return response.data;
+      const records = Array.isArray(response.data)
+        ? response.data
+        : (Array.isArray(response.data?.records)
+          ? response.data.records
+          : Array.isArray(response.data?.data)
+          ? response.data.data
+          : []);
+      set({ sessionAttendance: records, loading: false });
+      return records;
     } catch {
-      set({ loading: false });
+      set({ sessionAttendance: [], loading: false });
       toast.error('Failed to fetch student list');
       return [];
     }
