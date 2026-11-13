@@ -1,6 +1,6 @@
 import ArenaWorkspaceSkeleton from '../components/events/arena/student/ArenaWorkspaceSkeleton';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -48,6 +48,7 @@ import { EmilCard, EmilButton } from '../components/ui/emil-ui';
 import { Button } from '@heroui/react';
 import { HeroTabs } from '../components/ui/HeroUIComponents';
 import useAuthStore from '../store/useAuthStore';
+import useProfileStore from '../store/useProfileStore';
 import useEventArenaStore, {
   ArenaAssessment,
   ArenaMcqQuestion,
@@ -99,10 +100,17 @@ export const EventArenaPage: React.FC = () => {
   } = useEventArenaStore();
 
   const { user: currentUser } = useAuthStore() as any;
-  const isAdmin = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(currentUser?.role);
+  const { profile } = useProfileStore();
+  const userRole = profile?.role || currentUser?.role;
+  const isAdmin = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(userRole);
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Active Assessment & Result States (Declared before anti-cheat hooks)
-  const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null);
+  const currentViewParam = searchParams.get('view');
+  const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(() => {
+    return searchParams.get('assessmentId') || (currentViewParam === 'workspace' ? searchParams.get('round') : null);
+  });
   const [finalResultModal, setFinalResultModal] = useState<any | null>(null);
   const [apiBlocked, setApiBlocked] = useState(false);
   const [isUnblockingSelf, setIsUnblockingSelf] = useState(false);
@@ -203,6 +211,19 @@ export const EventArenaPage: React.FC = () => {
       fetchAssessments(id);
     }
   }, [id]);
+
+  // Handle URL query parameters for direct admin preview or refreshed view (?view=workspace&round=...)
+  useEffect(() => {
+    const urlAssessmentId = searchParams.get('assessmentId') || (searchParams.get('view') === 'workspace' ? searchParams.get('round') : null);
+    if (urlAssessmentId && (!activeAssessmentId || activeAssessmentId !== urlAssessmentId)) {
+      setActiveAssessmentId(urlAssessmentId);
+      if (searchParams.get('preview') === 'true') {
+        toast.success('Entered Test Preview (Admin Mode)');
+      }
+    } else if (!urlAssessmentId && activeAssessmentId && searchParams.get('view') !== 'workspace') {
+      setActiveAssessmentId(null);
+    }
+  }, [searchParams, activeAssessmentId]);
 
   // Check anti-cheat / external block status on mount
   useEffect(() => {
@@ -648,7 +669,13 @@ export const EventArenaPage: React.FC = () => {
     setShowTabWarning(false);
     resetBlocked();
     setApiBlocked(false);
+    navigate(`/events/${id}/arena?view=hub`, { replace: true });
     if (id) fetchAssessments(id);
+  };
+
+  const handleSelectRound = (assessmentId: string) => {
+    setActiveAssessmentId(assessmentId);
+    setSearchParams({ view: 'workspace', round: assessmentId });
   };
 
   // -------------------------------------------------------------------------
@@ -1054,7 +1081,38 @@ export const EventArenaPage: React.FC = () => {
 
                     {/* Action Button */}
                     <div className="pt-2">
-                      {isGraceTimeActive ? (
+                      {isAdmin ? (
+                        <div className="flex items-center gap-2">
+                          {isCompleted && (
+                            <Button
+                              color="default"
+                              variant="flat"
+                              onPress={() => {
+                                setActiveAssessmentId(asm._id);
+                              }}
+                              className="flex-1 min-h-[42px] rounded-xl text-white text-xs font-bold"
+                              startContent={<Trophy size={13} className="text-amber-400" />}
+                            >
+                              Scorecard
+                            </Button>
+                          )}
+                          <Button
+                            color="secondary"
+                            variant="flat"
+                            onPress={() => {
+                              setActiveAssessmentId(asm._id);
+                              if (!isFullscreen) {
+                                requestFullscreen().catch(() => {});
+                              }
+                            }}
+                            className="flex-1 min-h-[42px] rounded-xl text-purple-200 text-xs font-bold shadow-lg shadow-purple-600/20"
+                            title="Admin Test Mode: Attend/Preview assessment"
+                            startContent={<Sparkles size={13} className="text-purple-300" />}
+                          >
+                            Preview Test (Admin Mode)
+                          </Button>
+                        </div>
+                      ) : isGraceTimeActive ? (
                         <Button
                           color="warning"
                           variant="solid"
@@ -1076,28 +1134,14 @@ export const EventArenaPage: React.FC = () => {
                           {sub?.status === 'IN_PROGRESS' ? 'Resume Test (Grace Time)' : 'Re-enter Assessment (Grace Time)'}
                         </Button>
                       ) : isCompleted ? (
-                        isAdmin ? (
-                          <Button
-                            color="default"
-                            variant="flat"
-                            onPress={() => {
-                              setActiveAssessmentId(asm._id);
-                            }}
-                            className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold"
-                            startContent={<Trophy size={13} className="text-amber-400" />}
-                          >
-                            View Scorecard
-                          </Button>
-                        ) : (
-                          <Button
-                            isDisabled
-                            variant="flat"
-                            className="w-full min-h-[42px] rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 text-xs font-bold cursor-default"
-                            startContent={<CheckCircle2 size={13} className="text-emerald-400" />}
-                          >
-                            Round Completed
-                          </Button>
-                        )
+                        <Button
+                          isDisabled
+                          variant="flat"
+                          className="w-full min-h-[42px] rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 text-xs font-bold cursor-default"
+                          startContent={<CheckCircle2 size={13} className="text-emerald-400" />}
+                        >
+                          Round Completed
+                        </Button>
                       ) : isLockedBySequence ? (
                         <Button
                           isDisabled
@@ -1117,33 +1161,15 @@ export const EventArenaPage: React.FC = () => {
                           Assessment Ended
                         </Button>
                       ) : isNotLive ? (
-                        isAdmin ? (
-                          <Button
-                            color="secondary"
-                            variant="flat"
-                            onPress={() => {
-                              setActiveAssessmentId(asm._id);
-                              if (!isFullscreen) {
-                                requestFullscreen().catch(() => {});
-                              }
-                            }}
-                            className="w-full min-h-[42px] rounded-xl text-purple-200 text-xs font-bold shadow-lg shadow-purple-600/20"
-                            title="Admin Test Mode: Attend/Preview upcoming assessment"
-                            startContent={<Sparkles size={13} className="text-purple-300" />}
-                          >
-                            Preview Test (Admin Mode)
-                          </Button>
-                        ) : (
-                          <Button
-                            isDisabled
-                            variant="bordered"
-                            className="w-full min-h-[42px] rounded-xl border-amber-500/25 text-amber-400/80 text-xs font-bold"
-                            title={asm.startTime ? `Goes live 10 mins before ${formatISTDateTime(asm.startTime)}` : 'Waiting for round to start'}
-                            startContent={<Clock size={13} />}
-                          >
-                            {asm.startTime ? `Starts ${formatISTDateTime(asm.startTime)}` : 'Waiting for Admin to Start'}
-                          </Button>
-                        )
+                        <Button
+                          isDisabled
+                          variant="bordered"
+                          className="w-full min-h-[42px] rounded-xl border-amber-500/25 text-amber-400/80 text-xs font-bold"
+                          title={asm.startTime ? `Goes live 10 mins before ${formatISTDateTime(asm.startTime)}` : 'Waiting for round to start'}
+                          startContent={<Clock size={13} />}
+                        >
+                          {asm.startTime ? `Starts ${formatISTDateTime(asm.startTime)}` : 'Waiting for Admin to Start'}
+                        </Button>
                       ) : (
                         <Button
                           color="secondary"
@@ -1310,8 +1336,8 @@ export const EventArenaPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Full-Screen Enforcement Overlay (Enforced for all assessments) */}
-      {!isAssessmentBlocked && (
+      {/* 2. Full-Screen Enforcement Overlay (Enforced for students; bypassed for admins in preview) */}
+      {!isAdmin && !isAssessmentBlocked && (
         <FullScreenEnforcementOverlay
           isFullscreen={isFullscreen}
           onRequestFullscreen={requestFullscreen}
@@ -1342,6 +1368,12 @@ export const EventArenaPage: React.FC = () => {
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase shrink-0">
               {selectedAssessment?.type || 'HYBRID'}
             </span>
+            {isAdmin && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1 shrink-0">
+                <Eye size={11} />
+                <span>Admin Preview</span>
+              </span>
+            )}
             {studentTeam && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/30 flex items-center gap-1 shrink-0">
                 <Users size={11} />
