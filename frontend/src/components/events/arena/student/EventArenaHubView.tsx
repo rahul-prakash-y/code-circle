@@ -210,21 +210,40 @@ export const EventArenaHubView: React.FC<EventArenaHubViewProps> = ({
             {assessments.map((asm, idx) => {
               const sub = asm.submission;
               const nowMs = Date.now();
+              const isSubFinished = sub?.status === 'SUBMITTED' || sub?.status === 'AUTO_SUBMITTED';
+              const hasFutureExpiry = Boolean(sub?.expiresAt && new Date(sub.expiresAt).getTime() > nowMs);
+              const isTimeExpired = Boolean(
+                sub &&
+                !isSubFinished &&
+                sub.expiresAt &&
+                new Date(sub.expiresAt).getTime() <= nowMs
+              );
+              const effectiveSubFinished = isSubFinished || isTimeExpired;
+
               const isGraceTimeActive = Boolean(
-                sub?.reentryAllowed ||
-                (sub?.expiresAt && new Date(sub.expiresAt).getTime() > nowMs) ||
-                ((sub?.graceMinutes || 0) > 0 && sub?.status === 'IN_PROGRESS') ||
-                (asm.hasGraceTime && sub?.status !== 'SUBMITTED' && sub?.status !== 'AUTO_SUBMITTED') ||
-                ((asm.graceMinutes || 0) > 0 && asm.status === 'LIVE')
+                !effectiveSubFinished &&
+                hasFutureExpiry &&
+                (sub?.reentryAllowed || ((sub?.graceMinutes || 0) > 0) || asm.hasGraceTime)
               );
 
-              const isCompleted =
-                (sub?.status === 'SUBMITTED' || sub?.status === 'AUTO_SUBMITTED') &&
-                !isGraceTimeActive;
-              const isInProgress = sub?.status === 'IN_PROGRESS' || isGraceTimeActive;
+              // If candidate submitted or time ended (regular or grace time), test is completed!
+              const isCompleted = effectiveSubFinished && !isGraceTimeActive;
+              const isInProgress = sub?.status === 'IN_PROGRESS' && hasFutureExpiry;
 
               const prevRound = idx > 0 ? assessments[idx - 1] : null;
-              const prevCompleted = prevRound?.submission?.status === 'SUBMITTED' || prevRound?.submission?.status === 'AUTO_SUBMITTED' || (prevRound?.submission?.status as string) === 'COMPLETED';
+              const prevSub = prevRound?.submission;
+              const prevTimeExpired = Boolean(
+                prevSub &&
+                (prevSub.status !== 'SUBMITTED' && prevSub.status !== 'AUTO_SUBMITTED') &&
+                prevSub.expiresAt &&
+                new Date(prevSub.expiresAt).getTime() <= nowMs
+              );
+              const prevCompleted = Boolean(
+                prevSub?.status === 'SUBMITTED' ||
+                prevSub?.status === 'AUTO_SUBMITTED' ||
+                (prevSub?.status as string) === 'COMPLETED' ||
+                prevTimeExpired
+              );
               const effectiveRoundCutoff = (asm.qualificationCutoffRank || 0) > 0
                 ? asm.qualificationCutoffRank
                 : (prevRound?.qualificationCutoffRank || 0) > 0

@@ -1880,12 +1880,34 @@ export const getEventAssessmentsList = async (
       }
 
       // Check if student has active grace time or re-entry granted by admin
+      const isSubFinished = userSub && (userSub.status === 'SUBMITTED' || userSub.status === 'AUTO_SUBMITTED');
+      const isTimeExpired = Boolean(
+        userSub &&
+        !isSubFinished &&
+        userSub.expiresAt &&
+        new Date(userSub.expiresAt).getTime() <= nowMs
+      );
+
+      // Auto-submit in background if candidate's regular or grace time has ended
+      if (isTimeExpired && userSub && userSub.status === 'IN_PROGRESS') {
+        userSub.status = 'AUTO_SUBMITTED';
+        userSub.submittedAt = userSub.submittedAt || new Date(userSub.expiresAt);
+        userSub.reentryAllowed = false;
+        EventArenaSubmission.findByIdAndUpdate(userSub._id, {
+          $set: {
+            status: 'AUTO_SUBMITTED',
+            submittedAt: userSub.submittedAt,
+            reentryAllowed: false,
+          },
+        }).catch(() => {});
+      }
+
+      const effectiveSubFinished = isSubFinished || isTimeExpired;
+
       const hasActiveGraceTime = Boolean(
-        userSub && (
-          userSub.reentryAllowed ||
-          (userSub.expiresAt && new Date(userSub.expiresAt).getTime() > nowMs) ||
-          ((userSub.graceMinutes || 0) > 0 && userSub.status === 'IN_PROGRESS')
-        )
+        userSub &&
+        !effectiveSubFinished &&
+        (userSub.expiresAt && new Date(userSub.expiresAt).getTime() > nowMs)
       );
 
       // If assessment overall is ENDED, but this student has active grace time / reentry,
@@ -1912,16 +1934,17 @@ export const getEventAssessmentsList = async (
         teamSize: assessment.teamSize || 2,
         mcqCount: (assessment.questions?.mcqs || []).length,
         codingCount: (assessment.questions?.coding || []).length,
+        designChallengesCount: assessment.designChallenges?.length || (assessment.designChallenge ? 1 : 0),
         canManage: isAssigned,
         submission: userSub
           ? {
               _id: userSub._id,
-              status: userSub.status,
+              status: effectiveSubFinished && userSub.status === 'IN_PROGRESS' ? 'AUTO_SUBMITTED' : userSub.status,
               totalScore: isPrivileged ? userSub.totalScore : undefined,
               maxPossibleScore: isPrivileged ? userSub.maxPossibleScore : undefined,
               scorePercentage: isPrivileged ? userSub.scorePercentage : undefined,
               isPassed: isPrivileged ? userSub.isPassed : undefined,
-              submittedAt: userSub.submittedAt,
+              submittedAt: userSub.submittedAt || (isTimeExpired ? userSub.expiresAt : undefined),
               expiresAt: userSub.expiresAt,
               graceMinutes: userSub.graceMinutes,
               reentryAllowed: userSub.reentryAllowed,
@@ -2374,7 +2397,8 @@ export const saveAssessmentMcqs = async (
       (sum, p) => sum + (p.points || 30),
       0
     );
-    assessment.totalPoints = mcqPoints + codingPoints;
+    const calculatedPoints = mcqPoints + codingPoints;
+    assessment.totalPoints = Math.max(assessment.totalPoints || 0, calculatedPoints) || 100;
 
     await event.save();
 
@@ -2457,7 +2481,8 @@ export const saveAssessmentCodingProblems = async (
 
     const mcqPoints = (assessment.questions.mcqs || []).reduce((sum, q) => sum + (q.points || 10), 0);
     const codingPoints = assessment.questions.coding.reduce((sum, p) => sum + (p.points || 30), 0);
-    assessment.totalPoints = mcqPoints + codingPoints;
+    const calculatedPoints = mcqPoints + codingPoints;
+    assessment.totalPoints = Math.max(assessment.totalPoints || 0, calculatedPoints) || 100;
 
     await event.save();
 
@@ -2535,7 +2560,8 @@ export const bulkUploadAssessmentQuestions = async (
         (s, p) => s + (p.points || 30),
         0
       );
-      assessment.totalPoints = mcqPoints + codingPoints;
+      const calculatedPoints = mcqPoints + codingPoints;
+    assessment.totalPoints = Math.max(assessment.totalPoints || 0, calculatedPoints) || 100;
       await event.save();
       return reply.send({
         success: true,
@@ -2558,7 +2584,8 @@ export const bulkUploadAssessmentQuestions = async (
       }
       const mcqPoints = (assessment.questions.mcqs || []).reduce((s, q) => s + (q.points || 10), 0);
       const codingPoints = assessment.questions.coding.reduce((s, p) => s + (p.points || 30), 0);
-      assessment.totalPoints = mcqPoints + codingPoints;
+      const calculatedPoints = mcqPoints + codingPoints;
+    assessment.totalPoints = Math.max(assessment.totalPoints || 0, calculatedPoints) || 100;
       await event.save();
       return reply.send({
         success: true,
@@ -2815,14 +2842,46 @@ export const getStudentAssessmentData = async (
     }).lean();
 
     const nowMs = Date.now();
-    const hasActiveGraceTime = Boolean(
-      submission && (
-        submission.reentryAllowed ||
-        (submission.expiresAt && new Date(submission.expiresAt).getTime() > nowMs) ||
-        ((submission.graceMinutes || 0) > 0 && submission.status === 'IN_PROGRESS')
-      )
+    const isSubFinished = Boolean(
+      submission && (submission.status === 'SUBMITTED' || submission.status === 'AUTO_SUBMITTED')
     );
-    const isAssessmentGraceActive = (assessment.graceMinutes || 0) > 0;
+    const isTimeExpired = Boolean(
+      submission &&
+      !isSubFinished &&
+      submission.expiresAt &&
+      new Date(submission.expiresAt).getTime() <= nowMs
+    );
+
+    if (isTimeExpired && submission && submission.status === 'IN_PROGRESS') {
+      const autoSubmittedAt = submission.submittedAt || (submission.expiresAt ? new Date(submission.expiresAt) : new Date());
+      EventArenaSubmission.findByIdAndUpdate(submission._id, {
+        $set: {
+          status: 'AUTO_SUBMITTED',
+          submittedAt: autoSubmittedAt,
+          reentryAllowed: false,
+        },
+      }).catch(() => {});
+    }
+
+    const effectiveSubFinished = isSubFinished || isTimeExpired;
+
+    const hasActiveGraceTime = Boolean(
+      submission &&
+      !effectiveSubFinished &&
+      (submission.expiresAt && new Date(submission.expiresAt).getTime() > nowMs)
+    );
+
+    const graceExtraMs = (Number(assessment.graceMinutes) || 0) * 60 * 1000;
+    const scheduledEnd = assessment.endTime
+      ? new Date(assessment.endTime).getTime() + graceExtraMs
+      : assessment.startTime
+      ? new Date(assessment.startTime).getTime() + (Number(assessment.durationMinutes) || 60) * 60 * 1000 + graceExtraMs
+      : null;
+    const isAssessmentGraceActive = Boolean(
+      (assessment.graceMinutes || 0) > 0 &&
+      scheduledEnd &&
+      nowMs <= scheduledEnd
+    );
 
     // Check qualification for non-admin students
     if (!isAdminRole) {
@@ -3021,23 +3080,70 @@ export const startAssessmentSession = async (
     });
 
     const now = new Date();
-    const hasActiveGraceTime = Boolean(
-      submission && (
-        submission.reentryAllowed ||
-        (submission.expiresAt && new Date(submission.expiresAt).getTime() > now.getTime()) ||
-        ((submission.graceMinutes || 0) > 0 && submission.status === 'IN_PROGRESS')
-      )
+    const isSubFinished = Boolean(
+      submission && (submission.status === 'SUBMITTED' || submission.status === 'AUTO_SUBMITTED')
     );
-    const isAssessmentGraceActive = (assessment.graceMinutes || 0) > 0;
+    const hasActiveGraceTime = Boolean(
+      submission &&
+      !isSubFinished &&
+      (submission.expiresAt && new Date(submission.expiresAt).getTime() > now.getTime())
+    );
+
+    const durationMinutes = Number(assessment.durationMinutes) || 60;
+    const graceExtraMinutes = Number(assessment.graceMinutes) || 0;
+    const normalExpiresAt = new Date(now.getTime() + (durationMinutes + graceExtraMinutes) * 60 * 1000);
+    let calculatedExpiresAt = normalExpiresAt;
+    let scheduledEnd: number | null = null;
+    if (assessment.startTime) {
+      scheduledEnd = assessment.endTime
+        ? new Date(assessment.endTime).getTime() + graceExtraMinutes * 60 * 1000
+        : new Date(assessment.startTime).getTime() + (durationMinutes + graceExtraMinutes) * 60 * 1000;
+      if (!isNaN(scheduledEnd)) {
+        calculatedExpiresAt = new Date(Math.min(normalExpiresAt.getTime(), scheduledEnd));
+      }
+    }
+
+    const isAssessmentGraceActive = Boolean(
+      (assessment.graceMinutes || 0) > 0 &&
+      scheduledEnd &&
+      now.getTime() <= scheduledEnd
+    );
 
     const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
     if (!isAdminRole) {
+      // 1. If student has already completed / submitted, re-entry is blocked
+      if (isSubFinished) {
+        return reply.status(403).send({
+          success: false,
+          error: 'You have already submitted this assessment. Re-entry is not permitted.',
+          isCompleted: true,
+          submission,
+        });
+      }
+
+      // 2. If student has an existing submission whose grace/test time is expired:
+      if (submission?.expiresAt && new Date(submission.expiresAt).getTime() <= now.getTime()) {
+        if (submission.status === 'IN_PROGRESS') {
+          submission.status = 'AUTO_SUBMITTED';
+          submission.submittedAt = submission.submittedAt || now;
+          submission.reentryAllowed = false;
+          await submission.save().catch(() => {});
+        }
+        return reply.status(403).send({
+          success: false,
+          error: 'The time limit and grace period for this assessment have ended.',
+          isCompleted: true,
+          submission,
+        });
+      }
+
+      // 3. Status check: assessment must be LIVE, or have active non-expired grace time
       if (currentStatus !== 'LIVE' && !hasActiveGraceTime && !isAssessmentGraceActive) {
         return reply.status(403).send({
           success: false,
           error: currentStatus === 'UPCOMING'
             ? 'This assessment has not started yet. Please wait for the round to go live.'
-            : 'This assessment is not currently active.',
+            : 'This assessment is not currently active or its time limit has expired.',
         });
       }
 
@@ -3064,19 +3170,6 @@ export const startAssessmentSession = async (
       if (assignedTeam) {
         userTeamId = assignedTeam._id;
         userTeamName = assignedTeam.name;
-      }
-    }
-
-    const durationMinutes = Number(assessment.durationMinutes) || 60;
-    const graceExtraMinutes = Number(assessment.graceMinutes) || 0;
-    const normalExpiresAt = new Date(now.getTime() + (durationMinutes + graceExtraMinutes) * 60 * 1000);
-    let calculatedExpiresAt = normalExpiresAt;
-    if (assessment.startTime) {
-      const scheduledEnd = assessment.endTime
-        ? new Date(assessment.endTime).getTime() + graceExtraMinutes * 60 * 1000
-        : new Date(assessment.startTime).getTime() + (durationMinutes + graceExtraMinutes) * 60 * 1000;
-      if (!isNaN(scheduledEnd)) {
-        calculatedExpiresAt = new Date(Math.min(normalExpiresAt.getTime(), scheduledEnd));
       }
     }
 
@@ -3123,13 +3216,9 @@ export const startAssessmentSession = async (
       }
     } else {
       const hasFutureExpiry = submission.expiresAt && new Date(submission.expiresAt).getTime() > now.getTime();
-      if (submission.reentryAllowed || hasFutureExpiry || ((submission.graceMinutes || 0) > 0)) {
+      if (hasFutureExpiry) {
         submission.status = 'IN_PROGRESS';
-        submission.submittedAt = undefined;
-        if (!hasFutureExpiry) {
-          const extraMins = submission.graceMinutes || assessment.graceMinutes || 10;
-          submission.expiresAt = new Date(now.getTime() + extraMins * 60 * 1000);
-        }
+        submission.reentryAllowed = false; // consume one-time reentry
         await submission.save();
       } else if (!submission.expiresAt && calculatedExpiresAt) {
         submission.expiresAt = calculatedExpiresAt;
@@ -3549,6 +3638,7 @@ export const submitAssessmentFinal = async (
     submission.status = 'SUBMITTED';
     submission.submittedAt = now;
     submission.timeTakenSeconds = timeTakenSeconds;
+    submission.reentryAllowed = false;
 
     try {
       await submission.save();
@@ -4023,6 +4113,7 @@ export const submitAssessmentDesign = async (
     submission.status = 'SUBMITTED';
     submission.submittedAt = new Date();
     submission.maxPossibleScore = assessment.totalPoints || 100;
+    submission.reentryAllowed = false;
 
     try {
       await submission.save();

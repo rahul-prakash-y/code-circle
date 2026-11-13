@@ -38,6 +38,9 @@ export interface BlockedStudentsTabProps {
   eventId: string;
   eventTitle?: string;
   onStudentUnblocked?: () => void;
+  blockedCount?: number;
+  onRefreshCount?: () => void;
+  onOpenDetailsModal?: () => void;
 }
 
 export const BlockedStudentsTab: React.FC<BlockedStudentsTabProps> = React.memo(({

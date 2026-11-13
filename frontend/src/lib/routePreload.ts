@@ -28,6 +28,8 @@ const loaders: Record<string, () => Promise<unknown>> = {
   '/users': () => import('../pages/UserManagement'),
   '/students': () => import('../pages/UserManagement'),
   '/tracking': () => import('../pages/StudentTrackingPage'),
+  '/blocked-students': () => import('../pages/BlockedStudentsPage'),
+  '/admin/blocked-students': () => import('../pages/BlockedStudentsPage'),
   '/analytics': () => import('../pages/AnalyticsPage'),
   '/diagnostics': () => import('../pages/DiagnosticsPage'),
   '/admin/diagnostics': () => import('../pages/DiagnosticsPage'),

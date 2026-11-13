@@ -11,6 +11,7 @@ import {
   forceLogoutStudent,
 } from '../controllers/adminController';
 import * as passwordResetController from '../controllers/passwordResetController';
+import * as blockedStudentsController from '../controllers/blockedStudentsController';
 import { verifyToken, isAdmin } from '../middleware/authMiddleware';
 
 import { studentTrackingRoutes } from './studentTrackingRoutes';
@@ -53,6 +54,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.post('/password-resets/approve-all', passwordResetController.approveAllResetRequests);
   fastify.delete('/password-resets/:id', passwordResetController.deleteResetRequest);
   fastify.get('/password-resets/smtp-status', passwordResetController.getSmtpStatus);
+
+  // Blocked Students Proctoring & Enforcement Endpoints (/api/admin/blocked-students)
+  fastify.get('/blocked-students', blockedStudentsController.getAllBlockedStudents);
+  fastify.post('/blocked-students/block', blockedStudentsController.blockStudentDirect);
+  fastify.post('/blocked-students/unblock', blockedStudentsController.unblockStudentDirect);
+  fastify.get('/blocked-students/events', blockedStudentsController.getAvailableEventsForBlock);
+  fastify.get('/blocked-students/search-candidates', blockedStudentsController.searchStudentsForBlock);
 }
 
 export default adminRoutes;

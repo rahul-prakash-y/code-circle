@@ -38,6 +38,7 @@ const ContestArenaPage = lazy(() => import('./pages/ContestArenaPage'));
 const ContestLeaderboardPage = lazy(() => import('./pages/ContestLeaderboardPage'));
 const AdminPasswordResets = lazy(() => import('./pages/AdminPasswordResets'));
 const EventArenaPage = lazy(() => import('./pages/EventArenaPage'));
+const BlockedStudentsPage = lazy(() => import('./pages/BlockedStudentsPage'));
 const EventDocumentationPage = lazy(() => import('./pages/EventDocumentationPage'));
 const StatesGalleryPage = lazy(() => import('./pages/StatesGalleryPage'));
 
@@ -477,6 +478,24 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
                   <StudentTrackingPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Blocked Students Proctoring & Enforcement Module */}
+            <Route
+              path="/blocked-students"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                  <BlockedStudentsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/blocked-students"
+              element={
+                <ProtectedRoute allowedRoles={['Admin', 'SuperAdmin', 'Faculty', 'Committee']}>
+                  <BlockedStudentsPage />
                 </ProtectedRoute>
               }
             />
