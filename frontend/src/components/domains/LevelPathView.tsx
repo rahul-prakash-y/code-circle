@@ -104,11 +104,19 @@ export const LevelPathView: React.FC<LevelPathViewProps> = ({
           return (
             <motion.div
               key={lvl._id}
+              role="button"
+              tabIndex={0}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05, duration: 0.25 }}
               onClick={handleCardClick}
-              className={`group relative rounded-2xl border transition-all duration-200 cursor-pointer overflow-hidden ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleCardClick();
+                }
+              }}
+              className={`group relative rounded-2xl border transition-all duration-200 cursor-pointer overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 isActive
                   ? 'bg-surface border-accent shadow-[0_8px_24px_rgba(0,113,227,0.12)] ring-2 ring-accent/20'
                   : isCompleted

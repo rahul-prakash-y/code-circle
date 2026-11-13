@@ -127,9 +127,10 @@ const NewsFeed = () => {
 
       {/* Featured / Pinned Announcement Hero */}
       {pinnedArticle && (
-        <div
+        <button
+          type="button"
           onClick={() => handleOpenReader(pinnedArticle)}
-          className="surface p-4 sm:p-7 lg:p-8 rounded-2xl sm:rounded-3xl relative overflow-hidden group cursor-pointer hover:shadow-md transition-shadow duration-200"
+          className="surface p-4 sm:p-7 lg:p-8 rounded-2xl sm:rounded-3xl relative overflow-hidden group cursor-pointer hover:shadow-md transition-shadow duration-200 text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
             {/* Image Column */}
@@ -208,7 +209,7 @@ const NewsFeed = () => {
               </div>
             </div>
           </div>
-        </div>
+        </button>
       )}
 
       {/* Filter and Search Bar */}
@@ -264,10 +265,11 @@ const NewsFeed = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {standardArticles.map((article) => (
-            <div
+            <button
+              type="button"
               key={article._id}
               onClick={() => handleOpenReader(article)}
-              className="surface overflow-hidden hover:shadow-md transition-shadow duration-200 group cursor-pointer flex flex-col justify-between rounded-[18px]"
+              className="surface overflow-hidden hover:shadow-md transition-shadow duration-200 group cursor-pointer flex flex-col justify-between rounded-[18px] text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {/* Card Cover */}
               <div>
@@ -344,7 +346,7 @@ const NewsFeed = () => {
                   </span>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

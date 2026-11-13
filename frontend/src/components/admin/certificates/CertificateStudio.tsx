@@ -868,7 +868,8 @@ export const CertificateStudio: React.FC = () => {
                     .map((u) => {
                       const isSelected = selectedUserIds.includes(u._id);
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={u._id}
                           onClick={() => {
                             if (isSelected) {
@@ -877,7 +878,7 @@ export const CertificateStudio: React.FC = () => {
                               setSelectedUserIds([...selectedUserIds, u._id]);
                             }
                           }}
-                          className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-xs ${
+                          className={`w-full flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-xs text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                             isSelected ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-surface text-label-primary'
                           }`}
                         >
@@ -894,7 +895,7 @@ export const CertificateStudio: React.FC = () => {
                           >
                             {isSelected ? <Check size={10} strokeWidth={2.5} /> : null}
                           </span>
-                        </div>
+                        </button>
                       );
                     })}
                 </div>

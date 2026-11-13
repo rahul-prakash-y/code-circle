@@ -150,8 +150,16 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
 
           {/* Event Title — Dominant Hero (Clickable to preview) */}
           <h3
+            role="button"
+            tabIndex={0}
             onClick={() => setIsDetailsOpen(true)}
-            className="text-xl sm:text-[21px] font-bold text-label-primary group-hover:text-accent transition-colors duration-150 tracking-tight leading-snug mb-2.5 font-heading cursor-pointer"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsDetailsOpen(true);
+              }
+            }}
+            className="text-xl sm:text-[21px] font-bold text-label-primary group-hover:text-accent transition-colors duration-150 tracking-tight leading-snug mb-2.5 font-heading cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
             title="Click to preview event details"
           >
             {event.title}

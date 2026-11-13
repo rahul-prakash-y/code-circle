@@ -41,10 +41,11 @@ const AttendanceManager = () => {
       {/* Events Selection Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {upcomingEvents.map((event) => (
-          <div 
+          <button
+            type="button"
             key={event._id}
             onClick={() => handleOpenAttendance(event)}
-            className="group relative glass p-6 hover:border-accent/30 transition-all cursor-pointer overflow-hidden"
+            className="group relative glass p-6 hover:border-accent/30 transition-all cursor-pointer overflow-hidden text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             {/* Background Icon */}
             <Calendar className="absolute -right-4 -bottom-4 w-24 h-24 text-white/5 group-hover:text-blue-500/10 transition-colors" />
@@ -83,7 +84,7 @@ const AttendanceManager = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </button>
         ))}
         
         {upcomingEvents.length === 0 && !loading && (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KeyRound, Award, Calendar, Download, ArrowUpRight, Bell, Plus } from 'lucide-react';
+import { Button } from '@heroui/react';
 import GenerateOtpModal from './GenerateOtpModal';
 import AssessmentManagerModal from './AssessmentManagerModal';
 import DownloadReportsModal from './DownloadReportsModal';
@@ -72,13 +73,16 @@ export const QuickActions = ({
             </p>
           </div>
           {onOpenCreateEvent && (
-            <button
-              onClick={onOpenCreateEvent}
-              className="btn-primary text-xs px-3.5 py-1.5 flex items-center gap-1.5 cursor-pointer"
+            <Button
+              size="sm"
+              color="primary"
+              variant="solid"
+              onPress={onOpenCreateEvent}
+              startContent={<Plus size={14} />}
+              className="text-xs px-3.5 py-1.5 rounded-xl font-semibold text-white shadow-xs"
             >
-              <Plus size={14} />
-              <span>Create Event</span>
-            </button>
+              Create Event
+            </Button>
           )}
         </div>
 
@@ -87,10 +91,11 @@ export const QuickActions = ({
           {actions.map((act) => {
             const Icon = act.icon;
             return (
-              <div
+              <button
+                type="button"
                 key={act.id}
                 onClick={act.onClick}
-                className="group relative flex flex-col justify-between p-5 rounded-2xl bg-canvas border border-separator hover:border-separator-opaque cursor-pointer transition-colors duration-150 select-none"
+                className="group relative flex flex-col justify-between p-5 rounded-2xl bg-canvas border border-separator hover:border-separator-opaque cursor-pointer transition-colors duration-150 select-none text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-9 h-9 rounded-xl bg-surface border border-separator flex items-center justify-center text-label-secondary group-hover:text-accent transition-colors">
@@ -111,7 +116,7 @@ export const QuickActions = ({
                     {act.subtitle}
                   </p>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

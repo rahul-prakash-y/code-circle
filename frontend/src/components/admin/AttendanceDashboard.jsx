@@ -559,10 +559,11 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                     safeSessions.map((s) => {
                       const isSelected = selectedSession?._id === s._id;
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={s._id}
                           onClick={() => handleViewSession(s)}
-                          className={`p-3.5 rounded-2xl text-left transition-all border cursor-pointer ${
+                          className={`w-full p-3.5 rounded-2xl text-left transition-all border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                             isSelected
                               ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/35 shadow-xs'
                               : 'bg-surface hover:bg-canvas/80 dark:hover:bg-white/[0.03] border-separator dark:border-white/10'
@@ -614,7 +615,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                               )}
                             </button>
                           </div>
-                        </div>
+                        </button>
                       );
                     })
                   )}

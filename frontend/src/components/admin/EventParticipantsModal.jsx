@@ -558,12 +558,13 @@ export const EventParticipantsModal = ({
                     Registered students:
                   </strong>
                   All individual students and teams registered for this event. Students who check in move automatically into the{' '}
-                  <span
-                    className="underline font-medium cursor-pointer hover:text-blue-950 dark:hover:text-blue-100"
+                  <button
+                    type="button"
+                    className="underline font-medium cursor-pointer hover:text-blue-950 dark:hover:text-blue-100 bg-transparent border-0 p-0 text-inherit inline focus:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
                     onClick={() => setActiveTab('participants')}
                   >
                     Event participants directory
-                  </span>
+                  </button>
                   .
                 </>
               )}

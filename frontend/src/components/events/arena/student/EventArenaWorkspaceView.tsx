@@ -943,10 +943,11 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                       const isSelected = selectedDesignIdx === chIdx;
                       const isPrevChosen = (submission?.designSubmission as any)?.selectedChallengeTitle === ch.title;
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={chIdx}
                           onClick={() => setSelectedDesignIdx(chIdx)}
-                          className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1.5 w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 ${
                             isSelected
                               ? 'bg-pink-500/15 border-pink-500/50 text-white shadow-xs'
                               : 'bg-surface-secondary border-separator text-label-secondary hover:bg-surface-secondary'
@@ -965,7 +966,7 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                               <span>Selected for submission</span>
                             </span>
                           )}
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -1022,9 +1023,11 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                   </div>
 
                   {refImg ? (
-                    <div
+                    <button
+                      type="button"
+                      aria-label="Click to Zoom / Lightbox"
                       onClick={() => setPreviewReferenceImg(refImg)}
-                      className="group relative rounded-2xl overflow-hidden border border-separator bg-black/40 cursor-zoom-in hover:border-purple-500/40 transition-all max-h-80 flex items-center justify-center"
+                      className="group relative rounded-2xl overflow-hidden border border-separator bg-black/40 cursor-zoom-in hover:border-purple-500/40 transition-all max-h-80 flex items-center justify-center w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                     >
                       <img
                         src={refImg}
@@ -1035,7 +1038,7 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                         <Maximize2 size={16} />
                         <span>Click to Zoom / Lightbox</span>
                       </div>
-                    </div>
+                    </button>
                   ) : (
                     <div className="p-8 rounded-2xl bg-surface-secondary border border-dashed border-separator text-center text-label-tertiary space-y-1.5">
                       <ImageIcon size={28} className="mx-auto text-label-tertiary" />
@@ -1369,10 +1372,11 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                     const isSelected =
                       currentMcq._id && mcqAnswers[currentMcq._id] === optIdx;
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={optIdx}
                         onClick={() => currentMcq._id && handleSelectMcqOption(currentMcq._id, optIdx)}
-                        className={`p-3.5 sm:p-4 min-h-11.5 rounded-xl border flex items-center gap-3.5 cursor-pointer transition-all ${
+                        className={`w-full text-left p-3.5 sm:p-4 min-h-11.5 rounded-xl border flex items-center gap-3.5 cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${
                           isSelected
                             ? 'bg-purple-600/20 border-purple-500 text-white shadow-md shadow-purple-600/15'
                             : 'bg-white/2 border-separator hover:border-separator text-label-primary hover:bg-white/4'
@@ -1388,7 +1392,7 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                           {String.fromCharCode(65 + optIdx)}
                         </div>
                         <span className="text-xs sm:text-sm font-medium leading-relaxed break-words min-w-0 flex-1">{opt}</span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

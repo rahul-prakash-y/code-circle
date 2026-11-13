@@ -217,7 +217,12 @@ const Profile = () => {
       {/* Identity Header Card */}
       <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card relative">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          <div className="relative group cursor-pointer" onClick={() => setIsModalOpen(true)}>
+          <button
+            type="button"
+            aria-label="Change profile photo"
+            onClick={() => setIsModalOpen(true)}
+            className="relative group cursor-pointer rounded-full border-none bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
             <HeroAvatar
               src={profile.profilePicUrl}
               name={profile.name}
@@ -234,7 +239,7 @@ const Profile = () => {
                 <Loader2 className="animate-spin text-white" size={22} />
               </div>
             )}
-          </div>
+          </button>
 
           <div className="text-center sm:text-left flex-1 space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">

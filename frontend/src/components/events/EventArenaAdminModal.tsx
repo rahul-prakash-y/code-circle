@@ -1523,10 +1523,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         {filteredCandidates.map((cand) => {
                           const isAssigned = newAssignedAdminIds.includes(cand._id);
                           return (
-                            <div
+                            <button
+                              type="button"
                               key={cand._id}
                               onClick={() => toggleNewAdmin(cand._id)}
-                              className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                              className={`w-full p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${
                                 isAssigned
                                   ? 'bg-purple-500/15 border-purple-500/40 text-label-primary '
                                   : 'bg-white/[0.02] border-white/5 hover:border-separator text-label-primary /70'
@@ -1559,7 +1560,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               >
                                 {isAssigned && <Check size={12} />}
                               </div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -2023,15 +2024,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                           {filteredCandidates.map((cand) => {
                             const isAssigned = editAssignedAdminIds.includes(cand._id);
                             return (
-                              <div
-                                key={cand._id}
-                                onClick={() => toggleEditAdmin(cand._id)}
-                                className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                                  isAssigned
-                                    ? 'bg-purple-500/15 border-purple-500/40 text-label-primary '
-                                    : 'bg-white/[0.02] border-white/5 hover:border-separator text-label-primary /70'
-                                }`}
-                              >
+                            <button
+                              type="button"
+                              key={cand._id}
+                              onClick={() => toggleEditAdmin(cand._id)}
+                              className={`w-full p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${
+                                isAssigned
+                                  ? 'bg-purple-500/15 border-purple-500/40 text-label-primary '
+                                  : 'bg-white/[0.02] border-white/5 hover:border-separator text-label-primary /70'
+                              }`}
+                            >
                                 <div className="flex items-center gap-2.5">
                                   <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/10 shrink-0">
                                     <img
@@ -2059,7 +2061,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 >
                                   {isAssigned && <Check size={12} />}
                                 </div>
-                              </div>
+                              </button>
                             );
                           })}
                         </div>
@@ -2834,10 +2836,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       {designChallengesList.map((ch: any, idx: number) => {
                         const isActive = activeDesignOptionIdx === idx;
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={idx}
                             onClick={() => switchActiveChallengeOption(idx)}
-                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 relative group ${
+                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 relative group text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 ${
                               isActive
                                 ? 'bg-pink-500/15 border-pink-500/50 shadow-sm ring-1 ring-pink-500/30'
                                 : 'bg-surface border-separator hover:border-pink-500/30 hover:bg-surface-secondary'
@@ -2893,7 +2896,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                 {isActive ? '● Editing' : 'Click to Edit'}
                               </span>
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
