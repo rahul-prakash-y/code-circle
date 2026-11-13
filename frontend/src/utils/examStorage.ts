@@ -9,7 +9,7 @@ const DB_NAME = 'CodeCircleExamDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'exam_state';
 
-interface StoredExamRecord<T = any> {
+export interface StoredExamRecord<T = any> {
   key: string;
   data: T;
   timestamp: number;
@@ -54,12 +54,50 @@ function openDatabase(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+// In-memory queue of pending writes for debounced mirroring
+const pendingPayloads = new Map<string, StoredExamRecord>();
 const lsWriteTimers = new Map<string, any>();
 
 /**
- * Persists exam state to IndexedDB with a debounced localStorage mirror.
- * Debouncing the synchronous localStorage write prevents UI thread freezes (1.5-2s)
- * during fast student interactions (e.g., clicking multiple radio options).
+ * Immediately flushes any pending debounced writes to localStorage.
+ * Guaranteed to be called on visibilitychange, pagehide, beforeunload, and before final exam submission.
+ */
+export function flushPendingExamWrites(): void {
+  if (typeof window === 'undefined') return;
+
+  for (const [key, timer] of lsWriteTimers.entries()) {
+    clearTimeout(timer);
+  }
+  lsWriteTimers.clear();
+
+  for (const [key, payload] of pendingPayloads.entries()) {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(payload));
+    } catch (lsErr) {
+      console.warn('[ExamStorage] Flush LocalStorage write warning:', lsErr);
+    }
+  }
+  pendingPayloads.clear();
+}
+
+// Attach lifecycle listeners for automatic flush on tab blur, minimize, or pagehide
+if (typeof window !== 'undefined') {
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      flushPendingExamWrites();
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    flushPendingExamWrites();
+  });
+  window.addEventListener('beforeunload', () => {
+    flushPendingExamWrites();
+  });
+}
+
+/**
+ * Persists exam state immediately to IndexedDB (as primary storage engine)
+ * with a debounced synchronous localStorage mirror for instant crash recovery.
  */
 export async function saveExamState<T = any>(key: string, data: T, debounceLocalStorage = true): Promise<void> {
   if (!key || typeof window === 'undefined') return;
@@ -70,7 +108,9 @@ export async function saveExamState<T = any>(key: string, data: T, debounceLocal
     timestamp: Date.now(),
   };
 
-  // Debounced mirror in localStorage to avoid main-thread UI locking
+  pendingPayloads.set(key, payload);
+
+  // 1. Debounced mirror in localStorage to prevent blocking the JavaScript main thread
   if (debounceLocalStorage) {
     if (lsWriteTimers.has(key)) {
       clearTimeout(lsWriteTimers.get(key));
@@ -78,6 +118,7 @@ export async function saveExamState<T = any>(key: string, data: T, debounceLocal
     const timer = setTimeout(() => {
       try {
         window.localStorage.setItem(key, JSON.stringify(payload));
+        pendingPayloads.delete(key);
       } catch (lsErr) {
         console.warn('[ExamStorage] LocalStorage mirror write warning:', lsErr);
       } finally {
@@ -88,12 +129,13 @@ export async function saveExamState<T = any>(key: string, data: T, debounceLocal
   } else {
     try {
       window.localStorage.setItem(key, JSON.stringify(payload));
+      pendingPayloads.delete(key);
     } catch (lsErr) {
       console.warn('[ExamStorage] LocalStorage mirror write warning:', lsErr);
     }
   }
 
-  // Primary durable storage in IndexedDB (non-blocking async)
+  // 2. Primary durable storage in IndexedDB (non-blocking async)
   try {
     const db = await openDatabase();
     await new Promise<void>((resolve, reject) => {
@@ -105,9 +147,10 @@ export async function saveExamState<T = any>(key: string, data: T, debounceLocal
       request.onerror = () => reject(request.error);
     });
   } catch (idbErr) {
-    // If IndexedDB fails (e.g. private mode or quota), flush localStorage immediately
+    // If IndexedDB fails (e.g. strict private mode or quota), immediately flush localStorage
     try {
       window.localStorage.setItem(key, JSON.stringify(payload));
+      pendingPayloads.delete(key);
     } catch {
       // Ignore
     }
@@ -163,6 +206,12 @@ export async function getExamState<T = any>(key: string): Promise<T | null> {
 export async function clearExamState(key: string): Promise<void> {
   if (!key || typeof window === 'undefined') return;
 
+  if (lsWriteTimers.has(key)) {
+    clearTimeout(lsWriteTimers.get(key));
+    lsWriteTimers.delete(key);
+  }
+  pendingPayloads.delete(key);
+
   // Clear from localStorage
   try {
     window.localStorage.removeItem(key);
@@ -204,12 +253,14 @@ export function getExamStorageKey(userId: string, assessmentId: string): string 
 export async function clearAllExamState(): Promise<void> {
   if (typeof window === 'undefined') return;
 
+  flushPendingExamWrites();
+
   // 1. Purge exam keys from localStorage
   try {
     const keysToRemove: string[] = [];
     for (let i = 0; i < window.localStorage.length; i++) {
       const k = window.localStorage.key(i);
-      if (k && (k.startsWith('cc_exam_') || k.startsWith('cc_assessment_'))) {
+      if (k && (k.startsWith('cc_exam_') || k.startsWith('cc_assessment_') || k.startsWith('arena_mcq_') || k.startsWith('arena_coding_'))) {
         keysToRemove.push(k);
       }
     }
@@ -243,4 +294,5 @@ export default {
   clearExamState,
   clearAllExamState,
   getExamStorageKey,
+  flushPendingExamWrites,
 };
