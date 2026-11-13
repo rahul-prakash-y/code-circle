@@ -19,6 +19,7 @@ import StudentCourseAccessModal from '../components/domains/StudentCourseAccessM
 import { EmilCard } from '../components/ui/emil-ui';
 import { HeroInput } from '@/components/ui/hero/HeroInput';
 import { HeroTabs } from '@/components/ui/hero/HeroTabs';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import { HeroUser, HeroAvatar } from '@/components/ui/hero/HeroAvatar';
 import { HeroUISelect } from '../components/ui/HeroUISelect';
 import { Button, Checkbox, Spinner } from '@heroui/react';
@@ -1730,43 +1731,18 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* Drag & Drop Zone */}
-          {!bulkResult && (
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => bulkFileInputRef.current?.click()}
-              className="relative rounded-2xl cursor-pointer transition-all duration-200 flex flex-col items-center justify-center py-10 sm:py-12 gap-4"
-              style={{
-                border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-color)'}`,
-                background: isDragOver ? 'var(--accent-subtle)' : 'var(--glass-bg)',
+          {!bulkFile && !bulkResult && (
+            <HeroFileInput
+              variant="dropzone"
+              accept=".xlsx,.xls"
+              buttonText="Click or drag file to upload"
+              description="Supports .xlsx and .xls files"
+              onFilesSelected={(files) => {
+                if (files[0]) handleBulkFileSelect(files[0]);
               }}
-            >
-              <input
-                ref={bulkFileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleBulkFileSelect(file);
-                }}
-              />
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
-              >
-                <Upload size={24} strokeWidth={1.5} />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {isDragOver ? 'Drop file here' : 'Click or drag file to upload'}
-                </p>
-                <p className="text-[12px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Supports .xlsx and .xls files
-                </p>
-              </div>
-            </div>
+              color="primary"
+              showChips={false}
+            />
           )}
 
           {/* Selected File Preview */}

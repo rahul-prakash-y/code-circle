@@ -46,6 +46,7 @@ import {
 import { toast } from 'react-hot-toast';
 import api from '../../lib/axios';
 import { Button, Input } from '@heroui/react';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import useEventArenaStore, {
@@ -1178,9 +1179,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     toast.success('Tournament leaderboard exported to Excel successfully!');
   };
 
-  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleUploadDesignFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       return toast.error('Please upload an image file (PNG, JPG, WEBP, etc.)');
     }
@@ -2942,33 +2941,19 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                         {/* Upload Controls */}
                         <div className="space-y-3">
-                          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-separator hover:border-pink-500/50 rounded-2xl cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] transition-all group">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageFileUpload}
-                              disabled={uploadingDesignImg || !canManageSelected}
-                              className="hidden"
-                            />
-                            {uploadingDesignImg ? (
-                              <div className="flex flex-col items-center gap-2 py-3 text-pink-400">
-                                <Loader2 size={24} className="animate-spin" />
-                                <span className="text-xs font-semibold">Uploading to Cloudinary...</span>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center gap-2 text-center py-2">
-                                <div className="w-10 h-10 rounded-xl bg-pink-500/15 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                  <Upload size={18} />
-                                </div>
-                                <span className="text-xs font-bold text-label-primary group-hover:text-pink-300 transition-colors">
-                                  Click or Drag Image Here
-                                </span>
-                                <span className="text-[10px] text-text-muted">
-                                  PNG, JPG, SVG, WEBP up to 10MB
-                                </span>
-                              </div>
-                            )}
-                          </label>
+                          <HeroFileInput
+                            variant="dropzone"
+                            accept="image/*"
+                            buttonText="Click or Drag Image Here"
+                            description="PNG, JPG, SVG, WEBP up to 10MB"
+                            isLoading={uploadingDesignImg}
+                            isDisabled={uploadingDesignImg || !canManageSelected}
+                            color="secondary"
+                            onFilesSelected={(files) => {
+                              if (files[0]) handleUploadDesignFile(files[0]);
+                            }}
+                            showChips={false}
+                          />
 
                           <div className="relative">
                             <span className="text-[11px] text-text-muted block mb-1">Or paste direct image URL:</span>
@@ -4154,27 +4139,17 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   <span className="font-semibold text-label-primary ">"{selectedAssessment?.title}"</span>.
                 </p>
 
-                <div className="p-6 rounded-xl border-2 border-dashed border-separator hover:border-purple-500/50 text-center space-y-2 cursor-pointer transition-colors bg-white/[0.01]">
-                  <Upload size={24} className="mx-auto text-purple-400" />
-                  <div>
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.json"
-                      onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="bulk-file-input"
-                    />
-                    <label
-                      htmlFor="bulk-file-input"
-                      className="text-xs font-bold text-purple-400 hover:text-purple-300 cursor-pointer"
-                    >
-                      Browse file from device
-                    </label>
-                  </div>
-                  {bulkFile && (
-                    <p className="text-xs text-label-primary font-mono truncate px-4">{bulkFile.name}</p>
-                  )}
-                </div>
+                <HeroFileInput
+                  variant="dropzone"
+                  accept=".xlsx,.xls,.json"
+                  buttonText="Browse file from device or drag and drop"
+                  description="Supports Excel (.xlsx, .xls) and JSON"
+                  onFilesSelected={(files) => {
+                    setBulkFile(files[0] || null);
+                  }}
+                  color="secondary"
+                  showChips={true}
+                />
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button
