@@ -6,3 +6,4 @@ export * from './HeroTable';
 export * from './HeroChip';
 export * from './HeroDatePicker';
 export * from './HeroDateTimePicker';
+export * from './HeroFileInput';
