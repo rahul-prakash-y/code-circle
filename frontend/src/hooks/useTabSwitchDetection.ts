@@ -6,18 +6,26 @@ export interface UseTabSwitchDetectionOptions {
   eventId: string;
   enabled?: boolean;
   initialIsBlocked?: boolean;
+  initialTabSwitchCount?: number;
+  maxStrikes?: number;
   onBlocked?: () => void;
+  onStrike?: (count: number, maxStrikes: number) => void;
 }
 
 export interface UseTabSwitchDetectionReturn {
   isBlocked: boolean;
   blockedMessage: string;
   isTriggering: boolean;
+  tabSwitchCount: number;
+  maxStrikes: number;
+  showWarning: boolean;
+  setShowWarning: (show: boolean) => void;
   blockStudent: (reason?: string) => Promise<void>;
   unblockStudent: (studentId?: string) => Promise<void>;
   checkIfUnblocked: () => Promise<boolean>;
   resetBlocked: () => void;
   setIsBlocked: (val: boolean) => void;
+  setTabSwitchCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export const PERMANENT_BLOCK_MESSAGE =
@@ -26,17 +34,27 @@ export const PERMANENT_BLOCK_MESSAGE =
 /**
  * useTabSwitchDetection
  * Monitors `document.visibilitychange`. If `document.hidden` becomes true while taking a test,
- * immediately fires `/api/events/:eventId/block-student`, locks the local UI, and sets a permanent error state.
+ * tracks tab switch strikes up to `maxStrikes` (default: 3).
+ * Strikes 1 to (maxStrikes - 1) show warning dialogs and record strikes.
+ * Upon reaching maxStrikes (3), immediately fires `/api/events/:eventId/block-student`,
+ * locks the local UI, and sets a permanent blocked state.
  */
 export const useTabSwitchDetection = ({
   eventId,
   enabled = true,
   initialIsBlocked = false,
+  initialTabSwitchCount = 0,
+  maxStrikes = 3,
   onBlocked,
+  onStrike,
 }: UseTabSwitchDetectionOptions): UseTabSwitchDetectionReturn => {
   const [isBlocked, setIsBlocked] = useState<boolean>(initialIsBlocked);
+  const [blockedMessage, setBlockedMessage] = useState<string>(PERMANENT_BLOCK_MESSAGE);
   const [isTriggering, setIsTriggering] = useState<boolean>(false);
+  const [tabSwitchCount, setTabSwitchCount] = useState<number>(initialTabSwitchCount);
+  const [showWarning, setShowWarning] = useState<boolean>(false);
   const hasTriggeredRef = useRef<boolean>(initialIsBlocked);
+  const lastTriggerTimeRef = useRef<number>(0);
 
   // Sync initial blocked state if it arrives asynchronously
   useEffect(() => {
@@ -47,11 +65,13 @@ export const useTabSwitchDetection = ({
   }, [initialIsBlocked, isBlocked]);
 
   const blockStudent = useCallback(
-    async (reason = 'Tab switch or window navigation detected'): Promise<void> => {
+    async (reason = `Exceeded maximum ${maxStrikes} tab switch violations`): Promise<void> => {
       if (!eventId || hasTriggeredRef.current) return;
 
       hasTriggeredRef.current = true;
       setIsBlocked(true);
+      setShowWarning(false);
+      setBlockedMessage(reason || PERMANENT_BLOCK_MESSAGE);
       setIsTriggering(true);
 
       try {
@@ -62,7 +82,7 @@ export const useTabSwitchDetection = ({
         setIsTriggering(false);
       }
 
-      toast.error(PERMANENT_BLOCK_MESSAGE, {
+      toast.error(reason || PERMANENT_BLOCK_MESSAGE, {
         id: 'anti-cheat-permanent-blocked',
         duration: 10000,
         style: {
@@ -75,7 +95,7 @@ export const useTabSwitchDetection = ({
 
       onBlocked?.();
     },
-    [eventId, onBlocked]
+    [eventId, maxStrikes, onBlocked]
   );
 
   const unblockStudent = useCallback(
@@ -86,6 +106,8 @@ export const useTabSwitchDetection = ({
         await api.post(`/events/${eventId}/unblock-student`, { studentId });
         setIsBlocked(false);
         hasTriggeredRef.current = false;
+        setTabSwitchCount(0);
+        setShowWarning(false);
         toast.success('Student unblocked successfully.');
       } catch (err: any) {
         console.error('[Anti-Cheat] Failed to unblock student:', err);
@@ -102,6 +124,8 @@ export const useTabSwitchDetection = ({
       if (res.data?.success && res.data.isBlocked === false) {
         setIsBlocked(false);
         hasTriggeredRef.current = false;
+        setTabSwitchCount(0);
+        setShowWarning(false);
         toast.success('Your assessment attempt has been unblocked! You may now resume.');
         return true;
       }
@@ -114,6 +138,8 @@ export const useTabSwitchDetection = ({
   const resetBlocked = useCallback(() => {
     setIsBlocked(false);
     hasTriggeredRef.current = false;
+    setTabSwitchCount(0);
+    setShowWarning(false);
   }, []);
 
   // Poll backend status periodically while blocked so student screen unlocks as soon as admin clicks Unblock
@@ -132,7 +158,35 @@ export const useTabSwitchDetection = ({
 
     const handleVisibilityChange = () => {
       if (document.hidden && !hasTriggeredRef.current) {
-        blockStudent('Navigated away or switched tab');
+        const now = Date.now();
+        // Debounce against rapid firing
+        if (now - lastTriggerTimeRef.current < 1000) return;
+        lastTriggerTimeRef.current = now;
+
+        setTabSwitchCount((prev) => {
+          const nextCount = prev + 1;
+          onStrike?.(nextCount, maxStrikes);
+
+          if (nextCount >= maxStrikes) {
+            setShowWarning(false);
+            blockStudent(`Exceeded maximum ${maxStrikes} tab switch violations`);
+          } else {
+            setShowWarning(true);
+            toast.error(
+              `Security Warning: Strike ${nextCount} of ${maxStrikes}! Tab switching is restricted.`,
+              {
+                id: 'anti-cheat-strike-warning',
+                duration: 6000,
+                style: {
+                  background: 'var(--surface)',
+                  color: 'var(--warning)',
+                  border: '1px solid var(--warning-subtle)',
+                },
+              }
+            );
+          }
+          return nextCount;
+        });
       }
     };
 
@@ -141,19 +195,23 @@ export const useTabSwitchDetection = ({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [enabled, eventId, isBlocked, blockStudent]);
+  }, [enabled, eventId, isBlocked, maxStrikes, blockStudent, onStrike]);
 
   return {
     isBlocked,
-    blockedMessage: PERMANENT_BLOCK_MESSAGE,
+    blockedMessage,
     isTriggering,
+    tabSwitchCount,
+    maxStrikes,
+    showWarning,
+    setShowWarning,
     blockStudent,
     unblockStudent,
     checkIfUnblocked,
     resetBlocked,
     setIsBlocked,
+    setTabSwitchCount,
   };
 };
 
 export default useTabSwitchDetection;
-

@@ -47,6 +47,7 @@ import { EmilCard, EmilButton } from '@/components/ui/emil-ui';
 import { Button, Link } from '@heroui/react';
 import { useShallow } from 'zustand/react/shallow';
 import { HeroTabs } from '@/components/ui/hero/HeroTabs';
+import HeroUISelect, { HeroUISelectOption } from '@/components/ui/HeroUISelect';
 import useAuthStore from '@/store/useAuthStore';
 import useProfileStore from '@/store/useProfileStore';
 import useEventArenaStore from '@/store/useEventArenaStore';
@@ -156,6 +157,11 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
     checkIfUnblocked,
     resetBlocked,
     setIsBlocked: setTabSwitchBlocked,
+    tabSwitchCount,
+    setTabSwitchCount,
+    maxStrikes,
+    showWarning: showTabWarning,
+    setShowWarning: setShowTabWarning,
   } = useTabSwitchDetection({
     eventId: id || '',
     enabled: Boolean(
@@ -165,12 +171,17 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
       submission?.status !== 'SUBMITTED' &&
       !finalResultModal
     ),
+    maxStrikes: 3,
   });
   const isAssessmentBlocked = !isDesignRound && (tabSwitchBlocked || apiBlocked || Boolean(blockedDetail?.isBlocked && activeAssessmentId));
 
-  // Anti-Cheat: 5% mark reduction per tab switch (No disqualification)
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [showTabWarning, setShowTabWarning] = useState(false);
+  // Sync tabSwitchCount if student previously recorded switches on this submission
+  useEffect(() => {
+    if (submission?.tabSwitchCount && submission.tabSwitchCount > 0) {
+      setTabSwitchCount((prev) => Math.max(prev, submission.tabSwitchCount));
+    }
+  }, [submission?.tabSwitchCount, setTabSwitchCount]);
+
   const [selectedDesignIdx, setSelectedDesignIdx] = useState(0);
   const [studentFigmaLink, setStudentFigmaLink] = useState('');
   const [studentDesignNotes, setStudentDesignNotes] = useState('');
@@ -469,6 +480,31 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
       return currentCoding.allowedLanguages;
     }
     return ['python', 'javascript', 'cpp', 'java', 'c'];
+  }, [currentCoding]);
+
+  // Options for HeroUISelect programming language dropdown
+  const languageOptions: HeroUISelectOption[] = useMemo(() => {
+    return currentAllowedLanguages.map((lang) => ({
+      value: lang,
+      label: LANG_DISPLAY_NAMES[lang] || lang,
+    }));
+  }, [currentAllowedLanguages]);
+
+  // Derive public test cases for the current problem (always shown, including ONLY_CODE mode)
+  const publicTestCases = useMemo(() => {
+    if (!currentCoding) return [];
+    const visible = (currentCoding.testCases || []).filter((tc: any) => !tc.isHidden);
+    if (visible.length > 0) return visible;
+    if (currentCoding.sampleInput || currentCoding.sampleOutput) {
+      return [
+        {
+          input: currentCoding.sampleInput || '',
+          expectedOutput: currentCoding.sampleOutput || '',
+          isHidden: false,
+        },
+      ];
+    }
+    return [];
   }, [currentCoding]);
 
   // Ensure active language is valid for the current coding problem's allowed languages
@@ -804,6 +840,55 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
         </div>
       )}
 
+      {/* 1.5. Tab Switch Strike Warning Modal (Strikes 1 & 2 of 3) */}
+      <AnimatePresence>
+        {showTabWarning && !isAssessmentBlocked && (
+          <div className="fixed inset-0 z-[95] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xl select-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm sm:max-w-md bg-surface border border-amber-500/40 rounded-2xl sm:rounded-3xl p-5 sm:p-7 text-center space-y-4 shadow-2xl relative overflow-hidden"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 mx-auto">
+                <ShieldAlert size={28} />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-500 border border-amber-500/30 tabular-nums">
+                  Security Warning: Strike {tabSwitchCount} of {maxStrikes}
+                </span>
+                <h3 className="text-lg sm:text-xl font-semibold text-label-primary tracking-tight mt-2">
+                  Tab Switching is Restricted
+                </h3>
+                <p className="text-xs sm:text-[13px] text-label-secondary leading-relaxed">
+                  You have navigated away from the assessment window. Switching tabs, minimizing windows, or running external applications during this test is strictly monitored.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-surface-secondary border border-separator text-xs text-left space-y-1.5 font-normal">
+                <p className="text-amber-400 font-medium flex items-center gap-1.5 tabular-nums">
+                  <AlertTriangle size={14} /> Strike {tabSwitchCount} of {maxStrikes} recorded (-{tabSwitchCount * 5}% score penalty)
+                </p>
+                <p className="text-label-secondary text-[11px] leading-relaxed tabular-nums">
+                  If you switch tabs {Math.max(0, maxStrikes - tabSwitchCount)} more time{maxStrikes - tabSwitchCount === 1 ? '' : 's'}, your assessment will be <strong>permanently locked</strong> and you will need to contact an administrator.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                color="warning"
+                variant="solid"
+                onPress={() => setShowTabWarning(false)}
+                className="w-full py-2.5 text-xs font-bold text-black bg-amber-500 hover:bg-amber-600 min-h-[42px] rounded-xl cursor-pointer shadow-lg shadow-amber-500/20"
+              >
+                I Understand, Return to Test
+              </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* 2. Full-Screen Enforcement Overlay (Enforced for students; bypassed for admins in preview) */}
       {!isAdmin && !isAssessmentBlocked && (
         <FullScreenEnforcementOverlay
@@ -856,7 +941,9 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
           {tabSwitchCount > 0 && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] rounded-xl text-xs font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
               <ShieldAlert size={14} className="animate-bounce" />
-              <span>{tabSwitchCount} Switches (-{tabSwitchCount * 5}%)</span>
+              <span>
+                {tabSwitchCount} / {maxStrikes} Switches (-{tabSwitchCount * 5}%)
+              </span>
             </div>
           )}
 
@@ -1581,57 +1668,83 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                   </div>
                 )}
 
-                {/* Only Code: Custom Input (stdin) Panel */}
-                {activeCodingMode === 'ONLY_CODE' ? (
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-[11px] font-bold text-label-secondary flex items-center gap-1.5">
-                        <Terminal size={12} />
-                        <span>Custom Input (stdin)</span>
-                      </h4>
-                      <span className="text-[10px] text-label-tertiary">Used when clicking "Run Code"</span>
-                    </div>
-                    <textarea
-                      rows={3}
-                      value={customInputMap[currentCoding._id || ''] || ''}
-                      onChange={(e) => {
-                        if (currentCoding._id) {
-                          setCustomInputMap((prev) => ({ ...prev, [currentCoding._id!]: e.target.value }));
-                        }
-                      }}
-                      placeholder="Optional stdin input to test your program logic..."
-                      className="w-full p-2.5 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-label-primary placeholder-label-tertiary outline-none resize-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30"
-                    />
+                {/* Public Test Cases (Always visible, Custom Input is hidden in only code mode) */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[11px] font-bold text-label-secondary flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-500" />
+                      <span>Public Test Cases</span>
+                    </h4>
+                    {activeCodingMode === 'ONLY_CODE' && (
+                      <span className="text-[10px] text-purple-400 font-semibold">Reference for code submission</span>
+                    )}
                   </div>
-                ) : (
-                  /* Code with Test Cases: Sample I/O */
-                  <div className="space-y-3 pt-2">
-                    <div className="space-y-1">
-                      <h4 className="text-[11px] font-bold text-label-secondary">Sample Input</h4>
-                      <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
-                        {currentCoding.sampleInput || '(No input required)'}
-                      </pre>
+
+                  {publicTestCases.length > 0 ? (
+                    <div className="space-y-3">
+                      {publicTestCases.map((tc: any, tcIdx: number) => (
+                        <div
+                          key={tcIdx}
+                          className="p-3 rounded-xl bg-surface-secondary/70 border border-separator space-y-2"
+                        >
+                          {publicTestCases.length > 1 && (
+                            <div className="text-[11px] font-bold text-label-secondary">
+                              Test Case {tcIdx + 1}
+                            </div>
+                          )}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-semibold text-label-tertiary uppercase tracking-wider">
+                                Sample Input
+                              </span>
+                              <pre className="p-2.5 rounded-lg bg-surface dark:bg-black/40 border border-separator text-xs font-mono text-label-primary overflow-x-auto whitespace-pre-wrap">
+                                {tc.input || '(No input required)'}
+                              </pre>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-semibold text-label-tertiary uppercase tracking-wider">
+                                Expected Output
+                              </span>
+                              <pre className="p-2.5 rounded-lg bg-surface dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto whitespace-pre-wrap">
+                                {tc.expectedOutput || ''}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="space-y-1">
-                      <h4 className="text-[11px] font-bold text-label-secondary">Sample Output</h4>
-                      <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
-                        {currentCoding.sampleOutput || ''}
-                      </pre>
+                  ) : (currentCoding.sampleInput || currentCoding.sampleOutput) ? (
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <h4 className="text-[11px] font-bold text-label-secondary">Sample Input</h4>
+                        <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto whitespace-pre-wrap">
+                          {currentCoding.sampleInput || '(No input required)'}
+                        </pre>
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-[11px] font-bold text-label-secondary">Sample Output</h4>
+                        <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto whitespace-pre-wrap">
+                          {currentCoding.sampleOutput || ''}
+                        </pre>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-3 rounded-xl bg-surface-secondary/40 border border-separator text-xs text-label-tertiary italic">
+                      No public test cases specified for this challenge.
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Right Column: Monaco Code Editor & Terminal */}
               <div className="w-full lg:w-1/2 flex flex-col flex-1 bg-surface min-h-80">
                 {/* Language Toolbar */}
-                <div className="h-11 px-3 sm:px-4 border-b border-separator flex items-center justify-between shrink-0 bg-surface">
+                <div className="min-h-12 px-3 sm:px-4 py-1.5 border-b border-separator flex flex-wrap items-center justify-between gap-2 shrink-0 bg-surface relative z-30">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="text-[11px] font-bold text-label-secondary hidden sm:inline">Language:</span>
-                    <select
+                    <HeroUISelect
                       value={currentLanguage}
-                      onChange={(e) => {
-                        const newLang = e.target.value;
+                      onChange={(newLang) => {
                         setCurrentLanguage(newLang);
                         if (currentCoding?._id) {
                           const starterMap = currentCoding.starterCode || {};
@@ -1644,33 +1757,33 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                           }));
                         }
                       }}
-                      className="px-2 sm:px-2.5 py-1 rounded-lg bg-surface-secondary border border-separator text-xs font-bold text-label-primary outline-none cursor-pointer"
-                    >
-                      {currentAllowedLanguages.map((lang) => (
-                        <option key={lang} value={lang} className="bg-surface-secondary">
-                          {LANG_DISPLAY_NAMES[lang] || lang}
-                        </option>
-                      ))}
-                    </select>
+                      options={languageOptions}
+                      size="sm"
+                      color="purple"
+                      placement="bottom-start"
+                      className="w-44 sm:w-52"
+                    />
                     {currentAllowedLanguages.length < 5 && (
                       <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-md hidden md:inline-flex items-center gap-1">
-                        Restricted ({currentAllowedLanguages.length} allowed)
+                        Restricted ({currentAllowedLanguages.length} lang allowed)
                       </span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      isDisabled={isExecuting}
-                      isLoading={isExecuting}
-                      onPress={handleRunCode}
-                      className="rounded-xl text-white text-xs font-bold"
-                      startContent={!isExecuting ? <Play size={12} /> : undefined}
-                    >
-                      {activeCodingMode === 'ONLY_CODE' ? 'Run Code' : 'Run'}
-                    </Button>
+                    {activeCodingMode !== 'ONLY_CODE' && (
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        isDisabled={isExecuting}
+                        isLoading={isExecuting}
+                        onPress={handleRunCode}
+                        className="rounded-xl text-white text-xs font-bold"
+                        startContent={!isExecuting ? <Play size={12} /> : undefined}
+                      >
+                        Run
+                      </Button>
+                    )}
 
                     <Button
                       size="sm"

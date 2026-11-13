@@ -4359,6 +4359,8 @@ export const grantAssessmentGraceTime = async (
       submissionId?: string;
       studentId?: string;
       extraMinutes?: number;
+      graceMinutes?: number;
+      minutes?: number;
       clearAnswers?: boolean;
     };
   }>,
@@ -4368,8 +4370,17 @@ export const grantAssessmentGraceTime = async (
     const user = request.user;
     if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
     const { id, assessmentId } = request.params;
-    const bodySubmissionId = request.body?.submissionId || request.params.submissionId;
-    const { studentId, extraMinutes = 10, clearAnswers = false } = request.body || {};
+    const body: any = request.body || {};
+    const bodySubmissionId = body.submissionId || request.params.submissionId;
+    const studentId = body.studentId;
+    const clearAnswers = Boolean(body.clearAnswers);
+
+    let rawMinutes = body.extraMinutes ?? body.graceMinutes ?? body.minutes;
+    if (typeof rawMinutes === 'object' && rawMinutes !== null) {
+      rawMinutes = rawMinutes.extraMinutes ?? rawMinutes.graceMinutes ?? rawMinutes.minutes;
+    }
+    const parsedMinutes = Number(rawMinutes);
+    const minutesToAdd = Math.max(1, !isNaN(parsedMinutes) && parsedMinutes > 0 ? parsedMinutes : 10);
 
     const event = await Event.findById(id).lean();
     if (!event || !event.hasArena) {
@@ -4385,7 +4396,6 @@ export const grantAssessmentGraceTime = async (
       return reply.status(403).send({ success: false, error: 'Unauthorized to grant grace time' });
     }
 
-    const minutesToAdd = Math.max(1, Number(extraMinutes) || 10);
     const now = new Date();
     const adminObjectId = new mongoose.Types.ObjectId(user._id || user.id);
 
@@ -4536,7 +4546,11 @@ export const grantAssessmentGraceTime = async (
 export const grantAssessmentGraceTimeAll = async (
   request: FastifyRequest<{
     Params: { id: string; assessmentId: string };
-    Body: { extraMinutes?: number };
+    Body: {
+      extraMinutes?: number;
+      graceMinutes?: number;
+      minutes?: number;
+    };
   }>,
   reply: FastifyReply
 ) => {
@@ -4544,7 +4558,14 @@ export const grantAssessmentGraceTimeAll = async (
     const user = request.user;
     if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
     const { id, assessmentId } = request.params;
-    const { extraMinutes = 10 } = request.body || {};
+    const body: any = request.body || {};
+
+    let rawMinutes = body.extraMinutes ?? body.graceMinutes ?? body.minutes;
+    if (typeof rawMinutes === 'object' && rawMinutes !== null) {
+      rawMinutes = rawMinutes.extraMinutes ?? rawMinutes.graceMinutes ?? rawMinutes.minutes;
+    }
+    const parsedMinutes = Number(rawMinutes);
+    const minutesToAdd = Math.max(1, !isNaN(parsedMinutes) && parsedMinutes > 0 ? parsedMinutes : 10);
 
     const event = await Event.findById(id);
     if (!event || !event.hasArena) {
@@ -4560,7 +4581,6 @@ export const grantAssessmentGraceTimeAll = async (
       return reply.status(403).send({ success: false, error: 'Unauthorized to grant grace time' });
     }
 
-    const minutesToAdd = Math.max(1, Number(extraMinutes) || 10);
     const now = new Date();
     const adminObjectId = new mongoose.Types.ObjectId(user._id || user.id);
 

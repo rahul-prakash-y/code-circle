@@ -497,13 +497,15 @@ export const blockStudent = async (
       });
     }
 
+    const reason = request.body?.reason || 'Exceeded maximum 3 tab switch violations. Contact Admin.';
+
     request.log.warn(
-      `Anti-Cheat Triggered: Student ${targetStudentId} has been blocked for navigating away in event ${eventId}`
+      `Anti-Cheat Triggered: Student ${targetStudentId} has been blocked (${reason}) in event ${eventId}`
     );
 
     return reply.send({
       success: true,
-      message: 'You have been blocked for navigating away. Contact Admin.',
+      message: reason,
       isBlocked: true,
       eventId,
       studentId: targetStudentId,

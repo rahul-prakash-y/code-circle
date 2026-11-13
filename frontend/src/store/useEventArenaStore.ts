@@ -336,9 +336,20 @@ interface EventArenaState {
   grantGraceTime: (
     eventId: string,
     assessmentId: string,
-    data: { submissionId?: string; studentId?: string; extraMinutes?: number; clearAnswers?: boolean }
+    data: {
+      submissionId?: string;
+      studentId?: string;
+      extraMinutes?: number;
+      graceMinutes?: number;
+      minutes?: number;
+      clearAnswers?: boolean;
+    }
   ) => Promise<any>;
-  grantGraceTimeAll: (eventId: string, assessmentId: string, extraMinutes: number) => Promise<any>;
+  grantGraceTimeAll: (
+    eventId: string,
+    assessmentId: string,
+    extraMinutes: number | { extraMinutes?: number; graceMinutes?: number; minutes?: number }
+  ) => Promise<any>;
   createManualSubmission: (
     eventId: string,
     assessmentId: string,
@@ -1028,9 +1039,22 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   grantGraceTime: async (eventId: string, assessmentId: string, data: any) => {
     set({ actionLoading: true });
     try {
+      const rawMinutes = data?.extraMinutes ?? data?.graceMinutes ?? data?.minutes;
+      const parsedMinutes =
+        typeof rawMinutes === 'object' && rawMinutes !== null
+          ? Number(rawMinutes.extraMinutes ?? rawMinutes.graceMinutes ?? rawMinutes.minutes)
+          : Number(rawMinutes);
+      const normalizedMinutes = !isNaN(parsedMinutes) && parsedMinutes > 0 ? parsedMinutes : 10;
+
+      const payload = {
+        ...data,
+        extraMinutes: normalizedMinutes,
+        graceMinutes: normalizedMinutes,
+      };
+
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/grace-time`,
-        data
+        payload
       );
       toast.success(res.data.message || 'Grace time granted successfully!');
       await get().fetchAdminAssessmentSubmissions(eventId, assessmentId);
@@ -1046,12 +1070,28 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
     }
   },
 
-  grantGraceTimeAll: async (eventId: string, assessmentId: string, extraMinutes: number) => {
+  grantGraceTimeAll: async (
+    eventId: string,
+    assessmentId: string,
+    extraMinutesOrData: number | { extraMinutes?: number; graceMinutes?: number; minutes?: number }
+  ) => {
     set({ actionLoading: true });
     try {
+      const rawMinutes =
+        typeof extraMinutesOrData === 'number'
+          ? extraMinutesOrData
+          : typeof extraMinutesOrData === 'object' && extraMinutesOrData !== null
+          ? (extraMinutesOrData as any).extraMinutes ??
+            (extraMinutesOrData as any).graceMinutes ??
+            (extraMinutesOrData as any).minutes
+          : 10;
+
+      const parsedMinutes = Number(rawMinutes);
+      const normalizedMinutes = !isNaN(parsedMinutes) && parsedMinutes > 0 ? parsedMinutes : 10;
+
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/grace-time-all`,
-        { extraMinutes }
+        { extraMinutes: normalizedMinutes, graceMinutes: normalizedMinutes }
       );
       toast.success(res.data.message || 'Grace time granted to all students!');
       await get().fetchAdminAssessmentSubmissions(eventId, assessmentId);
