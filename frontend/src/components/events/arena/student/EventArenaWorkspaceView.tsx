@@ -157,6 +157,11 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
     checkIfUnblocked,
     resetBlocked,
     setIsBlocked: setTabSwitchBlocked,
+    tabSwitchCount,
+    setTabSwitchCount,
+    maxStrikes,
+    showWarning: showTabWarning,
+    setShowWarning: setShowTabWarning,
   } = useTabSwitchDetection({
     eventId: id || '',
     enabled: Boolean(
@@ -166,12 +171,17 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
       submission?.status !== 'SUBMITTED' &&
       !finalResultModal
     ),
+    maxStrikes: 3,
   });
   const isAssessmentBlocked = !isDesignRound && (tabSwitchBlocked || apiBlocked || Boolean(blockedDetail?.isBlocked && activeAssessmentId));
 
-  // Anti-Cheat: 5% mark reduction per tab switch (No disqualification)
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [showTabWarning, setShowTabWarning] = useState(false);
+  // Sync tabSwitchCount if student previously recorded switches on this submission
+  useEffect(() => {
+    if (submission?.tabSwitchCount && submission.tabSwitchCount > 0) {
+      setTabSwitchCount((prev) => Math.max(prev, submission.tabSwitchCount));
+    }
+  }, [submission?.tabSwitchCount, setTabSwitchCount]);
+
   const [selectedDesignIdx, setSelectedDesignIdx] = useState(0);
   const [studentFigmaLink, setStudentFigmaLink] = useState('');
   const [studentDesignNotes, setStudentDesignNotes] = useState('');
@@ -830,6 +840,55 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
         </div>
       )}
 
+      {/* 1.5. Tab Switch Strike Warning Modal (Strikes 1 & 2 of 3) */}
+      <AnimatePresence>
+        {showTabWarning && !isAssessmentBlocked && (
+          <div className="fixed inset-0 z-[95] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xl select-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm sm:max-w-md bg-surface border border-amber-500/40 rounded-2xl sm:rounded-3xl p-5 sm:p-7 text-center space-y-4 shadow-2xl relative overflow-hidden"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 mx-auto">
+                <ShieldAlert size={28} />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-amber-500/15 text-amber-500 border border-amber-500/30 tabular-nums">
+                  Security Warning: Strike {tabSwitchCount} of {maxStrikes}
+                </span>
+                <h3 className="text-lg sm:text-xl font-semibold text-label-primary tracking-tight mt-2">
+                  Tab Switching is Restricted
+                </h3>
+                <p className="text-xs sm:text-[13px] text-label-secondary leading-relaxed">
+                  You have navigated away from the assessment window. Switching tabs, minimizing windows, or running external applications during this test is strictly monitored.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-surface-secondary border border-separator text-xs text-left space-y-1.5 font-normal">
+                <p className="text-amber-400 font-medium flex items-center gap-1.5 tabular-nums">
+                  <AlertTriangle size={14} /> Strike {tabSwitchCount} of {maxStrikes} recorded (-{tabSwitchCount * 5}% score penalty)
+                </p>
+                <p className="text-label-secondary text-[11px] leading-relaxed tabular-nums">
+                  If you switch tabs {Math.max(0, maxStrikes - tabSwitchCount)} more time{maxStrikes - tabSwitchCount === 1 ? '' : 's'}, your assessment will be <strong>permanently locked</strong> and you will need to contact an administrator.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                color="warning"
+                variant="solid"
+                onPress={() => setShowTabWarning(false)}
+                className="w-full py-2.5 text-xs font-bold text-black bg-amber-500 hover:bg-amber-600 min-h-[42px] rounded-xl cursor-pointer shadow-lg shadow-amber-500/20"
+              >
+                I Understand, Return to Test
+              </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* 2. Full-Screen Enforcement Overlay (Enforced for students; bypassed for admins in preview) */}
       {!isAdmin && !isAssessmentBlocked && (
         <FullScreenEnforcementOverlay
@@ -882,7 +941,9 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
           {tabSwitchCount > 0 && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] rounded-xl text-xs font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
               <ShieldAlert size={14} className="animate-bounce" />
-              <span>{tabSwitchCount} Switches (-{tabSwitchCount * 5}%)</span>
+              <span>
+                {tabSwitchCount} / {maxStrikes} Switches (-{tabSwitchCount * 5}%)
+              </span>
             </div>
           )}
 
