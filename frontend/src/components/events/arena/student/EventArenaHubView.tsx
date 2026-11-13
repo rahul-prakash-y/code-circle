@@ -221,14 +221,14 @@ export const EventArenaHubView: React.FC<EventArenaHubViewProps> = ({
               const effectiveSubFinished = isSubFinished || isTimeExpired;
 
               const isGraceTimeActive = Boolean(
-                !effectiveSubFinished &&
-                hasFutureExpiry &&
-                (sub?.reentryAllowed || ((sub?.graceMinutes || 0) > 0) || asm.hasGraceTime)
+                (hasFutureExpiry && (sub?.reentryAllowed || ((sub?.graceMinutes || 0) > 0) || asm.hasGraceTime || (asm.graceMinutes || 0) > 0)) ||
+                (asm.hasGraceTime && !isSubFinished) ||
+                ((asm.graceMinutes || 0) > 0 && asm.status === 'LIVE' && !isSubFinished)
               );
 
               // If candidate submitted or time ended (regular or grace time), test is completed!
               const isCompleted = effectiveSubFinished && !isGraceTimeActive;
-              const isInProgress = sub?.status === 'IN_PROGRESS' && hasFutureExpiry;
+              const isInProgress = sub?.status === 'IN_PROGRESS' && (hasFutureExpiry || isGraceTimeActive);
 
               const prevRound = idx > 0 ? assessments[idx - 1] : null;
               const prevSub = prevRound?.submission;

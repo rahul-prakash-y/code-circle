@@ -1880,16 +1880,25 @@ export const getEventAssessmentsList = async (
       }
 
       // Check if student has active grace time or re-entry granted by admin
-      const isSubFinished = userSub && (userSub.status === 'SUBMITTED' || userSub.status === 'AUTO_SUBMITTED');
+      const hasReentryOrGrace = Boolean(
+        (userSub?.reentryAllowed ||
+          (userSub?.graceMinutes || 0) > 0 ||
+          (assessment.graceMinutes || 0) > 0 ||
+          assessment.hasGraceTime) &&
+        (!userSub?.expiresAt || new Date(userSub.expiresAt).getTime() > nowMs || (assessment.graceMinutes || 0) > 0 || userSub?.reentryAllowed)
+      );
+
+      const isSubFinished = Boolean(userSub && (userSub.status === 'SUBMITTED' || userSub.status === 'AUTO_SUBMITTED') && !hasReentryOrGrace);
       const isTimeExpired = Boolean(
         userSub &&
         !isSubFinished &&
+        !hasReentryOrGrace &&
         userSub.expiresAt &&
         new Date(userSub.expiresAt).getTime() <= nowMs
       );
 
-      // Auto-submit in background if candidate's regular or grace time has ended
-      if (isTimeExpired && userSub && userSub.status === 'IN_PROGRESS') {
+      // Auto-submit in background if candidate's regular or grace time has ended and NO grace is active
+      if (isTimeExpired && userSub && userSub.status === 'IN_PROGRESS' && !hasReentryOrGrace) {
         userSub.status = 'AUTO_SUBMITTED';
         userSub.submittedAt = userSub.submittedAt || new Date(userSub.expiresAt);
         userSub.reentryAllowed = false;
@@ -1905,9 +1914,9 @@ export const getEventAssessmentsList = async (
       const effectiveSubFinished = isSubFinished || isTimeExpired;
 
       const hasActiveGraceTime = Boolean(
-        userSub &&
-        !effectiveSubFinished &&
-        (userSub.expiresAt && new Date(userSub.expiresAt).getTime() > nowMs)
+        (userSub && !effectiveSubFinished && userSub.expiresAt && new Date(userSub.expiresAt).getTime() > nowMs && ((userSub.graceMinutes || 0) > 0 || userSub.reentryAllowed)) ||
+        ((assessment.graceMinutes || 0) > 0 && assessment.endTime && new Date(assessment.endTime).getTime() > nowMs) ||
+        (hasReentryOrGrace && !isSubFinished)
       );
 
       // If assessment overall is ENDED, but this student has active grace time / reentry,
@@ -1939,7 +1948,7 @@ export const getEventAssessmentsList = async (
         submission: userSub
           ? {
               _id: userSub._id,
-              status: effectiveSubFinished && userSub.status === 'IN_PROGRESS' ? 'AUTO_SUBMITTED' : userSub.status,
+              status: effectiveSubFinished && userSub.status === 'IN_PROGRESS' && !hasActiveGraceTime ? 'AUTO_SUBMITTED' : userSub.status,
               totalScore: isPrivileged ? userSub.totalScore : undefined,
               maxPossibleScore: isPrivileged ? userSub.maxPossibleScore : undefined,
               scorePercentage: isPrivileged ? userSub.scorePercentage : undefined,
@@ -2842,17 +2851,25 @@ export const getStudentAssessmentData = async (
     }).lean();
 
     const nowMs = Date.now();
+    const hasReentryOrGrace = Boolean(
+      (submission?.reentryAllowed ||
+        (submission?.graceMinutes || 0) > 0 ||
+        (assessment.graceMinutes || 0) > 0) &&
+      (!submission?.expiresAt || new Date(submission.expiresAt).getTime() > nowMs || (assessment.graceMinutes || 0) > 0 || submission?.reentryAllowed)
+    );
+
     const isSubFinished = Boolean(
-      submission && (submission.status === 'SUBMITTED' || submission.status === 'AUTO_SUBMITTED')
+      submission && (submission.status === 'SUBMITTED' || submission.status === 'AUTO_SUBMITTED') && !hasReentryOrGrace
     );
     const isTimeExpired = Boolean(
       submission &&
       !isSubFinished &&
+      !hasReentryOrGrace &&
       submission.expiresAt &&
       new Date(submission.expiresAt).getTime() <= nowMs
     );
 
-    if (isTimeExpired && submission && submission.status === 'IN_PROGRESS') {
+    if (isTimeExpired && submission && submission.status === 'IN_PROGRESS' && !hasReentryOrGrace) {
       const autoSubmittedAt = submission.submittedAt || (submission.expiresAt ? new Date(submission.expiresAt) : new Date());
       EventArenaSubmission.findByIdAndUpdate(submission._id, {
         $set: {
@@ -2865,12 +2882,6 @@ export const getStudentAssessmentData = async (
 
     const effectiveSubFinished = isSubFinished || isTimeExpired;
 
-    const hasActiveGraceTime = Boolean(
-      submission &&
-      !effectiveSubFinished &&
-      (submission.expiresAt && new Date(submission.expiresAt).getTime() > nowMs)
-    );
-
     const graceExtraMs = (Number(assessment.graceMinutes) || 0) * 60 * 1000;
     const scheduledEnd = assessment.endTime
       ? new Date(assessment.endTime).getTime() + graceExtraMs
@@ -2879,8 +2890,13 @@ export const getStudentAssessmentData = async (
       : null;
     const isAssessmentGraceActive = Boolean(
       (assessment.graceMinutes || 0) > 0 &&
-      scheduledEnd &&
-      nowMs <= scheduledEnd
+      ((scheduledEnd && nowMs <= scheduledEnd) || (assessment.endTime && new Date(assessment.endTime).getTime() > nowMs) || hasReentryOrGrace)
+    );
+
+    const hasActiveGraceTime = Boolean(
+      (submission && !effectiveSubFinished && submission.expiresAt && new Date(submission.expiresAt).getTime() > nowMs && ((submission.graceMinutes || 0) > 0 || submission.reentryAllowed)) ||
+      isAssessmentGraceActive ||
+      (hasReentryOrGrace && !isSubFinished)
     );
 
     // Check qualification for non-admin students
@@ -3080,15 +3096,6 @@ export const startAssessmentSession = async (
     });
 
     const now = new Date();
-    const isSubFinished = Boolean(
-      submission && (submission.status === 'SUBMITTED' || submission.status === 'AUTO_SUBMITTED')
-    );
-    const hasActiveGraceTime = Boolean(
-      submission &&
-      !isSubFinished &&
-      (submission.expiresAt && new Date(submission.expiresAt).getTime() > now.getTime())
-    );
-
     const durationMinutes = Number(assessment.durationMinutes) || 60;
     const graceExtraMinutes = Number(assessment.graceMinutes) || 0;
     const normalExpiresAt = new Date(now.getTime() + (durationMinutes + graceExtraMinutes) * 60 * 1000);
@@ -3098,21 +3105,41 @@ export const startAssessmentSession = async (
       scheduledEnd = assessment.endTime
         ? new Date(assessment.endTime).getTime() + graceExtraMinutes * 60 * 1000
         : new Date(assessment.startTime).getTime() + (durationMinutes + graceExtraMinutes) * 60 * 1000;
-      if (!isNaN(scheduledEnd)) {
+      if (!isNaN(scheduledEnd) && scheduledEnd > now.getTime()) {
         calculatedExpiresAt = new Date(Math.min(normalExpiresAt.getTime(), scheduledEnd));
+      } else if (graceExtraMinutes > 0) {
+        calculatedExpiresAt = new Date(now.getTime() + graceExtraMinutes * 60 * 1000);
       }
     }
 
     const isAssessmentGraceActive = Boolean(
       (assessment.graceMinutes || 0) > 0 &&
-      scheduledEnd &&
-      now.getTime() <= scheduledEnd
+      ((scheduledEnd && now.getTime() <= scheduledEnd) || (assessment.endTime && new Date(assessment.endTime).getTime() > now.getTime()) || graceExtraMinutes > 0)
+    );
+
+    const hasReentryOrGrace = Boolean(
+      submission?.reentryAllowed ||
+      ((submission?.graceMinutes || 0) > 0) ||
+      isAssessmentGraceActive ||
+      ((assessment.graceMinutes || 0) > 0) ||
+      assessment.hasGraceTime
+    );
+
+    const isSubFinished = Boolean(
+      submission && (submission.status === 'SUBMITTED' || submission.status === 'AUTO_SUBMITTED') && !hasReentryOrGrace
+    );
+    const hasActiveGraceTime = Boolean(
+      (submission &&
+        submission.expiresAt &&
+        new Date(submission.expiresAt).getTime() > now.getTime() &&
+        ((submission.graceMinutes || 0) > 0 || submission.reentryAllowed)) ||
+      hasReentryOrGrace
     );
 
     const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
     if (!isAdminRole) {
-      // 1. If student has already completed / submitted, re-entry is blocked
-      if (isSubFinished) {
+      // 1. If student has already completed / submitted, re-entry is blocked unless grace time is active
+      if (isSubFinished && !hasReentryOrGrace) {
         return reply.status(403).send({
           success: false,
           error: 'You have already submitted this assessment. Re-entry is not permitted.',
@@ -3121,24 +3148,44 @@ export const startAssessmentSession = async (
         });
       }
 
+      // If student has reentry or grace time active, reopen submission:
+      if (submission && (submission.status === 'SUBMITTED' || submission.status === 'AUTO_SUBMITTED') && hasReentryOrGrace) {
+        submission.status = 'IN_PROGRESS';
+        submission.submittedAt = undefined;
+        if (!submission.expiresAt || new Date(submission.expiresAt).getTime() <= now.getTime()) {
+          const extraMins = submission.graceMinutes || assessment.graceMinutes || 10;
+          submission.expiresAt = new Date(now.getTime() + extraMins * 60 * 1000);
+        }
+        await submission.save().catch(() => {});
+      }
+
       // 2. If student has an existing submission whose grace/test time is expired:
       if (submission?.expiresAt && new Date(submission.expiresAt).getTime() <= now.getTime()) {
-        if (submission.status === 'IN_PROGRESS') {
-          submission.status = 'AUTO_SUBMITTED';
-          submission.submittedAt = submission.submittedAt || now;
-          submission.reentryAllowed = false;
+        if (!hasReentryOrGrace) {
+          if (submission.status === 'IN_PROGRESS') {
+            submission.status = 'AUTO_SUBMITTED';
+            submission.submittedAt = submission.submittedAt || now;
+            submission.reentryAllowed = false;
+            await submission.save().catch(() => {});
+          }
+          return reply.status(403).send({
+            success: false,
+            error: 'The time limit and grace period for this assessment have ended.',
+            isCompleted: true,
+            submission,
+          });
+        } else {
+          // Re-extend expiration with grace period
+          const extraMins = submission.graceMinutes || assessment.graceMinutes || 10;
+          submission.expiresAt = new Date(now.getTime() + extraMins * 60 * 1000);
+          submission.status = 'IN_PROGRESS';
+          submission.submittedAt = undefined;
           await submission.save().catch(() => {});
         }
-        return reply.status(403).send({
-          success: false,
-          error: 'The time limit and grace period for this assessment have ended.',
-          isCompleted: true,
-          submission,
-        });
       }
 
       // 3. Status check: assessment must be LIVE, or have active non-expired grace time
-      if (currentStatus !== 'LIVE' && !hasActiveGraceTime && !isAssessmentGraceActive) {
+      if (currentStatus !== 'LIVE' && !hasActiveGraceTime && !isAssessmentGraceActive && !hasReentryOrGrace) {
         return reply.status(403).send({
           success: false,
           error: currentStatus === 'UPCOMING'
@@ -3222,6 +3269,14 @@ export const startAssessmentSession = async (
         await submission.save();
       } else if (!submission.expiresAt && calculatedExpiresAt) {
         submission.expiresAt = calculatedExpiresAt;
+        submission.status = 'IN_PROGRESS';
+        submission.submittedAt = undefined;
+        await submission.save();
+      } else if (submission.expiresAt && new Date(submission.expiresAt).getTime() <= now.getTime()) {
+        const extraMins = submission.graceMinutes || assessment.graceMinutes || 10;
+        submission.expiresAt = new Date(now.getTime() + extraMins * 60 * 1000);
+        submission.status = 'IN_PROGRESS';
+        submission.submittedAt = undefined;
         await submission.save();
       }
     }
@@ -4675,14 +4730,17 @@ export const grantAssessmentGraceTimeAll = async (
     const now = new Date();
     const adminObjectId = new mongoose.Types.ObjectId(user._id || user.id);
 
-    // 1. Extend assessment endTime if scheduled
-    if (assessment.endTime) {
-      const currentEnd = new Date(assessment.endTime).getTime();
-      const baseEnd = currentEnd > now.getTime() ? currentEnd : now.getTime();
-      assessment.endTime = new Date(baseEnd + minutesToAdd * 60 * 1000);
-    }
+    // 1. Extend assessment endTime if scheduled, or set future endTime
+    const currentEnd = assessment.endTime
+      ? new Date(assessment.endTime).getTime()
+      : assessment.startTime
+      ? new Date(assessment.startTime).getTime() + (Number(assessment.durationMinutes) || 60) * 60 * 1000
+      : now.getTime();
+    const baseEnd = currentEnd > now.getTime() ? currentEnd : now.getTime();
+    assessment.endTime = new Date(baseEnd + minutesToAdd * 60 * 1000);
     assessment.durationMinutes = (assessment.durationMinutes || 60) + minutesToAdd;
     assessment.graceMinutes = (assessment.graceMinutes || 0) + minutesToAdd;
+    assessment.status = 'LIVE';
     await event.save();
 
     // 2. Extend all submissions for this assessment, preserving all answers

@@ -858,7 +858,13 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
   startAssessmentSession: async (eventId: string, assessmentId: string) => {
     try {
       const res = await api.post(`/events/${eventId}/arena/assessments/${assessmentId}/start`);
-      set({ submission: res.data.submission });
+      const sub = res.data.submission
+        ? {
+            ...res.data.submission,
+            expiresAt: res.data.submission.expiresAt || res.data.expiresAt,
+          }
+        : res.data.submission;
+      set({ submission: sub });
       return res.data;
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Failed to start session';
