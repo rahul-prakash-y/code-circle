@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, Home, LifeBuoy } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Link } from '@heroui/react';
 import { UX_COPY } from '@/constants/copy';
 
 export type ErrorFault = 'user' | 'server' | 'network' | 'third-party';
@@ -115,13 +115,13 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
           Return Home
         </Button>
 
-        <a
+        <Link
           href={`mailto:support@bitsathy.ac.in?subject=Code%20Circle%20Issue%20[${code}]`}
           className="inline-flex items-center gap-1.5 text-xs text-label-tertiary hover:text-label-primary px-3 py-1.5 transition-colors"
         >
           <LifeBuoy size={13} />
           <span>Report ref {code}</span>
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Button, Link as HeroLink } from '@heroui/react';
 import { 
   Award, 
   Calendar, 
@@ -103,16 +104,18 @@ const PassportTimelineItem = ({ item, index }) => {
 
           <div className="flex items-center gap-2.5 self-start md:self-center shrink-0">
             {item.certificateUrl ? (
-              <a 
-                href={item.certificateUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
+              <Button
+                as={HeroLink}
+                target="_blank" rel="noopener noreferrer"
+                href={item.certificateUrl}
+                color="primary"
+                variant="solid"
+                startContent={<Award size={14} className="group-hover/btn:rotate-12 transition-transform" />}
+                endContent={<ExternalLink size={12} />}
                 className="btn-primary py-2 px-4 text-xs font-medium flex items-center gap-2 group/btn min-h-[38px]"
               >
-                <Award size={14} className="group-hover/btn:rotate-12 transition-transform" />
-                <span>Certificate</span>
-                <ExternalLink size={12} />
-              </a>
+                Certificate
+              </Button>
             ) : (
               isAttended ? (
                 <div className="bg-surface-elevated px-3 py-1.5 rounded-xl border border-border text-text-muted text-xs font-medium flex items-center gap-1.5 min-h-[36px]">

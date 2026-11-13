@@ -14,7 +14,7 @@ import {
   Search,
 } from 'lucide-react';
 import api from '../lib/axios';
-import { Button } from '@heroui/react';
+import { Button, Link as HeroLink } from '@heroui/react';
 
 interface VerificationResult {
   certificateId: string;
@@ -203,15 +203,17 @@ export const VerifyCertificatePage: React.FC = () => {
 
             {/* Direct Download Button */}
             <div className="pt-2">
-              <a
+              <Button
+                as={HeroLink}
+                target="_blank" rel="noopener noreferrer"
                 href={`/api/certificates/download/${certData.certificateId}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full py-3 min-h-[46px] bg-primary text-white text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                color="primary"
+                variant="solid"
+                startContent={<Download size={15} />}
+                className="w-full py-3 min-h-[46px] text-xs font-bold rounded-xl shadow-lg shadow-primary/20 text-white flex items-center justify-center gap-2"
               >
-                <Download size={15} />
-                <span>Download Official Certificate PDF</span>
-              </a>
+                Download Official Certificate PDF
+              </Button>
             </div>
           </motion.div>
         ) : errorMsg ? (

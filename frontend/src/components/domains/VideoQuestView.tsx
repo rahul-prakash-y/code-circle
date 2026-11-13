@@ -37,6 +37,7 @@ import {
   Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Link, Button } from '@heroui/react';
 
 interface VideoQuestViewProps {
   level: ILevel;
@@ -395,15 +396,14 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
                   )}
 
                   {mat.type === 'link' && mat.url && (
-                    <a
+                    <Link
+                      target="_blank" rel="noopener noreferrer"
                       href={mat.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="inline-flex items-center whitespace-nowrap gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent/10 text-accent hover:bg-accent/20 transition shadow-2xs"
                     >
                       <span>Open Link</span>
                       <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    </Link>
                   )}
                 </div>
 

@@ -8,7 +8,7 @@ import {
   Sparkles, Hash, CheckSquare, ChevronUp, ChevronDown, ListPlus,
   UserCheck
 } from 'lucide-react';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner, Link } from '@heroui/react';
 import useEventStore from '../../store/useEventStore';
 import useCertificateStore from '../../store/useCertificateStore';
 import { EmilButton } from '../ui/emil-ui';
@@ -1044,16 +1044,15 @@ export const EventModal = ({
 
                       <div className="flex items-center gap-2 self-end sm:self-auto">
                         {formData.certificateTemplateUrl && (
-                          <a
+                          <Link
+                            target="_blank" rel="noopener noreferrer"
                             href={formData.certificateTemplateUrl}
-                            target="_blank"
-                            rel="noreferrer"
                             className="p-1.5 rounded-lg bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary border border-border transition-colors text-xs flex items-center gap-1"
                             title="Preview Template"
                           >
                             <ExternalLink size={13} />
                             <span>Preview</span>
-                          </a>
+                          </Link>
                         )}
                         <button
                           type="button"
@@ -1090,15 +1089,14 @@ export const EventModal = ({
                         className="w-full h-36 object-contain bg-black/40"
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <a 
+                        <Link 
+                          target="_blank" rel="noopener noreferrer"
                           href={formData.certificateTemplateUrl} 
-                          target="_blank" 
-                          rel="noreferrer"
                           className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
                           title="View Full Template"
                         >
                           <ExternalLink size={16} />
-                        </a>
+                        </Link>
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}

@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../lib/axios';
-import { Button, Input } from '@heroui/react';
+import { Button, Input, Link } from '@heroui/react';
 import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -3692,16 +3692,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                             {sub.designSubmission?.figmaLink && (
                               <div className="p-2.5 rounded-xl bg-pink-500/5 border border-pink-500/20 space-y-2">
                                 <div className="flex items-center justify-between text-xs">
-                                  <a
+                                  <Link
+                                    target="_blank" rel="noopener noreferrer"
                                     href={sub.designSubmission.figmaLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-500 hover:text-pink-400 underline underline-offset-2"
                                   >
                                     <Palette size={11} />
                                     <span>Figma File</span>
                                     <ExternalLink size={10} />
-                                  </a>
+                                  </Link>
                                   <Button
                                     size="sm"
                                     variant="bordered"
@@ -3892,16 +3891,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                                   {sub.designSubmission?.figmaLink ? (
                                     <div className="flex flex-col gap-1">
                                       <div className="flex items-center gap-1.5">
-                                        <a
+                                        <Link
+                                          target="_blank" rel="noopener noreferrer"
                                           href={sub.designSubmission.figmaLink}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
                                           className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-500 hover:text-pink-400 underline underline-offset-2"
                                         >
                                           <Palette size={11} />
                                           <span>Figma File</span>
                                           <ExternalLink size={10} />
-                                        </a>
+                                        </Link>
                                         <Button
                                           size="sm"
                                           variant="bordered"
@@ -4232,15 +4230,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-label-primary ">Interactive Figma Prototype Embed</h4>
-                      <a
+                      <Link
+                        target="_blank" rel="noopener noreferrer"
                         href={previewFigmaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="text-[11px] text-pink-400 hover:text-pink-300 underline inline-flex items-center gap-1"
                       >
                         <span>Open directly in Figma</span>
                         <ExternalLink size={10} />
-                      </a>
+                      </Link>
                     </div>
                   </div>
                   <Button
@@ -4406,15 +4403,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                         <span className="text-xs font-bold text-pink-400 flex items-center gap-1.5">
                           <Palette size={14} /> UI/UX Figma Deliverable
                         </span>
-                        <a
+                        <Link
+                          target="_blank" rel="noopener noreferrer"
                           href={inspectingSub.designSubmission.figmaLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="text-xs font-bold text-pink-400 hover:text-pink-300 underline inline-flex items-center gap-1"
                         >
                           <span>Open Figma Link</span>
                           <ExternalLink size={12} />
-                        </a>
+                        </Link>
                       </div>
                       {inspectingSub.designSubmission.notes && (
                         <p className="text-xs text-label-secondary bg-surface p-2.5 rounded-xl border border-separator">
@@ -4886,15 +4882,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-text-muted">Submitted Figma Link:</span>
-                    <a
+                    <Link
+                      target="_blank" rel="noopener noreferrer"
                       href={evaluatingSub.designSubmission?.figmaLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="text-pink-400 hover:text-pink-300 font-mono underline inline-flex items-center gap-1"
                     >
                       <span>Open Figma</span>
                       <ExternalLink size={11} />
-                    </a>
+                    </Link>
                   </div>
                   {evaluatingSub.designSubmission?.notes && (
                     <div className="pt-1 text-xs">

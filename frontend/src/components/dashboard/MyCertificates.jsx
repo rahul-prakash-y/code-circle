@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Download, Calendar, ExternalLink, Loader2 } from 'lucide-react';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
+import { Button, Link } from '@heroui/react';
 import { format } from 'date-fns';
 
 const MyCertificates = () => {
@@ -93,16 +94,17 @@ const MyCertificates = () => {
                   </div>
                 </div>
 
-                <a 
+                <Button
+                  as={Link}
                   href={cert.certificateUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-surface-elevated hover:bg-surface-elevated text-text-primary rounded-xl font-bold border border-border transition-all group/btn"
+                  target="_blank" rel="noopener noreferrer"
+                  variant="flat"
+                  startContent={<Download size={18} className="group-hover/btn:translate-y-0.5 transition-transform" />}
+                  endContent={<ExternalLink size={14} className="opacity-50" />}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-surface-elevated text-text-primary rounded-xl font-bold border border-border transition-all group/btn"
                 >
-                  <Download size={18} className="group-hover/btn:translate-y-0.5 transition-transform" />
                   Download PDF
-                  <ExternalLink size={14} className="opacity-50" />
-                </a>
+                </Button>
               </div>
             </div>
           ))}

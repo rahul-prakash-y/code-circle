@@ -44,7 +44,7 @@ import { useFullScreenEnforcement } from '@/hooks/useFullScreenEnforcement';
 import { useTabSwitchDetection } from '@/hooks/useTabSwitchDetection';
 import FullScreenEnforcementOverlay from '@/components/assessments/FullScreenEnforcementOverlay';
 import { EmilCard, EmilButton } from '@/components/ui/emil-ui';
-import { Button } from '@heroui/react';
+import { Button, Link } from '@heroui/react';
 import { useShallow } from 'zustand/react/shallow';
 import { HeroTabs } from '@/components/ui/hero/HeroTabs';
 import useAuthStore from '@/store/useAuthStore';
@@ -1049,10 +1049,9 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
 
             {/* Starter Figma Kit Link */}
             {studentDesignChallenge?.figmaStarterUrl && (
-              <a
+              <Link
+                target="_blank" rel="noopener noreferrer"
                 href={studentDesignChallenge.figmaStarterUrl}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-transparent border border-purple-500/25 hover:border-purple-500/45 transition-all group"
               >
                 <div className="flex items-center gap-3">
@@ -1067,7 +1066,7 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                   </div>
                 </div>
                 <ExternalLink size={14} className="text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </a>
+              </Link>
             )}
 
             {/* Problem Statement */}
@@ -1221,15 +1220,14 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                   <span className="text-xs font-bold text-label-primary">Live Figma Prototype Preview</span>
                 </div>
                 {studentFigmaLink.trim().includes('figma.com') && (
-                  <a
+                  <Link
+                    target="_blank" rel="noopener noreferrer"
                     href={studentFigmaLink.trim()}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="px-3 py-1.5 rounded-lg bg-surface-secondary hover:bg-surface-secondary text-label-primary hover:text-label-primary text-[11px] font-semibold flex items-center gap-1.5 transition-all"
                   >
                     <ExternalLink size={12} />
                     <span>Open in Figma</span>
-                  </a>
+                  </Link>
                 )}
               </div>
 
@@ -1994,15 +1992,14 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                 <span className="text-xs font-bold text-label-primary">Reference Design Mockup (Full HD View)</span>
               </div>
               <div className="flex items-center gap-2.5">
-                <a
+                <Link
+                  target="_blank" rel="noopener noreferrer"
                   href={previewReferenceImg}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="px-3 py-1.5 min-h-8.5 rounded-xl bg-surface-secondary hover:bg-surface-secondary text-label-primary hover:text-label-primary text-xs font-semibold flex items-center gap-1.5 transition-all"
                 >
                   <ExternalLink size={13} />
                   <span>Open Full Image</span>
-                </a>
+                </Link>
                 <Button
                   isIconOnly
                   size="sm"

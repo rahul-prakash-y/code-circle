@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Linkedin, Sparkles, ExternalLink } from 'lucide-react';
+import { Link } from '@heroui/react';
 import { StudentBearer } from '../../store/useBearerStore';
 import { EmilCard } from '../ui/emil-ui';
 
@@ -114,12 +115,10 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
         </div>
 
         {bearer.linkedinUrl && (
-          <a
+          <Link
+            target="_blank" rel="noopener noreferrer"
             href={bearer.linkedinUrl}
-            target="_blank"
-            rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            title={`Connect with ${bearer.name} on LinkedIn`}
             className={`pointer-events-auto w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer shadow-sm backdrop-blur-md ${
               hasPhoto
                 ? 'bg-surface/30 text-white/85 hover:text-white border border-separator/40'
@@ -128,7 +127,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
             aria-label={`Connect with ${bearer.name} on LinkedIn`}
           >
             <Linkedin size={14} strokeWidth={1.8} />
-          </a>
+          </Link>
         )}
       </div>
 
@@ -179,10 +178,9 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
         {/* LinkedIn Link Bar */}
         {bearer.linkedinUrl && (
           <div className="pt-1.5 flex items-center">
-            <a
+            <Link
+              target="_blank" rel="noopener noreferrer"
               href={bearer.linkedinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium transition-colors duration-150 group/link min-h-[32px] ${
                 hasPhoto
@@ -195,7 +193,7 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
                 size={11}
                 className="opacity-70 group-hover/link:opacity-100 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform duration-150"
               />
-            </a>
+            </Link>
           </div>
         )}
       </div>

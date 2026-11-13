@@ -28,7 +28,7 @@ import { HeroInput } from '@/components/ui/hero/HeroInput';
 import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
 import { HeroAvatar } from '@/components/ui/hero/HeroAvatar';
 import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
-import { Button } from '@heroui/react';
+import { Button, Link as HeroLink } from '@heroui/react';
 import { useDebounce } from '../hooks/useDebounce';
 
 export const BearerManagement: React.FC = () => {
@@ -380,15 +380,14 @@ export const BearerManagement: React.FC = () => {
               {/* Footer Links & Metadata */}
               <div className="pt-4 mt-4 border-t border-separator flex items-center justify-between text-xs text-text-muted">
                 {bearer.linkedinUrl ? (
-                  <a
+                  <HeroLink
+                    target="_blank" rel="noopener noreferrer"
                     href={bearer.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-[11px] text-accent hover:underline font-medium min-h-[30px]"
                   >
                     <Linkedin size={12} />
                     <span>LinkedIn</span>
-                  </a>
+                  </HeroLink>
                 ) : (
                   <span className="text-[11px] text-text-muted italic">No LinkedIn</span>
                 )}

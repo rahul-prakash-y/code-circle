@@ -5,6 +5,7 @@ import { LeetCodeBrandIcon } from '../ui/Icon';
 import { useLeetCodeStats, type LeetCodeStats } from '../../hooks/useLeetCodeStats';
 import CountUp from '../ui/CountUp';
 import { EmilCard, EmilTooltipGroup } from '../ui/emil-ui';
+import { Link } from '@heroui/react';
 
 // ── Difficulty Design Tokens mapped to semantic tokens ────────────────────────
 
@@ -265,16 +266,15 @@ export const LeetCodeCard: React.FC<LeetCodeCardProps> = ({ username, className 
 
             <div className="flex items-center gap-2">
               {/* External link */}
-              <a
+              <Link
+                target="_blank" rel="noopener noreferrer"
                 href={`https://leetcode.com/${displayHandle}/`}
-                target="_blank"
-                rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 className="flex items-center gap-1 text-[11px] font-medium rounded-full px-2.5 py-1 transition-colors duration-150 ease-out shrink-0 text-label-secondary bg-canvas border border-separator hover:text-label-primary hover:bg-surface-secondary"
               >
                 <ExternalLink size={10} strokeWidth={2} />
                 <span>Profile</span>
-              </a>
+              </Link>
             </div>
           </div>
 
