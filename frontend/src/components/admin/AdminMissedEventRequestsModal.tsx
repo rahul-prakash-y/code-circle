@@ -21,7 +21,10 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import { formatISTDateTime, formatISTDate } from '../../lib/dateUtils';
-import { HeroTabs, HeroInput, HeroTextarea, HeroUser, HeroAvatar } from '../ui/HeroUIComponents';
+import { HeroTabs } from '@/components/ui/hero/HeroTabs';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroUser, HeroAvatar } from '@/components/ui/hero/HeroAvatar';
 
 interface AdminMissedEventRequestsModalProps {
   isOpen: boolean;

@@ -22,7 +22,7 @@ import api from '../../lib/axios';
 import useEventStore from '../../store/useEventStore';
 import { formatISTDateTime, formatISTDate } from '../../lib/dateUtils';
 import HeroUISelect from '../ui/HeroUISelect';
-import { HeroDatePicker } from '../ui/HeroUIComponents';
+import { HeroDatePicker } from '@/components/ui/hero/HeroDatePicker';
 
 interface MissedEventRequestModalProps {
   isOpen: boolean;

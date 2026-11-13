@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CodingBulkUploadModal from '../coding/admin/CodingBulkUploadModal';
-import { HeroUISelect } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
 
 interface IVideoField {
   id: string;

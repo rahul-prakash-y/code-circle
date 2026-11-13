@@ -15,7 +15,7 @@ import {
   XCircle,
   Sliders,
 } from 'lucide-react';
-import { HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import { format } from 'date-fns';
 import { getStudentCollege, getStudentYear, getStudentDepartment } from '../../utils/studentUtils';
 

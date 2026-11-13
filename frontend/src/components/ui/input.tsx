@@ -25,5 +25,5 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 Input.displayName = 'Input';
 
-export { HeroInput } from './HeroUIComponents';
+export { HeroInput } from './hero/HeroInput';
 export default Input;

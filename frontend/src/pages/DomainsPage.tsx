@@ -51,7 +51,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { Button } from '@heroui/react';
-import { HeroInput } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
 import { DelayedSkeleton, CardGridSkeleton, EmptyState, NoSearchResults } from '../components/states';
 
 export const DomainsPage: React.FC = () => {

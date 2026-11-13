@@ -24,7 +24,9 @@ import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
-import { HeroInput, HeroTextarea, HeroAvatar } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroAvatar } from '@/components/ui/hero/HeroAvatar';
 import { Button } from '@heroui/react';
 import { useDebounce } from '../hooks/useDebounce';
 

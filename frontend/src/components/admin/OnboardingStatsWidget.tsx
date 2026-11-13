@@ -28,7 +28,8 @@ import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import { User, OnboardingStats, OnboardingStatusItem } from '../../types/user';
 import { useDebounce } from '../../hooks/useDebounce';
-import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 interface OnboardingStatsWidgetProps {
   className?: string;

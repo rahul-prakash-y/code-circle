@@ -20,7 +20,10 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Input, Textarea, HeroUISelect, HeroDatePicker } from '../../ui/HeroUIComponents';
+import { Input } from '@/components/ui/hero/HeroInput';
+import { Textarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroDatePicker } from '@/components/ui/hero/HeroDatePicker';
 import { EmilCard, EmilButton } from '../../ui/emil-ui';
 import OfficialReportTemplate, { ReportData } from './OfficialReportTemplate';
 import api from '../../../lib/axios';

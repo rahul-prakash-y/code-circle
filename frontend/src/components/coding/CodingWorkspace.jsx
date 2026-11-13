@@ -11,7 +11,8 @@ import AntiCheatModal from './AntiCheatModal';
 import FullScreenEnforcementOverlay from '../assessments/FullScreenEnforcementOverlay';
 import { Play, ChevronLeft, Clock, FileText, Code2, Terminal, Maximize2, Minimize2 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
-import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import BackgroundGradient from '../ui/BackgroundGradient';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 

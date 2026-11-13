@@ -34,7 +34,8 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
-import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import { format } from 'date-fns';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import toast from 'react-hot-toast';

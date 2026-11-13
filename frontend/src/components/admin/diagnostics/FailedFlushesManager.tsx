@@ -33,7 +33,7 @@ import {
 import { Button } from '@heroui/react';
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
-import { HeroInput } from '../../ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
 import useAuthStore from '../../../store/useAuthStore';
 import useServerStore from '../../../store/useServerStore';
 

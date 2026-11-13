@@ -15,7 +15,9 @@ import { EmilButton } from '../ui/emil-ui';
 import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
 import { formatDateToISTDateInput } from '../../lib/dateUtils';
-import { HeroUISelect, HeroDatePicker as DatePicker, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroDatePicker as DatePicker } from '@/components/ui/hero/HeroDatePicker';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];

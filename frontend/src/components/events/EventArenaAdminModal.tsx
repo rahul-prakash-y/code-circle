@@ -56,7 +56,7 @@ import useEventArenaStore, {
   ArenaDesignChallenge,
 } from '../../store/useEventArenaStore';
 import HeroUISelect, { HeroUISelectOption } from '../ui/HeroUISelect';
-import { HeroDateTimePicker } from '../ui/HeroUIComponents';
+import { HeroDateTimePicker } from '@/components/ui/hero/HeroDateTimePicker';
 import { formatDateToISTInput, parseISTInputToISO, formatISTDateTime } from '../../lib/dateUtils';
 import {
   ManualPaperSubmissionModal,

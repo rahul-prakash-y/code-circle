@@ -3,7 +3,7 @@ import { Calendar, Users, Clock, ArrowRight, ShieldCheck, Key, Plus, ListFilter,
 import useEventStore from '../../store/useEventStore';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
 import { format } from 'date-fns';
-import { HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 const AttendanceManager = () => {
   const { upcomingEvents, fetchEvents, loading } = useEventStore();

@@ -28,7 +28,8 @@ import useCertificateStore, { CertificateTemplate } from '../../../store/useCert
 import useEventStore from '../../../store/useEventStore';
 import useDomainStore from '../../../store/useDomainStore';
 import useUserStore from '../../../store/useUserStore';
-import { HeroUISelect, HeroChip as Chip } from '../../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 export const THEMES = [
   { id: 'classic-ivory', label: 'Classic Pearl Ivory', primary: '#1e3a8a', secondary: '#d97706', bg: '#f8fafc', card: '#ffffff', text: '#0f172a', textMuted: '#475569', border: '#1e40af' },

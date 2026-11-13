@@ -45,7 +45,7 @@ import { useTabSwitchDetection } from '@/hooks/useTabSwitchDetection';
 import FullScreenEnforcementOverlay from '@/components/assessments/FullScreenEnforcementOverlay';
 import { EmilCard, EmilButton } from '@/components/ui/emil-ui';
 import { Button } from '@heroui/react';
-import { HeroTabs } from '@/components/ui/HeroUIComponents';
+import { HeroTabs } from '@/components/ui/hero/HeroTabs';
 import useAuthStore from '@/store/useAuthStore';
 import useProfileStore from '@/store/useProfileStore';
 import useEventArenaStore from '@/store/useEventArenaStore';

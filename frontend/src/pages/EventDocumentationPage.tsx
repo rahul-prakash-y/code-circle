@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Sparkles, FileText, Calendar, MapPin, Archive, Wand2 } from 'lucide-react';
 import { Button } from '@heroui/react';
-import { HeroUISelect } from '../components/ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
 import { EventDocumentationHub, EventReportForm } from '../components/events/documentation';
 import { EmilButton, EmilCard } from '../components/ui/emil-ui';
 import api from '../lib/axios';

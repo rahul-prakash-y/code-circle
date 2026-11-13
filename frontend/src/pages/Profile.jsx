@@ -39,7 +39,12 @@ import LeetCodeCard from '../components/profile/LeetCodeCard';
 import HackerRankCard from '../components/profile/HackerRankCard';
 import GitHubCard from '../components/profile/GitHubCard';
 import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
-import { HeroAvatar, HeroInput, HeroTextarea, HeroDatePicker as DatePicker, HeroUISelect as Select, HeroChip as Chip } from '../components/ui/HeroUIComponents';
+import { HeroAvatar } from '@/components/ui/hero/HeroAvatar';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroDatePicker as DatePicker } from '@/components/ui/hero/HeroDatePicker';
+import { HeroUISelect as Select } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import { Button } from '@heroui/react';
 
 // Timezone-safe date formatter for YYYY-MM-DD strings

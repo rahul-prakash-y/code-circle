@@ -206,3 +206,5 @@ export const HeroInput = forwardRef<HTMLInputElement, HeroInputProps>(
   }
 );
 HeroInput.displayName = 'HeroInput';
+export { HeroInput as Input };
+export default HeroInput;

@@ -17,7 +17,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
 import TutorialButton from '../../common/TutorialButton';
-import { HeroUISelect } from '../../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
 
 const AVAILABLE_LANGUAGES = [
   { id: 'c', label: 'C' },

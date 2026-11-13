@@ -19,7 +19,8 @@ import useAttendanceStore from '../../store/useAttendanceStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 const AttendanceDashboard = ({ isOpen, onClose, event }) => {
   const { fetchEventEnrollments, updateAttendance, loading: enrollmentLoading } = useEnrollmentStore();

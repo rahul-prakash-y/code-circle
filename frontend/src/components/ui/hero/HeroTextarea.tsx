@@ -139,3 +139,5 @@ export const HeroTextarea = forwardRef<HTMLTextAreaElement, HeroTextareaProps>(
   }
 );
 HeroTextarea.displayName = 'HeroTextarea';
+export { HeroTextarea as Textarea };
+export default HeroTextarea;

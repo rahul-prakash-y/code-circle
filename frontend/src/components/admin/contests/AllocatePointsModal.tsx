@@ -14,7 +14,8 @@ import {
   User,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
-import { HeroUISelect, HeroChip as Chip } from '../../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import useContestStore, { LeaderboardEntry } from '../../../store/useContestStore';
 
 interface AllocatePointsModalProps {
