@@ -215,10 +215,26 @@ export const checkFeatureNotRestricted = (feature: 'assessments' | 'contests' | 
     );
 
     if (dbUser?.isRestricted && (dbUser.restrictedFeatures || []).includes(feature)) {
+      const reasonLower = (dbUser.restrictionReason || '').toLowerCase();
+      let blockedType = 'ASSESSMENT';
+      let sourceTitle = 'Assessment Proctoring Lockout';
+      if (reasonLower.includes('contest')) {
+        blockedType = 'CONTEST';
+        sourceTitle = 'Coding Contest Lockout';
+      } else if (reasonLower.includes('course')) {
+        blockedType = 'COURSE';
+        sourceTitle = 'Course Assessment Lockout';
+      }
+
       return reply.status(403).send({
         success: false,
         restricted: true,
+        isBlocked: true,
+        code: 'BLOCKED_BY_OTHER_ACTIVITY',
+        blockedType,
+        sourceTitle,
         feature,
+        reason: dbUser.restrictionReason || 'Account restriction in place',
         restrictionReason: dbUser.restrictionReason || 'Account restriction in place',
         error: `Access Denied: You have been restricted from accessing ${feature}. Reason: ${
           dbUser.restrictionReason || 'Account restriction in place'

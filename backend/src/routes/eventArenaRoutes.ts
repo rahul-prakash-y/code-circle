@@ -31,6 +31,7 @@ import {
   grantAssessmentGraceTime,
   grantAssessmentGraceTimeAll,
   createOrUpdateManualSubmission,
+  bulkUploadManualSubmissions,
   getAdminOverallArenaLeaderboard,
   getStudentAssessmentData,
   startAssessmentSession,
@@ -79,6 +80,7 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/arena/assessments/:assessmentId/grace-time', grantAssessmentGraceTime);
   fastify.post('/:id/arena/assessments/:assessmentId/grace-time-all', grantAssessmentGraceTimeAll);
   fastify.post('/:id/arena/assessments/:assessmentId/manual-submission', createOrUpdateManualSubmission);
+  fastify.post('/:id/arena/assessments/:assessmentId/manual-submission/bulk-upload', bulkUploadManualSubmissions as any);
 
   // Anti-Cheat Unblock student within Arena scope (Admin)
   fastify.post('/:id/arena/unblock-student', { preHandler: [isAdmin] }, eventController.unblockStudent as any);
