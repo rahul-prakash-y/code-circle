@@ -78,6 +78,7 @@ export interface IEventArenaAssessment {
   designChallenge?: IEventArenaDesignChallenge;
   designChallenges?: IEventArenaDesignChallenge[];
   graceMinutes?: number;
+  hasGraceTime?: boolean;
   shuffleQuestions?: boolean;
   createdAt?: Date;
   updatedAt?: Date;

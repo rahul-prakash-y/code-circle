@@ -245,6 +245,7 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
   const [remainingSeconds, setRemainingSeconds] = useState(3600);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const handleFinalSubmitRef = useRef<(isAuto?: boolean) => Promise<void>>(() => Promise.resolve());
+  const timerHasTickedRef = useRef(false);
 
   // Active assessment data loaded via assessmentId prop
 
@@ -285,12 +286,14 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
             data?.submission?.expiresAt && new Date(data.submission.expiresAt).getTime() > Date.now()
           );
           const hasActiveGrace = Boolean(
-            !isSubFinished &&
-            hasFutureExpiry &&
-            (data?.submission?.reentryAllowed || ((data?.submission?.graceMinutes || 0) > 0))
+            (data?.submission?.reentryAllowed ||
+              ((data?.submission?.graceMinutes || 0) > 0) ||
+              ((data?.assessment?.graceMinutes || 0) > 0) ||
+              data?.assessment?.hasGraceTime) &&
+            (!data?.submission?.expiresAt || hasFutureExpiry || ((data?.assessment?.graceMinutes || 0) > 0) || data?.submission?.reentryAllowed)
           );
 
-          if (isSubFinished) {
+          if (isSubFinished && !hasActiveGrace) {
             setFinalResultModal(data.submission);
             return;
           }
@@ -369,43 +372,77 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
       const now = Date.now();
       const expiresTime = submission?.expiresAt ? new Date(submission.expiresAt).getTime() : null;
 
-      // If submission has an explicit expiration timestamp in the future (includes any admin grace time extensions), respect it directly
+      // 1. If submission has an explicit expiration timestamp in the future, respect it directly
       if (expiresTime && !isNaN(expiresTime)) {
         if (expiresTime > now) {
           return Math.max(0, Math.floor((expiresTime - now) / 1000));
         }
+        // If expired, check if grace time or reentry is granted
+        const hasGrace = Boolean(
+          submission?.reentryAllowed ||
+          ((submission?.graceMinutes || 0) > 0) ||
+          ((selectedAssessment?.graceMinutes || 0) > 0) ||
+          selectedAssessment?.hasGraceTime
+        );
+        if (hasGrace) {
+          const extraMins = submission?.graceMinutes || selectedAssessment?.graceMinutes || 10;
+          return extraMins * 60;
+        }
         return 0;
       }
 
-      const totalSeconds = (selectedAssessment?.durationMinutes || 60) * 60;
-      const started = submission?.startedAt ? new Date(submission.startedAt).getTime() : now;
-      const elapsed = Math.floor((now - started) / 1000);
+      // 2. Fallback when submission expiresAt is not yet populated (session starting or in flight)
+      const durationMins = selectedAssessment?.durationMinutes || 60;
+      const totalSeconds = durationMins * 60;
 
+      if (submission?.startedAt) {
+        const started = new Date(submission.startedAt).getTime();
+        if (!isNaN(started)) {
+          const elapsed = Math.floor((now - started) / 1000);
+          if (elapsed >= 0 && elapsed < totalSeconds) {
+            return totalSeconds - elapsed;
+          }
+        }
+      }
+
+      // 3. Fallback: scheduled end time in the future
       const graceExtraMs = (selectedAssessment?.graceMinutes || 0) * 60 * 1000;
       const assessmentEndTime = selectedAssessment?.endTime
         ? new Date(selectedAssessment.endTime).getTime() + graceExtraMs
         : selectedAssessment?.startTime
-        ? new Date(selectedAssessment.startTime).getTime() + (selectedAssessment.durationMinutes || 60) * 60 * 1000 + graceExtraMs
+        ? new Date(selectedAssessment.startTime).getTime() + (durationMins * 60 * 1000) + graceExtraMs
         : null;
 
-      if (assessmentEndTime && !isNaN(assessmentEndTime)) {
-        const remainingFromDeadline = Math.max(0, Math.floor((assessmentEndTime - now) / 1000));
-        return Math.min(Math.max(0, totalSeconds - elapsed), remainingFromDeadline);
+      // IMPORTANT: Only constrain by scheduled deadline if the deadline is in the FUTURE
+      if (assessmentEndTime && !isNaN(assessmentEndTime) && assessmentEndTime > now) {
+        const remainingFromDeadline = Math.floor((assessmentEndTime - now) / 1000);
+        return Math.min(totalSeconds, remainingFromDeadline);
       }
-      return Math.max(0, totalSeconds - elapsed);
+
+      // If scheduled time has passed but student is entering (grace period / live session),
+      // default to grace time seconds or assessment duration, never 0
+      const graceMinutes = selectedAssessment?.graceMinutes || 0;
+      if (graceMinutes > 0) {
+        return graceMinutes * 60;
+      }
+
+      return totalSeconds;
     };
 
     const initial = calcRemaining();
     setRemainingSeconds(initial);
-    if (initial <= 0 && activeAssessmentId && submission?.status === 'IN_PROGRESS') {
-      handleFinalSubmitRef.current(true);
-      return;
+    if (initial > 0) {
+      timerHasTickedRef.current = true;
     }
 
     const timer = setInterval(() => {
       const rem = calcRemaining();
       setRemainingSeconds(rem);
-      if (rem <= 0) {
+      if (rem > 0) {
+        timerHasTickedRef.current = true;
+      }
+      // Auto-submit ONLY if countdown actively ticked down to 0 from a positive time while IN_PROGRESS
+      if (rem <= 0 && timerHasTickedRef.current && submission?.status === 'IN_PROGRESS') {
         clearInterval(timer);
         handleFinalSubmitRef.current(true);
       }
@@ -718,6 +755,7 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
 
 
   const handleReturnToHub = () => {
+    timerHasTickedRef.current = false;
     setFinalResultModal(null);
     setTabSwitchCount(0);
     setShowTabWarning(false);
