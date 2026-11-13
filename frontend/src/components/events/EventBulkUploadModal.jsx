@@ -1,5 +1,6 @@
 import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { exportToCsv, parseCsv } from '@/utils/csvUtils';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -235,11 +236,7 @@ export const EventBulkUploadModal = ({
             'Attendance Status (Optional)': 'Absent',
           },
         ];
-        const XLSX = await import('xlsx');
-        const ws = XLSX.utils.json_to_sheet(sampleData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Participants Roster');
-        XLSX.writeFile(wb, `${(event?.title || 'event').replace(/[^a-zA-Z0-9]/g, '_')}_participants_sample_template.xlsx`);
+        exportToCsv(sampleData, `${(event?.title || 'event').replace(/[^a-zA-Z0-9]/g, '_')}_participants_sample_template.csv`);
         toast.success('Sample template generated!');
       } catch (err) {
         toast.error('Failed to download template: ' + (err.message || 'Error'));
@@ -269,13 +266,9 @@ export const EventBulkUploadModal = ({
         'Reason': s.reason || '',
       }));
 
-      const XLSX = await import('xlsx');
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Upload Results');
-      XLSX.writeFile(
-        wb,
-        `${(event?.title || 'event').replace(/[^a-zA-Z0-9]/g, '_')}_upload_results_${new Date().toISOString().slice(0, 10)}.xlsx`
+      exportToCsv(
+        exportData,
+        `${(event?.title || 'event').replace(/[^a-zA-Z0-9]/g, '_')}_upload_results_${new Date().toISOString().slice(0, 10)}.csv`
       );
       toast.success('Upload results report exported successfully!');
     } catch (err) {
@@ -299,7 +292,14 @@ export const EventBulkUploadModal = ({
     setFileName(selectedFile.name);
     setUploadResult(null);
 
-    // Read and parse client-side preview
+    if (lowerName.endsWith('.csv')) {
+      selectedFile.text().then((text) => {
+        setParsedPreview(parseCsv(text).slice(0, 10));
+      }).catch(() => setParsedPreview([]));
+      return;
+    }
+
+    // Read and parse client-side preview for binary xlsx
     import('xlsx').then((XLSX) => {
       const reader = new FileReader();
       reader.onload = (evt) => {
@@ -330,6 +330,13 @@ export const EventBulkUploadModal = ({
       setFile(droppedFile);
       setFileName(droppedFile.name);
       setUploadResult(null);
+
+      if (lowerName.endsWith('.csv')) {
+        droppedFile.text().then((text) => {
+          setParsedPreview(parseCsv(text).slice(0, 10));
+        }).catch(() => setParsedPreview([]));
+        return;
+      }
 
       import('xlsx').then((XLSX) => {
         const reader = new FileReader();

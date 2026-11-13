@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
+import { exportToCsv, parseCsv } from '@/utils/csvUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload,
@@ -77,7 +78,7 @@ export const ManualPaperBulkUploadModal: React.FC<ManualPaperBulkUploadModalProp
     onClose();
   };
 
-  // Download official Excel template
+  // Download official CSV template
   const handleDownloadTemplate = async () => {
     try {
       const sampleData = [
@@ -107,11 +108,7 @@ export const ManualPaperBulkUploadModal: React.FC<ManualPaperBulkUploadModalProp
         },
       ];
 
-      const XLSX = await import('xlsx');
-      const ws = XLSX.utils.json_to_sheet(sampleData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'PaperSubmissions');
-      XLSX.writeFile(wb, `Paper_Scores_Template_${assessmentTitle.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+      exportToCsv(sampleData, `Paper_Scores_Template_${assessmentTitle.replace(/[^a-zA-Z0-9]/g, '_')}.csv`);
       toast.success('Sample template downloaded successfully!');
     } catch (err: any) {
       toast.error('Failed to generate sample template');
@@ -131,12 +128,18 @@ export const ManualPaperBulkUploadModal: React.FC<ManualPaperBulkUploadModalProp
     setUploadResult(null);
 
     try {
-      const XLSX = await import('xlsx');
-      const data = await uploadedFile.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[firstSheetName];
-      const rawJson: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      let rawJson: any[] = [];
+      if (extension === 'csv') {
+        const text = await uploadedFile.text();
+        rawJson = parseCsv(text);
+      } else {
+        const XLSX = await import('xlsx');
+        const data = await uploadedFile.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[firstSheetName];
+        rawJson = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      }
 
       if (rawJson.length === 0) {
         toast.error('The uploaded file is empty.');
