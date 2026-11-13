@@ -402,7 +402,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     try {
       await grantGraceTime(event._id, selectedAssessmentId, {
         submissionId,
+        extraMinutes: minutes,
         graceMinutes: minutes,
+        minutes,
         clearAnswers,
       });
       setGraceModalSub(null);
@@ -417,9 +419,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     if (!event?._id || !selectedAssessmentId) return;
     setIsGrantingGraceAll(true);
     try {
-      await grantGraceTimeAll(event._id, selectedAssessmentId, {
-        graceMinutes: minutes,
-      });
+      await grantGraceTimeAll(event._id, selectedAssessmentId, minutes);
       setIsGraceAllModalOpen(false);
     } catch {
       // Handled in store

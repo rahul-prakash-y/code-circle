@@ -47,6 +47,7 @@ import { EmilCard, EmilButton } from '@/components/ui/emil-ui';
 import { Button, Link } from '@heroui/react';
 import { useShallow } from 'zustand/react/shallow';
 import { HeroTabs } from '@/components/ui/hero/HeroTabs';
+import HeroUISelect, { HeroUISelectOption } from '@/components/ui/HeroUISelect';
 import useAuthStore from '@/store/useAuthStore';
 import useProfileStore from '@/store/useProfileStore';
 import useEventArenaStore from '@/store/useEventArenaStore';
@@ -469,6 +470,31 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
       return currentCoding.allowedLanguages;
     }
     return ['python', 'javascript', 'cpp', 'java', 'c'];
+  }, [currentCoding]);
+
+  // Options for HeroUISelect programming language dropdown
+  const languageOptions: HeroUISelectOption[] = useMemo(() => {
+    return currentAllowedLanguages.map((lang) => ({
+      value: lang,
+      label: LANG_DISPLAY_NAMES[lang] || lang,
+    }));
+  }, [currentAllowedLanguages]);
+
+  // Derive public test cases for the current problem (always shown, including ONLY_CODE mode)
+  const publicTestCases = useMemo(() => {
+    if (!currentCoding) return [];
+    const visible = (currentCoding.testCases || []).filter((tc: any) => !tc.isHidden);
+    if (visible.length > 0) return visible;
+    if (currentCoding.sampleInput || currentCoding.sampleOutput) {
+      return [
+        {
+          input: currentCoding.sampleInput || '',
+          expectedOutput: currentCoding.sampleOutput || '',
+          isHidden: false,
+        },
+      ];
+    }
+    return [];
   }, [currentCoding]);
 
   // Ensure active language is valid for the current coding problem's allowed languages
@@ -1581,57 +1607,83 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                   </div>
                 )}
 
-                {/* Only Code: Custom Input (stdin) Panel */}
-                {activeCodingMode === 'ONLY_CODE' ? (
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-[11px] font-bold text-label-secondary flex items-center gap-1.5">
-                        <Terminal size={12} />
-                        <span>Custom Input (stdin)</span>
-                      </h4>
-                      <span className="text-[10px] text-label-tertiary">Used when clicking "Run Code"</span>
-                    </div>
-                    <textarea
-                      rows={3}
-                      value={customInputMap[currentCoding._id || ''] || ''}
-                      onChange={(e) => {
-                        if (currentCoding._id) {
-                          setCustomInputMap((prev) => ({ ...prev, [currentCoding._id!]: e.target.value }));
-                        }
-                      }}
-                      placeholder="Optional stdin input to test your program logic..."
-                      className="w-full p-2.5 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-label-primary placeholder-label-tertiary outline-none resize-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30"
-                    />
+                {/* Public Test Cases (Always visible, Custom Input is hidden in only code mode) */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[11px] font-bold text-label-secondary flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-500" />
+                      <span>Public Test Cases</span>
+                    </h4>
+                    {activeCodingMode === 'ONLY_CODE' && (
+                      <span className="text-[10px] text-purple-400 font-semibold">Reference for code submission</span>
+                    )}
                   </div>
-                ) : (
-                  /* Code with Test Cases: Sample I/O */
-                  <div className="space-y-3 pt-2">
-                    <div className="space-y-1">
-                      <h4 className="text-[11px] font-bold text-label-secondary">Sample Input</h4>
-                      <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
-                        {currentCoding.sampleInput || '(No input required)'}
-                      </pre>
+
+                  {publicTestCases.length > 0 ? (
+                    <div className="space-y-3">
+                      {publicTestCases.map((tc: any, tcIdx: number) => (
+                        <div
+                          key={tcIdx}
+                          className="p-3 rounded-xl bg-surface-secondary/70 border border-separator space-y-2"
+                        >
+                          {publicTestCases.length > 1 && (
+                            <div className="text-[11px] font-bold text-label-secondary">
+                              Test Case {tcIdx + 1}
+                            </div>
+                          )}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-semibold text-label-tertiary uppercase tracking-wider">
+                                Sample Input
+                              </span>
+                              <pre className="p-2.5 rounded-lg bg-surface dark:bg-black/40 border border-separator text-xs font-mono text-label-primary overflow-x-auto whitespace-pre-wrap">
+                                {tc.input || '(No input required)'}
+                              </pre>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-semibold text-label-tertiary uppercase tracking-wider">
+                                Expected Output
+                              </span>
+                              <pre className="p-2.5 rounded-lg bg-surface dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto whitespace-pre-wrap">
+                                {tc.expectedOutput || ''}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="space-y-1">
-                      <h4 className="text-[11px] font-bold text-label-secondary">Sample Output</h4>
-                      <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto">
-                        {currentCoding.sampleOutput || ''}
-                      </pre>
+                  ) : (currentCoding.sampleInput || currentCoding.sampleOutput) ? (
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <h4 className="text-[11px] font-bold text-label-secondary">Sample Input</h4>
+                        <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto whitespace-pre-wrap">
+                          {currentCoding.sampleInput || '(No input required)'}
+                        </pre>
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-[11px] font-bold text-label-secondary">Sample Output</h4>
+                        <pre className="p-3 rounded-xl bg-surface-secondary dark:bg-black/40 border border-separator text-xs font-mono text-emerald-600 dark:text-emerald-400 overflow-x-auto whitespace-pre-wrap">
+                          {currentCoding.sampleOutput || ''}
+                        </pre>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-3 rounded-xl bg-surface-secondary/40 border border-separator text-xs text-label-tertiary italic">
+                      No public test cases specified for this challenge.
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Right Column: Monaco Code Editor & Terminal */}
               <div className="w-full lg:w-1/2 flex flex-col flex-1 bg-surface min-h-80">
                 {/* Language Toolbar */}
-                <div className="h-11 px-3 sm:px-4 border-b border-separator flex items-center justify-between shrink-0 bg-surface">
+                <div className="min-h-12 px-3 sm:px-4 py-1.5 border-b border-separator flex flex-wrap items-center justify-between gap-2 shrink-0 bg-surface relative z-30">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="text-[11px] font-bold text-label-secondary hidden sm:inline">Language:</span>
-                    <select
+                    <HeroUISelect
                       value={currentLanguage}
-                      onChange={(e) => {
-                        const newLang = e.target.value;
+                      onChange={(newLang) => {
                         setCurrentLanguage(newLang);
                         if (currentCoding?._id) {
                           const starterMap = currentCoding.starterCode || {};
@@ -1644,33 +1696,33 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
                           }));
                         }
                       }}
-                      className="px-2 sm:px-2.5 py-1 rounded-lg bg-surface-secondary border border-separator text-xs font-bold text-label-primary outline-none cursor-pointer"
-                    >
-                      {currentAllowedLanguages.map((lang) => (
-                        <option key={lang} value={lang} className="bg-surface-secondary">
-                          {LANG_DISPLAY_NAMES[lang] || lang}
-                        </option>
-                      ))}
-                    </select>
+                      options={languageOptions}
+                      size="sm"
+                      color="purple"
+                      placement="bottom-start"
+                      className="w-44 sm:w-52"
+                    />
                     {currentAllowedLanguages.length < 5 && (
                       <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-md hidden md:inline-flex items-center gap-1">
-                        Restricted ({currentAllowedLanguages.length} allowed)
+                        Restricted ({currentAllowedLanguages.length} lang allowed)
                       </span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      isDisabled={isExecuting}
-                      isLoading={isExecuting}
-                      onPress={handleRunCode}
-                      className="rounded-xl text-white text-xs font-bold"
-                      startContent={!isExecuting ? <Play size={12} /> : undefined}
-                    >
-                      {activeCodingMode === 'ONLY_CODE' ? 'Run Code' : 'Run'}
-                    </Button>
+                    {activeCodingMode !== 'ONLY_CODE' && (
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        isDisabled={isExecuting}
+                        isLoading={isExecuting}
+                        onPress={handleRunCode}
+                        className="rounded-xl text-white text-xs font-bold"
+                        startContent={!isExecuting ? <Play size={12} /> : undefined}
+                      >
+                        Run
+                      </Button>
+                    )}
 
                     <Button
                       size="sm"

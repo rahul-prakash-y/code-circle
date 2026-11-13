@@ -71,8 +71,8 @@ export const GraceTimeAllModal: React.FC<GraceTimeAllModalProps> = memo(({
             <label className="text-xs font-bold text-label-primary block">
               Additional Minutes to Grant (All Candidates)
             </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[5, 10, 15, 30].map((mins) => (
+            <div className="grid grid-cols-5 gap-2">
+              {[1, 5, 10, 15, 30].map((mins) => (
                 <button
                   key={mins}
                   type="button"
@@ -94,7 +94,10 @@ export const GraceTimeAllModal: React.FC<GraceTimeAllModalProps> = memo(({
                 min={1}
                 max={180}
                 value={graceAllMinutes}
-                onChange={(e) => setGraceAllMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setGraceAllMinutes(isNaN(val) ? 1 : Math.max(1, val));
+                }}
                 className="w-full px-3 py-1.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary focus:border-amber-500 outline-none"
               />
             </div>
