@@ -54,10 +54,14 @@ function openDatabase(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+const lsWriteTimers = new Map<string, any>();
+
 /**
- * Persists exam state immediately to IndexedDB with localStorage fallback.
+ * Persists exam state to IndexedDB with a debounced localStorage mirror.
+ * Debouncing the synchronous localStorage write prevents UI thread freezes (1.5-2s)
+ * during fast student interactions (e.g., clicking multiple radio options).
  */
-export async function saveExamState<T = any>(key: string, data: T): Promise<void> {
+export async function saveExamState<T = any>(key: string, data: T, debounceLocalStorage = true): Promise<void> {
   if (!key || typeof window === 'undefined') return;
 
   const payload: StoredExamRecord<T> = {
@@ -66,14 +70,30 @@ export async function saveExamState<T = any>(key: string, data: T): Promise<void
     timestamp: Date.now(),
   };
 
-  // Always mirror in localStorage for immediate sync access if needed
-  try {
-    window.localStorage.setItem(key, JSON.stringify(payload));
-  } catch (lsErr) {
-    console.warn('[ExamStorage] LocalStorage mirror write warning:', lsErr);
+  // Debounced mirror in localStorage to avoid main-thread UI locking
+  if (debounceLocalStorage) {
+    if (lsWriteTimers.has(key)) {
+      clearTimeout(lsWriteTimers.get(key));
+    }
+    const timer = setTimeout(() => {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(payload));
+      } catch (lsErr) {
+        console.warn('[ExamStorage] LocalStorage mirror write warning:', lsErr);
+      } finally {
+        lsWriteTimers.delete(key);
+      }
+    }, 300);
+    lsWriteTimers.set(key, timer);
+  } else {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(payload));
+    } catch (lsErr) {
+      console.warn('[ExamStorage] LocalStorage mirror write warning:', lsErr);
+    }
   }
 
-  // Primary durable storage in IndexedDB
+  // Primary durable storage in IndexedDB (non-blocking async)
   try {
     const db = await openDatabase();
     await new Promise<void>((resolve, reject) => {
@@ -85,7 +105,12 @@ export async function saveExamState<T = any>(key: string, data: T): Promise<void
       request.onerror = () => reject(request.error);
     });
   } catch (idbErr) {
-    // If IndexedDB fails (e.g. private mode or quota), localStorage is already updated
+    // If IndexedDB fails (e.g. private mode or quota), flush localStorage immediately
+    try {
+      window.localStorage.setItem(key, JSON.stringify(payload));
+    } catch {
+      // Ignore
+    }
     console.warn('[ExamStorage] IndexedDB write fallback to localStorage:', idbErr);
   }
 }
