@@ -23,3 +23,7 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Scratch & local analysis scripts
+scratch/
+
