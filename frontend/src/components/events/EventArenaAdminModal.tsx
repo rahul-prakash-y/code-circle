@@ -122,7 +122,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     deleteArenaTeam,
   } = useEventArenaStore();
 
-  const isSuperAdmin = user?.role === 'SuperAdmin';
+  const { profile } = useProfileStore();
+  const navigate = useNavigate();
+  const effectiveRole = profile?.role || user?.role;
+  const isSuperAdmin = effectiveRole === 'SuperAdmin';
+  const isAdminRole = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(effectiveRole);
 
   // Modal Views & Tabs
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -528,14 +532,16 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
   // Check if current user can manage questions for the selected assessment
   const canManageSelected = useMemo(() => {
-    if (!user || !selectedAssessment) return false;
-    if (isSuperAdmin) return true;
+    if (!user && !profile) return false;
+    if (isAdminRole) return true;
+    if (!selectedAssessment) return false;
     const assigned = selectedAssessment.assignedAdmins || [];
+    const currentUserId = user?.id || user?._id || profile?._id || profile?.id;
     return assigned.some((adm: any) => {
       const id = adm?._id ? adm._id.toString() : adm.toString();
-      return id === (user.id || user._id)?.toString();
+      return id === currentUserId?.toString();
     });
-  }, [user, selectedAssessment, isSuperAdmin]);
+  }, [user, profile, selectedAssessment, isAdminRole]);
 
   const selectedAssessmentId = selectedAssessment?._id;
 
@@ -1734,6 +1740,20 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="secondary"
+                    startContent={<Play size={12} className="text-purple-400 fill-purple-400" />}
+                    onPress={() => {
+                      onClose();
+                      navigate(`/events/${event._id}/arena?assessmentId=${selectedAssessment._id}&preview=true`);
+                    }}
+                    className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-purple-300 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 cursor-pointer shadow-xs"
+                    title="Enter assessment workspace in Admin Preview Mode"
+                  >
+                    Preview Test
+                  </Button>
                   <div className="flex -space-x-1.5 overflow-hidden">
                     {(selectedAssessment.assignedAdmins || []).slice(0, 3).map((adm: any) => (
                       <img
@@ -2129,6 +2149,19 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       <Button
                         size="sm"
                         variant="flat"
+                        color="secondary"
+                        startContent={<Play size={13} className="text-purple-400 fill-purple-400" />}
+                        onPress={() => {
+                          onClose();
+                          navigate(`/events/${event._id}/arena?assessmentId=${selectedAssessment._id}&preview=true`);
+                        }}
+                        className="rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 text-xs font-semibold border border-purple-500/30"
+                      >
+                        Preview Test
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="flat"
                         onPress={() => downloadArenaTemplate(event._id, 'mcq')}
                         startContent={<Download size={13} />}
                         className="rounded-xl bg-white/5 hover:bg-white/10 text-label-primary text-xs font-semibold border border-separator"
@@ -2378,6 +2411,19 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                     </div>
 
                     <div className="flex items-center flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="secondary"
+                        startContent={<Play size={13} className="text-purple-400 fill-purple-400" />}
+                        onPress={() => {
+                          onClose();
+                          navigate(`/events/${event._id}/arena?assessmentId=${selectedAssessment._id}&preview=true`);
+                        }}
+                        className="rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 text-xs font-semibold border border-purple-500/30"
+                      >
+                        Preview Test
+                      </Button>
                       <Button
                         size="sm"
                         variant="flat"
@@ -2742,6 +2788,19 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="secondary"
+                        startContent={<Play size={13} className="text-pink-400 fill-pink-400" />}
+                        onPress={() => {
+                          onClose();
+                          navigate(`/events/${event._id}/arena?assessmentId=${selectedAssessment._id}&preview=true`);
+                        }}
+                        className="rounded-xl bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 text-xs font-semibold border border-pink-500/30"
+                      >
+                        Preview Test
+                      </Button>
                       {canManageSelected && (
                         <Button
                           size="sm"

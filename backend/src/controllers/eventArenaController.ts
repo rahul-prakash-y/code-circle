@@ -24,13 +24,15 @@ export const canManageAssessmentQuestions = (
   assessment?: any
 ): boolean => {
   if (!user) return false;
-  if (user.role === 'SuperAdmin') return true;
+  // All admin roles (SuperAdmin, Admin, Faculty, Committee) have full access to view, preview and manage
+  if (['SuperAdmin', 'Admin', 'Faculty', 'Committee'].includes(user.role)) return true;
 
   // Check assessment-specific assigned admins
   if (assessment && Array.isArray(assessment.assignedAdmins)) {
     const isAssignedToAssessment = assessment.assignedAdmins.some((adminRef: any) => {
       const id = adminRef?._id ? adminRef._id.toString() : adminRef.toString();
-      return id === user._id.toString();
+      const currentId = user._id ? user._id.toString() : user.id?.toString();
+      return id === currentId;
     });
     if (isAssignedToAssessment) return true;
   }
@@ -39,7 +41,8 @@ export const canManageAssessmentQuestions = (
   if (Array.isArray(event.arenaAdmins)) {
     return event.arenaAdmins.some((adminRef: any) => {
       const id = adminRef?._id ? adminRef._id.toString() : adminRef.toString();
-      return id === user._id.toString();
+      const currentId = user._id ? user._id.toString() : user.id?.toString();
+      return id === currentId;
     });
   }
 
