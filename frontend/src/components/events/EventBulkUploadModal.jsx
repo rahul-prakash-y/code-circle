@@ -1,6 +1,7 @@
 import ResponsiveModal from '../ui/ResponsiveModal';
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { exportToCsv, parseCsv } from '@/utils/csvUtils';
+import { HeroFileInput } from '../ui/hero/HeroFileInput';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -839,31 +840,16 @@ export const EventBulkUploadModal = ({
 
               {/* Drag & Drop File Zone */}
               {!file ? (
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-separator hover:border-accent/60 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all bg-canvas/40 hover:bg-accent/5 group"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
-                    <Upload size={22} />
-                  </div>
-                  <div className="text-center space-y-1">
-                    <p className="text-xs font-bold text-label-primary">
-                      Click to browse or drag and drop your spreadsheet
-                    </p>
-                    <p className="text-[11px] text-label-secondary">
-                      Supports Microsoft Excel (.xlsx, .xls) and CSV (.csv)
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1 text-[10px] text-label-tertiary font-mono">
-                    <span>Columns: Reg No / Roll No</span>
-                    <span>•</span>
-                    <span>Student Name</span>
-                    <span>•</span>
-                    <span>Email</span>
-                  </div>
-                </div>
+                <HeroFileInput
+                  variant="dropzone"
+                  accept=".xlsx,.xls,.csv"
+                  buttonText="Click to browse or drag and drop your spreadsheet"
+                  description="Supports Microsoft Excel (.xlsx, .xls) and CSV (.csv)"
+                  onFilesSelected={(files) => {
+                    if (files[0]) handleFileChange({ target: { files } });
+                  }}
+                  showChips={false}
+                />
               ) : (
                 <div className="p-4 rounded-2xl bg-canvas border border-separator space-y-3">
                   <div className="flex items-center justify-between gap-3">
@@ -929,14 +915,6 @@ export const EventBulkUploadModal = ({
                   )}
                 </div>
               )}
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
             </>
           )}
 

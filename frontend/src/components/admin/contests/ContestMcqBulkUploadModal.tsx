@@ -11,6 +11,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Button } from '@heroui/react';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import useContestStore, { MCQQuestion } from '../../../store/useContestStore';
 
 interface ContestMcqBulkUploadModalProps {
@@ -169,84 +171,69 @@ export const ContestMcqBulkUploadModal: React.FC<ContestMcqBulkUploadModalProps>
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleDownloadTemplate}
-            disabled={isDownloading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs shrink-0 cursor-pointer transition-colors duration-150"
+          <Button
+            size="sm"
+            color="secondary"
+            variant="solid"
+            onPress={handleDownloadTemplate}
+            isLoading={isDownloading}
+            startContent={<Download size={13} />}
+            className="rounded-xl text-xs font-bold shadow-xs shrink-0"
           >
-            {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-            <span>Download Template</span>
-          </button>
+            Download Template
+          </Button>
         </div>
 
         {/* Dropzone */}
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-            isDragging
-              ? 'border-purple-500 bg-purple-500/10'
-              : 'border-separator dark:border-white/10 hover:border-purple-500/50 hover:bg-surface-secondary dark:hover:bg-white/5'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
+        {!file && !isParsing ? (
+          <HeroFileInput
+            variant="dropzone"
             accept=".xlsx,.xls,.json"
-            onChange={handleFileChange}
-            className="hidden"
+            buttonText="Click to browse or drag and drop your spreadsheet"
+            description="Supports Microsoft Excel (.xlsx, .xls) and JSON"
+            onFilesSelected={(files) => {
+              if (files[0]) processFile(files[0]);
+            }}
+            color="secondary"
+            showChips={false}
           />
-          {isParsing ? (
+        ) : isParsing ? (
+          <div className="border-2 border-dashed border-separator rounded-2xl p-6 text-center">
             <div className="flex flex-col items-center justify-center py-4 space-y-2">
               <Loader2 size={26} className="animate-spin text-purple-600 mx-auto" />
               <span className="text-xs font-bold text-label-primary">
                 Parsing spreadsheet records...
               </span>
             </div>
-          ) : file ? (
-            <div className="flex items-center justify-between p-3 bg-surface-secondary rounded-xl border border-separator dark:border-white/10 text-left">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                  <FileSpreadsheet size={18} />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-label-primary block">
-                    {file.name}
-                  </span>
-                  <span className="text-[10px] text-label-secondary">
-                    {(file.size / 1024).toFixed(1)} KB • {parsedQuestions.length} item(s) parsed
-                  </span>
-                </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between p-3 bg-surface-secondary rounded-xl border border-separator dark:border-white/10 text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <FileSpreadsheet size={18} />
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleResetFile();
-                }}
-                className="p-1.5 hover:bg-surface dark:hover:bg-white/10 rounded-lg text-label-secondary hover:text-rose-500 transition-colors cursor-pointer"
-                title="Choose a different file"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-4 space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-1">
-                <Upload size={22} />
+              <div>
+                <span className="text-xs font-bold text-label-primary block">
+                  {file?.name}
+                </span>
+                <span className="text-[10px] text-label-secondary">
+                  {file ? (file.size / 1024).toFixed(1) : 0} KB • {parsedQuestions.length} item(s) parsed
+                </span>
               </div>
-              <span className="text-xs font-bold text-label-primary">
-                Drag & drop your question sheet here, or <span className="text-purple-500 underline">browse</span>
-              </span>
-              <span className="text-[11px] text-label-secondary">
-                Supports Microsoft Excel (.xlsx, .xls) and structured JSON files
-              </span>
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleResetFile();
+              }}
+              className="p-1.5 hover:bg-surface dark:hover:bg-white/10 rounded-lg text-label-secondary hover:text-rose-500 transition-colors cursor-pointer"
+              title="Choose a different file"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )}
 
         {/* Parsing Error Alerts */}
         {parseErrors.length > 0 && (

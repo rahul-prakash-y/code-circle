@@ -17,6 +17,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import useAssessmentStore, { Assessment } from '../../store/useAssessmentStore';
 import TutorialButton from '../common/TutorialButton';
 
@@ -337,37 +338,18 @@ export const McqBulkUploadModal: React.FC<McqBulkUploadModalProps> = ({
             <span>3. Upload Filled Excel File</span>
           </label>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx, .xls"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-
           {!file ? (
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all text-center cursor-pointer space-y-2 ${
-                isDragging
-                  ? 'border-accent bg-accent-subtle'
-                  : 'border-separator hover:border-accent/40 bg-surface'
-              }`}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-center mx-auto text-accent shadow-sm">
-                <Upload size={22} />
-              </div>
-              <p className="text-xs font-bold text-label-primary ">
-                Click to browse or drag and drop your spreadsheet here
-              </p>
-              <p className="text-[11px] text-label-secondary ">
-                Supported formats: <strong className="text-label-primary dark:text-white">.xlsx</strong> or{' '}
-                <strong className="text-label-primary dark:text-white">.xls</strong> (Up to 10 MB)
-              </p>
-            </div>
+            <HeroFileInput
+              variant="dropzone"
+              accept=".xlsx,.xls"
+              maxSizeBytes={10 * 1024 * 1024}
+              buttonText="Click to browse or drag and drop your spreadsheet here"
+              description="Supported formats: .xlsx or .xls (Up to 10 MB)"
+              onFilesSelected={(files) => {
+                if (files[0]) validateAndSetFile(files[0]);
+              }}
+              showChips={false}
+            />
           ) : (
             <div className="p-4 rounded-2xl bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/25 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">

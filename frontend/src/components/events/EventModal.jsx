@@ -18,6 +18,7 @@ import { formatDateToISTDateInput } from '../../lib/dateUtils';
 import { HeroUISelect } from '@/components/ui/HeroUISelect';
 import { HeroDatePicker as DatePicker } from '@/components/ui/hero/HeroDatePicker';
 import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 
 const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];
@@ -1117,41 +1118,19 @@ export const EventModal = ({
                       </div>
                     </div>
                   ) : (
-                    <div 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-border hover:border-accent/50 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-canvas/50 hover:bg-accent/5"
-                    >
-                      {uploadingTemplate ? (
-                        <>
-                          <Loader2 size={22} className="animate-spin text-accent" />
-                          <span className="text-xs text-text-muted font-medium">Uploading template to Cloudinary...</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
-                            <Upload size={16} />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs font-semibold text-text-primary">
-                              Click or drop custom certificate background here
-                            </p>
-                            <p className="text-[10px] text-text-muted mt-0.5">
-                              PNG, JPG, or WebP (Recommended: A4 Landscape / 1920x1080)
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <HeroFileInput
+                      variant="dropzone"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      isLoading={uploadingTemplate}
+                      buttonText={uploadingTemplate ? 'Uploading template to Cloudinary...' : 'Click or drop custom certificate background here'}
+                      description="PNG, JPG, or WebP (Recommended: A4 Landscape / 1920x1080)"
+                      onFilesSelected={(files) => {
+                        if (files[0]) handleTemplateUpload({ target: { files } });
+                      }}
+                      showChips={false}
+                    />
                   )}
                 </div>
-
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
-                  onChange={handleTemplateUpload}
-                  className="hidden"
-                />
               </div>
 
               {/* Action Buttons */}

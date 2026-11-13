@@ -17,6 +17,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import TutorialButton from '../../common/TutorialButton';
+import { Button } from '@heroui/react';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 
 interface CodingBulkUploadModalProps {
   isOpen?: boolean;
@@ -375,55 +377,32 @@ export const CodingBulkUploadModal: React.FC<CodingBulkUploadModalProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleDownloadTemplate}
-            disabled={isDownloadingTemplate}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-surface border border-separator text-label-primary hover:border-accent hover:text-accent shadow-sm transition cursor-pointer shrink-0 disabled:opacity-50"
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={handleDownloadTemplate}
+            isLoading={isDownloadingTemplate}
+            startContent={<Download className="w-3.5 h-3.5 text-accent" />}
+            className="rounded-xl text-xs font-semibold shadow-xs shrink-0"
           >
-            {isDownloadingTemplate ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
-            ) : (
-              <Download className="w-3.5 h-3.5 text-accent" />
-            )}
-            <span>Download Template (.xlsx)</span>
-          </button>
+            Download Template (.xlsx)
+          </Button>
         </div>
 
         {/* Drag and Drop Zone */}
         <div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept=".xlsx,.xls"
-            className="hidden"
-          />
-
           {!file ? (
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-3xl p-8 text-center cursor-pointer transition flex flex-col items-center justify-center gap-3 ${
-                isDragging
-                  ? 'border-accent bg-accent/5 scale-[1.01]'
-                  : 'border-separator hover:border-label-tertiary bg-surface-secondary/40'
-              }`}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-surface border border-separator flex items-center justify-center text-label-secondary shadow-sm">
-                <Upload className="w-6 h-6 text-accent" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-label-primary">
-                  Click to browse or drag and drop your Excel file here
-                </p>
-                <p className="text-[11px] text-label-secondary">
-                  Supports Microsoft Excel (.xlsx, .xls) up to 10MB
-                </p>
-              </div>
-            </div>
+            <HeroFileInput
+              variant="dropzone"
+              accept=".xlsx,.xls"
+              maxSizeBytes={10 * 1024 * 1024}
+              buttonText="Click to browse or drag and drop your Excel file here"
+              description="Supports Microsoft Excel (.xlsx, .xls) up to 10MB"
+              onFilesSelected={(files) => {
+                if (files[0]) validateAndSetFile(files[0]);
+              }}
+              showChips={false}
+            />
           ) : (
             <div className="p-4 rounded-2xl bg-surface-secondary border border-separator flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 overflow-hidden">

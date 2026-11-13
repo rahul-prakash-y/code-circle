@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@heroui/react';
+import { HeroFileInput } from '../ui/hero/HeroFileInput';
 import useBearerStore from '../../store/useBearerStore';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
@@ -99,13 +101,15 @@ const BearerManager = () => {
           <h2 className="text-2xl font-semibold text-text-primary tracking-tight">Manage student bearers</h2>
           <p className="text-text-muted text-sm font-normal">Add or update the club leadership board.</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-muted text-text-primary rounded-xl font-medium transition-all cursor-pointer"
+        <Button
+          color="primary"
+          variant="solid"
+          onPress={() => handleOpenModal()}
+          startContent={<Plus size={18} />}
+          className="rounded-xl font-medium shadow-sm"
         >
-          <Plus size={18} />
           Add bearer
-        </button>
+        </Button>
       </div>
 
       {loading && bearers.length === 0 ? (
@@ -124,19 +128,28 @@ const BearerManager = () => {
                     {bearer.iconType === 'Cpu' && <Cpu className="w-5 h-5 text-pink-400" />}
                     {bearer.iconType === 'Layout' && <Layout className="w-5 h-5 text-cyan-400" />}
                   </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleOpenModal(bearer)}
-                      className="p-2 hover:bg-surface-elevated rounded-lg text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  <div className="flex gap-1.5">
+                    <Button 
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      onPress={() => handleOpenModal(bearer)}
+                      className="rounded-lg text-text-muted hover:text-text-primary"
+                      aria-label="Edit bearer"
                     >
                       <Edit2 size={16} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(bearer._id)}
-                      className="p-2 hover:bg-red-500/10 rounded-lg text-text-muted hover:text-red-400 transition-colors cursor-pointer"
+                    </Button>
+                    <Button 
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      color="danger"
+                      onPress={() => handleDelete(bearer._id)}
+                      className="rounded-lg text-text-muted hover:text-danger"
+                      aria-label="Delete bearer"
                     >
                       <Trash2 size={16} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <h3 className="font-semibold text-lg text-text-primary">{bearer.name}</h3>
@@ -158,12 +171,16 @@ const BearerManager = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 dark:bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-surface-elevated border border-slate-800 rounded-3xl p-8 shadow-2xl relative">
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-6 right-6 p-2 hover:bg-surface-elevated rounded-xl text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+            <Button 
+              isIconOnly
+              size="sm"
+              variant="light"
+              onPress={() => setIsModalOpen(false)}
+              className="absolute top-6 right-6 rounded-xl text-text-muted hover:text-text-primary"
+              aria-label="Close modal"
             >
               <X size={20} />
-            </button>
+            </Button>
 
             <h3 className="text-2xl font-semibold text-text-primary tracking-tight mb-6">
               {editingBearer ? 'Edit bearer' : 'Add new bearer'}
@@ -184,10 +201,19 @@ const BearerManager = () => {
                     </div>
                   )}
                 </div>
-                <label className="absolute -bottom-2 -right-2 p-2 bg-accent hover:bg-accent-muted text-text-primary rounded-xl shadow-xs cursor-pointer transition-all">
-                  <Plus size={16} />
-                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-                </label>
+                <div className="absolute -bottom-2 -right-2">
+                  <HeroFileInput
+                    accept="image/*"
+                    isDisabled={uploading}
+                    isLoading={uploading}
+                    showChips={false}
+                    buttonText="Upload"
+                    variant="compact"
+                    startContent={<Plus size={14} />}
+                    onFilesSelected={(files) => handleImageUpload({ target: { files } })}
+                    aria-label="Upload bearer portrait"
+                  />
+                </div>
               </div>
               <p className="text-[11px] uppercase tracking-wider font-semibold text-text-muted">Profile portrait</p>
             </div>
@@ -286,13 +312,15 @@ const BearerManager = () => {
                 />
               </div>
 
-              <button
+              <Button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-accent hover:bg-accent-muted text-text-primary font-medium py-3 rounded-xl mt-6 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                color="primary"
+                variant="solid"
+                isLoading={loading}
+                className="w-full font-medium py-3 rounded-xl mt-6 shadow-sm"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : editingBearer ? 'Update bearer' : 'Create bearer'}
-              </button>
+                {editingBearer ? 'Update bearer' : 'Create bearer'}
+              </Button>
             </form>
           </div>
         </div>

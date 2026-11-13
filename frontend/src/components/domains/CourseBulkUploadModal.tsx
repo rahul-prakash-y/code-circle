@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import useDomainStore from '../../store/useDomainStore';
 import TutorialButton from '../common/TutorialButton';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import { IDomain } from '../../types/domain';
 
 interface CourseBulkUploadModalProps {
@@ -319,28 +320,20 @@ export const CourseBulkUploadModal: React.FC<CourseBulkUploadModalProps> = ({
             2. Upload Spreadsheet File
           </label>
 
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer ${
-              isDragging
-                ? 'border-accent bg-accent/10 scale-[0.99]'
-                : file
-                ? 'border-emerald-500/50 bg-emerald-500/5'
-                : 'border-separator hover:border-separator-hover bg-surface-secondary/40 hover:bg-surface-secondary'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
+          {!file ? (
+            <HeroFileInput
+              variant="dropzone"
               accept=".xlsx,.xls"
-              onChange={handleFileChange}
-              className="hidden"
+              maxSizeBytes={10 * 1024 * 1024}
+              buttonText="Click to browse or drag and drop Excel sheet here"
+              description="Supports .xlsx and .xls formats with Courses and Levels worksheets"
+              onFilesSelected={(files) => {
+                if (files[0]) validateAndSetFile(files[0]);
+              }}
+              showChips={false}
             />
-
-            {file ? (
+          ) : (
+            <div className="border-2 border-emerald-500/50 bg-emerald-500/5 rounded-2xl p-6 sm:p-8 text-center transition-all">
               <div className="flex flex-col items-center gap-2">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
                   <FileSpreadsheet className="w-6 h-6" />
@@ -361,20 +354,8 @@ export const CourseBulkUploadModal: React.FC<CourseBulkUploadModalProps> = ({
                   <X className="w-3 h-3" /> Remove File
                 </button>
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-2xl bg-surface border border-separator text-label-secondary flex items-center justify-center shadow-xs">
-                  <Upload className="w-6 h-6" />
-                </div>
-                <div className="text-sm font-semibold text-label-primary">
-                  Click to browse or drag and drop Excel sheet here
-                </div>
-                <p className="text-xs text-label-secondary">
-                  Supports .xlsx and .xls formats with Courses and Levels worksheets
-                </p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Column Quick Guide Accordion */}

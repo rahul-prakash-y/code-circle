@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { exportToCsv, parseCsv } from '@/utils/csvUtils';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload,
@@ -339,45 +340,24 @@ export const ManualPaperBulkUploadModal: React.FC<ManualPaperBulkUploadModalProp
                 </Button>
               </div>
 
-              {/* Drag & Drop File Zone */}
+              {/* HeroUI Drag & Drop File Zone */}
               {!uploadResult && (
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragging(true);
+                <HeroFileInput
+                  variant="dropzone"
+                  accept=".xlsx,.xls,.csv"
+                  buttonText={file ? file.name : 'Click to select or drag and drop your spreadsheet here'}
+                  description="Supports .xlsx, .xls, and .csv files. Maximum 500 rows per batch."
+                  onFilesSelected={(files) => {
+                    if (files[0]) processFile(files[0]);
                   }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
-                    isDragging
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : file
-                      ? 'border-emerald-500/40 bg-emerald-500/5'
-                      : 'border-separator hover:border-purple-500/50 hover:bg-surface-secondary'
-                  }`}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        processFile(e.target.files[0]);
-                      }
-                    }}
-                  />
-                  <div className="mx-auto w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-3 shadow-xs">
-                    <Upload size={22} />
-                  </div>
-                  <h4 className="text-xs sm:text-sm font-bold text-label-primary mb-1">
-                    {file ? file.name : 'Click to select or drag and drop your spreadsheet here'}
-                  </h4>
-                  <p className="text-[11px] text-label-tertiary">
-                    Supports .xlsx, .xls, and .csv files. Maximum 500 rows per batch.
-                  </p>
-                </div>
+                  selectedFiles={file ? [file] : []}
+                  onFileRemove={() => {
+                    setFile(null);
+                    setParsedRows([]);
+                  }}
+                  color="secondary"
+                  className="w-full"
+                />
               )}
 
               {/* Upload Result Summary (if finished) */}

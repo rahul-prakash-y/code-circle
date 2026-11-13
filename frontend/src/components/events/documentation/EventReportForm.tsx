@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/hero/HeroInput';
 import { Textarea } from '@/components/ui/hero/HeroTextarea';
 import { HeroUISelect } from '@/components/ui/HeroUISelect';
 import { HeroDatePicker } from '@/components/ui/hero/HeroDatePicker';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import { EmilCard, EmilButton } from '../../ui/emil-ui';
 import OfficialReportTemplate, { ReportData } from './OfficialReportTemplate';
 import api from '../../../lib/axios';
@@ -50,7 +51,7 @@ const EvidenceDropzone: React.FC<EvidenceDropzoneProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFiles = useCallback(
-    (files: FileList | null) => {
+    (files: FileList | File[] | null) => {
       if (!files || files.length === 0) return;
 
       const fileList = Array.from(files);
@@ -119,40 +120,16 @@ const EvidenceDropzone: React.FC<EvidenceDropzoneProps> = ({
         </span>
       </div>
 
-      {/* Drop Target Area */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ${
-          isDragging
-            ? 'border-primary bg-primary/10 scale-[1.005]'
-            : 'border-separator hover:border-primary/50 hover:bg-surface-secondary/40'
-        }`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple={multiple}
-          className="hidden"
-          onChange={(e) => {
-            processFiles(e.target.files);
-            e.target.value = ''; // Reset input
-          }}
-        />
-
-        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1.5 pointer-events-none">
-          <UploadCloud size={18} />
-        </div>
-        <p className="text-xs font-semibold text-label-primary pointer-events-none">
-          Drop files here, or <span className="text-primary underline">browse</span>
-        </p>
-        <p className="text-[10px] text-label-tertiary pointer-events-none mt-0.5">
-          PNG, JPG, JPEG or WEBP (Saved directly to report)
-        </p>
-      </div>
+      {/* HeroUI Drop Target Area */}
+      <HeroFileInput
+        variant="dropzone"
+        accept="image/*"
+        multiple={multiple}
+        buttonText="Drop files here, or browse"
+        description="PNG, JPG, JPEG or WEBP (Saved directly to report)"
+        onFilesSelected={(files) => processFiles(files)}
+        showChips={false}
+      />
 
       {/* Previews Grid */}
       {urls.length > 0 && (
