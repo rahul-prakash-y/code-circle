@@ -1,9 +1,11 @@
 import ResponsiveModal from '../ui/ResponsiveModal';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   ShieldCheck,
+  ShieldAlert,
+  Unlock,
   Crown,
   Settings,
   HelpCircle,
@@ -53,405 +55,12 @@ import useEventArenaStore, {
 import HeroUISelect, { HeroUISelectOption } from '../ui/HeroUISelect';
 import { HeroDateTimePicker } from '../ui/HeroUIComponents';
 import { formatDateToISTInput, parseISTInputToISO, formatISTDateTime } from '../../lib/dateUtils';
-
-interface ManualPaperSubmissionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  eventId: string;
-  maxScore: number;
-  passingPercentage?: number;
-  onSubmit: (data: {
-    studentIdentifier: string;
-    score: number;
-    mcqScore?: number;
-    codingScore?: number;
-    manualNotes?: string;
-  }) => Promise<void>;
-  isSubmitting: boolean;
-}
-
-const ManualPaperSubmissionModal: React.FC<ManualPaperSubmissionModalProps> = React.memo(({
-  isOpen,
-  onClose,
-  eventId,
-  maxScore,
-  passingPercentage = 50,
-  onSubmit,
-  isSubmitting,
-}) => {
-  const [studentIdentifier, setStudentIdentifier] = useState('');
-  const [score, setScore] = useState<string>('');
-  const [mcqScore, setMcqScore] = useState<string>('');
-  const [codingScore, setCodingScore] = useState<string>('');
-  const [notes, setNotes] = useState('');
-  const [isManualInput, setIsManualInput] = useState(false);
-  const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-
-  // Load enrolled students for this event to populate the HeroUI Select dropdown
-  useEffect(() => {
-    if (!isOpen || !eventId) return;
-    let isMounted = true;
-    const fetchStudents = async () => {
-      setLoadingStudents(true);
-      try {
-        const res = await api.get(`/enrollments/event/${eventId}`);
-        const list = res.data?.data || res.data || [];
-        const studentsList: any[] = [];
-        const seenIds = new Set<string>();
-
-        list.forEach((enr: any) => {
-          const user = enr.enrolledBy;
-          if (user && user._id && !seenIds.has(user._id)) {
-            seenIds.add(user._id);
-            studentsList.push({
-              _id: user._id,
-              name: user.name || 'Unknown Student',
-              rollNo: user.rollNo || '',
-              email: user.email || '',
-              department: user.department || '',
-              attendanceStatus: Boolean(enr.attendanceStatus),
-            });
-          }
-          if (Array.isArray(enr.members)) {
-            enr.members.forEach((m: any) => {
-              if (m && m._id && !seenIds.has(m._id)) {
-                seenIds.add(m._id);
-                studentsList.push({
-                  _id: m._id,
-                  name: m.name || 'Unknown Member',
-                  rollNo: m.rollNo || '',
-                  email: m.email || '',
-                  department: m.department || '',
-                  attendanceStatus: Boolean(enr.attendanceStatus),
-                });
-              }
-            });
-          }
-        });
-
-        studentsList.sort((a, b) => (a.rollNo || a.name).localeCompare(b.rollNo || b.name));
-        if (isMounted) {
-          setEnrolledStudents(studentsList);
-        }
-      } catch (err) {
-        console.error('Failed to load event students for paper submission', err);
-      } finally {
-        if (isMounted) setLoadingStudents(false);
-      }
-    };
-    fetchStudents();
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen, eventId]);
-
-  // Options for HeroUISelect
-  const selectOptions: HeroUISelectOption[] = useMemo(() => {
-    return enrolledStudents.map((s) => ({
-      value: s.rollNo || s.email || s._id,
-      label: s.rollNo ? `${s.rollNo} — ${s.name}` : s.name,
-      description: `${s.email}${s.department ? ` • ${s.department}` : ''}`,
-      badge: s.attendanceStatus ? 'Present' : 'Enrolled',
-    }));
-  }, [enrolledStudents]);
-
-  // Selected student object details
-  const selectedStudentObj = useMemo(() => {
-    if (!studentIdentifier) return null;
-    return enrolledStudents.find(
-      (s) => s.rollNo === studentIdentifier || s.email === studentIdentifier || s._id === studentIdentifier
-    ) || null;
-  }, [studentIdentifier, enrolledStudents]);
-
-  // Reset form fields when opened
-  useEffect(() => {
-    if (isOpen) {
-      setStudentIdentifier('');
-      setScore('');
-      setMcqScore('');
-      setCodingScore('');
-      setNotes('');
-      setIsManualInput(false);
-    }
-  }, [isOpen]);
-
-  // Live score percentage calculations
-  const numericScore = score !== '' && !isNaN(Number(score)) ? Number(score) : null;
-  const scorePercent = numericScore !== null && maxScore > 0 ? Math.min(100, Math.round((numericScore / maxScore) * 100)) : null;
-  const isPassing = scorePercent !== null ? scorePercent >= passingPercentage : null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!studentIdentifier.trim()) {
-      toast.error('Please select or enter student Roll Number or Email');
-      return;
-    }
-    if (score === '' || isNaN(Number(score))) {
-      toast.error('Please enter a valid numeric score');
-      return;
-    }
-    onSubmit({
-      studentIdentifier: studentIdentifier.trim(),
-      score: Number(score),
-      mcqScore: mcqScore !== '' ? Number(mcqScore) : undefined,
-      codingScore: codingScore !== '' ? Number(codingScore) : undefined,
-      manualNotes: notes.trim() || 'Paper / Offline Test Submission',
-    });
-  };
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="w-full max-w-lg rounded-3xl bg-surface border border-separator/80 p-6 sm:p-7 shadow-2xl space-y-5 my-6 max-h-[90vh] overflow-y-auto custom-scrollbar"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-separator/70 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0 shadow-xs">
-                  <FileText size={20} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-label-primary tracking-tight">
-                    Enter Paper / Manual Submission
-                  </h3>
-                  <p className="text-xs text-label-secondary mt-0.5">
-                    Record score for students who wrote the test offline or on paper
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-2 rounded-xl bg-canvas hover:bg-surface-secondary text-label-tertiary hover:text-label-primary transition-colors cursor-pointer border border-separator/60"
-                title="Close"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Field 1: Student Roll No (HeroUI Select or Manual Text Fallback) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1.5">
-                    <Users size={13} className="text-purple-400" />
-                    <span>Student Roll Number <span className="text-rose-400">*</span></span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsManualInput(!isManualInput);
-                      setStudentIdentifier('');
-                    }}
-                    className="text-[11px] font-medium text-purple-400 hover:text-purple-300 transition cursor-pointer"
-                  >
-                    {isManualInput ? '← Select from enrolled list' : 'Or type manually →'}
-                  </button>
-                </div>
-
-                {!isManualInput ? (
-                  <HeroUISelect
-                    placeholder={loadingStudents ? 'Loading enrolled students...' : 'Search and select by Roll Number or Name...'}
-                    options={selectOptions}
-                    value={studentIdentifier}
-                    onChange={(val) => setStudentIdentifier(val)}
-                    isSearchable={true}
-                    isClearable={true}
-                    color="purple"
-                    size="sm"
-                    className="w-full"
-                    disabled={loadingStudents}
-                  />
-                ) : (
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      value={studentIdentifier}
-                      onChange={(e) => setStudentIdentifier(e.target.value)}
-                      placeholder="e.g. 7376221CS101 or student@bitsathy.ac.in"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-label-tertiary transition"
-                    />
-                  </div>
-                )}
-
-                {/* Selected Student Details Card Preview */}
-                {selectedStudentObj && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 font-bold flex items-center justify-center text-xs shrink-0">
-                        {selectedStudentObj.name?.charAt(0)?.toUpperCase() || 'S'}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-label-primary truncate">{selectedStudentObj.name}</span>
-                          {selectedStudentObj.rollNo && (
-                            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-surface text-label-secondary border border-separator">
-                              {selectedStudentObj.rollNo}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-label-tertiary truncate">
-                          {selectedStudentObj.email} {selectedStudentObj.department ? `• ${selectedStudentObj.department}` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0">
-                      {selectedStudentObj.attendanceStatus ? 'Present' : 'Enrolled'}
-                    </span>
-                  </motion.div>
-                )}
-              </div>
-
-              {/* Field 2: Total Score Awarded */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1.5">
-                    <Award size={13} className="text-purple-400" />
-                    <span>Total Score Awarded <span className="text-rose-400">*</span></span>
-                  </label>
-                  <span className="text-[11px] font-mono text-purple-400 font-semibold">
-                    Max: {maxScore} pts
-                  </span>
-                </div>
-
-                <div className="relative flex items-center">
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    max={maxScore}
-                    value={score}
-                    onChange={(e) => setScore(e.target.value)}
-                    placeholder={`Enter score (0 - ${maxScore})`}
-                    className="w-full pl-3.5 pr-20 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-label-tertiary transition"
-                  />
-                  <div className="absolute right-3.5 text-xs font-mono font-semibold text-label-tertiary pointer-events-none">
-                    / {maxScore} pts
-                  </div>
-                </div>
-
-                {/* Live Percentage & Qualification Pill */}
-                {scorePercent !== null && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-canvas border border-separator text-xs"
-                  >
-                    <span className="text-label-secondary font-mono text-[11px]">
-                      Percentage: <strong className="text-label-primary">{scorePercent}%</strong>
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                      isPassing
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                    }`}>
-                      {isPassing ? <CheckCircle2 size={11} /> : <X size={11} />}
-                      <span>{isPassing ? 'Passing' : 'Below Passing'}</span>
-                    </span>
-                  </motion.div>
-                )}
-              </div>
-
-              {/* Field 3: Section Scores: MCQ & Coding */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-label-secondary uppercase tracking-wider block">
-                    MCQ Score (Optional)
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type="number"
-                      min={0}
-                      value={mcqScore}
-                      onChange={(e) => setMcqScore(e.target.value)}
-                      placeholder="MCQ pts"
-                      className="w-full pl-3.5 pr-10 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-label-tertiary transition"
-                    />
-                    <span className="absolute right-3 text-[11px] font-mono text-label-tertiary pointer-events-none">
-                      pts
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-label-secondary uppercase tracking-wider block">
-                    Coding Score (Optional)
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type="number"
-                      min={0}
-                      value={codingScore}
-                      onChange={(e) => setCodingScore(e.target.value)}
-                      placeholder="Coding pts"
-                      className="w-full pl-3.5 pr-10 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-label-tertiary transition"
-                    />
-                    <span className="absolute right-3 text-[11px] font-mono text-label-tertiary pointer-events-none">
-                      pts
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Field 4: Remarks / Evaluation Notes */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider block">
-                  Evaluation Remarks / Paper Notes
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="e.g. Paper answer sheet evaluated by Faculty - Hall 3"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-label-tertiary transition"
-                  />
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-separator/70">
-                <Button
-                  size="sm"
-                  variant="light"
-                  onPress={onClose}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-label-secondary hover:bg-white/10 cursor-pointer"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  variant="solid"
-                  color="secondary"
-                  isLoading={isSubmitting}
-                  isDisabled={isSubmitting || !studentIdentifier.trim() || score === ''}
-                  startContent={!isSubmitting ? <CheckCircle2 size={13} /> : undefined}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-600/25 transition cursor-pointer"
-                >
-                  Save Paper Submission
-                </Button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-});
-ManualPaperSubmissionModal.displayName = 'ManualPaperSubmissionModal';
-ManualPaperSubmissionModal.displayName = 'ManualPaperSubmissionModal';
+import {
+  ManualPaperSubmissionModal,
+  ManualPaperBulkUploadModal,
+  BlockedStudentsTab,
+  BlockedStudentsModal,
+} from './arena';
 
 interface EventArenaAdminModalProps {
   isOpen: boolean;
@@ -513,7 +122,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
   // Modal Views & Tabs
   const [isCreatingNew, setIsCreatingNew] = useState(false);
-  const [activeTab, setActiveTab] = useState<'settings' | 'mcq' | 'coding' | 'design' | 'teams' | 'submissions'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'mcq' | 'coding' | 'design' | 'teams' | 'submissions' | 'blocked'>('settings');
 
   // New Assessment Form
   const [newTitle, setNewTitle] = useState('');
@@ -569,7 +178,25 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
   // Manual Paper Submission Modal State
   const [isManualModalOpen, setIsManualModalOpen] = useState<boolean>(false);
+  const [isBulkPaperModalOpen, setIsBulkPaperModalOpen] = useState<boolean>(false);
+  const [isBlockedStudentsModalOpen, setIsBlockedStudentsModalOpen] = useState<boolean>(false);
+  const [blockedCount, setBlockedCount] = useState<number>(0);
   const [isSubmittingManual, setIsSubmittingManual] = useState<boolean>(false);
+
+  const fetchBlockedCount = useCallback(() => {
+    if (!event?._id) return;
+    api.get(`/events/${event._id}/blocked-students`)
+      .then((res) => {
+        setBlockedCount(res.data?.count || res.data?.blockedStudents?.length || 0);
+      })
+      .catch(() => {});
+  }, [event?._id]);
+
+  useEffect(() => {
+    if (isOpen && event?._id) {
+      fetchBlockedCount();
+    }
+  }, [isOpen, event?._id, fetchBlockedCount]);
 
   // Multi-Design Challenge Form state
   const [designChallengesList, setDesignChallengesList] = useState<any[]>([]);
@@ -699,7 +326,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const handleExportSubmissions = async () => {
     const listToExport = submissionSearch.trim()
       ? filteredSubmissions
-      : adminSubmissions;
+      : sortedAdminSubmissions;
 
     if (listToExport.length === 0) {
       toast.error(
@@ -872,6 +499,13 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [newCodingDiff, setNewCodingDiff] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
   const [newCodingMode, setNewCodingMode] = useState<'BOTH' | 'ONLY_CODE' | 'TEST_CASES'>('BOTH');
   const [newCodingPoints, setNewCodingPoints] = useState(30);
+  const [newCodingAllowedLanguages, setNewCodingAllowedLanguages] = useState<string[]>([
+    'python',
+    'javascript',
+    'cpp',
+    'java',
+    'c',
+  ]);
   const [newSampleInput, setNewSampleInput] = useState('');
   const [newSampleOutput, setNewSampleOutput] = useState('');
   const [newHiddenInput, setNewHiddenInput] = useState('');
@@ -923,14 +557,38 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     return 0;
   }, [selectedAssessment, nextAssessment]);
 
+  // Submissions sorted deterministically: 1) highest score, 2) ties broken by student name alphabetically (A-Z), 3) timeTakenSeconds, 4) submittedAt
+  const sortedAdminSubmissions = useMemo(() => {
+    return [...adminSubmissions].sort((a: any, b: any) => {
+      const scoreA = Number(a.totalScore ?? 0);
+      const scoreB = Number(b.totalScore ?? 0);
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      const nameA = (a.userId?.name || '').trim().toLowerCase();
+      const nameB = (b.userId?.name || '').trim().toLowerCase();
+      if (nameA && nameB && nameA !== nameB) {
+        return nameA.localeCompare(nameB);
+      }
+      if (nameA && !nameB) return -1;
+      if (!nameA && nameB) return 1;
+      const timeA = Number(a.timeTakenSeconds ?? 0);
+      const timeB = Number(b.timeTakenSeconds ?? 0);
+      if (timeA !== timeB) return timeA - timeB;
+      const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return dateA - dateB;
+    });
+  }, [adminSubmissions]);
+
   // Precomputed ranking map (1-based) across all submissions in this round
   const submissionRankMap = useMemo(() => {
     const map = new Map<string, number>();
-    adminSubmissions.forEach((sub: any, idx: number) => {
+    sortedAdminSubmissions.forEach((sub: any, idx: number) => {
       map.set(sub._id?.toString() || sub.id, idx + 1);
     });
     return map;
-  }, [adminSubmissions]);
+  }, [sortedAdminSubmissions]);
 
   // Derive inspecting submission's round rank and shortlist qualification
   const inspectingRank = useMemo(() => {
@@ -945,9 +603,9 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
   // Filtered submissions based on search input (name, roll no, email, department, year, team, paper/manual, shortlist status)
   const filteredSubmissions = useMemo(() => {
-    if (!submissionSearch.trim()) return adminSubmissions;
+    if (!submissionSearch.trim()) return sortedAdminSubmissions;
     const q = submissionSearch.trim().toLowerCase();
-    return adminSubmissions.filter((sub: any) => {
+    return sortedAdminSubmissions.filter((sub: any) => {
       const name = (sub.userId?.name || '').toLowerCase();
       const roll = (sub.userId?.rollNo || '').toLowerCase();
       const email = (sub.userId?.email || '').toLowerCase();
@@ -977,7 +635,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         notes.includes(q)
       );
     });
-  }, [adminSubmissions, submissionSearch, submissionRankMap, effectiveCutoffRank]);
+  }, [sortedAdminSubmissions, submissionSearch, submissionRankMap, effectiveCutoffRank]);
 
   // Load initial data (only when modal opens or event ID changes)
   useEffect(() => {
@@ -1245,7 +903,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
       difficulty: newCodingDiff,
       codingMode: newCodingMode,
       points: Number(newCodingPoints) || 30,
-      allowedLanguages: ['python', 'javascript', 'cpp', 'java', 'c'],
+      allowedLanguages:
+        newCodingAllowedLanguages.length > 0
+          ? newCodingAllowedLanguages
+          : ['python', 'javascript', 'cpp', 'java', 'c'],
       sampleInput: newSampleInput.trim(),
       sampleOutput: newSampleOutput.trim(),
       testCases,
@@ -1260,6 +921,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     setNewCodingDiff('Medium');
     setNewCodingMode('BOTH');
     setNewCodingPoints(30);
+    setNewCodingAllowedLanguages(['python', 'javascript', 'cpp', 'java', 'c']);
     setNewSampleInput('');
     setNewSampleOutput('');
     setNewHiddenInput('');
@@ -2025,6 +1687,28 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   }`}
                 >
                   Submissions ({adminSubmissions.length})
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant={activeTab === 'blocked' ? 'solid' : 'bordered'}
+                  color={activeTab === 'blocked' ? 'danger' : 'default'}
+                  onPress={() => setActiveTab('blocked')}
+                  startContent={<ShieldAlert size={13} className={activeTab === 'blocked' ? 'text-white' : 'text-rose-400'} />}
+                  className={`min-h-[36px] rounded-xl text-xs font-semibold shrink-0 cursor-pointer whitespace-nowrap ${
+                    activeTab === 'blocked'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'bg-surface text-label-secondary hover:text-label-primary border-separator'
+                  }`}
+                >
+                  Blocked Students
+                  {blockedCount > 0 && (
+                    <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                      activeTab === 'blocked' ? 'bg-black/30 text-white' : 'bg-rose-500/20 text-rose-400'
+                    }`}>
+                      {blockedCount}
+                    </span>
+                  )}
                 </Button>
               </div>
 
@@ -2884,6 +2568,53 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               className="w-full px-3 py-2 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500"
                             />
                           </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">
+                            Allowed Programming Languages
+                          </label>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {[
+                              { id: 'python', label: 'Python 3' },
+                              { id: 'javascript', label: 'JavaScript' },
+                              { id: 'cpp', label: 'C++' },
+                              { id: 'java', label: 'Java' },
+                              { id: 'c', label: 'C' },
+                            ].map((lang) => {
+                              const isSelected = newCodingAllowedLanguages.includes(lang.id);
+                              return (
+                                <button
+                                  key={lang.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      if (newCodingAllowedLanguages.length > 1) {
+                                        setNewCodingAllowedLanguages((prev) =>
+                                          prev.filter((l) => l !== lang.id)
+                                        );
+                                      } else {
+                                        toast.error('At least one programming language must be allowed');
+                                      }
+                                    } else {
+                                      setNewCodingAllowedLanguages((prev) => [...prev, lang.id]);
+                                    }
+                                  }}
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-purple-600/20 text-purple-300 border-purple-500/50 shadow-sm'
+                                      : 'bg-white/5 text-text-muted border-white/10 hover:border-white/20'
+                                  }`}
+                                >
+                                  {isSelected ? '✓ ' : '+ '}
+                                  {lang.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <p className="text-[11px] text-text-muted mt-1">
+                            Restricts students to solving with only the selected languages in the Arena.
+                          </p>
                         </div>
 
                         <div className="flex justify-end gap-2 pt-2">
@@ -3798,9 +3529,20 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               onPress={() => setIsManualModalOpen(true)}
                               startContent={<Plus size={13} />}
                               className="h-8 px-3 rounded-xl text-xs font-bold bg-purple-500/15 border border-purple-500/30 text-purple-400 hover:bg-purple-500/25 cursor-pointer"
-                              title="Enter Manual / Paper Test Score"
+                              title="Enter Single Student Paper Test Score"
                             >
                               + Paper Score
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="flat"
+                              color="secondary"
+                              onPress={() => setIsBulkPaperModalOpen(true)}
+                              startContent={<FileSpreadsheet size={13} />}
+                              className="h-8 px-3 rounded-xl text-xs font-bold bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/25 cursor-pointer"
+                              title="Bulk Upload Paper / Offline Test Scores via Excel/CSV"
+                            >
+                              Bulk Paper Scores
                             </Button>
                             <Button
                               size="sm"
@@ -3872,7 +3614,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                               )}
                             </p>
                             <p className="text-[11px] text-label-secondary">
-                              Shortlisting is strictly based on leaderboard rank (highest score & quickest submission), not passing percentage.
+                              Shortlisting is strictly based on score (highest first). When candidates have the same score, qualification rank is determined alphabetically by student name (A-Z).
                             </p>
                           </div>
                         </div>
@@ -4427,6 +4169,22 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                   )}
                 </div>
               )}
+
+              {/* TAB 5: BLOCKED STUDENTS */}
+              {activeTab === 'blocked' && (
+                <div className="space-y-4">
+                  <BlockedStudentsTab
+                    eventId={event._id}
+                    eventTitle={event.title}
+                    onStudentUnblocked={() => {
+                      if (selectedAssessment?._id) {
+                        fetchAdminAssessmentSubmissions(event._id, selectedAssessment._id);
+                      }
+                      fetchBlockedCount();
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -4480,8 +4238,14 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 </div>
 
                 <p className="text-xs text-text-muted">
-                  Upload an Excel (.xlsx) or JSON file formatted according to the sample template. Questions
-                  will be added directly to{' '}
+                  Upload an Excel (.xlsx) or JSON file formatted according to the sample template.
+                  {bulkModalType === 'coding' && (
+                    <span>
+                      {' '}You can restrict coding challenges to specific programming languages using the{' '}
+                      <span className="font-semibold text-purple-300">Allowed Languages</span> column (e.g. "python, java" or "c, cpp").
+                    </span>
+                  )}
+                  {' '}Questions will be added directly to{' '}
                   <span className="font-semibold text-label-primary ">"{selectedAssessment?.title}"</span>.
                 </p>
 
@@ -5601,6 +5365,34 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
           passingPercentage={selectedAssessment?.passingPercentage || 50}
           onSubmit={handleCreateManualSubmission}
           isSubmitting={isSubmittingManual}
+        />
+
+        {/* BULK PAPER TEST SUBMISSIONS MODAL */}
+        <ManualPaperBulkUploadModal
+          isOpen={isBulkPaperModalOpen}
+          onClose={() => setIsBulkPaperModalOpen(false)}
+          eventId={event?._id || ''}
+          assessmentId={selectedAssessment?._id || ''}
+          maxScore={selectedAssessment?.totalPoints || 100}
+          onSuccess={() => {
+            if (selectedAssessment?._id) {
+              fetchAdminAssessmentSubmissions(event._id, selectedAssessment._id);
+            }
+          }}
+        />
+
+        {/* BLOCKED STUDENTS STANDALONE MODAL */}
+        <BlockedStudentsModal
+          isOpen={isBlockedStudentsModalOpen}
+          onClose={() => setIsBlockedStudentsModalOpen(false)}
+          eventId={event?._id || ''}
+          eventTitle={event?.title || ''}
+          onStudentUnblocked={() => {
+            if (selectedAssessment?._id) {
+              fetchAdminAssessmentSubmissions(event._id, selectedAssessment._id);
+            }
+            fetchBlockedCount();
+          }}
         />
       </div>
     </ResponsiveModal>

@@ -53,6 +53,7 @@ import useEventArenaStore, {
   ArenaCodingProblem,
 } from '../store/useEventArenaStore';
 import { formatISTDateTime } from '../lib/dateUtils';
+import api from '@/lib/axios';
 
 const MONACO_LANG_MAP: Record<string, string> = {
   python: 'python',
@@ -194,6 +195,14 @@ export const EventArenaPage: React.FC = () => {
   const [apiBlocked, setApiBlocked] = useState(false);
   const [isUnblockingSelf, setIsUnblockingSelf] = useState(false);
   const [isCheckingUnblockStatus, setIsCheckingUnblockStatus] = useState(false);
+  const [blockedDetail, setBlockedDetail] = useState<{
+    isBlocked?: boolean;
+    code?: string;
+    blockedType?: string;
+    sourceTitle?: string;
+    reason?: string;
+    error?: string;
+  } | null>(null);
 
   const isDesignRound = selectedAssessment?.type === 'UI_UX';
 
@@ -216,7 +225,7 @@ export const EventArenaPage: React.FC = () => {
       !finalResultModal
     ),
   });
-  const isAssessmentBlocked = !isDesignRound && (tabSwitchBlocked || apiBlocked);
+  const isAssessmentBlocked = !isDesignRound && (tabSwitchBlocked || apiBlocked || Boolean(blockedDetail?.isBlocked && activeAssessmentId));
 
   // Anti-Cheat: 5% mark reduction per tab switch (No disqualification)
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
@@ -283,16 +292,30 @@ export const EventArenaPage: React.FC = () => {
     }
   }, [id]);
 
-  // Periodic poll on Hub view to detect when admin grants grace time or makes assessment live
+  // Check anti-cheat / external block status on mount
   useEffect(() => {
-    if (!id || activeAssessmentId) return;
-
-    const interval = setInterval(() => {
-      fetchAssessments(id);
-    }, 12000); // Poll every 12 seconds on Hub view
-
-    return () => clearInterval(interval);
-  }, [id, activeAssessmentId, fetchAssessments]);
+    if (!id || isAdmin) return;
+    api
+      .get(`/events/${id}/anti-cheat/status`)
+      .then((res) => {
+        if (res.data?.success && res.data.isBlocked) {
+          setBlockedDetail({
+            isBlocked: true,
+            code: res.data.blockedType === 'THIS_EVENT' ? 'STUDENT_ASSESSMENT_BLOCKED' : 'BLOCKED_BY_OTHER_ACTIVITY',
+            blockedType: res.data.blockedType,
+            sourceTitle: res.data.sourceTitle,
+            reason: res.data.reason,
+            error: res.data.error,
+          });
+          if (res.data.blockedType === 'THIS_EVENT') {
+            setApiBlocked(true);
+          }
+        } else {
+          setBlockedDetail(null);
+        }
+      })
+      .catch(() => {});
+  }, [id, isAdmin]);
 
   // When activeAssessmentId changes, load that assessment's data and start session
   useEffect(() => {
@@ -300,6 +323,7 @@ export const EventArenaPage: React.FC = () => {
       fetchStudentAssessmentData(id, activeAssessmentId)
         .then((data) => {
           setApiBlocked(false);
+          setBlockedDetail(null);
           const hasGrace = Boolean(
             data?.submission?.reentryAllowed ||
             (data?.submission?.expiresAt && new Date(data.submission.expiresAt).getTime() > Date.now()) ||
@@ -318,11 +342,26 @@ export const EventArenaPage: React.FC = () => {
           }
         })
         .catch((err: any) => {
+          if (err.response?.data?.isDisqualifiedByRank) {
+            toast.error(err.response?.data?.error || 'Your rank did not meet the cutoff for this round.');
+            setActiveAssessmentId(null);
+            return;
+          }
           if (
             err.response?.status === 403 &&
-            (err.response?.data?.isBlocked || err.response?.data?.code === 'STUDENT_ASSESSMENT_BLOCKED')
+            (err.response?.data?.isBlocked ||
+              err.response?.data?.code === 'STUDENT_ASSESSMENT_BLOCKED' ||
+              err.response?.data?.code === 'BLOCKED_BY_OTHER_ACTIVITY')
           ) {
             setApiBlocked(true);
+            setBlockedDetail({
+              isBlocked: true,
+              code: err.response.data?.code,
+              blockedType: err.response.data?.blockedType,
+              sourceTitle: err.response.data?.sourceTitle,
+              reason: err.response.data?.reason,
+              error: err.response.data?.error,
+            });
           }
         });
     }
@@ -345,9 +384,11 @@ export const EventArenaPage: React.FC = () => {
       studentCoding.forEach((p) => {
         if (p._id) {
           const starterMap = p.starterCode || {};
+          const pLangs = p.allowedLanguages && p.allowedLanguages.length > 0 ? p.allowedLanguages : ['python', 'javascript', 'cpp', 'java', 'c'];
+          const defaultLang = pLangs.includes(currentLanguage) ? currentLanguage : pLangs[0] || 'python';
           initialCodes[p._id] = {
-            code: starterMap[currentLanguage] || '# Write your solution here\n',
-            language: currentLanguage,
+            code: starterMap[defaultLang] || (defaultLang === 'python' ? '# Write your solution here\n' : '// Write your solution here\n'),
+            language: defaultLang,
           };
         }
       });
@@ -481,6 +522,50 @@ export const EventArenaPage: React.FC = () => {
 
   const currentMcq = studentMcqs[selectedIndex];
   const currentCoding = studentCoding[selectedIndex];
+
+  // Derive allowed programming languages for current coding problem
+  const currentAllowedLanguages = useMemo(() => {
+    if (
+      currentCoding?.allowedLanguages &&
+      Array.isArray(currentCoding.allowedLanguages) &&
+      currentCoding.allowedLanguages.length > 0
+    ) {
+      return currentCoding.allowedLanguages;
+    }
+    return ['python', 'javascript', 'cpp', 'java', 'c'];
+  }, [currentCoding]);
+
+  // Ensure active language is valid for the current coding problem's allowed languages
+  useEffect(() => {
+    if (selectedType === 'coding' && currentCoding) {
+      const allowed =
+        currentCoding.allowedLanguages && currentCoding.allowedLanguages.length > 0
+          ? currentCoding.allowedLanguages
+          : ['python', 'javascript', 'cpp', 'java', 'c'];
+
+      const currentProblemSaved = currentCoding._id ? codingCodes[currentCoding._id] : undefined;
+      const savedLang = currentProblemSaved?.language;
+
+      if (savedLang && allowed.includes(savedLang)) {
+        if (currentLanguage !== savedLang) {
+          setCurrentLanguage(savedLang);
+        }
+      } else if (!allowed.includes(currentLanguage)) {
+        const nextLang = allowed[0] || 'python';
+        setCurrentLanguage(nextLang);
+        if (currentCoding._id) {
+          const starterMap = currentCoding.starterCode || {};
+          setCodingCodes((prev) => ({
+            ...prev,
+            [currentCoding._id!]: {
+              code: starterMap[nextLang] || (nextLang === 'python' ? '# Write your solution here\n' : '// Write your solution here\n'),
+              language: nextLang,
+            },
+          }));
+        }
+      }
+    }
+  }, [selectedIndex, selectedType, currentCoding, currentLanguage]);
 
   // Derive active coding mode: only code vs code with test cases
   const configuredMode = currentCoding?.codingMode || 'BOTH';
@@ -713,6 +798,88 @@ export const EventArenaPage: React.FC = () => {
             </p>
           </div>
 
+          {/* External Activity Block Banner */}
+          {blockedDetail?.isBlocked && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 sm:p-5 rounded-3xl bg-destructive/10 border-2 border-destructive/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl"
+            >
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-2xl bg-destructive/20 border border-destructive/40 flex items-center justify-center text-destructive shrink-0 mt-0.5 sm:mt-0">
+                  <ShieldAlert size={22} />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-destructive text-white">
+                      {blockedDetail.blockedType === 'CONTEST'
+                        ? 'Contest Lock'
+                        : blockedDetail.blockedType === 'COURSE'
+                        ? 'Course Lock'
+                        : blockedDetail.blockedType === 'GLOBAL'
+                        ? 'Account Lock'
+                        : blockedDetail.blockedType === 'OTHER_EVENT'
+                        ? 'External Event Lock'
+                        : 'Anti-Cheat Lock'}
+                    </span>
+                    <h4 className="text-sm font-bold text-label-primary">
+                      {blockedDetail.blockedType && blockedDetail.blockedType !== 'THIS_EVENT'
+                        ? `Blocked by ${blockedDetail.sourceTitle || 'External Activity'} — Unblock that first`
+                        : 'Blocked from Event Arena Assessments'}
+                    </h4>
+                  </div>
+                  <p className="text-xs text-destructive/90 mt-1.5 leading-relaxed">
+                    {blockedDetail.blockedType && blockedDetail.blockedType !== 'THIS_EVENT'
+                      ? `You are currently restricted by "${blockedDetail.sourceTitle}". Reason: ${blockedDetail.reason || 'Proctoring violation'}. Please unblock that first before taking any tests in this Event Arena.`
+                      : (blockedDetail.reason || 'You have been blocked for navigating away. Please ask an event coordinator or faculty to unblock your attempt.')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                <Button
+                  size="sm"
+                  variant="flat"
+                  color="danger"
+                  isLoading={isCheckingUnblockStatus}
+                  onPress={async () => {
+                    setIsCheckingUnblockStatus(true);
+                    try {
+                      const res = await api.get(`/events/${id}/anti-cheat/status`);
+                      if (res.data?.success && !res.data.isBlocked) {
+                        setBlockedDetail(null);
+                        setApiBlocked(false);
+                        resetBlocked();
+                        toast.success('Your block has been cleared!');
+                        if (id) fetchAssessments(id);
+                      } else if (res.data?.isBlocked) {
+                        setBlockedDetail({
+                          isBlocked: true,
+                          blockedType: res.data.blockedType,
+                          sourceTitle: res.data.sourceTitle,
+                          reason: res.data.reason,
+                        });
+                        toast.error(
+                          res.data.sourceTitle
+                            ? `Still blocked by ${res.data.sourceTitle}. Please unblock that first.`
+                            : 'Still blocked. Contact admin.'
+                        );
+                      }
+                    } catch {
+                      toast.error('Could not verify unblock status.');
+                    } finally {
+                      setIsCheckingUnblockStatus(false);
+                    }
+                  }}
+                  className="text-xs font-bold px-4 py-2 rounded-xl border border-destructive/30 cursor-pointer"
+                  startContent={!isCheckingUnblockStatus ? <RefreshCw size={13} /> : undefined}
+                >
+                  Check Status
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Assessment Cards Grid */}
           {loading ? (
             <div
@@ -777,7 +944,7 @@ export const EventArenaPage: React.FC = () => {
                   ((sub?.graceMinutes || 0) > 0 && sub?.status === 'IN_PROGRESS') ||
                   (asm.hasGraceTime && sub?.status !== 'SUBMITTED' && sub?.status !== 'AUTO_SUBMITTED') ||
                   ((asm.graceMinutes || 0) > 0 && asm.status === 'LIVE')
-                );
+                ); 
 
                 const isCompleted =
                   (sub?.status === 'SUBMITTED' || sub?.status === 'AUTO_SUBMITTED') &&
@@ -786,7 +953,7 @@ export const EventArenaPage: React.FC = () => {
 
                 // Qualification check for Round > 1 based strictly on Top Rank Cutoff
                 const prevRound = idx > 0 ? assessments[idx - 1] : null;
-                const prevCompleted = prevRound?.submission?.status === 'SUBMITTED' || prevRound?.submission?.status === 'AUTO_SUBMITTED' || prevRound?.submission?.status === 'COMPLETED';
+                const prevCompleted = prevRound?.submission?.status === 'SUBMITTED' || prevRound?.submission?.status === 'AUTO_SUBMITTED' || (prevRound?.submission?.status as string) === 'COMPLETED';
                 const effectiveRoundCutoff = (asm.qualificationCutoffRank || 0) > 0
                   ? asm.qualificationCutoffRank
                   : (prevRound?.qualificationCutoffRank || 0) > 0
@@ -980,6 +1147,12 @@ export const EventArenaPage: React.FC = () => {
                           color="warning"
                           variant="solid"
                           onPress={() => {
+                            if (blockedDetail?.isBlocked && blockedDetail.blockedType !== 'THIS_EVENT') {
+                              toast.error(`Blocked by ${blockedDetail.sourceTitle || 'an external activity'}. Please unblock that first.`);
+                              setActiveAssessmentId(asm._id);
+                              setApiBlocked(true);
+                              return;
+                            }
                             setActiveAssessmentId(asm._id);
                             if (!isFullscreen) {
                               requestFullscreen().catch(() => {});
@@ -1064,6 +1237,12 @@ export const EventArenaPage: React.FC = () => {
                           color="secondary"
                           variant="solid"
                           onPress={() => {
+                            if (blockedDetail?.isBlocked && blockedDetail.blockedType !== 'THIS_EVENT') {
+                              toast.error(`Blocked by ${blockedDetail.sourceTitle || 'an external activity'}. Please unblock that first.`);
+                              setActiveAssessmentId(asm._id);
+                              setApiBlocked(true);
+                              return;
+                            }
                             setActiveAssessmentId(asm._id);
                             if (!isFullscreen) {
                               requestFullscreen().catch(() => {});
@@ -1100,20 +1279,43 @@ export const EventArenaPage: React.FC = () => {
             </div>
 
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20 mb-3">
-              Proctoring Violation
+              {blockedDetail?.blockedType && blockedDetail.blockedType !== 'THIS_EVENT'
+                ? `Cross-Activity Lock: ${blockedDetail.blockedType}`
+                : 'Proctoring Violation'}
             </div>
 
             <h3 className="text-xl font-bold tracking-tight text-label-primary mb-2">
-              Assessment Locked
+              {blockedDetail?.blockedType && blockedDetail.blockedType !== 'THIS_EVENT'
+                ? `Blocked by ${blockedDetail.sourceTitle || 'Other Activity'}`
+                : 'Assessment Locked'}
             </h3>
 
             <p className="text-xs sm:text-sm text-red-300/90 mb-5 leading-relaxed">
-              {blockedMessage || 'You have been blocked for navigating away. Contact Admin.'}
+              {blockedDetail?.blockedType && blockedDetail.blockedType !== 'THIS_EVENT' ? (
+                <>
+                  You are currently restricted by{' '}
+                  <span className="font-bold text-white">
+                    {blockedDetail.sourceTitle || 'another activity'}
+                  </span>
+                  . {blockedDetail.reason || ''}
+                  <span className="block mt-2 font-bold text-amber-300">
+                    Please unblock that first before taking this Event Arena assessment.
+                  </span>
+                </>
+              ) : (
+                blockedMessage ||
+                blockedDetail?.reason ||
+                'You have been blocked for navigating away. Contact Admin.'
+              )}
             </p>
 
             <div className="p-3 mb-5 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center gap-2 text-[11px] text-red-300">
               <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" />
-              <span>Real-time listener active: Screen unlocks automatically once Admin unblocks you</span>
+              <span>
+                {blockedDetail?.blockedType && blockedDetail.blockedType !== 'THIS_EVENT'
+                  ? `Please unblock ${blockedDetail.sourceTitle || 'external activity'} first, then check status below.`
+                  : 'Real-time listener active: Screen unlocks automatically once Admin unblocks you'}
+              </span>
             </div>
 
             <div className="space-y-3">
@@ -1125,20 +1327,35 @@ export const EventArenaPage: React.FC = () => {
                 onPress={async () => {
                   setIsCheckingUnblockStatus(true);
                   try {
-                    const unblocked = await checkIfUnblocked();
-                    if (unblocked) {
+                    const res = await api.get(`/events/${id}/anti-cheat/status`);
+                    if (res.data?.success && !res.data.isBlocked) {
+                      setBlockedDetail(null);
                       setApiBlocked(false);
+                      resetBlocked();
+                      toast.success('Your block has been cleared! Resuming assessment...');
                       if (id && activeAssessmentId) {
                         fetchStudentAssessmentData(id, activeAssessmentId);
                       }
-                    } else {
-                      toast.error('Your attempt is still locked. Please ask your event admin/faculty to unblock you.');
+                    } else if (res.data?.isBlocked) {
+                      setBlockedDetail({
+                        isBlocked: true,
+                        blockedType: res.data.blockedType,
+                        sourceTitle: res.data.sourceTitle,
+                        reason: res.data.reason,
+                      });
+                      toast.error(
+                        res.data.sourceTitle
+                          ? `Still blocked by ${res.data.sourceTitle}. Please unblock that first.`
+                          : 'Your attempt is still locked. Please ask your event admin/faculty to unblock you.'
+                      );
                     }
+                  } catch {
+                    toast.error('Could not verify unblock status.');
                   } finally {
                     setIsCheckingUnblockStatus(false);
                   }
                 }}
-                className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-primary/30"
+                className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer"
                 startContent={!isCheckingUnblockStatus ? <RefreshCw size={14} /> : undefined}
               >
                 {isCheckingUnblockStatus ? 'Checking Status...' : 'Check if Unblocked'}
@@ -1163,7 +1380,7 @@ export const EventArenaPage: React.FC = () => {
                       setIsUnblockingSelf(false);
                     }
                   }}
-                  className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30"
+                  className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30 cursor-pointer"
                 >
                   Admin Override: Unblock My Attempt
                 </Button>
@@ -1899,7 +2116,7 @@ export const EventArenaPage: React.FC = () => {
                 )}
 
                 <div className="flex items-center justify-between pb-2 border-b border-separator">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
                       Challenge {selectedIndex + 1}
                     </span>
@@ -1914,6 +2131,11 @@ export const EventArenaPage: React.FC = () => {
                     >
                       {currentCoding.difficulty}
                     </span>
+                    {currentCoding.allowedLanguages && currentCoding.allowedLanguages.length > 0 && currentCoding.allowedLanguages.length < 5 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                        Allowed: {currentCoding.allowedLanguages.map((l) => LANG_DISPLAY_NAMES[l] || l).join(', ')}
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs font-mono text-label-secondary">
                     {currentCoding.points || 30} Points
@@ -1994,15 +2216,33 @@ export const EventArenaPage: React.FC = () => {
                     <span className="text-[11px] font-bold text-label-secondary hidden sm:inline">Language:</span>
                     <select
                       value={currentLanguage}
-                      onChange={(e) => setCurrentLanguage(e.target.value)}
+                      onChange={(e) => {
+                        const newLang = e.target.value;
+                        setCurrentLanguage(newLang);
+                        if (currentCoding?._id) {
+                          const starterMap = currentCoding.starterCode || {};
+                          setCodingCodes((prev) => ({
+                            ...prev,
+                            [currentCoding._id!]: {
+                              code: starterMap[newLang] || (newLang === 'python' ? '# Write your solution here\n' : '// Write your solution here\n'),
+                              language: newLang,
+                            },
+                          }));
+                        }
+                      }}
                       className="px-2 sm:px-2.5 py-1 rounded-lg bg-surface-secondary border border-separator text-xs font-bold text-label-primary outline-none cursor-pointer"
                     >
-                      {['python', 'javascript', 'cpp', 'java', 'c'].map((lang) => (
+                      {currentAllowedLanguages.map((lang) => (
                         <option key={lang} value={lang} className="bg-surface-secondary">
-                          {LANG_DISPLAY_NAMES[lang]}
+                          {LANG_DISPLAY_NAMES[lang] || lang}
                         </option>
                       ))}
                     </select>
+                    {currentAllowedLanguages.length < 5 && (
+                      <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-md hidden md:inline-flex items-center gap-1">
+                        Restricted ({currentAllowedLanguages.length} allowed)
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5 sm:gap-2">
