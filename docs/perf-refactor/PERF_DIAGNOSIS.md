@@ -104,3 +104,52 @@ This report identifies the root causes of UI freezing (1.5s - 2.5s) and interact
 - **Root Cause**: Full rendering of hundreds of detailed submission cards with nested tags, dates, and score badges without pagination or virtualization.
 - **Proposed Fix**: Enforce client-side pagination / virtualization for tables with >50 items.
 - **Expected Gain**: DOM nodes reduced by >80%; immediate tab switching.
+
+---
+
+## 4. Zustand Store Subscription Rule & Architecture Standard
+
+### Mandatory Rule: No Store Subscription Without a Selector
+Calling any Zustand store without a selector (e.g. `const { user } = useAuthStore()`) is **strictly prohibited** across the codebase.
+
+#### Why Bare Store Subscriptions Freeze the UI:
+When a component calls `useStore()` without arguments, Zustand registers a listener for *any* mutation of the entire store state object. If store `useEventArenaStore` updates `actionLoading` or `remainingSeconds`, every component subscribed to `useEventArenaStore()` executes a full React re-render, even if it only read a static configuration object.
+
+#### Standard Patterns:
+
+1. **Single Property Selection (Preferred)**:
+   ```typescript
+   // Correct: Re-renders ONLY when `user` reference changes
+   const user = useAuthStore((state) => state.user);
+   ```
+
+2. **Multiple Properties Selection with `useShallow`**:
+   ```typescript
+   import { useShallow } from 'zustand/react/shallow';
+
+   // Correct: Performs shallow comparison on the returned slice object
+   const { currentAssessment, submitting } = useAssessmentStore(
+     useShallow((state) => ({
+       currentAssessment: state.currentAssessment,
+       submitting: state.submitting,
+     }))
+   );
+   ```
+
+3. **Imperative / Event-Driven Actions (`getState`)**:
+   ```typescript
+   // Correct: ZERO React subscriptions created; ideal for onClick / handlers
+   const handleCheckAuth = () => {
+     useAuthStore.getState().checkAuth?.();
+   };
+   ```
+
+#### Anti-Patterns to Refactor in Code Reviews:
+```typescript
+// ❌ PROHIBITED: Subscribes component to every state change in store
+const { user, profile, logout } = useAuthStore();
+
+// ❌ PROHIBITED: Re-creates a new object on every render, defeating memoization
+const { user } = useAuthStore((state) => ({ user: state.user }));
+```
+
