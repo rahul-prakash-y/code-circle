@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
 import { toast } from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 import api from '../../../lib/axios';
 
 export interface ManualPaperBulkUploadModalProps {
@@ -108,6 +107,7 @@ export const ManualPaperBulkUploadModal: React.FC<ManualPaperBulkUploadModalProp
         },
       ];
 
+      const XLSX = await import('xlsx');
       const ws = XLSX.utils.json_to_sheet(sampleData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'PaperSubmissions');
@@ -131,6 +131,7 @@ export const ManualPaperBulkUploadModal: React.FC<ManualPaperBulkUploadModalProp
     setUploadResult(null);
 
     try {
+      const XLSX = await import('xlsx');
       const data = await uploadedFile.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
