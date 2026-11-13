@@ -21,6 +21,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
+import { useShallow } from 'zustand/react/shallow';
 import useAssessmentStore from '../../store/useAssessmentStore';
 import toast from 'react-hot-toast';
 import FullScreenEnforcementOverlay from './FullScreenEnforcementOverlay';
@@ -37,7 +38,16 @@ const TakeAssessmentModal = ({ assessmentId, isOpen, onClose }) => {
     currentResult,
     clearCurrentResult,
     submitting,
-  } = useAssessmentStore();
+  } = useAssessmentStore(
+    useShallow((state) => ({
+      fetchAssessmentById: state.fetchAssessmentById,
+      submitAssessment: state.submitAssessment,
+      currentAssessment: state.currentAssessment,
+      currentResult: state.currentResult,
+      clearCurrentResult: state.clearCurrentResult,
+      submitting: state.submitting,
+    }))
+  );
 
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);

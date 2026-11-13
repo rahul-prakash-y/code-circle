@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { useShallow } from 'zustand/react/shallow';
 import useAuthStore from '@/store/useAuthStore';
 import useProfileStore from '@/store/useProfileStore';
 import useEventArenaStore from '@/store/useEventArenaStore';
@@ -18,9 +19,16 @@ export const EventArenaPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { fetchAssessments, assessments, currentEvent, loading } = useEventArenaStore();
-  const { user: currentUser } = useAuthStore() as any;
-  const { profile } = useProfileStore();
+  const { fetchAssessments, assessments, currentEvent, loading } = useEventArenaStore(
+    useShallow((s) => ({
+      fetchAssessments: s.fetchAssessments,
+      assessments: s.assessments,
+      currentEvent: s.currentEvent,
+      loading: s.loading,
+    }))
+  );
+  const currentUser = useAuthStore((s: any) => s.user);
+  const profile = useProfileStore((s: any) => s.profile);
   const userRole = profile?.role || currentUser?.role;
   const isAdmin = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(userRole);
 

@@ -45,6 +45,7 @@ import { useTabSwitchDetection } from '@/hooks/useTabSwitchDetection';
 import FullScreenEnforcementOverlay from '@/components/assessments/FullScreenEnforcementOverlay';
 import { EmilCard, EmilButton } from '@/components/ui/emil-ui';
 import { Button } from '@heroui/react';
+import { useShallow } from 'zustand/react/shallow';
 import { HeroTabs } from '@/components/ui/hero/HeroTabs';
 import useAuthStore from '@/store/useAuthStore';
 import useProfileStore from '@/store/useProfileStore';
@@ -107,10 +108,29 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
     currentEvent,
     loading,
     actionLoading,
-  } = useEventArenaStore();
+  } = useEventArenaStore(
+    useShallow((state) => ({
+      fetchStudentAssessmentData: state.fetchStudentAssessmentData,
+      startAssessmentSession: state.startAssessmentSession,
+      runAssessmentCode: state.runAssessmentCode,
+      submitAssessmentProblem: state.submitAssessmentProblem,
+      submitAssessmentFinal: state.submitAssessmentFinal,
+      submitAssessmentDesign: state.submitAssessmentDesign,
+      selectedAssessment: state.selectedAssessment,
+      studentMcqs: state.studentMcqs,
+      studentCoding: state.studentCoding,
+      studentDesignChallenge: state.studentDesignChallenge,
+      studentDesignChallenges: state.studentDesignChallenges,
+      studentTeam: state.studentTeam,
+      submission: state.submission,
+      currentEvent: state.currentEvent,
+      loading: state.loading,
+      actionLoading: state.actionLoading,
+    }))
+  );
 
-  const { user: currentUser } = useAuthStore() as any;
-  const { profile } = useProfileStore();
+  const currentUser = useAuthStore((s: any) => s.user);
+  const profile = useProfileStore((s: any) => s.profile);
   const [finalResultModal, setFinalResultModal] = useState<any | null>(null);
   const [apiBlocked, setApiBlocked] = useState(false);
   const [isUnblockingSelf, setIsUnblockingSelf] = useState(false);
