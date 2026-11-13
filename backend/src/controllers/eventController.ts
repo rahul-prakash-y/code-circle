@@ -520,7 +520,7 @@ export const blockStudent = async (
 export const unblockStudent = async (
   request: FastifyRequest<{
     Params: { eventId?: string; id?: string };
-    Body: { studentId: string };
+    Body: { studentId: string; unblockAll?: boolean };
   }>,
   reply: FastifyReply
 ) => {
@@ -535,7 +535,7 @@ export const unblockStudent = async (
       return reply.status(400).send({ success: false, error: 'Invalid or missing Event ID' });
     }
 
-    const { studentId } = request.body || {};
+    const { studentId, unblockAll } = request.body || {};
     if (!studentId || typeof studentId !== 'string' || !studentId.trim()) {
       return reply.status(400).send({ success: false, error: 'Valid studentId is required' });
     }
@@ -568,19 +568,20 @@ export const unblockStudent = async (
     const eventObjectId = new mongoose.Types.ObjectId(eventId);
     const studentObjectId = new mongoose.Types.ObjectId(targetStudentId);
 
-    // 1. Unblock ALL matching registrations/enrollments for this event
+    // 1. Unblock matching registrations/enrollments for this event (or all events if unblockAll is true)
+    const enrollmentFilter: any = unblockAll
+      ? { $or: [{ enrolledBy: studentObjectId }, { members: studentObjectId }] }
+      : { event: eventObjectId, $or: [{ enrolledBy: studentObjectId }, { members: studentObjectId }] };
+
     const updateResult = await Enrollment.updateMany(
-      {
-        event: eventObjectId,
-        $or: [{ enrolledBy: studentObjectId }, { members: studentObjectId }],
-      },
+      enrollmentFilter,
       {
         $set: { isBlocked: false },
       }
     );
 
-    // If no enrollment existed at all, ensure an unblocked enrollment record is registered
-    if (updateResult.matchedCount === 0) {
+    // If no enrollment existed at all for this event, ensure an unblocked enrollment record is registered
+    if (!unblockAll && updateResult.matchedCount === 0) {
       await Enrollment.findOneAndUpdate(
         {
           event: eventObjectId,
@@ -605,6 +606,7 @@ export const unblockStudent = async (
         isRestricted: false,
         restrictionReason: '',
         restrictedFeatures: [],
+        isBlocked: false,
         unblockedAt: new Date(),
         unblockedBy: user._id || user.id,
       },
@@ -619,7 +621,7 @@ export const unblockStudent = async (
             integrityEvents: {
               type: 'ADMIN_UNBLOCKED',
               timestamp: new Date(),
-              details: `Unblocked by admin ${user.name || user.email || user.role}`,
+              details: `Unblocked by admin ${user.name || user.email || user.role}${unblockAll ? ' (All system restrictions cleared)' : ''}`,
             },
           },
         }
@@ -634,10 +636,11 @@ export const unblockStudent = async (
 
     return reply.send({
       success: true,
-      message: `${targetUser.name || 'Student'} unblocked successfully.`,
+      message: `${targetUser.name || 'Student'} unblocked successfully.${unblockAll ? ' All restrictions cleared.' : ''}`,
       isBlocked: false,
       eventId,
       studentId: targetStudentId,
+      unblockAll: Boolean(unblockAll),
       student: {
         _id: targetStudentId,
         name: targetUser.name,
@@ -685,20 +688,68 @@ export const getStudentAntiCheatStatus = async (
     const eventObjectId = new mongoose.Types.ObjectId(eventId);
     const userObjectId = new mongoose.Types.ObjectId(targetUserId);
 
-    // Check if any enrollment record is currently blocked
+    // Check if any enrollment record is currently blocked in this event
     const blockedEnrollment = await Enrollment.findOne({
       event: eventObjectId,
       $or: [{ enrolledBy: userObjectId }, { members: userObjectId }],
       isBlocked: true,
     }).lean();
 
-    const userDoc = await User.findById(userObjectId).select('isRestricted isBlocked').lean();
+    const userDoc = await User.findById(userObjectId)
+      .select('isRestricted restrictionReason restrictedFeatures isBlocked')
+      .lean();
 
-    const isBlocked = Boolean(blockedEnrollment || userDoc?.isBlocked);
+    // Check if blocked in any other event
+    const otherBlockedEnrollment = await Enrollment.findOne({
+      event: { $ne: eventObjectId },
+      $or: [{ enrolledBy: userObjectId }, { members: userObjectId }],
+      isBlocked: true,
+    })
+      .populate('event', 'title')
+      .lean();
+
+    let isBlocked = false;
+    let blockedType: 'NONE' | 'GLOBAL' | 'CONTEST' | 'COURSE' | 'ASSESSMENT' | 'OTHER_EVENT' | 'THIS_EVENT' = 'NONE';
+    let sourceTitle = '';
+    let reason = '';
+
+    if (userDoc?.isBlocked) {
+      isBlocked = true;
+      blockedType = 'GLOBAL';
+      sourceTitle = 'Account Level Lockout';
+      reason = 'Your account has been locked by an administrator.';
+    } else if (userDoc?.isRestricted && (userDoc.restrictedFeatures || []).includes('assessments')) {
+      isBlocked = true;
+      const rLower = (userDoc.restrictionReason || '').toLowerCase();
+      if (rLower.includes('contest')) {
+        blockedType = 'CONTEST';
+        sourceTitle = 'Coding Contest';
+      } else if (rLower.includes('course')) {
+        blockedType = 'COURSE';
+        sourceTitle = 'Course Assessment';
+      } else {
+        blockedType = 'ASSESSMENT';
+        sourceTitle = 'Assessment';
+      }
+      reason = userDoc.restrictionReason || `Exceeded tab switch limits in ${sourceTitle}.`;
+    } else if (otherBlockedEnrollment) {
+      isBlocked = true;
+      blockedType = 'OTHER_EVENT';
+      sourceTitle = (otherBlockedEnrollment.event as any)?.title || 'Another Event';
+      reason = `Blocked for navigating away in event "${sourceTitle}".`;
+    } else if (blockedEnrollment) {
+      isBlocked = true;
+      blockedType = 'THIS_EVENT';
+      sourceTitle = 'This Event Arena';
+      reason = 'Blocked for navigating away / tab switch violation in this event.';
+    }
 
     return reply.send({
       success: true,
       isBlocked,
+      blockedType,
+      sourceTitle,
+      reason,
       eventId,
       studentId: targetUserId,
     });
@@ -736,42 +787,86 @@ export const getBlockedStudents = async (
       event: eventObjectId,
       isBlocked: true,
     })
-      .populate('enrolledBy', 'name rollNo email profilePicUrl department year')
-      .populate('members', 'name rollNo email profilePicUrl department year')
+      .populate('enrolledBy', 'name rollNo email profilePicUrl department year isRestricted restrictionReason isBlocked')
+      .populate('members', 'name rollNo email profilePicUrl department year isRestricted restrictionReason isBlocked')
       .lean();
 
     const studentMap = new Map<string, any>();
 
-    blockedEnrollments.forEach((en: any) => {
-      if (en.enrolledBy && en.enrolledBy._id) {
-        studentMap.set(en.enrolledBy._id.toString(), {
-          _id: en.enrolledBy._id,
-          name: en.enrolledBy.name,
-          rollNo: en.enrolledBy.rollNo,
-          email: en.enrolledBy.email,
-          profilePicUrl: en.enrolledBy.profilePicUrl,
-          department: en.enrolledBy.department,
-          year: en.enrolledBy.year,
-          blockedAt: en.updatedAt,
+    const addStudentToMap = (studentObj: any, blockSource: string, blockReason: string, blockedAtDate?: Date | null) => {
+      if (!studentObj || !studentObj._id) return;
+      const idStr = studentObj._id.toString();
+      if (!studentMap.has(idStr)) {
+        studentMap.set(idStr, {
+          _id: studentObj._id,
+          name: studentObj.name,
+          rollNo: studentObj.rollNo,
+          email: studentObj.email,
+          profilePicUrl: studentObj.profilePicUrl,
+          department: studentObj.department,
+          year: studentObj.year,
+          blockedAt: blockedAtDate || new Date(),
+          blockSource,
+          blockReason,
+          isBlockedInThisEvent: blockSource === 'THIS_EVENT',
+          isRestrictedGlobally: Boolean(studentObj.isRestricted || studentObj.isBlocked),
         });
+      }
+    };
+
+    // 1. Process directly blocked enrollments in this event
+    blockedEnrollments.forEach((en: any) => {
+      if (en.enrolledBy) {
+        addStudentToMap(en.enrolledBy, 'THIS_EVENT', 'Navigated away from Event Arena session', en.updatedAt);
       }
       if (Array.isArray(en.members)) {
         en.members.forEach((m: any) => {
-          if (m && m._id) {
-            studentMap.set(m._id.toString(), {
-              _id: m._id,
-              name: m.name,
-              rollNo: m.rollNo,
-              email: m.email,
-              profilePicUrl: m.profilePicUrl,
-              department: m.department,
-              year: m.year,
-              blockedAt: en.updatedAt,
-            });
-          }
+          addStudentToMap(m, 'THIS_EVENT', 'Navigated away from Event Arena session', en.updatedAt);
         });
       }
     });
+
+    // 2. Find any students enrolled in this event who have user-level restrictions or account locks
+    const allEventEnrollments = await Enrollment.find({ event: eventObjectId })
+      .select('enrolledBy members')
+      .lean();
+
+    const enrolledUserIds: any[] = [];
+    allEventEnrollments.forEach((en: any) => {
+      if (en.enrolledBy) enrolledUserIds.push(en.enrolledBy);
+      if (Array.isArray(en.members)) {
+        en.members.forEach((m: any) => m && enrolledUserIds.push(m));
+      }
+    });
+
+    if (enrolledUserIds.length > 0) {
+      const restrictedUsers = await User.find({
+        _id: { $in: enrolledUserIds },
+        $or: [{ isBlocked: true }, { isRestricted: true }],
+      })
+        .select('name rollNo email profilePicUrl department year isRestricted restrictionReason restrictedFeatures isBlocked restrictedAt')
+        .lean();
+
+      for (const u of restrictedUsers) {
+        const idStr = u._id.toString();
+        if (!studentMap.has(idStr)) {
+          let blockSource = 'ASSESSMENT';
+          let blockReason = u.restrictionReason || 'Restricted from test sessions';
+          if (u.isBlocked) {
+            blockSource = 'GLOBAL';
+            blockReason = 'Account blocked globally by administrator';
+          } else if (u.isRestricted) {
+            const reasonLower = (u.restrictionReason || '').toLowerCase();
+            if (reasonLower.includes('contest')) {
+              blockSource = 'CONTEST';
+            } else if (reasonLower.includes('course')) {
+              blockSource = 'COURSE';
+            }
+          }
+          addStudentToMap(u, blockSource, blockReason, u.restrictedAt);
+        }
+      }
+    }
 
     return reply.send({
       success: true,

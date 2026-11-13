@@ -27,12 +27,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import {
-  HeroInput,
-  HeroTextarea,
-  HeroUISelect,
-  HeroDateTimePicker,
-} from '../../ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroDateTimePicker } from '@/components/ui/hero/HeroDateTimePicker';
 import useContestStore, {
   Contest,
   MCQQuestion,

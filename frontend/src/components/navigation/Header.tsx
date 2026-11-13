@@ -67,18 +67,17 @@ const roleColors: Record<string, string> = {
 };
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = '' }) => {
-  const { user, logout } = useAuthStore();
-  const { profile } = useProfileStore();
+  const user = useAuthStore((state: any) => state.user);
+  const logout = useAuthStore((state: any) => state.logout);
+  const profile = useProfileStore((state: any) => state.profile);
   const navigate = useNavigate();
 
-  const {
-    notifications,
-    unreadCount,
-    fetchNotifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-  } = useNotificationStore();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
+  const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
+  const deleteNotification = useNotificationStore((state) => state.deleteNotification);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);

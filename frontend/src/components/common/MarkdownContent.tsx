@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Copy, Check } from 'lucide-react';
+import { Link } from '@heroui/react';
 
 interface MarkdownContentProps {
   content: string;
@@ -94,15 +95,15 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, class
           a: ({ href, children }) => {
             const safe = isSafeUrl(href);
             return (
-              <a
-                href={safe ? href : '#'}
+              <Link
                 target={safe && href?.startsWith('http') ? '_blank' : undefined}
                 rel={safe && href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+                href={safe ? href : '#'}
                 className="text-accent underline font-semibold hover:opacity-80 transition inline-flex items-center gap-0.5"
                 onClick={safe ? undefined : (e) => e.preventDefault()}
               >
                 {children}
-              </a>
+              </Link>
             );
           },
           table: ({ children }) => (

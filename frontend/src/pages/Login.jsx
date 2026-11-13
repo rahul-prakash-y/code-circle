@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { User, Lock, Loader2, Mail, KeyRound, X, Copy, ShieldCheck, Eye, EyeOff, Server } from 'lucide-react';
 import { EmilButton, EmilModal } from '../components/ui/emil-ui';
-import { HeroInput } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
 import { Button, Spinner } from '@heroui/react';
 import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
 

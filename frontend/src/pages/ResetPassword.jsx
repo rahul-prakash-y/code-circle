@@ -5,7 +5,9 @@ import AuthLayout from '../layouts/AuthLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { EmilButton } from '../components/ui/emil-ui';
-import { HeroInput, HeroTextarea, HeroTabs } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroTabs } from '@/components/ui/hero/HeroTabs';
 import { Button } from '@heroui/react';
 import { 
   Lock, 

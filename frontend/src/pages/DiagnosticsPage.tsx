@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@heroui/react';
-import { HeroInput } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
 import {
   Activity,
   Server,

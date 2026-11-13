@@ -51,7 +51,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { Button } from '@heroui/react';
-import { HeroInput } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
 import { DelayedSkeleton, CardGridSkeleton, EmptyState, NoSearchResults } from '../components/states';
 
 export const DomainsPage: React.FC = () => {
@@ -1003,13 +1003,22 @@ export const DomainsPage: React.FC = () => {
           return (
             <motion.div
               key={domain._id}
+              role="button"
+              tabIndex={0}
               whileHover={{ scale: 1.02 }}
               transition={{ type: 'spring', stiffness: 260, damping: 20 }}
               onClick={() => {
                 setCurrentDomain(domain);
                 navigate(`/courses/${domain._id}`);
               }}
-              className="group cursor-pointer rounded-[28px] overflow-hidden bg-surface shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 flex flex-col transition-all duration-300 relative"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setCurrentDomain(domain);
+                  navigate(`/courses/${domain._id}`);
+                }
+              }}
+              className="group cursor-pointer rounded-[28px] overflow-hidden bg-surface shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 flex flex-col transition-all duration-300 relative focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {/* Cover Image Container */}
               <div className="relative w-full h-52 sm:h-56 overflow-hidden bg-surface-secondary">

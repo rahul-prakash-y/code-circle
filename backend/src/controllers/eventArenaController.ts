@@ -24,13 +24,15 @@ export const canManageAssessmentQuestions = (
   assessment?: any
 ): boolean => {
   if (!user) return false;
-  if (user.role === 'SuperAdmin') return true;
+  // All admin roles (SuperAdmin, Admin, Faculty, Committee) have full access to view, preview and manage
+  if (['SuperAdmin', 'Admin', 'Faculty', 'Committee'].includes(user.role)) return true;
 
   // Check assessment-specific assigned admins
   if (assessment && Array.isArray(assessment.assignedAdmins)) {
     const isAssignedToAssessment = assessment.assignedAdmins.some((adminRef: any) => {
       const id = adminRef?._id ? adminRef._id.toString() : adminRef.toString();
-      return id === user._id.toString();
+      const currentId = user._id ? user._id.toString() : user.id?.toString();
+      return id === currentId;
     });
     if (isAssignedToAssessment) return true;
   }
@@ -39,7 +41,8 @@ export const canManageAssessmentQuestions = (
   if (Array.isArray(event.arenaAdmins)) {
     return event.arenaAdmins.some((adminRef: any) => {
       const id = adminRef?._id ? adminRef._id.toString() : adminRef.toString();
-      return id === user._id.toString();
+      const currentId = user._id ? user._id.toString() : user.id?.toString();
+      return id === currentId;
     });
   }
 
@@ -48,6 +51,30 @@ export const canManageAssessmentQuestions = (
 
 export const canManageEventArenaQuestions = (user: any, event: any): boolean => {
   return canManageAssessmentQuestions(user, event);
+};
+
+// ---------------------------------------------------------------------------
+// Index Migration Helper: Dynamically drop legacy index eventId_1_userId_1
+// ---------------------------------------------------------------------------
+export const dropLegacyArenaSubmissionIndex = async (): Promise<boolean> => {
+  try {
+    const indexes = await EventArenaSubmission.collection.indexes();
+    for (const idx of indexes) {
+      const keys = Object.keys(idx.key || {});
+      const isLegacy =
+        idx.name === 'eventId_1_userId_1' ||
+        (keys.length === 2 && idx.key.eventId === 1 && idx.key.userId === 1);
+      if (isLegacy && idx.name) {
+        console.warn(`[EventArena] Dropping legacy index ${idx.name} from eventarenasubmissions collection...`);
+        await EventArenaSubmission.collection.dropIndex(idx.name);
+        console.log(`[EventArena] Legacy index ${idx.name} dropped successfully.`);
+        return true;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[EventArena] Error while attempting to drop legacy index:`, err?.message || err);
+  }
+  return false;
 };
 
 /**
@@ -221,13 +248,96 @@ export const parseMcqsBuffer = (buffer: Buffer, fileName: string): IEventArenaMc
 };
 
 // ---------------------------------------------------------------------------
+// Helper: Normalize Allowed Programming Languages
+// ---------------------------------------------------------------------------
+export const normalizeArenaAllowedLanguages = (raw: any): string[] => {
+  const DEFAULT_LANGUAGES = ['python', 'javascript', 'cpp', 'java', 'c'];
+  if (!raw) return DEFAULT_LANGUAGES;
+
+  let rawList: string[] = [];
+  if (Array.isArray(raw)) {
+    rawList = raw.map((item) => String(item).trim());
+  } else if (typeof raw === 'string') {
+    rawList = raw.split(/[,|;\s]+/).map((item) => item.trim());
+  }
+
+  const validMap: Record<string, string> = {
+    python: 'python',
+    py: 'python',
+    python3: 'python',
+    javascript: 'javascript',
+    js: 'javascript',
+    node: 'javascript',
+    nodejs: 'javascript',
+    cpp: 'cpp',
+    'c++': 'cpp',
+    gpp: 'cpp',
+    'g++': 'cpp',
+    c: 'c',
+    gcc: 'c',
+    java: 'java',
+    openjdk: 'java',
+  };
+
+  const parsed: string[] = [];
+  for (const item of rawList) {
+    const cleaned = item.toLowerCase().replace(/[^a-z0-9+#]/g, '');
+    const mapped = validMap[cleaned];
+    if (mapped && !parsed.includes(mapped)) {
+      parsed.push(mapped);
+    }
+  }
+
+  return parsed.length > 0 ? parsed : DEFAULT_LANGUAGES;
+};
+
+// ---------------------------------------------------------------------------
 // Helper: Parse Coding Buffer from Excel or JSON
 // ---------------------------------------------------------------------------
 export const parseCodingBuffer = (buffer: Buffer, fileName: string): IEventArenaCodingProblem[] => {
   let parsedCoding: IEventArenaCodingProblem[] = [];
   if (fileName.endsWith('.json')) {
     const jsonContent = JSON.parse(buffer.toString('utf-8'));
-    parsedCoding = Array.isArray(jsonContent) ? jsonContent : jsonContent.problems || [];
+    const rawList = Array.isArray(jsonContent) ? jsonContent : jsonContent.problems || [];
+    parsedCoding = rawList
+      .map((item: any) => {
+        const title = item.title || item.Title;
+        const description = item.description || item.Description;
+        if (!title || !description) return null;
+
+        const allowedLanguages = normalizeArenaAllowedLanguages(
+          item.allowedLanguages ||
+            item.allowedProgrammingLanguages ||
+            item['Allowed Languages'] ||
+            item['Allowed Programming Languages'] ||
+            item.languages
+        );
+
+        return {
+          title: String(title).trim(),
+          description: String(description).trim(),
+          codingMode: item.codingMode || item['Coding Mode'] || 'BOTH',
+          inputFormat: String(item.inputFormat || item['Input Format'] || ''),
+          outputFormat: String(item.outputFormat || item['Output Format'] || ''),
+          constraints: String(item.constraints || item['Constraints'] || ''),
+          difficulty: (['Easy', 'Medium', 'Hard'].includes(item.difficulty || item.Difficulty)
+            ? item.difficulty || item.Difficulty
+            : 'Medium') as any,
+          points: Number(item.points || item.Points) || 30,
+          allowedLanguages,
+          starterCode: item.starterCode || {
+            python: '# Write solution here\n',
+            javascript: '// Write solution here\n',
+            cpp: '#include <iostream>\nusing namespace std;\nint main() {\n  return 0;\n}\n',
+            java: 'import java.util.*;\npublic class Main {\n  public static void main(String[] args) {\n  }\n}\n',
+            c: '#include <stdio.h>\nint main() {\n  return 0;\n}\n',
+          },
+          sampleInput: String(item.sampleInput || item['Sample Input'] || ''),
+          sampleOutput: String(item.sampleOutput || item['Sample Output'] || ''),
+          testCases: Array.isArray(item.testCases) ? item.testCases : [],
+        };
+      })
+      .filter((p: any): p is IEventArenaCodingProblem => p !== null);
   } else {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -249,14 +359,27 @@ export const parseCodingBuffer = (buffer: Buffer, fileName: string): IEventArena
         },
       ];
 
-      const hiddenIn = row['Hidden Input 1'] || row['hiddenInput1'];
-      const hiddenOut = row['Hidden Output 1'] || row['hiddenOutput1'];
-      if (hiddenOut) {
-        testCases.push({
-          input: String(hiddenIn || ''),
-          expectedOutput: String(hiddenOut),
-          isHidden: true,
-        });
+      for (let i = 1; i <= 20; i++) {
+        const hIn = row[`Hidden Input ${i}`] ?? row[`hiddenInput${i}`] ?? row[`HiddenInput${i}`];
+        const hOut = row[`Hidden Output ${i}`] ?? row[`hiddenOutput${i}`] ?? row[`HiddenOutput${i}`];
+        if (hOut !== undefined && hOut !== null && String(hOut).trim() !== '') {
+          testCases.push({
+            input: String(hIn || ''),
+            expectedOutput: String(hOut).trim(),
+            isHidden: true,
+          });
+        }
+
+        const tcIn = row[`TestCase${i}_Input`] ?? row[`testCase${i}_input`] ?? row[`TestCase ${i} Input`];
+        const tcOut = row[`TestCase${i}_ExpectedOutput`] ?? row[`testCase${i}_expectedOutput`] ?? row[`TestCase ${i} Output`];
+        const tcHidden = row[`TestCase${i}_IsHidden`] ?? row[`testCase${i}_isHidden`];
+        if (tcOut !== undefined && tcOut !== null && String(tcOut).trim() !== '') {
+          testCases.push({
+            input: String(tcIn || ''),
+            expectedOutput: String(tcOut).trim(),
+            isHidden: tcHidden === true || String(tcHidden).trim().toLowerCase() === 'true',
+          });
+        }
       }
 
       const rawMode = row['Coding Mode'] || row['codingMode'] || row['Mode'] || row['mode'];
@@ -272,6 +395,22 @@ export const parseCodingBuffer = (buffer: Buffer, fileName: string): IEventArena
         }
       }
 
+      const rawAllowedLangs =
+        row['Allowed Languages'] ??
+        row['Allowed Programming Languages'] ??
+        row['AllowedLanguages'] ??
+        row['AllowedProgrammingLanguages'] ??
+        row['allowedLanguages'] ??
+        row['allowed_languages'] ??
+        row['Languages'] ??
+        row['languages'] ??
+        row['Programming Languages'] ??
+        row['ProgrammingLanguages'] ??
+        row['Allowed'] ??
+        row['allowed'];
+
+      const allowedLanguages = normalizeArenaAllowedLanguages(rawAllowedLangs);
+
       parsedCoding.push({
         title: String(title).trim(),
         description: String(description).trim(),
@@ -283,13 +422,13 @@ export const parseCodingBuffer = (buffer: Buffer, fileName: string): IEventArena
           ? row['Difficulty']
           : 'Medium') as any,
         points: Number(row['Points'] || row['points']) || 30,
-        allowedLanguages: ['python', 'javascript', 'cpp', 'java', 'c'],
+        allowedLanguages,
         starterCode: {
-          python: '# Write solution here\n',
-          javascript: '// Write solution here\n',
-          cpp: '#include <iostream>\nusing namespace std;\nint main() {\n  return 0;\n}\n',
-          java: 'import java.util.*;\npublic class Main {\n  public static void main(String[] args) {\n  }\n}\n',
-          c: '#include <stdio.h>\nint main() {\n  return 0;\n}\n',
+          python: row['StarterCode_Python'] || row['StarterCode_python'] || '# Write solution here\n',
+          javascript: row['StarterCode_JavaScript'] || row['StarterCode_javascript'] || '// Write solution here\n',
+          cpp: row['StarterCode_Cpp'] || row['StarterCode_cpp'] || '#include <iostream>\nusing namespace std;\nint main() {\n  return 0;\n}\n',
+          java: row['StarterCode_Java'] || row['StarterCode_java'] || 'import java.util.*;\npublic class Main {\n  public static void main(String[] args) {\n  }\n}\n',
+          c: row['StarterCode_C'] || row['StarterCode_c'] || '#include <stdio.h>\nint main() {\n  return 0;\n}\n',
         },
         sampleInput,
         sampleOutput,
@@ -635,10 +774,15 @@ export const saveArenaCodingProblems = async (
       event.arenaQuestions = { mcqs: [], coding: [] };
     }
 
+    const sanitizedProblems = problems.map((p) => ({
+      ...p,
+      allowedLanguages: normalizeArenaAllowedLanguages(p.allowedLanguages),
+    }));
+
     if (mode === 'append') {
-      event.arenaQuestions.coding = [...(event.arenaQuestions.coding || []), ...problems];
+      event.arenaQuestions.coding = [...(event.arenaQuestions.coding || []), ...sanitizedProblems];
     } else {
-      event.arenaQuestions.coding = problems;
+      event.arenaQuestions.coding = sanitizedProblems;
     }
 
     const mcqPoints = (event.arenaQuestions.mcqs || []).reduce(
@@ -787,80 +931,7 @@ export const bulkUploadArenaQuestions = async (
       });
     } else {
       // Coding challenges upload
-      let parsedCoding: IEventArenaCodingProblem[] = [];
-
-      if (fileName.endsWith('.json')) {
-        const jsonContent = JSON.parse(buffer.toString('utf-8'));
-        parsedCoding = Array.isArray(jsonContent) ? jsonContent : jsonContent.problems || [];
-      } else {
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
-
-        for (const row of rows) {
-          const title = row['Title'] || row['title'];
-          const description = row['Description'] || row['description'];
-          if (!title || !description) continue;
-
-          const sampleInput = String(row['Sample Input'] || row['sampleInput'] || '');
-          const sampleOutput = String(row['Sample Output'] || row['sampleOutput'] || '');
-
-          const testCases = [
-            {
-              input: sampleInput,
-              expectedOutput: sampleOutput,
-              isHidden: false,
-            },
-          ];
-
-          const hiddenIn = row['Hidden Input 1'] || row['hiddenInput1'];
-          const hiddenOut = row['Hidden Output 1'] || row['hiddenOutput1'];
-          if (hiddenOut) {
-            testCases.push({
-              input: String(hiddenIn || ''),
-              expectedOutput: String(hiddenOut),
-              isHidden: true,
-            });
-          }
-
-          const rawMode = row['Coding Mode'] || row['codingMode'] || row['Mode'] || row['mode'];
-          let codingMode: 'ONLY_CODE' | 'TEST_CASES' | 'BOTH' = 'BOTH';
-          if (rawMode) {
-            const norm = String(rawMode).trim().toUpperCase();
-            if (norm === 'ONLY_CODE' || norm === 'CODE_ONLY' || norm === 'ONLY CODE') {
-              codingMode = 'ONLY_CODE';
-            } else if (norm === 'TEST_CASES' || norm === 'TEST_CASE' || norm === 'TEST CASES' || norm === 'TESTCASE') {
-              codingMode = 'TEST_CASES';
-            } else {
-              codingMode = 'BOTH';
-            }
-          }
-
-          parsedCoding.push({
-            title: String(title).trim(),
-            description: String(description).trim(),
-            codingMode,
-            inputFormat: String(row['Input Format'] || row['inputFormat'] || ''),
-            outputFormat: String(row['Output Format'] || row['outputFormat'] || ''),
-            constraints: String(row['Constraints'] || row['constraints'] || ''),
-            difficulty: (['Easy', 'Medium', 'Hard'].includes(row['Difficulty'])
-              ? row['Difficulty']
-              : 'Medium') as any,
-            points: Number(row['Points'] || row['points']) || 30,
-            allowedLanguages: ['python', 'javascript', 'cpp', 'java', 'c'],
-            starterCode: {
-              python: '# Write solution here\n',
-              javascript: '// Write solution here\n',
-              cpp: '#include <iostream>\nusing namespace std;\nint main() {\n  return 0;\n}\n',
-              java: 'import java.util.*;\npublic class Main {\n  public static void main(String[] args) {\n  }\n}\n',
-              c: '#include <stdio.h>\nint main() {\n  return 0;\n}\n',
-            },
-            sampleInput,
-            sampleOutput,
-            testCases,
-          });
-        }
-      }
+      const parsedCoding = parseCodingBuffer(buffer, fileName);
 
       if (parsedCoding.length === 0) {
         return reply.status(400).send({
@@ -905,12 +976,47 @@ export const downloadArenaSampleTemplate = async (
   try {
     const { type } = request.params;
 
-    if (type === 'coding') {
+    if (type === 'paper' || type === 'paper-submission' || type === 'manual') {
+      const samplePaper = [
+        {
+          'Roll Number / Email': '7376221CS101',
+          'Total Score': 85,
+          'MCQ Score': 35,
+          'Coding Score': 50,
+          'Max Possible Score': 100,
+          'Notes': 'Classroom paper answer sheet evaluation',
+        },
+        {
+          'Roll Number / Email': 'student.cs26@bitsathy.ac.in',
+          'Total Score': 92,
+          'MCQ Score': 42,
+          'Coding Score': 50,
+          'Max Possible Score': 100,
+          'Notes': 'Offline lab evaluation',
+        },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(samplePaper);
+      XLSX.utils.book_append_sheet(wb, ws, 'Paper Submissions');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+      reply.header(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      reply.header(
+        'Content-Disposition',
+        'attachment; filename="paper_submission_sample_template.xlsx"'
+      );
+      return reply.send(buffer);
+    } else if (type === 'coding') {
       const sampleCoding = [
         {
           Title: 'Sum of Two Numbers',
           Description: 'Given two integers a and b, compute and print their sum.',
           'Coding Mode': 'TEST_CASES',
+          'Allowed Languages': 'python, javascript, cpp, java, c',
           'Input Format': 'Two space-separated integers a and b.',
           'Output Format': 'Single integer representing the sum.',
           Constraints: '1 <= a, b <= 10^5',
@@ -925,6 +1031,7 @@ export const downloadArenaSampleTemplate = async (
           Title: 'Reverse a String',
           Description: 'Given a string S, print the reversed string.',
           'Coding Mode': 'ONLY_CODE',
+          'Allowed Languages': 'python, java',
           'Input Format': 'A single string S.',
           'Output Format': 'The reversed string.',
           Constraints: '1 <= length(S) <= 1000',
@@ -939,6 +1046,7 @@ export const downloadArenaSampleTemplate = async (
           Title: 'Maximum of Three Numbers',
           Description: 'Given three integers, find and output the largest of them.',
           'Coding Mode': 'BOTH',
+          'Allowed Languages': 'c, cpp',
           'Input Format': 'Three integers on a single line.',
           'Output Format': 'The maximum integer.',
           Constraints: '1 <= a, b, c <= 10^6',
@@ -954,6 +1062,77 @@ export const downloadArenaSampleTemplate = async (
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(sampleCoding);
       XLSX.utils.book_append_sheet(wb, ws, 'Coding Challenges');
+
+      const instructions = [
+        {
+          Column: 'Title',
+          Required: 'YES',
+          Description: 'Problem title or headline.',
+        },
+        {
+          Column: 'Description',
+          Required: 'YES',
+          Description: 'Detailed problem description and requirements.',
+        },
+        {
+          Column: 'Coding Mode',
+          Required: 'NO',
+          Description: 'TEST_CASES (auto-graded), ONLY_CODE (manual review), or BOTH (student choice, default).',
+        },
+        {
+          Column: 'Allowed Languages',
+          Required: 'NO',
+          Description: 'Comma-separated list of allowed programming languages (e.g. "python, java" or "c, cpp"). Supported: python, javascript, cpp, java, c. Leave blank to allow all languages.',
+        },
+        {
+          Column: 'Difficulty',
+          Required: 'NO',
+          Description: 'Easy, Medium, or Hard (defaults to Medium).',
+        },
+        {
+          Column: 'Points',
+          Required: 'NO',
+          Description: 'Points awarded for completing this challenge (defaults to 30).',
+        },
+        {
+          Column: 'Input Format',
+          Required: 'NO',
+          Description: 'Structure and types of standard input.',
+        },
+        {
+          Column: 'Output Format',
+          Required: 'NO',
+          Description: 'Structure and format of expected standard output.',
+        },
+        {
+          Column: 'Constraints',
+          Required: 'NO',
+          Description: 'Time, space, and variable value constraints.',
+        },
+        {
+          Column: 'Sample Input',
+          Required: 'NO',
+          Description: 'Visible public input example shown to students.',
+        },
+        {
+          Column: 'Sample Output',
+          Required: 'NO',
+          Description: 'Visible public expected output shown to students.',
+        },
+        {
+          Column: 'Hidden Input 1',
+          Required: 'NO',
+          Description: 'Hidden test case input used for automated grading.',
+        },
+        {
+          Column: 'Hidden Output 1',
+          Required: 'NO',
+          Description: 'Hidden test case expected output used for automated grading.',
+        },
+      ];
+      const wsInstructions = XLSX.utils.json_to_sheet(instructions);
+      XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions');
+
       const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
       reply.header(
@@ -1203,6 +1382,14 @@ export const runArenaCode = async (
       return reply.status(404).send({ success: false, error: 'Coding problem not found' });
     }
 
+    const allowedLanguages = normalizeArenaAllowedLanguages(problem.allowedLanguages);
+    if (!allowedLanguages.includes((language || '').toLowerCase().trim())) {
+      return reply.status(400).send({
+        success: false,
+        error: `Language "${language}" is not permitted for this problem. Allowed languages: ${allowedLanguages.join(', ')}`,
+      });
+    }
+
     const visibleTestCases = (problem.testCases || []).filter((tc: any) => !tc.isHidden);
     const testCasesToRun =
       visibleTestCases.length > 0
@@ -1305,6 +1492,14 @@ export const submitArenaCodingProblem = async (
 
     if (!problem) {
       return reply.status(404).send({ success: false, error: 'Coding problem not found' });
+    }
+
+    const allowedLanguages = normalizeArenaAllowedLanguages(problem.allowedLanguages);
+    if (!allowedLanguages.includes((language || '').toLowerCase().trim())) {
+      return reply.status(400).send({
+        success: false,
+        error: `Language "${language}" is not permitted for this problem. Allowed languages: ${allowedLanguages.join(', ')}`,
+      });
     }
 
     const allTestCases = problem.testCases || [];
@@ -1536,11 +1731,28 @@ export const getArenaLeaderboard = async (
       status: { $in: ['SUBMITTED', 'AUTO_SUBMITTED'] },
     })
       .populate('userId', 'name rollNo email profilePicUrl department')
-      .sort({ totalScore: -1, submittedAt: 1 })
-      .limit(100)
       .lean();
 
-    const leaderboard = submissions.map((s: any, idx: number) => ({
+    // Sort: 1) score descending, 2) student name alphabetically (A-Z) on tie, 3) submittedAt
+    submissions.sort((a: any, b: any) => {
+      const scoreA = Number(a.totalScore ?? 0);
+      const scoreB = Number(b.totalScore ?? 0);
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      const nameA = (a.userId?.name || '').trim().toLowerCase();
+      const nameB = (b.userId?.name || '').trim().toLowerCase();
+      if (nameA && nameB && nameA !== nameB) {
+        return nameA.localeCompare(nameB);
+      }
+      if (nameA && !nameB) return -1;
+      if (!nameA && nameB) return 1;
+      const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return dateA - dateB;
+    });
+
+    const leaderboard = submissions.slice(0, 100).map((s: any, idx: number) => ({
       rank: idx + 1,
       student: s.userId,
       totalScore: s.totalScore,
@@ -2232,10 +2444,15 @@ export const saveAssessmentCodingProblems = async (
       assessment.questions = { mcqs: [], coding: [] };
     }
 
+    const sanitizedProblems = problems.map((p) => ({
+      ...p,
+      allowedLanguages: normalizeArenaAllowedLanguages(p.allowedLanguages),
+    }));
+
     if (mode === 'append') {
-      assessment.questions.coding = [...(assessment.questions.coding || []), ...problems];
+      assessment.questions.coding = [...(assessment.questions.coding || []), ...sanitizedProblems];
     } else {
-      assessment.questions.coding = problems;
+      assessment.questions.coding = sanitizedProblems;
     }
 
     const mcqPoints = (assessment.questions.mcqs || []).reduce((sum, q) => sum + (q.points || 10), 0);
@@ -2390,8 +2607,29 @@ export const getAdminAssessmentSubmissions = async (
       .populate('teamId', 'name')
       .populate('designSubmission.evaluatedBy', 'name email role')
       .populate('enteredBy', 'name email role')
-      .sort({ totalScore: -1, timeTakenSeconds: 1, submittedAt: 1 })
       .lean();
+
+    // Sort submissions: 1) highest score, 2) ties broken by student name alphabetically (A-Z), 3) timeTaken, 4) submittedAt
+    submissions.sort((a: any, b: any) => {
+      const scoreA = Number(a.totalScore ?? 0);
+      const scoreB = Number(b.totalScore ?? 0);
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      const nameA = (a.userId?.name || '').trim().toLowerCase();
+      const nameB = (b.userId?.name || '').trim().toLowerCase();
+      if (nameA && nameB && nameA !== nameB) {
+        return nameA.localeCompare(nameB);
+      }
+      if (nameA && !nameB) return -1;
+      if (!nameA && nameB) return 1;
+      const timeA = Number(a.timeTakenSeconds ?? 0);
+      const timeB = Number(b.timeTakenSeconds ?? 0);
+      if (timeA !== timeB) return timeA - timeB;
+      const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return dateA - dateB;
+    });
 
     // Query blocked status for each student in this event
     const userIds = submissions.map((s: any) => s.userId?._id).filter(Boolean);
@@ -2481,24 +2719,48 @@ export const checkAssessmentQualification = async (
     return { isQualified: true };
   }
 
-  // Find top N on the previous round's leaderboard strictly by rank (score & speed), not by passing %
-  const topSubmissions = await EventArenaSubmission.find({
+  // Find top N on the previous round's leaderboard strictly by rank (score, with ties broken alphabetically by name)
+  const submissions = await EventArenaSubmission.find({
     eventId: event._id,
     assessmentId: prevAssessment._id.toString(),
     status: { $in: ['SUBMITTED', 'AUTO_SUBMITTED', 'COMPLETED'] },
   })
-    .sort({ totalScore: -1, timeTakenSeconds: 1, submittedAt: 1 })
-    .limit(cutoffRank)
+    .populate('userId', 'name')
     .lean();
 
-  const isUserQualified = topSubmissions.some(
-    (sub: any) => sub.userId.toString() === userId.toString()
-  );
+  // Sort: 1) totalScore desc, 2) student name A-Z on tie, 3) timeTakenSeconds asc, 4) submittedAt asc
+  submissions.sort((a: any, b: any) => {
+    const scoreA = Number(a.totalScore ?? 0);
+    const scoreB = Number(b.totalScore ?? 0);
+    if (scoreB !== scoreA) {
+      return scoreB - scoreA;
+    }
+    const nameA = (a.userId?.name || '').trim().toLowerCase();
+    const nameB = (b.userId?.name || '').trim().toLowerCase();
+    if (nameA && nameB && nameA !== nameB) {
+      return nameA.localeCompare(nameB);
+    }
+    if (nameA && !nameB) return -1;
+    if (!nameA && nameB) return 1;
+    const timeA = Number(a.timeTakenSeconds ?? 0);
+    const timeB = Number(b.timeTakenSeconds ?? 0);
+    if (timeA !== timeB) return timeA - timeB;
+    const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+    const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+    return dateA - dateB;
+  });
+
+  const topSubmissions = submissions.slice(0, cutoffRank);
+
+  const isUserQualified = topSubmissions.some((sub: any) => {
+    const subUserId = sub.userId?._id ? sub.userId._id.toString() : sub.userId?.toString();
+    return subUserId === userId.toString();
+  });
 
   if (!isUserQualified) {
     return {
       isQualified: false,
-      reason: `Only top ${cutoffRank} participants from ${prevAssessment.title} qualify for this round. Your rank did not meet the Top ${cutoffRank} cutoff.`,
+      reason: `Only top ${cutoffRank} participants from ${prevAssessment.title} qualify for this round. Your rank did not meet the Top ${cutoffRank} cutoff (qualification is based on highest score, then alphabetical order by student name for ties).`,
       requiredRank: cutoffRank,
       previousRoundTitle: prevAssessment.title,
     };
@@ -2784,6 +3046,8 @@ export const startAssessmentSession = async (
         return reply.status(403).send({
           success: false,
           error: qualCheck.reason,
+          isDisqualifiedByRank: true,
+          qualification: qualCheck,
         });
       }
     }
@@ -2817,17 +3081,46 @@ export const startAssessmentSession = async (
     }
 
     if (!submission) {
-      submission = await EventArenaSubmission.create({
-        eventId: event._id,
-        assessmentId,
-        userId: user._id,
-        teamId: userTeamId,
-        teamName: userTeamName,
-        status: 'IN_PROGRESS',
-        startedAt: now,
-        expiresAt: calculatedExpiresAt,
-        maxPossibleScore: assessment.totalPoints || 100,
-      });
+      try {
+        submission = await EventArenaSubmission.create({
+          eventId: event._id,
+          assessmentId,
+          userId: user._id,
+          teamId: userTeamId,
+          teamName: userTeamName,
+          status: 'IN_PROGRESS',
+          startedAt: now,
+          expiresAt: calculatedExpiresAt,
+          maxPossibleScore: assessment.totalPoints || 100,
+        });
+      } catch (createErr: any) {
+        if (createErr?.code === 11000) {
+          if (createErr.message?.includes('eventId_1_userId_1')) {
+            console.warn('[EventArena] Caught E11000 on legacy index eventId_1_userId_1 in startAssessmentSession. Dropping index and retrying...');
+            await dropLegacyArenaSubmissionIndex();
+            submission = await EventArenaSubmission.create({
+              eventId: event._id,
+              assessmentId,
+              userId: user._id,
+              teamId: userTeamId,
+              teamName: userTeamName,
+              status: 'IN_PROGRESS',
+              startedAt: now,
+              expiresAt: calculatedExpiresAt,
+              maxPossibleScore: assessment.totalPoints || 100,
+            });
+          } else {
+            submission = await EventArenaSubmission.findOne({
+              eventId: event._id,
+              assessmentId,
+              userId: user._id,
+            });
+            if (!submission) throw createErr;
+          }
+        } else {
+          throw createErr;
+        }
+      }
     } else {
       const hasFutureExpiry = submission.expiresAt && new Date(submission.expiresAt).getTime() > now.getTime();
       if (submission.reentryAllowed || hasFutureExpiry || ((submission.graceMinutes || 0) > 0)) {
@@ -2892,6 +3185,14 @@ export const runAssessmentCode = async (
       (p: any) => p._id.toString() === problemId
     );
     if (!problem) return reply.status(404).send({ success: false, error: 'Coding problem not found' });
+
+    const allowedLanguages = normalizeArenaAllowedLanguages(problem.allowedLanguages);
+    if (!allowedLanguages.includes((language || '').toLowerCase().trim())) {
+      return reply.status(400).send({
+        success: false,
+        error: `Language "${language}" is not permitted for this problem. Allowed languages: ${allowedLanguages.join(', ')}`,
+      });
+    }
 
     // If customInput is explicitly provided, run a single test case with the custom input
     if (typeof customInput === 'string') {
@@ -3036,6 +3337,14 @@ export const submitAssessmentCodingProblem = async (
       (p: any) => p._id.toString() === problemId
     );
     if (!problem) return reply.status(404).send({ success: false, error: 'Coding problem not found' });
+
+    const allowedLanguages = normalizeArenaAllowedLanguages(problem.allowedLanguages);
+    if (!allowedLanguages.includes((language || '').toLowerCase().trim())) {
+      return reply.status(400).send({
+        success: false,
+        error: `Language "${language}" is not permitted for this problem. Allowed languages: ${allowedLanguages.join(', ')}`,
+      });
+    }
 
     const pointsPossible = problem.points || 30;
     let passedCount = 0;
@@ -3241,7 +3550,45 @@ export const submitAssessmentFinal = async (
     submission.submittedAt = now;
     submission.timeTakenSeconds = timeTakenSeconds;
 
-    await submission.save();
+    try {
+      await submission.save();
+    } catch (saveErr: any) {
+      if (saveErr?.code === 11000) {
+        if (saveErr.message?.includes('eventId_1_userId_1')) {
+          console.warn('[EventArena] Caught E11000 on legacy index eventId_1_userId_1 in submitAssessmentFinal. Dropping index and retrying save...');
+          await dropLegacyArenaSubmissionIndex();
+          await submission.save();
+        } else {
+          // Race condition with concurrent submission: re-fetch and apply final scores
+          const existing = await EventArenaSubmission.findOne({
+            eventId: event._id,
+            assessmentId,
+            userId: user._id,
+          });
+          if (existing) {
+            existing.mcqAnswers = submission.mcqAnswers;
+            existing.mcqScore = submission.mcqScore;
+            existing.codingScore = submission.codingScore;
+            existing.rawTotalScore = submission.rawTotalScore;
+            existing.tabSwitchCount = submission.tabSwitchCount;
+            existing.tabSwitchPenaltyPercentage = submission.tabSwitchPenaltyPercentage;
+            existing.totalScore = submission.totalScore;
+            existing.maxPossibleScore = submission.maxPossibleScore;
+            existing.scorePercentage = submission.scorePercentage;
+            existing.isPassed = submission.isPassed;
+            existing.status = submission.status;
+            existing.submittedAt = submission.submittedAt;
+            existing.timeTakenSeconds = submission.timeTakenSeconds;
+            submission = existing;
+            await submission.save();
+          } else {
+            throw saveErr;
+          }
+        }
+      } else {
+        throw saveErr;
+      }
+    }
 
     // Credit points scored in this round to student's account and PointTransaction ledger
     const previousPointsAwarded = submission.pointsAwardedAmount || 0;
@@ -3318,11 +3665,31 @@ export const getAssessmentLeaderboard = async (
     })
       .populate('userId', 'name rollNo email profilePicUrl department residenceType')
       .populate('teamId', 'name')
-      .sort({ totalScore: -1, timeTakenSeconds: 1, submittedAt: 1 })
-      .limit(100)
       .lean();
 
-    const leaderboard = submissions.map((s: any, idx: number) => ({
+    // Sort: highest score, ties broken alphabetically by student name (A-Z)
+    submissions.sort((a: any, b: any) => {
+      const scoreA = Number(a.totalScore ?? 0);
+      const scoreB = Number(b.totalScore ?? 0);
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      const nameA = (a.userId?.name || '').trim().toLowerCase();
+      const nameB = (b.userId?.name || '').trim().toLowerCase();
+      if (nameA && nameB && nameA !== nameB) {
+        return nameA.localeCompare(nameB);
+      }
+      if (nameA && !nameB) return -1;
+      if (!nameA && nameB) return 1;
+      const timeA = Number(a.timeTakenSeconds ?? 0);
+      const timeB = Number(b.timeTakenSeconds ?? 0);
+      if (timeA !== timeB) return timeA - timeB;
+      const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return dateA - dateB;
+    });
+
+    const leaderboard = submissions.slice(0, 100).map((s: any, idx: number) => ({
       rank: idx + 1,
       student: s.userId,
       teamName: s.teamName || s.teamId?.name || null,
@@ -3421,6 +3788,13 @@ export const getAdminOverallArenaLeaderboard = async (
     const leaderboard = Object.values(studentMap)
       .sort((a, b) => {
         if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+        const nameA = (a.student?.name || '').trim().toLowerCase();
+        const nameB = (b.student?.name || '').trim().toLowerCase();
+        if (nameA && nameB && nameA !== nameB) {
+          return nameA.localeCompare(nameB);
+        }
+        if (nameA && !nameB) return -1;
+        if (!nameA && nameB) return 1;
         return a.totalTimeTakenSeconds - b.totalTimeTakenSeconds;
       })
       .map((entry, idx) => ({
@@ -3650,7 +4024,34 @@ export const submitAssessmentDesign = async (
     submission.submittedAt = new Date();
     submission.maxPossibleScore = assessment.totalPoints || 100;
 
-    await submission.save();
+    try {
+      await submission.save();
+    } catch (saveErr: any) {
+      if (saveErr?.code === 11000) {
+        if (saveErr.message?.includes('eventId_1_userId_1')) {
+          console.warn('[EventArena] Caught E11000 on legacy index eventId_1_userId_1 in submitAssessmentDesign. Dropping index and retrying save...');
+          await dropLegacyArenaSubmissionIndex();
+          await submission.save();
+        } else {
+          const existing = await EventArenaSubmission.findOne({
+            eventId: event._id,
+            assessmentId,
+            userId: user._id,
+          });
+          if (existing) {
+            existing.designSubmission = submission.designSubmission;
+            existing.status = 'SUBMITTED';
+            existing.submittedAt = submission.submittedAt;
+            submission = existing;
+            await submission.save();
+          } else {
+            throw saveErr;
+          }
+        }
+      } else {
+        throw saveErr;
+      }
+    }
 
     const isAdminUser = ['Admin', 'SuperAdmin', 'Faculty', 'Committee'].includes(user.role);
     const returnSub = isAdminUser ? submission : {
@@ -3659,7 +4060,7 @@ export const submitAssessmentDesign = async (
       assessmentId: submission.assessmentId,
       status: submission.status,
       submittedAt: submission.submittedAt,
-      designSubmission: {
+      designSubmission: submission.designSubmission ? {
         selectedChallengeId: submission.designSubmission.selectedChallengeId,
         selectedChallengeTitle: submission.designSubmission.selectedChallengeTitle,
         figmaLink: submission.designSubmission.figmaLink,
@@ -3668,7 +4069,7 @@ export const submitAssessmentDesign = async (
         submittedAt: submission.designSubmission.submittedAt,
         isEvaluated: submission.designSubmission.isEvaluated,
         feedback: submission.designSubmission.feedback,
-      },
+      } : null,
     };
 
     return reply.send({
@@ -4350,7 +4751,44 @@ export const createOrUpdateManualSubmission = async (
       details: `Manual score of ${numTotalScore}/${maxPossibleScore} entered by admin ${user.name || user.email}. Notes: ${submission.manualNotes}`,
     });
 
-    await submission.save();
+    try {
+      await submission.save();
+    } catch (saveErr: any) {
+      if (saveErr?.code === 11000) {
+        if (saveErr.message?.includes('eventId_1_userId_1')) {
+          console.warn('[EventArena] Caught E11000 on legacy index eventId_1_userId_1 in createOrUpdateManualSubmission. Dropping index and retrying save...');
+          await dropLegacyArenaSubmissionIndex();
+          await submission.save();
+        } else {
+          const existing = await EventArenaSubmission.findOne({
+            eventId: event._id,
+            assessmentId,
+            userId: targetUser._id,
+          });
+          if (existing) {
+            existing.status = 'SUBMITTED';
+            existing.submittedAt = now;
+            existing.totalScore = numTotalScore;
+            existing.rawTotalScore = numTotalScore;
+            existing.maxPossibleScore = maxPossibleScore;
+            existing.scorePercentage = scorePercentage;
+            existing.isPassed = finalIsPassed;
+            existing.isManualSubmission = true;
+            existing.manualNotes = submission.manualNotes;
+            existing.enteredBy = submission.enteredBy;
+            if (mcqScore !== undefined && !isNaN(Number(mcqScore))) existing.mcqScore = Number(mcqScore);
+            if (codingScore !== undefined && !isNaN(Number(codingScore))) existing.codingScore = Number(codingScore);
+            if (designScore !== undefined && !isNaN(Number(designScore))) existing.designScore = Number(designScore);
+            submission = existing;
+            await submission.save();
+          } else {
+            throw saveErr;
+          }
+        }
+      } else {
+        throw saveErr;
+      }
+    }
 
     // Ensure student is unblocked if they had anti-cheat lockout
     await Enrollment.updateMany(
@@ -4376,6 +4814,246 @@ export const createOrUpdateManualSubmission = async (
     return reply.status(500).send({
       success: false,
       error: err.message || 'Failed to record manual submission',
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// 32.5 Bulk Upload Paper / Manual Submissions (Excel / CSV / JSON)
+// ---------------------------------------------------------------------------
+export const bulkUploadManualSubmissions = async (
+  request: FastifyRequest<{
+    Params: { id: string; assessmentId: string };
+    Body: {
+      rows?: any[];
+    };
+  }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    const { id, assessmentId } = request.params;
+
+    const event = await Event.findById(id);
+    if (!event) return reply.status(404).send({ success: false, error: 'Event not found' });
+
+    const assessment = (event.arenaAssessments || []).find(
+      (a: any) => a._id.toString() === assessmentId
+    );
+    if (!assessment) return reply.status(404).send({ success: false, error: 'Assessment not found' });
+
+    if (!canManageAssessmentQuestions(user, event, assessment)) {
+      return reply.status(403).send({
+        success: false,
+        error: 'Access denied: You are not authorized to upload submissions for this assessment.',
+      });
+    }
+
+    let rawRows: any[] = [];
+
+    // Support multipart file upload if sent as a file
+    if ((request as any).isMultipart && (request as any).isMultipart()) {
+      const data = await (request as any).file();
+      if (data) {
+        const buffer = await data.toBuffer();
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        const firstSheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[firstSheetName];
+        rawRows = XLSX.utils.sheet_to_json(sheet);
+      }
+    }
+
+    // Support JSON array payload
+    if (rawRows.length === 0 && request.body && Array.isArray((request.body as any).rows)) {
+      rawRows = (request.body as any).rows;
+    }
+
+    if (!Array.isArray(rawRows) || rawRows.length === 0) {
+      return reply.status(400).send({
+        success: false,
+        error: 'No rows found to upload. Please provide an Excel/CSV file or JSON rows.',
+      });
+    }
+
+    const defaultMaxPossible = assessment.totalPoints || 100;
+    const defaultPassThreshold = assessment.passingPercentage ?? 50;
+    const durationMinutes = assessment.durationMinutes || 60;
+    const now = new Date();
+
+    const results = {
+      total: rawRows.length,
+      successCount: 0,
+      errorCount: 0,
+      errors: [] as Array<{ row: number; identifier: string; error: string }>,
+    };
+
+    for (let i = 0; i < rawRows.length; i++) {
+      const row = rawRows[i];
+      const identifier = String(
+        row['Roll Number / Email'] ||
+        row['Roll Number'] ||
+        row['RollNo'] ||
+        row['rollNo'] ||
+        row['Email'] ||
+        row['email'] ||
+        row['Student'] ||
+        row['studentIdentifier'] ||
+        ''
+      ).trim();
+
+      if (!identifier) {
+        results.errorCount++;
+        results.errors.push({ row: i + 1, identifier: 'N/A', error: 'Missing student Roll Number or Email' });
+        continue;
+      }
+
+      const rawScore =
+        row['Total Score'] ??
+        row['Score'] ??
+        row['score'] ??
+        row['totalScore'] ??
+        row['Marks'] ??
+        row['marks'];
+
+      if (rawScore === undefined || rawScore === null || isNaN(Number(rawScore))) {
+        results.errorCount++;
+        results.errors.push({ row: i + 1, identifier, error: 'Valid numerical score is required' });
+        continue;
+      }
+
+      const numScore = Math.max(0, Number(rawScore));
+      const rawMax =
+        row['Max Possible Score'] ??
+        row['Max Score'] ??
+        row['maxScore'] ??
+        defaultMaxPossible;
+      const numMax = Math.max(1, Number(rawMax) || defaultMaxPossible);
+      const scorePercentage = Math.min(100, Math.round((numScore / numMax) * 100));
+      const isPassed = typeof row.isPassed === 'boolean'
+        ? row.isPassed
+        : scorePercentage >= defaultPassThreshold;
+
+      const mcqScore = row['MCQ Score'] ?? row['MCQ'] ?? row['mcqScore'];
+      const codingScore = row['Coding Score'] ?? row['Coding'] ?? row['codingScore'];
+      const designScore = row['Design Score'] ?? row['Design'] ?? row['designScore'];
+      const notes = row['Notes'] ?? row['Notes / Feedback'] ?? row['Feedback'] ?? row['notes'] ?? 'Paper / Offline Test Bulk Submission';
+
+      // Find user
+      let targetUser: any = null;
+      if (mongoose.Types.ObjectId.isValid(identifier)) {
+        targetUser = await User.findById(identifier).select('_id name email rollNo department year college residenceType');
+      }
+      if (!targetUser) {
+        targetUser = await User.findOne({
+          $or: [
+            { rollNo: { $regex: new RegExp(`^${identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+            { email: identifier.toLowerCase() },
+          ],
+        }).select('_id name email rollNo department year college residenceType');
+      }
+
+      if (!targetUser) {
+        results.errorCount++;
+        results.errors.push({ row: i + 1, identifier, error: `No student found matching Roll Number or Email "${identifier}"` });
+        continue;
+      }
+
+      // Upsert submission
+      let submission = await EventArenaSubmission.findOne({
+        eventId: event._id,
+        assessmentId,
+        userId: targetUser._id,
+      });
+
+      const startedAt = submission?.startedAt || new Date(now.getTime() - durationMinutes * 60000);
+
+      if (!submission) {
+        submission = new EventArenaSubmission({
+          eventId: event._id,
+          assessmentId,
+          userId: targetUser._id,
+          startedAt,
+          status: 'SUBMITTED',
+        });
+      }
+
+      submission.status = 'SUBMITTED';
+      submission.submittedAt = now;
+      submission.totalScore = numScore;
+      submission.rawTotalScore = numScore;
+      submission.maxPossibleScore = numMax;
+      submission.scorePercentage = scorePercentage;
+      submission.isPassed = isPassed;
+      submission.isManualSubmission = true;
+      submission.manualNotes = String(notes).trim();
+      submission.enteredBy = new mongoose.Types.ObjectId(user._id || user.id);
+      if (mcqScore !== undefined && !isNaN(Number(mcqScore))) submission.mcqScore = Number(mcqScore);
+      if (codingScore !== undefined && !isNaN(Number(codingScore))) submission.codingScore = Number(codingScore);
+      if (designScore !== undefined && !isNaN(Number(designScore))) submission.designScore = Number(designScore);
+
+      submission.integrityEvents = submission.integrityEvents || [];
+      submission.integrityEvents.push({
+        type: 'MANUAL_SCORE_BULK_UPLOAD',
+        timestamp: now,
+        details: `Bulk upload score of ${numScore}/${numMax} recorded by admin ${user.name || user.email}`,
+      });
+
+      try {
+        await submission.save();
+      } catch (saveErr: any) {
+        if (saveErr?.code === 11000) {
+          if (saveErr.message?.includes('eventId_1_userId_1')) {
+            await dropLegacyArenaSubmissionIndex();
+            await submission.save();
+          } else {
+            const existing = await EventArenaSubmission.findOne({
+              eventId: event._id,
+              assessmentId,
+              userId: targetUser._id,
+            });
+            if (existing) {
+              existing.status = 'SUBMITTED';
+              existing.submittedAt = now;
+              existing.totalScore = numScore;
+              existing.rawTotalScore = numScore;
+              existing.maxPossibleScore = numMax;
+              existing.scorePercentage = scorePercentage;
+              existing.isPassed = isPassed;
+              existing.isManualSubmission = true;
+              existing.manualNotes = submission.manualNotes;
+              existing.enteredBy = submission.enteredBy;
+              if (mcqScore !== undefined && !isNaN(Number(mcqScore))) existing.mcqScore = Number(mcqScore);
+              if (codingScore !== undefined && !isNaN(Number(codingScore))) existing.codingScore = Number(codingScore);
+              if (designScore !== undefined && !isNaN(Number(designScore))) existing.designScore = Number(designScore);
+              await existing.save();
+            }
+          }
+        }
+      }
+
+      // Unblock student in enrollment if blocked
+      await Enrollment.updateMany(
+        {
+          event: event._id,
+          $or: [{ enrolledBy: targetUser._id }, { members: targetUser._id }],
+        },
+        { $set: { isBlocked: false, blockReason: '' } }
+      );
+
+      results.successCount++;
+    }
+
+    return reply.send({
+      success: true,
+      message: `Successfully processed ${results.successCount} of ${results.total} paper submission(s).`,
+      results,
+    });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({
+      success: false,
+      error: err.message || 'Failed to bulk upload paper submissions',
     });
   }
 };
@@ -4520,5 +5198,45 @@ export const deleteArenaTeam = async (
     return reply.status(500).send({ success: false, error: 'Failed to delete team' });
   }
 };
+
+// ---------------------------------------------------------------------------
+// 34. Fix Legacy Arena Indexes (Admin utility)
+// ---------------------------------------------------------------------------
+export const fixArenaIndexes = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) return reply.status(401).send({ success: false, error: 'Unauthorized' });
+
+    const dropped = await dropLegacyArenaSubmissionIndex();
+
+    try {
+      await EventArenaSubmission.collection.createIndex(
+        { eventId: 1, assessmentId: 1, userId: 1 },
+        { unique: true, background: true }
+      );
+    } catch {
+      // index already exists or background
+    }
+
+    const indexes = await EventArenaSubmission.collection.indexes();
+    return reply.send({
+      success: true,
+      message: dropped
+        ? 'Legacy index eventId_1_userId_1 was successfully dropped!'
+        : 'Legacy index eventId_1_userId_1 is not present. Current indexes verified.',
+      currentIndexes: indexes.map((i) => i.name),
+    });
+  } catch (err: any) {
+    request.log.error(err);
+    return reply.status(500).send({
+      success: false,
+      error: err.message || 'Failed to sync arena indexes',
+    });
+  }
+};
+
 
 

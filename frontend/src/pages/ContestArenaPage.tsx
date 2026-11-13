@@ -708,7 +708,8 @@ export const ContestArenaPage: React.FC = () => {
                   {currentMcq.options.map((opt: string, optIdx: number) => {
                     const isSelected = mcqAnswers[currentMcq._id] === optIdx;
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={optIdx}
                         onClick={() =>
                           setMcqAnswers({
@@ -716,7 +717,7 @@ export const ContestArenaPage: React.FC = () => {
                             [currentMcq._id]: optIdx,
                           })
                         }
-                        className={`p-3.5 sm:p-4 min-h-[46px] rounded-xl sm:rounded-2xl border cursor-pointer transition-all flex items-center gap-3 sm:gap-3.5 text-xs font-medium ${
+                        className={`w-full text-left p-3.5 sm:p-4 min-h-[46px] rounded-xl sm:rounded-2xl border cursor-pointer transition-all flex items-center gap-3 sm:gap-3.5 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                           isSelected
                             ? 'bg-primary/10 border-primary text-label-primary shadow-xs ring-1 ring-primary'
                             : 'bg-surface border-separator hover:border-primary/40 text-label-secondary'
@@ -732,7 +733,7 @@ export const ContestArenaPage: React.FC = () => {
                           {String.fromCharCode(65 + optIdx)}
                         </span>
                         <span className="flex-1 break-words min-w-0">{opt}</span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

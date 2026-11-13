@@ -16,7 +16,7 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import { Button, Spinner } from '@heroui/react';
-import { HeroUISelect } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
 import useEventStore from '../../store/useEventStore';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';

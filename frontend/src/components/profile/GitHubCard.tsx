@@ -18,6 +18,7 @@ import {
 } from '../../hooks/useGitHubStats';
 import CountUp from '../ui/CountUp';
 import { EmilCard, EmilTooltipGroup } from '../ui/emil-ui';
+import { Link } from '@heroui/react';
 
 const EASE = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const;
 
@@ -174,16 +175,15 @@ export const GitHubCard: React.FC<GitHubCardProps> = ({
                 />
               ) : null}
 
-              <a
+              <Link
+                target="_blank" rel="noopener noreferrer"
                 href={`https://github.com/${displayHandle}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 className="flex items-center gap-1 text-[11px] font-medium rounded-full px-2.5 py-1 transition-colors duration-150 ease-out shrink-0 text-label-secondary bg-canvas border border-separator hover:text-label-primary hover:bg-surface-secondary"
               >
                 <ExternalLink size={10} strokeWidth={2} />
                 <span>Profile</span>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -240,16 +240,15 @@ export const GitHubCard: React.FC<GitHubCardProps> = ({
             ) : null}
 
             {stats?.blog ? (
-              <a
+              <Link
+                target="_blank" rel="noopener noreferrer"
                 href={stats.blog.startsWith('http') ? stats.blog : `https://${stats.blog}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center gap-1 text-[10.5px] font-medium px-2.5 py-1 rounded-lg transition-colors duration-150 ease-out bg-canvas text-label-secondary border border-separator hover:text-accent hover:border-accent"
               >
                 <Globe size={10} className="text-label-tertiary" />
                 <span className="truncate max-w-[140px]">{stats.blog.replace(/^https?:\/\//, '')}</span>
-              </a>
+              </Link>
             ) : null}
           </div>
         </div>

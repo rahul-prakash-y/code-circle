@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Button } from '@heroui/react';
-import { HeroInput } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import useContestStore, { LeaderboardEntry, Contest } from '../store/useContestStore';

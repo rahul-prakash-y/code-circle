@@ -34,7 +34,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { formatISTDateTime } from '../lib/dateUtils';
 import toast from 'react-hot-toast';
 import { Button } from '@heroui/react';
-import { HeroUISelect, HeroChip as Chip } from '../components/ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import { EmptyState, NoSearchResults } from '../components/states';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
@@ -1075,9 +1076,9 @@ export const PointsPage: React.FC = () => {
                                     <CatIcon size={12} />
                                     <span>{cat.label}</span>
                                   </span>
-                                  {tx.classHoursText && (
+                                  {(tx as any).classHoursText && (
                                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
-                                      {tx.classHoursText}
+                                      {(tx as any).classHoursText}
                                     </span>
                                   )}
                                 </div>

@@ -37,7 +37,7 @@ import EventModal from '../components/events/EventModal';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
 import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
 import MagneticCTA from '../components/ui/MagneticCTA';
-import { Button } from '@heroui/react';
+import { Button, Link as HeroLink } from '@heroui/react';
 
 // ── Scroll-driven hero (subtle depth, max 12-16px movement) ────────────────────
 const Hero = ({
@@ -336,16 +336,15 @@ const DashboardBearerCard = ({ bearer }: { bearer: StudentBearer }) => {
         </Link>
 
         {bearer.linkedinUrl && (
-          <a
+          <HeroLink
+            target="_blank" rel="noopener noreferrer"
             href={bearer.linkedinUrl}
-            target="_blank"
-            rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-label-tertiary hover:text-blue-500 hover:bg-canvas transition-colors cursor-pointer"
-            title={`Connect with ${bearer.name} on LinkedIn`}
+            aria-label={`Connect with ${bearer.name} on LinkedIn`}
           >
             <Linkedin size={13} strokeWidth={1.8} />
-          </a>
+          </HeroLink>
         )}
       </div>
     </div>

@@ -39,7 +39,12 @@ import LeetCodeCard from '../components/profile/LeetCodeCard';
 import HackerRankCard from '../components/profile/HackerRankCard';
 import GitHubCard from '../components/profile/GitHubCard';
 import { ProfileSkeleton } from '../components/ui/LoadingSkeleton';
-import { HeroAvatar, HeroInput, HeroTextarea, HeroDatePicker as DatePicker, HeroUISelect as Select, HeroChip as Chip } from '../components/ui/HeroUIComponents';
+import { HeroAvatar } from '@/components/ui/hero/HeroAvatar';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroDatePicker as DatePicker } from '@/components/ui/hero/HeroDatePicker';
+import { HeroUISelect as Select } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import { Button } from '@heroui/react';
 
 // Timezone-safe date formatter for YYYY-MM-DD strings
@@ -212,7 +217,12 @@ const Profile = () => {
       {/* Identity Header Card */}
       <div className="surface rounded-[18px] p-6 sm:p-8 border border-separator shadow-card relative">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          <div className="relative group cursor-pointer" onClick={() => setIsModalOpen(true)}>
+          <button
+            type="button"
+            aria-label="Change profile photo"
+            onClick={() => setIsModalOpen(true)}
+            className="relative group cursor-pointer rounded-full border-none bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
             <HeroAvatar
               src={profile.profilePicUrl}
               name={profile.name}
@@ -229,7 +239,7 @@ const Profile = () => {
                 <Loader2 className="animate-spin text-white" size={22} />
               </div>
             )}
-          </div>
+          </button>
 
           <div className="text-center sm:text-left flex-1 space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">

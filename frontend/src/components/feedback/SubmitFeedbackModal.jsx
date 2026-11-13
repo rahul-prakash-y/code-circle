@@ -13,7 +13,8 @@ import {
 import useFeedbackStore from '../../store/useFeedbackStore';
 import useEventStore from '../../store/useEventStore';
 import toast from 'react-hot-toast';
-import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 const categories = [
   'General',

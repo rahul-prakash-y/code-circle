@@ -5,7 +5,7 @@ import AuthLayout from '../layouts/AuthLayout';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Mail, Lock, User, Hash, Loader2 } from 'lucide-react';
-import { HeroInput } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
 import { Button } from '@heroui/react';
 
 const Register = () => {

@@ -23,7 +23,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
-import { Button } from '@heroui/react';
+import { Button, Link } from '@heroui/react';
 import toast from 'react-hot-toast';
 import EventArenaAdminModal from './EventArenaAdminModal';
 
@@ -212,15 +212,14 @@ export const EventDetailsModal = ({
                     Venue / Link
                   </p>
                   {isUrl ? (
-                    <a
+                    <Link
+                      target="_blank" rel="noopener noreferrer"
                       href={event.venueOrLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="text-sm font-bold text-accent hover:underline flex items-center gap-1 mt-0.5 truncate"
                     >
                       <span className="truncate">{event.venueOrLink}</span>
                       <ExternalLink size={13} className="shrink-0" />
-                    </a>
+                    </Link>
                   ) : (
                     <p className="text-sm font-bold text-label-primary mt-0.5 truncate">
                       {event.venueOrLink || 'Campus / Online'}
@@ -366,15 +365,14 @@ export const EventDetailsModal = ({
                     alt="Event Certificate Template" 
                     className="w-full h-40 object-contain"
                   />
-                  <a 
+                  <Link 
+                    target="_blank" rel="noopener noreferrer"
                     href={event.certificateTemplateUrl} 
-                    target="_blank" 
-                    rel="noreferrer"
                     className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-semibold"
                   >
                     <span>View Full Certificate Template</span>
                     <ExternalLink size={14} />
-                  </a>
+                  </Link>
                 </div>
               ) : (
                 <div className="p-4 rounded-2xl bg-canvas border border-separator text-xs text-label-secondary flex items-center gap-2.5">

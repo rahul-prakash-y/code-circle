@@ -81,10 +81,11 @@ const DownloadReportsModal = ({ isOpen, onClose }) => {
               const Icon = type.icon;
               const isSelected = selectedType === type.id;
               return (
-                <div
+                <button
+                  type="button"
                   key={type.id}
                   onClick={() => setSelectedType(type.id)}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 relative overflow-hidden ${
+                  className={`w-full p-4 rounded-2xl border cursor-pointer transition-all duration-300 relative overflow-hidden text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     isSelected
                       ? 'bg-surface-elevated border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]'
                       : 'bg-surface-elevated border-border hover:border-white/15'
@@ -97,7 +98,7 @@ const DownloadReportsModal = ({ isOpen, onClose }) => {
                     <span className="text-xs font-bold text-text-primary leading-tight">{type.title}</span>
                   </div>
                   <p className="text-[11px] text-text-muted leading-relaxed line-clamp-2">{type.description}</p>
-                </div>
+                </button>
               );
             })}
           </div>

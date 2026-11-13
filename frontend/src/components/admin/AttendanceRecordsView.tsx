@@ -33,7 +33,8 @@ import { format } from 'date-fns';
 import { formatISTDateTime } from '../../lib/dateUtils';
 import toast from 'react-hot-toast';
 import { getStudentCollege, getStudentYear } from '../../utils/studentUtils';
-import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import { useDebounce } from '../../hooks/useDebounce';
 import api from '../../lib/axios';
 

@@ -3,7 +3,9 @@ import api from '../lib/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { EmilCard } from '../components/ui/emil-ui';
-import { HeroInput, HeroTabs, HeroUser, HeroAvatar } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTabs } from '@/components/ui/hero/HeroTabs';
+import { HeroUser, HeroAvatar } from '@/components/ui/hero/HeroAvatar';
 import { Button, Checkbox } from '@heroui/react';
 import {
   KeyRound,

@@ -23,7 +23,9 @@ import useAnalyticsStore from '../../store/useAnalyticsStore';
 import useAuthStore from '../../store/useAuthStore';
 import { TableSkeleton } from '../ui/LoadingSkeleton';
 import { EmilCard } from '../ui/emil-ui';
-import { HeroAvatar, HeroUser, HeroInput, HeroTabs } from '../ui/HeroUIComponents';
+import { HeroAvatar, HeroUser } from '@/components/ui/hero/HeroAvatar';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTabs } from '@/components/ui/hero/HeroTabs';
 import { EmptyState, NoSearchResults } from '../states';
 
 // ── 3D Olympic Podium Component for Top 3 ──────────────────────────────

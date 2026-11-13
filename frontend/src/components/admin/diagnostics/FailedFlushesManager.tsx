@@ -33,7 +33,8 @@ import {
 import { Button } from '@heroui/react';
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
-import { HeroInput } from '../../ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import useAuthStore from '../../../store/useAuthStore';
 import useServerStore from '../../../store/useServerStore';
 
@@ -90,10 +91,6 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  // Hidden File Inputs for JSON import
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const singleItemFileRef = useRef<HTMLInputElement>(null);
 
   // Batch JSON Import Modal state
   const [jsonImportModalOpen, setJsonImportModalOpen] = useState(false);
@@ -217,10 +214,7 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleBatchFileSelect = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
@@ -230,9 +224,6 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
       toast.error('Failed to read file');
     };
     reader.readAsText(file);
-
-    // Reset input so same file can be selected again
-    e.target.value = '';
   };
 
   // Commit Parsed JSON to MongoDB Atlas
@@ -358,9 +349,8 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
   };
 
   // Single Item: Read JSON file to update this item
-  const handleSingleItemFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editItem) return;
+  const handleSingleItemFileSelect = (file: File) => {
+    if (!editItem) return;
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -390,7 +380,6 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
       }
     };
     reader.readAsText(file);
-    e.target.value = '';
   };
 
   // Submit Edit & Save
@@ -523,24 +512,6 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Hidden File Input for Batch JSON Import */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept=".json,application/json"
-        className="hidden"
-      />
-
-      {/* Hidden File Input for Single Item JSON Import */}
-      <input
-        type="file"
-        ref={singleItemFileRef}
-        onChange={handleSingleItemFileChange}
-        accept=".json,application/json"
-        className="hidden"
-      />
-
       {/* Top Banner & Control Deck */}
       <div className="bg-surface rounded-3xl border border-separator p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-separator/60">
@@ -576,17 +547,17 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {/* JSON File Import Button */}
-            <Button
-              size="sm"
-              radius="lg"
-              variant="solid"
+            <HeroFileInput
+              variant="button"
+              buttonText="Upload JSON File"
+              accept=".json,application/json"
+              onFilesSelected={(files) => {
+                if (files[0]) handleBatchFileSelect(files[0]);
+              }}
               color="primary"
-              onPress={() => fileInputRef.current?.click()}
-              className="text-xs font-bold h-9 px-3.5 shadow-sm text-white flex items-center gap-1.5"
               startContent={<Upload size={13} />}
-            >
-              Upload JSON File
-            </Button>
+              showChips={false}
+            />
 
             {/* Export JSON Button */}
             <Button
@@ -678,16 +649,17 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
             </p>
           </div>
           <div className="flex items-center justify-center gap-2 pt-2">
-            <Button
-              size="sm"
+            <HeroFileInput
+              variant="button"
+              buttonText="Update from JSON File"
+              accept=".json,application/json"
+              onFilesSelected={(files) => {
+                if (files[0]) handleBatchFileSelect(files[0]);
+              }}
               color="primary"
-              variant="flat"
-              onPress={() => fileInputRef.current?.click()}
               startContent={<Upload size={13} />}
-              className="text-xs font-semibold"
-            >
-              Update from JSON File
-            </Button>
+              showChips={false}
+            />
             <Button
               size="sm"
               variant="flat"
@@ -944,15 +916,17 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
                 </button>
               </div>
 
-              <Button
-                size="sm"
-                variant="flat"
-                onPress={() => fileInputRef.current?.click()}
+              <HeroFileInput
+                variant="button"
+                buttonText="Choose Another File"
+                accept=".json,application/json"
+                onFilesSelected={(files) => {
+                  if (files[0]) handleBatchFileSelect(files[0]);
+                }}
+                color="default"
                 startContent={<Upload size={12} />}
-                className="text-xs font-semibold"
-              >
-                Choose Another File
-              </Button>
+                showChips={false}
+              />
             </div>
 
             {/* Content Body */}
@@ -1135,16 +1109,17 @@ export const FailedFlushesManager: React.FC<FailedFlushesManagerProps> = ({ onRe
               </div>
 
               {/* Upload JSON file for this single item */}
-              <Button
-                size="sm"
-                variant="flat"
-                onPress={() => singleItemFileRef.current?.click()}
+              <HeroFileInput
+                variant="button"
+                buttonText="Load from JSON File"
+                accept=".json,application/json"
+                onFilesSelected={(files) => {
+                  if (files[0]) handleSingleItemFileSelect(files[0]);
+                }}
                 startContent={<FileUp size={12} />}
-                className="text-xs font-semibold"
-                title="Populate this submission from a local JSON file"
-              >
-                Load from JSON File
-              </Button>
+                color="default"
+                showChips={false}
+              />
             </div>
 
             {/* Mode 1: Visual Form */}

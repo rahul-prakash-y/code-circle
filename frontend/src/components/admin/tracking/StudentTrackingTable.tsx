@@ -48,7 +48,8 @@ import {
   EmilTooltipGroup,
   EmilTooltip,
 } from '@/components/ui/emil-ui';
-import { HeroInput, HeroUser, HeroAvatar } from '@/components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroUser, HeroAvatar } from '@/components/ui/hero/HeroAvatar';
 import { HeroUISelect } from '@/components/ui/HeroUISelect';
 
 export interface StudentSummary {

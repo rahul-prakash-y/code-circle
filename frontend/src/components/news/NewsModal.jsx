@@ -3,7 +3,7 @@ import { X, Image as ImageIcon, Calendar, Tag, Pin, FileText, Loader2, Sparkles 
 import useNewsStore from '../../store/useNewsStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../ui/ResponsiveModal';
-import { HeroDatePicker } from '../ui/HeroUIComponents';
+import { HeroDatePicker } from '@/components/ui/hero/HeroDatePicker';
 import { formatDateToISTDateInput } from '../../lib/dateUtils';
 
 const DEFAULT_COVER = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80';

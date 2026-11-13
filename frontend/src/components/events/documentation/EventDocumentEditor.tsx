@@ -22,7 +22,8 @@ import {
 import toast from 'react-hot-toast';
 import { EmilCard, EmilButton } from '../../ui/emil-ui';
 import api from '../../../lib/axios';
-import { HeroUISelect, HeroChip as Chip } from '../../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 export interface EventDocumentEditorProps {
   eventId?: string;

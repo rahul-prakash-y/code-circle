@@ -26,6 +26,7 @@ import {
   Unlock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Link } from '@heroui/react';
 import api from '@/lib/axios';
 import { useGitHubStats, normalizeGitHubHandle } from '@/hooks/useGitHubStats';
 import { useLeetCodeStats } from '@/hooks/useLeetCodeStats';
@@ -464,15 +465,14 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                 <span>GitHub Stats</span>
               </div>
               {student.socialLinks?.github && (
-                <a
+                <Link
+                  target="_blank" rel="noopener noreferrer"
                   href={`https://github.com/${githubUser}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="text-xs text-accent hover:underline flex items-center gap-1 font-medium"
                 >
                   @{githubUser}
                   <ExternalLink className="w-3 h-3" />
-                </a>
+                </Link>
               )}
             </div>
 
@@ -522,15 +522,14 @@ export const Student360Profile: React.FC<Student360ProfileProps> = ({ userId, on
                 <span>LeetCode Stats</span>
               </div>
               {student.socialLinks?.leetcode && (
-                <a
+                <Link
+                  target="_blank" rel="noopener noreferrer"
                   href={`https://leetcode.com/${leetcodeUser}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="text-xs text-accent hover:underline flex items-center gap-1 font-medium"
                 >
                   @{leetcodeUser}
                   <ExternalLink className="w-3 h-3" />
-                </a>
+                </Link>
               )}
             </div>
 

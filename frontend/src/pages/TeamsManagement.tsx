@@ -875,10 +875,11 @@ const TeamsManagement: React.FC = () => {
                       })
                       .slice(0, 6)
                       .map((u) => (
-                        <div
+                        <button
+                          type="button"
                           key={u._id}
                           onClick={() => handleAddMember(u._id)}
-                          className="flex items-center justify-between p-2 rounded-lg bg-canvas hover:bg-surface-elevated border border-separator cursor-pointer transition-colors"
+                          className="w-full flex items-center justify-between p-2 rounded-lg bg-canvas hover:bg-surface-elevated border border-separator cursor-pointer transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                           <div className="min-w-0">
                             <p className="text-xs font-medium text-text-primary truncate">{u.name}</p>
@@ -889,7 +890,7 @@ const TeamsManagement: React.FC = () => {
                           <span className="text-[11px] font-medium text-accent hover:underline px-2 py-0.5 whitespace-nowrap">
                             + Map
                           </span>
-                        </div>
+                        </button>
                       ))}
                   </div>
                 )}

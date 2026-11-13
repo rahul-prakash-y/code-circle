@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 import ResponsiveModal from '../ui/ResponsiveModal';
 import McqBulkUploadModal from './McqBulkUploadModal';
 import TutorialButton from '../common/TutorialButton';
-import { HeroUISelect } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
 
 const categories = ['Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
 

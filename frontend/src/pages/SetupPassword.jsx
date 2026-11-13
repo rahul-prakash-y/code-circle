@@ -4,7 +4,7 @@ import { ShieldCheck, Lock, KeyRound, Eye, EyeOff, CheckCircle2, Loader2, LogOut
 import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import { EmilButton } from '../components/ui/emil-ui';
-import { HeroInput } from '../components/ui/HeroUIComponents';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
 import { Button } from '@heroui/react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import AuthLayout from '../layouts/AuthLayout';

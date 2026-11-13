@@ -16,13 +16,13 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner, Link } from '@heroui/react';
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import useEventStore from '../../store/useEventStore';
 import { formatISTDateTime, formatISTDate } from '../../lib/dateUtils';
 import HeroUISelect from '../ui/HeroUISelect';
-import { HeroDatePicker } from '../ui/HeroUIComponents';
+import { HeroDatePicker } from '@/components/ui/hero/HeroDatePicker';
 
 interface MissedEventRequestModalProps {
   isOpen: boolean;
@@ -471,15 +471,14 @@ export const MissedEventRequestModal: React.FC<MissedEventRequestModalProps> = (
                         {/* Proof Link if exists */}
                         {req.proofUrl && (
                           <div className="text-xs">
-                            <a
+                            <Link
+                              target="_blank" rel="noopener noreferrer"
                               href={req.proofUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-accent hover:underline font-medium"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                               <span>View Attached Supporting Document</span>
-                            </a>
+                            </Link>
                           </div>
                         )}
 

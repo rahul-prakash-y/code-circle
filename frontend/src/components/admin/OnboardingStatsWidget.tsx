@@ -28,7 +28,8 @@ import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import { User, OnboardingStats, OnboardingStatusItem } from '../../types/user';
 import { useDebounce } from '../../hooks/useDebounce';
-import { HeroUISelect, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 interface OnboardingStatsWidgetProps {
   className?: string;
@@ -778,7 +779,8 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
               {/* Interactive Legend Cards */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {/* Accounts Claimed Card */}
-                <div
+                <button
+                  type="button"
                   onClick={() => setStatusFilter('onboarded')}
                   onMouseEnter={() =>
                     setHoveredSegment({
@@ -791,7 +793,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     })
                   }
                   onMouseLeave={() => setHoveredSegment(null)}
-                  className={`flex cursor-pointer items-center justify-between rounded-2xl border p-3.5 transition-all ${
+                  className={`w-full text-left flex cursor-pointer items-center justify-between rounded-2xl border p-3.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-success ${
                     statusFilter === 'onboarded'
                       ? 'border-success/50 bg-success-subtle shadow-sm'
                       : 'border-separator bg-surface hover:border-success/30'
@@ -812,10 +814,11 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                       {stats?.completionRate ?? 0}%
                     </span>
                   </div>
-                </div>
+                </button>
 
                 {/* Pending Initial Login Card */}
-                <div
+                <button
+                  type="button"
                   onClick={() => setStatusFilter('not_onboarded')}
                   onMouseEnter={() =>
                     setHoveredSegment({
@@ -828,7 +831,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                     })
                   }
                   onMouseLeave={() => setHoveredSegment(null)}
-                  className={`flex cursor-pointer items-center justify-between rounded-2xl border p-3.5 transition-all ${
+                  className={`w-full text-left flex cursor-pointer items-center justify-between rounded-2xl border p-3.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-warning ${
                     statusFilter === 'not_onboarded'
                       ? 'border-warning/50 bg-warning-subtle shadow-sm'
                       : 'border-separator bg-surface hover:border-warning/30'
@@ -849,7 +852,7 @@ export const OnboardingStatsWidget: React.FC<OnboardingStatsWidgetProps> = ({
                       {stats?.total ? Number(((stats.notOnboarded / stats.total) * 100).toFixed(1)) : 0}%
                     </span>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
           </div>

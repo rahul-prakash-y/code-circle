@@ -27,7 +27,7 @@ import {
   Check,
 } from 'lucide-react';
 import { Button, Spinner, Chip } from '@heroui/react';
-import { HeroUISelect } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
 
 import api from '../../lib/axios';
 import { useVisibilityChange, IntegrityEvent } from '../../hooks/useVisibilityChange';

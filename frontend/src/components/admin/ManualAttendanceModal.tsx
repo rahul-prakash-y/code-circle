@@ -21,7 +21,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button, Spinner, Checkbox } from '@heroui/react';
-import { HeroUISelect } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
 import useAttendanceStore from '../../store/useAttendanceStore';
 import useEventStore from '../../store/useEventStore';
 import api from '../../lib/axios';

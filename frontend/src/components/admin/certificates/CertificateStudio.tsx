@@ -28,7 +28,8 @@ import useCertificateStore, { CertificateTemplate } from '../../../store/useCert
 import useEventStore from '../../../store/useEventStore';
 import useDomainStore from '../../../store/useDomainStore';
 import useUserStore from '../../../store/useUserStore';
-import { HeroUISelect, HeroChip as Chip } from '../../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 
 export const THEMES = [
   { id: 'classic-ivory', label: 'Classic Pearl Ivory', primary: '#1e3a8a', secondary: '#d97706', bg: '#f8fafc', card: '#ffffff', text: '#0f172a', textMuted: '#475569', border: '#1e40af' },
@@ -867,7 +868,8 @@ export const CertificateStudio: React.FC = () => {
                     .map((u) => {
                       const isSelected = selectedUserIds.includes(u._id);
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={u._id}
                           onClick={() => {
                             if (isSelected) {
@@ -876,7 +878,7 @@ export const CertificateStudio: React.FC = () => {
                               setSelectedUserIds([...selectedUserIds, u._id]);
                             }
                           }}
-                          className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-xs ${
+                          className={`w-full flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-xs text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                             isSelected ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-surface text-label-primary'
                           }`}
                         >
@@ -893,7 +895,7 @@ export const CertificateStudio: React.FC = () => {
                           >
                             {isSelected ? <Check size={10} strokeWidth={2.5} /> : null}
                           </span>
-                        </div>
+                        </button>
                       );
                     })}
                 </div>

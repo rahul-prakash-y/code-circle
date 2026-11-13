@@ -31,6 +31,7 @@ import {
   grantAssessmentGraceTime,
   grantAssessmentGraceTimeAll,
   createOrUpdateManualSubmission,
+  bulkUploadManualSubmissions,
   getAdminOverallArenaLeaderboard,
   getStudentAssessmentData,
   startAssessmentSession,
@@ -43,6 +44,7 @@ import {
   createArenaTeam,
   assignArenaTeamMembers,
   deleteArenaTeam,
+  fixArenaIndexes,
 } from '../controllers/eventArenaController';
 import { verifyToken, isAdmin, checkFeatureNotRestricted } from '../middleware/authMiddleware';
 import { checkAssessmentNotBlocked } from '../middleware/antiCheatMiddleware';
@@ -78,10 +80,14 @@ export async function eventArenaRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/arena/assessments/:assessmentId/grace-time', grantAssessmentGraceTime);
   fastify.post('/:id/arena/assessments/:assessmentId/grace-time-all', grantAssessmentGraceTimeAll);
   fastify.post('/:id/arena/assessments/:assessmentId/manual-submission', createOrUpdateManualSubmission);
+  fastify.post('/:id/arena/assessments/:assessmentId/manual-submission/bulk-upload', bulkUploadManualSubmissions as any);
 
   // Anti-Cheat Unblock student within Arena scope (Admin)
   fastify.post('/:id/arena/unblock-student', { preHandler: [isAdmin] }, eventController.unblockStudent as any);
   fastify.get('/:id/arena/blocked-students', { preHandler: [isAdmin] }, eventController.getBlockedStudents as any);
+
+  // Database Index Repair (Admin)
+  fastify.post('/:id/arena/fix-indexes', { preHandler: [isAdmin] }, fixArenaIndexes as any);
 
   // 4. Sample Templates
   fastify.get('/:id/arena/templates/:type', downloadArenaSampleTemplate);

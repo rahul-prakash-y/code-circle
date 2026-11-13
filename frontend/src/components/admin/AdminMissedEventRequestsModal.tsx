@@ -21,7 +21,11 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../lib/axios';
 import { formatISTDateTime, formatISTDate } from '../../lib/dateUtils';
-import { HeroTabs, HeroInput, HeroTextarea, HeroUser, HeroAvatar } from '../ui/HeroUIComponents';
+import { HeroTabs } from '@/components/ui/hero/HeroTabs';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroUser, HeroAvatar } from '@/components/ui/hero/HeroAvatar';
+import { Link, Button } from '@heroui/react';
 
 interface AdminMissedEventRequestsModalProps {
   isOpen: boolean;
@@ -416,15 +420,14 @@ export const AdminMissedEventRequestsModal: React.FC<
                     {/* Proof Link if attached */}
                     {req.proofUrl && (
                       <div className="text-xs">
-                        <a
+                        <Link
+                          target="_blank" rel="noopener noreferrer"
                           href={req.proofUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 text-accent hover:underline font-medium"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>View Attached Proof / Document</span>
-                        </a>
+                        </Link>
                       </div>
                     )}
 

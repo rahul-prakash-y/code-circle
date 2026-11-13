@@ -24,8 +24,11 @@ import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 import ResponsiveModal from '../components/ui/ResponsiveModal';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
-import { HeroInput, HeroTextarea, HeroAvatar } from '../components/ui/HeroUIComponents';
-import { Button } from '@heroui/react';
+import { HeroInput } from '@/components/ui/hero/HeroInput';
+import { HeroTextarea } from '@/components/ui/hero/HeroTextarea';
+import { HeroAvatar } from '@/components/ui/hero/HeroAvatar';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
+import { Button, Link as HeroLink } from '@heroui/react';
 import { useDebounce } from '../hooks/useDebounce';
 
 export const BearerManagement: React.FC = () => {
@@ -56,8 +59,6 @@ export const BearerManagement: React.FC = () => {
     linkedinUrl: '',
     bio: '',
   });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchBearers();
@@ -148,10 +149,7 @@ export const BearerManagement: React.FC = () => {
   };
 
   // Photo file upload handler
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handlePhotoUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please upload an image file (PNG, JPG, WEBP)');
       return;
@@ -382,15 +380,14 @@ export const BearerManagement: React.FC = () => {
               {/* Footer Links & Metadata */}
               <div className="pt-4 mt-4 border-t border-separator flex items-center justify-between text-xs text-text-muted">
                 {bearer.linkedinUrl ? (
-                  <a
+                  <HeroLink
+                    target="_blank" rel="noopener noreferrer"
                     href={bearer.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-[11px] text-accent hover:underline font-medium min-h-[30px]"
                   >
                     <Linkedin size={12} />
                     <span>LinkedIn</span>
-                  </a>
+                  </HeroLink>
                 ) : (
                   <span className="text-[11px] text-text-muted italic">No LinkedIn</span>
                 )}
@@ -462,25 +459,19 @@ export const BearerManagement: React.FC = () => {
             <div className="flex-1 space-y-1.5">
               <p className="text-xs font-semibold text-text-primary">Bearer Portrait Photo *</p>
               <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
+                <HeroFileInput
+                  variant="button"
                   accept="image/*"
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onPress={() => fileInputRef.current?.click()}
-                  isDisabled={uploadingImage}
+                  buttonText={uploadingImage ? 'Uploading...' : 'Upload Image'}
                   isLoading={uploadingImage}
-                  className="py-1.5 px-3 min-h-[36px] text-xs font-medium rounded-lg inline-flex items-center gap-1.5"
-                >
-                  <Upload size={12} />
-                  <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
-                </Button>
+                  isDisabled={uploadingImage}
+                  color="primary"
+                  startContent={<Upload size={12} />}
+                  onFilesSelected={(files) => {
+                    if (files[0]) handlePhotoUpload(files[0]);
+                  }}
+                  showChips={false}
+                />
                 <span className="text-[11px] text-text-muted">or paste URL below</span>
               </div>
             </div>

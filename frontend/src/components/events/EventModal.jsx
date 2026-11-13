@@ -8,14 +8,17 @@ import {
   Sparkles, Hash, CheckSquare, ChevronUp, ChevronDown, ListPlus,
   UserCheck
 } from 'lucide-react';
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner, Link } from '@heroui/react';
 import useEventStore from '../../store/useEventStore';
 import useCertificateStore from '../../store/useCertificateStore';
 import { EmilButton } from '../ui/emil-ui';
 import EventDetailsModal from './EventDetailsModal';
 import { toast } from 'react-hot-toast';
 import { formatDateToISTDateInput } from '../../lib/dateUtils';
-import { HeroUISelect, HeroDatePicker as DatePicker, HeroChip as Chip } from '../ui/HeroUIComponents';
+import { HeroUISelect } from '@/components/ui/HeroUISelect';
+import { HeroDatePicker as DatePicker } from '@/components/ui/hero/HeroDatePicker';
+import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
+import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 
 const EVENT_TYPES = ['Technical', 'Non-Technical', 'Lecture', 'Workshop', 'Club Hour'];
 const EVENT_FORMATS = ['Individual', 'Duo', 'Team'];
@@ -1041,16 +1044,15 @@ export const EventModal = ({
 
                       <div className="flex items-center gap-2 self-end sm:self-auto">
                         {formData.certificateTemplateUrl && (
-                          <a
+                          <Link
+                            target="_blank" rel="noopener noreferrer"
                             href={formData.certificateTemplateUrl}
-                            target="_blank"
-                            rel="noreferrer"
                             className="p-1.5 rounded-lg bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary border border-border transition-colors text-xs flex items-center gap-1"
                             title="Preview Template"
                           >
                             <ExternalLink size={13} />
                             <span>Preview</span>
-                          </a>
+                          </Link>
                         )}
                         <button
                           type="button"
@@ -1087,15 +1089,14 @@ export const EventModal = ({
                         className="w-full h-36 object-contain bg-black/40"
                       />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <a 
+                        <Link 
+                          target="_blank" rel="noopener noreferrer"
                           href={formData.certificateTemplateUrl} 
-                          target="_blank" 
-                          rel="noreferrer"
                           className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
                           title="View Full Template"
                         >
                           <ExternalLink size={16} />
-                        </a>
+                        </Link>
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
@@ -1115,41 +1116,19 @@ export const EventModal = ({
                       </div>
                     </div>
                   ) : (
-                    <div 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-border hover:border-accent/50 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-canvas/50 hover:bg-accent/5"
-                    >
-                      {uploadingTemplate ? (
-                        <>
-                          <Loader2 size={22} className="animate-spin text-accent" />
-                          <span className="text-xs text-text-muted font-medium">Uploading template to Cloudinary...</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
-                            <Upload size={16} />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs font-semibold text-text-primary">
-                              Click or drop custom certificate background here
-                            </p>
-                            <p className="text-[10px] text-text-muted mt-0.5">
-                              PNG, JPG, or WebP (Recommended: A4 Landscape / 1920x1080)
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <HeroFileInput
+                      variant="dropzone"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      isLoading={uploadingTemplate}
+                      buttonText={uploadingTemplate ? 'Uploading template to Cloudinary...' : 'Click or drop custom certificate background here'}
+                      description="PNG, JPG, or WebP (Recommended: A4 Landscape / 1920x1080)"
+                      onFilesSelected={(files) => {
+                        if (files[0]) handleTemplateUpload({ target: { files } });
+                      }}
+                      showChips={false}
+                    />
                   )}
                 </div>
-
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
-                  onChange={handleTemplateUpload}
-                  className="hidden"
-                />
               </div>
 
               {/* Action Buttons */}
