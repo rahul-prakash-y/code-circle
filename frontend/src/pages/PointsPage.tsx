@@ -1075,9 +1075,9 @@ export const PointsPage: React.FC = () => {
                                     <CatIcon size={12} />
                                     <span>{cat.label}</span>
                                   </span>
-                                  {tx.classHoursText && (
+                                  {(tx as any).classHoursText && (
                                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
-                                      {tx.classHoursText}
+                                      {(tx as any).classHoursText}
                                     </span>
                                   )}
                                 </div>
