@@ -38,6 +38,8 @@ import {
   ShieldAlert,
   Star,
   RefreshCw,
+  FileQuestion,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useFullScreenEnforcement } from '@/hooks/useFullScreenEnforcement';
@@ -147,6 +149,12 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
   } | null>(null);
 
   const isDesignRound = selectedAssessment?.type === 'UI_UX';
+  const allChallenges = studentDesignChallenges?.length ? studentDesignChallenges : (studentDesignChallenge ? [studentDesignChallenge] : []);
+  const hasNoQuestions = !loading && (
+    isDesignRound
+      ? allChallenges.length === 0
+      : studentMcqs.length === 0 && studentCoding.length === 0
+  );
 
   // Anti-Cheat & Full-Screen Enforcement Hooks
   const { isFullscreen, requestFullscreen, exitFullscreen, toggleFullscreen } = useFullScreenEnforcement();
@@ -177,8 +185,9 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
 
   // Sync tabSwitchCount if student previously recorded switches on this submission
   useEffect(() => {
-    if (submission?.tabSwitchCount && submission.tabSwitchCount > 0) {
-      setTabSwitchCount((prev) => Math.max(prev, submission.tabSwitchCount));
+    const count = submission?.tabSwitchCount;
+    if (count && count > 0) {
+      setTabSwitchCount((prev) => Math.max(prev, count));
     }
   }, [submission?.tabSwitchCount, setTabSwitchCount]);
 
@@ -271,21 +280,30 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
         .then((data) => {
           setApiBlocked(false);
           setBlockedDetail(null);
-          const hasGrace = Boolean(
-            data?.submission?.reentryAllowed ||
-            (data?.submission?.expiresAt && new Date(data.submission.expiresAt).getTime() > Date.now()) ||
-            ((data?.submission?.graceMinutes || 0) > 0 && data?.submission?.status === 'IN_PROGRESS')
+          const isSubFinished = data?.submission?.status === 'SUBMITTED' || data?.submission?.status === 'AUTO_SUBMITTED';
+          const hasFutureExpiry = Boolean(
+            data?.submission?.expiresAt && new Date(data.submission.expiresAt).getTime() > Date.now()
           );
-          if (!data?.submission || data.submission.status === 'IN_PROGRESS' || hasGrace) {
-            startAssessmentSession(id, activeAssessmentId);
-          }
-          if (
-            (data?.submission?.status === 'SUBMITTED' || data?.submission?.status === 'AUTO_SUBMITTED') &&
-            !hasGrace
-          ) {
+          const hasActiveGrace = Boolean(
+            !isSubFinished &&
+            hasFutureExpiry &&
+            (data?.submission?.reentryAllowed || ((data?.submission?.graceMinutes || 0) > 0))
+          );
+
+          if (isSubFinished) {
             setFinalResultModal(data.submission);
-          } else {
+            return;
+          }
+
+          if (!data?.submission || (data.submission.status === 'IN_PROGRESS' && hasFutureExpiry) || hasActiveGrace) {
+            startAssessmentSession(id, activeAssessmentId).catch((err: any) => {
+              if (err.response?.data?.isCompleted) {
+                setFinalResultModal(err.response.data.submission || data.submission);
+              }
+            });
             setFinalResultModal(null);
+          } else {
+            setFinalResultModal(data.submission);
           }
         })
         .catch((err: any) => {
@@ -356,10 +374,7 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
         if (expiresTime > now) {
           return Math.max(0, Math.floor((expiresTime - now) / 1000));
         }
-        // If expiresTime is in the past, but reentryAllowed / graceMinutes was just granted, give at least graceMinutes
-        if (submission?.reentryAllowed && (submission?.graceMinutes || 0) > 0) {
-          return (submission.graceMinutes || 10) * 60;
-        }
+        return 0;
       }
 
       const totalSeconds = (selectedAssessment?.durationMinutes || 60) * 60;
@@ -382,7 +397,7 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
 
     const initial = calcRemaining();
     setRemainingSeconds(initial);
-    if (initial <= 0 && activeAssessmentId && submission?.status === 'IN_PROGRESS' && !submission?.reentryAllowed) {
+    if (initial <= 0 && activeAssessmentId && submission?.status === 'IN_PROGRESS') {
       handleFinalSubmitRef.current(true);
       return;
     }
@@ -985,22 +1000,89 @@ export const EventArenaWorkspaceView: React.FC<EventArenaWorkspaceViewProps> = (
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </Button>
 
-          <Button
-            size="sm"
-            color="secondary"
-            variant="solid"
-            onPress={() => setShowSubmitConfirm(true)}
-            className="rounded-xl text-white text-xs font-bold shadow-md shadow-purple-600/30"
-            startContent={<Send size={13} />}
-          >
-            Finish Round
-          </Button>
+          {!hasNoQuestions && (
+            <Button
+              size="sm"
+              color="secondary"
+              variant="solid"
+              onPress={() => setShowSubmitConfirm(true)}
+              className="rounded-xl text-white text-xs font-bold shadow-md shadow-purple-600/30"
+              startContent={<Send size={13} />}
+            >
+              Finish Round
+            </Button>
+          )}
         </div>
       </header>
 
       {/* Main Workspace */}
       {loading ? (
         <ArenaWorkspaceSkeleton />
+      ) : hasNoQuestions ? (
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-6 bg-canvas overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-lg p-6 sm:p-8 rounded-3xl bg-surface border border-separator shadow-2xl text-center space-y-6 relative overflow-hidden"
+          >
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mx-auto shadow-inner">
+              <FileQuestion size={32} />
+            </div>
+
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                Round Setup In Progress
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-label-primary tracking-tight">
+                No Questions Allocated Yet
+              </h2>
+              <p className="text-xs sm:text-sm text-label-secondary leading-relaxed max-w-md mx-auto">
+                No questions or challenges have been published for{' '}
+                <span className="font-semibold text-label-primary">
+                  {selectedAssessment?.title || 'this round'}
+                </span>{' '}
+                yet. Please check back when the organizers publish the assessment questions, or contact your event administrator.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-surface-secondary border border-separator text-left grid grid-cols-2 gap-3 text-xs font-mono">
+              <div>
+                <span className="text-label-tertiary block text-[10px] uppercase">Round Type</span>
+                <span className="font-bold text-label-primary">{selectedAssessment?.type || 'Assessment'}</span>
+              </div>
+              <div>
+                <span className="text-label-tertiary block text-[10px] uppercase">Duration</span>
+                <span className="font-bold text-label-primary">{selectedAssessment?.durationMinutes || 60} Minutes</span>
+              </div>
+              <div>
+                <span className="text-label-tertiary block text-[10px] uppercase">Total Marks</span>
+                <span className="font-bold text-label-primary">{selectedAssessment?.totalPoints || 100} Points</span>
+              </div>
+              <div>
+                <span className="text-label-tertiary block text-[10px] uppercase">Allocated Questions</span>
+                <span className="font-bold text-amber-400">0 Questions</span>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 pt-2">
+              <Button
+                color="primary"
+                variant="solid"
+                onPress={handleReturnToHub}
+                className="w-full min-h-[42px] rounded-xl text-white text-xs font-bold shadow-lg shadow-purple-600/30 cursor-pointer"
+                startContent={<ChevronLeft size={15} />}
+              >
+                Return to All Rounds
+              </Button>
+              {isAdmin && (
+                <p className="text-[11px] text-label-tertiary">
+                  Admin Notice: You can configure MCQs, coding challenges, or Figma tasks in the Event Arena Admin modal.
+                </p>
+              )}
+            </div>
+          </motion.div>
+        </div>
       ) : selectedAssessment?.type === 'UI_UX' ? (
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-canvas">
           {/* Left Column: Design Brief & Reference Mockup */}

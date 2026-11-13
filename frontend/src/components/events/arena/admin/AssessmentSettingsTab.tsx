@@ -12,6 +12,7 @@ export interface SaveAssessmentConfigPayload {
   type: 'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX';
   status: 'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED';
   durationMinutes: number;
+  totalPoints?: number;
   startTime?: string;
   endTime?: string;
   passingPercentage: number;
@@ -47,6 +48,7 @@ export const AssessmentSettingsTab: React.FC<AssessmentSettingsTabProps> = memo(
   const [editType, setEditType] = useState<'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX'>(selectedAssessment.type || 'HYBRID');
   const [editStatus, setEditStatus] = useState<'DRAFT' | 'UPCOMING' | 'LIVE' | 'ENDED'>(selectedAssessment.status || 'LIVE');
   const [editDuration, setEditDuration] = useState(selectedAssessment.durationMinutes || 60);
+  const [editTotalPoints, setEditTotalPoints] = useState<number>(selectedAssessment.totalPoints || 100);
   const [editStartTime, setEditStartTime] = useState(
     selectedAssessment.startTime ? formatDateToISTInput(selectedAssessment.startTime) : ''
   );
@@ -57,6 +59,12 @@ export const AssessmentSettingsTab: React.FC<AssessmentSettingsTabProps> = memo(
   const [editTeamSize, setEditTeamSize] = useState(selectedAssessment.teamSize || 2);
   const [adminSearch, setAdminSearch] = useState('');
 
+  const questionsSumPoints = useMemo(() => {
+    const mcqPts = (selectedAssessment.questions?.mcqs || []).reduce((sum, q: any) => sum + (q.points || 10), 0);
+    const codePts = (selectedAssessment.questions?.coding || []).reduce((sum, p: any) => sum + (p.points || 30), 0);
+    return mcqPts + codePts;
+  }, [selectedAssessment.questions]);
+
   // Sync state whenever selectedAssessment._id changes
   useEffect(() => {
     setEditTitle(selectedAssessment.title || '');
@@ -64,6 +72,7 @@ export const AssessmentSettingsTab: React.FC<AssessmentSettingsTabProps> = memo(
     setEditType(selectedAssessment.type || 'HYBRID');
     setEditStatus(selectedAssessment.status || 'LIVE');
     setEditDuration(selectedAssessment.durationMinutes || 60);
+    setEditTotalPoints(selectedAssessment.totalPoints || 100);
     setEditStartTime(selectedAssessment.startTime ? formatDateToISTInput(selectedAssessment.startTime) : '');
     setEditPassingScore(selectedAssessment.passingPercentage || 50);
     setEditCutoffRank(selectedAssessment.qualificationCutoffRank || 0);
@@ -74,7 +83,7 @@ export const AssessmentSettingsTab: React.FC<AssessmentSettingsTabProps> = memo(
       adm?._id ? adm._id.toString() : adm.toString()
     );
     setEditAssignedAdminIds(assigned);
-  }, [selectedAssessment._id]);
+  }, [selectedAssessment._id, selectedAssessment.totalPoints]);
 
   const filteredCandidates = useMemo(() => {
     if (!adminSearch.trim()) return adminCandidates;
@@ -107,6 +116,7 @@ export const AssessmentSettingsTab: React.FC<AssessmentSettingsTabProps> = memo(
       type: editType,
       status: editStatus,
       durationMinutes: Number(editDuration),
+      totalPoints: Number(editTotalPoints) || 100,
       startTime: startTimeISO,
       endTime: endTimeISO,
       passingPercentage: Number(editPassingScore),
@@ -128,7 +138,7 @@ export const AssessmentSettingsTab: React.FC<AssessmentSettingsTabProps> = memo(
             </p>
           </div>
           <span className="px-2.5 py-1 rounded-full text-[11px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
-            {selectedAssessment.totalPoints} Points Total
+            {editTotalPoints || selectedAssessment.totalPoints || 100} Points Total Max
           </span>
         </div>
 
@@ -171,7 +181,7 @@ export const AssessmentSettingsTab: React.FC<AssessmentSettingsTabProps> = memo(
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <HeroUISelect
               label="Type"
@@ -197,6 +207,37 @@ export const AssessmentSettingsTab: React.FC<AssessmentSettingsTabProps> = memo(
               disabled={!canManageSelected}
               className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50"
             />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider">
+                Total Max Score
+              </label>
+              {questionsSumPoints > 0 && questionsSumPoints !== editTotalPoints && (
+                <button
+                  type="button"
+                  onClick={() => setEditTotalPoints(questionsSumPoints)}
+                  className="text-[10px] text-purple-400 hover:text-purple-300 font-semibold cursor-pointer underline"
+                  title={`Auto-fill from questions sum (${questionsSumPoints} pts)`}
+                >
+                  Use {questionsSumPoints} pts
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type="number"
+                min={1}
+                value={editTotalPoints}
+                onChange={(e) => setEditTotalPoints(Math.max(1, Number(e.target.value)))}
+                disabled={!canManageSelected}
+                className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 disabled:opacity-50 font-mono"
+                placeholder="100"
+              />
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-mono text-label-tertiary pointer-events-none">
+                Pts
+              </span>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">Passing %</label>

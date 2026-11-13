@@ -12,6 +12,7 @@ export interface CreateAssessmentPayload {
   description: string;
   type: 'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX';
   durationMinutes: number;
+  totalPoints?: number;
   startTime?: string;
   endTime?: string;
   passingPercentage: number;
@@ -40,6 +41,7 @@ export const CreateAssessmentView: React.FC<CreateAssessmentViewProps> = memo(({
   const [newDesc, setNewDesc] = useState('');
   const [newType, setNewType] = useState<'CODING' | 'MCQ' | 'HYBRID' | 'UI_UX'>('HYBRID');
   const [newDuration, setNewDuration] = useState(60);
+  const [newTotalPoints, setNewTotalPoints] = useState(100);
   const [newStartTime, setNewStartTime] = useState('');
   const [newPassingScore, setNewPassingScore] = useState(50);
   const [newAssignedAdminIds, setNewAssignedAdminIds] = useState<string[]>([]);
@@ -82,6 +84,7 @@ export const CreateAssessmentView: React.FC<CreateAssessmentViewProps> = memo(({
       description: newDesc.trim(),
       type: newType,
       durationMinutes: Number(newDuration),
+      totalPoints: Number(newTotalPoints) || 100,
       startTime: startTimeISO,
       endTime: endTimeISO,
       passingPercentage: Number(newPassingScore),
@@ -143,7 +146,7 @@ export const CreateAssessmentView: React.FC<CreateAssessmentViewProps> = memo(({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <HeroUISelect
                 label="Assessment Type"
@@ -169,6 +172,24 @@ export const CreateAssessmentView: React.FC<CreateAssessmentViewProps> = memo(({
                 onChange={(e) => setNewDuration(Number(e.target.value))}
                 className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">
+                Total Max Score
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={1}
+                  value={newTotalPoints}
+                  onChange={(e) => setNewTotalPoints(Math.max(1, Number(e.target.value)))}
+                  className="w-full px-3.5 py-2.5 rounded-2xl bg-surface-secondary border border-separator text-xs text-label-primary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 font-mono"
+                  placeholder="100"
+                />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-mono text-label-tertiary pointer-events-none">
+                  Pts
+                </span>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-semibold text-label-secondary uppercase tracking-wider mb-1.5">

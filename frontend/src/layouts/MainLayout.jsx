@@ -13,7 +13,7 @@ import {
   X, LayoutDashboard, Calendar, Award, CalendarCheck,
   Medal, Trophy, Ticket, MessageSquare,
   Newspaper, Users, Crown, Shield, BarChart3,
-  Compass, UserCheck,
+  Compass, UserCheck, UserX,
   Flame, Sparkles, KeyRound, Activity,
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
@@ -125,6 +125,7 @@ export const MainLayout = ({ children }) => {
           { to: '/users', label: 'Directory', icon: Shield },
           { to: '/password-resets', label: 'Password Resets', icon: KeyRound },
           { to: '/tracking', label: 'Student Tracking', icon: UserCheck },
+          { to: '/blocked-students', label: 'Blocked Students', icon: UserX },
           { to: '/analytics', label: 'Analytics', icon: BarChart3 },
         ]
       : []),

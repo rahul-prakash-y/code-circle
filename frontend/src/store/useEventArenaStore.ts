@@ -94,6 +94,7 @@ export interface ArenaAssessment {
   teamSize?: number;
   mcqCount?: number;
   codingCount?: number;
+  designChallengesCount?: number;
   canManage?: boolean;
   designChallenge?: ArenaDesignChallenge;
   designChallenges?: ArenaDesignChallenge[];

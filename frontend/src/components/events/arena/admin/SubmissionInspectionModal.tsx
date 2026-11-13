@@ -18,7 +18,7 @@ import { ArenaAssessment } from '../../../../store/useEventArenaStore';
 
 interface SubmissionInspectionModalProps {
   inspectingSub: any | null;
-  selectedAssessment: ArenaAssessment;
+  selectedAssessment: ArenaAssessment | null;
   adminMcqs: any[];
   adminCoding: any[];
   effectiveCutoffRank: number;

@@ -23,6 +23,7 @@ import {
   Sparkles,
   KeyRound,
   FileText,
+  UserX,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -233,6 +234,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       label: 'Student Tracking',
       icon: UserCheck,
       match: (loc) => loc.pathname === '/tracking',
+    },
+    {
+      to: '/blocked-students',
+      label: 'Blocked Students',
+      icon: UserX,
+      match: (loc) => loc.pathname === '/blocked-students' || loc.pathname === '/admin/blocked-students',
     },
     {
       to: '/analytics',

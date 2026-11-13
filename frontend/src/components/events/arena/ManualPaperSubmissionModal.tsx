@@ -6,6 +6,8 @@ import {
   Users,
   Award,
   CheckCircle2,
+  Target,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { toast } from 'react-hot-toast';
@@ -15,12 +17,15 @@ import HeroUISelect, { HeroUISelectOption } from '../../ui/HeroUISelect';
 export interface ManualPaperSubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  eventId: string;
-  maxScore: number;
+  eventId?: string;
+  maxScore?: number;
   passingPercentage?: number;
+  eventTitle?: string;
+  assessmentTitle?: string;
   onSubmit: (data: {
     studentIdentifier: string;
     score: number;
+    maxScore?: number;
     mcqScore?: number;
     codingScore?: number;
     manualNotes?: string;
@@ -34,11 +39,14 @@ export const ManualPaperSubmissionModal: React.FC<ManualPaperSubmissionModalProp
   eventId,
   maxScore,
   passingPercentage = 50,
+  eventTitle,
+  assessmentTitle,
   onSubmit,
   isSubmitting,
 }) => {
   const [studentIdentifier, setStudentIdentifier] = useState('');
   const [score, setScore] = useState<string>('');
+  const [customMaxScore, setCustomMaxScore] = useState<string>(String(maxScore || 100));
   const [mcqScore, setMcqScore] = useState<string>('');
   const [codingScore, setCodingScore] = useState<string>('');
   const [notes, setNotes] = useState('');
@@ -127,16 +135,22 @@ export const ManualPaperSubmissionModal: React.FC<ManualPaperSubmissionModalProp
     if (isOpen) {
       setStudentIdentifier('');
       setScore('');
+      setCustomMaxScore(String(maxScore || 100));
       setMcqScore('');
       setCodingScore('');
       setNotes('');
       setIsManualInput(false);
     }
-  }, [isOpen]);
+  }, [isOpen, maxScore]);
 
-  // Live score percentage calculations
+  // Live score percentage calculations based on editable max score
+  const effectiveMaxScore = useMemo(() => {
+    const parsed = Number(customMaxScore);
+    return !isNaN(parsed) && parsed > 0 ? parsed : (maxScore || 100);
+  }, [customMaxScore, maxScore]);
+
   const numericScore = score !== '' && !isNaN(Number(score)) ? Number(score) : null;
-  const scorePercent = numericScore !== null && maxScore > 0 ? Math.min(100, Math.round((numericScore / maxScore) * 100)) : null;
+  const scorePercent = numericScore !== null && effectiveMaxScore > 0 ? Math.min(100, Math.round((numericScore / effectiveMaxScore) * 100)) : null;
   const isPassing = scorePercent !== null ? scorePercent >= passingPercentage : null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -149,9 +163,14 @@ export const ManualPaperSubmissionModal: React.FC<ManualPaperSubmissionModalProp
       toast.error('Please enter a valid numeric score');
       return;
     }
+    if (isNaN(effectiveMaxScore) || effectiveMaxScore <= 0) {
+      toast.error('Please enter a valid maximum score greater than 0');
+      return;
+    }
     onSubmit({
       studentIdentifier: studentIdentifier.trim(),
       score: Number(score),
+      maxScore: effectiveMaxScore,
       mcqScore: mcqScore !== '' ? Number(mcqScore) : undefined,
       codingScore: codingScore !== '' ? Number(codingScore) : undefined,
       manualNotes: notes.trim() || 'Paper / Offline Test Submission',
@@ -271,55 +290,94 @@ export const ManualPaperSubmissionModal: React.FC<ManualPaperSubmissionModalProp
                 )}
               </div>
 
-              {/* Field 2: Total Score Awarded */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1.5">
-                    <Award size={13} className="text-purple-400" />
-                    <span>Total Score Awarded <span className="text-rose-400">*</span></span>
-                  </label>
-                  <span className="text-[11px] font-mono text-purple-400 font-semibold">
-                    Max: {maxScore} pts
-                  </span>
-                </div>
+              {/* Field 2: Total Score Awarded & Editable Max Score */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1.5">
+                      <Award size={13} className="text-purple-400" />
+                      <span>Score Awarded <span className="text-rose-400">*</span></span>
+                    </label>
+                  </div>
 
-                <div className="relative flex items-center">
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    max={maxScore}
-                    value={score}
-                    onChange={(e) => setScore(e.target.value)}
-                    placeholder={`Enter score (0 - ${maxScore})`}
-                    className="w-full pl-3.5 pr-20 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-label-tertiary transition"
-                  />
-                  <div className="absolute right-3.5 text-xs font-mono font-semibold text-label-tertiary pointer-events-none">
-                    / {maxScore} pts
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={score}
+                      onChange={(e) => setScore(e.target.value)}
+                      placeholder={`0 - ${effectiveMaxScore}`}
+                      className="w-full pl-3.5 pr-14 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-label-tertiary transition"
+                    />
+                    <div className="absolute right-3.5 text-xs font-mono font-semibold text-label-tertiary pointer-events-none">
+                      pts
+                    </div>
                   </div>
                 </div>
 
-                {/* Live Percentage & Qualification Pill */}
-                {scorePercent !== null && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-canvas border border-separator text-xs"
-                  >
-                    <span className="text-label-secondary font-mono text-[11px]">
-                      Percentage: <strong className="text-label-primary">{scorePercent}%</strong>
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                      isPassing
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                    }`}>
-                      {isPassing ? <CheckCircle2 size={11} /> : <X size={11} />}
-                      <span>{isPassing ? 'Passing' : 'Below Passing'}</span>
-                    </span>
-                  </motion.div>
-                )}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-label-secondary uppercase tracking-wider flex items-center gap-1.5">
+                      <Target size={13} className="text-purple-400" />
+                      <span>Max Possible Score <span className="text-rose-400">*</span></span>
+                    </label>
+                    {customMaxScore !== String(maxScore) && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomMaxScore(String(maxScore || 100))}
+                        className="text-[10px] font-mono text-purple-400 hover:text-purple-300 transition cursor-pointer"
+                      >
+                        Reset ({maxScore})
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={customMaxScore}
+                      onChange={(e) => setCustomMaxScore(e.target.value)}
+                      placeholder="e.g. 100"
+                      className="w-full pl-3.5 pr-14 py-2.5 rounded-xl bg-surface-secondary border border-separator text-xs text-label-primary font-mono outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 placeholder:text-label-tertiary transition"
+                    />
+                    <div className="absolute right-3.5 text-xs font-mono font-semibold text-label-tertiary pointer-events-none">
+                      max
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Warning if Score Exceeds Max Possible Score */}
+              {numericScore !== null && numericScore > effectiveMaxScore && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0" />
+                  <span>Entered score ({numericScore} pts) exceeds maximum possible score ({effectiveMaxScore} pts).</span>
+                </div>
+              )}
+
+              {/* Live Percentage & Qualification Pill */}
+              {scorePercent !== null && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-canvas border border-separator text-xs"
+                >
+                  <span className="text-label-secondary font-mono text-[11px]">
+                    Percentage: <strong className="text-label-primary">{scorePercent}%</strong> ({numericScore}/{effectiveMaxScore} pts)
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                    isPassing
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                  }`}>
+                    {isPassing ? <CheckCircle2 size={11} /> : <X size={11} />}
+                    <span>{isPassing ? 'Passing' : 'Below Passing'}</span>
+                  </span>
+                </motion.div>
+              )}
 
               {/* Field 3: Section Scores: MCQ & Coding */}
               <div className="grid grid-cols-2 gap-3">

@@ -319,7 +319,8 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
   const handleBulkUpload = useCallback(async (file: File) => {
     if (!file || !bulkModalType || !event?._id || !selectedAssessmentId) {
-      return toast.error('Please choose a file to upload');
+      toast.error('Please choose a file to upload');
+      return;
     }
     await bulkUploadAssessmentQuestions(
       event._id,
@@ -429,15 +430,24 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   }, [event?._id, selectedAssessmentId, grantGraceTimeAll]);
 
   const handleCreateManualSubmission = useCallback(async (data: {
-    studentId: string;
-    totalScore: number;
-    maxPossibleScore?: number;
-    notes?: string;
+    studentIdentifier: string;
+    score: number;
+    maxScore?: number;
+    mcqScore?: number;
+    codingScore?: number;
+    manualNotes?: string;
   }) => {
     if (!event?._id || !selectedAssessmentId) return;
     setIsSubmittingManual(true);
     try {
-      await createManualSubmission(event._id, selectedAssessmentId, data);
+      await createManualSubmission(event._id, selectedAssessmentId, {
+        studentIdentifier: data.studentIdentifier.trim(),
+        score: Number(data.score),
+        maxScore: data.maxScore ? Number(data.maxScore) : undefined,
+        mcqScore: data.mcqScore,
+        codingScore: data.codingScore,
+        manualNotes: data.manualNotes,
+      });
       setIsManualModalOpen(false);
       fetchAdminAssessmentSubmissions(event._id, selectedAssessmentId);
     } finally {
@@ -724,6 +734,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
           isSubmitting={isSubmittingManual}
           eventTitle={event?.title}
           assessmentTitle={selectedAssessment?.title}
+          eventId={event?._id}
           maxScore={selectedAssessment?.totalPoints || 100}
         />
 
