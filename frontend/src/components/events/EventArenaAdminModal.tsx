@@ -110,6 +110,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
   const [graceModalSub, setGraceModalSub] = useState<any | null>(null);
   const [isGraceAllModalOpen, setIsGraceAllModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [editingSubmissionForPaper, setEditingSubmissionForPaper] = useState<any | null>(null);
   const [isBulkPaperModalOpen, setIsBulkPaperModalOpen] = useState(false);
   const [isBlockedStudentsModalOpen, setIsBlockedStudentsModalOpen] = useState(false);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
@@ -191,6 +192,15 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     }
     return 0;
   }, [selectedAssessment, nextAssessment]);
+
+  // Grace time for all can only be given once per assessment round
+  const isGraceTimeAllGranted = useMemo(() => {
+    return Boolean(
+      selectedAssessment?.graceTimeAllGranted ||
+      ((selectedAssessment?.graceMinutes || 0) > 0) ||
+      selectedAssessment?.hasGraceTime
+    );
+  }, [selectedAssessment]);
 
   // Submissions sorted deterministically: 1) highest score, 2) ties broken by student name alphabetically (A-Z), 3) timeTakenSeconds, 4) submittedAt
   const sortedAdminSubmissions = useMemo(() => {
@@ -418,6 +428,10 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
 
   const handleGrantGraceTimeAll = useCallback(async (minutes: number) => {
     if (!event?._id || !selectedAssessmentId) return;
+    if (isGraceTimeAllGranted) {
+      toast.error('Grace time for all candidates has already been granted once for this round. Additional grace time must be granted individually to candidates.');
+      return;
+    }
     setIsGrantingGraceAll(true);
     try {
       await grantGraceTimeAll(event._id, selectedAssessmentId, minutes);
@@ -427,7 +441,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
     } finally {
       setIsGrantingGraceAll(false);
     }
-  }, [event?._id, selectedAssessmentId, grantGraceTimeAll]);
+  }, [event?._id, selectedAssessmentId, isGraceTimeAllGranted, grantGraceTimeAll]);
 
   const handleCreateManualSubmission = useCallback(async (data: {
     studentIdentifier: string;
@@ -449,6 +463,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         manualNotes: data.manualNotes,
       });
       setIsManualModalOpen(false);
+      setEditingSubmissionForPaper(null);
       fetchAdminAssessmentSubmissions(event._id, selectedAssessmentId);
     } finally {
       setIsSubmittingManual(false);
@@ -634,9 +649,23 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
                 actionInProgressId={actionInProgressId}
                 onUpdateCutoffRank={handleUpdateCutoffRank}
                 onQuickUnblock={handleQuickUnblock}
-                onOpenManualModal={() => setIsManualModalOpen(true)}
+                onOpenManualModal={() => {
+                  setEditingSubmissionForPaper(null);
+                  setIsManualModalOpen(true);
+                }}
                 onOpenBulkPaperModal={() => setIsBulkPaperModalOpen(true)}
-                onOpenGraceAllModal={() => setIsGraceAllModalOpen(true)}
+                onEditPaperScore={(sub) => {
+                  setEditingSubmissionForPaper(sub);
+                  setIsManualModalOpen(true);
+                }}
+                isGraceTimeAllGranted={isGraceTimeAllGranted}
+                onOpenGraceAllModal={() => {
+                  if (isGraceTimeAllGranted) {
+                    toast.error('Grace time for all candidates has already been granted once for this round. Additional grace time must be granted individually using candidate actions.');
+                    return;
+                  }
+                  setIsGraceAllModalOpen(true);
+                }}
                 onOpenGraceModal={(sub) => setGraceModalSub(sub)}
                 onInspectSubmission={(sub) => setInspectingSub(sub)}
                 onEvaluateSubmission={(sub) => setEvaluatingSub(sub)}
@@ -699,6 +728,11 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
           onUnblockStudent={handleUnblockStudent}
           onDeleteSubmission={handleDeleteSubmission}
           onOpenGraceModal={(sub) => setGraceModalSub(sub)}
+          onEditPaperScore={(sub) => {
+            setInspectingSub(null);
+            setEditingSubmissionForPaper(sub);
+            setIsManualModalOpen(true);
+          }}
         />
 
         {/* DESIGN EVALUATION MODAL */}
@@ -722,6 +756,7 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         <GraceTimeAllModal
           isOpen={isGraceAllModalOpen}
           isGrantingGraceAll={isGrantingGraceAll}
+          isGraceTimeAllGranted={isGraceTimeAllGranted}
           onClose={() => setIsGraceAllModalOpen(false)}
           onGrantAll={handleGrantGraceTimeAll}
         />
@@ -729,13 +764,18 @@ export const EventArenaAdminModal: React.FC<EventArenaAdminModalProps> = ({
         {/* MANUAL PAPER SUBMISSION MODALS */}
         <ManualPaperSubmissionModal
           isOpen={isManualModalOpen}
-          onClose={() => setIsManualModalOpen(false)}
+          onClose={() => {
+            setIsManualModalOpen(false);
+            setEditingSubmissionForPaper(null);
+          }}
           onSubmit={handleCreateManualSubmission}
           isSubmitting={isSubmittingManual}
           eventTitle={event?.title}
           assessmentTitle={selectedAssessment?.title}
           eventId={event?._id}
           maxScore={selectedAssessment?.totalPoints || 100}
+          initialSubmission={editingSubmissionForPaper}
+          allSubmissions={adminSubmissions}
         />
 
         <ManualPaperBulkUploadModal

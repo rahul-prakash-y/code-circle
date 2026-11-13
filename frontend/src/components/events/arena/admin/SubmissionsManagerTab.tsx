@@ -5,6 +5,7 @@ import {
   Download,
   Plus,
   FileSpreadsheet,
+  FileText,
   Clock,
   Search,
   X,
@@ -41,6 +42,8 @@ interface SubmissionsManagerTabProps {
   onQuickUnblock: (query: string) => Promise<void>;
   onOpenManualModal: () => void;
   onOpenBulkPaperModal: () => void;
+  onEditPaperScore?: (sub: any) => void;
+  isGraceTimeAllGranted?: boolean;
   onOpenGraceAllModal: () => void;
   onOpenGraceModal: (sub: any) => void;
   onInspectSubmission: (sub: any) => void;
@@ -69,6 +72,8 @@ export const SubmissionsManagerTab: React.FC<SubmissionsManagerTabProps> = memo(
   onQuickUnblock,
   onOpenManualModal,
   onOpenBulkPaperModal,
+  onEditPaperScore,
+  isGraceTimeAllGranted,
   onOpenGraceAllModal,
   onOpenGraceModal,
   onInspectSubmission,
@@ -510,13 +515,23 @@ export const SubmissionsManagerTab: React.FC<SubmissionsManagerTabProps> = memo(
                 </Button>
                 <Button
                   size="sm"
-                  variant="flat"
-                  color="warning"
+                  variant={isGraceTimeAllGranted ? "bordered" : "flat"}
+                  color={isGraceTimeAllGranted ? "default" : "warning"}
                   onPress={onOpenGraceAllModal}
+                  isDisabled={isGraceTimeAllGranted}
                   startContent={<Clock size={13} />}
-                  className="h-8 px-3 rounded-xl text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-500 hover:bg-amber-500/25 cursor-pointer"
+                  className={`h-8 px-3 rounded-xl text-xs font-bold ${
+                    isGraceTimeAllGranted
+                      ? 'opacity-60 cursor-not-allowed bg-surface border-separator text-label-secondary'
+                      : 'bg-amber-500/15 border border-amber-500/30 text-amber-500 hover:bg-amber-500/25 cursor-pointer'
+                  }`}
+                  title={
+                    isGraceTimeAllGranted
+                      ? 'Grace time for all candidates has already been granted once for this round. Additional grace time must be granted individually to candidates.'
+                      : 'Extend round duration and countdown for all candidates in this assessment'
+                  }
                 >
-                  Extend Time for All (+Grace)
+                  {isGraceTimeAllGranted ? 'Grace for All Granted (1x Limit)' : 'Extend Time for All (+Grace)'}
                 </Button>
                 <form onSubmit={handleQuickUnblockSubmit} className="flex items-center gap-2">
                   <input
@@ -541,6 +556,19 @@ export const SubmissionsManagerTab: React.FC<SubmissionsManagerTabProps> = memo(
               </div>
             )}
           </div>
+
+          {/* Grace Time Notice Banner if Batch Grace Time Already Granted */}
+          {isGraceTimeAllGranted && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs">
+              <Clock size={15} className="shrink-0 text-amber-400" />
+              <div className="flex-1">
+                <span className="font-bold text-amber-400">Batch Grace Time Limit Reached (1x Granted):</span>{' '}
+                <span className="text-amber-300/90">
+                  Grace time for all candidates has already been applied (+{selectedAssessment?.graceMinutes || 0}m). Any additional grace time for candidates must now be given individually using the clock icon on each candidate&apos;s row below.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Top Rank Cutoff (Next Round) Rule Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20">
@@ -783,15 +811,29 @@ export const SubmissionsManagerTab: React.FC<SubmissionsManagerTabProps> = memo(
 
                       {/* Card Footer Actions */}
                       <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-separator/40">
-                        <Button
-                          size="sm"
-                          variant="light"
-                          startContent={<Eye size={12} />}
-                          onPress={() => onInspectSubmission(sub)}
-                          className="h-7 px-2.5 text-xs text-accent font-semibold cursor-pointer"
-                        >
-                          Review All
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="light"
+                            startContent={<Eye size={12} />}
+                            onPress={() => onInspectSubmission(sub)}
+                            className="h-7 px-2.5 text-xs text-accent font-semibold cursor-pointer"
+                          >
+                            Review All
+                          </Button>
+                          {canManageSelected && onEditPaperScore && (
+                            <Button
+                              size="sm"
+                              variant="light"
+                              color="secondary"
+                              startContent={<FileText size={12} />}
+                              onPress={() => onEditPaperScore(sub)}
+                              className="h-7 px-2 text-xs text-purple-400 font-semibold hover:bg-purple-500/10 cursor-pointer"
+                            >
+                              Edit / Paper Marks
+                            </Button>
+                          )}
+                        </div>
 
                         {canManageSelected && (
                           <div className="flex items-center gap-1">
@@ -927,6 +969,16 @@ export const SubmissionsManagerTab: React.FC<SubmissionsManagerTabProps> = memo(
                             <span className="font-mono font-bold text-xs text-label-primary">
                               {sub.totalScore}/{sub.maxPossibleScore}
                             </span>
+                            {(sub.mcqScore !== undefined || sub.codingScore !== undefined) && (
+                              <div className="text-[10px] text-label-tertiary font-mono flex items-center justify-center gap-1.5 mt-0.5">
+                                {sub.mcqScore !== undefined && <span title="Online MCQ Score">M: {sub.mcqScore}</span>}
+                                {sub.codingScore !== undefined && (
+                                  <span className="text-purple-400 font-semibold" title="Paper Coding Score">
+                                    C: {sub.codingScore}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="p-3 text-center">
                             <span className="font-mono font-bold text-xs text-accent">
@@ -983,6 +1035,19 @@ export const SubmissionsManagerTab: React.FC<SubmissionsManagerTabProps> = memo(
                               >
                                 Review
                               </Button>
+                              {canManageSelected && onEditPaperScore && (
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  color="secondary"
+                                  title="Update score / Enter paper marks"
+                                  onPress={() => onEditPaperScore(sub)}
+                                  className="h-7 w-7 min-w-7 rounded-lg text-purple-400 hover:bg-purple-500/10 cursor-pointer"
+                                >
+                                  <FileText size={12} />
+                                </Button>
+                              )}
                               {selectedAssessment.type === 'UI_UX' && sub.designSubmission?.figmaLink && canManageSelected && (
                                 <Button
                                   size="sm"

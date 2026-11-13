@@ -1937,6 +1937,7 @@ export const getEventAssessmentsList = async (
         endTime: assessment.endTime,
         graceMinutes: assessment.graceMinutes || 0,
         hasGraceTime: hasActiveGraceTime,
+        graceTimeAllGranted: Boolean(assessment.graceTimeAllGranted || (assessment.graceMinutes && assessment.graceMinutes > 0)),
         assignedAdmins: assessment.assignedAdmins || [],
         qualificationCutoffRank: assessment.qualificationCutoffRank || 0,
         isTeamMode: Boolean(assessment.isTeamMode),
@@ -2706,6 +2707,10 @@ export const getAdminAssessmentSubmissions = async (
         title: assessment.title,
         type: assessment.type,
         totalPoints: assessment.totalPoints,
+        durationMinutes: assessment.durationMinutes,
+        endTime: assessment.endTime,
+        graceMinutes: assessment.graceMinutes || 0,
+        graceTimeAllGranted: Boolean(assessment.graceTimeAllGranted || (assessment.graceMinutes && assessment.graceMinutes > 0)),
         designChallenge: assessment.designChallenge || null,
         designChallenges: assessment.designChallenges?.length ? assessment.designChallenges : (assessment.designChallenge ? [assessment.designChallenge] : []),
         questions: assessment.questions || { mcqs: [], coding: [] },
@@ -4727,6 +4732,21 @@ export const grantAssessmentGraceTimeAll = async (
       return reply.status(403).send({ success: false, error: 'Unauthorized to grant grace time' });
     }
 
+    // Grace time for all can only be granted ONCE per round
+    const alreadyGrantedAll = Boolean(
+      assessment.graceTimeAllGranted ||
+      ((assessment.graceMinutes || 0) > 0) ||
+      assessment.hasGraceTime
+    );
+
+    if (alreadyGrantedAll) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Grace time for all candidates has already been granted once for this round. Additional grace time must be granted individually to candidates.',
+        graceTimeAllGranted: true,
+      });
+    }
+
     const now = new Date();
     const adminObjectId = new mongoose.Types.ObjectId(user._id || user.id);
 
@@ -4741,6 +4761,8 @@ export const grantAssessmentGraceTimeAll = async (
     assessment.durationMinutes = (assessment.durationMinutes || 60) + minutesToAdd;
     assessment.graceMinutes = (assessment.graceMinutes || 0) + minutesToAdd;
     assessment.status = 'LIVE';
+    assessment.hasGraceTime = true;
+    assessment.graceTimeAllGranted = true;
     await event.save();
 
     // 2. Extend all submissions for this assessment, preserving all answers
@@ -4778,11 +4800,12 @@ export const grantAssessmentGraceTimeAll = async (
 
     return reply.send({
       success: true,
-      message: `Granted +${minutesToAdd} minutes grace time to all ${updatedCount} candidates in "${assessment.title}". All previous answers preserved.`,
+      message: `Granted +${minutesToAdd} minutes grace time to all ${updatedCount} candidates in "${assessment.title}". Additional grace time must now be given individually.`,
       updatedCount,
       newEndTime: assessment.endTime,
       durationMinutes: assessment.durationMinutes,
       graceMinutes: assessment.graceMinutes,
+      graceTimeAllGranted: true,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -4831,8 +4854,8 @@ export const createOrUpdateManualSubmission = async (
       return reply.status(400).send({ success: false, error: 'Student Roll No, Email, or ID is required.' });
     }
 
-    if (score === undefined || score === null || isNaN(Number(score))) {
-      return reply.status(400).send({ success: false, error: 'Valid numerical score is required.' });
+    if ((score === undefined || score === null || isNaN(Number(score))) && mcqScore === undefined && codingScore === undefined) {
+      return reply.status(400).send({ success: false, error: 'Valid numerical score or section scores are required.' });
     }
 
     const event = await Event.findById(id);
@@ -4873,17 +4896,42 @@ export const createOrUpdateManualSubmission = async (
       });
     }
 
-    const maxPossibleScore = Number(maxScore) || assessment.totalPoints || 100;
-    const numTotalScore = Math.max(0, Number(score));
-    const scorePercentage = Math.min(100, Math.round((numTotalScore / maxPossibleScore) * 100));
-    const passThreshold = assessment.passingPercentage || 50;
-    const finalIsPassed = typeof isPassed === 'boolean' ? isPassed : scorePercentage >= passThreshold;
-
     let submission = await EventArenaSubmission.findOne({
       eventId: event._id,
       assessmentId,
       userId: targetUser._id,
     });
+
+    // Record previously credited points (to award ONLY the delta/additional score)
+    const previousPointsAwarded = typeof submission?.pointsAwardedAmount === 'number'
+      ? submission.pointsAwardedAmount
+      : (submission?.pointsAwarded ? (submission.totalScore || 0) : 0);
+
+    const maxPossibleScore = Number(maxScore) || assessment.totalPoints || 100;
+
+    // Resolve section scores (preserve existing online MCQ/coding scores if not explicitly provided)
+    const resolvedMcqScore = mcqScore !== undefined && !isNaN(Number(mcqScore))
+      ? Math.max(0, Number(mcqScore))
+      : (submission?.mcqScore || 0);
+
+    const resolvedCodingScore = codingScore !== undefined && !isNaN(Number(codingScore))
+      ? Math.max(0, Number(codingScore))
+      : (submission?.codingScore || 0);
+
+    const resolvedDesignScore = designScore !== undefined && !isNaN(Number(designScore))
+      ? Math.max(0, Number(designScore))
+      : (submission?.designScore || 0);
+
+    let numTotalScore: number;
+    if (score !== undefined && score !== null && !isNaN(Number(score))) {
+      numTotalScore = Math.max(0, Number(score));
+    } else {
+      numTotalScore = resolvedMcqScore + resolvedCodingScore + resolvedDesignScore;
+    }
+
+    const scorePercentage = Math.min(100, Math.round((numTotalScore / maxPossibleScore) * 100));
+    const passThreshold = assessment.passingPercentage || 50;
+    const finalIsPassed = typeof isPassed === 'boolean' ? isPassed : scorePercentage >= passThreshold;
 
     const now = new Date();
     const durationMinutes = assessment.durationMinutes || 60;
@@ -4900,24 +4948,26 @@ export const createOrUpdateManualSubmission = async (
     }
 
     submission.status = 'SUBMITTED';
-    submission.submittedAt = now;
+    submission.submittedAt = submission.submittedAt || now;
     submission.totalScore = numTotalScore;
     submission.rawTotalScore = numTotalScore;
     submission.maxPossibleScore = maxPossibleScore;
     submission.scorePercentage = scorePercentage;
     submission.isPassed = finalIsPassed;
     submission.isManualSubmission = true;
-    submission.manualNotes = manualNotes?.trim() || 'Paper / Offline Test Submission';
+    submission.manualNotes = manualNotes?.trim() || submission.manualNotes || 'Paper / Offline Test Submission';
     submission.enteredBy = new mongoose.Types.ObjectId(user._id || user.id);
-    if (mcqScore !== undefined && !isNaN(Number(mcqScore))) submission.mcqScore = Number(mcqScore);
-    if (codingScore !== undefined && !isNaN(Number(codingScore))) submission.codingScore = Number(codingScore);
-    if (designScore !== undefined && !isNaN(Number(designScore))) submission.designScore = Number(designScore);
+    submission.mcqScore = resolvedMcqScore;
+    submission.codingScore = resolvedCodingScore;
+    submission.designScore = resolvedDesignScore;
+
+    const pointsDelta = numTotalScore - previousPointsAwarded;
 
     submission.integrityEvents = submission.integrityEvents || [];
     submission.integrityEvents.push({
       type: 'MANUAL_SCORE_ENTERED',
       timestamp: now,
-      details: `Manual score of ${numTotalScore}/${maxPossibleScore} entered by admin ${user.name || user.email}. Notes: ${submission.manualNotes}`,
+      details: `Score of ${numTotalScore}/${maxPossibleScore} entered/updated by admin ${user.name || user.email} (MCQ: ${resolvedMcqScore}, Coding: ${resolvedCodingScore}). Delta points: ${pointsDelta >= 0 ? '+' : ''}${pointsDelta}. Notes: ${submission.manualNotes}`,
     });
 
     try {
@@ -4936,7 +4986,7 @@ export const createOrUpdateManualSubmission = async (
           });
           if (existing) {
             existing.status = 'SUBMITTED';
-            existing.submittedAt = now;
+            existing.submittedAt = existing.submittedAt || now;
             existing.totalScore = numTotalScore;
             existing.rawTotalScore = numTotalScore;
             existing.maxPossibleScore = maxPossibleScore;
@@ -4945,9 +4995,9 @@ export const createOrUpdateManualSubmission = async (
             existing.isManualSubmission = true;
             existing.manualNotes = submission.manualNotes;
             existing.enteredBy = submission.enteredBy;
-            if (mcqScore !== undefined && !isNaN(Number(mcqScore))) existing.mcqScore = Number(mcqScore);
-            if (codingScore !== undefined && !isNaN(Number(codingScore))) existing.codingScore = Number(codingScore);
-            if (designScore !== undefined && !isNaN(Number(designScore))) existing.designScore = Number(designScore);
+            existing.mcqScore = resolvedMcqScore;
+            existing.codingScore = resolvedCodingScore;
+            existing.designScore = resolvedDesignScore;
             submission = existing;
             await submission.save();
           } else {
@@ -4968,6 +5018,25 @@ export const createOrUpdateManualSubmission = async (
       { $set: { isBlocked: false, blockReason: '' } }
     );
 
+    // Reconcile points awarded to student's account and ledger (DELTA ONLY!)
+    if (pointsDelta !== 0) {
+      await creditArenaRoundPoints({
+        userId: targetUser._id,
+        amount: pointsDelta,
+        eventTitle: event.title,
+        roundTitle: assessment.title,
+        submissionId: submission._id,
+        awardedBy: user._id,
+        note:
+          pointsDelta >= 0
+            ? `Paper/Manual score update for ${assessment.title}: +${pointsDelta} pts (Total: ${numTotalScore}/${maxPossibleScore})`
+            : `Paper/Manual score adjustment for ${assessment.title}: ${pointsDelta} pts (Total: ${numTotalScore}/${maxPossibleScore})`,
+      });
+      submission.pointsAwarded = true;
+      submission.pointsAwardedAmount = numTotalScore;
+      await submission.save();
+    }
+
     const populatedSubmission = await EventArenaSubmission.findById(submission._id)
       .populate('userId', 'name rollNo email profilePicUrl department year college residenceType')
       .populate('enteredBy', 'name email role')
@@ -4975,8 +5044,9 @@ export const createOrUpdateManualSubmission = async (
 
     return reply.send({
       success: true,
-      message: `Manual submission recorded successfully for ${targetUser.name || targetUser.rollNo} (${numTotalScore}/${maxPossibleScore} pts).`,
+      message: `Score recorded successfully for ${targetUser.name || targetUser.rollNo} (${numTotalScore}/${maxPossibleScore} pts${pointsDelta !== 0 ? `, ${pointsDelta > 0 ? '+' : ''}${pointsDelta} delta points awarded` : ''}).`,
       submission: populatedSubmission,
+      deltaPoints: pointsDelta,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -5135,6 +5205,11 @@ export const bulkUploadManualSubmissions = async (
         userId: targetUser._id,
       });
 
+      // Record previously credited points
+      const previousPointsAwarded = typeof submission?.pointsAwardedAmount === 'number'
+        ? submission.pointsAwardedAmount
+        : (submission?.pointsAwarded ? (submission.totalScore || 0) : 0);
+
       const startedAt = submission?.startedAt || new Date(now.getTime() - durationMinutes * 60000);
 
       if (!submission) {
@@ -5148,7 +5223,7 @@ export const bulkUploadManualSubmissions = async (
       }
 
       submission.status = 'SUBMITTED';
-      submission.submittedAt = now;
+      submission.submittedAt = submission.submittedAt || now;
       submission.totalScore = numScore;
       submission.rawTotalScore = numScore;
       submission.maxPossibleScore = numMax;
@@ -5161,11 +5236,13 @@ export const bulkUploadManualSubmissions = async (
       if (codingScore !== undefined && !isNaN(Number(codingScore))) submission.codingScore = Number(codingScore);
       if (designScore !== undefined && !isNaN(Number(designScore))) submission.designScore = Number(designScore);
 
+      const bulkPointsDelta = numScore - previousPointsAwarded;
+
       submission.integrityEvents = submission.integrityEvents || [];
       submission.integrityEvents.push({
         type: 'MANUAL_SCORE_BULK_UPLOAD',
         timestamp: now,
-        details: `Bulk upload score of ${numScore}/${numMax} recorded by admin ${user.name || user.email}`,
+        details: `Bulk upload score of ${numScore}/${numMax} recorded by admin ${user.name || user.email}. Delta points: ${bulkPointsDelta >= 0 ? '+' : ''}${bulkPointsDelta}`,
       });
 
       try {
@@ -5183,7 +5260,7 @@ export const bulkUploadManualSubmissions = async (
             });
             if (existing) {
               existing.status = 'SUBMITTED';
-              existing.submittedAt = now;
+              existing.submittedAt = existing.submittedAt || now;
               existing.totalScore = numScore;
               existing.rawTotalScore = numScore;
               existing.maxPossibleScore = numMax;
@@ -5195,10 +5272,30 @@ export const bulkUploadManualSubmissions = async (
               if (mcqScore !== undefined && !isNaN(Number(mcqScore))) existing.mcqScore = Number(mcqScore);
               if (codingScore !== undefined && !isNaN(Number(codingScore))) existing.codingScore = Number(codingScore);
               if (designScore !== undefined && !isNaN(Number(designScore))) existing.designScore = Number(designScore);
+              submission = existing;
               await existing.save();
             }
           }
         }
+      }
+
+      // Reconcile points awarded to student's account and ledger (DELTA ONLY!)
+      if (bulkPointsDelta !== 0) {
+        await creditArenaRoundPoints({
+          userId: targetUser._id,
+          amount: bulkPointsDelta,
+          eventTitle: event.title,
+          roundTitle: assessment.title,
+          submissionId: submission._id,
+          awardedBy: user._id,
+          note:
+            bulkPointsDelta >= 0
+              ? `Bulk paper score upload for ${assessment.title}: +${bulkPointsDelta} pts (Total: ${numScore}/${numMax})`
+              : `Bulk paper score adjustment for ${assessment.title}: ${bulkPointsDelta} pts (Total: ${numScore}/${numMax})`,
+        });
+        submission.pointsAwarded = true;
+        submission.pointsAwardedAmount = numScore;
+        await submission.save();
       }
 
       // Unblock student in enrollment if blocked

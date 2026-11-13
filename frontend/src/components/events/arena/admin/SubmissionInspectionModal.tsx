@@ -2,6 +2,7 @@ import React, { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
+  FileText,
   CheckCircle2,
   Palette,
   ExternalLink,
@@ -26,6 +27,7 @@ interface SubmissionInspectionModalProps {
   inspectingShortlisted: boolean;
   actionInProgressId: string | null;
   onClose: () => void;
+  onEditPaperScore?: (sub: any) => void;
   onGradeCode: (submissionId: string, problemId: string, score: number, feedback: string) => Promise<void>;
   onResetSubmission: (sub: any) => Promise<void>;
   onUnblockStudent: (studentId: string, studentName?: string) => Promise<void>;
@@ -43,6 +45,7 @@ export const SubmissionInspectionModal: React.FC<SubmissionInspectionModalProps>
   inspectingShortlisted,
   actionInProgressId,
   onClose,
+  onEditPaperScore,
   onGradeCode,
   onResetSubmission,
   onUnblockStudent,
@@ -140,15 +143,29 @@ export const SubmissionInspectionModal: React.FC<SubmissionInspectionModalProps>
               </div>
             </div>
 
-            <Button
-              isIconOnly
-              size="sm"
-              variant="light"
-              onPress={onClose}
-              className="p-2 rounded-xl text-label-tertiary hover:text-label-primary hover:bg-surface-secondary min-w-unit-8 w-8 h-8 cursor-pointer"
-            >
-              <X size={16} />
-            </Button>
+            <div className="flex items-center gap-2">
+              {onEditPaperScore && (
+                <Button
+                  size="sm"
+                  variant="flat"
+                  color="secondary"
+                  startContent={<FileText size={13} />}
+                  onPress={() => onEditPaperScore(inspectingSub)}
+                  className="h-8 px-3 rounded-xl text-xs font-bold bg-purple-500/15 border border-purple-500/30 text-purple-400 hover:bg-purple-500/25 cursor-pointer"
+                >
+                  Edit / Paper Marks
+                </Button>
+              )}
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                onPress={onClose}
+                className="p-2 rounded-xl text-label-tertiary hover:text-label-primary hover:bg-surface-secondary min-w-unit-8 w-8 h-8 cursor-pointer"
+              >
+                <X size={16} />
+              </Button>
+            </div>
           </div>
 
           {/* Score Summary Metrics */}
