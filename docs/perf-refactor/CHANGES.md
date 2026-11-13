@@ -1,0 +1,16 @@
+# Changes Log (Phase 3 & 4)
+
+## Commits on Branch `feat/perf-split-and-optimize`
+
+| Commit Hash | Commit Message | Files Changed / Created | Rationale / Performance Impact |
+|---|---|---|---|
+| `e3a73fb` | `docs(perf): add PERF_DIAGNOSIS and FILE_SPLIT_PLAN reports` | `docs/perf-refactor/PERF_DIAGNOSIS.md`, `docs/perf-refactor/FILE_SPLIT_PLAN.md`, `docs/perf-refactor/oversized_files.csv` | Initial diagnostic profiling and file split planning documents. |
+| `0c84f65` | `feat(arena): sync student anti-cheat unblock API integration` | `frontend/src/pages/EventArenaPage.tsx`, `frontend/src/components/events/EventArenaAdminModal.tsx` | Connects backend anti-cheat unblock handler cleanly to the student arena view. |
+| `752d4cf` | `perf(arena): dynamically import xlsx in ManualPaperBulkUploadModal` | `frontend/src/components/events/arena/ManualPaperBulkUploadModal.tsx` | Replaced static `import * as XLSX from 'xlsx'` with dynamic `await import('xlsx')`. Prevents loading 425 kB SheetJS bundle until actual upload action occurs. |
+| `1fb00e1` | `fix(lint): prefix unused setSingleType with underscore` | `frontend/src/components/events/EventBulkUploadModal.jsx` | Resolved ESLint warning/error on unused variable. |
+| `a64a223` | `perf(storage): debounce synchronous localStorage writes in examStorage` | `frontend/src/utils/examStorage.ts` | Debounced synchronous `window.localStorage.setItem` payload mirroring with a 300ms window while preserving immediate IndexedDB persistence. Eliminates the ~1.2s freeze on radio clicks in assessments. |
+| `3fe8c1b` | `refactor(arena): extract ArenaTeamsTab from EventArenaAdminModal` | `frontend/src/components/events/arena/admin/ArenaTeamsTab.tsx`, `frontend/src/components/events/EventArenaAdminModal.tsx` | Extracted 170-line Teams tab into a memoized standalone component. |
+| `dafdaf8` | `refactor(arena): extract ArenaWorkspaceSkeleton to separate component` | `frontend/src/components/events/arena/student/ArenaWorkspaceSkeleton.tsx`, `frontend/src/pages/EventArenaPage.tsx` | Extracted 90-line inline skeleton from `EventArenaPage.tsx` into a reusable, memoized skeleton component. |
+| `e03bb81` | `refactor(ui): split HeroUIComponents into focused modular files under ui/hero` | `frontend/src/components/ui/hero/*`, `frontend/src/components/ui/HeroUIComponents.tsx` | Decomposed monolithic 1,776-line `HeroUIComponents.tsx` into 8 atomic files (`HeroInput`, `HeroTextarea`, `HeroAvatar`, `HeroTabs`, `HeroTable`, `HeroChip`, `HeroDatePicker`, `HeroDateTimePicker`) while retaining 100% backward compatibility via barrel re-exports. |
+| `213cab6` | `refactor(admin): extract ParticipantCard from EventParticipantsModal for memoized list rendering` | `frontend/src/components/admin/ParticipantCard.tsx`, `frontend/src/components/admin/EventParticipantsModal.jsx` | Extracted the complex, nested participant card row (~245 lines) into a standalone `React.memo` component. Prevents re-rendering all rows on tab toggle or single record deletion. |
+| `de09d95` | `perf(navigation): optimize Header store subscriptions using targeted selectors` | `frontend/src/components/navigation/Header.tsx` | Subscribed to `useAuthStore`, `useProfileStore`, and `useNotificationStore` via specific state selectors instead of destructuring whole store. Eliminates unnecessary Header re-renders on arbitrary store mutations. |
