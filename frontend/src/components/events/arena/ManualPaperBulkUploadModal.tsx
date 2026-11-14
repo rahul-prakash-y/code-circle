@@ -260,7 +260,8 @@ export const ManualPaperBulkUploadModal: React.FC<ManualPaperBulkUploadModalProp
 
       const res = await api.post(
         `/events/${eventId}/arena/assessments/${assessmentId}/manual-submission/bulk-upload`,
-        { rows: payloadRows }
+        { rows: payloadRows },
+        { timeout: 300000 }
       );
 
       if (res.data?.success) {
