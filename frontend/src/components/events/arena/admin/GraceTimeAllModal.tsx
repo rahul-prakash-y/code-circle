@@ -6,6 +6,7 @@ import { Button } from '@heroui/react';
 interface GraceTimeAllModalProps {
   isOpen: boolean;
   isGrantingGraceAll: boolean;
+  isGraceTimeAllGranted?: boolean;
   onClose: () => void;
   onGrantAll: (minutes: number) => Promise<void>;
 }
@@ -13,6 +14,7 @@ interface GraceTimeAllModalProps {
 export const GraceTimeAllModal: React.FC<GraceTimeAllModalProps> = memo(({
   isOpen,
   isGrantingGraceAll,
+  isGraceTimeAllGranted,
   onClose,
   onGrantAll,
 }) => {
@@ -56,7 +58,7 @@ export const GraceTimeAllModal: React.FC<GraceTimeAllModalProps> = memo(({
             </Button>
           </div>
 
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-400 space-y-1">
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-400 space-y-1.5">
             <p className="font-bold flex items-center gap-1.5">
               <CheckCircle2 size={13} />
               All existing answers will be preserved!
@@ -64,6 +66,10 @@ export const GraceTimeAllModal: React.FC<GraceTimeAllModalProps> = memo(({
             <p className="text-text-muted text-[11px] leading-relaxed">
               This adds extra time to the round deadline and extends the countdown for all ongoing and auto-submitted candidates. Candidates can immediately re-enter and finish their work without losing any code or MCQ selections.
             </p>
+            <div className="pt-1.5 border-t border-amber-500/20 text-[11px] text-amber-300 font-semibold flex items-center gap-1.5">
+              <Clock size={12} className="shrink-0" />
+              <span>One-Time Rule: Grace time for all can only be granted ONCE per round. Any further extensions must be granted individually to specific candidates.</span>
+            </div>
           </div>
 
           {/* Time selector */}
@@ -117,12 +123,12 @@ export const GraceTimeAllModal: React.FC<GraceTimeAllModalProps> = memo(({
               variant="solid"
               color="warning"
               isLoading={isGrantingGraceAll}
-              isDisabled={isGrantingGraceAll}
+              isDisabled={isGrantingGraceAll || isGraceTimeAllGranted}
               startContent={!isGrantingGraceAll ? <Clock size={13} /> : undefined}
               onPress={handleGrant}
-              className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold shadow-lg shadow-amber-500/20 cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black text-xs font-bold shadow-lg shadow-amber-500/20 cursor-pointer"
             >
-              Grant +{graceAllMinutes}m to All
+              {isGraceTimeAllGranted ? 'Already Granted (1x Limit)' : `Grant +${graceAllMinutes}m to All`}
             </Button>
           </div>
         </motion.div>

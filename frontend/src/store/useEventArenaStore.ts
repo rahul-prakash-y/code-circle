@@ -103,6 +103,7 @@ export interface ArenaAssessment {
     coding: ArenaCodingProblem[];
   };
   hasGraceTime?: boolean;
+  graceTimeAllGranted?: boolean;
   submission?: {
     _id?: string;
     status: 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
@@ -1102,7 +1103,11 @@ export const useEventArenaStore = create<EventArenaState>((set, get) => ({
       );
       toast.success(res.data.message || 'Grace time granted to all students!');
       await get().fetchAdminAssessmentSubmissions(eventId, assessmentId);
-      await get().fetchAssessments(eventId);
+      const asms = await get().fetchAssessments(eventId);
+      const matching = (asms || []).find((a: any) => a._id === assessmentId);
+      if (matching) {
+        set({ selectedAssessment: matching });
+      }
       set({ actionLoading: false });
       return res.data;
     } catch (err: any) {

@@ -1937,6 +1937,7 @@ export const getEventAssessmentsList = async (
         endTime: assessment.endTime,
         graceMinutes: assessment.graceMinutes || 0,
         hasGraceTime: hasActiveGraceTime,
+        graceTimeAllGranted: Boolean(assessment.graceTimeAllGranted || (assessment.graceMinutes && assessment.graceMinutes > 0)),
         assignedAdmins: assessment.assignedAdmins || [],
         qualificationCutoffRank: assessment.qualificationCutoffRank || 0,
         isTeamMode: Boolean(assessment.isTeamMode),
@@ -2706,6 +2707,10 @@ export const getAdminAssessmentSubmissions = async (
         title: assessment.title,
         type: assessment.type,
         totalPoints: assessment.totalPoints,
+        durationMinutes: assessment.durationMinutes,
+        endTime: assessment.endTime,
+        graceMinutes: assessment.graceMinutes || 0,
+        graceTimeAllGranted: Boolean(assessment.graceTimeAllGranted || (assessment.graceMinutes && assessment.graceMinutes > 0)),
         designChallenge: assessment.designChallenge || null,
         designChallenges: assessment.designChallenges?.length ? assessment.designChallenges : (assessment.designChallenge ? [assessment.designChallenge] : []),
         questions: assessment.questions || { mcqs: [], coding: [] },
@@ -4727,6 +4732,21 @@ export const grantAssessmentGraceTimeAll = async (
       return reply.status(403).send({ success: false, error: 'Unauthorized to grant grace time' });
     }
 
+    // Grace time for all can only be granted ONCE per round
+    const alreadyGrantedAll = Boolean(
+      assessment.graceTimeAllGranted ||
+      ((assessment.graceMinutes || 0) > 0) ||
+      assessment.hasGraceTime
+    );
+
+    if (alreadyGrantedAll) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Grace time for all candidates has already been granted once for this round. Additional grace time must be granted individually to candidates.',
+        graceTimeAllGranted: true,
+      });
+    }
+
     const now = new Date();
     const adminObjectId = new mongoose.Types.ObjectId(user._id || user.id);
 
@@ -4741,6 +4761,8 @@ export const grantAssessmentGraceTimeAll = async (
     assessment.durationMinutes = (assessment.durationMinutes || 60) + minutesToAdd;
     assessment.graceMinutes = (assessment.graceMinutes || 0) + minutesToAdd;
     assessment.status = 'LIVE';
+    assessment.hasGraceTime = true;
+    assessment.graceTimeAllGranted = true;
     await event.save();
 
     // 2. Extend all submissions for this assessment, preserving all answers
@@ -4778,11 +4800,12 @@ export const grantAssessmentGraceTimeAll = async (
 
     return reply.send({
       success: true,
-      message: `Granted +${minutesToAdd} minutes grace time to all ${updatedCount} candidates in "${assessment.title}". All previous answers preserved.`,
+      message: `Granted +${minutesToAdd} minutes grace time to all ${updatedCount} candidates in "${assessment.title}". Additional grace time must now be given individually.`,
       updatedCount,
       newEndTime: assessment.endTime,
       durationMinutes: assessment.durationMinutes,
       graceMinutes: assessment.graceMinutes,
+      graceTimeAllGranted: true,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -4831,8 +4854,8 @@ export const createOrUpdateManualSubmission = async (
       return reply.status(400).send({ success: false, error: 'Student Roll No, Email, or ID is required.' });
     }
 
-    if (score === undefined || score === null || isNaN(Number(score))) {
-      return reply.status(400).send({ success: false, error: 'Valid numerical score is required.' });
+    if ((score === undefined || score === null || isNaN(Number(score))) && mcqScore === undefined && codingScore === undefined) {
+      return reply.status(400).send({ success: false, error: 'Valid numerical score or section scores are required.' });
     }
 
     const event = await Event.findById(id);
@@ -4873,17 +4896,42 @@ export const createOrUpdateManualSubmission = async (
       });
     }
 
-    const maxPossibleScore = Number(maxScore) || assessment.totalPoints || 100;
-    const numTotalScore = Math.max(0, Number(score));
-    const scorePercentage = Math.min(100, Math.round((numTotalScore / maxPossibleScore) * 100));
-    const passThreshold = assessment.passingPercentage || 50;
-    const finalIsPassed = typeof isPassed === 'boolean' ? isPassed : scorePercentage >= passThreshold;
-
     let submission = await EventArenaSubmission.findOne({
       eventId: event._id,
       assessmentId,
       userId: targetUser._id,
     });
+
+    // Record previously credited points (to award ONLY the delta/additional score)
+    const previousPointsAwarded = typeof submission?.pointsAwardedAmount === 'number'
+      ? submission.pointsAwardedAmount
+      : (submission?.pointsAwarded ? (submission.totalScore || 0) : 0);
+
+    const maxPossibleScore = Number(maxScore) || assessment.totalPoints || 100;
+
+    // Resolve section scores (preserve existing online MCQ/coding scores if not explicitly provided)
+    const resolvedMcqScore = mcqScore !== undefined && !isNaN(Number(mcqScore))
+      ? Math.max(0, Number(mcqScore))
+      : (submission?.mcqScore || 0);
+
+    const resolvedCodingScore = codingScore !== undefined && !isNaN(Number(codingScore))
+      ? Math.max(0, Number(codingScore))
+      : (submission?.codingScore || 0);
+
+    const resolvedDesignScore = designScore !== undefined && !isNaN(Number(designScore))
+      ? Math.max(0, Number(designScore))
+      : (submission?.designScore || 0);
+
+    let numTotalScore: number;
+    if (score !== undefined && score !== null && !isNaN(Number(score))) {
+      numTotalScore = Math.max(0, Number(score));
+    } else {
+      numTotalScore = resolvedMcqScore + resolvedCodingScore + resolvedDesignScore;
+    }
+
+    const scorePercentage = Math.min(100, Math.round((numTotalScore / maxPossibleScore) * 100));
+    const passThreshold = assessment.passingPercentage || 50;
+    const finalIsPassed = typeof isPassed === 'boolean' ? isPassed : scorePercentage >= passThreshold;
 
     const now = new Date();
     const durationMinutes = assessment.durationMinutes || 60;
@@ -4900,24 +4948,26 @@ export const createOrUpdateManualSubmission = async (
     }
 
     submission.status = 'SUBMITTED';
-    submission.submittedAt = now;
+    submission.submittedAt = submission.submittedAt || now;
     submission.totalScore = numTotalScore;
     submission.rawTotalScore = numTotalScore;
     submission.maxPossibleScore = maxPossibleScore;
     submission.scorePercentage = scorePercentage;
     submission.isPassed = finalIsPassed;
     submission.isManualSubmission = true;
-    submission.manualNotes = manualNotes?.trim() || 'Paper / Offline Test Submission';
+    submission.manualNotes = manualNotes?.trim() || submission.manualNotes || 'Paper / Offline Test Submission';
     submission.enteredBy = new mongoose.Types.ObjectId(user._id || user.id);
-    if (mcqScore !== undefined && !isNaN(Number(mcqScore))) submission.mcqScore = Number(mcqScore);
-    if (codingScore !== undefined && !isNaN(Number(codingScore))) submission.codingScore = Number(codingScore);
-    if (designScore !== undefined && !isNaN(Number(designScore))) submission.designScore = Number(designScore);
+    submission.mcqScore = resolvedMcqScore;
+    submission.codingScore = resolvedCodingScore;
+    submission.designScore = resolvedDesignScore;
+
+    const pointsDelta = numTotalScore - previousPointsAwarded;
 
     submission.integrityEvents = submission.integrityEvents || [];
     submission.integrityEvents.push({
       type: 'MANUAL_SCORE_ENTERED',
       timestamp: now,
-      details: `Manual score of ${numTotalScore}/${maxPossibleScore} entered by admin ${user.name || user.email}. Notes: ${submission.manualNotes}`,
+      details: `Score of ${numTotalScore}/${maxPossibleScore} entered/updated by admin ${user.name || user.email} (MCQ: ${resolvedMcqScore}, Coding: ${resolvedCodingScore}). Delta points: ${pointsDelta >= 0 ? '+' : ''}${pointsDelta}. Notes: ${submission.manualNotes}`,
     });
 
     try {
@@ -4936,7 +4986,7 @@ export const createOrUpdateManualSubmission = async (
           });
           if (existing) {
             existing.status = 'SUBMITTED';
-            existing.submittedAt = now;
+            existing.submittedAt = existing.submittedAt || now;
             existing.totalScore = numTotalScore;
             existing.rawTotalScore = numTotalScore;
             existing.maxPossibleScore = maxPossibleScore;
@@ -4945,9 +4995,9 @@ export const createOrUpdateManualSubmission = async (
             existing.isManualSubmission = true;
             existing.manualNotes = submission.manualNotes;
             existing.enteredBy = submission.enteredBy;
-            if (mcqScore !== undefined && !isNaN(Number(mcqScore))) existing.mcqScore = Number(mcqScore);
-            if (codingScore !== undefined && !isNaN(Number(codingScore))) existing.codingScore = Number(codingScore);
-            if (designScore !== undefined && !isNaN(Number(designScore))) existing.designScore = Number(designScore);
+            existing.mcqScore = resolvedMcqScore;
+            existing.codingScore = resolvedCodingScore;
+            existing.designScore = resolvedDesignScore;
             submission = existing;
             await submission.save();
           } else {
@@ -4968,6 +5018,25 @@ export const createOrUpdateManualSubmission = async (
       { $set: { isBlocked: false, blockReason: '' } }
     );
 
+    // Reconcile points awarded to student's account and ledger (DELTA ONLY!)
+    if (pointsDelta !== 0) {
+      await creditArenaRoundPoints({
+        userId: targetUser._id,
+        amount: pointsDelta,
+        eventTitle: event.title,
+        roundTitle: assessment.title,
+        submissionId: submission._id,
+        awardedBy: user._id,
+        note:
+          pointsDelta >= 0
+            ? `Paper/Manual score update for ${assessment.title}: +${pointsDelta} pts (Total: ${numTotalScore}/${maxPossibleScore})`
+            : `Paper/Manual score adjustment for ${assessment.title}: ${pointsDelta} pts (Total: ${numTotalScore}/${maxPossibleScore})`,
+      });
+      submission.pointsAwarded = true;
+      submission.pointsAwardedAmount = numTotalScore;
+      await submission.save();
+    }
+
     const populatedSubmission = await EventArenaSubmission.findById(submission._id)
       .populate('userId', 'name rollNo email profilePicUrl department year college residenceType')
       .populate('enteredBy', 'name email role')
@@ -4975,8 +5044,9 @@ export const createOrUpdateManualSubmission = async (
 
     return reply.send({
       success: true,
-      message: `Manual submission recorded successfully for ${targetUser.name || targetUser.rollNo} (${numTotalScore}/${maxPossibleScore} pts).`,
+      message: `Score recorded successfully for ${targetUser.name || targetUser.rollNo} (${numTotalScore}/${maxPossibleScore} pts${pointsDelta !== 0 ? `, ${pointsDelta > 0 ? '+' : ''}${pointsDelta} delta points awarded` : ''}).`,
       submission: populatedSubmission,
+      deltaPoints: pointsDelta,
     });
   } catch (err: any) {
     request.log.error(err);
@@ -5049,6 +5119,7 @@ export const bulkUploadManualSubmissions = async (
     const defaultPassThreshold = assessment.passingPercentage ?? 50;
     const durationMinutes = assessment.durationMinutes || 60;
     const now = new Date();
+    const adminObjectId = new mongoose.Types.ObjectId(user._id || user.id);
 
     const results = {
       total: rawRows.length,
@@ -5056,6 +5127,126 @@ export const bulkUploadManualSubmissions = async (
       errorCount: 0,
       errors: [] as Array<{ row: number; identifier: string; error: string }>,
     };
+
+    // 1. Extract all identifiers from rawRows to bulk-resolve users in memory
+    const rawIdentifiers = rawRows
+      .map((r: any) =>
+        String(
+          r['Roll Number / Email'] ||
+          r['Roll Number'] ||
+          r['RollNo'] ||
+          r['rollNo'] ||
+          r['Email'] ||
+          r['email'] ||
+          r['Student'] ||
+          r['studentIdentifier'] ||
+          ''
+        ).trim()
+      )
+      .filter(Boolean);
+
+    // Build fast in-memory user map
+    const userMap = new Map<string, any>();
+    const registerUser = (u: any) => {
+      if (!u || !u._id) return;
+      const idStr = String(u._id).toLowerCase();
+      userMap.set(idStr, u);
+      if (u.email) userMap.set(String(u.email).toLowerCase(), u);
+      if (u.rollNo) {
+        userMap.set(String(u.rollNo).toLowerCase(), u);
+        userMap.set(String(u.rollNo).toUpperCase(), u);
+        userMap.set(String(u.rollNo).trim(), u);
+      }
+    };
+
+    // Preload enrolled users (covers ~99% of contest participants in 1 query)
+    const enrollments = await Enrollment.find({ event: event._id })
+      .select('enrolledBy members')
+      .populate('enrolledBy members', '_id name email rollNo department year college residenceType profilePicUrl')
+      .lean();
+
+    for (const enr of enrollments) {
+      if (enr.enrolledBy) registerUser(enr.enrolledBy);
+      if (Array.isArray(enr.members)) {
+        for (const m of enr.members) registerUser(m);
+      }
+    }
+
+    // For any identifiers not resolved from enrollments, query User collection in one batch
+    const missingIdentifiers = Array.from(new Set(rawIdentifiers.filter((id) => !userMap.has(id.toLowerCase()))));
+    if (missingIdentifiers.length > 0) {
+      const missingIds = missingIdentifiers
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+      const missingEmails = missingIdentifiers
+        .filter((id) => id.includes('@'))
+        .map((id) => id.toLowerCase());
+      const missingRolls = missingIdentifiers.filter(
+        (id) => !id.includes('@') && !mongoose.Types.ObjectId.isValid(id)
+      );
+      const rollVariants = Array.from(
+        new Set(missingRolls.flatMap((r) => [r, r.toUpperCase(), r.toLowerCase(), r.trim()]))
+      );
+
+      const orConditions: any[] = [];
+      if (missingIds.length > 0) orConditions.push({ _id: { $in: missingIds } });
+      if (missingEmails.length > 0) orConditions.push({ email: { $in: missingEmails } });
+      if (rollVariants.length > 0) orConditions.push({ rollNo: { $in: rollVariants } });
+
+      if (orConditions.length > 0) {
+        const foundUsers = await User.find({ $or: orConditions })
+          .select('_id name email rollNo department year college residenceType profilePicUrl')
+          .lean();
+        for (const u of foundUsers) registerUser(u);
+      }
+
+      // Case-insensitive regex fallback for any still unresolved
+      const stillUnresolved = missingIdentifiers.filter((id) => !userMap.has(id.toLowerCase()));
+      if (stillUnresolved.length > 0) {
+        await Promise.all(
+          stillUnresolved.map(async (ident) => {
+            const u = await User.findOne({
+              $or: [
+                { rollNo: { $regex: new RegExp(`^${ident.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+                { email: ident.toLowerCase() },
+              ],
+            })
+              .select('_id name email rollNo department year college residenceType profilePicUrl')
+              .lean();
+            if (u) registerUser(u);
+          })
+        );
+      }
+    }
+
+    // 2. Preload all existing submissions for all found users in one single query
+    const allFoundUserIds = Array.from(
+      new Set(Array.from(userMap.values()).map((u) => u._id))
+    );
+
+    const existingSubmissions = await EventArenaSubmission.find({
+      eventId: event._id,
+      assessmentId,
+      userId: { $in: allFoundUserIds },
+    });
+
+    const subMap = new Map<string, any>();
+    for (const sub of existingSubmissions) {
+      subMap.set(String(sub.userId), sub);
+    }
+
+    // 3. Validate rows and prepare item queue in memory
+    interface PreparedItem {
+      rowIndex: number;
+      identifier: string;
+      targetUser: any;
+      submission: any;
+      numScore: number;
+      numMax: number;
+      bulkPointsDelta: number;
+    }
+
+    const itemsToProcess: PreparedItem[] = [];
 
     for (let i = 0; i < rawRows.length; i++) {
       const row = rawRows[i];
@@ -5108,32 +5299,17 @@ export const bulkUploadManualSubmissions = async (
       const designScore = row['Design Score'] ?? row['Design'] ?? row['designScore'];
       const notes = row['Notes'] ?? row['Notes / Feedback'] ?? row['Feedback'] ?? row['notes'] ?? 'Paper / Offline Test Bulk Submission';
 
-      // Find user
-      let targetUser: any = null;
-      if (mongoose.Types.ObjectId.isValid(identifier)) {
-        targetUser = await User.findById(identifier).select('_id name email rollNo department year college residenceType');
-      }
-      if (!targetUser) {
-        targetUser = await User.findOne({
-          $or: [
-            { rollNo: { $regex: new RegExp(`^${identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
-            { email: identifier.toLowerCase() },
-          ],
-        }).select('_id name email rollNo department year college residenceType');
-      }
-
+      const targetUser = userMap.get(identifier.toLowerCase()) || userMap.get(identifier);
       if (!targetUser) {
         results.errorCount++;
         results.errors.push({ row: i + 1, identifier, error: `No student found matching Roll Number or Email "${identifier}"` });
         continue;
       }
 
-      // Upsert submission
-      let submission = await EventArenaSubmission.findOne({
-        eventId: event._id,
-        assessmentId,
-        userId: targetUser._id,
-      });
+      let submission = subMap.get(String(targetUser._id));
+      const previousPointsAwarded = typeof submission?.pointsAwardedAmount === 'number'
+        ? submission.pointsAwardedAmount
+        : (submission?.pointsAwarded ? (submission.totalScore || 0) : 0);
 
       const startedAt = submission?.startedAt || new Date(now.getTime() - durationMinutes * 60000);
 
@@ -5145,10 +5321,11 @@ export const bulkUploadManualSubmissions = async (
           startedAt,
           status: 'SUBMITTED',
         });
+        subMap.set(String(targetUser._id), submission);
       }
 
       submission.status = 'SUBMITTED';
-      submission.submittedAt = now;
+      submission.submittedAt = submission.submittedAt || now;
       submission.totalScore = numScore;
       submission.rawTotalScore = numScore;
       submission.maxPossibleScore = numMax;
@@ -5156,61 +5333,115 @@ export const bulkUploadManualSubmissions = async (
       submission.isPassed = isPassed;
       submission.isManualSubmission = true;
       submission.manualNotes = String(notes).trim();
-      submission.enteredBy = new mongoose.Types.ObjectId(user._id || user.id);
+      submission.enteredBy = adminObjectId;
       if (mcqScore !== undefined && !isNaN(Number(mcqScore))) submission.mcqScore = Number(mcqScore);
       if (codingScore !== undefined && !isNaN(Number(codingScore))) submission.codingScore = Number(codingScore);
       if (designScore !== undefined && !isNaN(Number(designScore))) submission.designScore = Number(designScore);
+
+      const bulkPointsDelta = numScore - previousPointsAwarded;
 
       submission.integrityEvents = submission.integrityEvents || [];
       submission.integrityEvents.push({
         type: 'MANUAL_SCORE_BULK_UPLOAD',
         timestamp: now,
-        details: `Bulk upload score of ${numScore}/${numMax} recorded by admin ${user.name || user.email}`,
+        details: `Bulk upload score of ${numScore}/${numMax} recorded by admin ${user.name || user.email}. Delta points: ${bulkPointsDelta >= 0 ? '+' : ''}${bulkPointsDelta}`,
       });
 
-      try {
-        await submission.save();
-      } catch (saveErr: any) {
-        if (saveErr?.code === 11000) {
-          if (saveErr.message?.includes('eventId_1_userId_1')) {
-            await dropLegacyArenaSubmissionIndex();
-            await submission.save();
-          } else {
-            const existing = await EventArenaSubmission.findOne({
-              eventId: event._id,
-              assessmentId,
-              userId: targetUser._id,
-            });
-            if (existing) {
-              existing.status = 'SUBMITTED';
-              existing.submittedAt = now;
-              existing.totalScore = numScore;
-              existing.rawTotalScore = numScore;
-              existing.maxPossibleScore = numMax;
-              existing.scorePercentage = scorePercentage;
-              existing.isPassed = isPassed;
-              existing.isManualSubmission = true;
-              existing.manualNotes = submission.manualNotes;
-              existing.enteredBy = submission.enteredBy;
-              if (mcqScore !== undefined && !isNaN(Number(mcqScore))) existing.mcqScore = Number(mcqScore);
-              if (codingScore !== undefined && !isNaN(Number(codingScore))) existing.codingScore = Number(codingScore);
-              if (designScore !== undefined && !isNaN(Number(designScore))) existing.designScore = Number(designScore);
-              await existing.save();
-            }
-          }
-        }
-      }
+      itemsToProcess.push({
+        rowIndex: i + 1,
+        identifier,
+        targetUser,
+        submission,
+        numScore,
+        numMax,
+        bulkPointsDelta,
+      });
+    }
 
-      // Unblock student in enrollment if blocked
+    // 4. Save submissions and credit points in parallel batches (chunk of 15)
+    const successfulUserIds: mongoose.Types.ObjectId[] = [];
+    const BATCH_SIZE = 15;
+
+    for (let c = 0; c < itemsToProcess.length; c += BATCH_SIZE) {
+      const chunk = itemsToProcess.slice(c, c + BATCH_SIZE);
+      await Promise.all(
+        chunk.map(async (item) => {
+          try {
+            try {
+              await item.submission.save();
+            } catch (saveErr: any) {
+              if (saveErr?.code === 11000) {
+                const existing = await EventArenaSubmission.findOne({
+                  eventId: event._id,
+                  assessmentId,
+                  userId: item.targetUser._id,
+                });
+                if (existing) {
+                  existing.status = 'SUBMITTED';
+                  existing.submittedAt = existing.submittedAt || now;
+                  existing.totalScore = item.numScore;
+                  existing.rawTotalScore = item.numScore;
+                  existing.maxPossibleScore = item.numMax;
+                  existing.scorePercentage = item.submission.scorePercentage;
+                  existing.isPassed = item.submission.isPassed;
+                  existing.isManualSubmission = true;
+                  existing.manualNotes = item.submission.manualNotes;
+                  existing.enteredBy = adminObjectId;
+                  if (item.submission.mcqScore !== undefined) existing.mcqScore = item.submission.mcqScore;
+                  if (item.submission.codingScore !== undefined) existing.codingScore = item.submission.codingScore;
+                  if (item.submission.designScore !== undefined) existing.designScore = item.submission.designScore;
+                  item.submission = existing;
+                  await existing.save();
+                }
+              } else {
+                throw saveErr;
+              }
+            }
+
+            if (item.bulkPointsDelta !== 0) {
+              await creditArenaRoundPoints({
+                userId: item.targetUser._id,
+                amount: item.bulkPointsDelta,
+                eventTitle: event.title,
+                roundTitle: assessment.title,
+                submissionId: item.submission._id,
+                awardedBy: user._id,
+                note:
+                  item.bulkPointsDelta >= 0
+                    ? `Bulk paper score upload for ${assessment.title}: +${item.bulkPointsDelta} pts (Total: ${item.numScore}/${item.numMax})`
+                    : `Bulk paper score adjustment for ${assessment.title}: ${item.bulkPointsDelta} pts (Total: ${item.numScore}/${item.numMax})`,
+              });
+              item.submission.pointsAwarded = true;
+              item.submission.pointsAwardedAmount = item.numScore;
+              await item.submission.save();
+            }
+
+            successfulUserIds.push(item.targetUser._id);
+            results.successCount++;
+          } catch (err: any) {
+            results.errorCount++;
+            results.errors.push({
+              row: item.rowIndex,
+              identifier: item.identifier,
+              error: err.message || 'Failed to save submission',
+            });
+          }
+        })
+      );
+    }
+
+    // 5. Unblock all successful students in a single batch query
+    if (successfulUserIds.length > 0) {
       await Enrollment.updateMany(
         {
           event: event._id,
-          $or: [{ enrolledBy: targetUser._id }, { members: targetUser._id }],
+          $or: [
+            { enrolledBy: { $in: successfulUserIds } },
+            { members: { $in: successfulUserIds } },
+          ],
         },
         { $set: { isBlocked: false, blockReason: '' } }
       );
-
-      results.successCount++;
     }
 
     return reply.send({

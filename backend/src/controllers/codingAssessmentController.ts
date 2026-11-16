@@ -1839,10 +1839,30 @@ export const getLevelAssessmentSession = async (
 
   const now = Date.now();
 
-  // If existing session is expired and not completed, mark expired
-  if (session && !session.isCompleted && now > session.expiresAt.getTime()) {
-    session.verdict = 'expired';
-    await session.save();
+  // If existing session is not completed, check if all questions are passed first before marking expired
+  if (session && !session.isCompleted) {
+    const existingSubmissions = session.submissions;
+    const hasPassedAll =
+      session.assignedQuestions.length > 0 &&
+      session.assignedQuestions.every((qId) => {
+        const sub = existingSubmissions.find(
+          (s) => s.challengeId.toString() === qId.toString()
+        );
+        return sub && sub.status === 'passed';
+      });
+
+    if (hasPassedAll) {
+      session.isCompleted = true;
+      session.verdict = 'passed';
+      session.completedAt = session.completedAt || new Date();
+      if (!session.pointsAwarded) {
+        session.pointsAwarded = session.pointsAvailable || session.initialPoints || 100;
+      }
+      await session.save();
+    } else if (now > session.expiresAt.getTime()) {
+      session.verdict = 'expired';
+      await session.save();
+    }
   }
 
   // If existing session is still in progress but has fewer than 2 questions, heal/supplement it with a 2nd question

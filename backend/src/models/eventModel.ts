@@ -79,6 +79,7 @@ export interface IEventArenaAssessment {
   designChallenges?: IEventArenaDesignChallenge[];
   graceMinutes?: number;
   hasGraceTime?: boolean;
+  graceTimeAllGranted?: boolean;
   shuffleQuestions?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -155,6 +156,8 @@ export const eventArenaAssessmentSchema = new Schema<IEventArenaAssessment>(
     startTime: { type: Date },
     endTime: { type: Date },
     graceMinutes: { type: Number, default: 0, min: 0 },
+    hasGraceTime: { type: Boolean, default: false },
+    graceTimeAllGranted: { type: Boolean, default: false },
     shuffleQuestions: { type: Boolean, default: true },
     assignedAdmins: [
       {

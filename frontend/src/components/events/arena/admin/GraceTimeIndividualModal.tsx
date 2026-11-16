@@ -40,8 +40,13 @@ export const GraceTimeIndividualModal: React.FC<GraceTimeIndividualModalProps> =
                 <Clock size={16} />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-label-primary">Grant Grace Time & Resume</h4>
-                <p className="text-xs text-text-muted">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-label-primary">Individual Grace Time & Resume</h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                    Candidate Extension
+                  </span>
+                </div>
+                <p className="text-xs text-text-muted mt-0.5">
                   Candidate: <span className="text-label-primary font-semibold">{graceModalSub.userId?.name || 'Student'}</span> ({graceModalSub.userId?.rollNo || graceModalSub.userId?.email || 'N/A'})
                 </p>
               </div>
