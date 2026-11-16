@@ -112,24 +112,30 @@ export const deleteTemplate = async (req: FastifyRequest, reply: FastifyReply) =
 export const previewCertificateTemplate = async (req: FastifyRequest, reply: FastifyReply) => {
   try {
     const body = req.body as any;
-    const sampleRecipient = body.recipientName || 'RAHUL PRAKASH';
-    const sampleRollNo = body.recipientRollNo || '7376222CB101';
+    const sampleRecipient = body.recipientName || 'RAHUL P';
+    const sampleRollNo = body.recipientRollNo || '7376231CS272';
 
     const pdfBuffer = await buildCertificatePdfBuffer({
       recipientName: sampleRecipient,
       recipientRollNo: sampleRollNo,
-      title: body.title || 'CERTIFICATE OF EXCELLENCE',
-      subtitle: body.subtitle || 'PROUDLY PRESENTED TO',
-      description: body.description,
-      issuerOrganization: body.signatoryOrganization || 'CODE CIRCLE · BANNARI AMMAN INSTITUTE OF TECHNOLOGY',
-      signatoryName: body.signatoryName || 'Dr. S. K. Ramesh',
+      title: body.title || 'Certificate of Achievement',
+      subtitle: body.subtitle || 'Proudly Presented To',
+      description:
+        body.description ||
+        'For exceptional technical competence, sustained dedication, and active participation in advanced club initiatives.',
+      issuerOrganization:
+        body.signatoryOrganization || 'Code Circle · Bannari Amman Institute of Technology',
+      signatoryName: body.signatoryName || 'Dr. Dhanasekar R',
       signatoryTitle: body.signatoryTitle || 'Faculty Coordinator',
-      secondarySignatoryName: body.secondarySignatoryName || 'Dr. P. Balasubramanie',
+      signatoryDepartment: body.signatoryDepartment || 'Faculty Coordinator · EIE',
+      secondarySignatoryName: body.secondarySignatoryName || 'Dr. Nandhini K M',
       secondarySignatoryTitle: body.secondarySignatoryTitle || 'Faculty Coordinator',
-      tertiarySignatoryName: body.tertiarySignatoryName || 'Dr. C. Palanisamy',
+      secondarySignatoryDepartment: body.secondarySignatoryDepartment || 'Faculty Coordinator · EIE',
+      tertiarySignatoryName: body.tertiarySignatoryName || 'Prof. RATHNA S',
       tertiarySignatoryTitle: body.tertiarySignatoryTitle || 'Faculty Coordinator',
-      certificateId: 'PREVIEW-SAMPLE-2026',
-      verificationCode: 'SAMPLE99',
+      tertiarySignatoryDepartment: body.tertiarySignatoryDepartment || 'Faculty Coordinator · CSE',
+      certificateId: 'CC-CERT-PREVIEW',
+      verificationCode: 'VERIFIED',
       issueDate: new Date(),
       theme: body.theme || 'classic-ivory',
       orientation: body.orientation || 'landscape',
@@ -229,13 +235,22 @@ export const issueCertificates = async (req: FastifyRequest, reply: FastifyReply
         subtitle: template.subtitle,
         description: customDescription || template.description,
         type: targetType === 'COURSE' ? 'COURSE' : template.type,
+        theme: template.theme || 'classic-ivory',
+        orientation: template.orientation || 'landscape',
+        primaryColor: template.primaryColor,
+        accentColor: template.accentColor,
+        bgImageUrl: template.bgImageUrl,
+        badgeUrl: template.badgeUrl,
         issuerOrganization: template.signatoryOrganization,
         signatoryName: template.signatoryName,
         signatoryTitle: template.signatoryTitle,
+        signatoryDepartment: template.signatoryDepartment || 'Faculty Coordinator · EIE',
         secondarySignatoryName: template.secondarySignatoryName,
         secondarySignatoryTitle: template.secondarySignatoryTitle,
+        secondarySignatoryDepartment: template.secondarySignatoryDepartment || 'Faculty Coordinator · EIE',
         tertiarySignatoryName: template.tertiarySignatoryName,
         tertiarySignatoryTitle: template.tertiarySignatoryTitle,
+        tertiarySignatoryDepartment: template.tertiarySignatoryDepartment || 'Faculty Coordinator · CSE',
         issueDate: now,
         status: 'ACTIVE',
         associatedEventId: template.associatedEventId || (targetType === 'EVENT' ? targetId : null),
@@ -364,7 +379,7 @@ export const getMyCertificates = async (req: FastifyRequest, reply: FastifyReply
 
     const filter = {
       recipientUser: userId,
-      status: 'ACTIVE',
+      status: { $in: ['ACTIVE', 'PENDING_APPROVAL'] },
     };
 
     const [certificates, total] = await Promise.all([
@@ -453,6 +468,13 @@ export const downloadCertificatePdf = async (req: FastifyRequest, reply: Fastify
       return reply.status(404).send({ success: false, error: 'Certificate not found' });
     }
 
+    if (cert.status === 'PENDING_APPROVAL') {
+      return reply.status(403).send({
+        success: false,
+        error: 'Certificate is currently awaiting administrator approval before release.',
+      });
+    }
+
     const template = cert.templateId as any;
 
     const pdfBuffer = await buildCertificatePdfBuffer({
@@ -461,19 +483,33 @@ export const downloadCertificatePdf = async (req: FastifyRequest, reply: Fastify
       title: cert.title,
       subtitle: cert.subtitle,
       description: cert.description,
-      issuerOrganization: cert.issuerOrganization,
-      signatoryName: cert.signatoryName,
-      signatoryTitle: cert.signatoryTitle,
-      secondarySignatoryName: cert.secondarySignatoryName,
-      secondarySignatoryTitle: cert.secondarySignatoryTitle,
-      tertiarySignatoryName: cert.tertiarySignatoryName,
-      tertiarySignatoryTitle: cert.tertiarySignatoryTitle,
+      issuerOrganization: cert.issuerOrganization || template?.signatoryOrganization,
+      signatoryName: cert.signatoryName || template?.signatoryName || 'Dr. Dhanasekar R',
+      signatoryTitle: cert.signatoryTitle || template?.signatoryTitle || 'Faculty Coordinator',
+      signatoryDepartment:
+        cert.signatoryDepartment || template?.signatoryDepartment || 'Faculty Coordinator · EIE',
+      secondarySignatoryName:
+        cert.secondarySignatoryName || template?.secondarySignatoryName || 'Dr. Nandhini K M',
+      secondarySignatoryTitle:
+        cert.secondarySignatoryTitle || template?.secondarySignatoryTitle || 'Faculty Coordinator',
+      secondarySignatoryDepartment:
+        cert.secondarySignatoryDepartment ||
+        template?.secondarySignatoryDepartment ||
+        'Faculty Coordinator · EIE',
+      tertiarySignatoryName:
+        cert.tertiarySignatoryName || template?.tertiarySignatoryName || 'Prof. RATHNA S',
+      tertiarySignatoryTitle:
+        cert.tertiarySignatoryTitle || template?.tertiarySignatoryTitle || 'Faculty Coordinator',
+      tertiarySignatoryDepartment:
+        cert.tertiarySignatoryDepartment ||
+        template?.tertiarySignatoryDepartment ||
+        'Faculty Coordinator · CSE',
       certificateId: cert.certificateId,
       verificationCode: cert.verificationCode,
       issueDate: cert.issueDate,
-      theme: template?.theme || 'royal-sapphire',
-      orientation: template?.orientation || 'landscape',
-      bgImageUrl: template?.bgImageUrl,
+      theme: cert.theme || template?.theme || 'classic-ivory',
+      orientation: cert.orientation || template?.orientation || 'landscape',
+      bgImageUrl: cert.bgImageUrl || template?.bgImageUrl,
     });
 
     const filename = `${cert.certificateId}_${cert.recipientName.replace(/\s+/g, '_')}.pdf`;
@@ -501,18 +537,27 @@ export const claimCourseCertificate = async (req: FastifyRequest, reply: Fastify
       return reply.status(404).send({ success: false, error: 'Course not found' });
     }
 
-    // Check if certificate already issued to this user for this domain
+    // Check if certificate already requested/issued to this user for this domain
     const existingCert = await IssuedCertificate.findOne({
       recipientUser: userId,
       associatedDomainId: domainId,
-      status: 'ACTIVE',
+      status: { $in: ['ACTIVE', 'PENDING_APPROVAL'] },
     });
 
     if (existingCert) {
+      if (existingCert.status === 'PENDING_APPROVAL') {
+        return reply.send({
+          success: true,
+          message: 'Course completed! Your certificate request is awaiting administrator approval.',
+          data: existingCert,
+          pendingApproval: true,
+        });
+      }
       return reply.send({
         success: true,
         message: 'Course completion certificate already issued.',
         data: existingCert,
+        pendingApproval: false,
       });
     }
 
@@ -533,7 +578,7 @@ export const claimCourseCertificate = async (req: FastifyRequest, reply: Fastify
     if (!isDomainCompleted && !isEnrolledCompleted) {
       return reply.status(400).send({
         success: false,
-        error: 'You must complete all levels in this course before claiming the certificate.',
+        error: 'You must complete all levels in this course before requesting certification.',
       });
     }
 
@@ -588,29 +633,36 @@ export const claimCourseCertificate = async (req: FastifyRequest, reply: Fastify
       subtitle: template?.subtitle || 'Course Completion & Technical Certification',
       description: certDesc,
       type: 'COURSE',
+      theme: template?.theme || 'classic-ivory',
+      orientation: template?.orientation || 'landscape',
+      primaryColor: template?.primaryColor,
+      accentColor: template?.accentColor,
+      bgImageUrl: template?.bgImageUrl,
+      badgeUrl: template?.badgeUrl,
       issuerOrganization:
         template?.signatoryOrganization || 'Code Circle · Bannari Amman Institute of Technology',
-      signatoryName: template?.signatoryName || 'Dr. S. K. Ramesh',
+      signatoryName: template?.signatoryName || 'Dr. Dhanasekar R',
       signatoryTitle: template?.signatoryTitle || 'Faculty Coordinator',
-      secondarySignatoryName: template?.secondarySignatoryName || 'Dr. P. Balasubramanie',
+      signatoryDepartment: template?.signatoryDepartment || 'Faculty Coordinator · EIE',
+      secondarySignatoryName: template?.secondarySignatoryName || 'Dr. Nandhini K M',
       secondarySignatoryTitle: template?.secondarySignatoryTitle || 'Faculty Coordinator',
-      tertiarySignatoryName: template?.tertiarySignatoryName || 'Dr. C. Palanisamy',
+      secondarySignatoryDepartment:
+        template?.secondarySignatoryDepartment || 'Faculty Coordinator · EIE',
+      tertiarySignatoryName: template?.tertiarySignatoryName || 'Prof. RATHNA S',
       tertiarySignatoryTitle: template?.tertiarySignatoryTitle || 'Faculty Coordinator',
+      tertiarySignatoryDepartment:
+        template?.tertiarySignatoryDepartment || 'Faculty Coordinator · CSE',
       issueDate: now,
-      status: 'ACTIVE',
+      status: 'PENDING_APPROVAL',
       associatedDomainId: domainId,
     });
 
-    if (template) {
-      await CertificateTemplate.findByIdAndUpdate(template._id, {
-        $inc: { issuedCount: 1 },
-      });
-    }
-
     return reply.status(201).send({
       success: true,
-      message: 'Congratulations! Your Course Completion Certificate has been issued.',
+      message:
+        'Course curriculum cleared! Your certificate request has been submitted and is awaiting administrator approval.',
       data: newCert,
+      pendingApproval: true,
     });
   } catch (error: any) {
     req.log.error(error);
@@ -618,5 +670,162 @@ export const claimCourseCertificate = async (req: FastifyRequest, reply: Fastify
       success: false,
       error: error.message || 'Failed to claim course certificate',
     });
+  }
+};
+
+// 13. Get Pending Course Certificates for Admin Approval
+export const getPendingCourseCertificates = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { domainId } = req.query as { domainId?: string };
+    const filter: any = { status: 'PENDING_APPROVAL' };
+    if (domainId && mongoose.isValidObjectId(domainId)) {
+      filter.associatedDomainId = domainId;
+    }
+
+    const pendingList = await IssuedCertificate.find(filter)
+      .populate('recipientUser', 'name email rollNo studentId department avatar')
+      .populate('associatedDomainId', 'name icon color slug')
+      .populate('templateId', 'title theme')
+      .sort({ createdAt: -1 });
+
+    return reply.send({
+      success: true,
+      data: pendingList,
+      count: pendingList.length,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to fetch pending certificates' });
+  }
+};
+
+// 14. Approve Single Course Certificate
+export const approveCourseCertificate = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const adminId = getUserId(req);
+    const { id } = req.params as { id: string };
+
+    if (!mongoose.isValidObjectId(id)) {
+      return reply.status(400).send({ success: false, error: 'Invalid certificate ID' });
+    }
+
+    const cert = await IssuedCertificate.findOne({
+      _id: id,
+      status: 'PENDING_APPROVAL',
+    });
+
+    if (!cert) {
+      return reply.status(404).send({
+        success: false,
+        error: 'Pending certificate not found or already approved',
+      });
+    }
+
+    cert.status = 'ACTIVE';
+    cert.approvedBy = new mongoose.Types.ObjectId(adminId);
+    cert.approvedAt = new Date();
+    await cert.save();
+
+    if (cert.templateId) {
+      await CertificateTemplate.findByIdAndUpdate(cert.templateId, {
+        $inc: { issuedCount: 1 },
+      });
+    }
+
+    return reply.send({
+      success: true,
+      message: `Certificate for ${cert.recipientName} has been approved and issued.`,
+      data: cert,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to approve certificate' });
+  }
+};
+
+// 15. Bulk Approve All Pending Course Certificates
+export const approveAllCourseCertificates = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const adminId = getUserId(req);
+    const { domainId } = (req.body as any) || {};
+
+    const filter: any = { status: 'PENDING_APPROVAL' };
+    if (domainId && mongoose.isValidObjectId(domainId)) {
+      filter.associatedDomainId = domainId;
+    }
+
+    const pendingCerts = await IssuedCertificate.find(filter);
+
+    if (pendingCerts.length === 0) {
+      return reply.send({
+        success: true,
+        message: 'No pending certificates to approve.',
+        count: 0,
+      });
+    }
+
+    const now = new Date();
+    const adminObjectId = new mongoose.Types.ObjectId(adminId);
+
+    const certIds = pendingCerts.map((c) => c._id);
+    await IssuedCertificate.updateMany(
+      { _id: { $in: certIds } },
+      {
+        $set: {
+          status: 'ACTIVE',
+          approvedBy: adminObjectId,
+          approvedAt: now,
+        },
+      }
+    );
+
+    // Group by templateId and increment counters
+    const templateCounts: Record<string, number> = {};
+    for (const c of pendingCerts) {
+      if (c.templateId) {
+        const tid = c.templateId.toString();
+        templateCounts[tid] = (templateCounts[tid] || 0) + 1;
+      }
+    }
+
+    for (const [tid, inc] of Object.entries(templateCounts)) {
+      await CertificateTemplate.findByIdAndUpdate(tid, { $inc: { issuedCount: inc } });
+    }
+
+    return reply.send({
+      success: true,
+      message: `Successfully approved and issued ${pendingCerts.length} certificate(s).`,
+      count: pendingCerts.length,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to bulk approve certificates' });
+  }
+};
+
+// 16. Revoke All Issued Certificates (Institutional administrative override)
+export const revokeAllCertificates = async (req: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { reason = 'Bulk revoked by institutional administration' } = (req.body as any) || {};
+
+    const result = await IssuedCertificate.updateMany(
+      { status: { $ne: 'REVOKED' } },
+      {
+        $set: {
+          status: 'REVOKED',
+          revocationReason: reason,
+          revokedAt: new Date(),
+        },
+      }
+    );
+
+    return reply.send({
+      success: true,
+      message: `Successfully revoked all ${result.modifiedCount} active/pending certificate(s).`,
+      count: result.modifiedCount,
+    });
+  } catch (error: any) {
+    req.log.error(error);
+    return reply.status(500).send({ success: false, error: 'Failed to revoke certificates' });
   }
 };

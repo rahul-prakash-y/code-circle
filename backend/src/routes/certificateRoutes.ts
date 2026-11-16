@@ -12,6 +12,10 @@ import {
   verifyCertificate,
   downloadCertificatePdf,
   claimCourseCertificate,
+  getPendingCourseCertificates,
+  approveCourseCertificate,
+  approveAllCourseCertificates,
+  revokeAllCertificates,
 } from '../controllers/certificateController';
 import { verifyToken, isAdminOrFaculty } from '../middleware/authMiddleware';
 
@@ -43,6 +47,12 @@ export async function certificateRoutes(fastify: FastifyInstance) {
     adminGroup.post('/issue', issueCertificates);
     adminGroup.get('/issued', getIssuedCertificates);
     adminGroup.patch('/issued/:id/revoke', revokeCertificate);
+    adminGroup.post('/revoke-all', revokeAllCertificates);
+
+    // Course Completion Certificate Approvals
+    adminGroup.get('/pending-approvals', getPendingCourseCertificates);
+    adminGroup.patch('/pending/:id/approve', approveCourseCertificate);
+    adminGroup.post('/pending/approve-all', approveAllCourseCertificates);
   });
 }
 

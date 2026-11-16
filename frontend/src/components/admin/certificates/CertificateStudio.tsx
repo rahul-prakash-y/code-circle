@@ -55,6 +55,7 @@ export const CertificateStudio: React.FC = () => {
   const {
     templates,
     issuedCertificates,
+    pendingApprovals,
     pagination,
     loading,
     issuing,
@@ -64,15 +65,20 @@ export const CertificateStudio: React.FC = () => {
     deleteTemplate,
     issueCertificates,
     fetchIssuedCertificates,
+    fetchPendingApprovals,
+    approveCertificate,
+    approveAllCertificates,
     revokeCertificate,
+    revokeAllCertificates,
     downloadCertificatePdf,
+    downloadPreviewPdf,
   } = useCertificateStore();
 
   const { events, fetchEvents } = useEventStore();
   const { domains, fetchDomains } = useDomainStore();
   const { users, fetchUsers } = useUserStore();
 
-  const [activeTab, setActiveTab] = useState<'designer' | 'issue' | 'ledger'>('designer');
+  const [activeTab, setActiveTab] = useState<'designer' | 'issue' | 'approvals' | 'ledger'>('designer');
 
   // Designer Form State
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('new');
@@ -86,16 +92,29 @@ export const CertificateStudio: React.FC = () => {
   // Three Faculty Members - All Positions Set as Faculty Coordinator
   const [signatoryName, setSignatoryName] = useState('Dr. Dhanasekar R');
   const [signatoryTitle, setSignatoryTitle] = useState('Faculty Coordinator');
+  const [signatoryDepartment, setSignatoryDepartment] = useState('Faculty Coordinator · EIE');
   const [secondarySignatoryName, setSecondarySignatoryName] = useState('Dr. Nandhini K M');
   const [secondarySignatoryTitle, setSecondarySignatoryTitle] = useState('Faculty Coordinator');
+  const [secondarySignatoryDepartment, setSecondarySignatoryDepartment] = useState('Faculty Coordinator · EIE');
   const [tertiarySignatoryName, setTertiarySignatoryName] = useState('Prof. RATHNA S');
   const [tertiarySignatoryTitle, setTertiarySignatoryTitle] = useState('Faculty Coordinator');
+  const [tertiarySignatoryDepartment, setTertiarySignatoryDepartment] = useState('Faculty Coordinator · CSE');
   const [signatoryOrganization, setSignatoryOrganization] = useState('Code Circle · Bannari Amman Institute of Technology');
   
   const [sampleRecipientName, setSampleRecipientName] = useState('RAHUL P');
   const [sampleRollNo, setSampleRollNo] = useState('7376231CS272');
   const [associatedEventId, setAssociatedEventId] = useState('');
   const [associatedDomainId, setAssociatedDomainId] = useState('');
+
+  // Course Approvals State
+  const [approvalDomainFilter, setApprovalDomainFilter] = useState('');
+  const [isApprovingAll, setIsApprovingAll] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+
+  // Bulk Revocation Modal State
+  const [showRevokeAllModal, setShowRevokeAllModal] = useState(false);
+  const [revokeAllReason, setRevokeAllReason] = useState('Bulk revoked by institutional administration');
+  const [isRevokingAll, setIsRevokingAll] = useState(false);
 
   // Issuance State
   const [issueTemplateId, setIssueTemplateId] = useState('');
@@ -112,10 +131,15 @@ export const CertificateStudio: React.FC = () => {
   useEffect(() => {
     fetchTemplates();
     fetchIssuedCertificates();
+    fetchPendingApprovals();
     fetchEvents();
     fetchDomains();
-    fetchUsers();
   }, []);
+
+  useEffect(()=>{
+    const timer = setTimeout(()=> {fetchUsers({search:userSearch})},500);
+    return () => clearInterval(timer);
+  },[userSearch]);
 
   const handleSelectTemplate = (tmpl: CertificateTemplate) => {
     setSelectedTemplateId(tmpl._id);
@@ -123,12 +147,15 @@ export const CertificateStudio: React.FC = () => {
     setSubtitle(tmpl.subtitle || 'Proudly Presented To');
     setDescription(tmpl.description || '');
     setTheme(tmpl.theme || 'classic-ivory');
-    setSignatoryName(tmpl.signatoryName || 'Dr. S. K. Ramesh');
+    setSignatoryName(tmpl.signatoryName || 'Dr. Dhanasekar R');
     setSignatoryTitle(tmpl.signatoryTitle || 'Faculty Coordinator');
-    setSecondarySignatoryName(tmpl.secondarySignatoryName || 'Dr. P. Balasubramanie');
+    setSignatoryDepartment(tmpl.signatoryDepartment || 'Faculty Coordinator · EIE');
+    setSecondarySignatoryName(tmpl.secondarySignatoryName || 'Dr. Nandhini K M');
     setSecondarySignatoryTitle(tmpl.secondarySignatoryTitle || 'Faculty Coordinator');
-    setTertiarySignatoryName(tmpl.tertiarySignatoryName || 'Dr. C. Palanisamy');
+    setSecondarySignatoryDepartment(tmpl.secondarySignatoryDepartment || 'Faculty Coordinator · EIE');
+    setTertiarySignatoryName(tmpl.tertiarySignatoryName || 'Prof. RATHNA S');
     setTertiarySignatoryTitle(tmpl.tertiarySignatoryTitle || 'Faculty Coordinator');
+    setTertiarySignatoryDepartment(tmpl.tertiarySignatoryDepartment || 'Faculty Coordinator · CSE');
     setSignatoryOrganization(tmpl.signatoryOrganization || 'Code Circle · Bannari Amman Institute of Technology');
     setAssociatedEventId(tmpl.associatedEventId?._id || tmpl.associatedEventId || '');
     setAssociatedDomainId(tmpl.associatedDomainId?._id || tmpl.associatedDomainId || '');
@@ -142,12 +169,15 @@ export const CertificateStudio: React.FC = () => {
       'For exceptional technical competence, sustained dedication, and active participation in advanced club initiatives.'
     );
     setTheme('classic-ivory');
-    setSignatoryName('Dr. S. K. Ramesh');
+    setSignatoryName('Dr. Dhanasekar R');
     setSignatoryTitle('Faculty Coordinator');
-    setSecondarySignatoryName('Dr. P. Balasubramanie');
+    setSignatoryDepartment('Faculty Coordinator · EIE');
+    setSecondarySignatoryName('Dr. Nandhini K M');
     setSecondarySignatoryTitle('Faculty Coordinator');
-    setTertiarySignatoryName('Dr. C. Palanisamy');
+    setSecondarySignatoryDepartment('Faculty Coordinator · EIE');
+    setTertiarySignatoryName('Prof. RATHNA S');
     setTertiarySignatoryTitle('Faculty Coordinator');
+    setTertiarySignatoryDepartment('Faculty Coordinator · CSE');
     setSignatoryOrganization('Code Circle · Bannari Amman Institute of Technology');
     setAssociatedEventId('');
     setAssociatedDomainId('');
@@ -166,10 +196,13 @@ export const CertificateStudio: React.FC = () => {
       theme,
       signatoryName,
       signatoryTitle,
+      signatoryDepartment,
       secondarySignatoryName,
       secondarySignatoryTitle,
+      secondarySignatoryDepartment,
       tertiarySignatoryName,
       tertiarySignatoryTitle,
+      tertiarySignatoryDepartment,
       signatoryOrganization,
       associatedEventId: associatedEventId || null,
       associatedDomainId: associatedDomainId || null,
@@ -181,6 +214,27 @@ export const CertificateStudio: React.FC = () => {
     } else {
       await updateTemplate(selectedTemplateId, payload as any);
     }
+  };
+
+  const handleDownloadPreview = () => {
+    downloadPreviewPdf({
+      title,
+      subtitle,
+      description,
+      theme,
+      signatoryName,
+      signatoryTitle,
+      signatoryDepartment,
+      secondarySignatoryName,
+      secondarySignatoryTitle,
+      secondarySignatoryDepartment,
+      tertiarySignatoryName,
+      tertiarySignatoryTitle,
+      tertiarySignatoryDepartment,
+      signatoryOrganization,
+      recipientName: sampleRecipientName,
+      recipientRollNo: sampleRollNo,
+    });
   };
 
   const handleExecuteIssue = async () => {
@@ -240,6 +294,25 @@ export const CertificateStudio: React.FC = () => {
           >
             <Send size={15} />
             <span>Bulk Issuer</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('approvals');
+              fetchPendingApprovals(approvalDomainFilter || undefined);
+            }}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
+              activeTab === 'approvals'
+                ? 'bg-primary text-white shadow-md shadow-primary/20'
+                : 'text-label-tertiary hover:text-label-primary'
+            }`}
+          >
+            <ShieldCheck size={15} />
+            <span>Course Approvals</span>
+            {pendingApprovals.length > 0 && (
+              <span className="px-1.5 py-0.5 text-[10px] bg-amber-500 text-white rounded-full font-mono font-bold animate-pulse">
+                {pendingApprovals.length}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('ledger')}
@@ -410,7 +483,7 @@ export const CertificateStudio: React.FC = () => {
                       type="text"
                       value={signatoryName}
                       onChange={(e) => setSignatoryName(e.target.value)}
-                      placeholder="Name (e.g. Dr. S. K. Ramesh)"
+                      placeholder="Name (e.g. Dr. Dhanasekar R)"
                       className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
                     />
                     <input
@@ -419,6 +492,13 @@ export const CertificateStudio: React.FC = () => {
                       onChange={(e) => setSignatoryTitle(e.target.value)}
                       placeholder="Title (Faculty Coordinator)"
                       className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
+                    />
+                    <input
+                      type="text"
+                      value={signatoryDepartment}
+                      onChange={(e) => setSignatoryDepartment(e.target.value)}
+                      placeholder="Department (Faculty Coordinator · EIE)"
+                      className="col-span-2 w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-secondary focus:outline-none focus:border-primary"
                     />
                   </div>
                 </div>
@@ -434,7 +514,7 @@ export const CertificateStudio: React.FC = () => {
                       type="text"
                       value={secondarySignatoryName}
                       onChange={(e) => setSecondarySignatoryName(e.target.value)}
-                      placeholder="Name (e.g. Dr. P. Balasubramanie)"
+                      placeholder="Name (e.g. Dr. Nandhini K M)"
                       className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
                     />
                     <input
@@ -443,6 +523,13 @@ export const CertificateStudio: React.FC = () => {
                       onChange={(e) => setSecondarySignatoryTitle(e.target.value)}
                       placeholder="Title (Faculty Coordinator)"
                       className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
+                    />
+                    <input
+                      type="text"
+                      value={secondarySignatoryDepartment}
+                      onChange={(e) => setSecondarySignatoryDepartment(e.target.value)}
+                      placeholder="Department (Faculty Coordinator · EIE)"
+                      className="col-span-2 w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-secondary focus:outline-none focus:border-primary"
                     />
                   </div>
                 </div>
@@ -458,7 +545,7 @@ export const CertificateStudio: React.FC = () => {
                       type="text"
                       value={tertiarySignatoryName}
                       onChange={(e) => setTertiarySignatoryName(e.target.value)}
-                      placeholder="Name (e.g. Dr. C. Palanisamy)"
+                      placeholder="Name (e.g. Prof. RATHNA S)"
                       className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary font-medium"
                     />
                     <input
@@ -468,19 +555,35 @@ export const CertificateStudio: React.FC = () => {
                       placeholder="Title (Faculty Coordinator)"
                       className="w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-primary focus:outline-none focus:border-primary"
                     />
+                    <input
+                      type="text"
+                      value={tertiarySignatoryDepartment}
+                      onChange={(e) => setTertiarySignatoryDepartment(e.target.value)}
+                      placeholder="Department (Faculty Coordinator · CSE)"
+                      className="col-span-2 w-full px-2.5 py-1.5 text-xs bg-surface border border-separator rounded-lg text-label-secondary focus:outline-none focus:border-primary"
+                    />
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-3">
+              <div className="flex flex-wrap items-center gap-2 pt-3">
                 <button
                   onClick={handleSaveTemplate}
                   disabled={loading}
-                  className="flex-1 py-2.5 bg-primary text-white font-bold text-xs rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[140px] py-2.5 bg-primary text-white font-bold text-xs rounded-xl shadow-md shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <CheckCircle2 size={15} />
                   <span>{selectedTemplateId === 'new' ? 'Save New Template' : 'Update Template'}</span>
+                </button>
+                <button
+                  onClick={handleDownloadPreview}
+                  disabled={loading}
+                  className="py-2.5 px-3 bg-surface-raised hover:bg-surface-raised/80 text-label-primary border border-separator font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  title="Download vector PDF preview"
+                >
+                  <Download size={14} className="text-primary" />
+                  <span>Download Preview</span>
                 </button>
                 {selectedTemplateId !== 'new' && (
                   <button
@@ -497,7 +600,7 @@ export const CertificateStudio: React.FC = () => {
 
           {/* Interactive Live Canvas Column */}
           <div className="lg:col-span-7 space-y-4 sticky top-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Eye size={16} className="text-primary" />
                 <span className="text-xs font-bold text-label-primary uppercase tracking-wider">
@@ -513,8 +616,18 @@ export const CertificateStudio: React.FC = () => {
                   value={sampleRecipientName}
                   onChange={(e) => setSampleRecipientName(e.target.value)}
                   placeholder="Sample Name"
-                  className="w-32 px-2.5 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary font-medium"
+                  className="w-28 sm:w-32 px-2.5 py-1 text-xs bg-surface border border-separator rounded-lg text-label-primary font-medium"
                 />
+                <button
+                  onClick={handleDownloadPreview}
+                  disabled={loading}
+                  className="py-1 px-3 bg-primary text-white text-xs font-bold rounded-lg shadow-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-1.5"
+                  title="Download official PDF preview"
+                >
+                  <Download size={13} />
+                  <span className="hidden sm:inline">Download Preview PDF</span>
+                  <span className="sm:hidden">Preview PDF</span>
+                </button>
               </div>
             </div>
 
@@ -634,7 +747,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[8px] sm:text-[10px] font-bold truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      {signatoryName || 'Dr. S. K. Ramesh'}
+                      {signatoryName || 'Dr. Dhanasekar R'}
                     </p>
                     <p
                       className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate"
@@ -646,7 +759,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[6px] sm:text-[7px] opacity-60 truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      Faculty Coordinator · EIE
+                      {signatoryDepartment || 'Faculty Coordinator · EIE'}
                     </p>
                   </div>
 
@@ -659,7 +772,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[8px] sm:text-[10px] font-bold truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      {secondarySignatoryName || 'Dr. P. Balasubramanie'}
+                      {secondarySignatoryName || 'Dr. Nandhini K M'}
                     </p>
                     <p
                       className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate"
@@ -671,7 +784,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[6px] sm:text-[7px] opacity-60 truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      Faculty Coordinator · EIE
+                      {secondarySignatoryDepartment || 'Faculty Coordinator · EIE'}
                     </p>
                   </div>
 
@@ -684,7 +797,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[8px] sm:text-[10px] font-bold truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      {tertiarySignatoryName || 'Dr. C. Palanisamy'}
+                      {tertiarySignatoryName || 'Prof. RATHNA S'}
                     </p>
                     <p
                       className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate"
@@ -696,7 +809,7 @@ export const CertificateStudio: React.FC = () => {
                       className="text-[6px] sm:text-[7px] opacity-60 truncate"
                       style={{ color: currentTheme.text }}
                     >
-                      Faculty Coordinator · CSE
+                      {tertiarySignatoryDepartment || 'Faculty Coordinator · CSE'}
                     </p>
                   </div>
                 </div>
@@ -916,7 +1029,143 @@ export const CertificateStudio: React.FC = () => {
         </div>
       )}
 
-      {/* --- TAB 3: REGISTRY & LEDGER --- */}
+      {/* --- TAB 3: COURSE COMPLETION APPROVALS --- */}
+      {activeTab === 'approvals' && (
+        <div className="bg-surface rounded-2xl border border-separator shadow-sm overflow-hidden space-y-4 p-4 sm:p-6 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-label-primary flex items-center gap-2">
+                <ShieldCheck size={18} className="text-primary" />
+                <span>Course Completion Certificate Approvals</span>
+              </h3>
+              <p className="text-xs text-label-tertiary mt-0.5">
+                Students who have successfully cleared 100% of curriculum levels must receive administrative approval before their verifiable credentials are released.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <HeroUISelect
+                value={approvalDomainFilter}
+                onChange={(val) => {
+                  setApprovalDomainFilter(val);
+                  fetchPendingApprovals(val || undefined);
+                }}
+                options={[
+                  { value: '', label: 'All Courses' },
+                  ...domains.map((d) => ({ value: d._id, label: d.name })),
+                ]}
+                placeholder="Filter Course..."
+                size="sm"
+                className="w-full sm:w-48 shrink-0"
+              />
+
+              <button
+                onClick={async () => {
+                  if (pendingApprovals.length === 0) return;
+                  if (!confirm(`Are you sure you want to approve all ${pendingApprovals.length} pending course certificates?`)) return;
+                  setIsApprovingAll(true);
+                  try {
+                    await approveAllCertificates(approvalDomainFilter || undefined);
+                  } finally {
+                    setIsApprovingAll(false);
+                  }
+                }}
+                disabled={pendingApprovals.length === 0 || isApprovingAll}
+                className="py-2 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shrink-0"
+              >
+                {isApprovingAll ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <Check size={14} strokeWidth={2.5} />
+                )}
+                <span>Approve All ({pendingApprovals.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Pending Table */}
+          <div className="overflow-x-auto border border-separator rounded-xl custom-scrollbar touch-pan-x">
+            <table className="w-full text-left text-xs min-w-[760px]">
+              <thead className="bg-surface-raised border-b border-separator text-label-secondary font-bold uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="py-3 px-4">Student</th>
+                  <th className="py-3 px-4">Course Cleared</th>
+                  <th className="py-3 px-4">Temp Certificate ID</th>
+                  <th className="py-3 px-4">Requested On</th>
+                  <th className="py-3 px-4">Approval Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-separator text-label-primary font-medium">
+                {pendingApprovals.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-14 text-center space-y-2">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto">
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <p className="font-bold text-label-primary">All Caught Up!</p>
+                      <p className="text-xs text-label-tertiary">
+                        No pending course certificates are currently awaiting administrative review.
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  pendingApprovals.map((cert) => (
+                    <tr key={cert._id} className="hover:bg-surface-raised/50 transition-colors">
+                      <td className="py-3 px-4">
+                        <p className="font-bold text-label-primary">{cert.recipientName}</p>
+                        <p className="text-[10px] text-label-tertiary font-mono">
+                          {cert.recipientRollNo || cert.recipientEmail}
+                        </p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                          <span>{cert.associatedDomainId?.name || cert.title}</span>
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-semibold text-label-secondary text-[11px]">
+                        {cert.certificateId}
+                      </td>
+                      <td className="py-3 px-4 text-label-secondary">
+                        {new Date(cert.issueDate || cert.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          Awaiting Approval
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right space-x-2">
+                        <button
+                          onClick={async () => {
+                            setApprovingId(cert._id);
+                            try {
+                              await approveCertificate(cert._id);
+                            } finally {
+                              setApprovingId(null);
+                            }
+                          }}
+                          disabled={approvingId === cert._id}
+                          className="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg shadow-sm transition-all inline-flex items-center gap-1.5"
+                          title="Approve and release certificate to student"
+                        >
+                          {approvingId === cert._id ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <Check size={12} strokeWidth={2.5} />
+                          )}
+                          <span>Approve & Release</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 4: REGISTRY & LEDGER --- */}
       {activeTab === 'ledger' && (
         <div className="bg-surface rounded-2xl border border-separator shadow-sm overflow-hidden space-y-4 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -954,12 +1203,22 @@ export const CertificateStudio: React.FC = () => {
                 options={[
                   { value: '', label: 'All Statuses' },
                   { value: 'ACTIVE', label: 'Active Only' },
+                  { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
                   { value: 'REVOKED', label: 'Revoked' },
                 ]}
                 size="sm"
                 className="w-full sm:w-36 shrink-0"
                 placement="bottom-end"
               />
+
+              <button
+                onClick={() => setShowRevokeAllModal(true)}
+                className="py-1.5 px-3 text-xs font-bold text-destructive bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 rounded-xl transition-colors flex items-center justify-center gap-1.5 shrink-0"
+                title="Revoke all active/pending certificates"
+              >
+                <AlertTriangle size={13} />
+                <span>Revoke All</span>
+              </button>
             </div>
           </div>
 
@@ -1002,6 +1261,8 @@ export const CertificateStudio: React.FC = () => {
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             cert.status === 'ACTIVE'
                               ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                              : cert.status === 'PENDING_APPROVAL'
+                              ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
                               : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
                           }`}
                         >
@@ -1009,13 +1270,15 @@ export const CertificateStudio: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right space-x-1.5">
-                        <button
-                          onClick={() => downloadCertificatePdf(cert._id, cert.certificateId)}
-                          className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
-                          title="Download PDF"
-                        >
-                          <Download size={15} />
-                        </button>
+                        {cert.status === 'ACTIVE' && (
+                          <button
+                            onClick={() => downloadCertificatePdf(cert._id, cert.certificateId)}
+                            className="p-2 min-w-[34px] min-h-[34px] inline-flex items-center justify-center hover:bg-primary/10 text-primary rounded-lg transition-colors cursor-pointer"
+                            title="Download PDF"
+                          >
+                            <Download size={15} />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             const url = `${window.location.origin}/verify/${cert.verificationCode}`;
@@ -1045,6 +1308,66 @@ export const CertificateStudio: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Revoke All Confirmation Modal */}
+      {showRevokeAllModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-surface rounded-2xl border border-destructive/30 max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-label-primary">Revoke All Certificates?</h4>
+                <p className="text-xs text-label-tertiary">Institutional bulk revocation protocol</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-label-secondary leading-relaxed">
+              This action will permanently invalidate all currently active and pending certificates across the institution. Public verification will display them as REVOKED.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-label-secondary">Revocation Reason</label>
+              <input
+                type="text"
+                value={revokeAllReason}
+                onChange={(e) => setRevokeAllReason(e.target.value)}
+                placeholder="Reason for bulk revocation..."
+                className="w-full px-3 py-2 text-xs bg-surface-raised border border-separator rounded-xl text-label-primary focus:outline-none focus:border-destructive"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-separator">
+              <button
+                type="button"
+                onClick={() => setShowRevokeAllModal(false)}
+                disabled={isRevokingAll}
+                className="px-4 py-2 text-xs font-semibold text-label-secondary hover:text-label-primary hover:bg-surface-raised rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsRevokingAll(true);
+                  try {
+                    await revokeAllCertificates(revokeAllReason);
+                    setShowRevokeAllModal(false);
+                  } finally {
+                    setIsRevokingAll(false);
+                  }
+                }}
+                disabled={isRevokingAll}
+                className="px-4 py-2 text-xs font-bold bg-destructive text-white rounded-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-md shadow-destructive/20"
+              >
+                {isRevokingAll && <RefreshCw size={13} className="animate-spin" />}
+                <span>Confirm Revoke All</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

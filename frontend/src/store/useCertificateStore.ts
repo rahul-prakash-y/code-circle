@@ -38,11 +38,14 @@ export interface CertificateTemplate {
   signatureUrl?: string;
   signatoryName: string;
   signatoryTitle: string;
+  signatoryDepartment?: string;
   signatoryOrganization: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  secondarySignatoryDepartment?: string;
   tertiarySignatoryName?: string;
   tertiarySignatoryTitle?: string;
+  tertiarySignatoryDepartment?: string;
   primaryColor: string;
   accentColor: string;
   associatedEventId?: any;
@@ -65,16 +68,29 @@ export interface IssuedCertificate {
   subtitle: string;
   description: string;
   type: string;
+  theme?: string;
+  orientation?: 'landscape' | 'portrait';
+  primaryColor?: string;
+  accentColor?: string;
+  bgImageUrl?: string;
+  badgeUrl?: string;
   issuerOrganization: string;
   signatoryName: string;
   signatoryTitle: string;
+  signatoryDepartment?: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  secondarySignatoryDepartment?: string;
   tertiarySignatoryName?: string;
   tertiarySignatoryTitle?: string;
+  tertiarySignatoryDepartment?: string;
   issueDate: string;
-  status: 'ACTIVE' | 'REVOKED';
+  status: 'ACTIVE' | 'PENDING_APPROVAL' | 'REVOKED';
+  approvedBy?: any;
+  approvedAt?: string;
   revocationReason?: string;
+  associatedEventId?: any;
+  associatedDomainId?: any;
   createdAt: string;
 }
 
@@ -82,6 +98,7 @@ interface CertificateState {
   templates: CertificateTemplate[];
   issuedCertificates: IssuedCertificate[];
   myCertificates: IssuedCertificate[];
+  pendingApprovals: IssuedCertificate[];
   pagination: {
     total: number;
     page: number;
@@ -97,6 +114,7 @@ interface CertificateState {
   updateTemplate: (id: string, data: Partial<CertificateTemplate>) => Promise<boolean>;
   deleteTemplate: (id: string) => Promise<boolean>;
   previewTemplate: (data: Partial<CertificateTemplate>) => Promise<string | null>;
+  downloadPreviewPdf: (data: any, filename?: string) => Promise<void>;
 
   issueCertificates: (payload: {
     templateId: string;
@@ -117,7 +135,11 @@ interface CertificateState {
     templateId?: string;
   }) => Promise<void>;
 
+  fetchPendingApprovals: (domainId?: string) => Promise<void>;
+  approveCertificate: (id: string) => Promise<boolean>;
+  approveAllCertificates: (domainId?: string) => Promise<{ success: boolean; count?: number }>;
   revokeCertificate: (id: string, reason?: string) => Promise<boolean>;
+  revokeAllCertificates: (reason?: string) => Promise<{ success: boolean; count?: number }>;
   fetchMyCertificates: () => Promise<void>;
   downloadCertificatePdf: (id: string, filename?: string) => Promise<void>;
   claimCourseCertificate: (domainId: string) => Promise<{ success: boolean; data?: any; message?: string }>;
@@ -127,6 +149,7 @@ export const useCertificateStore = create<CertificateState>((set, get) => ({
   templates: [],
   issuedCertificates: [],
   myCertificates: [],
+  pendingApprovals: [],
   pagination: {
     total: 0,
     page: 1,
@@ -209,6 +232,87 @@ export const useCertificateStore = create<CertificateState>((set, get) => ({
     } catch (err: any) {
       toast.error('Preview generation failed');
       return null;
+    }
+  },
+
+  downloadPreviewPdf: async (data, filename = 'certificate_preview.pdf') => {
+    const toastId = toast.loading('Rendering preview vector certificate PDF...');
+    try {
+      const res = await api.post('/certificates/preview', data, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Preview PDF downloaded successfully!', { id: toastId });
+    } catch (err: any) {
+      toast.error('Failed to generate preview PDF', { id: toastId });
+    }
+  },
+
+  fetchPendingApprovals: async (domainId?: string) => {
+    set({ loading: true });
+    try {
+      const res = await api.get('/certificates/pending-approvals', {
+        params: domainId ? { domainId } : {},
+      });
+      set({ pendingApprovals: res.data.data || [], loading: false });
+    } catch (err: any) {
+      set({ loading: false, error: err.response?.data?.error || 'Failed to fetch pending approvals' });
+    }
+  },
+
+  approveCertificate: async (id: string) => {
+    try {
+      const res = await api.patch(`/certificates/pending/${id}/approve`);
+      if (res.data.success) {
+        toast.success(res.data.message || 'Certificate approved successfully!');
+        set((state) => ({
+          pendingApprovals: state.pendingApprovals.filter((c) => c._id !== id),
+        }));
+        get().fetchIssuedCertificates();
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Approval failed');
+      return false;
+    }
+  },
+
+  approveAllCertificates: async (domainId?: string) => {
+    try {
+      const res = await api.post('/certificates/pending/approve-all', { domainId });
+      if (res.data.success) {
+        toast.success(res.data.message || 'All pending certificates approved!');
+        set({ pendingApprovals: [] });
+        get().fetchIssuedCertificates();
+        return { success: true, count: res.data.count };
+      }
+      return { success: false };
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Bulk approval failed');
+      return { success: false };
+    }
+  },
+
+  revokeAllCertificates: async (reason = 'Bulk revoked by institutional administration') => {
+    try {
+      const res = await api.post('/certificates/revoke-all', { reason });
+      if (res.data.success) {
+        toast.success(res.data.message || 'All certificates revoked successfully!');
+        get().fetchIssuedCertificates();
+        return { success: true, count: res.data.count };
+      }
+      return { success: false };
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Bulk revocation failed');
+      return { success: false };
     }
   },
 

@@ -25,7 +25,7 @@ export type CertificateTheme =
   | 'cyber-emerald'
   | 'luxury-amethyst';
 export type CertificateOrientation = 'landscape' | 'portrait';
-export type CertificateStatus = 'ACTIVE' | 'REVOKED';
+export type CertificateStatus = 'ACTIVE' | 'PENDING_APPROVAL' | 'REVOKED';
 
 export interface ICertificateTemplate extends Document {
   title: string;
@@ -39,11 +39,14 @@ export interface ICertificateTemplate extends Document {
   signatureUrl?: string;
   signatoryName: string;
   signatoryTitle: string;
+  signatoryDepartment?: string;
   signatoryOrganization: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  secondarySignatoryDepartment?: string;
   tertiarySignatoryName?: string;
   tertiarySignatoryTitle?: string;
+  tertiarySignatoryDepartment?: string;
   primaryColor: string;
   accentColor: string;
   associatedEventId?: mongoose.Types.ObjectId;
@@ -67,15 +70,26 @@ export interface IIssuedCertificate extends Document {
   subtitle: string;
   description: string;
   type: CertificateType;
+  theme?: CertificateTheme | string;
+  orientation?: CertificateOrientation;
+  primaryColor?: string;
+  accentColor?: string;
+  bgImageUrl?: string;
+  badgeUrl?: string;
   issuerOrganization: string;
   signatoryName: string;
   signatoryTitle: string;
+  signatoryDepartment?: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  secondarySignatoryDepartment?: string;
   tertiarySignatoryName?: string;
   tertiarySignatoryTitle?: string;
+  tertiarySignatoryDepartment?: string;
   issueDate: Date;
   status: CertificateStatus;
+  approvedBy?: mongoose.Types.ObjectId;
+  approvedAt?: Date;
   revocationReason?: string;
   revokedAt?: Date;
   certificatePdfUrl?: string;
@@ -155,12 +169,17 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     signatoryName: {
       type: String,
-      default: 'Dr. S. K. Ramesh',
+      default: 'Dr. Dhanasekar R',
       trim: true,
     },
     signatoryTitle: {
       type: String,
       default: 'Faculty Coordinator',
+      trim: true,
+    },
+    signatoryDepartment: {
+      type: String,
+      default: 'Faculty Coordinator · EIE',
       trim: true,
     },
     signatoryOrganization: {
@@ -170,7 +189,7 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
     },
     secondarySignatoryName: {
       type: String,
-      default: 'Dr. P. Balasubramanie',
+      default: 'Dr. Nandhini K M',
       trim: true,
     },
     secondarySignatoryTitle: {
@@ -178,14 +197,24 @@ const certificateTemplateSchema = new Schema<ICertificateTemplate>(
       default: 'Faculty Coordinator',
       trim: true,
     },
+    secondarySignatoryDepartment: {
+      type: String,
+      default: 'Faculty Coordinator · EIE',
+      trim: true,
+    },
     tertiarySignatoryName: {
       type: String,
-      default: 'Dr. C. Palanisamy',
+      default: 'Prof. RATHNA S',
       trim: true,
     },
     tertiarySignatoryTitle: {
       type: String,
       default: 'Faculty Coordinator',
+      trim: true,
+    },
+    tertiarySignatoryDepartment: {
+      type: String,
+      default: 'Faculty Coordinator · CSE',
       trim: true,
     },
     primaryColor: {
@@ -288,33 +317,70 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
       enum: ['EVENT', 'COURSE', 'ASSESSMENT', 'CUSTOM', 'HACKATHON'],
       default: 'EVENT',
     },
+    theme: {
+      type: String,
+      default: 'classic-ivory',
+    },
+    orientation: {
+      type: String,
+      enum: ['landscape', 'portrait'],
+      default: 'landscape',
+    },
+    primaryColor: {
+      type: String,
+      default: '',
+    },
+    accentColor: {
+      type: String,
+      default: '',
+    },
+    bgImageUrl: {
+      type: String,
+      default: '',
+    },
+    badgeUrl: {
+      type: String,
+      default: '',
+    },
     issuerOrganization: {
       type: String,
       default: 'Code Circle · Bannari Amman Institute of Technology',
     },
     signatoryName: {
       type: String,
-      default: 'Faculty Advisor',
+      default: 'Dr. Dhanasekar R',
     },
     signatoryTitle: {
       type: String,
       default: 'Faculty Coordinator',
     },
+    signatoryDepartment: {
+      type: String,
+      default: 'Faculty Coordinator · EIE',
+    },
     secondarySignatoryName: {
       type: String,
-      default: '',
+      default: 'Dr. Nandhini K M',
     },
     secondarySignatoryTitle: {
       type: String,
       default: 'Faculty Coordinator',
     },
+    secondarySignatoryDepartment: {
+      type: String,
+      default: 'Faculty Coordinator · EIE',
+    },
     tertiarySignatoryName: {
       type: String,
-      default: '',
+      default: 'Prof. RATHNA S',
     },
     tertiarySignatoryTitle: {
       type: String,
       default: 'Faculty Coordinator',
+    },
+    tertiarySignatoryDepartment: {
+      type: String,
+      default: 'Faculty Coordinator · CSE',
     },
     issueDate: {
       type: Date,
@@ -322,9 +388,18 @@ const issuedCertificateSchema = new Schema<IIssuedCertificate>(
     },
     status: {
       type: String,
-      enum: ['ACTIVE', 'REVOKED'],
+      enum: ['ACTIVE', 'PENDING_APPROVAL', 'REVOKED'],
       default: 'ACTIVE',
       index: true,
+    },
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    approvedAt: {
+      type: Date,
+      default: null,
     },
     revocationReason: {
       type: String,

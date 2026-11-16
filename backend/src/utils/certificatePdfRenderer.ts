@@ -15,10 +15,13 @@ export interface CertificateRenderOptions {
   issuerOrganization?: string;
   signatoryName?: string;
   signatoryTitle?: string;
+  signatoryDepartment?: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  secondarySignatoryDepartment?: string;
   tertiarySignatoryName?: string;
   tertiarySignatoryTitle?: string;
+  tertiarySignatoryDepartment?: string;
   certificateId: string;
   verificationCode: string;
   issueDate?: Date | string;
@@ -402,16 +405,35 @@ export const buildCertificatePdfBuffer = async (
         path.resolve(process.cwd(), 'frontend/public/codecirclelogo.jpeg'),
         path.resolve(process.cwd(), '../frontend/public/codecirclelogo.jpeg'),
         path.resolve(__dirname, '../../public/codecirclelogo.jpeg'),
+        path.resolve(__dirname, '../../assets/codecirclelogo.jpeg'),
+        path.resolve(__dirname, '../assets/codecirclelogo.jpeg'),
+        path.resolve(__dirname, '../../../frontend/public/codecirclelogo.png'),
+        path.resolve(process.cwd(), 'frontend/public/codecirclelogo.png'),
+        path.resolve(process.cwd(), 'assets/codecirclelogo.jpeg'),
+        path.resolve(process.cwd(), 'backend/assets/codecirclelogo.jpeg'),
+        path.resolve(process.cwd(), 'backend/public/codecirclelogo.jpeg'),
       ];
       const clubLogoPath = candidateLogoPaths.find((p) => fs.existsSync(p));
 
       let contentStartY = 50;
       if (clubLogoPath) {
         try {
-          const logoSize = 44;
+          const logoSize = 46;
           const logoX = width / 2 - logoSize / 2;
-          const logoY = 36;
+          const logoY = 32;
+
+          doc.save();
+          doc.circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2).clip();
           doc.image(clubLogoPath, logoX, logoY, { width: logoSize, height: logoSize });
+          doc.restore();
+
+          doc
+            .circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2)
+            .lineWidth(1.5)
+            .strokeColor(palette.primary)
+            .strokeOpacity(0.35)
+            .stroke();
+
           contentStartY = 88;
         } catch (imgErr: any) {
           console.warn('[CertificateRenderer] Failed to render club logo:', imgErr.message);
@@ -480,129 +502,159 @@ export const buildCertificatePdfBuffer = async (
         .fillColor(palette.textMuted)
         .text(descText, 85, descY, { align: 'center', width: width - 170, lineGap: 4.5 });
 
-      // Circular Verification Seal (Bottom Left)
-      const sealX = 95;
-      const sealY = height - 126;
-      doc.save();
-      doc.circle(sealX, sealY, 26).lineWidth(2).stroke(palette.primary);
-      doc.circle(sealX, sealY, 22).lineWidth(0.75).stroke(palette.secondary);
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(6.5)
-        .fillColor(palette.primary)
-        .text('VERIFIED', sealX - 22, sealY - 8, { align: 'center', width: 44, characterSpacing: 1 });
-      doc
-        .font('Helvetica')
-        .fontSize(5.5)
-        .fillColor(palette.textMuted)
-        .text('CREDENTIAL', sealX - 22, sealY + 2, { align: 'center', width: 44 });
-      doc.restore();
-
       // Footer Meta (Date, Certificate ID, Verification Code)
       const issueDateStr = options.issueDate
         ? new Date(options.issueDate).toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'long',
+            month: 'short',
             day: 'numeric',
           })
         : new Date().toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'long',
+            month: 'short',
             day: 'numeric',
           });
 
+      // --- FOOTER: Horizontal Verification Strip & Three Faculty Signatories ---
+      const stripY = height - 124;
+      const contentInset = 56;
+      const contentWidth = width - contentInset * 2;
+
+      // Top dividing line for verification strip
       doc
-        .font('Helvetica')
-        .fontSize(8.5)
-        .fillColor(palette.textMuted)
-        .text(`Issued On: ${issueDateStr}`, 135, height - 140, { align: 'left', width: 220 })
-        .text(`Certificate ID: ${options.certificateId}`, 135, height - 127, { align: 'left', width: 220 })
-        .text(`Verification Code: ${options.verificationCode}`, 135, height - 114, { align: 'left', width: 220 });
+        .rect(contentInset, stripY, contentWidth, 0.75)
+        .fillColor(palette.primary)
+        .fillOpacity(0.25)
+        .fill();
 
-      // --- THREE FACULTY MEMBERS SIGNATURES (All Faculty Coordinators) ---
-      const sigY = height - 72;
-      const colWidth = 205;
+      doc.fillOpacity(1);
 
-      // Faculty 1: Faculty Coordinator
-      const sig1X = 55;
-      doc.rect(sig1X, sigY, colWidth, 1).fillColor(palette.border).fill();
+      // Mid Verification Strip (Matching CertificateStudio layout)
       doc
         .font('Helvetica-Bold')
-        .fontSize(9)
-        .fillColor(palette.textMain)
-        .text(options.signatoryName || 'Dr. S. K. Ramesh', sig1X, sigY + 5, {
-          align: 'center',
-          width: colWidth,
-        });
+        .fontSize(8)
+        .fillColor(palette.primary)
+        .text('VERIFIED INSTITUTIONAL CREDENTIAL', contentInset + 4, stripY + 6, { continued: true })
+        .font('Helvetica')
+        .fontSize(7.5)
+        .fillColor(palette.textMuted)
+        .text(`  ·  VERIFICATION CODE: ${options.verificationCode}`);
+
       doc
         .font('Helvetica')
         .fontSize(7.5)
+        .fillColor(palette.textMuted)
+        .text(`ID: ${options.certificateId}  ·  DATE: ${issueDateStr}`, contentInset, stripY + 6, {
+          align: 'right',
+          width: contentWidth - 4,
+        });
+
+      // Bottom dividing line for verification strip
+      doc
+        .rect(contentInset, stripY + 22, contentWidth, 0.75)
         .fillColor(palette.primary)
-        .text(options.signatoryTitle || 'Faculty Coordinator', sig1X, sigY + 17, {
+        .fillOpacity(0.25)
+        .fill();
+
+      // --- THREE FACULTY SIGNATURES SIDE BY SIDE ---
+      const sigLineY = stripY + 38;
+      const colWidth = (contentWidth - 40) / 3;
+
+      // Faculty 1: Faculty Coordinator
+      const sig1X = contentInset;
+      doc
+        .rect(sig1X + (colWidth - 110) / 2, sigLineY, 110, 1.2)
+        .fillColor(palette.primary)
+        .fillOpacity(0.55)
+        .fill();
+      doc.fillOpacity(1);
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(9.5)
+        .fillColor(palette.textMain)
+        .text(options.signatoryName || 'Dr. Dhanasekar R', sig1X, sigLineY + 6, {
+          align: 'center',
+          width: colWidth,
+        });
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8)
+        .fillColor(palette.primary)
+        .text(options.signatoryTitle || 'Faculty Coordinator', sig1X, sigLineY + 18, {
           align: 'center',
           width: colWidth,
         });
       doc
         .font('Helvetica')
-        .fontSize(6.5)
+        .fontSize(7)
         .fillColor(palette.textMuted)
-        .text('Faculty Coordinator · Department of CSE', sig1X, sigY + 27, {
+        .text(options.signatoryDepartment || 'Faculty Coordinator · EIE', sig1X, sigLineY + 28, {
           align: 'center',
           width: colWidth,
         });
 
       // Faculty 2: Faculty Coordinator
-      const sig2X = (width - colWidth) / 2;
-      doc.rect(sig2X, sigY, colWidth, 1).fillColor(palette.border).fill();
+      const sig2X = contentInset + colWidth + 20;
+      doc
+        .rect(sig2X + (colWidth - 110) / 2, sigLineY, 110, 1.2)
+        .fillColor(palette.primary)
+        .fillOpacity(0.55)
+        .fill();
+      doc.fillOpacity(1);
       doc
         .font('Helvetica-Bold')
-        .fontSize(9)
+        .fontSize(9.5)
         .fillColor(palette.textMain)
-        .text(options.secondarySignatoryName || 'Dr. P. Balasubramanie', sig2X, sigY + 5, {
+        .text(options.secondarySignatoryName || 'Dr. Nandhini K M', sig2X, sigLineY + 6, {
           align: 'center',
           width: colWidth,
         });
       doc
-        .font('Helvetica')
-        .fontSize(7.5)
+        .font('Helvetica-Bold')
+        .fontSize(8)
         .fillColor(palette.primary)
-        .text(options.secondarySignatoryTitle || 'Faculty Coordinator', sig2X, sigY + 17, {
+        .text(options.secondarySignatoryTitle || 'Faculty Coordinator', sig2X, sigLineY + 18, {
           align: 'center',
           width: colWidth,
         });
       doc
         .font('Helvetica')
-        .fontSize(6.5)
+        .fontSize(7)
         .fillColor(palette.textMuted)
-        .text('Faculty Coordinator · Department of IT', sig2X, sigY + 27, {
+        .text(options.secondarySignatoryDepartment || 'Faculty Coordinator · EIE', sig2X, sigLineY + 28, {
           align: 'center',
           width: colWidth,
         });
 
       // Faculty 3: Faculty Coordinator
-      const sig3X = width - 55 - colWidth;
-      doc.rect(sig3X, sigY, colWidth, 1).fillColor(palette.border).fill();
+      const sig3X = contentInset + (colWidth + 20) * 2;
+      doc
+        .rect(sig3X + (colWidth - 110) / 2, sigLineY, 110, 1.2)
+        .fillColor(palette.primary)
+        .fillOpacity(0.55)
+        .fill();
+      doc.fillOpacity(1);
       doc
         .font('Helvetica-Bold')
-        .fontSize(9)
+        .fontSize(9.5)
         .fillColor(palette.textMain)
-        .text(options.tertiarySignatoryName || 'Dr. C. Palanisamy', sig3X, sigY + 5, {
+        .text(options.tertiarySignatoryName || 'Prof. RATHNA S', sig3X, sigLineY + 6, {
           align: 'center',
           width: colWidth,
         });
       doc
-        .font('Helvetica')
-        .fontSize(7.5)
+        .font('Helvetica-Bold')
+        .fontSize(8)
         .fillColor(palette.primary)
-        .text(options.tertiarySignatoryTitle || 'Faculty Coordinator', sig3X, sigY + 17, {
+        .text(options.tertiarySignatoryTitle || 'Faculty Coordinator', sig3X, sigLineY + 18, {
           align: 'center',
           width: colWidth,
         });
       doc
         .font('Helvetica')
-        .fontSize(6.5)
+        .fontSize(7)
         .fillColor(palette.textMuted)
-        .text('Faculty Coordinator · Bannari Amman Institute of Tech', sig3X, sigY + 27, {
+        .text(options.tertiarySignatoryDepartment || 'Faculty Coordinator · CSE', sig3X, sigLineY + 28, {
           align: 'center',
           width: colWidth,
         });
