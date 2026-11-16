@@ -29,6 +29,8 @@ import useEventStore from '../../store/useEventStore';
 import useUserStore from '../../store/useUserStore';
 import GenerateOtpModal from './GenerateOtpModal';
 import ManualAttendanceModal from './ManualAttendanceModal';
+import AwardPointsModal from './AwardPointsModal';
+import { Checkbox } from '@heroui/react';
 import { format } from 'date-fns';
 import { formatISTDateTime } from '../../lib/dateUtils';
 import toast from 'react-hot-toast';
@@ -91,9 +93,37 @@ const AttendanceRecordsView: React.FC = () => {
   // Modals & Active Session state
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
+  const [isAwardPointsOpen, setIsAwardPointsOpen] = useState(false);
+  const [selectedRecordUserIds, setSelectedRecordUserIds] = useState<Set<string>>(new Set());
   const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
   const [copiedOtp, setCopiedOtp] = useState(false);
   const [remainingSecs, setRemainingSecs] = useState<number>(0);
+
+  // Toggle selection for verified attendee record
+  const toggleRecordUser = (userId: string) => {
+    if (!userId) return;
+    setSelectedRecordUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  // Toggle select all records on current page
+  const toggleSelectAllRecords = () => {
+    const visibleUserIds = eventRecords.map((r: any) => r.user?._id || r.user?.id).filter(Boolean);
+    const allSelected = visibleUserIds.length > 0 && visibleUserIds.every((id: string) => selectedRecordUserIds.has(id));
+    setSelectedRecordUserIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        visibleUserIds.forEach((id: string) => next.delete(id));
+      } else {
+        visibleUserIds.forEach((id: string) => next.add(id));
+      }
+      return next;
+    });
+  };
 
   // Mode switcher
   const handleModeChange = (mode: 'event' | 'student') => {
@@ -464,6 +494,16 @@ const AttendanceRecordsView: React.FC = () => {
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
+            onClick={() => setIsAwardPointsOpen(true)}
+            className="btn-primary flex items-center gap-2 text-xs font-semibold cursor-pointer bg-amber-600 hover:bg-amber-500 border-amber-500/30 text-white shadow-xs"
+            style={{ minHeight: 44 }}
+            title="Select students and award club hour or attendance points"
+          >
+            <Award size={15} />
+            <span>Award Club Hour Points</span>
+          </button>
+
+          <button
             onClick={() => setShowManualModal(true)}
             className="btn-secondary flex items-center gap-2 text-xs font-semibold cursor-pointer"
             style={{ minHeight: 44 }}
@@ -653,10 +693,49 @@ const AttendanceRecordsView: React.FC = () => {
                   <p className="text-xs text-text-muted">Timestamped student verification records</p>
                 </div>
               </div>
-              <span className="text-xs font-mono text-text-muted">
-                {totalEventRecords} verified
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAwardPointsOpen(true)}
+                  className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer text-amber-500 border-amber-500/25 hover:bg-amber-500/10"
+                >
+                  <Award size={13} />
+                  <span>Award Points</span>
+                </button>
+                <span className="text-xs font-mono text-text-muted">
+                  {totalEventRecords} verified
+                </span>
+              </div>
             </div>
+
+            {/* Quick Bulk Selection Banner */}
+            {selectedRecordUserIds.size > 0 && (
+              <div className="p-3 bg-amber-500/10 border-b border-amber-500/25 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <Award size={15} className="text-amber-500" />
+                  <span className="font-bold text-text-primary">
+                    {selectedRecordUserIds.size} attendee{selectedRecordUserIds.size > 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRecordUserIds(new Set())}
+                    className="text-xs text-text-muted hover:text-text-primary underline cursor-pointer"
+                  >
+                    Clear selection
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAwardPointsOpen(true)}
+                    className="btn-primary text-xs py-1.5 px-3.5 bg-amber-600 hover:bg-amber-500 text-white flex items-center gap-1.5 cursor-pointer shadow-xs rounded-xl"
+                  >
+                    <Award size={13} />
+                    <span>Award Points to Selected ({selectedRecordUserIds.size})</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Table wrapper: horizontal scroll on mobile with right-edge fade hint */}
             <div className="relative">
@@ -664,6 +743,13 @@ const AttendanceRecordsView: React.FC = () => {
                 <table className="w-full text-left" style={{ minWidth: 680 }}>
                 <thead>
                   <tr className="border-b border-separator text-[11px] font-medium text-text-muted bg-canvas">
+                    <th className="px-3 sm:px-4 py-3.5 w-10">
+                      <Checkbox
+                        isSelected={eventRecords.length > 0 && eventRecords.every((r: any) => selectedRecordUserIds.has(r.user?._id || r.user?.id))}
+                        onChange={toggleSelectAllRecords}
+                        aria-label="Select all attendees"
+                      />
+                    </th>
                     <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Student</th>
                     <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">Roll Number</th>
                     <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap">College</th>
@@ -678,7 +764,21 @@ const AttendanceRecordsView: React.FC = () => {
                 <tbody className="divide-y divide-separator">
                   {eventRecords.length > 0 ? (
                     eventRecords.map((r: any) => (
-                      <tr key={r._id} className="hover:bg-surface-elevated transition-colors">
+                      <tr
+                        key={r._id}
+                        className={`transition-colors ${
+                          selectedRecordUserIds.has(r.user?._id || r.user?.id)
+                            ? 'bg-amber-500/5 hover:bg-amber-500/10'
+                            : 'hover:bg-surface-elevated'
+                        }`}
+                      >
+                        <td className="px-3 sm:px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            isSelected={selectedRecordUserIds.has(r.user?._id || r.user?.id)}
+                            onChange={() => toggleRecordUser(r.user?._id || r.user?.id)}
+                            aria-label={`Select ${r.user?.name || 'student'}`}
+                          />
+                        </td>
                         <td className="px-4 sm:px-6 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="w-7 h-7 rounded-lg bg-surface-elevated border border-separator flex items-center justify-center text-xs font-semibold text-text-primary shrink-0">
@@ -764,7 +864,7 @@ const AttendanceRecordsView: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={9} className="px-6 py-14 text-center">
+                      <td colSpan={10} className="px-6 py-14 text-center">
                         <div className="max-w-sm mx-auto space-y-1.5">
                           <ShieldCheck className="w-9 h-9 text-text-muted mx-auto opacity-30" />
                           <p className="text-text-primary font-medium text-sm">
@@ -1256,6 +1356,20 @@ const AttendanceRecordsView: React.FC = () => {
         initialEventId={selectedEventId}
         onSuccess={refreshRecords}
       />
+
+      {/* Award Points / Club Hour Points Modal */}
+      {isAwardPointsOpen && (
+        <AwardPointsModal
+          isOpen={isAwardPointsOpen}
+          onClose={() => setIsAwardPointsOpen(false)}
+          event={events.find((e: any) => e._id === selectedEventId) || recordsData?.event}
+          initialSelectedStudentIds={Array.from(selectedRecordUserIds)}
+          onSuccess={() => {
+            setSelectedRecordUserIds(new Set());
+            refreshRecords();
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -738,6 +738,250 @@ export class AttendanceService {
   }
 
   /**
+   * Award points to event attendees and club hour participants in bulk or individually
+   */
+  public static async awardAttendeePoints({
+    eventId,
+    studentIds,
+    enrollmentIds,
+    points,
+    sessionId,
+    classHours,
+    hourlyPoints,
+    category = 'Attendance',
+    title,
+    description,
+    adminId,
+    markAttendance = true,
+  }: {
+    eventId: string;
+    studentIds?: string[];
+    enrollmentIds?: string[];
+    points: number;
+    sessionId?: string;
+    classHours?: number[];
+    hourlyPoints?: number;
+    category?: 'Attendance' | 'Bonus' | 'Contest';
+    title?: string;
+    description?: string;
+    adminId: string;
+    markAttendance?: boolean;
+  }) {
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      throw new Error('Invalid event ID format');
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    const pointsToAward = Number(points);
+    if (isNaN(pointsToAward) || pointsToAward <= 0) {
+      throw new Error('Points to award must be a positive number');
+    }
+
+    // Resolve all target user IDs
+    const targetUserIds = new Set<string>();
+
+    if (Array.isArray(studentIds)) {
+      studentIds.forEach((id) => {
+        if (id && mongoose.Types.ObjectId.isValid(id)) {
+          targetUserIds.add(id.toString());
+        }
+      });
+    }
+
+    if (Array.isArray(enrollmentIds) && enrollmentIds.length > 0) {
+      const validEnrollmentIds = enrollmentIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+      if (validEnrollmentIds.length > 0) {
+        const enrollments = await Enrollment.find({ _id: { $in: validEnrollmentIds } });
+        for (const enr of enrollments) {
+          if (enr.enrolledBy) targetUserIds.add(enr.enrolledBy.toString());
+          if (Array.isArray(enr.members)) {
+            enr.members.forEach((m: any) => {
+              if (m) targetUserIds.add(m.toString());
+            });
+          }
+        }
+      }
+    }
+
+    if (targetUserIds.size === 0) {
+      throw new Error('Please select at least one student to award points');
+    }
+
+    // Resolve or find session
+    let session: IAttendanceSession | null = null;
+    if (sessionId) {
+      if (mongoose.Types.ObjectId.isValid(sessionId)) {
+        session = await AttendanceSession.findOne({ _id: sessionId, event: eventId });
+      }
+    }
+
+    if (!session) {
+      session = await AttendanceSession.findOne({
+        event: eventId,
+        isActive: true,
+      }).sort({ createdAt: -1 });
+
+      if (!session) {
+        session = await AttendanceSession.findOne({ event: eventId }).sort({ createdAt: -1 });
+      }
+    }
+
+    // If still no session exists and event is Club Hour or classHours provided, auto-create one
+    const hours = Array.isArray(classHours) && classHours.length > 0
+      ? classHours
+      : (session?.classHours && session.classHours.length > 0 ? session.classHours : [1]);
+
+    if (!session) {
+      const otp = this.generateOTP();
+      const sTitle = event.type === 'Club Hour' ? `Club Hour Attendance` : `${event.title} Attendance Session`;
+      session = await AttendanceSession.create({
+        event: event._id,
+        sessionName: sTitle,
+        otp,
+        otpExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        isActive: true,
+        createdBy: new mongoose.Types.ObjectId(adminId),
+        classHours: hours,
+        hourlyPoints: typeof hourlyPoints === 'number' ? hourlyPoints : ((event as any).hourlyPoints ?? 50),
+        totalPoints: pointsToAward,
+      });
+      attendanceBuffer.setEventOTP(event._id.toString(), otp);
+    }
+
+    const isClubHour = event.type === 'Club Hour' || (session && session.classHours && session.classHours.length > 0);
+    const finalTitle = title?.trim() || (isClubHour ? `Club Hour: ${session?.sessionName || event.title}` : `Event Attendance: ${event.title}`);
+    const finalDescription = description?.trim() || (
+      hours.length > 0
+        ? `Attended Period(s) ${hours.join(', ')} (${hours.length} hr${hours.length > 1 ? 's' : ''}) • Points Awarded by Admin`
+        : `Verified attendance for ${event.title} • Points Awarded by Admin`
+    );
+
+    const userList = await User.find({ _id: { $in: Array.from(targetUserIds) } }).select('_id name rollNo email points');
+    if (userList.length === 0) {
+      throw new Error('No valid students found to award points');
+    }
+
+    const awardedStudents: any[] = [];
+
+    for (const u of userList) {
+      // 1. Credit User.points
+      const updatedUser = await User.findByIdAndUpdate(
+        u._id,
+        { $inc: { points: pointsToAward } },
+        { new: true }
+      );
+
+      // 2. Create PointTransaction
+      try {
+        await PointTransaction.create({
+          user: u._id,
+          amount: pointsToAward,
+          category: category || 'Attendance',
+          title: finalTitle,
+          description: finalDescription,
+          referenceId: session?._id ? session._id.toString() : event._id.toString(),
+          referenceModel: session ? 'AttendanceSession' : 'Event',
+          classHours: hours,
+          metadata: {
+            eventId: event._id,
+            eventTitle: event.title,
+            eventType: event.type,
+            sessionId: session?._id,
+            sessionName: session?.sessionName,
+            pointsAwarded: pointsToAward,
+          },
+          balanceAfter: updatedUser?.points || 0,
+          awardedBy: new mongoose.Types.ObjectId(adminId),
+          timestamp: new Date(),
+        });
+      } catch (txErr) {
+        console.warn('[AttendanceService] Could not log PointTransaction in awardAttendeePoints:', txErr);
+      }
+
+      // 3. Update or create AttendanceRecord
+      if (session) {
+        let existingRecord = await AttendanceRecord.findOne({
+          session: session._id,
+          user: u._id,
+        });
+
+        if (!existingRecord) {
+          const allEventSessions = await AttendanceSession.find({ event: event._id }).select('_id');
+          existingRecord = await AttendanceRecord.findOne({
+            session: { $in: allEventSessions.map((s) => s._id) },
+            user: u._id,
+          });
+        }
+
+        if (existingRecord) {
+          existingRecord.pointsAwarded = (existingRecord.pointsAwarded || 0) + pointsToAward;
+          existingRecord.timestamp = new Date();
+          await existingRecord.save();
+        } else {
+          await AttendanceRecord.create({
+            session: session._id,
+            user: u._id,
+            timestamp: new Date(),
+            pointsAwarded: pointsToAward,
+          });
+        }
+      }
+
+      // 4. Update Enrollment attendanceStatus & pointsAwarded if markAttendance is true
+      if (markAttendance) {
+        try {
+          let enrollment = await Enrollment.findOne({
+            event: event._id,
+            $or: [{ enrolledBy: u._id }, { members: u._id }],
+          });
+
+          if (!enrollment) {
+            await Enrollment.create({
+              event: event._id,
+              enrolledBy: u._id,
+              type: 'Individual',
+              attendanceStatus: true,
+              isWalkIn: true,
+              pointsAwarded: pointsToAward,
+            });
+          } else {
+            enrollment.attendanceStatus = true;
+            enrollment.pointsAwarded = (enrollment.pointsAwarded || 0) + pointsToAward;
+            await enrollment.save();
+          }
+        } catch (enrErr) {
+          console.warn('[AttendanceService] Could not update enrollment in awardAttendeePoints:', enrErr);
+        }
+      }
+
+      awardedStudents.push({
+        _id: u._id,
+        name: u.name,
+        rollNo: u.rollNo,
+        newPoints: updatedUser?.points || 0,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Successfully awarded ${pointsToAward} points to ${awardedStudents.length} student${awardedStudents.length > 1 ? 's' : ''}`,
+      count: awardedStudents.length,
+      pointsAwarded: pointsToAward,
+      totalPointsDistributed: pointsToAward * awardedStudents.length,
+      awardedStudents,
+      session: session ? {
+        _id: session._id,
+        sessionName: session.sessionName,
+        classHours: (session as any).classHours,
+      } : undefined,
+    };
+  }
+
+  /**
    * Delete attendance record manually (Admin override)
    */
   public static async deleteAttendanceRecord(recordId: string) {

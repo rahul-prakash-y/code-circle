@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  Award,
   Crown,
   Building2,
   Mail,
@@ -16,6 +17,7 @@ import {
   Sliders,
 } from 'lucide-react';
 import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
+import { Checkbox } from '@heroui/react';
 import { format } from 'date-fns';
 import { getStudentCollege, getStudentYear, getStudentDepartment } from '../../utils/studentUtils';
 
@@ -25,6 +27,8 @@ export interface ParticipantCardProps {
   isExpanded: boolean;
   isParticipantsTab: boolean;
   event: any;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
   onToggleExpand: (id: string) => void;
   onDelete: (enrollment: any) => void;
 }
@@ -35,6 +39,8 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   isExpanded,
   isParticipantsTab,
   event,
+  isSelected = false,
+  onToggleSelect,
   onToggleExpand: toggleExpand,
   onDelete: setConfirmDeleteEnrollment,
 }) => {
@@ -44,14 +50,29 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   const isPresent = Boolean(e.attendanceStatus);
 
   return (
-                <div
-                  
-                  className="p-4 sm:p-5 rounded-2xl bg-surface border border-separator dark:border-white/10 hover:border-blue-500/35 dark:hover:border-blue-500/35 transition-all shadow-xs space-y-3"
-                >
-                  {/* Primary Row Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                      {/* Monogram Avatar */}
+    <div
+      className={`p-4 sm:p-5 rounded-2xl border transition-all shadow-xs space-y-3 ${
+        isSelected
+          ? 'bg-amber-500/5 border-amber-500/40 ring-1 ring-amber-500/30'
+          : 'bg-surface border-separator dark:border-white/10 hover:border-blue-500/35 dark:hover:border-blue-500/35'
+      }`}
+    >
+      {/* Primary Row Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+          {/* Selection Checkbox */}
+          {onToggleSelect && (
+            <div className="pt-2 sm:pt-0" onClick={(evt) => evt.stopPropagation()}>
+              <Checkbox
+                isSelected={isSelected}
+                onChange={() => onToggleSelect(e._id)}
+                className="shrink-0"
+                aria-label={`Select ${e.enrolledBy?.name || 'student'}`}
+              />
+            </div>
+          )}
+
+          {/* Monogram Avatar */}
                       <div
                         className={`w-10 h-10 rounded-xl font-semibold text-sm flex items-center justify-center shrink-0 border shadow-xs ${
                           isPresent
@@ -126,6 +147,18 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
                           variant="flat"
                         >
                           {e.isWalkIn ? 'Walk-in attendance' : 'Pre-registered'}
+                        </Chip>
+                      )}
+
+                      {Boolean(e.pointsAwarded && e.pointsAwarded > 0) && (
+                        <Chip
+                          size="sm"
+                          color="warning"
+                          variant="flat"
+                          startContent={<Award size={12} className="text-amber-500" />}
+                          className="font-mono font-bold"
+                        >
+                          +{e.pointsAwarded} pts
                         </Chip>
                       )}
 

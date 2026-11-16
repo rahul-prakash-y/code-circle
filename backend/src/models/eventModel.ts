@@ -450,7 +450,6 @@ const eventSchema = new Schema<IEvent>(
     eventDays: {
       type: [Date],
       default: [],
-      index: true,
     },
     date: {
       type: Date,

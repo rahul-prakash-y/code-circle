@@ -22,6 +22,7 @@ import { THEMES } from '../admin/certificates/CertificateStudio';
 export const MyCertificatesView: React.FC = () => {
   const { myCertificates, loading, fetchMyCertificates, downloadCertificatePdf } = useCertificateStore();
   const [selectedCert, setSelectedCert] = useState<IssuedCertificate | null>(null);
+  const [previewZoom, setPreviewZoom] = useState<'100%' | 'fit'>('100%');
 
   useEffect(() => {
     fetchMyCertificates();
@@ -175,15 +176,44 @@ export const MyCertificatesView: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-3xl border border-separator max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative"
+              className="bg-surface rounded-3xl border border-separator max-w-5xl w-full p-4 sm:p-6 shadow-2xl space-y-4 my-auto relative"
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between pb-3 border-b border-separator">
-                <div className="flex items-center gap-2">
-                  <Award size={18} className="text-primary" />
-                  <span className="text-xs font-bold text-label-primary uppercase tracking-wider">
-                    Official Certificate Preview
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Award size={18} className="text-primary" />
+                    <span className="text-xs font-bold text-label-primary uppercase tracking-wider">
+                      Official Certificate Preview
+                    </span>
+                  </div>
+                  {/* Zoom Controls */}
+                  <div className="flex items-center bg-surface-raised border border-separator rounded-lg p-0.5 text-[11px] font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewZoom('100%')}
+                      className={`px-2 py-0.5 rounded-md transition-all ${
+                        previewZoom === '100%'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'text-label-secondary hover:text-label-primary'
+                      }`}
+                      title="100% true-scale view"
+                    >
+                      100% Zoom
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewZoom('fit')}
+                      className={`px-2 py-0.5 rounded-md transition-all ${
+                        previewZoom === 'fit'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'text-label-secondary hover:text-label-primary'
+                      }`}
+                      title="Fit to modal dialog"
+                    >
+                      Fit
+                    </button>
+                  </div>
                   {selectedCert.status === 'PENDING_APPROVAL' && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
                       Pending Approval
@@ -204,21 +234,106 @@ export const MyCertificatesView: React.FC = () => {
                 return (
                   <div className="w-full overflow-x-auto pb-2 custom-scrollbar">
                     <div
-                      className="min-w-[560px] sm:min-w-0 w-full aspect-[1.414/1] rounded-2xl p-6 sm:p-10 flex flex-col justify-between shadow-xl relative overflow-hidden select-none border"
+                      className={`aspect-[1.414/1] rounded-2xl p-6 sm:p-9 md:p-12 flex flex-col justify-between shadow-xl relative overflow-hidden select-none border shrink-0 ${
+                        previewZoom === '100%' ? 'w-[842px] min-w-[842px]' : 'w-full min-w-[560px]'
+                      }`}
                       style={{
                         backgroundColor: currentTheme.bg,
                         borderColor: currentTheme.primary + '55',
                         color: currentTheme.text,
                       }}
                     >
-                      {/* Decorative Borders */}
+                      {/* Ornate Double Border Frame (Matching Original Certificate Template) */}
                       <div
-                        className="absolute inset-3 sm:inset-5 border rounded-xl pointer-events-none"
-                        style={{ borderColor: currentTheme.primary + '35' }}
+                        className="absolute inset-[18px] sm:inset-[26px] border-[2.5px] pointer-events-none"
+                        style={{ borderColor: currentTheme.primary }}
                       />
                       <div
-                        className="absolute inset-4 sm:inset-6 border rounded-lg pointer-events-none opacity-50"
-                        style={{ borderColor: currentTheme.primary + '18' }}
+                        className="absolute inset-[24px] sm:inset-[32px] border pointer-events-none opacity-60"
+                        style={{ borderColor: currentTheme.secondary || currentTheme.accent }}
+                      />
+
+                      {/* Ornate Corner Accents: Cross Bars and Gemstone Pins */}
+                      {/* Top-Left */}
+                      <div className="absolute top-[18px] sm:top-[26px] left-[18px] sm:left-[26px] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <div
+                          className="w-2 h-2 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-xs"
+                          style={{ backgroundColor: currentTheme.primary }}
+                        />
+                        <div
+                          className="w-6 h-0.5 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          style={{ backgroundColor: currentTheme.secondary || currentTheme.accent }}
+                        />
+                        <div
+                          className="w-0.5 h-6 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          style={{ backgroundColor: currentTheme.secondary || currentTheme.accent }}
+                        />
+                      </div>
+
+                      {/* Top-Right */}
+                      <div className="absolute top-[18px] sm:top-[26px] right-[18px] sm:right-[26px] translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <div
+                          className="w-2 h-2 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-xs"
+                          style={{ backgroundColor: currentTheme.primary }}
+                        />
+                        <div
+                          className="w-6 h-0.5 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          style={{ backgroundColor: currentTheme.secondary || currentTheme.accent }}
+                        />
+                        <div
+                          className="w-0.5 h-6 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          style={{ backgroundColor: currentTheme.secondary || currentTheme.accent }}
+                        />
+                      </div>
+
+                      {/* Bottom-Left */}
+                      <div className="absolute bottom-[18px] sm:bottom-[26px] left-[18px] sm:left-[26px] -translate-x-1/2 translate-y-1/2 pointer-events-none">
+                        <div
+                          className="w-2 h-2 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-xs"
+                          style={{ backgroundColor: currentTheme.primary }}
+                        />
+                        <div
+                          className="w-6 h-0.5 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          style={{ backgroundColor: currentTheme.secondary || currentTheme.accent }}
+                        />
+                        <div
+                          className="w-0.5 h-6 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          style={{ backgroundColor: currentTheme.secondary || currentTheme.accent }}
+                        />
+                      </div>
+
+                      {/* Bottom-Right */}
+                      <div className="absolute bottom-[18px] sm:bottom-[26px] right-[18px] sm:right-[26px] translate-x-1/2 translate-y-1/2 pointer-events-none">
+                        <div
+                          className="w-2 h-2 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-xs"
+                          style={{ backgroundColor: currentTheme.primary }}
+                        />
+                        <div
+                          className="w-6 h-0.5 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          style={{ backgroundColor: currentTheme.secondary || currentTheme.accent }}
+                        />
+                        <div
+                          className="w-0.5 h-6 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                          style={{ backgroundColor: currentTheme.secondary || currentTheme.accent }}
+                        />
+                      </div>
+
+                      {/* Ambient Glows */}
+                      <div
+                        className="absolute -top-16 -left-16 w-56 h-56 rounded-full blur-3xl opacity-12 pointer-events-none"
+                        style={{ background: currentTheme.primary }}
+                      />
+                      <div
+                        className="absolute -bottom-16 -right-16 w-56 h-56 rounded-full blur-3xl opacity-12 pointer-events-none"
+                        style={{ background: currentTheme.secondary }}
+                      />
+                      <div
+                        className="absolute -top-16 -right-16 w-44 h-44 rounded-full blur-3xl opacity-10 pointer-events-none"
+                        style={{ background: currentTheme.accent || currentTheme.primary }}
+                      />
+                      <div
+                        className="absolute -bottom-16 -left-16 w-44 h-44 rounded-full blur-3xl opacity-10 pointer-events-none"
+                        style={{ background: currentTheme.secondary }}
                       />
 
                       {/* Header with Club Logo */}
@@ -226,50 +341,50 @@ export const MyCertificatesView: React.FC = () => {
                         <img
                           src="/codecirclelogo.jpeg"
                           alt="Code Circle Logo"
-                          className="w-11 h-11 sm:w-13 sm:h-13 mx-auto mb-1.5 rounded-full border-2 border-black/10 shadow-sm object-cover bg-black/5"
+                          className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-2 sm:mb-2.5 rounded-full border-2 border-black/10 shadow-sm object-cover bg-black/5"
                         />
                         <p
-                          className="text-[9px] sm:text-[10px] font-bold tracking-[0.22em] uppercase"
+                          className="text-[9.5px] sm:text-[11px] font-bold tracking-[0.24em] uppercase"
                           style={{ color: currentTheme.primary }}
                         >
-                          {selectedCert.issuerOrganization || 'Code Circle · Bannari Amman Institute of Technology'}
+                          {selectedCert.issuerOrganization || 'CODE CIRCLE · BANNARI AMMAN INSTITUTE OF TECHNOLOGY'}
                         </p>
                         <h2
-                          className="text-base sm:text-xl font-black tracking-tight mt-0.5 uppercase"
+                          className="text-lg sm:text-2xl font-black tracking-tight mt-1 uppercase"
                           style={{ color: currentTheme.text }}
                         >
                           {selectedCert.title}
                         </h2>
                         <p
-                          className="text-[9px] sm:text-[11px] opacity-75 tracking-widest uppercase mt-0.5"
+                          className="text-[9.5px] sm:text-[11px] font-medium opacity-75 tracking-[0.2em] uppercase mt-1"
                           style={{ color: currentTheme.text }}
                         >
                           {selectedCert.subtitle || 'PROUDLY PRESENTED TO'}
                         </p>
                         <div
-                          className="w-16 h-0.5 mx-auto my-1.5 rounded-full"
+                          className="w-16 sm:w-20 h-1 mx-auto my-3 sm:my-3.5 rounded-full"
                           style={{ backgroundColor: currentTheme.secondary || currentTheme.primary }}
                         />
                       </div>
 
                       {/* Recipient Spotlight */}
-                      <div className="text-center my-auto relative z-10 py-1">
+                      <div className="text-center my-auto relative z-10 py-3 sm:py-5">
                         <h1
-                          className="text-xl sm:text-3xl font-extrabold tracking-tight uppercase"
+                          className="text-2xl sm:text-4xl font-extrabold tracking-tight uppercase"
                           style={{ color: currentTheme.primary }}
                         >
                           {selectedCert.recipientName}
                         </h1>
                         {selectedCert.recipientRollNo && (
                           <p
-                            className="text-[9px] sm:text-[11px] font-mono opacity-65 mt-0.5 font-semibold"
+                            className="text-xs sm:text-sm font-mono opacity-70 mt-1.5 font-semibold"
                             style={{ color: currentTheme.text }}
                           >
                             Roll No: {selectedCert.recipientRollNo}
                           </p>
                         )}
                         <p
-                          className="text-[9px] sm:text-[11px] opacity-80 max-w-md mx-auto mt-1.5 leading-relaxed px-4 line-clamp-2"
+                          className="text-xs sm:text-[13px] opacity-80 max-w-lg sm:max-w-xl mx-auto mt-2.5 sm:mt-3 leading-relaxed px-4 line-clamp-2"
                           style={{ color: currentTheme.text }}
                         >
                           {selectedCert.description}
@@ -277,16 +392,16 @@ export const MyCertificatesView: React.FC = () => {
                       </div>
 
                       {/* Footer: Verification Strip & Signatures */}
-                      <div
-                        className="space-y-2 relative z-10 pt-2 border-t"
-                        style={{ borderColor: currentTheme.primary + '20' }}
-                      >
+                      <div className="space-y-2.5 relative z-10 pt-2">
                         <div
-                          className="flex items-center justify-between px-2 text-[7px] sm:text-[9px] font-mono opacity-70"
-                          style={{ color: currentTheme.text }}
+                          className="flex items-center justify-between px-2.5 py-1.5 border-y text-[8px] sm:text-[9.5px] font-mono opacity-75"
+                          style={{
+                            borderColor: currentTheme.primary + '25',
+                            color: currentTheme.text,
+                          }}
                         >
                           <div className="flex items-center gap-1.5">
-                            <ShieldCheck size={13} style={{ color: currentTheme.primary }} />
+                            <ShieldCheck size={14} style={{ color: currentTheme.primary }} />
                             <span className="font-bold tracking-wider uppercase">Verified Institutional Credential</span>
                           </div>
                           <div>
@@ -295,54 +410,51 @@ export const MyCertificatesView: React.FC = () => {
                         </div>
 
                         {/* Three Faculty Signatures Side by Side */}
-                        <div
-                          className="grid grid-cols-3 gap-2 pt-1 border-t text-center"
-                          style={{ borderColor: currentTheme.primary + '20' }}
-                        >
+                        <div className="grid grid-cols-3 gap-3 sm:gap-6 pt-1 text-center">
                           <div>
                             <div
-                              className="w-16 sm:w-24 h-0.5 mx-auto mb-1"
+                              className="w-16 sm:w-24 h-0.5 mx-auto mb-1.5"
                               style={{ backgroundColor: currentTheme.primary + '55' }}
                             />
-                            <p className="text-[8px] sm:text-[10px] font-bold truncate" style={{ color: currentTheme.text }}>
+                            <p className="text-[9px] sm:text-[11px] font-bold truncate" style={{ color: currentTheme.text }}>
                               {selectedCert.signatoryName || 'Dr. Dhanasekar R'}
                             </p>
-                            <p className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate" style={{ color: currentTheme.primary }}>
+                            <p className="text-[8px] sm:text-[9.5px] font-semibold opacity-90 truncate" style={{ color: currentTheme.primary }}>
                               {selectedCert.signatoryTitle || 'Faculty Coordinator'}
                             </p>
-                            <p className="text-[6px] sm:text-[7px] opacity-60 truncate" style={{ color: currentTheme.text }}>
+                            <p className="text-[7px] sm:text-[8.5px] opacity-60 truncate" style={{ color: currentTheme.text }}>
                               {selectedCert.signatoryDepartment || 'Faculty Coordinator · EIE'}
                             </p>
                           </div>
 
                           <div>
                             <div
-                              className="w-16 sm:w-24 h-0.5 mx-auto mb-1"
+                              className="w-16 sm:w-24 h-0.5 mx-auto mb-1.5"
                               style={{ backgroundColor: currentTheme.primary + '55' }}
                             />
-                            <p className="text-[8px] sm:text-[10px] font-bold truncate" style={{ color: currentTheme.text }}>
+                            <p className="text-[9px] sm:text-[11px] font-bold truncate" style={{ color: currentTheme.text }}>
                               {selectedCert.secondarySignatoryName || 'Dr. Nandhini K M'}
                             </p>
-                            <p className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate" style={{ color: currentTheme.primary }}>
+                            <p className="text-[8px] sm:text-[9.5px] font-semibold opacity-90 truncate" style={{ color: currentTheme.primary }}>
                               {selectedCert.secondarySignatoryTitle || 'Faculty Coordinator'}
                             </p>
-                            <p className="text-[6px] sm:text-[7px] opacity-60 truncate" style={{ color: currentTheme.text }}>
+                            <p className="text-[7px] sm:text-[8.5px] opacity-60 truncate" style={{ color: currentTheme.text }}>
                               {selectedCert.secondarySignatoryDepartment || 'Faculty Coordinator · EIE'}
                             </p>
                           </div>
 
                           <div>
                             <div
-                              className="w-16 sm:w-24 h-0.5 mx-auto mb-1"
+                              className="w-16 sm:w-24 h-0.5 mx-auto mb-1.5"
                               style={{ backgroundColor: currentTheme.primary + '55' }}
                             />
-                            <p className="text-[8px] sm:text-[10px] font-bold truncate" style={{ color: currentTheme.text }}>
+                            <p className="text-[9px] sm:text-[11px] font-bold truncate" style={{ color: currentTheme.text }}>
                               {selectedCert.tertiarySignatoryName || 'Prof. RATHNA S'}
                             </p>
-                            <p className="text-[7px] sm:text-[8px] font-semibold opacity-90 truncate" style={{ color: currentTheme.primary }}>
+                            <p className="text-[8px] sm:text-[9.5px] font-semibold opacity-90 truncate" style={{ color: currentTheme.primary }}>
                               {selectedCert.tertiarySignatoryTitle || 'Faculty Coordinator'}
                             </p>
-                            <p className="text-[6px] sm:text-[7px] opacity-60 truncate" style={{ color: currentTheme.text }}>
+                            <p className="text-[7px] sm:text-[8.5px] opacity-60 truncate" style={{ color: currentTheme.text }}>
                               {selectedCert.tertiarySignatoryDepartment || 'Faculty Coordinator · CSE'}
                             </p>
                           </div>

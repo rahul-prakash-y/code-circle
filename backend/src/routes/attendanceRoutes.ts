@@ -8,6 +8,7 @@ export async function attendanceRoutes(fastify: FastifyInstance) {
   // Administrative Attendance & OTP Management
   fastify.post('/sessions', { preHandler: [isAdminOrFaculty] }, attendanceController.createSession as any);
   fastify.post('/manual', { preHandler: [isAdminOrFaculty] }, attendanceController.markManualAttendance as any);
+  fastify.post('/award-points', { preHandler: [isAdminOrFaculty] }, attendanceController.awardAttendeePoints as any);
   fastify.delete('/records/:recordId', { preHandler: [isAdminOrFaculty] }, attendanceController.deleteAttendanceRecord as any);
   fastify.get('/sessions/active/:eventId', { preHandler: [isAdminOrFaculty] }, attendanceController.getActiveSession as any);
   fastify.get('/sessions/event/:eventId', attendanceController.getEventSessions as any);

@@ -336,10 +336,92 @@ export const deleteAttendanceRecord = async (
   }
 };
 
+export interface AwardAttendeePointsBody {
+  eventId: string;
+  studentIds?: string[];
+  enrollmentIds?: string[];
+  points: number;
+  sessionId?: string;
+  classHours?: number[];
+  hourlyPoints?: number;
+  category?: 'Attendance' | 'Bonus' | 'Contest';
+  title?: string;
+  description?: string;
+  markAttendance?: boolean;
+}
+
+export const awardAttendeePoints = async (
+  request: FastifyRequest<{ Body: AwardAttendeePointsBody }>,
+  reply: FastifyReply
+) => {
+  try {
+    const user = request.user;
+    if (!user) {
+      return reply.status(401).send({ success: false, error: 'Unauthorized' });
+    }
+
+    const {
+      eventId,
+      studentIds,
+      enrollmentIds,
+      points,
+      sessionId,
+      classHours,
+      hourlyPoints,
+      category,
+      title,
+      description,
+      markAttendance = true,
+    } = request.body || {};
+
+    if (!eventId) {
+      return reply.status(400).send({ success: false, error: 'eventId is required' });
+    }
+
+    const hasStudents = Array.isArray(studentIds) && studentIds.length > 0;
+    const hasEnrollments = Array.isArray(enrollmentIds) && enrollmentIds.length > 0;
+    if (!hasStudents && !hasEnrollments) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Please select at least one student or registration to award points',
+      });
+    }
+
+    const numPoints = Number(points);
+    if (isNaN(numPoints) || numPoints <= 0) {
+      return reply.status(400).send({ success: false, error: 'points must be a positive number' });
+    }
+
+    const result = await AttendanceService.awardAttendeePoints({
+      eventId,
+      studentIds,
+      enrollmentIds,
+      points: numPoints,
+      sessionId,
+      classHours: Array.isArray(classHours) ? classHours : undefined,
+      hourlyPoints: typeof hourlyPoints === 'number' ? hourlyPoints : undefined,
+      category,
+      title,
+      description,
+      adminId: (user.id || user._id) as string,
+      markAttendance,
+    });
+
+    return reply.status(200).send(result);
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(400).send({
+      success: false,
+      error: error.message || 'Failed to award points to attendees',
+    });
+  }
+};
+
 export default {
   createSession,
   markAttendance,
   markManualAttendance,
+  awardAttendeePoints,
   deleteAttendanceRecord,
   getAttendanceRecords,
   getActiveSession,

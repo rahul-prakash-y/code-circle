@@ -13,7 +13,9 @@ import {
   Download,
   Radio,
   Plus,
+  Award,
 } from 'lucide-react';
+import AwardPointsModal from './AwardPointsModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import useAttendanceStore from '../../store/useAttendanceStore';
 import toast from 'react-hot-toast';
@@ -36,6 +38,7 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
   const [activeTab, setActiveTab] = useState('manual'); // 'manual', 'sessions'
   const [enrollments, setEnrollments] = useState([]);
   const [selectedEnrollmentIds, setSelectedEnrollmentIds] = useState(new Set());
+  const [isAwardPointsOpen, setIsAwardPointsOpen] = useState(false);
   const [manualSearch, setManualSearch] = useState('');
   const [manualStatusFilter, setManualStatusFilter] = useState('all'); // 'all', 'present', 'absent'
 
@@ -386,6 +389,14 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
                     Reset filtered
                   </button>
                   <button
+                    onClick={() => setIsAwardPointsOpen(true)}
+                    className="btn-primary py-2 px-3.5 text-xs font-medium flex items-center gap-2 cursor-pointer shadow-xs bg-amber-600 hover:bg-amber-500 text-white"
+                    title="Award points to attendees"
+                  >
+                    <Award size={14} />
+                    <span>Award Points ({selectedEnrollmentIds.size > 0 ? selectedEnrollmentIds.size : presentStudents})</span>
+                  </button>
+                  <button
                     onClick={saveManualAttendance}
                     disabled={enrollmentLoading}
                     className="btn-primary py-2 px-4.5 text-xs font-medium flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
@@ -661,6 +672,15 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
 
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => setIsAwardPointsOpen(true)}
+                          disabled={!safeSessionAttendance.length}
+                          className="btn-primary py-1.5 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50"
+                          title="Award points to verified attendees in this session"
+                        >
+                          <Award size={13} />
+                          <span>Award Points</span>
+                        </button>
+                        <button
                           onClick={exportSessionCSV}
                           disabled={!safeSessionAttendance.length}
                           className="btn-secondary py-1.5 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
@@ -870,6 +890,30 @@ const AttendanceDashboard = ({ isOpen, onClose, event }) => {
             </div>
           )}
         </AnimatePresence>
+
+        {/* Award Points Modal */}
+        {isAwardPointsOpen && (
+          <AwardPointsModal
+            isOpen={isAwardPointsOpen}
+            onClose={() => setIsAwardPointsOpen(false)}
+            event={event}
+            initialSelectedStudentIds={
+              activeTab === 'sessions' && safeSessionAttendance.length > 0
+                ? safeSessionAttendance.map((rec) => rec.user?._id || rec.user?.id).filter(Boolean)
+                : []
+            }
+            initialSelectedEnrollmentIds={Array.from(selectedEnrollmentIds)}
+            onSuccess={async () => {
+              if (event?._id) {
+                const data = await fetchEventEnrollments(event._id);
+                setEnrollments(data || []);
+                if (selectedSession?._id) {
+                  await fetchSessionAttendance(selectedSession._id);
+                }
+              }
+            }}
+          />
+        )}
       </motion.div>
     </div>
   );

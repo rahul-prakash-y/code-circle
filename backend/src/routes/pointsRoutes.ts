@@ -8,6 +8,7 @@ import {
   getAdminPointTransactions,
 } from '../controllers/pointsController';
 import { verifyToken, isAdmin } from '../middleware/authMiddleware';
+import attendanceController from '../controllers/attendanceController';
 
 export async function pointsRoutes(fastify: FastifyInstance) {
   // All points routes require authenticated user
@@ -36,6 +37,7 @@ export async function pointsRoutes(fastify: FastifyInstance) {
 
     // Award / adjust bonus merit points
     adminScope.post('/admin/award', awardAdminPoints);
+    adminScope.post('/admin/award-attendees', attendanceController.awardAttendeePoints as any);
   });
 }
 
