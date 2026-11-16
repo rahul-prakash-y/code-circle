@@ -639,14 +639,16 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                 variant="primary"
                 onPress={handleBulkMark}
                 isDisabled={isBulkMarking}
-                className="text-xs py-1.5 px-3.5 flex items-center gap-2 cursor-pointer shadow-sm animate-in fade-in"
+                className="text-xs py-1.5 px-3.5 flex items-center gap-2 cursor-pointer shadow-sm animate-in fade-in bg-amber-600 hover:bg-amber-500 text-white"
               >
                 {isBulkMarking ? (
                   <Spinner size="sm" color="default" />
                 ) : (
-                  <CheckCircle2 size={14} />
+                  <Award size={14} />
                 )}
-                <span>Mark Selected ({selectedStudentIds.size}) Present</span>
+                <span>
+                  Award Points to Selected ({selectedStudentIds.size}) (+{selectedClassHours.length * (Number(hourlyPoints) || 50)} pts)
+                </span>
               </Button>
             )}
           </div>
@@ -765,18 +767,13 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          {/* Checkbox for bulk marking (only if not present) */}
-                          {!isPresent ? (
-                            <Checkbox
-                              isSelected={isSelected}
-                              onChange={() => toggleStudentSelection(student._id)}
-                              className="shrink-0"
-                            />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-                              <Check size={11} />
-                            </div>
-                          )}
+                          {/* Checkbox for student selection */}
+                          <Checkbox
+                            isSelected={isSelected}
+                            onChange={() => toggleStudentSelection(student._id)}
+                            className="shrink-0"
+                            aria-label={`Select ${student.name || 'student'}`}
+                          />
 
                           {/* Avatar */}
                           <div className="w-9 h-9 rounded-xl bg-surface-elevated border border-separator text-label-primary font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
@@ -818,28 +815,31 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
 
                         {/* Right Status / Action Button */}
                         <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                          {isPresent ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-xs font-semibold">
-                              <CheckCircle2 size={13} />
-                              <span>Verified Present</span>
+                          {isPresent && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[11px] font-semibold">
+                              <CheckCircle2 size={12} />
+                              <span>Present</span>
                             </span>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="primary"
-                              size="sm"
-                              onPress={() => handleMarkSingle(student)}
-                              isDisabled={isMarking || isBulkMarking}
-                              className="text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer"
-                            >
-                              {isMarking ? (
-                                <Spinner size="sm" color="default" />
-                              ) : (
-                                <UserCheck size={13} />
-                              )}
-                              <span>Mark Present</span>
-                            </Button>
                           )}
+                          <Button
+                            type="button"
+                            variant={isPresent ? "secondary" : "primary"}
+                            size="sm"
+                            onPress={() => handleMarkSingle(student)}
+                            isDisabled={isMarking || isBulkMarking}
+                            className={`text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer ${
+                              isPresent ? 'text-amber-500 border-amber-500/30 hover:bg-amber-500/10' : ''
+                            }`}
+                          >
+                            {isMarking ? (
+                              <Spinner size="sm" color="default" />
+                            ) : isPresent ? (
+                              <Award size={13} className="text-amber-500" />
+                            ) : (
+                              <UserCheck size={13} />
+                            )}
+                            <span>{isPresent ? 'Award Pts' : 'Mark Present'} (+{selectedClassHours.length * (Number(hourlyPoints) || 50)})</span>
+                          </Button>
                         </div>
                       </div>
                     );
@@ -945,28 +945,31 @@ export const ManualAttendanceModal: React.FC<ManualAttendanceModalProps> = ({
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                          {isPresent ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-xs font-semibold">
-                              <CheckCircle2 size={13} />
-                              <span>Verified Present</span>
+                          {isPresent && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[11px] font-semibold">
+                              <CheckCircle2 size={12} />
+                              <span>Present</span>
                             </span>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="primary"
-                              size="sm"
-                              onPress={() => handleMarkSingle(stu)}
-                              isDisabled={isMarking}
-                              className="text-xs py-1.5 px-3.5 flex items-center gap-1.5 cursor-pointer"
-                            >
-                              {isMarking ? (
-                                <Spinner size="sm" color="default" />
-                              ) : (
-                                <UserCheck size={13} />
-                              )}
-                              <span>Mark Present</span>
-                            </Button>
                           )}
+                          <Button
+                            type="button"
+                            variant={isPresent ? "secondary" : "primary"}
+                            size="sm"
+                            onPress={() => handleMarkSingle(stu)}
+                            isDisabled={isMarking}
+                            className={`text-xs py-1.5 px-3.5 flex items-center gap-1.5 cursor-pointer ${
+                              isPresent ? 'text-amber-500 border-amber-500/30 hover:bg-amber-500/10' : ''
+                            }`}
+                          >
+                            {isMarking ? (
+                              <Spinner size="sm" color="default" />
+                            ) : isPresent ? (
+                              <Award size={13} className="text-amber-500" />
+                            ) : (
+                              <UserCheck size={13} />
+                            )}
+                            <span>{isPresent ? 'Award Pts' : 'Mark Present'} (+{selectedClassHours.length * (Number(hourlyPoints) || 50)})</span>
+                          </Button>
                         </div>
                       </div>
                     );

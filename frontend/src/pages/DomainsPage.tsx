@@ -113,7 +113,17 @@ export const DomainsPage: React.FC = () => {
   const [togglingLockId, setTogglingLockId] = useState<string | null>(null);
   const [deletingDomainId, setDeletingDomainId] = useState<string | null>(null);
   const [claimingCert, setClaimingCert] = useState(false);
-  const { claimCourseCertificate } = useCertificateStore();
+  const { claimCourseCertificate, myCertificates, fetchMyCertificates } = useCertificateStore();
+
+  useEffect(() => {
+    fetchMyCertificates();
+  }, []);
+
+  const userCourseCert = myCertificates.find(
+    (c) => (c.associatedDomainId?._id || c.associatedDomainId) === currentDomain?._id
+  );
+  const isPendingApproval = userCourseCert?.status === 'PENDING_APPROVAL';
+  const isCertApproved = userCourseCert?.status === 'ACTIVE';
 
   const isAllLevelsCompleted = levels.length > 0 && levels.every((lvl) => Boolean(lvl.isCompleted));
 
@@ -501,7 +511,13 @@ export const DomainsPage: React.FC = () => {
         {isAllLevelsCompleted && !isAdmin && (
           <div className="p-5 rounded-[24px] bg-gradient-to-r from-amber-500/15 via-primary/10 to-emerald-500/15 border border-amber-500/30 text-label-primary flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md shadow-amber-500/5">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center shrink-0 shadow-md">
+              <div
+                className={`w-12 h-12 rounded-2xl ${
+                  isCertApproved
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                    : 'bg-gradient-to-br from-amber-400 to-amber-600'
+                } text-white flex items-center justify-center shrink-0 shadow-md`}
+              >
                 <Award className="w-6 h-6" />
               </div>
               <div>
@@ -509,21 +525,43 @@ export const DomainsPage: React.FC = () => {
                   <span className="text-sm font-extrabold text-label-primary">
                     Course Curriculum Cleared!
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                    Certified
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                      isCertApproved
+                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        : isPendingApproval
+                        ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                        : 'bg-primary/20 text-primary border-primary/30'
+                    }`}
+                  >
+                    {isCertApproved
+                      ? 'Verified & Issued'
+                      : isPendingApproval
+                      ? 'Pending Admin Approval'
+                      : 'Ready to Claim'}
                   </span>
                 </div>
                 <p className="text-xs text-label-secondary mt-0.5 max-w-xl">
-                  You have mastered all {levels.length} levels in {activeCourse.name}! Your institutional certificate backed by Code Circle and faculty is ready.
+                  {isCertApproved
+                    ? `Congratulations! Your official institutional certificate for ${activeCourse.name} is approved and ready to view or download.`
+                    : isPendingApproval
+                    ? `You cleared all ${levels.length} levels in ${activeCourse.name}! Your certificate request has been submitted and is awaiting administrator approval.`
+                    : `You have mastered all ${levels.length} levels in ${activeCourse.name}! Request your institutional certificate backed by Code Circle and faculty.`}
                 </p>
               </div>
             </div>
 
             <Button
               size="sm"
-              color="primary"
+              color={isCertApproved ? 'success' : isPendingApproval ? 'warning' : 'primary'}
               variant="solid"
-              onPress={handleClaimCourseCertificate}
+              onPress={() => {
+                if (isCertApproved || isPendingApproval) {
+                  navigate('/certificates');
+                } else {
+                  handleClaimCourseCertificate();
+                }
+              }}
               isDisabled={claimingCert}
               className="shrink-0 rounded-full text-xs font-bold shadow-md shadow-primary/25"
               startContent={
@@ -534,7 +572,11 @@ export const DomainsPage: React.FC = () => {
                 )
               }
             >
-              Claim & View Certificate
+              {isCertApproved
+                ? 'View Certificate'
+                : isPendingApproval
+                ? 'Check Status'
+                : 'Claim Certificate'}
             </Button>
           </div>
         )}

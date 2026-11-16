@@ -7,6 +7,7 @@ export interface IEnrollment extends Document {
   teamName?: string;
   members: mongoose.Types.ObjectId[];
   attendanceStatus: boolean;
+  pointsAwarded?: number;
   isBlocked?: boolean;
   isWalkIn?: boolean;
   certificateUrl?: string | null;
@@ -50,6 +51,10 @@ const enrollmentSchema = new Schema<IEnrollment>(
     attendanceStatus: {
       type: Boolean,
       default: false,
+    },
+    pointsAwarded: {
+      type: Number,
+      default: 0,
     },
     isBlocked: {
       type: Boolean,

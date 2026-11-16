@@ -42,6 +42,7 @@ import toast from 'react-hot-toast';
 import { useDebounce } from '../../hooks/useDebounce';
 import { getStudentCollege, getStudentYear, getStudentDepartment } from '../../utils/studentUtils';
 import EventBulkUploadModal from '../events/EventBulkUploadModal';
+import AwardPointsModal from './AwardPointsModal';
 
 export const EventParticipantsModal = ({
   isOpen,
@@ -60,8 +61,33 @@ export const EventParticipantsModal = ({
   const [generatingCertificates, setGeneratingCertificates] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [bulkUploadTab, setBulkUploadTab] = useState('bulk');
+  const [isAwardPointsOpen, setIsAwardPointsOpen] = useState(false);
+  const [selectedEnrollmentIds, setSelectedEnrollmentIds] = useState(new Set());
   const [confirmDeleteEnrollment, setConfirmDeleteEnrollment] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const toggleEnrollmentSelect = (id) => {
+    setSelectedEnrollmentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllFiltered = () => {
+    const visibleIds = filteredList.map((e) => e._id).filter(Boolean);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedEnrollmentIds.has(id));
+    setSelectedEnrollmentIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        visibleIds.forEach((id) => next.delete(id));
+      } else {
+        visibleIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
 
   const confirmDelete = async () => {
     if (!confirmDeleteEnrollment) return;
@@ -428,6 +454,24 @@ export const EventParticipantsModal = ({
             )}
 
             <Button
+              onPress={() => setIsAwardPointsOpen(true)}
+              variant="primary"
+              color="warning"
+              className="bg-amber-600 hover:bg-amber-500 text-white font-medium shadow-xs py-2 px-3.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer"
+              title="Award points to event attendees"
+            >
+              <Award size={14} />
+              <span>
+                Award Points{' '}
+                {selectedEnrollmentIds.size > 0
+                  ? `(${selectedEnrollmentIds.size})`
+                  : isParticipantsTab && stats.presentStudents > 0
+                  ? `(${stats.presentStudents})`
+                  : ''}
+              </span>
+            </Button>
+
+            <Button
               onPress={() => {
                 setBulkUploadTab('single');
                 setIsBulkUploadOpen(true);
@@ -779,6 +823,19 @@ export const EventParticipantsModal = ({
                 Reset filters
               </button>
             )}
+
+            {filteredList.length > 0 && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onPress={toggleSelectAllFiltered}
+                className="text-xs py-1.5 px-3 rounded-xl cursor-pointer"
+              >
+                {filteredList.every((e) => selectedEnrollmentIds.has(e._id))
+                  ? 'Deselect All'
+                  : `Select All (${filteredList.length})`}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -834,10 +891,13 @@ export const EventParticipantsModal = ({
                 isExpanded={expandedTeams.has(e._id)}
                 isParticipantsTab={isParticipantsTab}
                 event={event}
+                isSelected={selectedEnrollmentIds.has(e._id)}
+                onToggleSelect={toggleEnrollmentSelect}
                 onToggleExpand={toggleExpand}
                 onDelete={setConfirmDeleteEnrollment}
               />
-            ))          )}
+            ))
+          )}
         </div>
 
         {/* ================================================================= */}
@@ -989,6 +1049,26 @@ export const EventParticipantsModal = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Award Points Modal for Event Attendees */}
+      {isAwardPointsOpen && (
+        <AwardPointsModal
+          isOpen={isAwardPointsOpen}
+          onClose={() => setIsAwardPointsOpen(false)}
+          event={event}
+          initialSelectedEnrollmentIds={Array.from(selectedEnrollmentIds)}
+          onSuccess={async () => {
+            if (event?._id) {
+              try {
+                const data = await fetchEventEnrollments(event._id);
+                setEnrollments(data || []);
+              } catch (err) {
+                console.error('Failed to reload enrollments after awarding points:', err);
+              }
+            }
+          }}
+        />
+      )}
     </>
   );
 };

@@ -15,10 +15,13 @@ export interface CertificateRenderOptions {
   issuerOrganization?: string;
   signatoryName?: string;
   signatoryTitle?: string;
+  signatoryDepartment?: string;
   secondarySignatoryName?: string;
   secondarySignatoryTitle?: string;
+  secondarySignatoryDepartment?: string;
   tertiarySignatoryName?: string;
   tertiarySignatoryTitle?: string;
+  tertiarySignatoryDepartment?: string;
   certificateId: string;
   verificationCode: string;
   issueDate?: Date | string;
@@ -336,6 +339,15 @@ export const buildCertificatePdfBuffer = async (
       const themeKey = options.theme && THEME_PALETTES[options.theme] ? options.theme : 'classic-ivory';
       const palette = THEME_PALETTES[themeKey];
 
+      // Ensure PDF viewers open at 100% true zoom
+      try {
+        if ((doc as any)._root && (doc as any)._root.data) {
+          (doc as any)._root.data.OpenAction = [(doc.page as any).dictionary, 'XYZ', null, null, 1.0];
+        }
+      } catch (zoomErr: any) {
+        // Fallback silently if OpenAction dictionary is unavailable
+      }
+
       // Custom background image support
       let customBgRendered = false;
       if (options.bgImageUrl && options.bgImageUrl.startsWith('http')) {
@@ -352,18 +364,18 @@ export const buildCertificatePdfBuffer = async (
       }
 
       if (!customBgRendered) {
-        // 1. Solid canvas fill
+        // 1. Pristine Full Canvas Fill (Ivory / Theme Background)
         doc.rect(0, 0, width, height).fill(palette.bg);
 
         // 2. Decorative radial glows in corners
         doc.save();
-        doc.circle(0, 0, 240).fillOpacity(0.14).fill(palette.primary);
-        doc.circle(width, height, 240).fillOpacity(0.14).fill(palette.secondary);
-        doc.circle(width, 0, 180).fillOpacity(0.09).fill(palette.accent || palette.primary);
-        doc.circle(0, height, 180).fillOpacity(0.09).fill(palette.secondary);
+        doc.circle(0, 0, 240).fillOpacity(0.12).fill(palette.primary);
+        doc.circle(width, height, 240).fillOpacity(0.12).fill(palette.secondary);
+        doc.circle(width, 0, 180).fillOpacity(0.08).fill(palette.accent || palette.primary);
+        doc.circle(0, height, 180).fillOpacity(0.08).fill(palette.secondary);
         doc.restore();
 
-        // 3. Ornate Double Border
+        // 3. Ornate Double Border Frame (Matching original certificate design)
         const margin1 = 26;
         const margin2 = 32;
         doc
@@ -375,10 +387,10 @@ export const buildCertificatePdfBuffer = async (
         doc
           .rect(margin2, margin2, width - margin2 * 2, height - margin2 * 2)
           .lineWidth(0.85)
-          .strokeOpacity(0.5)
+          .strokeOpacity(0.55)
           .stroke(palette.secondary);
 
-        // 4. Elegant Corner Accents
+        // 4. Elegant Corner Accents (Cross bars and Gemstone pins)
         const cornerSize = 24;
         const corners = [
           [margin1, margin1],
@@ -396,29 +408,56 @@ export const buildCertificatePdfBuffer = async (
       // --- TEXT & CONTENT RENDERING ---
       doc.fillOpacity(1);
 
-      // 5. Club Logo: Render @frontend/public/codecirclelogo.jpeg at top center
+      // 3. Official Club Circular Badge at top center
       const candidateLogoPaths = [
         path.resolve(__dirname, '../../../frontend/public/codecirclelogo.jpeg'),
         path.resolve(process.cwd(), 'frontend/public/codecirclelogo.jpeg'),
         path.resolve(process.cwd(), '../frontend/public/codecirclelogo.jpeg'),
         path.resolve(__dirname, '../../public/codecirclelogo.jpeg'),
+        path.resolve(__dirname, '../../assets/codecirclelogo.jpeg'),
+        path.resolve(__dirname, '../assets/codecirclelogo.jpeg'),
+        path.resolve(__dirname, '../../../frontend/public/codecirclelogo.png'),
+        path.resolve(process.cwd(), 'frontend/public/codecirclelogo.png'),
+        path.resolve(process.cwd(), 'assets/codecirclelogo.jpeg'),
+        path.resolve(process.cwd(), 'backend/assets/codecirclelogo.jpeg'),
+        path.resolve(process.cwd(), 'backend/public/codecirclelogo.jpeg'),
       ];
       const clubLogoPath = candidateLogoPaths.find((p) => fs.existsSync(p));
 
-      let contentStartY = 50;
+      // Responsive Coordinates for Landscape vs Portrait
+      const logoSize = 56;
+      const logoY = isLandscape ? 50 : 66;
+
       if (clubLogoPath) {
         try {
-          const logoSize = 44;
           const logoX = width / 2 - logoSize / 2;
-          const logoY = 36;
+
+          doc.save();
+          doc.circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2).clip();
           doc.image(clubLogoPath, logoX, logoY, { width: logoSize, height: logoSize });
-          contentStartY = 88;
+          doc.restore();
+
+          doc
+            .circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2)
+            .lineWidth(1.5)
+            .strokeColor(palette.primary)
+            .strokeOpacity(0.25)
+            .stroke();
         } catch (imgErr: any) {
           console.warn('[CertificateRenderer] Failed to render club logo:', imgErr.message);
         }
       }
 
-      // Institution Eyebrow
+      // Vertical spacing layout with balanced breathing room
+      const eyebrowY = isLandscape ? 118 : 144;
+      const titleY = isLandscape ? 138 : 170;
+      const subtitleY = isLandscape ? 172 : 210;
+      const divY = isLandscape ? 192 : 234;
+      const recipientY = isLandscape ? 242 : 296;
+      const rollY = isLandscape ? 286 : 344;
+      const descY = isLandscape ? (options.recipientRollNo ? 316 : 304) : (options.recipientRollNo ? 380 : 364);
+
+      // 4. Institution Eyebrow
       const institution = (
         options.issuerOrganization || 'CODE CIRCLE · BANNARI AMMAN INSTITUTE OF TECHNOLOGY'
       ).toUpperCase();
@@ -426,186 +465,248 @@ export const buildCertificatePdfBuffer = async (
         .font('Helvetica-Bold')
         .fontSize(10)
         .fillColor(palette.primary)
-        .text(institution, 60, contentStartY, { align: 'center', width: width - 120, characterSpacing: 2.2 });
+        .text(institution, 50, eyebrowY, {
+          align: 'center',
+          width: width - 100,
+          characterSpacing: 2.4,
+        });
 
-      // Main Title
-      const certTitle = (options.title || 'CERTIFICATE OF EXCELLENCE').toUpperCase();
+      // 5. Main Title
+      const certTitle = (options.title || 'CERTIFICATE OF ACHIEVEMENT').toUpperCase();
       doc
         .font('Helvetica-Bold')
-        .fontSize(25)
+        .fontSize(24)
         .fillColor(palette.textMain)
-        .text(certTitle, 60, contentStartY + 20, { align: 'center', width: width - 120, characterSpacing: 1.5 });
+        .text(certTitle, 50, titleY, {
+          align: 'center',
+          width: width - 100,
+          characterSpacing: 1.3,
+        });
 
-      // Subtitle / Presenter Header
-      const certSubtitle = options.subtitle || 'PROUDLY PRESENTED TO';
+      // 6. Subtitle / Presenter Header
+      const certSubtitle = (options.subtitle || 'PROUDLY PRESENTED TO').toUpperCase();
       doc
         .font('Helvetica')
-        .fontSize(11)
+        .fontSize(10)
         .fillColor(palette.textMuted)
-        .text(certSubtitle, 60, contentStartY + 52, { align: 'center', width: width - 120, characterSpacing: 1.2 });
+        .text(certSubtitle, 50, subtitleY, {
+          align: 'center',
+          width: width - 100,
+          characterSpacing: 2.0,
+        });
 
-      // Decorative divider rule
-      const divWidth = 130;
+      // 7. Decorative Accent Divider Pill (Matching exact rounded gold bar in studio)
+      const divWidth = 60;
+      const divHeight = 3;
       doc
-        .rect(width / 2 - divWidth / 2, contentStartY + 68, divWidth, 1.5)
-        .fillColor(palette.secondary)
+        .roundedRect(width / 2 - divWidth / 2, divY, divWidth, divHeight, 1.5)
+        .fillColor(palette.secondary || palette.primary)
         .fill();
 
-      // Recipient Full Name (Prominent & Vibrant)
+      // 8. Recipient Full Name (Prominent & Vibrant Primary Color)
       const recipient = (options.recipientName || 'STUDENT NAME').toUpperCase();
       doc
         .font('Helvetica-Bold')
-        .fontSize(28)
+        .fontSize(32)
         .fillColor(palette.primary)
-        .text(recipient, 60, contentStartY + 78, { align: 'center', width: width - 120 });
+        .text(recipient, 50, recipientY, { align: 'center', width: width - 100 });
 
-      // Recipient Roll / ID (Optional)
-      let descY = contentStartY + 114;
+      // 9. Recipient Roll / ID (Optional)
       if (options.recipientRollNo) {
         doc
           .font('Helvetica')
-          .fontSize(10)
+          .fontSize(11)
           .fillColor(palette.textMuted)
-          .text(`Roll No: ${options.recipientRollNo}`, 60, descY, { align: 'center', width: width - 120 });
-        descY += 18;
+          .text(`Roll No: ${options.recipientRollNo}`, 50, rollY, {
+            align: 'center',
+            width: width - 100,
+          });
       }
 
-      // Recognition Paragraph / Description
+      // 10. Recognition Paragraph / Description
       const descText =
         options.description ||
-        'For exceptional dedication, demonstrating advanced technical problem-solving capabilities, and meeting all certification benchmarks.';
+        'For exceptional technical competence, sustained dedication, and active participation in advanced club initiatives.';
+      const descWidth = isLandscape ? 520 : 460;
       doc
         .font('Helvetica')
-        .fontSize(11)
+        .fontSize(10.5)
         .fillColor(palette.textMuted)
-        .text(descText, 85, descY, { align: 'center', width: width - 170, lineGap: 4.5 });
+        .text(descText, width / 2 - descWidth / 2, descY, {
+          align: 'center',
+          width: descWidth,
+          lineGap: 4.5,
+        });
 
-      // Circular Verification Seal (Bottom Left)
-      const sealX = 95;
-      const sealY = height - 126;
-      doc.save();
-      doc.circle(sealX, sealY, 26).lineWidth(2).stroke(palette.primary);
-      doc.circle(sealX, sealY, 22).lineWidth(0.75).stroke(palette.secondary);
+      // 11. Footer Meta (Date, Certificate ID)
+      const d = options.issueDate ? new Date(options.issueDate) : new Date();
+      const issueDateStr = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+
+      // --- FOOTER: Horizontal Verification Strip & Three Faculty Signatories ---
+      const stripY = isLandscape ? 466 : height - 150;
+      const contentInset = 50;
+      const contentWidth = width - contentInset * 2;
+
+      // Top dividing line for verification strip
       doc
-        .font('Helvetica-Bold')
-        .fontSize(6.5)
+        .rect(contentInset, stripY, contentWidth, 0.75)
         .fillColor(palette.primary)
-        .text('VERIFIED', sealX - 22, sealY - 8, { align: 'center', width: 44, characterSpacing: 1 });
+        .fillOpacity(0.2)
+        .fill();
+
+      doc.fillOpacity(1);
+
+      // Vector Shield Icon with Checkmark (Exact match for ShieldCheck icon)
+      const shieldX = contentInset + 6;
+      const shieldY = stripY + 6;
+      doc.save();
+      doc.translate(shieldX, shieldY);
       doc
-        .font('Helvetica')
-        .fontSize(5.5)
-        .fillColor(palette.textMuted)
-        .text('CREDENTIAL', sealX - 22, sealY + 2, { align: 'center', width: 44 });
+        .path('M 0,2.5 L 5.5,0.5 L 11,2.5 L 11,6.5 C 11,10 5.5,12.5 5.5,12.5 C 5.5,12.5 0,10 0,6.5 Z')
+        .lineWidth(1)
+        .strokeColor(palette.primary)
+        .stroke();
+      doc
+        .path('M 3,6 L 5,8 L 8.5,4')
+        .lineWidth(1.2)
+        .strokeColor(palette.primary)
+        .stroke();
       doc.restore();
 
-      // Footer Meta (Date, Certificate ID, Verification Code)
-      const issueDateStr = options.issueDate
-        ? new Date(options.issueDate).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
-        : new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          });
+      // Left text: VERIFIED INSTITUTIONAL CREDENTIAL
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8)
+        .fillColor(palette.primary)
+        .text('VERIFIED INSTITUTIONAL CREDENTIAL', contentInset + 22, stripY + 7);
 
+      // Right text: ID & DATE
+      const rightMetaText = `ID: ${options.certificateId} · DATE: ${issueDateStr}`;
       doc
         .font('Helvetica')
-        .fontSize(8.5)
+        .fontSize(7.5)
         .fillColor(palette.textMuted)
-        .text(`Issued On: ${issueDateStr}`, 135, height - 140, { align: 'left', width: 220 })
-        .text(`Certificate ID: ${options.certificateId}`, 135, height - 127, { align: 'left', width: 220 })
-        .text(`Verification Code: ${options.verificationCode}`, 135, height - 114, { align: 'left', width: 220 });
+        .text(rightMetaText, contentInset, stripY + 7, {
+          align: 'right',
+          width: contentWidth - 4,
+        });
 
-      // --- THREE FACULTY MEMBERS SIGNATURES (All Faculty Coordinators) ---
-      const sigY = height - 72;
-      const colWidth = 205;
+      // Bottom dividing line for verification strip
+      doc
+        .rect(contentInset, stripY + 22, contentWidth, 0.75)
+        .fillColor(palette.primary)
+        .fillOpacity(0.2)
+        .fill();
+
+      // --- THREE FACULTY SIGNATURES SIDE BY SIDE ---
+      const sigLineY = stripY + 32;
+      const colWidth = (contentWidth - 40) / 3;
+      const barW = 72;
 
       // Faculty 1: Faculty Coordinator
-      const sig1X = 55;
-      doc.rect(sig1X, sigY, colWidth, 1).fillColor(palette.border).fill();
+      const sig1X = contentInset;
+      doc
+        .rect(sig1X + (colWidth - barW) / 2, sigLineY, barW, 1.5)
+        .fillColor(palette.primary)
+        .fillOpacity(0.55)
+        .fill();
+      doc.fillOpacity(1);
       doc
         .font('Helvetica-Bold')
-        .fontSize(9)
+        .fontSize(10)
         .fillColor(palette.textMain)
-        .text(options.signatoryName || 'Dr. S. K. Ramesh', sig1X, sigY + 5, {
+        .text(options.signatoryName || 'Dr. Dhanasekar R', sig1X, sigLineY + 6, {
+          align: 'center',
+          width: colWidth,
+        });
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .fillColor(palette.primary)
+        .text(options.signatoryTitle || 'Faculty Coordinator', sig1X, sigLineY + 19, {
           align: 'center',
           width: colWidth,
         });
       doc
         .font('Helvetica')
         .fontSize(7.5)
-        .fillColor(palette.primary)
-        .text(options.signatoryTitle || 'Faculty Coordinator', sig1X, sigY + 17, {
-          align: 'center',
-          width: colWidth,
-        });
-      doc
-        .font('Helvetica')
-        .fontSize(6.5)
         .fillColor(palette.textMuted)
-        .text('Faculty Coordinator · Department of CSE', sig1X, sigY + 27, {
+        .fillOpacity(0.65)
+        .text(options.signatoryDepartment || 'Faculty Coordinator · EIE', sig1X, sigLineY + 30, {
           align: 'center',
           width: colWidth,
         });
+      doc.fillOpacity(1);
 
       // Faculty 2: Faculty Coordinator
-      const sig2X = (width - colWidth) / 2;
-      doc.rect(sig2X, sigY, colWidth, 1).fillColor(palette.border).fill();
+      const sig2X = contentInset + colWidth + 20;
+      doc
+        .rect(sig2X + (colWidth - barW) / 2, sigLineY, barW, 1.5)
+        .fillColor(palette.primary)
+        .fillOpacity(0.55)
+        .fill();
+      doc.fillOpacity(1);
       doc
         .font('Helvetica-Bold')
-        .fontSize(9)
+        .fontSize(10)
         .fillColor(palette.textMain)
-        .text(options.secondarySignatoryName || 'Dr. P. Balasubramanie', sig2X, sigY + 5, {
+        .text(options.secondarySignatoryName || 'Dr. Nandhini K M', sig2X, sigLineY + 6, {
+          align: 'center',
+          width: colWidth,
+        });
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .fillColor(palette.primary)
+        .text(options.secondarySignatoryTitle || 'Faculty Coordinator', sig2X, sigLineY + 19, {
           align: 'center',
           width: colWidth,
         });
       doc
         .font('Helvetica')
         .fontSize(7.5)
-        .fillColor(palette.primary)
-        .text(options.secondarySignatoryTitle || 'Faculty Coordinator', sig2X, sigY + 17, {
-          align: 'center',
-          width: colWidth,
-        });
-      doc
-        .font('Helvetica')
-        .fontSize(6.5)
         .fillColor(palette.textMuted)
-        .text('Faculty Coordinator · Department of IT', sig2X, sigY + 27, {
+        .fillOpacity(0.65)
+        .text(options.secondarySignatoryDepartment || 'Faculty Coordinator · EIE', sig2X, sigLineY + 30, {
           align: 'center',
           width: colWidth,
         });
+      doc.fillOpacity(1);
 
       // Faculty 3: Faculty Coordinator
-      const sig3X = width - 55 - colWidth;
-      doc.rect(sig3X, sigY, colWidth, 1).fillColor(palette.border).fill();
+      const sig3X = contentInset + (colWidth + 20) * 2;
+      doc
+        .rect(sig3X + (colWidth - barW) / 2, sigLineY, barW, 1.5)
+        .fillColor(palette.primary)
+        .fillOpacity(0.55)
+        .fill();
+      doc.fillOpacity(1);
       doc
         .font('Helvetica-Bold')
-        .fontSize(9)
+        .fontSize(10)
         .fillColor(palette.textMain)
-        .text(options.tertiarySignatoryName || 'Dr. C. Palanisamy', sig3X, sigY + 5, {
+        .text(options.tertiarySignatoryName || 'Prof. RATHNA S', sig3X, sigLineY + 6, {
+          align: 'center',
+          width: colWidth,
+        });
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .fillColor(palette.primary)
+        .text(options.tertiarySignatoryTitle || 'Faculty Coordinator', sig3X, sigLineY + 19, {
           align: 'center',
           width: colWidth,
         });
       doc
         .font('Helvetica')
         .fontSize(7.5)
-        .fillColor(palette.primary)
-        .text(options.tertiarySignatoryTitle || 'Faculty Coordinator', sig3X, sigY + 17, {
-          align: 'center',
-          width: colWidth,
-        });
-      doc
-        .font('Helvetica')
-        .fontSize(6.5)
         .fillColor(palette.textMuted)
-        .text('Faculty Coordinator · Bannari Amman Institute of Tech', sig3X, sigY + 27, {
+        .fillOpacity(0.65)
+        .text(options.tertiarySignatoryDepartment || 'Faculty Coordinator · CSE', sig3X, sigLineY + 30, {
           align: 'center',
           width: colWidth,
         });
+      doc.fillOpacity(1);
 
       doc.end();
     } catch (err) {

@@ -29,6 +29,10 @@ const enrollmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  pointsAwarded: {
+    type: Number,
+    default: 0
+  },
   isBlocked: {
     type: Boolean,
     default: false,

@@ -198,6 +198,45 @@ const useAttendanceStore = create((set) => ({
     }
   },
 
+  awardAttendeePoints: async ({
+    eventId,
+    studentIds,
+    enrollmentIds,
+    points,
+    sessionId,
+    classHours,
+    hourlyPoints,
+    category,
+    title,
+    description,
+    markAttendance,
+  }) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.post('/attendance/award-points', {
+        eventId,
+        studentIds,
+        enrollmentIds,
+        points,
+        sessionId,
+        classHours,
+        hourlyPoints,
+        category,
+        title,
+        description,
+        markAttendance,
+      });
+      toast.success(response.data.message || 'Points awarded successfully!');
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.error || error.response?.data?.message || 'Failed to award points';
+      set({ error: message, loading: false });
+      toast.error(message);
+      return null;
+    }
+  },
+
   deleteAttendanceRecord: async (recordId) => {
     try {
       const response = await api.delete(`/attendance/records/${recordId}`);
