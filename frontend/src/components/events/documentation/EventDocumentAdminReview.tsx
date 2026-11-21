@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useReactToPrint } from 'react-to-print';
 import {
   CheckCircle,
   XCircle,
@@ -16,7 +15,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { EmilCard, EmilButton } from '../../ui/emil-ui';
-import EventDocumentPrintable from './EventDocumentPrintable';
+import generateEventDocx, { EventReportData } from '../../../utils/generateEventDocx';
 import api from '../../../lib/axios';
 
 export interface EventDocumentAdminReviewProps {
@@ -48,14 +47,45 @@ export const EventDocumentAdminReview: React.FC<EventDocumentAdminReviewProps> =
   const [rejectionFeedback, setRejectionFeedback] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Hidden Ref for Client-Side PDF Generation via react-to-print
-  const printableRef = useRef<HTMLDivElement>(null);
+  const handleDownloadDocx = async () => {
+    setIsGenerating(true);
+    try {
+      const eventTitle =
+        (typeof doc.eventId === 'object' && doc.eventId?.title) ||
+        doc.title ||
+        'Event';
 
-  const handleDownloadPdf = useReactToPrint({
-    contentRef: printableRef,
-    documentTitle: `${doc.title.replace(/[^a-zA-Z0-9_-]/g, '_')}_Official_Doc`,
-  });
+      const report: EventReportData = {
+        eventName: eventTitle,
+        eventTitle: eventTitle,
+        clubName: 'CODE CIRCLE - BIT',
+        eventCategory: 'OFFICIAL DOCUMENT',
+        academicYear: '2024-2025',
+        date: doc.eventId?.date
+          ? new Date(doc.eventId.date).toISOString().split('T')[0]
+          : doc.createdAt
+            ? new Date(doc.createdAt).toISOString().split('T')[0]
+            : '',
+        venue: doc.eventId?.venueOrLink || 'BIO TECH SEMINAR HALL',
+        objective: doc.eventId?.description || doc.title,
+        outcome: `Official institutional record sealed with status: ${doc.status}. Version: v${doc.version || 1}.0`,
+        eventOverview: doc.content || 'Approved institutional event documentation.',
+        coordinatorName: doc.approvedBy?.name || doc.createdBy?.name || 'R.Dhanasekar',
+        status: doc.status,
+        ...(doc as any),
+      };
+
+      await generateEventDocx(report);
+      toast.success('Document downloaded as Word (.docx)!');
+    } catch (err: any) {
+      console.error('Failed to generate Word document:', err);
+      toast.error('Failed to generate Word document. Image fetch error or packing failed.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleApprove = async () => {
     setIsProcessing(true);
@@ -105,11 +135,6 @@ export const EventDocumentAdminReview: React.FC<EventDocumentAdminReviewProps> =
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-4">
-      {/* Hidden printable markup rendered purely in the DOM for react-to-print */}
-      <div style={{ display: 'none' }}>
-        <EventDocumentPrintable ref={printableRef} documentData={doc} />
-      </div>
-
       {/* Split-Screen Review Container */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* ══════════════════════════════════════════════════════════════
@@ -227,11 +252,12 @@ export const EventDocumentAdminReview: React.FC<EventDocumentAdminReviewProps> =
                   <EmilButton
                     variant="solid"
                     size="lg"
-                    onClick={() => handleDownloadPdf()}
+                    onClick={handleDownloadDocx}
+                    isLoading={isGenerating}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-2 shadow-md cursor-pointer"
                   >
                     <Download size={18} />
-                    <span>Download Document (Client-Side PDF)</span>
+                    <span>Download Document (.docx)</span>
                   </EmilButton>
                 </div>
               ) : (

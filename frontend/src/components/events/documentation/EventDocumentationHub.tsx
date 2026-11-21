@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileText,
   Plus,
@@ -15,13 +15,12 @@ import {
   ArrowLeft,
   Filter,
 } from 'lucide-react';
-import { useReactToPrint } from 'react-to-print';
 import toast from 'react-hot-toast';
 import { EmilCard, EmilButton } from '../../ui/emil-ui';
 import EventDocumentEditor from './EventDocumentEditor';
 import EventDocumentAdminReview from './EventDocumentAdminReview';
-import EventDocumentPrintable from './EventDocumentPrintable';
 import EventReportForm from './EventReportForm';
+import generateEventDocx, { EventReportData } from '../../../utils/generateEventDocx';
 import api from '../../../lib/axios';
 import useAuthStore from '../../../store/useAuthStore';
 
@@ -49,15 +48,7 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
   // Active view: 'list' | 'create' | 'edit' | 'review'
   const [currentView, setCurrentView] = useState<'list' | 'create' | 'edit' | 'review'>('list');
   const [activeDoc, setActiveDoc] = useState<any | null>(null);
-
-  // Hidden print reference for quick download from the list view
-  const [quickPrintDoc, setQuickPrintDoc] = useState<any | null>(null);
-  const quickPrintRef = useRef<HTMLDivElement>(null);
-
-  const handleQuickDownloadPdf = useReactToPrint({
-    contentRef: quickPrintRef,
-    documentTitle: quickPrintDoc ? `${quickPrintDoc.title.replace(/[^a-zA-Z0-9_-]/g, '_')}_Official_Doc` : 'Document',
-  });
+  const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -97,21 +88,46 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
     }
   };
 
-  const triggerQuickDownload = (doc: any) => {
-    setQuickPrintDoc(doc);
-    setTimeout(() => {
-      handleQuickDownloadPdf();
-    }, 50);
+  const triggerQuickDownload = async (doc: any) => {
+    setDownloadingDocId(doc._id);
+    try {
+      const eventTitle =
+        (typeof doc.eventId === 'object' && doc.eventId?.title) ||
+        doc.title ||
+        'Event';
+
+      const report: EventReportData = {
+        eventName: eventTitle,
+        eventTitle: eventTitle,
+        clubName: 'CODE CIRCLE - BIT',
+        eventCategory: 'TECHNICAL EVENT',
+        academicYear: '2024-2025',
+        date: doc.eventId?.date
+          ? new Date(doc.eventId.date).toISOString().split('T')[0]
+          : doc.createdAt
+            ? new Date(doc.createdAt).toISOString().split('T')[0]
+            : '',
+        venue: doc.eventId?.venueOrLink || 'BIO TECH SEMINAR HALL',
+        objective: doc.eventId?.description || doc.title,
+        outcome: `Approved institutional document sealed with status: ${doc.status}.`,
+        eventOverview: doc.content || 'Approved institutional event documentation.',
+        coordinatorName: doc.approvedBy?.name || doc.createdBy?.name || 'R.Dhanasekar',
+        status: doc.status,
+        ...(doc as any),
+      };
+
+      await generateEventDocx(report);
+      toast.success('Document downloaded as Word (.docx)!');
+    } catch (err: any) {
+      console.error('Failed to download document:', err);
+      toast.error('Failed to generate Word document.');
+    } finally {
+      setDownloadingDocId(null);
+    }
   };
 
   return (
     <div className={`w-full space-y-6 ${className}`}>
-      {/* Hidden printable target */}
-      {quickPrintDoc && (
-        <div style={{ display: 'none' }}>
-          <EventDocumentPrintable ref={quickPrintRef} documentData={quickPrintDoc} />
-        </div>
-      )}
 
       {/* ══════════════════════════════════════════════════════════════
           VIEW 1: CREATE OR EDIT SCREEN
@@ -344,9 +360,10 @@ export const EventDocumentationHub: React.FC<EventDocumentationHubProps> = ({
                             variant="solid"
                             size="sm"
                             onClick={() => triggerQuickDownload(d)}
+                            isLoading={downloadingDocId === d._id}
                             className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white"
                           >
-                            <Download size={13} /> PDF
+                            <Download size={13} /> DOCX
                           </EmilButton>
                         )}
                       </div>

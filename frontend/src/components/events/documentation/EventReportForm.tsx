@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useReactToPrint } from 'react-to-print';
 import {
   FileText,
   Printer,
+  Download,
   Save,
   UploadCloud,
   CheckCircle2,
@@ -27,6 +27,7 @@ import { HeroDatePicker } from '@/components/ui/hero/HeroDatePicker';
 import { HeroFileInput } from '@/components/ui/hero/HeroFileInput';
 import { EmilCard, EmilButton } from '../../ui/emil-ui';
 import OfficialReportTemplate, { ReportData } from './OfficialReportTemplate';
+import generateEventDocx, { EventReportData } from '../../../utils/generateEventDocx';
 import api from '../../../lib/axios';
 
 // ══════════════════════════════════════════════════════════════
@@ -172,7 +173,8 @@ interface LivePdfPreviewProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
-  onPrint: () => void;
+  onPrint?: () => void;
+  isGenerating?: boolean;
   isCompact?: boolean;
 }
 
@@ -183,6 +185,7 @@ const LivePdfPreview: React.FC<LivePdfPreviewProps> = ({
   onZoomOut,
   onResetZoom,
   onPrint,
+  isGenerating = false,
   isCompact = false,
 }) => {
   return (
@@ -239,10 +242,11 @@ const LivePdfPreview: React.FC<LivePdfPreviewProps> = ({
             size="sm"
             whileTap={{ scale: 0.97 }}
             onClick={onPrint}
+            isLoading={isGenerating}
             className="gap-1.5 cursor-pointer text-xs bg-primary text-white shadow-xs"
           >
-            <Printer size={13} />
-            <span>Print / Save PDF</span>
+            <Download size={13} />
+            <span>Download .docx</span>
           </EmilButton>
         </div>
       </div>
@@ -292,8 +296,8 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
   const [viewMode, setViewMode] = useState<'edit' | 'split' | 'preview'>('edit');
   const [previewZoom, setPreviewZoom] = useState<number>(95);
 
-  // Hidden print reference for react-to-print
-  const printContainerRef = useRef<HTMLDivElement>(null);
+  // State for client-side Word document generation
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Report Form State with exact fields required by official template
   const [formData, setFormData] = useState<ReportData>({
@@ -341,16 +345,30 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
     coordinatorSignatureUrl: initialData?.coordinatorSignatureUrl || '',
   });
 
-  // Client-Side PDF Generation Handler
-  const currentEventTitle =
-    formData.eventTitle ||
-    (typeof formData.eventId === 'object' ? formData.eventId?.title : '') ||
-    'Official_Event_Report';
+  // Client-Side Word (.docx) Generation Handler
+  const handleDownloadDocx = async () => {
+    setIsGenerating(true);
+    try {
+      const currentTitle =
+        formData.eventTitle ||
+        (typeof formData.eventId === 'object' ? formData.eventId?.title : '') ||
+        'Official_Event';
 
-  const handlePrint = useReactToPrint({
-    contentRef: printContainerRef,
-    documentTitle: `${(formData.clubName || 'Report').replace(/\s+/g, '_')}_${currentEventTitle.replace(/\s+/g, '_')}_${formData.academicYear}`,
-  });
+      const reportPayload: EventReportData = {
+        ...formData,
+        eventName: currentTitle,
+        eventTitle: currentTitle,
+      };
+
+      await generateEventDocx(reportPayload);
+      toast.success('Word document (.docx) generated successfully!');
+    } catch (err: any) {
+      console.error('Failed to generate Word document:', err);
+      toast.error('Failed to generate Word document. Image fetch error or packing failed.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Update eventId when prop changes
   useEffect(() => {
@@ -924,8 +942,9 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
         <div className="flex items-center gap-2 text-xs text-label-secondary">
           <Info size={14} className="text-primary" />
           <span>
-            PDF rendering executes completely client-side in your browser via{' '}
-            <code className="font-mono text-label-primary">react-to-print</code>.
+            Document export executes completely client-side in your browser via{' '}
+            <code className="font-mono text-label-primary">docx</code> and{' '}
+            <code className="font-mono text-label-primary">file-saver</code>.
           </span>
         </div>
 
@@ -939,7 +958,7 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
             className="gap-2 whitespace-nowrap cursor-pointer w-full sm:w-auto"
           >
             <Eye size={16} />
-            <span>Full PDF Preview</span>
+            <span>Document Preview</span>
           </EmilButton>
 
           <EmilButton
@@ -947,11 +966,12 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
             variant="outline"
             size="md"
             whileTap={{ scale: 0.97 }}
-            onClick={() => handlePrint()}
+            onClick={handleDownloadDocx}
+            isLoading={isGenerating}
             className="gap-2 whitespace-nowrap cursor-pointer w-full sm:w-auto"
           >
-            <Printer size={16} />
-            <span>Generate PDF</span>
+            <Download size={16} />
+            <span>Generate Document (.docx)</span>
           </EmilButton>
 
           <EmilButton
@@ -1035,21 +1055,22 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
               }`}
             >
               <Eye size={13} />
-              <span>PDF Preview</span>
+              <span>Document Preview</span>
             </button>
           </div>
 
-          {/* Client-side PDF Generation Button */}
+          {/* Client-side Word (.docx) Generation Button */}
           <EmilButton
             type="button"
             variant="outline"
             size="md"
             whileTap={{ scale: 0.97 }}
-            onClick={() => handlePrint()}
+            onClick={handleDownloadDocx}
+            isLoading={isGenerating}
             className="gap-2 cursor-pointer border-neutral-300 dark:border-white/15"
           >
-            <Printer size={16} />
-            <span>Generate PDF</span>
+            <Download size={16} />
+            <span>Generate Document (.docx)</span>
           </EmilButton>
 
           {/* Database Submit Button with requirement whileTap={{ scale: 0.97 }} */}
@@ -1099,7 +1120,8 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
                   onZoomIn={handleZoomIn}
                   onZoomOut={handleZoomOut}
                   onResetZoom={handleResetZoom}
-                  onPrint={handlePrint}
+                  onPrint={handleDownloadDocx}
+                  isGenerating={isGenerating}
                   isCompact={true}
                 />
               </div>
@@ -1125,26 +1147,14 @@ export const EventReportForm: React.FC<EventReportFormProps> = ({
                 onZoomIn={handleZoomIn}
                 onZoomOut={handleZoomOut}
                 onResetZoom={handleResetZoom}
-                onPrint={handlePrint}
+                onPrint={handleDownloadDocx}
+                isGenerating={isGenerating}
                 isCompact={false}
               />
             </div>
           )}
         </>
       )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          PART 3: HIDDEN A4 PRINTABLE COMPONENT IN DOM
-          Rendered off-screen with full DOM structure so react-to-print
-          can read pristine unscaled styles and images synchronously
-          for the browser print dialog.
-      ══════════════════════════════════════════════════════════════ */}
-      <div
-        aria-hidden="true"
-        className="fixed -left-[20000px] top-0 pointer-events-none opacity-0 overflow-hidden"
-      >
-        <OfficialReportTemplate ref={printContainerRef} data={formData} />
-      </div>
     </div>
   );
 };
