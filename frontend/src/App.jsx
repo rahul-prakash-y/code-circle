@@ -41,6 +41,7 @@ const EventArenaPage = lazy(() => import('./pages/EventArenaPage'));
 const BlockedStudentsPage = lazy(() => import('./pages/BlockedStudentsPage'));
 const EventDocumentationPage = lazy(() => import('./pages/EventDocumentationPage'));
 const StatesGalleryPage = lazy(() => import('./pages/StatesGalleryPage'));
+const Gallery = lazy(() => import('./pages/Gallery'));
 
 import TutorialModal from './components/common/TutorialModal';
 import { decodeJwtPayload } from './lib/jwt';
@@ -213,6 +214,7 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/news" element={<NewsFeed />} />
             <Route path="/bearers" element={<StudentBearers />} />
+            <Route path="/gallery" element={<Gallery />} />
 
             <Route
               path="/dashboard"

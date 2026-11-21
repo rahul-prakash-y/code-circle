@@ -24,6 +24,7 @@ import {
   KeyRound,
   FileText,
   UserX,
+  Images,
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
@@ -118,6 +119,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse,
       label: 'Events',
       icon: Calendar,
       match: (loc) => loc.pathname === '/events',
+    },
+    {
+      to: '/gallery',
+      label: 'Gallery',
+      icon: Images,
+      match: (loc) => loc.pathname === '/gallery',
     },
     
     {

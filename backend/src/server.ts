@@ -31,6 +31,7 @@ import { pointsRoutes } from './routes/pointsRoutes';
 import { missedEventRequestRoutes } from './routes/missedEventRequestRoutes';
 import { eventDocumentRoutes } from './routes/eventDocumentRoutes';
 import { eventReportRoutes } from './routes/eventReportRoutes';
+import { galleryRoutes } from './routes/galleryRoutes';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -247,6 +248,7 @@ server.register(pointsRoutes, { prefix: '/api/points' });
 server.register(missedEventRequestRoutes, { prefix: '/api/missed-event-requests' });
 server.register(eventDocumentRoutes, { prefix: '/api/docs' });
 server.register(eventReportRoutes, { prefix: '/api/reports' });
+server.register(galleryRoutes, { prefix: '/api/gallery' });
 
 // API 404 Handler
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');

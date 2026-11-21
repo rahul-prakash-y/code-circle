@@ -29,6 +29,7 @@ export interface IEventReport extends Document {
   newspaperClippingUrl: string[];
   feedbackUrl: string[];
   billSettlementUrl: string[];
+  galleryImages?: { url: string; caption?: string; uploadedAt?: Date }[];
   // Resource Person & Coordinator
   resourcePerson: string;
   coordinatorName: string;
@@ -160,6 +161,16 @@ const eventReportSchema = new Schema<IEventReport>(
     },
     billSettlementUrl: {
       type: [String],
+      default: [],
+    },
+    galleryImages: {
+      type: [
+        {
+          url: { type: String, required: true, trim: true },
+          caption: { type: String, default: '', trim: true },
+          uploadedAt: { type: Date, default: Date.now },
+        },
+      ],
       default: [],
     },
     // Resource Person & Coordinator Details

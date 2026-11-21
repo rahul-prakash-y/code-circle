@@ -7,6 +7,7 @@ import {
   Award,
   Trophy,
   Newspaper,
+  Images,
 } from 'lucide-react';
 import { preloadRoute } from '../../lib/routePreload';
 
@@ -35,6 +36,12 @@ const NAV_ITEMS: BottomNavItem[] = [
     label: 'Events',
     icon: Calendar,
     match: (p) => p === '/events',
+  },
+  {
+    to: '/gallery',
+    label: 'Gallery',
+    icon: Images,
+    match: (p) => p === '/gallery',
   },
   {
     to: '/assessments',

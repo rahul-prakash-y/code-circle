@@ -85,6 +85,13 @@ export interface IEventArenaAssessment {
   updatedAt?: Date;
 }
 
+export interface IGalleryImage {
+  _id?: any;
+  url: string;
+  caption?: string;
+  uploadedAt?: Date;
+}
+
 export interface IEvent extends Document {
   title: string;
   description: string;
@@ -122,6 +129,7 @@ export interface IEvent extends Document {
   certificateTemplateUrl?: string;
   certificateTemplateId?: mongoose.Types.ObjectId;
   customFields?: ICustomField[];
+  galleryImages?: IGalleryImage[];
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -507,6 +515,16 @@ const eventSchema = new Schema<IEvent>(
         placeholder: { type: String, default: '' },
       },
     ],
+    galleryImages: {
+      type: [
+        {
+          url: { type: String, required: true, trim: true },
+          caption: { type: String, default: '', trim: true },
+          uploadedAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',

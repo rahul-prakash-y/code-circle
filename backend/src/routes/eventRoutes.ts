@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import eventController from '../controllers/eventController';
+import { updateEventGallery } from '../controllers/galleryController';
 import { verifyToken, isAdminOrFaculty } from '../middleware/authMiddleware';
 
 export async function eventRoutes(fastify: FastifyInstance) {
@@ -22,6 +23,13 @@ export async function eventRoutes(fastify: FastifyInstance) {
     '/:eventId/unblock-student',
     { preHandler: [isAdminOrFaculty] },
     eventController.unblockStudent as any
+  );
+
+  // Event Gallery management (Admin/Coordinator only)
+  fastify.patch(
+    '/:id/gallery',
+    { preHandler: [isAdminOrFaculty] },
+    updateEventGallery as any
   );
 
   // Administrative event CRUD
