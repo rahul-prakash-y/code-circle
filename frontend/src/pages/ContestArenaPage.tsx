@@ -1035,7 +1035,7 @@ export const ContestArenaPage: React.FC = () => {
                             options={CONTEST_LANG_OPTIONS}
                             disabled={antiCheatLocked || executing || submitting}
                             size="sm"
-                            className="w-36 shrink-0"
+                            className="w-36! shrink-0"
                             placement="bottom-end"
                           />
 
