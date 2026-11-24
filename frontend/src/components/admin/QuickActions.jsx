@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { KeyRound, Award, Calendar, Download, ArrowUpRight, Bell, Plus } from 'lucide-react';
 import { Button } from '@heroui/react';
-import GenerateOtpModal from './GenerateOtpModal';
-import AssessmentManagerModal from './AssessmentManagerModal';
-import DownloadReportsModal from './DownloadReportsModal';
-import CreateNotificationModal from '../notifications/CreateNotificationModal';
+
+const GenerateOtpModal = React.lazy(() => import('./GenerateOtpModal'));
+const AssessmentManagerModal = React.lazy(() => import('./AssessmentManagerModal'));
+const DownloadReportsModal = React.lazy(() => import('./DownloadReportsModal'));
+const CreateNotificationModal = React.lazy(() => import('../notifications/CreateNotificationModal'));
 
 export const QuickActions = ({
   onManageEvents,
@@ -122,27 +123,43 @@ export const QuickActions = ({
         </div>
       </div>
 
-      {/* Modals */}
-      <GenerateOtpModal
-        isOpen={isOtpModalOpen}
-        onClose={() => setIsOtpModalOpen(false)}
-      />
+      {/* Lazy Modals — load only when opened */}
+      {isOtpModalOpen && (
+        <Suspense fallback={null}>
+          <GenerateOtpModal
+            isOpen={isOtpModalOpen}
+            onClose={() => setIsOtpModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      <CreateNotificationModal
-        isOpen={isNotificationModalOpen}
-        onClose={() => setIsNotificationModalOpen(false)}
-      />
+      {isNotificationModalOpen && (
+        <Suspense fallback={null}>
+          <CreateNotificationModal
+            isOpen={isNotificationModalOpen}
+            onClose={() => setIsNotificationModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      <AssessmentManagerModal
-        isOpen={isAssessmentModalOpen}
-        onClose={() => setIsAssessmentModalOpen(false)}
-        onOpenAssessments={onManageAssessments}
-      />
+      {isAssessmentModalOpen && (
+        <Suspense fallback={null}>
+          <AssessmentManagerModal
+            isOpen={isAssessmentModalOpen}
+            onClose={() => setIsAssessmentModalOpen(false)}
+            onOpenAssessments={onManageAssessments}
+          />
+        </Suspense>
+      )}
 
-      <DownloadReportsModal
-        isOpen={isReportsModalOpen}
-        onClose={() => setIsReportsModalOpen(false)}
-      />
+      {isReportsModalOpen && (
+        <Suspense fallback={null}>
+          <DownloadReportsModal
+            isOpen={isReportsModalOpen}
+            onClose={() => setIsReportsModalOpen(false)}
+          />
+        </Suspense>
+      )}
     </>
   );
 };

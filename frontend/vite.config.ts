@@ -16,20 +16,47 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          if (id.includes('node_modules/xlsx')) {
+          const normalized = id.replace(/\\/g, '/');
+
+          if (!normalized.includes('/node_modules/')) {
+            return;
+          }
+
+          // Core React vendor chunk (React, React-DOM, React-Router)
+          if (
+            normalized.includes('/node_modules/react/') ||
+            normalized.includes('/node_modules/react-dom/') ||
+            normalized.includes('/node_modules/react-router/') ||
+            normalized.includes('/node_modules/react-router-dom/')
+          ) {
+            return 'react-vendor';
+          }
+
+          // Animation vendor chunk
+          if (normalized.includes('/node_modules/framer-motion/')) {
+            return 'motion-vendor';
+          }
+
+          // UI vendor chunk (HeroUI & Lucide icons)
+          if (
+            normalized.includes('/node_modules/@heroui/') ||
+            normalized.includes('/node_modules/lucide-react/')
+          ) {
+            return 'ui-vendor';
+          }
+
+          // Heavy specialized vendors
+          if (normalized.includes('/node_modules/xlsx/')) {
             return 'vendor-xlsx';
           }
-          if (id.includes('node_modules/@monaco-editor') || id.includes('node_modules/monaco-editor')) {
+          if (
+            normalized.includes('/node_modules/@monaco-editor/') ||
+            normalized.includes('/node_modules/monaco-editor/')
+          ) {
             return 'vendor-monaco';
           }
-          if (id.includes('node_modules/recharts')) {
+          if (normalized.includes('/node_modules/recharts/')) {
             return 'vendor-recharts';
-          }
-          if (id.includes('node_modules/@heroui') || id.includes('node_modules/@radix-ui')) {
-            return 'vendor-ui';
-          }
-          if (id.includes('node_modules/lucide-react')) {
-            return 'vendor-icons';
           }
         },
       },

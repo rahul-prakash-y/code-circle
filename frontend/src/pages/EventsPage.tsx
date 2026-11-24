@@ -6,11 +6,12 @@ import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
 import useEventStore from '../store/useEventStore';
 import EventFeed from '../components/events/EventFeed';
-import EventModal from '../components/events/EventModal';
 import TutorialButton from '../components/common/TutorialButton';
 import MissedEventRequestModal from '../components/events/MissedEventRequestModal';
 import AdminMissedEventRequestsModal from '../components/admin/AdminMissedEventRequestsModal';
 import { Button } from '@heroui/react';
+
+const EventModal = React.lazy(() => import('../components/events/EventModal'));
 
 export const EventsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -114,12 +115,14 @@ export const EventsPage: React.FC = () => {
       />
 
       {/* Event Modal for Admin */}
-      {isAdmin && (
-        <EventModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          eventToEdit={eventToEdit}
-        />
+      {isAdmin && isModalOpen && (
+        <React.Suspense fallback={null}>
+          <EventModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            eventToEdit={eventToEdit}
+          />
+        </React.Suspense>
       )}
 
       {/* Missed Event Request Modal for Students */}

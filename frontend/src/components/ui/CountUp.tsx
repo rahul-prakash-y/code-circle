@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { animate } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
 
 interface CountUpProps {
   value: number | string;
@@ -9,6 +8,11 @@ interface CountUpProps {
   suffix?: string;
 }
 
+// Emil Kowalski fluid ease-out cubic-bezier(0.16, 1, 0.3, 1) timing function
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
 export const CountUp: React.FC<CountUpProps> = ({
   value,
   duration = 1.2,
@@ -16,65 +20,82 @@ export const CountUp: React.FC<CountUpProps> = ({
   prefix = '',
   suffix = '',
 }) => {
-  const [displayValue, setDisplayValue] = useState<number | string>(0);
+  const spanRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    // Parse numeric part
-    if (typeof value === 'number') {
-      const controls = animate(0, value, {
-        duration,
-        ease: [0.16, 1, 0.3, 1], // fluid cubic bezier
-        onUpdate: (latest) => {
-          setDisplayValue(Math.round(latest));
-        },
-      });
-      return () => controls.stop();
-    }
+    const span = spanRef.current;
+    if (!span) return;
 
-    if (typeof value === 'string') {
-      // Remove commas or whitespace to check if numeric
+    let targetNum: number | null = null;
+    let preStr = prefix;
+    let sufStr = suffix;
+    let isDecimal = false;
+
+    if (typeof value === 'number') {
+      targetNum = value;
+    } else if (typeof value === 'string') {
       const cleanStr = value.replace(/,/g, '').trim();
       const num = parseFloat(cleanStr);
-
       if (!isNaN(num) && isFinite(num) && String(num) === cleanStr) {
-        const controls = animate(0, num, {
-          duration,
-          ease: [0.16, 1, 0.3, 1],
-          onUpdate: (latest) => {
-            setDisplayValue(Math.round(latest).toLocaleString());
-          },
-        });
-        return () => controls.stop();
+        targetNum = num;
+      } else {
+        const match = cleanStr.match(/^([^\d.]*)(\d+(?:\.\d+)?)([^\d.]*)$/);
+        if (match) {
+          preStr = `${prefix}${match[1]}`;
+          targetNum = parseFloat(match[2]);
+          sufStr = `${match[3]}${suffix}`;
+          isDecimal = match[2].includes('.');
+        } else {
+          span.textContent = `${prefix}${value}${suffix}`;
+          return;
+        }
       }
-
-      // If it contains prefix/suffix like "14.2k" or "#12"
-      const match = cleanStr.match(/^([^\d.]*)(\d+(?:\.\d+)?)([^\d.]*)$/);
-      if (match) {
-        const pre = match[1];
-        const numVal = parseFloat(match[2]);
-        const suf = match[3];
-        const isDecimal = match[2].includes('.');
-
-        const controls = animate(0, numVal, {
-          duration,
-          ease: [0.16, 1, 0.3, 1],
-          onUpdate: (latest) => {
-            const formatted = isDecimal ? latest.toFixed(1) : Math.round(latest).toString();
-            setDisplayValue(`${pre}${formatted}${suf}`);
-          },
-        });
-        return () => controls.stop();
-      }
-
-      // Non-numeric string fallback
-      setDisplayValue(value);
     }
-  }, [value, duration]);
+
+    if (targetNum === null || isNaN(targetNum)) {
+      span.textContent = `${prefix}${value}${suffix}`;
+      return;
+    }
+
+    // Direct DOM mutation inside requestAnimationFrame loop (zero React state re-renders)
+    let startTime: number | null = null;
+    let rafId: number;
+    const durationMs = duration * 1000;
+
+    const step = (now: number) => {
+      if (startTime === null) startTime = now;
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / durationMs, 1);
+      const easedProgress = easeOutCubic(progress);
+      const currentVal = targetNum! * easedProgress;
+
+      const formattedVal = isDecimal
+        ? currentVal.toFixed(1)
+        : Math.round(currentVal).toLocaleString();
+
+      if (spanRef.current) {
+        spanRef.current.textContent = `${preStr}${formattedVal}${sufStr}`;
+      }
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(step);
+      }
+    };
+
+    rafId = requestAnimationFrame(step);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [value, duration, prefix, suffix]);
 
   return (
-    <span className={`inline-block font-mono tracking-tight ${className}`}>
+    <span
+      ref={spanRef}
+      className={`inline-block font-mono tracking-tight ${className}`}
+    >
       {prefix}
-      {displayValue}
+      {typeof value === 'number' ? '0' : value}
       {suffix}
     </span>
   );

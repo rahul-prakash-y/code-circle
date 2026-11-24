@@ -20,6 +20,7 @@ import { HeroChip as Chip } from '@/components/ui/hero/HeroChip';
 import { Checkbox } from '@heroui/react';
 import { format } from 'date-fns';
 import { getStudentCollege, getStudentYear, getStudentDepartment } from '../../utils/studentUtils';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 export interface ParticipantCardProps {
   enrollment: any;
@@ -72,16 +73,27 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
             </div>
           )}
 
-          {/* Monogram Avatar */}
-                      <div
-                        className={`w-10 h-10 rounded-xl font-semibold text-sm flex items-center justify-center shrink-0 border shadow-xs ${
-                          isPresent
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25'
-                            : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25'
-                        }`}
-                      >
-                        {e.enrolledBy?.name ? e.enrolledBy.name.charAt(0).toUpperCase() : '?'}
-                      </div>
+          {/* Monogram / Profile Avatar */}
+          <div
+            className={`w-10 h-10 rounded-xl font-semibold text-sm flex items-center justify-center shrink-0 border overflow-hidden shadow-xs ${
+              isPresent
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25'
+                : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/25'
+            }`}
+          >
+            {e.enrolledBy?.profilePicUrl ? (
+              <img
+                src={getOptimizedImageUrl(e.enrolledBy.profilePicUrl, 200)}
+                alt={e.enrolledBy?.name || 'Student avatar'}
+                width={40}
+                height={40}
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              e.enrolledBy?.name ? e.enrolledBy.name.charAt(0).toUpperCase() : '?'
+            )}
+          </div>
 
                       {/* Student and Team Info */}
                       <div className="min-w-0">

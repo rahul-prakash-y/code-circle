@@ -27,6 +27,7 @@ import { HeroAvatar, HeroUser } from '@/components/ui/hero/HeroAvatar';
 import { HeroInput } from '@/components/ui/hero/HeroInput';
 import { HeroTabs } from '@/components/ui/hero/HeroTabs';
 import { EmptyState, NoSearchResults } from '../states';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 // ── 3D Olympic Podium Component for Top 3 ──────────────────────────────
 const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
@@ -98,7 +99,7 @@ const PodiumPedestal = ({ user, rank, isCurrentUser }) => {
         {/* Circular Avatar with HeroUI concentric primary ring */}
         <div className="relative">
           <HeroAvatar
-            src={user.profilePicUrl}
+            src={getOptimizedImageUrl(user.profilePicUrl, 200)}
             name={user.name}
             isBordered
             color="primary"
@@ -662,7 +663,7 @@ export const Leaderboard = () => {
                       </span>
                     }
                     avatarProps={{
-                      src: u.profilePicUrl,
+                      src: getOptimizedImageUrl(u.profilePicUrl, 200),
                       name: u.name,
                       isBordered: true,
                       color: 'primary',

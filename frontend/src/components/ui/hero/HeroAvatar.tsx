@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getOptimizedImageUrl } from '@/utils/imageUtils';
 
 export interface HeroAvatarProps {
   src?: string | null;
@@ -37,6 +38,14 @@ export const HeroAvatar: React.FC<HeroAvatarProps> = ({
     danger: 'ring-2 ring-destructive ring-offset-2 ring-offset-surface',
   }[color];
 
+  const pixelDimensions = {
+    xs: 24,
+    sm: 32,
+    md: 40,
+    lg: 48,
+    xl: 64,
+  }[size];
+
   const getInitials = (n?: string) => {
     if (!n) return '•';
     const parts = n.trim().split(' ');
@@ -52,8 +61,11 @@ export const HeroAvatar: React.FC<HeroAvatarProps> = ({
     >
       {src && !imgError ? (
         <img
-          src={src}
+          src={getOptimizedImageUrl(src, 200)}
           alt={name || 'Avatar'}
+          width={pixelDimensions}
+          height={pixelDimensions}
+          decoding="async"
           onError={() => setImgError(true)}
           className="w-full h-full object-cover rounded-full"
         />

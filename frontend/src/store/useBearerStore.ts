@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
 
 export interface StudentBearer {
   _id: string;
@@ -43,7 +44,11 @@ export const useBearerStore = create<BearerStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await api.get<StudentBearer[]>('/bearers');
-      set({ bearers: response.data, loading: false });
+      const optimizedBearers = response.data.map((b) => ({
+        ...b,
+        photoUrl: getOptimizedImageUrl(b.photoUrl, 200),
+      }));
+      set({ bearers: optimizedBearers, loading: false });
     } catch (error: any) {
       const message = error.response?.data?.error || 'Failed to load student bearers';
       set({ error: message, loading: false });

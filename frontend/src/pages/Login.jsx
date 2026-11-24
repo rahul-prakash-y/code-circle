@@ -32,6 +32,19 @@ const Login = () => {
     }
   }, [activeServerUrl, findFastestServer]);
 
+  // Lazy Google Sign-In: loads Firebase Auth SDK dynamically on explicit user interaction
+  const handleGoogleSignIn = async () => {
+    try {
+      const { getFirebaseAuth } = await import('../lib/firebase');
+      const { auth, googleProvider } = await getFirebaseAuth();
+      const { signInWithPopup } = await import('firebase/auth');
+      const result = await signInWithPopup(auth, googleProvider);
+      return result;
+    } catch (err) {
+      toast.error(err.message || 'Google Sign-In failed');
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);

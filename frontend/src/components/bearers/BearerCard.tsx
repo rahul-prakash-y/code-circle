@@ -4,6 +4,7 @@ import { Linkedin, Sparkles, ExternalLink } from 'lucide-react';
 import { Link } from '@heroui/react';
 import { StudentBearer } from '../../store/useBearerStore';
 import { EmilCard } from '../ui/emil-ui';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 interface BearerCardProps {
   bearer: StudentBearer;
@@ -51,8 +52,11 @@ export const BearerCard: React.FC<BearerCardProps> = ({ bearer, index = 0 }) => 
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-surface-secondary">
         {hasPhoto ? (
           <motion.img
-            src={bearer.photoUrl}
+            src={getOptimizedImageUrl(bearer.photoUrl, 200)}
             alt={bearer.name}
+            width={490}
+            height={490}
+            decoding="async"
             onLoad={() => setImageLoaded(true)}
             onError={() => setImageError(true)}
             initial={{ opacity: 0 }}

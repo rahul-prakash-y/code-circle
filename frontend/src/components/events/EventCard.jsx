@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, Clock, Edit2, Trash2, ArrowUpRight, UserCheck, Eye, Award, FileSpreadsheet, Upload, Sparkles, FileText, UserPlus, AlertTriangle, Loader2 } from 'lucide-react';
 import { format, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import EnrollmentModal from './EnrollmentModal';
-import EventDetailsModal from './EventDetailsModal';
 import AttendanceDashboard from '../admin/AttendanceDashboard';
 import EventParticipantsModal from '../admin/EventParticipantsModal';
-import EventBulkUploadModal from './EventBulkUploadModal';
-import EventArenaAdminModal from './EventArenaAdminModal';
 import useEnrollmentStore from '../../store/useEnrollmentStore';
 import useEventStore from '../../store/useEventStore';
 import { EmilCard, EmilButton } from '../ui/emil-ui';
+
+const EventDetailsModal = React.lazy(() => import('./EventDetailsModal'));
+const EventBulkUploadModal = React.lazy(() => import('./EventBulkUploadModal'));
+const EventArenaAdminModal = React.lazy(() => import('./EventArenaAdminModal'));
 
 const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
@@ -412,55 +413,61 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
       </div>
 
       {/* Event Details Preview Modal */}
-      <EventDetailsModal
-        isOpen={isDetailsOpen}
-        onClose={() => setIsDetailsOpen(false)}
-        event={event}
-        isEnrolled={isEnrolled}
-        isAdmin={isAdmin}
-        onEnroll={() => setIsEnrollModalOpen(true)}
-        onEdit={onEdit}
-        onViewParticipants={(ev, tab) => {
-          setParticipantsInitialTab(tab || 'participants');
-          setIsParticipantsOpen(true);
-        }}
-        onViewRegistered={() => {
-          setParticipantsInitialTab('registered');
-          setIsParticipantsOpen(true);
-        }}
-        onUploadParticipants={() => {
-          setBulkUploadInitialTab('bulk');
-          setIsBulkUploadOpen(true);
-        }}
-        onAddParticipant={() => {
-          setBulkUploadInitialTab('single');
-          setIsBulkUploadOpen(true);
-        }}
-      />
+      {isDetailsOpen && (
+        <Suspense fallback={null}>
+          <EventDetailsModal
+            isOpen={isDetailsOpen}
+            onClose={() => setIsDetailsOpen(false)}
+            event={event}
+            isEnrolled={isEnrolled}
+            isAdmin={isAdmin}
+            onEnroll={() => setIsEnrollModalOpen(true)}
+            onEdit={onEdit}
+            onViewParticipants={(ev, tab) => {
+              setParticipantsInitialTab(tab || 'participants');
+              setIsParticipantsOpen(true);
+            }}
+            onViewRegistered={() => {
+              setParticipantsInitialTab('registered');
+              setIsParticipantsOpen(true);
+            }}
+            onUploadParticipants={() => {
+              setBulkUploadInitialTab('bulk');
+              setIsBulkUploadOpen(true);
+            }}
+            onAddParticipant={() => {
+              setBulkUploadInitialTab('single');
+              setIsBulkUploadOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Event Bulk Upload & Single User Modal for Admin */}
       {isAdmin && isBulkUploadOpen && (
-        <EventBulkUploadModal
-          isOpen={isBulkUploadOpen}
-          initialTab={bulkUploadInitialTab}
-          onClose={() => {
-            setIsBulkUploadOpen(false);
-            if (hasUploadedInSession) {
-              setHasUploadedInSession(false);
-              try {
-                fetchEvents();
-              } catch {
-                // Safe fallback
+        <Suspense fallback={null}>
+          <EventBulkUploadModal
+            isOpen={isBulkUploadOpen}
+            initialTab={bulkUploadInitialTab}
+            onClose={() => {
+              setIsBulkUploadOpen(false);
+              if (hasUploadedInSession) {
+                setHasUploadedInSession(false);
+                try {
+                  fetchEvents();
+                } catch {
+                  // Safe fallback
+                }
               }
-            }
-          }}
-          event={event}
-          onSuccess={() => {
-            // Mark that an upload or single student addition succeeded during this session;
-            // fetchEvents() is deferred until the admin explicitly closes the modal
-            setHasUploadedInSession(true);
-          }}
-        />
+            }}
+            event={event}
+            onSuccess={() => {
+              // Mark that an upload or single student addition succeeded during this session;
+              // fetchEvents() is deferred until the admin explicitly closes the modal
+              setHasUploadedInSession(true);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Event Participants & Registered Students Modal for Admin */}
@@ -488,12 +495,14 @@ const EventCard = ({ event, isAdmin = false, onEdit, onDelete }) => {
       />
 
       {/* Event Arena Admin & Question Hub Modal */}
-      {isAdmin && (
-        <EventArenaAdminModal
-          isOpen={isArenaAdminOpen}
-          onClose={() => setIsArenaAdminOpen(false)}
-          event={event}
-        />
+      {isAdmin && isArenaAdminOpen && (
+        <Suspense fallback={null}>
+          <EventArenaAdminModal
+            isOpen={isArenaAdminOpen}
+            onClose={() => setIsArenaAdminOpen(false)}
+            event={event}
+          />
+        </Suspense>
       )}
 
       {/* Delete Confirmation Modal for Admin */}

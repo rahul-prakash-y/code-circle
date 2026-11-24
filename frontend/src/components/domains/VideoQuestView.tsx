@@ -5,9 +5,10 @@ import { ILevel, IStudyMaterial } from '../../types/domain';
 import useDomainStore from '../../store/useDomainStore';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
-import TakeAssessmentModal from '../assessments/TakeAssessmentModal';
 import LevelSubmissionsModal from './LevelSubmissionsModal';
 import MarkdownContent from '../common/MarkdownContent';
+
+const TakeAssessmentModal = React.lazy(() => import('../assessments/TakeAssessmentModal'));
 import {
   Play,
   CheckCircle2,
@@ -695,11 +696,13 @@ export const VideoQuestView: React.FC<VideoQuestViewProps> = ({ level, onEditLev
 
       {/* Take Assessment Modal Instance */}
       {isAssessmentModalOpen && assessmentId && (
-        <TakeAssessmentModal
-          assessmentId={assessmentId}
-          isOpen={isAssessmentModalOpen}
-          onClose={() => setIsAssessmentModalOpen(false)}
-        />
+        <React.Suspense fallback={null}>
+          <TakeAssessmentModal
+            assessmentId={assessmentId}
+            isOpen={isAssessmentModalOpen}
+            onClose={() => setIsAssessmentModalOpen(false)}
+          />
+        </React.Suspense>
       )}
 
       {/* Admin Level Submissions Inspector Modal */}

@@ -33,11 +33,13 @@ import useBearerStore, { StudentBearer } from '../store/useBearerStore';
 
 import CountUp from '../components/ui/CountUp';
 import QuickActions from '../components/admin/QuickActions';
-import EventModal from '../components/events/EventModal';
 import { EmilCard, EmilButton } from '../components/ui/emil-ui';
 import { EMIL_EASE_OUT, DURATION_MODAL } from '../lib/motion';
 import MagneticCTA from '../components/ui/MagneticCTA';
 import { Button, Link as HeroLink } from '@heroui/react';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
+
+const EventModal = React.lazy(() => import('../components/events/EventModal'));
 
 // ── Scroll-driven hero (subtle depth, max 12-16px movement) ────────────────────
 const Hero = ({
@@ -65,7 +67,7 @@ const Hero = ({
     <motion.section
       ref={ref}
       style={{ opacity: heroOpacity }}
-      className="relative pt-1 pb-6 md:pb-8"
+      className="relative pt-1 pb-6 md:pb-8 min-h-[260px] sm:min-h-[280px]"
     >
       {/* Subtle ambient warmth behind hero in light mode (almost invisible depth) */}
       <div
@@ -297,8 +299,11 @@ const DashboardBearerCard = ({ bearer }: { bearer: StudentBearer }) => {
           <div className="relative w-12 h-12 rounded-2xl overflow-hidden bg-canvas border border-separator shrink-0">
             {!imageError && bearer.photoUrl ? (
               <img
-                src={bearer.photoUrl}
+                src={getOptimizedImageUrl(bearer.photoUrl, 200)}
                 alt={bearer.name}
+                width={48}
+                height={48}
+                decoding="async"
                 onError={() => setImageError(true)}
                 className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
               />
@@ -664,12 +669,14 @@ export const Dashboard: React.FC = () => {
       </section>
 
       {/* Event Modal for Admin */}
-      {isAdmin && (
-        <EventModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          eventToEdit={eventToEdit}
-        />
+      {isAdmin && isModalOpen && (
+        <React.Suspense fallback={null}>
+          <EventModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            eventToEdit={eventToEdit}
+          />
+        </React.Suspense>
       )}
     </div>
   );

@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import useProfileStore from '../store/useProfileStore';
-import MandatoryChangePasswordModal from '../components/auth/MandatoryChangePasswordModal';
+
+const MandatoryChangePasswordModal = React.lazy(() => import('../components/auth/MandatoryChangePasswordModal'));
 
 import { EMIL_EASE_OUT, EMIL_EASE_IN_OUT } from '../lib/motion';
 const EASE_TRANSITION = { duration: 0.22, ease: EMIL_EASE_OUT };
@@ -26,9 +27,10 @@ const EASE_TRANSITION = { duration: 0.22, ease: EMIL_EASE_OUT };
 export const MainLayout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('code-circle-sidebar-collapsed') === 'true';
+      const saved = localStorage.getItem('code-circle-sidebar-collapsed');
+      return saved !== null ? saved === 'true' : true;
     }
-    return false;
+    return true;
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -80,14 +82,14 @@ export const MainLayout = ({ children }) => {
   // Responsive desktop detection
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth >= 1024;
+      return window.innerWidth >= 768;
     }
     return false;
   });
 
   useEffect(() => {
     const handleResize = () => {
-      const desktop = window.innerWidth >= 1024;
+      const desktop = window.innerWidth >= 768;
       setIsDesktop(desktop);
       // Close mobile menu when viewport becomes desktop
       if (desktop) setIsMobileMenuOpen(false);
@@ -131,8 +133,6 @@ export const MainLayout = ({ children }) => {
       : []),
   ];
 
-  const sidebarW = isDesktop ? (isSidebarCollapsed ? 68 : 240) : 0;
-
   return (
     <div
       className="min-h-[100dvh] relative flex overflow-x-hidden"
@@ -140,8 +140,8 @@ export const MainLayout = ({ children }) => {
     >
       <BackgroundGradient />
 
-      {/* Desktop Sidebar — hidden on mobile & tablets (< 1024px) */}
-      <div className="hidden lg:block">
+      {/* Desktop Sidebar — hidden on mobile & tablets (< 768px) */}
+      <div className="hidden md:block">
         <Sidebar isCollapsed={isSidebarCollapsed} onToggleCollapse={toggleSidebar} />
       </div>
 
@@ -155,14 +155,14 @@ export const MainLayout = ({ children }) => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 z-50 lg:hidden backdrop-blur-md" style={{ background: 'var(--surface-overlay)' }}
+              className="fixed inset-0 z-50 md:hidden backdrop-blur-md" style={{ background: 'var(--surface-overlay)' }}
             />
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={EASE_TRANSITION}
-              className="fixed top-0 left-0 bottom-0 w-[min(300px,85vw)] z-50 lg:hidden flex flex-col"
+              className="fixed top-0 left-0 bottom-0 w-[min(300px,85vw)] z-50 md:hidden flex flex-col"
               style={{
                 background: 'var(--surface)',
                 borderRight: '1px solid var(--separator)',
@@ -184,6 +184,8 @@ export const MainLayout = ({ children }) => {
                     <img
                       src="/codecirclelogo.png"
                       alt="Code Circle Logo"
+                      width={36}
+                      height={36}
                       className="w-full h-full object-contain p-0.5 relative z-10 select-none pointer-events-none"
                       loading="eager"
                     />
@@ -249,16 +251,11 @@ export const MainLayout = ({ children }) => {
         )}
       </AnimatePresence>
 
-      {/* Content area */}
-      <style>{`
-        @media (max-width: 1023px) {
-          .cc-content-root { margin-left: 0px !important; }
-        }
-      `}</style>
-      <motion.div
-        animate={{ marginLeft: sidebarW }}
-        transition={EASE_TRANSITION}
-        className="cc-content-root flex-1 flex flex-col min-w-0"
+      {/* Content area with deterministic CSS margin for zero CLS */}
+      <div
+        className={`cc-content-root flex-1 flex flex-col min-w-0 transition-[margin] duration-200 ease-out ${
+          isSidebarCollapsed ? 'md:ml-[68px]' : 'md:ml-[240px]'
+        }`}
       >
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
 
@@ -279,12 +276,14 @@ export const MainLayout = ({ children }) => {
             </AnimatePresence>
           </Suspense>
         </main>
-      </motion.div>
+      </div>
 
       {/* iOS Bottom Navigation — visible only on mobile (< md: 768px) */}
       {/* <BottomNav /> */}
 
-      <MandatoryChangePasswordModal />
+      <Suspense fallback={null}>
+        <MandatoryChangePasswordModal />
+      </Suspense>
     </div>
   );
 };

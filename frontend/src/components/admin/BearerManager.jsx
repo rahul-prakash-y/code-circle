@@ -5,6 +5,7 @@ import useBearerStore from '../../store/useBearerStore';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { Plus, Edit2, Trash2, X, Github, Linkedin, Mail, Shield, Terminal, Cpu, Layout, Loader2 } from 'lucide-react';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 const icons = ['Shield', 'Terminal', 'Cpu', 'Layout'];
 
@@ -191,7 +192,14 @@ const BearerManager = () => {
               <div className="relative group">
                 <div className="w-24 h-24 rounded-2xl bg-surface-elevated border-2 border-slate-700 overflow-hidden flex items-center justify-center">
                   {formData.profilePicUrl ? (
-                    <img src={formData.profilePicUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <img
+                      src={getOptimizedImageUrl(formData.profilePicUrl, 160)}
+                      alt="Preview"
+                      width={96}
+                      height={96}
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <Shield size={32} className="text-text-muted" />
                   )}

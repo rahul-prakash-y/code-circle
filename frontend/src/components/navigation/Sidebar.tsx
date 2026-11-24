@@ -70,6 +70,8 @@ const AppMark: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
       <img
         src="/codecirclelogo.png"
         alt="Code Circle Logo"
+        width={36}
+        height={36}
         className="w-full h-full object-contain p-0.5 relative z-10 transition-transform duration-200 group-hover:scale-105 select-none pointer-events-none"
         loading="eager"
       />

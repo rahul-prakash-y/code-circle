@@ -26,12 +26,13 @@ import { formatDistanceToNow } from 'date-fns';
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import useNotificationStore, { NotificationItem } from '../../store/useNotificationStore';
-import CreateNotificationModal from '../notifications/CreateNotificationModal';
 import TutorialButton from '../common/TutorialButton';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { auth } from '../../lib/firebase';
 import toast from 'react-hot-toast';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
+
+const CreateNotificationModal = React.lazy(() => import('../notifications/CreateNotificationModal'));
 
 interface HeaderProps {
   onOpenMobileMenu?: () => void;
@@ -148,13 +149,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
 
   const handleLogout = async () => {
     try {
+      const { getFirebaseAuth } = await import('../../lib/firebase');
+      const { auth } = await getFirebaseAuth();
       await auth.signOut();
-      logout();
-      toast.success('Signed out');
-      navigate('/login');
     } catch {
-      toast.error('Sign out failed');
+      // safe fallback if offline or Firebase uninitialized
     }
+    logout();
+    toast.success('Signed out');
+    navigate('/login');
   };
 
   const displayName = profile?.name || user?.name || 'User';
@@ -576,7 +579,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
               >
                 <Avatar className="w-7 h-7 rounded-full">
                   {profile?.profilePicUrl && (
-                    <AvatarImage src={profile.profilePicUrl} alt={displayName} className="object-cover" />
+                    <AvatarImage
+                      src={getOptimizedImageUrl(profile.profilePicUrl, 200)}
+                      alt={displayName}
+                      width={28}
+                      height={28}
+                      decoding="async"
+                      className="object-cover"
+                    />
                   )}
                   <AvatarFallback
                     className="rounded-full text-[11px] font-bold"
@@ -604,7 +614,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10 rounded-full shrink-0 border border-separator">
                     {profile?.profilePicUrl && (
-                      <AvatarImage src={profile.profilePicUrl} alt={displayName} className="object-cover" />
+                      <AvatarImage
+                        src={getOptimizedImageUrl(profile.profilePicUrl, 200)}
+                        alt={displayName}
+                        width={40}
+                        height={40}
+                        decoding="async"
+                        className="object-cover"
+                      />
                     )}
                     <AvatarFallback
                       className="rounded-full font-bold text-sm"
@@ -678,11 +695,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu, className = ''
       </div>
 
       {/* Admin Broadcast Notification Modal */}
-      {isAdmin && (
-        <CreateNotificationModal
-          isOpen={isBroadcastModalOpen}
-          onClose={() => setIsBroadcastModalOpen(false)}
-        />
+      {isAdmin && isBroadcastModalOpen && (
+        <React.Suspense fallback={null}>
+          <CreateNotificationModal
+            isOpen={isBroadcastModalOpen}
+            onClose={() => setIsBroadcastModalOpen(false)}
+          />
+        </React.Suspense>
       )}
     </header>
   );

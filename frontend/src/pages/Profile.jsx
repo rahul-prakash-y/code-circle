@@ -31,7 +31,6 @@ import {
 } from 'lucide-react';
 import useProfileStore from '../store/useProfileStore';
 import useAuthStore from '../store/useAuthStore';
-import { auth as firebaseAuth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ImageUploadModal from '../components/profile/ImageUploadModal';
@@ -112,13 +111,15 @@ const Profile = () => {
 
   const handleLogout = async () => {
     try {
-      await firebaseAuth.signOut();
-      logout();
-      toast.success('Logged out successfully');
-      navigate('/login');
+      const { getFirebaseAuth } = await import('../lib/firebase');
+      const { auth } = await getFirebaseAuth();
+      await auth.signOut();
     } catch {
-      toast.error('Logout failed');
+      // safe fallback
     }
+    logout();
+    toast.success('Logged out successfully');
+    navigate('/login');
   };
 
   const createInitialFormData = (p) => ({

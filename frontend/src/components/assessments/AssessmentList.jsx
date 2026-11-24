@@ -27,12 +27,13 @@ import { DelayedSkeleton, CardGridSkeleton, EmptyState, NoSearchResults } from '
 import useAuthStore from '../../store/useAuthStore';
 import useProfileStore from '../../store/useProfileStore';
 import toast from 'react-hot-toast';
-import TakeAssessmentModal from './TakeAssessmentModal';
 import AssessmentEditorModal from './AssessmentEditorModal';
 import AssessmentSubmissionsModal from './AssessmentSubmissionsModal';
 import McqBulkUploadModal from './McqBulkUploadModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import Pagination from '../common/Pagination';
+
+const TakeAssessmentModal = React.lazy(() => import('./TakeAssessmentModal'));
 
 const categories = ['All', 'Technical', 'Web Development', 'Algorithms', 'General', 'System Design'];
 
@@ -689,11 +690,13 @@ export const AssessmentList = () => {
 
       {/* Modals */}
       {selectedAssessmentToTake && (
-        <TakeAssessmentModal
-          assessmentId={selectedAssessmentToTake._id}
-          isOpen={Boolean(selectedAssessmentToTake)}
-          onClose={() => setSelectedAssessmentToTake(null)}
-        />
+        <Suspense fallback={null}>
+          <TakeAssessmentModal
+            assessmentId={selectedAssessmentToTake._id}
+            isOpen={Boolean(selectedAssessmentToTake)}
+            onClose={() => setSelectedAssessmentToTake(null)}
+          />
+        </Suspense>
       )}
 
       {isEditorOpen && (
