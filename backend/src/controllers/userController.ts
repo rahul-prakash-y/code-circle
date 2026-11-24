@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import User from '../models/userModel';
+import { setCachedUser } from '../middleware/authMiddleware';
 import Enrollment from '../models/enrollmentModel';
 import AttendanceRecord from '../models/attendanceRecordModel';
 import '../models/attendanceSessionModel';
@@ -79,6 +80,7 @@ export const updateMe = async (request: FastifyRequest, reply: FastifyReply) => 
       return reply.status(404).send({ success: false, error: 'User not found' });
     }
     
+    setCachedUser(id, user);
     return reply.send(user);
   } catch (error: any) {
     request.log.error(error);

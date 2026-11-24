@@ -95,13 +95,19 @@ const useAuthStore = create((set, get) => ({
 
     try {
       const response = await api.get('/auth/me');
-      set({ user: response.data, loading: false, error: null });
+      // Only commit if the token hasn't changed while request was in-flight
+      if (localStorage.getItem('token') === token) {
+        set({ user: response.data, loading: false, error: null });
+      }
       return response.data;
     } catch (err) {
       console.error('Auth verification failed:', err);
-      localStorage.removeItem('token');
-      localStorage.removeItem('sessionId');
-      set({ user: null, token: null, sessionId: null, loading: false });
+      // Only purge if the token in localStorage is still the same one that failed
+      if (localStorage.getItem('token') === token) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('sessionId');
+        set({ user: null, token: null, sessionId: null, loading: false });
+      }
       return null;
     }
   },

@@ -78,7 +78,15 @@ export const verifyToken = async (request: FastifyRequest, reply: FastifyReply) 
 
     // Single-device login check
     if (decoded.sessionId && user.activeSessionId && user.activeSessionId !== decoded.sessionId) {
-      return reply.status(401).send({ success: false, error: 'Session expired. Another login was detected on your account.' });
+      // Guard against stale in-memory cache or cross-node synchronization lag
+      const freshUser = await User.findById(decoded.id);
+      if (freshUser) {
+        user = freshUser;
+        setCachedUser(decoded.id, freshUser);
+      }
+      if (decoded.sessionId && user.activeSessionId && user.activeSessionId !== decoded.sessionId) {
+        return reply.status(401).send({ success: false, error: 'Session expired. Another login was detected on your account.' });
+      }
     }
 
     request.user = {

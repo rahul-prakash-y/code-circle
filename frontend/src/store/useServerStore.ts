@@ -140,15 +140,19 @@ export const useServerStore = create<ServerStoreState>((set, get) => {
           const winningUrl = await Promise.any(nodes.map((url) => probeNode(url)));
           const latency = Date.now() - startTime;
 
+          // Preserve active pinned node if already assigned (e.g. by assignNodeForUser)
+          const currentActive = get().activeServerUrl;
+          const finalUrl = currentActive || winningUrl;
+
           // Pin winning URL in Zustand state and localStorage
           set({
-            activeServerUrl: winningUrl,
+            activeServerUrl: finalUrl,
             isConnecting: false,
             latencyMs: latency,
           });
 
           if (typeof window !== 'undefined') {
-            window.localStorage.setItem(LOCAL_STORAGE_KEY, winningUrl);
+            window.localStorage.setItem(LOCAL_STORAGE_KEY, finalUrl);
           }
 
           console.log(

@@ -70,9 +70,22 @@ api.interceptors.response.use(
         error.config?.url?.includes('/auth/reset-password');
 
       if (!isAuthEndpoint && typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('sessionId');
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        const requestAuthHeader = error.config?.headers?.Authorization;
+        const requestToken =
+          typeof requestAuthHeader === 'string' && requestAuthHeader.startsWith('Bearer ')
+            ? requestAuthHeader.slice(7).trim()
+            : null;
+        const currentToken = localStorage.getItem('token');
+
+        // Only clear credentials if the failing request used the current active token.
+        // If requestToken !== currentToken, this was a stale in-flight request from a superseded session.
+        if (!requestToken || !currentToken || requestToken === currentToken) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('sessionId');
+          window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        } else {
+          console.warn('[Axios Interceptor] Ignored stale 401 from superseded session request');
+        }
       }
     }
     return Promise.reject(error);

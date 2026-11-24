@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import * as XLSX from 'xlsx';
 import { sanitizeUser } from './authController';
+import { invalidateUserSession } from '../middleware/authMiddleware';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
@@ -268,6 +269,7 @@ export const updateUser = async (request: FastifyRequest, reply: FastifyReply) =
     if (bio !== undefined) targetUser.bio = bio?.trim() || '';
 
     await targetUser.save();
+    invalidateUserSession(targetUser._id.toString());
 
     return reply.send({
       success: true,
@@ -366,6 +368,7 @@ export const toggleBlockUser = async (request: FastifyRequest, reply: FastifyRep
     }
 
     await targetUser.save();
+    invalidateUserSession(targetUser._id.toString());
 
     return reply.send({
       success: true,
@@ -398,6 +401,7 @@ export const triggerResetLink = async (request: FastifyRequest, reply: FastifyRe
     targetUser.resetPasswordToken = resetToken;
     targetUser.resetPasswordExpires = expiresAt;
     await targetUser.save();
+    invalidateUserSession(targetUser._id.toString());
 
     const resetLink = `${clientUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(targetUser.email)}`;
 
@@ -456,6 +460,7 @@ export const forceResetPassword = async (request: FastifyRequest, reply: Fastify
     targetUser.resetPasswordExpires = null;
 
     await targetUser.save();
+    invalidateUserSession(targetUser._id.toString());
 
     return reply.send({
       success: true,

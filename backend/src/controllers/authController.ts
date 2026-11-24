@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import User, { IUser } from '../models/userModel';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { getJwtSecret } from '../middleware/authMiddleware';
+import { getJwtSecret, setCachedUser, invalidateUserSession } from '../middleware/authMiddleware';
 import authLockoutService from '../services/authLockoutService';
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -72,6 +72,7 @@ export const register = async (request: FastifyRequest, reply: FastifyReply) => 
     });
 
     await user.save();
+    setCachedUser(user._id.toString(), user);
 
     const token = jwt.sign(
       {
@@ -161,6 +162,7 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionId = crypto.randomUUID();
     user.activeSessionId = sessionId;
     await user.save();
+    setCachedUser(user._id.toString(), user);
 
     const requirePasswordChange = Boolean(user.mustChangePassword);
 
@@ -193,6 +195,9 @@ export const login = async (request: FastifyRequest, reply: FastifyReply) => {
 
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
+    if (request.user?.id) {
+      invalidateUserSession(request.user.id);
+    }
     if (request.user?.email) {
       await User.findOneAndUpdate(
         { email: request.user.email },
@@ -316,6 +321,7 @@ export const resetPassword = async (request: FastifyRequest, reply: FastifyReply
     user.activeSessionId = null; // Invalidate all active sessions
     user.mustChangePassword = false;
     await user.save();
+    invalidateUserSession(user._id.toString());
 
     // Mark corresponding password reset request as redeemed
     try {
@@ -376,6 +382,7 @@ export const changePassword = async (request: FastifyRequest, reply: FastifyRepl
     user.password = newPassword; // Pre-save hook will hash it
     user.mustChangePassword = false;
     await user.save();
+    setCachedUser(user._id.toString(), user);
 
     return reply.send({
       success: true,
